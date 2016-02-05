@@ -1170,11 +1170,11 @@ class NodeProcTxRate(message.Cmd):
                        CMD_PARAM_UNICAST
                        CMD_PARAM_MULTICAST_DATA
                        CMD_PARAM_MULTICAST_MGMT
-        mcs       -- MCS index for new Tx rate
-        phy_mode  -- PHY Mode for new Tx rate - must be 0x1 (11a) or 0x2 (11n)
+        rate_info -- Combined MCS index (byte 0) and PHY mode (byte 1) for new
+                      Tx rate
         device    -- 802.11 device for which the rate is being set.
     """
-    def __init__(self, cmd, tx_type, mcs=None, phy_mode=None, device=None):
+    def __init__(self, cmd, tx_type, rate_info=None, device=None):
         super(NodeProcTxRate, self).__init__()
         self.command = _CMD_GROUP_NODE + CMDID_NODE_TX_RATE
         mac_address  = None
@@ -1183,8 +1183,7 @@ class NodeProcTxRate(message.Cmd):
 
         self.add_args(self.check_type(tx_type))
 
-        if (mcs is not None) and (phy_mode is not None):
-            rate_info = (mcs & 0xFF) | ((phy_mode & 0xFF) << 8)
+        if (rate_info is not None):
             self.add_args(rate_info)
         else:
             self.add_args(0)
@@ -1225,7 +1224,7 @@ class NodeProcTxRate(message.Cmd):
 
         if resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from Tx rate command'):
             args = resp.get_args()
-            return util.find_tx_rate_by_index(args[1])
+            return args[1]
         else:
             return None
 

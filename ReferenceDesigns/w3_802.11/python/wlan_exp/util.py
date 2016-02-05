@@ -35,38 +35,38 @@ __all__ = ['consts_dict', 'init_nodes', 'broadcast_cmd_set_mac_time', 'broadcast
 
 class consts_dict(dict):
     """Contants Dictionary
-    
+
     Sub-class of dictionary, with fields accessible as immutable properties.
     """
     def copy(self):
         return consts_dict(self)
-    
+
     # Allow attribute (ie ".") notation to access contents of dictionary
     def __getattr__(self, name):
         if name in self:
             return self[name]
         else:
             raise AttributeError("No such attribute: " + name)
-    
+
     # Do not allow existing attributes or items to be modified or deleted
     def __setattr__(self, name, value):
         if name in self:
             raise AttributeError("Cannot change existing entries in {0}".format(self.__class__.__name__))
         else:
             super(consts_dict, self).__setitem__(name, value)
-        
+
     def __delattr__(self, name):
         pass
-    
+
     def __setitem__(self, key, value):
         if key in self:
             raise AttributeError("Cannot change existing entries in {0}".format(self.__class__.__name__))
         else:
             super(consts_dict, self).__setitem__(key, value)
-    
+
     def __delitem__(self, key):
         pass
-    
+
 # End class
 
 
@@ -87,14 +87,22 @@ WLAN_EXP_PRINT_DEBUG              = 4
 # -----------------------------------------------------------------------------
 # WLAN Exp Rate definitions
 # -----------------------------------------------------------------------------
-wlan_rates = [{'index' :  0, 'rate' :  6.0, 'desc' : 'BPSK 1/2',   'NDBPS': 24},
-              {'index' :  1, 'rate' :  9.0, 'desc' : 'BPSK 3/4',   'NDBPS': 36},
-              {'index' :  2, 'rate' : 12.0, 'desc' : 'QPSK 1/2',   'NDBPS': 48},
-              {'index' :  3, 'rate' : 18.0, 'desc' : 'QPSK 3/4',   'NDBPS': 72},
-              {'index' :  4, 'rate' : 24.0, 'desc' : '16-QAM 1/2', 'NDBPS': 96},
-              {'index' :  5, 'rate' : 36.0, 'desc' : '16-QAM 3/4', 'NDBPS': 144},
-              {'index' :  6, 'rate' : 48.0, 'desc' : '64-QAM 2/3', 'NDBPS': 192},
-              {'index' :  7, 'rate' : 54.0, 'desc' : '64-QAM 3/4', 'NDBPS': 216}]
+wlan_rates = [{'index' :  0, 'rate' :  6.0, 'desc' : 'NONHT BPSK 1/2',   'NDBPS': 24},
+              {'index' :  1, 'rate' :  9.0, 'desc' : 'NONHT BPSK 3/4',   'NDBPS': 36},
+              {'index' :  2, 'rate' : 12.0, 'desc' : 'NONHT QPSK 1/2',   'NDBPS': 48},
+              {'index' :  3, 'rate' : 18.0, 'desc' : 'NONHT QPSK 3/4',   'NDBPS': 72},
+              {'index' :  4, 'rate' : 24.0, 'desc' : 'NONHT 16-QAM 1/2', 'NDBPS': 96},
+              {'index' :  5, 'rate' : 36.0, 'desc' : 'NONHT 16-QAM 3/4', 'NDBPS': 144},
+              {'index' :  6, 'rate' : 48.0, 'desc' : 'NONHT 64-QAM 2/3', 'NDBPS': 192},
+              {'index' :  7, 'rate' : 54.0, 'desc' : 'NONHT 64-QAM 3/4', 'NDBPS': 216},
+              {'index' :  0x80+0, 'rate' :  6.5, 'desc' : 'HTMM BPSK 1/2',   'NDBPS': 26},
+              {'index' :  0x80+1, 'rate' : 13.0, 'desc' : 'HTMM QPSK 1/2',   'NDBPS': 52},
+              {'index' :  0x80+2, 'rate' : 19.5, 'desc' : 'HTMM QPSK 3/4',   'NDBPS': 78},
+              {'index' :  0x80+3, 'rate' : 26.0, 'desc' : 'HTMM 16-QAM 1/2',   'NDBPS': 104},
+              {'index' :  0x80+4, 'rate' : 39.0, 'desc' : 'HTMM 16-QAM 3/4', 'NDBPS': 156},
+              {'index' :  0x80+5, 'rate' : 52.0, 'desc' : 'HTMM 64-QAM 2/3', 'NDBPS': 208},
+              {'index' :  0x80+6, 'rate' : 58.5, 'desc' : 'HTMM 64-QAM 3/4', 'NDBPS': 234},
+              {'index' :  0x80+7, 'rate' : 65.0, 'desc' : 'HTMM 64-QAM 5/6', 'NDBPS': 260},]
 
 #TODO: We need to make wlan_rates flexible for different PHY sampling modes
 #wlan_rates = [{'index' :  0, 'rate' :  12.0, 'desc' : 'BPSK 1/2',   'NDBPS': 24},
@@ -106,12 +114,12 @@ wlan_rates = [{'index' :  0, 'rate' :  6.0, 'desc' : 'BPSK 1/2',   'NDBPS': 24},
 
 def find_tx_rate_by_index(index):
     """Return the wlan_rates entry for the given index.
-    
+
     Args:
-        index (int):  Index into wlan_rate array.    
-    
+        index (int):  Index into wlan_rate array.
+
     Returns:
-        rate (dict):  Rate dictionary corresponding to the index    
+        rate (dict):  Rate dictionary corresponding to the index
     """
     return _find_param_by_index(index, wlan_rates, 'tx rate')
 
@@ -120,10 +128,10 @@ def find_tx_rate_by_index(index):
 
 def tx_rate_to_str(rate):
     """Convert a wlan_rates entry to a string.
-    
+
     Args:
-        rate (dict):  Rate dictionary 
-    
+        rate (dict):  Rate dictionary
+
     Returns:
         output (str):  String representation of the 'rate'
     """
@@ -139,10 +147,10 @@ def tx_rate_to_str(rate):
 
 def tx_rate_index_to_str(index):
     """Convert a wlan_rates entry index to a string.
-    
+
     Args:
         index (int):  Index into wlan_rate array.
-    
+
     Returns:
         output (str):  String representation of the 'rate' corresponding to the index
     """
@@ -175,12 +183,12 @@ wlan_channel = [{'index' :   1, 'channel' :   1, 'freq': 2412, 'desc' : '2.4 GHz
 
 def find_channel_by_index(index):
     """Return the wlan_channel entry for the given index.
-    
+
     Args:
-        index (int):  Index into wlan_rate array.    
-    
+        index (int):  Index into wlan_rate array.
+
     Returns:
-        channel (dict):  Channel dictionary corresponding to the index    
+        channel (dict):  Channel dictionary corresponding to the index
     """
     return _find_param_by_index(index, wlan_channel, 'channel')
 
@@ -189,11 +197,11 @@ def find_channel_by_index(index):
 
 def find_channel_by_channel_number(channel_number):
     """Return the wlan_channel entry for the given channel number.
-    
+
     Args:
         channel_number (int):  Number of 802.11 channel
             (https://en.wikipedia.org/wiki/List_of_WLAN_channels)
-    
+
     Returns:
         channel (dict):  Channel dictionary corresponding to the channel number
     """
@@ -208,7 +216,7 @@ def find_channel_by_freq(freq):
     Args:
         freq (int):  Frequency (in MHz) of the channel
             (https://en.wikipedia.org/wiki/List_of_WLAN_channels)
-    
+
     Returns:
         channel (dict):  Channel dictionary corresponding to the frequency
     """
@@ -221,10 +229,10 @@ def channel_to_str(channel):
     """Convert a wlan_channel entry to a string.
 
     Args:
-        channel (dict):  Channel dictionary 
-    
+        channel (dict):  Channel dictionary
+
     Returns:
-        output (str):  String representation of the 'channel'    
+        output (str):  String representation of the 'channel'
     """
     msg = ""
 
@@ -249,7 +257,7 @@ def channel_freq_to_str(freq):
     Args:
         freq (int):  Frequency (in MHz) of the channel
             (https://en.wikipedia.org/wiki/List_of_WLAN_channels)
-    
+
     Returns:
         output (str):  String representation of the channel corresponding to 'freq'
     """
@@ -275,12 +283,12 @@ wlan_tx_ant_mode = [{'index' :  0x10, 'desc' : 'Tx SISO Antenna A'},
 
 def find_rx_ant_mode_by_index(index):
     """Return the wlan_rx_ant_mode entry for the given index.
-    
+
     Args:
-        index (int):  Index into wlan_rx_ant_mode array.    
-    
+        index (int):  Index into wlan_rx_ant_mode array.
+
     Returns:
-        ant_mode (dict):  Antenna mode dictionary corresponding to the index    
+        ant_mode (dict):  Antenna mode dictionary corresponding to the index
     """
     return _find_param_by_index(index, wlan_rx_ant_mode, 'rx antenna mode')
 
@@ -291,8 +299,8 @@ def rx_ant_mode_to_str(ant_mode):
     """Convert a wlan_rx_ant_mode entry to a string.
 
     Args:
-        ant_mode (dict):  Antenna Mode dictionary 
-    
+        ant_mode (dict):  Antenna Mode dictionary
+
     Returns:
         output (str):  String representation of the 'ant_mode'
     """
@@ -311,7 +319,7 @@ def rx_ant_mode_index_to_str(index):
 
     Args:
         index (int):  Index into wlan_rx_ant_mode array.
-    
+
     Returns:
         output (str):  String representation of the antenna mode corresponding to 'index'
     """
@@ -323,12 +331,12 @@ def rx_ant_mode_index_to_str(index):
 
 def find_tx_ant_mode_by_index(index):
     """Return the wlan_tx_ant_mode entry for the given index.
-    
+
     Args:
-        index (int):  Index into wlan_tx_ant_mode array.    
-    
+        index (int):  Index into wlan_tx_ant_mode array.
+
     Returns:
-        ant_mode (dict):  Antenna mode dictionary corresponding to the index    
+        ant_mode (dict):  Antenna mode dictionary corresponding to the index
     """
     return _find_param_by_index(index, wlan_tx_ant_mode, 'tx antenna mode')
 
@@ -339,8 +347,8 @@ def tx_ant_mode_to_str(ant_mode):
     """Convert a wlan_tx_ant_mode entry to a string.
 
     Args:
-        ant_mode (dict):  Antenna Mode dictionary 
-    
+        ant_mode (dict):  Antenna Mode dictionary
+
     Returns:
         output (str):  String representation of the 'ant_mode'
     """
@@ -359,7 +367,7 @@ def tx_ant_mode_index_to_str(index):
 
     Args:
         index (int):  Index into wlan_tx_ant_mode array.
-    
+
     Returns:
         output (str):  String representation of the antenna mode corresponding to 'index'
     """
@@ -431,36 +439,36 @@ node_type_dict = None
 def init_nodes(nodes_config, network_config=None, node_factory=None,
                network_reset=True, output=False):
     """Initalize WLAN Exp nodes.
-    
+
     The init_nodes function serves two purposes:  1) To initialize the node for
-    participation in the experiment and 2) To retrieve all necessary information 
-    from the node to provide a valid python WlanExpNode object to be used in 
+    participation in the experiment and 2) To retrieve all necessary information
+    from the node to provide a valid python WlanExpNode object to be used in
     the experiment script.
-    
+
     When a WARP node is first configured from a bitstream, its network interface is
-    set to a default value such that it is part of the defalt subnet 10.0.0 but does not 
-    have a valid IP address for communication with the host.  As part of the init_nodes 
+    set to a default value such that it is part of the defalt subnet 10.0.0 but does not
+    have a valid IP address for communication with the host.  As part of the init_nodes
     process, if network_reset is True, the host will reset the network configuration
-    on the node and configure the node with a valid IP address.  If the network settings 
+    on the node and configure the node with a valid IP address.  If the network settings
     of a node have already been configured and are known to the python experiment script
     a priori, then it is not necessary to issue a network reset to reset the network
-    settings on the node.  This can be extremely useful when trying to interact with a 
-    node via multiple python experiment scripts at the same time.    
+    settings on the node.  This can be extremely useful when trying to interact with a
+    node via multiple python experiment scripts at the same time.
 
     Args:
         nodes_config (NodesConfiguration):  A NodesConfiguration describing the nodes
             in the network.
-        network_config (NetworkConfiguration, optional): A NetworkConfiguration object 
+        network_config (NetworkConfiguration, optional): A NetworkConfiguration object
             describing the network configuration
-        node_factory (WlanExpNodeFactory, optional):  A WlanExpNodeFactory or subclass 
+        node_factory (WlanExpNodeFactory, optional):  A WlanExpNodeFactory or subclass
             to create nodes of a given node type
-        network_reset (bool, optional):  Issue a network reset command to the nodes to 
+        network_reset (bool, optional):  Issue a network reset command to the nodes to
             initialize / re-initialize their network interface.
         output (bool, optional):         Print output about the nodes
-    
+
     Returns:
-        nodes (list of WlanExpNode):  
-            Initialized list of WlanExpNode / sub-classes of WlanExpNode depending on the 
+        nodes (list of WlanExpNode):
+            Initialized list of WlanExpNode / sub-classes of WlanExpNode depending on the
             hardware configuration of the WARP nodes.
     """
     global node_type_dict
@@ -488,9 +496,9 @@ def init_nodes(nodes_config, network_config=None, node_factory=None,
 def broadcast_cmd_set_mac_time(time, network_config, time_id=None):
     """Initialize the MAC time on all of the WLAN Exp nodes.
 
-    This method will iterate through all network configurations and issue a broadcast 
-    packet on each network that will set the MAC time on the node to 'time'.  The 
-    method keeps track of how long it takes to send each packet so that the time on all 
+    This method will iterate through all network configurations and issue a broadcast
+    packet on each network that will set the MAC time on the node to 'time'.  The
+    method keeps track of how long it takes to send each packet so that the time on all
     nodes is as close as possible even across networks.
 
     Args:
@@ -509,9 +517,9 @@ def broadcast_cmd_set_mac_time(time, network_config, time_id=None):
 def broadcast_cmd_write_time_to_logs(network_config, time_id=None):
     """Add the current host time to the log on each node.
 
-    This method will iterate through all network configurations and issue a broadcast 
-    packet on each network that will add the current time to the log. The method 
-    keeps track of how long it takes to send each packet so that the time on all 
+    This method will iterate through all network configurations and issue a broadcast
+    packet on each network that will add the current time to the log. The method
+    keeps track of how long it takes to send each packet so that the time on all
     nodes is as close as possible even across networks.
 
     Args:
@@ -529,15 +537,15 @@ def broadcast_cmd_write_time_to_logs(network_config, time_id=None):
 def broadcast_cmd_write_exp_info_to_logs(network_config, info_type, message=None):
     """Add the EXP INFO log entry to the log on each node.
 
-    This method will iterate through all network configurations and issue a broadcast 
+    This method will iterate through all network configurations and issue a broadcast
     packet on each network that will add the EXP_INFO log entry to the log
 
     Args:
         network_config (NetworkConfiguration): One or more NetworkConfiguration objects
            that define the networks on which the log_write_exp_info command will be broadcast
-        info_type (int): Type of the experiment info.  This is an arbitrary 16 bit number 
+        info_type (int): Type of the experiment info.  This is an arbitrary 16 bit number
             chosen by the experimentor
-        message (int, str, bytes, optional): Information to be placed in the event log.  
+        message (int, str, bytes, optional): Information to be placed in the event log.
     """
     import wlan_exp.cmds as cmds
 
@@ -560,28 +568,28 @@ def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=Tr
     Args:
         nodes (list of WlanExpNode):  List of WlanExpNode / sub-classes of WlanExpNode
         mac_high (str, int, optional):  Filter for CPU High functionality.  This value must be either
-            an integer corresponding to a node type (see wlan_exp/defaults.py for node types) 
+            an integer corresponding to a node type (see wlan_exp/defaults.py for node types)
             or the following strings:
-                * **'AP'**   (equivalent to WLAN_EXP_HIGH_AP); 
+                * **'AP'**   (equivalent to WLAN_EXP_HIGH_AP);
                 * **'STA'**  (equivalent to WLAN_EXP_HIGH_STA);
                 * **'IBSS'** (equivalent to WLAN_EXP_HIGH_IBSS).
             A value of None means that no filtering will occur for CPU High Functionality
         mac_low (str, int, optional): Filter for CPU Low functionality.  This value must be either
-            an integer corresponding to a node type (see wlan_exp/defaults.py for node types) 
+            an integer corresponding to a node type (see wlan_exp/defaults.py for node types)
             or the following strings:
                 * **'DCF'**   (equivalent to WLAN_EXP_LOW_DCF);
                 * **'NOMAC'** (equivalent to WLAN_EXP_LOW_NOMAC).
             A value of None means that no filtering will occur for CPU Low Functionality
-        serial_number (str, optional):  Filters nodes by WARPv3 serial number.  This value must be of 
+        serial_number (str, optional):  Filters nodes by WARPv3 serial number.  This value must be of
             the form:  'W3-a-XXXXX' where XXXXX is the five digit serial number of the board.
         warn (bool, optional):          Print warnings (default value is True)
 
     Returns:
         nodes (list of WlanExpNode):  Filtered list of WlanExpNode / sub-classes of WlanExpNode
-    
+
 
     **Examples**
-    :: 
+    ::
         filter_nodes(nodes, mac_high='AP', mac_low='DCF') --> Only AP DCF nodes
         filter_nodes(nodes, mac_high='AP')                --> AP nodes where low can be DCF/NOMAC
         filter_nodes(nodes, mac_high='ap', mac_low='dcf', serial_numbers=['w3-a-00001','w3-a-00002'])
@@ -686,7 +694,7 @@ def int_to_ip(ip_address):
         ip_address (int):  Unsigned 32-bit integer representation of the IP address
 
     Returns:
-        ip_address (str):  String version of an IP address of the form W.X.Y.Z        
+        ip_address (str):  String version of an IP address of the form W.X.Y.Z
     """
     import wlan_exp.transport.transport_eth_ip_udp as transport
     return transport.int_to_ip(ip_address)
@@ -698,7 +706,7 @@ def ip_to_int(ip_address):
     """Convert IP address string (dotted notation) to an integer.
 
     Args:
-        ip_address (str):  String version of an IP address of the form W.X.Y.Z        
+        ip_address (str):  String version of an IP address of the form W.X.Y.Z
 
     Returns:
         ip_address (int):  Unsigned 32-bit integer representation of the IP address
@@ -743,10 +751,10 @@ def mac_addr_to_byte_str(mac_address):
     """Convert an integer to a MAC address byte string.
 
     Args:
-        mac_address (int):  Unsigned 48-bit integer representation of the MAC address    
+        mac_address (int):  Unsigned 48-bit integer representation of the MAC address
 
     Returns:
-        mac_address (str):  Byte string version of an MAC address 
+        mac_address (str):  Byte string version of an MAC address
     """
     import wlan_exp.transport.transport_eth_ip_udp as transport
     return transport.mac_addr_to_byte_str(mac_address)
@@ -758,10 +766,10 @@ def byte_str_to_mac_addr(mac_address):
     """Convert a MAC address byte string to an integer.
 
     Args:
-        mac_address (str):  Byte string version of an MAC address 
+        mac_address (str):  Byte string version of an MAC address
 
     Returns:
-        mac_address (int):  Unsigned 48-bit integer representation of the MAC address    
+        mac_address (int):  Unsigned 48-bit integer representation of the MAC address
     """
     import wlan_exp.transport.transport_eth_ip_udp as transport
     return transport.byte_str_to_mac_addr(mac_address)
@@ -803,21 +811,21 @@ def create_bss_info(bssid, ssid, channel, ibss_status=False, beacon_interval=100
         ssid (str):  SSID string (Must be 32 characters or less)
         channel (int, dict in util.wlan_channel array): Channel on which the BSS operates
             (either the channel number as an it or an entry in the wlan_channel array)
-        bssid (int, str):  48-bit ID of the BSS either as a integer or colon delimited 
+        bssid (int, str):  48-bit ID of the BSS either as a integer or colon delimited
             string of the form:  XX:XX:XX:XX:XX:XX
-        ibss_status (bool, optional): Status of the 
-            BSS: 
+        ibss_status (bool, optional): Status of the
+            BSS:
                 * **True**  --> Capabilities field = 0x2 (BSS_INFO is for IBSS)
                 * **False** --> Capabilities field = 0x1 (BSS_INFO is for BSS)
         beacon_interval (int): Integer number of beacon Time Units in [1, 65535]
             (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds)
-    
+
     Returns:
         bss_info (BSSInfo()):  A BSS Information object (defined in wlan_exp.info)
     """
     import wlan_exp.info as info
-    
-    return info.BSSInfo(init_fields=True, bssid=bssid, ssid=ssid, channel=channel, 
+
+    return info.BSSInfo(init_fields=True, bssid=bssid, ssid=ssid, channel=channel,
                         ibss_status=ibss_status, beacon_interval=beacon_interval)
 
 # End def
@@ -829,17 +837,17 @@ def create_bss_info(bssid, ssid, channel, ibss_status=False, beacon_interval=100
 
 def create_locally_administered_bssid(mac_address):
     """Create a locally administered BSSID.
-    
+
     Set "locally administered" bit to '1' and "multicast" bit to '0'
-    
+
     Args:
-        mac_address (int, str):  MAC address to be used as the base for the BSSID 
-            either as a 48-bit integer or a colon delimited string of the form:  
+        mac_address (int, str):  MAC address to be used as the base for the BSSID
+            either as a 48-bit integer or a colon delimited string of the form:
             XX:XX:XX:XX:XX:XX
-    
+
     Returns:
-        bssid (int):  
-            BSSID with the "locally administerd" bit set to '1' and the "multicast" bit set to '0'    
+        bssid (int):
+            BSSID with the "locally administerd" bit set to '1' and the "multicast" bit set to '0'
     """
     if type(mac_address) is str:
         type_is_str     = True
@@ -866,7 +874,7 @@ def sn_to_str(hw_generation, serial_number):
         serial_number (int):  Integer representation of the WARP serial number
 
     Returns:
-        serial_number (str):  String representation of the WARP serial number (of the form 'W3-a-XXXXX')    
+        serial_number (str):  String representation of the WARP serial number (of the form 'W3-a-XXXXX')
     """
     if(hw_generation == 3):
         return ('W3-a-{0:05d}'.format(int(serial_number)))
@@ -881,17 +889,17 @@ def node_type_to_str(node_type, node_factory=None):
 
     Args:
         node_type (int):  node type ID (u32)
-        node_factory (WlanExpNodeFactory): A WlanExpNodeFactory or subclass to 
+        node_factory (WlanExpNodeFactory): A WlanExpNodeFactory or subclass to
             create nodes of a given type
-    
+
     Returns:
         node_type (str):  String representation of the node type
 
-    By default, a dictionary of node types is built dynamically during init_nodes().  
+    By default, a dictionary of node types is built dynamically during init_nodes().
     If init_nodes() has not been run, then the method will try to create a node
-    type dictionary.  If a node_factory is not provided then a default WlanExpNodeFactory 
-    will be used to determine the node type.  If a default WlanExpNodeFactory is used, 
-    then only framework node types will be known and custom node types will return:  
+    type dictionary.  If a node_factory is not provided then a default WlanExpNodeFactory
+    will be used to determine the node type.  If a default WlanExpNodeFactory is used,
+    then only framework node types will be known and custom node types will return:
     "Unknown node type: <value>"
     """
     global node_type_dict
@@ -927,23 +935,23 @@ def mac_addr_desc(mac_addr, desc_map=None):
     of different MAC addresses will also be used.
 
     Args:
-        mac_address (int):  Unsigned 48-bit integer representation of the MAC address        
+        mac_address (int):  Unsigned 48-bit integer representation of the MAC address
         desc_map (list of tuple, optional): list of tuple or tuple of the form
             (addr_mask, addr_value, descritpion)
 
     Returns:
-        description (str):  Description of the MAC address or '' if address does 
-        not match any descriptions        
+        description (str):  Description of the MAC address or '' if address does
+        not match any descriptions
 
     .. note:: The mac_addr argument will be bitwise AND'd with each addr_mask, then compared to
       addr_value. If the result is non-zero the corresponding descprition will be returned.  This
       will only return the first description in the [desc_map, mac_addr_desc_map] list.
-    
+
     **Example**
     ::
         desc_map = [ (0x000102030405, 0xFFFFFFFFFFFF, 'My Custom MAC Addr'),
                      (0x000203040506, 0xFFFFFFFFFFFF, 'My Other MAC Addr') ]
-    
+
     """
     # Cast to python int in case input is still numpy uint64
     mac_addr = int(mac_addr)
@@ -969,9 +977,9 @@ def mac_addr_desc(mac_addr, desc_map=None):
 #   From http://vjethava.blogspot.com/2010/11/matlabs-keyboard-command-in-python.html
 def debug_here(banner=None):
     """Function that mimics the matlab keyboard command for interactive debbug.
-    
+
     Args:
-        banner (str):  Banner message to be displayed before the interactive prompt    
+        banner (str):  Banner message to be displayed before the interactive prompt
     """
     import code
     # Use exception trick to pick up the current frame
@@ -1141,6 +1149,7 @@ def _find_param_by_index(index, param_list, param_name):
 
     if ret_val is None:
         print("Unknown {0} index: {1}".format(param_name, index))
+        raise Exception
 
     return ret_val
 

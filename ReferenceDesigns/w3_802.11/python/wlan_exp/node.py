@@ -812,7 +812,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         .. note:: This will not affect the transmit antenna mode for control frames like ACKs that
             will be transmitted. The rate of control packets is determined by the 802.11 standard.
         """
-        rate_info = (mcs & 0xFF) | ((phy_mode & 0xFF) >> 8)
+        rate_info = (mcs & 0xFF) | ((phy_mode & 0xFF) << 8)
         self._node_set_tx_param_unicast(cmds.NodeProcTxRate, rate_info, 'rate', device_list, curr_assoc, new_assoc)
 
 
@@ -823,7 +823,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             rate (dict from util.wlan_rates):  Rate dictionary
                 (Dictionary from the wlan_rates list in wlan_exp.util)
         """
-        self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_DATA, mcs, phy_mode))
+        rate_info = (mcs & 0xFF) | ((phy_mode & 0xFF) << 8)
+        self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_DATA, rate_info))
 
 
     def set_tx_rate_multicast_mgmt(self, mcs, phy_mode):
@@ -833,7 +834,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             rate (dict from util.wlan_rates):  Rate dictionary
                 (Dictionary from the wlan_rates list in wlan_exp.util)
         """
-        self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_MGMT, mcs, phy_mode))
+        rate_info = (mcs & 0xFF) | ((phy_mode & 0xFF) << 8)
+        self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_MGMT, rate_info))
 
 
     def get_tx_rate_unicast(self, device_list=None, new_assoc=False):
