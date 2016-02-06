@@ -421,7 +421,9 @@ class FlowConfigCBR(FlowConfig):
     Args:
         dest_addr (int):      Destination MAC address
         payload_length (int): Length of the LTG payload (in bytes)
-        interval (float):     Interval between packets (in float seconds)
+        interval (float):     Interval between packets (in float seconds); actual packet
+		                      creation interval will be quantized to the interval of the 
+							  fast timer in CPU High, currently 64 usec
         duration (float):     Duration of the traffic flow (in float seconds)
     """
     def __init__(self, dest_addr, payload_length, interval, duration=None):
@@ -437,7 +439,9 @@ class FlowConfigAllAssocCBR(FlowConfig):
 
     Args:
         payload_length (int): Length of the LTG payload (in bytes)
-        interval (float):     Interval between packets (in float seconds)
+        interval (float):     Interval between packets (in float seconds); actual packet
+		                      creation interval will be quantized to the interval of the 
+							  fast timer in CPU High, currently 64 usec
         duration (float):     Duration of the traffic flow (in float seconds)
     """
     def __init__(self, payload_length, interval, duration=None):
