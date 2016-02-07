@@ -101,7 +101,7 @@ int                main();
 
 u32                frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details);
 void 			   configure_beacon_tx(u8 tx_pkt_buf, u32 interval_tu);
-int                frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_tx_details* low_tx_details);
+int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details);
 
 inline void        increment_src_ssrc(u8* src_ptr);
 inline void        increment_lrc_slrc(u8* lrc_ptr);
