@@ -129,7 +129,10 @@ class SchedulePeriodic(Schedule):
     """LTG Schedule that will generate a payload every 'interval' microseconds.
 
     Args:
-        interval (float):              Interval between packets (in float seconds)
+        interval (float):              Interval between packets (in float seconds);
+                                       actual packet creation interval will be quantized 
+                                       to the interval of the fast timer in CPU High.
+                                       Currently this interval is 64 usec.
         duration (float, optional):    Duration of the traffic flow (in float seconds)
     """
     time_factor = 6                    # Time on node is in microseconds
@@ -162,10 +165,12 @@ class SchedulePeriodic(Schedule):
         """
         temp_interval = (self.interval // resolution) * resolution
         if (temp_interval != self.interval):
-            msg  = "WARNING:  Cannot schedule LTG with interval: {0} us\n".format(self.interval)
-            msg += "    Minimum LTG resolution is {0} us.\n".format(resolution)
-            msg += "    Adjusting interval to {0} us".format(temp_interval)
-            print(msg)
+            # Set to True to print warning message when adjusting interval
+            if (False):
+                msg  = "WARNING:  Cannot schedule LTG with interval: {0} us\n".format(self.interval)
+                msg += "    Minimum LTG resolution is {0} us.\n".format(resolution)
+                msg += "    Adjusting interval to {0} us".format(temp_interval)
+                print(msg)
             self.interval = temp_interval
 
 # End Class WlanExpLTGSchedPeriodic
@@ -176,8 +181,14 @@ class ScheduleUniformRandom(Schedule):
     between min_interval and max_interval microseconds.
 
     Args:
-        min_interval (float):          Minimum interval between packets (in float seconds)
-        max_interval (float):          Maximum interval between packets (in float seconds)
+        min_interval (float):          Minimum interval between packets (in float seconds);
+                                       actual packet creation interval will be quantized 
+                                       to the interval of the fast timer in CPU High.
+                                       Currently this interval is 64 usec.
+        max_interval (float):          Maximum interval between packets (in float seconds);
+                                       actual packet creation interval will be quantized 
+                                       to the interval of the fast timer in CPU High.
+                                       Currently this interval is 64 usec.
         duration (float, optional):    Duration of the traffic flow (in float seconds)
     """
     time_factor  = 6                   # Time on node is in microseconds
@@ -212,18 +223,22 @@ class ScheduleUniformRandom(Schedule):
         """
         temp_interval = (self.min_interval // resolution) * resolution
         if (temp_interval != self.min_interval):
-            msg  = "WARNING:  Cannot schedule LTG with min interval: {0} us\n".format(self.min_interval)
-            msg += "    Minimum LTG resolution is {0} us.\n".format(resolution)
-            msg += "    Adjusting interval to {0} us".format(temp_interval)
-            print(msg)
+            # Set to True to print warning message when adjusting interval
+            if (False):
+                msg  = "WARNING:  Cannot schedule LTG with min interval: {0} us\n".format(self.min_interval)
+                msg += "    Minimum LTG resolution is {0} us.\n".format(resolution)
+                msg += "    Adjusting interval to {0} us".format(temp_interval)
+                print(msg)
             self.min_interval = temp_interval
 
         temp_interval = (self.max_interval // resolution) * resolution
         if (temp_interval != self.max_interval):
-            msg  = "WARNING:  Cannot schedule LTG with interval: {0} us\n".format(self.max_interval)
-            msg += "    Minimum LTG resolution is {0} us.\n".format(resolution)
-            msg += "    Adjusting interval to {0} us".format(temp_interval)
-            print(msg)
+            # Set to True to print warning message when adjusting interval
+            if (False):
+                msg  = "WARNING:  Cannot schedule LTG with interval: {0} us\n".format(self.max_interval)
+                msg += "    Minimum LTG resolution is {0} us.\n".format(resolution)
+                msg += "    Adjusting interval to {0} us".format(temp_interval)
+                print(msg)
             self.max_interval = temp_interval
 
 # End Class WlanExpLTGSchedUniformRand
@@ -421,9 +436,10 @@ class FlowConfigCBR(FlowConfig):
     Args:
         dest_addr (int):      Destination MAC address
         payload_length (int): Length of the LTG payload (in bytes)
-        interval (float):     Interval between packets (in float seconds); actual packet
-		                      creation interval will be quantized to the interval of the 
-							  fast timer in CPU High, currently 64 usec
+        interval (float):     Interval between packets (in float seconds);
+                              actual packet creation interval will be quantized 
+                              to the interval of the fast timer in CPU High.
+                              Currently this interval is 64 usec.
         duration (float):     Duration of the traffic flow (in float seconds)
     """
     def __init__(self, dest_addr, payload_length, interval, duration=None):
@@ -439,9 +455,10 @@ class FlowConfigAllAssocCBR(FlowConfig):
 
     Args:
         payload_length (int): Length of the LTG payload (in bytes)
-        interval (float):     Interval between packets (in float seconds); actual packet
-		                      creation interval will be quantized to the interval of the 
-							  fast timer in CPU High, currently 64 usec
+        interval (float):     Interval between packets (in float seconds);
+                              actual packet creation interval will be quantized 
+                              to the interval of the fast timer in CPU High.
+                              Currently this interval is 64 usec.
         duration (float):     Duration of the traffic flow (in float seconds)
     """
     def __init__(self, payload_length, interval, duration=None):
@@ -459,8 +476,14 @@ class FlowConfigRandomRandom(FlowConfig):
         dest_addr (int):               Destination MAC address
         min_payload_length (int):      Minimum length of the LTG payload (in bytes)
         max_payload_length (int):      Maximum length of the LTG payload (in bytes)
-        min_interval (float):          Minimum interval between packets (in float seconds)
+        min_interval (float):          Minimum interval between packets (in float seconds);
+                                       actual packet creation interval will be quantized 
+                                       to the interval of the fast timer in CPU High.
+                                       Currently this interval is 64 usec.
         max_interval (float):          Maximum interval between packets (in float seconds)
+                                       actual packet creation interval will be quantized 
+                                       to the interval of the fast timer in CPU High.
+                                       Currently this interval is 64 usec.
         duration (float, optional):    Duration of the traffic flow (in float seconds)
     """
     def __init__(self, dest_addr, min_payload_length, max_payload_length, min_interval, max_interval, duration=None):
