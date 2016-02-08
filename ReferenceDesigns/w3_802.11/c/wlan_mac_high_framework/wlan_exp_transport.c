@@ -156,7 +156,7 @@ int transport_init(u32 eth_dev_num, void * node_info, u8 * ip_addr, u8 * hw_addr
     }
 
     // Configure the Sockets for each Ethernet Interface
-    status = transport_config_sockets(eth_dev_num, unicast_port, broadcast_port);
+    status = transport_config_sockets(eth_dev_num, unicast_port, broadcast_port, 1);
 
     if (status != XST_SUCCESS) {
         wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Cannot configure sockets for Ethernet %c\n", warp_conv_eth_dev_num(eth_dev_num));
@@ -791,7 +791,7 @@ int transport_config_socket(u32 eth_dev_num, int * socket_index, u32 udp_port) {
  *                                 XST_FAILURE - There was an error in the command
  *
  *****************************************************************************/
-int transport_config_sockets(u32 eth_dev_num, u32 unicast_port, u32 broadcast_port) {
+int transport_config_sockets(u32 eth_dev_num, u32 unicast_port, u32 broadcast_port, u8 verbose) {
     int status = XST_SUCCESS;
 
     status = transport_config_socket(eth_dev_num, &(eth_devices[eth_dev_num].socket_unicast), unicast_port);
@@ -804,7 +804,9 @@ int transport_config_sockets(u32 eth_dev_num, u32 unicast_port, u32 broadcast_po
     eth_devices[eth_dev_num].info.unicast_port   = unicast_port;
     eth_devices[eth_dev_num].info.broadcast_port = broadcast_port;
 
-    wlan_exp_printf(WLAN_EXP_PRINT_NONE, NULL, "  Listening on UDP ports %d (unicast) and %d (broadcast)\n", unicast_port, broadcast_port);
+    if (verbose) {
+        wlan_exp_printf(WLAN_EXP_PRINT_NONE, NULL, "  Listening on UDP ports %d (unicast) and %d (broadcast)\n", unicast_port, broadcast_port);
+    }
 
     return status;
 }

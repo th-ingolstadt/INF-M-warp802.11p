@@ -717,8 +717,6 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
                 // Only update the node if it has not been configured
                 if (node_info.node_id == 0xFFFF) {
-                    xil_printf("Reconfiguring ETH %c \n", warp_conv_eth_dev_num(eth_dev_num));
-
                     // Set Node ID
                     //   NOTE:  We need to set the node ID in both the node info and the eth_dev_info
                     //
@@ -726,40 +724,47 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     node_info.node_id          = node_id;
                     node_info.eth_dev->node_id = node_id;
 
-                    xil_printf("  New Node ID       : %d \n", node_info.node_id);
-                    
-                    // Grab New IP Address
+                    // Get New IP Address
                     ip_addr[0]     = (Xil_Ntohl(cmd_args_32[2]) >> 24) & 0xFF;
                     ip_addr[1]     = (Xil_Ntohl(cmd_args_32[2]) >> 16) & 0xFF;
                     ip_addr[2]     = (Xil_Ntohl(cmd_args_32[2]) >>  8) & 0xFF;
                     ip_addr[3]     = (Xil_Ntohl(cmd_args_32[2])      ) & 0xFF;
                     
-                    // Grab new ports
+                    // Get new ports
                     transport_info = &(node_info.eth_dev->info);
 
                     transport_info->unicast_port   = Xil_Ntohl(cmd_args_32[3]);
                     transport_info->broadcast_port = Xil_Ntohl(cmd_args_32[4]);
 
-                    xil_printf("  New IP Address    : %d.%d.%d.%d \n", ip_addr[0], ip_addr[1], ip_addr[2], ip_addr[3]);
-                    xil_printf("  New Unicast Port  : %d \n", transport_info->unicast_port);
-                    xil_printf("  New Broadcast Port: %d \n", transport_info->broadcast_port);
-
+                    // Set Transport IP Addresses / Ports
                     transport_set_ip_addr(eth_dev_num, ip_addr);
 
-                    status = transport_config_sockets(eth_dev_num, transport_info->unicast_port, transport_info->broadcast_port);
+                    status = transport_config_sockets(eth_dev_num, transport_info->unicast_port, transport_info->broadcast_port, 0);
 
-                    xil_printf("\n");
                     if(status != 0) {
                         xil_printf("Error binding transport...\n");
                     } else {
+                        // Print new configuration information
+                        xil_printf("NODE_CONFIG_SETUP: Configured wlan_exp with node ID %d, ", node_info.node_id);
+                        xil_printf("IP address %d.%d.%d.%d\n", ip_addr[0], ip_addr[1], ip_addr[2], ip_addr[3]);
+
+                        // xil_printf("Reconfiguring ETH %c \n", warp_conv_eth_dev_num(eth_dev_num));
+                        // xil_printf("  New Node ID       : %d \n", node_info.node_id);
+                        // xil_printf("  New IP Address    : %d.%d.%d.%d \n", ip_addr[0], ip_addr[1], ip_addr[2], ip_addr[3]);
+                        // xil_printf("  New Unicast Port  : %d \n", transport_info->unicast_port);
+                        // xil_printf("  New Broadcast Port: %d \n", transport_info->broadcast_port);
+                        // xil_printf("\n");
+
                         set_hex_display_right_dp(1);
                     }
                 } else {
-                    xil_printf("NODE_CONFIG_SETUP Packet ignored.  Network already configured for node %d.\n", node_info.node_id);
-                    xil_printf("    Use NODE_CONFIG_RESET command to reset network configuration.\n\n");
+                    // Do nothing
+                    // xil_printf("NODE_CONFIG_SETUP Packet ignored.  Network already configured for node %d.\n", node_info.node_id);
+                    // xil_printf("    Use NODE_CONFIG_RESET command to reset network configuration.\n\n");
                 }
             } else {
-                xil_printf("NODE_CONFIG_SETUP Packet with Serial Number %d ignored.  My serial number is %d \n", Xil_Ntohl(cmd_args_32[0]), node_info.serial_number);
+                // Do nothing
+                // xil_printf("NODE_CONFIG_SETUP Packet with Serial Number %d ignored.  My serial number is %d \n", Xil_Ntohl(cmd_args_32[0]), node_info.serial_number);
             }
         }
         break;
@@ -797,8 +802,6 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     node_info.node_id          = 0xFFFF;
                     node_info.eth_dev->node_id = 0xFFFF;
 
-                    xil_printf("\n!!! Reseting Network Configuration !!! \n\n");
-
                     // Reset transport;  This will update the IP Address back to default and rebind the sockets
                     //   - See below for default IP address:  NODE_IP_ADDR_BASE + node
                     transport_info = &(node_info.eth_dev->info);
@@ -812,19 +815,20 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     transport_info->broadcast_port  = WLAN_EXP_DEFAULT_UDP_MULTICAST_PORT;
 
                     transport_set_ip_addr(eth_dev_num, ip_addr);
-                    transport_config_sockets(eth_dev_num, transport_info->unicast_port, transport_info->broadcast_port);
+                    transport_config_sockets(eth_dev_num, transport_info->unicast_port, transport_info->broadcast_port, 0);
                     transport_reset_max_pkt_length(eth_dev_num);
 
                     // Update User IO
-                    xil_printf("\n!!! Waiting for Network Configuration !!! \n\n");
-
+                    xil_printf("NODE_CONFIG_RESET: Reset wlan_exp network config\n");
                     set_hex_display_right_dp(0);
                 } else {
-                    xil_printf("NODE_CONFIG_RESET Packet ignored.  Network configuration already reset on node.\n");
-                    xil_printf("    Use NODE_CONFIG_SETUP command to set the network configuration.\n\n");
+                    // Do nothing
+                    // xil_printf("NODE_CONFIG_RESET Packet ignored.  Network configuration already reset on node.\n");
+                    // xil_printf("    Use NODE_CONFIG_SETUP command to set the network configuration.\n\n");
                 }
             } else {
-                xil_printf("NODE_CONFIG_RESET Packet with Serial Number %d ignored.  My serial number is %d \n", Xil_Ntohl(cmd_args_32[0]), node_info.serial_number);
+                // Do nothing
+                // xil_printf("NODE_CONFIG_RESET Packet with Serial Number %d ignored.  My serial number is %d \n", Xil_Ntohl(cmd_args_32[0]), node_info.serial_number);
             }
         }
         break;
