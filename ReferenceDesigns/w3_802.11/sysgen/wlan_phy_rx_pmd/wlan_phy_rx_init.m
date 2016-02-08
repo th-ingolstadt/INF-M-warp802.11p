@@ -4,67 +4,41 @@
 % Distributed under the Mango Research License:
 % http://mangocomm.com/802.11/license
 
+%clear all
 addpath('./util');
 addpath('./mcode_blocks');
 addpath('./blackboxes');
 
-%Call util scripts to generate the PHY preamble signals
-PLCP_Preamble = PLCP_Preamble_gen;
-
 %% Define an input signal for simulation
-% Ensure previously-defined waveforms are cleared
-%clear wlan_tx_out;
-clear tx_sig;
-clear ADC_I ADC_Q;
+% Skip this if running a multi-sim test with the rx_sim_test script
+if(~exist('sim_many_waveform_mode','var'))
+    % Ensure previously-defined waveforms are cleared
+    clear wlan_tx_out;
+    clear sig;
+    clear tx_sig;
+    clear ADC_I ADC_Q;
+    
+    %PHY debugging with ChipScope captures of I/Q
+    % ChipScope waveforms must be saved in ASCII format with (at least) ADC_I and ADC_Q signals
+    %xlLoadChipScopeData('nonht_mcs7_520B_manyBad.prn'); cs_interp = 1; cs_start = 1500; cs_end = 1.55e4;%length(ADC_I);
+    %sim_sig = 1.0*complex(ADC_I([cs_start:cs_interp:cs_end]), ADC_Q(cs_start:cs_interp:cs_end));
 
-%---------
-%PHY debugging with ChipScope captures of I/Q
-% ChipScope waveforms must be saved in ASCII format with (at least) ADC_I and ADC_Q signals
-%xlLoadChipScopeData('cs_capt/goodDet_noCorr_v1.prn'); cs_interp = 8; cs_start = 500; cs_end = length(ADC_I) - 24;
-%WTF: observed H est and SIGNAL symbol weren't lined up; skipping a sample after the LTS (approx here, ~#1963) 
-% results in ugly-but-decoable SIGNAL then clean payload symbols...
-%FIRST_SAMP_ind = 960;
-%ADC_I = [ADC_I(1:FIRST_SAMP_ind+320); ADC_I(FIRST_SAMP_ind+322:end)];
-%ADC_Q = [ADC_Q(1:FIRST_SAMP_ind+320); ADC_Q(FIRST_SAMP_ind+322:end)];
-%rx_sim_sig_adc_IQ = 0.75*complex(ADC_I([cs_start:cs_interp:cs_end]), ADC_Q(cs_start:cs_interp:cs_end));
-%rx_sim_sig_adc_IQ = 0.75*complex(ADC_Q([cs_start:cs_interp:cs_end-8]), ADC_I(cs_start+8:cs_interp:cs_end)); %swap IQ, shift IvsQ
-%rx_sim_sig_adc_IQ = [zeros(50,1); rx_sim_sig_adc_IQ; zeros(500,1); rx_sim_sig_adc_IQ; zeros(500,1)];
-%rx_sim_sig_samp_time = 8;
+    %Output of PHY Tx simulation
+    % .mat files from Tx PHY sim store I/Q signal in 'wlan_tx_out' variable
+    load('rx_sigs/wlan_tx_HTMM_MCS0_52B.mat');wlan_tx_out = 1.0*wlan_tx_out;
+    %load('rx_sigs/wlan_tx_HTMM_MCS7_52B.mat');wlan_tx_out = 1.0*wlan_tx_out;
+    %load('../wlan_phy_tx_pmd/tx_nonht_MCS7_20M_29B_2tx.mat');wlan_tx_out = 1.0*wlan_tx_out;
+    sim_sig = wlan_tx_out(1:end);
+end
 
-%Output of PHY Tx simulation
-% .mat files from Tx PHY sim store I/Q signal in 'wlan_tx_out' variable
-load('rx_sigs/11n/wlan_tx_HTMM_CW20_MCS1_100B.mat');wlan_tx_out = 0.5*wlan_tx_out.';
-
-%Test corrupt HT-SIG field
-%ht_sig = wlan_tx_out(320+80+1:320+80+160);
-%wlan_tx_out = [wlan_tx_out(1:320+80) ht_sig(81:end), ht_sig(1:80), wlan_tx_out(320+80+160+1:end)].';
-
-%Set sampling rate (8=20MHz, 4=40MHz)
-rx_sim_sig_samp_time = 8;
-
-tx_sig_t = [1:length(wlan_tx_out)];
-rx_sim_sig_adc_IQ = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); ];
-%rx_sim_sig_adc_IQ = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(5,1); wlan_tx_out(tx_sig_t); zeros(500,1);]; %Double sig
-%rx_sim_sig_adc_IQ = [zeros(50,1); wlan_tx_out(tx_sig_t); zeros(500,1); wlan_tx_out(tx_sig_t); zeros(500,1); wlan_tx_out(tx_sig_t); zeros(500,1);]; %Triple sig
-
-%Apply CFO
-%cfo_vec = exp(1i*2*pi*1e-4*[0:length(rx_sim_sig_adc_IQ)-1]');
-%rx_sim_sig_adc_IQ = rx_sim_sig_adc_IQ.*cfo_vec;
-
-%Set simulation time to just long enough for the input waveform
-rx_sim_time = rx_sim_sig_samp_time*length(rx_sim_sig_adc_IQ) + 500;
-
-%Define contents of "From Workspace" block driving ADC inputs in simulation
-rx_sim_sig_adc_I.time = [];
-rx_sim_sig_adc_Q.time = [];
-rx_sim_sig_adc_I.signals.values = real(rx_sim_sig_adc_IQ);
-rx_sim_sig_adc_Q.signals.values = imag(rx_sim_sig_adc_IQ);
+%Define the simulation paramters - waveform, sample rate, sim duration, etc
+rx_sim = struct();
+rx_sim.waveform_RFA.time = [];
+rx_sim.waveform_RFA.signals.values = [zeros(50,1); sim_sig; zeros(500,1); ];
+rx_sim.samp_rate = 20; %Must be in [10 20 40]
+rx_sim.sim_time = (160 / rx_sim.samp_rate) * length(rx_sim.waveform_RFA.signals.values) + 500;
 
 %%
-
-% DSSS de-spreading sequence - interpolated version of 11-chip sequence defined in the spec
-barker_seq20 = [1.29007 1.04043 1.20873 -0.32809 -1.55859 0.69252 1.62682 0.54184 1.06449 1.40040 0.11423 -1.20708 -1.26002 -0.54425 -1.31058 -1.27990 1.38940 0.97934 -1.65552 -0.38597];
-barker_seq20 = 0.95 * circshift(barker_seq20, [0 4]) ./ max(abs(barker_seq20));
 
 %Fixed PHY parameters - these values affect data types throughout the design
 MAX_NUM_SC = 64;
@@ -73,14 +47,11 @@ MAX_NUM_SAMPS = 50e3;
 MAX_NUM_SYMS = 600;
 MAX_NUM_BYTES = 2^16-1;
 
-%PHY params - used as default values in registers
-PHY_CONFIG_NUM_SC = 64;
-PHY_CONFIG_CP_LEN = 16;
-PHY_CONFIG_FFT_OFFSET = 3;% 1 = no CP samples into FFT (5=zero actual offset)
-PHY_CONFIG_CFO_EST_OFFSET = 0;
-PHY_CONFIG_FFT_SCALING = bin2dec('000101');
 
 %% Define the LTS correlation coefficients
+
+%Call util scripts to generate the PHY preamble signals
+PLCP_Preamble = PLCP_Preamble_gen;
 
 % Rx PHY uses Fix3_0 to store coefficients
 longCorr_coef_nbits = 3;
@@ -126,8 +97,18 @@ sc_data_sym_map_11n = MAX_NUM_SC*ones(1,MAX_NUM_SC);
 sc_data_sym_map_11n(sc_ind_data_11n) = fftshift(0:length(sc_ind_data_11n)-1);
 sc_data_sym_map_11n_bool = double(sc_data_sym_map_11n ~= MAX_NUM_SC);
 
+% DSSS de-spreading sequence - interpolated version of 11-chip sequence defined in the spec
+barker_seq20 = [1.29007 1.04043 1.20873 -0.32809 -1.55859 0.69252 1.62682 0.54184 1.06449 1.40040 0.11423 -1.20708 -1.26002 -0.54425 -1.31058 -1.27990 1.38940 0.97934 -1.65552 -0.38597];
+barker_seq20 = 0.95 * circshift(barker_seq20, [0 4]) ./ max(abs(barker_seq20));
 
-%Register init
+%%
+%Initial values for Rx PHY registers
+PHY_CONFIG_NUM_SC = 64;
+PHY_CONFIG_CP_LEN = 16;
+PHY_CONFIG_FFT_OFFSET = 4; %3=no cyclic prefix samps in FFT (for HTMF 20MSps at least)
+PHY_CONFIG_CFO_EST_OFFSET = 0;
+PHY_CONFIG_FFT_SCALING = bin2dec('000101');
+
 PHY_CONFIG_RSSI_SUM_LEN = 8;
 
 PHY_SIGNAL_MIN_LEN = 14;
@@ -199,7 +180,7 @@ REG_RX_Config = ...
     2^2  * 1 + ... %Swap pkt buf byte order
     2^3  * 1 + ... %Swap order of chan est u32 writes
     2^4  * 1 + ... %Allow DSSS Rx to keep AGC locked
-    2^5  * 1 + ... %Bypass CFO est/correction
+    2^5  * 0 + ... %Bypass CFO est/correction
     2^6  * 1 + ... %Enable chan est recording to pkt buf
     2^7  * 0 + ... %Enable switching diversity
     2^8  * 1 + ... %Block DSSS Rx until AGC is settled
