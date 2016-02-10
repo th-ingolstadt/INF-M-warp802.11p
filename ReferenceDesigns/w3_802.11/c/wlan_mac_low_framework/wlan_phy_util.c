@@ -18,7 +18,6 @@
 #include "xparameters.h"
 #include "stdio.h"
 #include "stdarg.h"
-#include "xtmrctr.h"
 #include "xio.h"
 #include "string.h"
 
@@ -54,9 +53,6 @@ const u8 ones_in_chars[256] = {
          3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7,   // 0xE0 - 0xEF
          4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8};  // 0xF0 - 0xFF
 
-// Instance for Timer device
-static XTmrCtr               TimerCounter;
-
 /*****************************************************************************/
 /**
  * Initialize the WARP v3 node
@@ -73,11 +69,9 @@ int w3_node_init() {
     int            ret_val             = XST_SUCCESS;
     int            status;
     u32            clkmod_status;
-    XTmrCtr      * TmrCtrInstancePtr   = &TimerCounter;
 
     // Enable excpetions
     microblaze_enable_exceptions();
-
 
     // Initialize w3_clock_controller hardware and AD9512 buffers
     //   NOTE:  The clock initialization will set the clock divider to 2 (for 40MHz clock) to RF A/B AD9963's
@@ -187,7 +181,6 @@ int w3_node_init() {
         ret_val = XST_FAILURE;
     }
 
-
     // Initialize the radio_controller core and MAX2829 transceivers for on-board RF interfaces
     status = radio_controller_init(RC_BASEADDR, RC_ALL_RF, 1, 1);
 
@@ -198,25 +191,12 @@ int w3_node_init() {
         ret_val = XST_FAILURE;
     }
 
-
     // Initialize the EEPROM read/write core
     iic_eeprom_init(EEPROM_BASEADDR, 0x64, XPAR_CPU_ID);
 
 #ifdef WLAN_4RF_EN
     iic_eeprom_init(FMC_EEPROM_BASEADDR, 0x64);
 #endif
-
-
-    // Initialize the timer counter
-    status = XTmrCtr_Initialize(TmrCtrInstancePtr, TMRCTR_DEVICE_ID);
-
-    if (status != XST_SUCCESS) {
-        xil_printf("ERROR: (w3_node_init) Timer initialization failed with error code: %d\n", status);
-        ret_val = XST_FAILURE;
-    }
-
-    // Set timer 0 to into a "count down" mode
-    XTmrCtr_SetOptions(TmrCtrInstancePtr, 0, (XTC_DOWN_COUNT_OPTION));
 
     // Give the PHY control of the red user LEDs (PHY counts 1-hot on SIGNAL errors)
     //

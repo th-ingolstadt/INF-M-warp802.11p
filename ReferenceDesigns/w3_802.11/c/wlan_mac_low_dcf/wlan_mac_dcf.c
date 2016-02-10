@@ -17,9 +17,8 @@
 #include "xparameters.h"
 #include <stdio.h>
 #include <stdlib.h>
-#include "xtmrctr.h"
-#include "xio.h"
 #include <string.h>
+#include "xio.h"
 #include "math.h"
 
 // WARP includes
