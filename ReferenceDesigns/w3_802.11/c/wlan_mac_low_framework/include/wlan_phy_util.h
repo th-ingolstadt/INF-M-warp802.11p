@@ -260,6 +260,12 @@
 
 #define wlan_phy_rx_get_pkt_det_status() ((Xil_In32(WLAN_RX_STATUS) & WLAN_RX_REG_STATUS_PKT_DET_STATUS_MASK) >> 4)
 
+#define wlan_phy_rx_set_fec_scaling(sc_bpsk, sc_qpsk, sc_16qam, sc_64qam) Xil_Out32(WLAN_RX_FEC_CFG, \
+		 ((sc_bpsk) & 0x1F) | \
+		(((sc_qpsk) & 0x1F) << 5) | \
+		(((sc_16qam) & 0x1F) << 10) | \
+		(((sc_64qam) & 0x1F) << 15))
+
 // WLAN_RX_FFT_CFG register fields:
 //     [ 7: 0] - Number of subcarriers (MUST BE 64 - OTHER VALUES UNTESTED)
 //     [15: 8] - Cyclic prefix length (MUST BE 16 - OTHER VALUES UNTESTED)

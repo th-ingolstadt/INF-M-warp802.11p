@@ -301,7 +301,7 @@ void wlan_phy_init() {
     REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_DSSS_ASSERTS_CCA);
 
     // FFT config
-	wlan_phy_rx_set_fft_window_offset(3);
+    wlan_phy_rx_set_fft_window_offset(5);
 
     wlan_phy_rx_set_fft_scaling(5);
 
@@ -337,6 +337,10 @@ void wlan_phy_init() {
 
     // Set physical carrier sensing threshold
     wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * wlan_mac_low_rx_power_to_rssi(-62));     // -62dBm from 802.11-2012
+
+    // Set pre-quantizer scaling for decoder inputs
+    //  These values were found empirically by vs PER by sweeping scaling and attenuation
+    wlan_phy_rx_set_fec_scaling(5, 8, 11, 20);
 
     // Set post Rx extension
     //  Number of sample periods post-Rx the PHY waits before asserting Rx END - must be long enough for worst-case
@@ -675,7 +679,7 @@ void wlan_agc_config(u32 ant_mode) {
 
     // Set Rx gains
     radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXGAIN_RF, 2);
-    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXGAIN_BB, 8); //POMPHY
+    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXGAIN_BB, 8);
 #endif
 
 
