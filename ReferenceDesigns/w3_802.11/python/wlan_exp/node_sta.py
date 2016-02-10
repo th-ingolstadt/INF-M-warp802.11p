@@ -170,6 +170,41 @@ class WlanExpNodeSta(node.WlanExpNode):
         return self.send_cmd(cmd=cmds.NodeProcScanAndJoin(ssid=ssid, bssid=None, timeout=timeout), timeout=(2*timeout))
 
 
+    def set_association(self, bss_info, aid):
+        """Set the association state of the STA.
+        
+        Args:
+            bss_info (dict):  BSS_INFO dictionary (defined in wlan_exp.log.entry_types)
+                describing the BSS to associate
+            aid (int):        Association ID - This is only used by WARP stations to set the 
+                value on the hex display.  The AP will manage the actual AID internally.
+            
+        Returns:
+            status (bool):  
+                * True      -- Inidcates you successfully set the association state
+                * False     -- Indicates that you were not able to set the association state
+
+        .. note:: Example for to set the association state of STA "1" to an AP with MAC 
+            address 0x0123456789AB and ssid 'My Network' on channel 6:
+                bss_info = util.create_bss_info(bssid=0x0123456789AB, ssid='My Network', channel=6)
+                sta.set_association(bss_info=bss_info, aid=1)
+        """
+        import wlan_exp.cmds as cmds
+        import wlan_exp.device as device
+
+        # Extract information from BSS Info
+        device  = device.WlanDevice(mac_address=bss_info['bssid'], name='AP')
+        channel = bss_info['chan_num']
+        ssid    = bss_info['ssid']
+
+        # Send association command to the STA        
+        if self.send_cmd(cmds.NodeSTAAddAssociation(device=device, aid=aid, channel=channel, ssid=ssid)):
+            return True
+        else:
+            return False
+
+    # End def
+
 
     #-------------------------------------------------------------------------
     # Misc methods for the Node
