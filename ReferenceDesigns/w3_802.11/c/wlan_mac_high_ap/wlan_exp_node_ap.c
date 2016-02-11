@@ -63,7 +63,6 @@ extern dl_list      counts_table;
 extern tx_params    default_unicast_data_tx_params;
 extern u32          mac_param_chan;
 extern bss_info*    my_bss_info;
-extern ps_conf      power_save_configuration;
 extern u32          beacon_schedule_id;
 
 /*************************** Variable Definitions ****************************/
@@ -277,7 +276,10 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
         //---------------------------------------------------------------------
         case CMDID_NODE_AP_CONFIG: {
-            // Set AP configuration flags
+#if 0
+//TODO: power_save_configuration can no longer externed. We need to make a setter that also
+//updates the beacon template packet buffer
+        	// Set AP configuration flags
             //
             // Message format:
             //     cmd_args_32[0]   Flags
@@ -307,12 +309,17 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+#endif
         }
+
         break;
 
 
         //---------------------------------------------------------------------
         case CMDID_NODE_AP_DTIM_PERIOD: {
+#if 0
+//TODO: power_save_configuration can no longer externed. We need to make a setter that also
+//updates the beacon template packet buffer
             // Command to get / set the number of beacon intervals between DTIM beacons
             //
             // Message format:
@@ -350,6 +357,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+#endif
         }
         break;
 

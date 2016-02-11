@@ -27,7 +27,7 @@ typedef struct{
 typedef struct{
 	mgmt_tag_header header;
 	u8				data[256];
-} mgmt_tag_template;
+} mgmt_tag_template_t;
 
 typedef struct __attribute__ ((__packed__)){
 	u16		ht_capabilities_info;

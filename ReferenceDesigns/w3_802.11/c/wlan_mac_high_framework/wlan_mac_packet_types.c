@@ -38,7 +38,7 @@ int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_h
 	//void* pkt_buf,mac_header_80211_common* common, u16 beacon_interval, u16 capabilities, u8 ssid_len, u8* ssid, u8 chan
 
 	u32 packetLen_bytes;
-	mgmt_tag_template* mgmt_tag_ptr;
+	mgmt_tag_template_t* mgmt_tag_template;
 
 	u8  real_ssid_len = min(strlen(my_bss_info->ssid), SSID_LEN_MAX);
 
@@ -66,34 +66,34 @@ int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_h
 	beacon_probe_mgmt_header->beacon_interval = my_bss_info->beacon_interval;
 	beacon_probe_mgmt_header->capabilities = my_bss_info->capabilities;
 
-	mgmt_tag_ptr = (mgmt_tag_template *)( (void *)(pkt_buf) + sizeof(mac_header_80211) + sizeof(beacon_probe_frame) );
+	mgmt_tag_template = (mgmt_tag_template_t *)( (void *)(pkt_buf) + sizeof(mac_header_80211) + sizeof(beacon_probe_frame) );
 
 
-	mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_SSID;
-	mgmt_tag_ptr->header.tag_length = real_ssid_len;
-	memcpy((void *)(mgmt_tag_ptr->data),my_bss_info->ssid,real_ssid_len);
-	mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+	mgmt_tag_template->header.tag_element_id = MGMT_TAG_SSID;
+	mgmt_tag_template->header.tag_length = real_ssid_len;
+	memcpy((void *)(mgmt_tag_template->data),my_bss_info->ssid,real_ssid_len);
+	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
 
 	//Top bit is whether or not the rate is mandatory (basic). Bottom 7 bits is in units of "number of 500kbps"
-	mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_SUPPORTED_RATES;
-	mgmt_tag_ptr->header.tag_length = 8;
-	mgmt_tag_ptr->data[0] = RATE_BASIC | (0x0C); 	//6Mbps  (BPSK,   1/2)
-	mgmt_tag_ptr->data[1] = (0x12);				 	//9Mbps  (BPSK,   3/4)
-	mgmt_tag_ptr->data[2] = RATE_BASIC | (0x18); 	//12Mbps (QPSK,   1/2)
-	mgmt_tag_ptr->data[3] = (0x24); 				//18Mbps (QPSK,   3/4)
-	mgmt_tag_ptr->data[4] = RATE_BASIC | (0x30); 	//24Mbps (16-QAM, 1/2)
-	mgmt_tag_ptr->data[5] = (0x48); 				//36Mbps (16-QAM, 3/4)
-	mgmt_tag_ptr->data[6] = (0x60); 				//48Mbps  (64-QAM, 2/3)
-	mgmt_tag_ptr->data[7] = (0x6C); 				//54Mbps  (64-QAM, 3/4)
-	mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+	mgmt_tag_template->header.tag_element_id = MGMT_TAG_SUPPORTED_RATES;
+	mgmt_tag_template->header.tag_length = 8;
+	mgmt_tag_template->data[0] = RATE_BASIC | (0x0C); 	//6Mbps  (BPSK,   1/2)
+	mgmt_tag_template->data[1] = (0x12);				 	//9Mbps  (BPSK,   3/4)
+	mgmt_tag_template->data[2] = RATE_BASIC | (0x18); 	//12Mbps (QPSK,   1/2)
+	mgmt_tag_template->data[3] = (0x24); 				//18Mbps (QPSK,   3/4)
+	mgmt_tag_template->data[4] = RATE_BASIC | (0x30); 	//24Mbps (16-QAM, 1/2)
+	mgmt_tag_template->data[5] = (0x48); 				//36Mbps (16-QAM, 3/4)
+	mgmt_tag_template->data[6] = (0x60); 				//48Mbps  (64-QAM, 2/3)
+	mgmt_tag_template->data[7] = (0x6C); 				//54Mbps  (64-QAM, 3/4)
+	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
 	if( (my_bss_info->phy_mode) & BSS_INFO_PHY_MODE_11N ){
 		//Insert HT Capabilities and HT Information tags
-		mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_HT_CAPABILITIES;
-		mgmt_tag_ptr->header.tag_length = 26;
+		mgmt_tag_template->header.tag_element_id = MGMT_TAG_HT_CAPABILITIES;
+		mgmt_tag_template->header.tag_length = 26;
 
-		ht_capabilities_element = (ht_capabilities*)mgmt_tag_ptr->data;
+		ht_capabilities_element = (ht_capabilities*)mgmt_tag_template->data;
 		ht_capabilities_element->ht_capabilities_info = 0x010c;
 		ht_capabilities_element->a_mpdu_parameters = 0x00;
 		ht_capabilities_element->rx_supported_mcs[0] = 0x000000ff;
@@ -104,12 +104,12 @@ int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_h
 		ht_capabilities_element->tx_beamforming = 0x0000;
 		ht_capabilities_element->ant_sel = 0x00;
 
-		mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+		mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-		mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_HT_OPERATION;
-		mgmt_tag_ptr->header.tag_length = 22;
+		mgmt_tag_template->header.tag_element_id = MGMT_TAG_HT_OPERATION;
+		mgmt_tag_template->header.tag_length = 22;
 
-		ht_information_element = (ht_information*)mgmt_tag_ptr->data;
+		ht_information_element = (ht_information*)mgmt_tag_template->data;
 		ht_information_element->channel = my_bss_info->chan;
 		ht_information_element->ht_info_subset_1 = 0x00;
 		ht_information_element->ht_info_subset_2 = 0x0000;
@@ -119,20 +119,20 @@ int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_h
 		ht_information_element->rx_supported_mcs[2] = 0x00000000;
 		ht_information_element->rx_supported_mcs[3] = 0x00000000;
 
-		mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+		mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 	}
 
-	mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_DSSS_PARAMETER_SET;
-	mgmt_tag_ptr->header.tag_length = 1; //tag length... doesn't include the tag itself and the tag length
-	mgmt_tag_ptr->data[0] = my_bss_info->chan;
-	mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+	mgmt_tag_template->header.tag_element_id = MGMT_TAG_DSSS_PARAMETER_SET;
+	mgmt_tag_template->header.tag_length = 1; //tag length... doesn't include the tag itself and the tag length
+	mgmt_tag_template->data[0] = my_bss_info->chan;
+	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-	mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_ERP;
-	mgmt_tag_ptr->header.tag_length = 1;
-	mgmt_tag_ptr->data[0] = 0; //Non ERP Present - not set, don't use protection, no barker preamble mode
-	mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+	mgmt_tag_template->header.tag_element_id = MGMT_TAG_ERP;
+	mgmt_tag_template->header.tag_length = 1;
+	mgmt_tag_template->data[0] = 0; //Non ERP Present - not set, don't use protection, no barker preamble mode
+	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-	packetLen_bytes = ((u8*)mgmt_tag_ptr - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
+	packetLen_bytes = ((u8*)mgmt_tag_template - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
 
 	return packetLen_bytes;
 
@@ -270,7 +270,7 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 	ht_information* ht_information_element;
 
 	u8  real_ssid_len = min(strlen(attempt_bss_info->ssid), SSID_LEN_MAX);
-	mgmt_tag_template* mgmt_tag_ptr;
+	mgmt_tag_template_t* mgmt_tag_template;
 
 
 	mac_header_80211* assoc_80211_header;
@@ -296,44 +296,44 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 	//to represent that we will be awake at every beacon target time.
 	association_req_mgmt_header->listen_interval = 0x0001;
 
-	mgmt_tag_ptr = (mgmt_tag_template *)( (void *)(pkt_buf) + sizeof(mac_header_80211) + sizeof(association_request_frame) );
+	mgmt_tag_template = (mgmt_tag_template_t *)( (void *)(pkt_buf) + sizeof(mac_header_80211) + sizeof(association_request_frame) );
 
 
-	mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_SSID;
-	mgmt_tag_ptr->header.tag_length = real_ssid_len;
-	memcpy((void *)(mgmt_tag_ptr->data),attempt_bss_info->ssid,real_ssid_len);
-	mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+	mgmt_tag_template->header.tag_element_id = MGMT_TAG_SSID;
+	mgmt_tag_template->header.tag_length = real_ssid_len;
+	memcpy((void *)(mgmt_tag_template->data),attempt_bss_info->ssid,real_ssid_len);
+	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
 	//Top bit is whether or not the rate is mandatory (basic). Bottom 7 bits is in units of "number of 500kbps"
 	//Note: these parameters are spoofed. The 802.11 Reference Design does not support the 802.11b rates (with the exception
 	//of Rx of DSSS 1Mbps). However, most commercial APs will decline a STA from joining if they don't advertise support
 	//for the nominal set of 802.11b basic rates.
-	mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_SUPPORTED_RATES;
-	mgmt_tag_ptr->header.tag_length = 8;
-	mgmt_tag_ptr->data[0] = RATE_BASIC | (0x02); 	//1Mbps
-	mgmt_tag_ptr->data[1] = RATE_BASIC | (0x04);	//2Mbps
-	mgmt_tag_ptr->data[2] = RATE_BASIC | (0x0B);	//5.5Mbps
-	mgmt_tag_ptr->data[3] = RATE_BASIC | (0x16);	//11Mbps
-	mgmt_tag_ptr->data[4] = (0x24); 				//18Mbps
-	mgmt_tag_ptr->data[5] = (0x30); 				//24Mbps
-	mgmt_tag_ptr->data[6] = (0x48); 				//36Mbps
-	mgmt_tag_ptr->data[7] = (0x6C); 				//54Mbps
-	mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+	mgmt_tag_template->header.tag_element_id = MGMT_TAG_SUPPORTED_RATES;
+	mgmt_tag_template->header.tag_length = 8;
+	mgmt_tag_template->data[0] = RATE_BASIC | (0x02); 	//1Mbps
+	mgmt_tag_template->data[1] = RATE_BASIC | (0x04);	//2Mbps
+	mgmt_tag_template->data[2] = RATE_BASIC | (0x0B);	//5.5Mbps
+	mgmt_tag_template->data[3] = RATE_BASIC | (0x16);	//11Mbps
+	mgmt_tag_template->data[4] = (0x24); 				//18Mbps
+	mgmt_tag_template->data[5] = (0x30); 				//24Mbps
+	mgmt_tag_template->data[6] = (0x48); 				//36Mbps
+	mgmt_tag_template->data[7] = (0x6C); 				//54Mbps
+	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-	mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_EXTENDED_SUPPORTED_RATES;
-	mgmt_tag_ptr->header.tag_length = 4;
-	mgmt_tag_ptr->data[0] = (0x0c); 				//6Mbps
-	mgmt_tag_ptr->data[1] = (0x12);					//9Mbps
-	mgmt_tag_ptr->data[2] = (0x18);					//12Mbps
-	mgmt_tag_ptr->data[3] = (0x60);					//48Mbps
-	mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+	mgmt_tag_template->header.tag_element_id = MGMT_TAG_EXTENDED_SUPPORTED_RATES;
+	mgmt_tag_template->header.tag_length = 4;
+	mgmt_tag_template->data[0] = (0x0c); 				//6Mbps
+	mgmt_tag_template->data[1] = (0x12);					//9Mbps
+	mgmt_tag_template->data[2] = (0x18);					//12Mbps
+	mgmt_tag_template->data[3] = (0x60);					//48Mbps
+	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
 	if( (attempt_bss_info->phy_mode) & BSS_INFO_PHY_MODE_11N ){
 			//Insert HT Capabilities and HT Information tags
-			mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_HT_CAPABILITIES;
-			mgmt_tag_ptr->header.tag_length = 26;
+			mgmt_tag_template->header.tag_element_id = MGMT_TAG_HT_CAPABILITIES;
+			mgmt_tag_template->header.tag_length = 26;
 
-			ht_capabilities_element = (ht_capabilities*)mgmt_tag_ptr->data;
+			ht_capabilities_element = (ht_capabilities*)mgmt_tag_template->data;
 			ht_capabilities_element->ht_capabilities_info = 0x010c;
 			ht_capabilities_element->a_mpdu_parameters = 0x00;
 			ht_capabilities_element->rx_supported_mcs[0] = 0x000000ff;
@@ -344,12 +344,12 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 			ht_capabilities_element->tx_beamforming = 0x0000;
 			ht_capabilities_element->ant_sel = 0x00;
 
-			mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+			mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-			mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_HT_OPERATION;
-			mgmt_tag_ptr->header.tag_length = 22;
+			mgmt_tag_template->header.tag_element_id = MGMT_TAG_HT_OPERATION;
+			mgmt_tag_template->header.tag_length = 22;
 
-			ht_information_element = (ht_information*)mgmt_tag_ptr->data;
+			ht_information_element = (ht_information*)mgmt_tag_template->data;
 			ht_information_element->channel = attempt_bss_info->chan;
 			ht_information_element->ht_info_subset_1 = 0x00;
 			ht_information_element->ht_info_subset_2 = 0x0000;
@@ -359,9 +359,9 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 			ht_information_element->rx_supported_mcs[2] = 0x00000000;
 			ht_information_element->rx_supported_mcs[3] = 0x00000000;
 
-			mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+			mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 		}
-	packetLen_bytes = ((u8*)mgmt_tag_ptr - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
+	packetLen_bytes = ((u8*)mgmt_tag_template - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
 
 	return packetLen_bytes;
 }

@@ -41,6 +41,7 @@
 // User callback to see if the higher-level framework can send a packet to
 // the lower-level framework to be transmitted.
 extern function_ptr_t        tx_poll_callback;
+static function_ptr_t        queue_state_change_callback;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -109,6 +110,8 @@ void queue_init(u8 dram_present){
 	//
 	tx_queues     = NULL;
 	num_tx_queues = 0;
+
+	queue_state_change_callback = (function_ptr_t)nullCallback;
 
 	// Initialize the free queue
 	dl_list_init(&free_queue);
@@ -289,6 +292,12 @@ void enqueue_after_tail(u16 queue_sel, tx_queue_element* tqe){
 	//
 	((tx_queue_buffer*)(tqe->data))->frame_info.queue_info.occupancy = (tx_queues[queue_sel].length & 0xFFFF);
 
+	if(tx_queues[queue_sel].length == 1){
+		//If the queue element we just added is now the only member of this queue, we should inform
+		//the top-level MAC that the queue has transitioned from empty to non-empty.
+		queue_state_change_callback(queue_sel, 1);
+	}
+
     // Poll the TX queues to see if anything needs to be transmitted
 	tx_poll_callback();
 
@@ -327,6 +336,13 @@ tx_queue_element* dequeue_from_head(u16 queue_sel){
 		} else {
 			curr_dl_entry = (tx_queues[queue_sel].first);
 			dl_entry_remove(&tx_queues[queue_sel], curr_dl_entry);
+
+			if(tx_queues[queue_sel].length == 0){
+				//If the queue element we just removed empties the queue, we should inform
+				//the top-level MAC that the queue has transitioned from non-empty to empty.
+				queue_state_change_callback(queue_sel, 0);
+			}
+
 			return (tx_queue_element *) curr_dl_entry;
 		}
 	}
@@ -539,4 +555,8 @@ inline int dequeue_transmit_checkin(u16 queue_sel){
 	}
 
 	return return_value;
+}
+
+inline void queue_set_state_change_callback(function_ptr_t callback){
+	queue_state_change_callback = callback;
 }

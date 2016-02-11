@@ -96,6 +96,7 @@ volatile function_ptr_t      uart_callback;                ///< User callback fo
 volatile function_ptr_t      mpdu_tx_done_callback;        ///< User callback for lower-level message that MPDU transmission is complete
 volatile function_ptr_t      mpdu_rx_callback;             ///< User callback for lower-level message that MPDU reception is ready for processing
 volatile function_ptr_t      tx_poll_callback;             ///< User callback when higher-level framework is ready to send a packet to low
+volatile function_ptr_t		 beacon_tx_done_callback;	   ///< User callback for low-level message that a Beacon transmission is complete
 volatile function_ptr_t      mpdu_tx_dequeue_callback;     ///< User callback for higher-level framework dequeuing a packet
 
 // Node information
@@ -318,6 +319,7 @@ void wlan_mac_high_init(){
 	uart_callback            = (function_ptr_t)nullCallback;
 	mpdu_rx_callback         = (function_ptr_t)nullCallback;
 	mpdu_tx_done_callback    = (function_ptr_t)nullCallback;
+	beacon_tx_done_callback	 = (function_ptr_t)nullCallback;
 	tx_poll_callback	     = (function_ptr_t)nullCallback;
 	mpdu_tx_dequeue_callback = (function_ptr_t)nullCallback;
 
@@ -860,6 +862,10 @@ void wlan_mac_high_set_mpdu_tx_done_callback(function_ptr_t callback){
 	mpdu_tx_done_callback = callback;
 }
 
+
+void wlan_mac_high_set_beacon_tx_done_callback(function_ptr_t callback){
+	beacon_tx_done_callback = callback;
+}
 
 
 /**
@@ -1568,6 +1574,12 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 
     // Determine what type of message this is
 	switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)) {
+
+		//---------------------------------------------------------------------
+		case IPC_MBOX_TX_BEACON_DONE:
+			beacon_tx_done_callback();
+			tx_poll_callback();
+		break;
 
 		//---------------------------------------------------------------------
 		case IPC_MBOX_RX_MPDU_READY:

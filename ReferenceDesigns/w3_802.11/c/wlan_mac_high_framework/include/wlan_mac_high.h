@@ -446,6 +446,7 @@ void               wlan_mac_high_set_pb_m_callback(function_ptr_t callback);
 void               wlan_mac_high_set_pb_d_callback(function_ptr_t callback);
 void               wlan_mac_high_set_uart_rx_callback(function_ptr_t callback);
 void               wlan_mac_high_set_mpdu_tx_done_callback(function_ptr_t callback);
+void 			   wlan_mac_high_set_beacon_tx_done_callback(function_ptr_t callback);
 void               wlan_mac_high_set_mpdu_rx_callback(function_ptr_t callback);
 void               wlan_mac_high_set_poll_tx_queues_callback(function_ptr_t callback);
 void               wlan_mac_high_set_mpdu_dequeue_callback(function_ptr_t callback);

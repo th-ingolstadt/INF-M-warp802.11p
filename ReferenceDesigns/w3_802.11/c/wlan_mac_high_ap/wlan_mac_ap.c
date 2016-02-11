@@ -35,12 +35,12 @@
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_entries.h"
-#include "wlan_mac_ap.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_dl_list.h"
 #include "ascii_characters.h"
 #include "wlan_mac_bss_info.h"
 #include "wlan_mac_mgmt_tags.h"
+#include "wlan_mac_ap.h"
 
 // Experiments framework includes
 #include "wlan_exp.h"
@@ -55,9 +55,9 @@
 #define  WLAN_EXP_ETH                            TRANSPORT_ETH_B
 #define  WLAN_EXP_NODE_TYPE                     (WLAN_EXP_TYPE_DESIGN_80211 + WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_AP)
 
-#define  WLAN_DEFAULT_CHANNEL       1
+#define  WLAN_DEFAULT_CHANNEL      1
 #define  WLAN_DEFAULT_TX_PWR       15
-#define  WLAN_DEFAULT_TX_PHY_MODE  PHY_MODE_HTMF
+#define  WLAN_DEFAULT_TX_PHY_MODE  PHY_MODE_NONHT
 #define  WLAN_DEFAULT_TX_ANTENNA   TX_ANTMODE_SISO_ANTA
 #define  WLAN_DEFAULT_RX_ANTENNA   RX_ANTMODE_SISO_ANTA
 
@@ -105,10 +105,13 @@ volatile u32                      mac_param_chan;
 static u8 	                      wlan_mac_addr[6];
 
 // Traffic Indication Map State
-volatile ps_conf                  power_save_configuration;
-
-// Beacon variables
-volatile u32                      beacon_schedule_id = SCHEDULE_FAILURE;
+// These global structs must be protected against externing. Any
+// modifications of these structs should be done via an explicit
+// setter that also updates the beacon template.
+static volatile ps_conf           gl_power_save_configuration;
+static volatile	u32				  num_dozed_stations;
+static volatile mgmt_tag_tim_t	  mgmt_tag_tim;
+static volatile u32				  mgmt_tag_tim_update_schedule_id;
 
 
 
@@ -122,6 +125,7 @@ int  wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_re
 /******************************** Functions **********************************/
 
 int main(){
+	ps_conf           initial_power_save_configuration;
 
 	u8 disallow_filter[6] = {0x00,0x00,0x00,0x00,0x00,0x00};
 	u8 disallow_mask[6]   = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
@@ -179,6 +183,7 @@ int main(){
 	// Initialize callbacks
 	wlan_mac_util_set_eth_rx_callback(          (void*)ethernet_receive);
 	wlan_mac_high_set_mpdu_tx_done_callback(    (void*)mpdu_transmit_done);
+	wlan_mac_high_set_beacon_tx_done_callback(  (void*)beacon_transmit_done);
 	wlan_mac_high_set_mpdu_rx_callback(         (void*)mpdu_rx_process);
 	wlan_mac_high_set_pb_u_callback(            (void*)up_button);
 
@@ -186,6 +191,7 @@ int main(){
 	wlan_mac_high_set_poll_tx_queues_callback(  (void*)poll_tx_queues);
 	wlan_mac_high_set_mpdu_dequeue_callback(    (void*)mpdu_dequeue);
     wlan_mac_ltg_sched_set_callback(            (void*)ltg_event);
+    queue_set_state_change_callback(			(void*)queue_state_change);
 
     // Configure the wireless-wired encapsulation mode (AP and STA behaviors are different)
     wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_AP);
@@ -269,18 +275,34 @@ int main(){
     // Setup default scheduled events:
 	//  Periodic beacon transmissions
 
-	power_save_configuration.enable = 1;
-	power_save_configuration.dtim_period = 1;
-	power_save_configuration.dtim_count = 0;
-	power_save_configuration.dtim_mcast_allow_window = (WLAN_DEFAULT_BEACON_INTERVAL_TU * BSS_MICROSECONDS_IN_A_TU) / 4;
+	initial_power_save_configuration.enable = 1;
+	initial_power_save_configuration.dtim_period = 1;
+	initial_power_save_configuration.dtim_count = 0;
+	initial_power_save_configuration.dtim_mcast_allow_window = (WLAN_DEFAULT_BEACON_INTERVAL_TU * BSS_MICROSECONDS_IN_A_TU) / 4;
+
+	// Initialize TIM management tag that will be postpended to a beacon
+	mgmt_tag_tim_update_schedule_id = SCHEDULE_ID_RESERVED_MAX;
+	mgmt_tag_tim.tag_loc = NULL;
+	mgmt_tag_tim.tag_size = sizeof(mgmt_tag_header) + 4; // This is the initial size of the TIM tag. It can grow with additional associations
+	mgmt_tag_tim.mgmt_tag_template = wlan_mac_high_malloc(mgmt_tag_tim.tag_size);
+	if(mgmt_tag_tim.mgmt_tag_template != NULL){
+		mgmt_tag_tim.mgmt_tag_template->header.tag_element_id = MGMT_TAG_TIM;
+		mgmt_tag_tim.mgmt_tag_template->header.tag_length = (mgmt_tag_tim.tag_size - sizeof(mgmt_tag_header));
+		mgmt_tag_tim.mgmt_tag_template->data[0] = initial_power_save_configuration.dtim_count;
+		mgmt_tag_tim.mgmt_tag_template->data[1] = initial_power_save_configuration.dtim_period;
+		mgmt_tag_tim.mgmt_tag_template->data[2] = 0; //TIM Control (top 7 bits are offset for partial map)
+		mgmt_tag_tim.mgmt_tag_template->data[3] = 0; //TIM Bitmap
+	} else {
+		xil_printf("Error: unable to allocate memory for mgmt_tag_tim.mgmt_tag_template\n");
+	}
 
 	// Set up beacon transmissions
 	wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, wlan_mac_addr );
+	wlan_mac_high_configure_beacon_transmit( &tx_header_common, my_bss_info, &default_multicast_mgmt_tx_params );
 
-	//Original Beacon Structure
-	beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval * BSS_MICROSECONDS_IN_A_TU), SCHEDULE_REPEAT_FOREVER, (void*)beacon_transmit);
-	//Beta Beacon Structure
-	//wlan_mac_high_configure_beacon_transmit( &tx_header_common, my_bss_info, &default_multicast_mgmt_tx_params );
+	// Set the global power save configuration
+	//   Note: this should be called after wlan_mac_high_configure_beacon_transmit
+	set_power_save_configuration(initial_power_save_configuration);
 
 	//  Periodic check for timed-out associations
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)association_timestamp_check);
@@ -330,49 +352,208 @@ int main(){
 	return -1;
 }
 
-/**
- * @brief Transmit a beacon
- *
- * This function will create and enqueue a beacon.
- *
- * @param  None
- * @return None
- */
-void beacon_transmit() {
-	u16 tx_length;
-	tx_queue_element*	curr_tx_queue_element;
-	tx_queue_buffer* 	curr_tx_queue_buffer;
+void set_power_save_configuration(ps_conf power_save_configuration){
+	interrupt_state_t curr_interrupt_state;
+	gl_power_save_configuration = power_save_configuration;
 
-	// Create a beacon
-	curr_tx_queue_element = queue_checkout();
+	//TODO:
+	//	initial_power_save_configuration.dtim_period = 1;
+	//  initial_power_save_configuration.dtim_count = 0;
+	//  are currently the only supported parameters.
+	gl_power_save_configuration.dtim_period = 1;
+	gl_power_save_configuration.dtim_count = 0;
 
-	if(curr_tx_queue_element != NULL){
-		curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+	curr_interrupt_state = wlan_mac_high_interrupt_stop();
+	update_tim_tag_all(SCHEDULE_ID_RESERVED_MAX);
+	wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
 
-		// Setup the TX header
-		wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, wlan_mac_addr );
+}
 
-		// Fill in the data
-        tx_length = wlan_create_beacon_frame(
-			(void*)(curr_tx_queue_buffer->frame),
-			&tx_header_common,
-			my_bss_info);
+void queue_state_change(u32 QID, u32 queue_len){
+	u8 aid;
 
-		wlan_mac_high_setup_tx_frame_info(&tx_header_common,
-										  curr_tx_queue_element,
-										  tx_length,
-										  (TX_MPDU_FLAGS_FILL_TIMESTAMP),
-										  MANAGEMENT_QID);
+	if(mgmt_tag_tim_update_schedule_id != SCHEDULE_ID_RESERVED_MAX){
+		//We already have a pending full TIM state re-write scheduled, so we won't bother
+		//with a per-queue change.
+		return;
+	}
 
-		// Set the information in the TX queue buffer
-		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_mgmt_tx_params);
-		curr_tx_queue_buffer->frame_info.AID         = 0;
+	if(mgmt_tag_tim.tag_loc == NULL || 1){ //TODO: For the time being, we'll suffer the penalty of updating the entire TIM state with each queue state change
+		//The TIM tag is not present in the current beacon template.
+		//We have no choice but to do a full TIM tag update and write.
+		update_tim_tag_all(SCHEDULE_ID_RESERVED_MAX);
+	} else {
+		//There is a TIM tag that is already present. We can update
+		//only the relevant byte that applies to this queue state
+		//change
+		if(QID == MCAST_QID) {
+			//TODO: raise the mcast bit in the tim_control
+		} else {
+			aid = AID_TO_QID(QID);
+			// TODO: raise aid bit in the tim bitmap
+			//	Note: check to make sure this AID isn't larger than
+			//  the size of the tag in the packet buffer and the
+			//  size of mgmt_tag_tim.mgmt_tag_template in the heap.
+			//	reallocate and modify tx_frame_info length accordingly.
+		}
+	}
+}
 
-		// Put the packet in the queue
-		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
+void update_tim_tag_all(u32 sched_id){
+
+	tx_frame_info*  	tx_frame_info_ptr 			= (tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON);
+	u32 				existing_mgmt_tag_length 	= 0;	// Size of the management tag that is currently in the packet buffer
+	u32					next_mgmt_tag_length		= 0;	// Size that we will update the management tag to be.
+															// Note: a third size we have to track is present in the global mgmt_tag_tim
+	dl_entry*			curr_station_entry;
+	station_info*		curr_station;
+	u8                  tim_control;
+	u32 				i;
+	u16 				tim_byte_idx           		= 0;
+	u16 				tim_next_byte_idx      		= 0;
+	u8					tim_bit_idx            		= 0;
+
+
+
+	if(sched_id == SCHEDULE_ID_RESERVED_MAX){
+		//This function was called manually (not via the scheduler)
+
+		//First, we should determine whether a call to update_time_tag_all is scheduled
+		//for some time in the future. If it is, we can just return immediately and let that
+		//execution clean up any pending TIM state changes.
+		if(mgmt_tag_tim_update_schedule_id != SCHEDULE_ID_RESERVED_MAX){
+			return;
+		}
 
 	}
+
+	mgmt_tag_tim_update_schedule_id = SCHEDULE_ID_RESERVED_MAX;
+
+	if(lock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
+		//mgmt_tag_tim_update_schedule_id = SCHEDULE_ID_RESERVED_MAX;asd
+		mgmt_tag_tim_update_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE,
+																		   (my_bss_info->beacon_interval * BSS_MICROSECONDS_IN_A_TU) / 4,
+																		   1,
+																		   (void*)update_tim_tag_all);
+		return;
+	}
+
+	if(mgmt_tag_tim.tag_loc != NULL){
+		//There exists a TIM tag in the beacon. We should determine its length
+		existing_mgmt_tag_length = sizeof(mgmt_tag_header) + ((mgmt_tag_header*)mgmt_tag_tim.tag_loc)->tag_length;
+	}
+
+	//----------------------------------
+	// 1. If we are not going to include the TIM tag in the next beacon transmission, we want to
+	// exit this context quickly and not bother updating state that ultimately will not be used.
+	if( (gl_power_save_configuration.enable == 0) || (num_dozed_stations == 0) ){
+		if(mgmt_tag_tim.tag_loc != NULL){
+			//We need to remove the existing tag
+			mgmt_tag_tim.tag_loc = NULL;
+			//We can leave the tag in place and just reduce the length
+			//accordingly.
+			tx_frame_info_ptr->length -= existing_mgmt_tag_length;
+		}
+	} else {
+		//----------------------------------
+		// 2. If we are going to include the TIM tag, we will first refresh the full state of the
+		// global mgmt_tag_tim struct based on queue occupancy.
+
+		//We'll start updating the TIM tag from the last associated station.
+		//Since we know that the WLAN MAC High Framework keeps the dl_list of
+		//associated stations in increasing AID order, we can use this final
+		//station's AID to define the size of the TIM tag.
+		curr_station_entry = my_bss_info->associated_stations.last;
+
+		if(curr_station_entry != NULL){
+			curr_station = (station_info*)(curr_station_entry->data);
+			next_mgmt_tag_length = sizeof(mgmt_tag_header) + 4 + ((curr_station->AID) / 8);
+		} else {
+			next_mgmt_tag_length = sizeof(mgmt_tag_header) + 4; //Return to the default TIM size since no one is associated.
+		}
+
+		if(next_mgmt_tag_length > mgmt_tag_tim.tag_size){
+			//We need to reallocate our TIM bitmap to make more space
+			//Note: if we cared about really micro-optimizing the heap, we could reallocate
+			//the TIM bitmap on each invocation and let it shrink when stations dissociate.
+			//We will only let the allocation increase from its previous state to increase
+			//performance.
+			mgmt_tag_tim.mgmt_tag_template = wlan_mac_high_realloc(mgmt_tag_tim.mgmt_tag_template, next_mgmt_tag_length);
+
+			if(mgmt_tag_tim.mgmt_tag_template == NULL){
+				xil_printf("Error reallocating mgmt_tag_tim.mgmt_tag_template\n");
+				return;
+			}
+
+			//Zero out the new TIM bytes at the end of the current template
+			bzero( (u8*)(mgmt_tag_tim.mgmt_tag_template) + mgmt_tag_tim.tag_size,
+						 next_mgmt_tag_length-mgmt_tag_tim.tag_size);
+		}
+
+		//Update the current length stored in the mgmt_tag_tim global
+		mgmt_tag_tim.tag_size = next_mgmt_tag_length;
+
+		tim_control = 0; //The top 7 bits are an offset for the partial map
+
+		if(queue_num_queued(MCAST_QID)>0){
+			tim_control |= 0x01; //Raise the multicast bit in the TIM control field
+		}
+
+		while(curr_station_entry != NULL){
+			curr_station = (station_info*)(curr_station_entry->data);
+
+			if(queue_num_queued(AID_TO_QID(curr_station->AID))){
+				tim_next_byte_idx = (curr_station->AID) / 8;
+
+				if(tim_next_byte_idx > tim_byte_idx){
+					//We've moved on to a new octet. We should zero everything after the previous octet
+					//up to and including the new octet.
+					for(i = tim_byte_idx+1; i <= tim_next_byte_idx; i++){
+						mgmt_tag_tim.mgmt_tag_template->data[3+i] = 0;
+					}
+				}
+
+				tim_bit_idx  = (curr_station->AID) % 8;
+				tim_byte_idx = tim_next_byte_idx;
+
+				//Raise the bit for this station in the TIM partial bitmap
+				mgmt_tag_tim.mgmt_tag_template->data[3+tim_byte_idx] |= 1<<tim_bit_idx;
+			}
+
+			curr_station_entry = dl_entry_prev(curr_station_entry);
+		}
+
+		mgmt_tag_tim.mgmt_tag_template->data[0] = gl_power_save_configuration.dtim_count;
+		mgmt_tag_tim.mgmt_tag_template->data[1] = gl_power_save_configuration.dtim_period;
+		mgmt_tag_tim.mgmt_tag_template->data[2] = tim_control; //TIM Control (top 7 bits are offset for partial map)
+
+		//----------------------------------
+		// 3. We will now copy the state from the mgmt_tag_tim global struct
+		// into the actual packet buffer for transmission.
+		if(mgmt_tag_tim.tag_loc == NULL){
+			//We need to add the tag to the end of the beacon template
+			//and update the length field of the tx_frame_info.
+			mgmt_tag_tim.tag_loc = (void*)((void*)(tx_frame_info_ptr)
+													+PHY_TX_PKT_BUF_MPDU_OFFSET
+													+tx_frame_info_ptr->length
+													-WLAN_PHY_FCS_NBYTES);
+		}
+		tx_frame_info_ptr->length += (mgmt_tag_tim.tag_size - existing_mgmt_tag_length);
+
+		//Copy the full tag into the packet buffer
+		memcpy(mgmt_tag_tim.tag_loc, (void*)mgmt_tag_tim.mgmt_tag_template, mgmt_tag_tim.tag_size);
+
+
+
+	}
+	if(unlock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
+		xil_printf("Error: Unable to unlock Beacon packet buffer during update_tim_tag_all\n");
+	}
+	return;
+}
+
+void beacon_transmit_done(){
+	gl_power_save_configuration.dtim_timestamp = get_system_time_usec() + gl_power_save_configuration.dtim_mcast_allow_window;
 }
 
 /**
@@ -444,7 +625,9 @@ void poll_tx_queues(){
 							// Check the broadcast queue
 							next_station_info_entry = my_bss_info->associated_stations.first;
 
-							if((get_system_time_usec() - power_save_configuration.dtim_timestamp) <= power_save_configuration.dtim_mcast_allow_window || (power_save_configuration.enable == 0)){
+							if( (num_dozed_stations == 0)
+									|| (get_system_time_usec() < gl_power_save_configuration.dtim_timestamp)
+									|| (gl_power_save_configuration.enable == 0) ){
 								if(dequeue_transmit_checkin(MCAST_QID)){
 									// Found a not-empty queue, transmitted a packet
 									goto poll_cleanup;
@@ -464,7 +647,7 @@ void poll_tx_queues(){
 									next_station_info_entry = dl_entry_next(curr_station_info_entry);
 								}
 
-								if(((curr_station_info->flags & STATION_INFO_FLAG_DOZE) == 0) || (power_save_configuration.enable == 0)){
+								if(((curr_station_info->flags & STATION_INFO_FLAG_DOZE) == 0) || (gl_power_save_configuration.enable == 0)){
 									if(dequeue_transmit_checkin(AID_TO_QID(curr_station_info->AID))){
 										// Found a not-empty queue, transmitted a packet
 										goto poll_cleanup;
@@ -1020,8 +1203,26 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 			// Update PS state
 			if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_POWER_MGMT){
+				if( (associated_station->flags & STATION_INFO_FLAG_DOZE) == 0 ){
+					//Station was not previously dozing
+					num_dozed_stations++;
+					if(num_dozed_stations == 1){
+						//This is the first station in our BSS that has entered a doze state.
+						//We need include the TIM management tag in the next beacon.
+						update_tim_tag_all(SCHEDULE_ID_RESERVED_MAX);
+					}
+				}
 				associated_station->flags |= STATION_INFO_FLAG_DOZE;
 			} else {
+				if( associated_station->flags & STATION_INFO_FLAG_DOZE ){
+					//Station was previously dozing
+					num_dozed_stations--;
+					if(num_dozed_stations == 0){
+						//All stations are now awake. We can drop the TIM management
+						//tag in the next beacons.
+						update_tim_tag_all(SCHEDULE_ID_RESERVED_MAX);
+					}
+				}
 				associated_station->flags = (associated_station->flags) & ~STATION_INFO_FLAG_DOZE;
 			}
 
@@ -1717,15 +1918,8 @@ void mpdu_dequeue(tx_queue_element* packet){
 	mac_header_80211* 	header;
 	tx_frame_info*		frame_info;
 	u32 				packet_payload_size;
-	u8                  tim_control;
-	u16 				tim_byte_idx           = 0;
-	u16 				tim_next_byte_idx      = 0;
-	u8					tim_bit_idx            = 0;
 	dl_entry*			curr_station_entry;
 	station_info*		curr_station;
-	u32                 i;
-	u8					tim_len;
-	mgmt_tag_template* 	mgmt_tag_ptr;
 
 	header 	  			= (mac_header_80211*)((((tx_queue_buffer*)(packet->data))->frame));
 	frame_info 			= (tx_frame_info*)&((((tx_queue_buffer*)(packet->data))->frame_info));
@@ -1746,72 +1940,6 @@ void mpdu_dequeue(tx_queue_element* packet){
 						header->frame_control_2 = (header->frame_control_2) & ~MAC_FRAME_CTRL2_FLAG_MORE_DATA;
 					}
 				}
-			}
-		break;
-		case PKT_TYPE_MGMT:
-			if(header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_BEACON && my_bss_info != NULL){
-				//If the packet we are about to send is a beacon, we need to tack on the TIM
-
-				if(power_save_configuration.enable){
-					mgmt_tag_ptr = (mgmt_tag_template*) ( ((u8*)header) + (packet_payload_size - WLAN_PHY_FCS_NBYTES) );
-
-					tim_control = 0; //The top 7 bits are an offset for the partial map
-
-					if(queue_num_queued(MCAST_QID)>0){
-						tim_control |= 0x01; //Raise the multicast bit in the TIM control field
-					}
-
-					mgmt_tag_ptr->data[3] =  0;
-
-					curr_station_entry = my_bss_info->associated_stations.first;
-					while(curr_station_entry != NULL){
-						curr_station = (station_info*)(curr_station_entry->data);
-
-						if(queue_num_queued(AID_TO_QID(curr_station->AID))){
-							tim_next_byte_idx = (curr_station->AID) / 8;
-
-							if(tim_next_byte_idx > tim_byte_idx){
-								//We've moved on to a new octet. We should zero everything after the previous octet
-								//up to and including the new octet.
-								for(i = tim_byte_idx+1; i <= tim_next_byte_idx; i++){
-									mgmt_tag_ptr->data[3+i] = 0;
-								}
-							}
-
-							tim_bit_idx  = (curr_station->AID) % 8;
-							tim_byte_idx = tim_next_byte_idx;
-
-							//Raise the bit for this station in the TIM partial bitmap
-							mgmt_tag_ptr->data[3+tim_byte_idx] |= 1<<tim_bit_idx;
-						}
-
-						curr_station_entry = dl_entry_next(curr_station_entry);
-					}
-
-					tim_len = tim_byte_idx+1;
-
-					mgmt_tag_ptr->header.tag_element_id = MGMT_TAG_TIM;
-					mgmt_tag_ptr->header.tag_length = 3+tim_len;
-
-					mgmt_tag_ptr->data[0] = power_save_configuration.dtim_count; //DTIM count
-					mgmt_tag_ptr->data[1] =  power_save_configuration.dtim_period; //DTIM period
-					mgmt_tag_ptr->data[2] =  tim_control; //Bitmap control
-
-					mgmt_tag_ptr = (void*)mgmt_tag_ptr + ( mgmt_tag_ptr->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
-
-					packet_payload_size = ((u8*)mgmt_tag_ptr - (u8*)(header)) + WLAN_PHY_FCS_NBYTES;
-
-					frame_info->length = packet_payload_size;
-
-					//Update DTIM fields
-					if(power_save_configuration.dtim_count > 0){
-						power_save_configuration.dtim_count--;
-					} else {
-						power_save_configuration.dtim_timestamp = get_system_time_usec();
-						power_save_configuration.dtim_count = (power_save_configuration.dtim_period-1);
-					}
-				}
-
 			}
 		break;
 	}

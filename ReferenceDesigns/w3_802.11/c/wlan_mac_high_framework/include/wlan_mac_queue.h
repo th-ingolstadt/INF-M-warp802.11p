@@ -64,6 +64,7 @@ void               queue_init(u8 dram_present);
 void               enqueue_after_tail(u16 queue_sel, tx_queue_element* tqe);
 tx_queue_element * dequeue_from_head(u16 queue_sel);
 inline int         dequeue_transmit_checkin(u16 queue_sel);
+inline void 	   queue_set_state_change_callback(function_ptr_t callback);
 
 tx_queue_element * queue_checkout();
 void               queue_checkin(tx_queue_element* tqe);

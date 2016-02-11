@@ -425,12 +425,23 @@ inline u32 wlan_mac_low_poll_frame_rx(){
         } else {
 
             // OFDM Rx - must wait for PHY_RX_PARAMS to be valid before reading mcs/length
-            do {
+            while(1) {
+            	mac_hw_status = wlan_mac_get_status();
                 mac_hw_phy_rx_params = wlan_mac_get_rx_params();
 
-                if (DBG_PRINT) { xil_printf("MAC Rx Poll 1 (%4d): 0x%08x  0x%08x\n", i++, mac_hw_phy_rx_params, wlan_mac_get_status()); }
+                if((mac_hw_phy_rx_params & WLAN_MAC_PHY_RX_PARAMS_MASK_PARAMS_VALID)){
+                	// Parameters were valid
+                	break;
+                } else if ( (mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE) == 0){
+                	// PHY has gone inactive. Parameters will not turn valid, so we should
+                	// unblock the PHY and move on.
+					return_status = return_status & ~POLL_MAC_STATUS_RECEIVED_PKT;
+					wlan_mac_dcf_hw_unblock_rx_phy();
+                	return return_status;
+                }
 
-            } while((mac_hw_phy_rx_params & WLAN_MAC_PHY_RX_PARAMS_MASK_PARAMS_VALID) == 0);
+                if (DBG_PRINT) { xil_printf("MAC Rx Poll 1 (%4d): 0x%08x  0x%08x\n", i++, mac_hw_phy_rx_params, wlan_mac_get_status()); }
+            }
 
             i = 0;
 

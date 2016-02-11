@@ -217,17 +217,18 @@ inline int send_beacon(u8 tx_pkt_buf){
 	REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x02);
 
 	int return_status = -1;
-#if 0 // At the moment the below code chunk requires -Os
+#if 1 // At the moment the below code chunk requires -Os
 
+    wlan_ipc_msg   ipc_msg_to_high;
 	u32 mac_hw_status;
 	u16 n_slots;
 	int tx_gain;
 	u8 mpdu_tx_ant_mask;
 	tx_frame_info* tx_frame_info_ptr		= (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(tx_pkt_buf));
 	mac_header_80211* header             	= (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
-	u32 rx_status;
 	u64 unique_seq;
-
+	tx_mode_t tx_mode;
+	u32 rx_status;
 
 //	u32 i;
 //	xil_printf("0x%08x\n", (u32)header);
@@ -245,6 +246,19 @@ inline int send_beacon(u8 tx_pkt_buf){
 		//If we were too late in attempting to pause the backoff, the PHY will
 		//already be active. We can only continue submitting the beacon transmission
 		//to MAC Support Core C is we successfully paused Core A.
+
+		while(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+			//Keep attempting to lock tx_pkt_buf. The only reason a lock should fail is that CPU_HIGH
+			//is actively modifying the contents of the beacon packet buffer. This is a short duration
+			//operation so we should just wait.
+		}
+
+	    // Compare the length of this frame to the RTS Threshold
+	    if(tx_frame_info_ptr->length <= gl_dot11RTSThreshold) {
+	        tx_mode = TX_MODE_SHORT;
+	    } else {
+	        tx_mode = TX_MODE_LONG;
+	    }
 
 		unique_seq = wlan_mac_low_get_unique_seq();
 		wlan_mac_low_set_unique_seq(unique_seq+1);
@@ -273,10 +287,10 @@ inline int send_beacon(u8 tx_pkt_buf){
         wlan_mac_tx_ctrl_C_gains(tx_gain, tx_gain, tx_gain, tx_gain);
 
 		// Write the SIGNAL field for the ACK
-        //FIXME: replace with wlan_phy_write_phy_preamble(), using MCS instead of PHY rate code
-        wlan_phy_set_tx_signal(tx_pkt_buf,
-        					   wlan_mac_low_mcs_to_phy_rate(tx_frame_info_ptr->params.phy.rate),
-        					   tx_frame_info_ptr->length);
+        write_phy_preamble(tx_pkt_buf,
+        				   PHY_MODE_NONHT,
+        				   tx_frame_info_ptr->params.phy.mcs,
+        				   tx_frame_info_ptr->length);
 
 		wlan_mac_tx_ctrl_C_start(1);
 		wlan_mac_tx_ctrl_C_start(0);
@@ -301,8 +315,24 @@ inline int send_beacon(u8 tx_pkt_buf){
 
 		            // Transmission is complete
 		            if( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_DONE ) {
-		                //TODO: Fill a tx_details struct
-		            	//TODO: Send an IPC BEACON_DONE
+
+                        switch(tx_mode) {
+                        //TODO: Resetting the SSRC and/or SLRC needs to be checked back against the standard
+                            case TX_MODE_SHORT:
+                                reset_ssrc();
+                                reset_cw();
+                            break;
+                            case TX_MODE_LONG:
+                                reset_slrc();
+                                reset_cw();
+                            break;
+                        }
+		                ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TX_BEACON_DONE);
+		                ipc_msg_to_high.num_payload_words = 0; //TODO: need tx low details as payload
+		                ipc_msg_to_high.arg0              = tx_pkt_buf;
+
+		                ipc_mailbox_write_msg(&ipc_msg_to_high);
+
 		            } else {
 		                // Poll the MAC Rx state to check if a packet was received while our Tx was deferring
 		                if (mac_hw_status & (WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED)) {
@@ -313,6 +343,10 @@ inline int send_beacon(u8 tx_pkt_buf){
 		        } while( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_C_PENDING );
 
 		return_status = 0;
+		if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+			xil_printf("Error: Unable to unlock Beacon packet buffer\n");
+			return -1;
+		}
 	}
 
 	wlan_mac_pause_backoff_tx_ctrl_A(0);
@@ -438,6 +472,8 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 		mac_hw_status = wlan_mac_get_status();
 		if(((mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE) == 0) && (wlan_mac_get_last_byte_index() == 0)) {
 			//Rx PHY is idle, but we're still waiting for bytes - bad MAC/PHY status, ignore Rx and return
+			wlan_mac_dcf_hw_rx_finish();
+		  	wlan_mac_dcf_hw_unblock_rx_phy();
 			return return_value;
 		}
 
@@ -507,7 +543,8 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 
             return_value |= POLL_MAC_TYPE_CTS;
         } else {
-            xil_printf("Error: unexpected CTS to me\n");
+            //Unexpected CTS to me.
+        	//This clause can execute on a bad FCS (e.g. it's actually a bad FCS ACK)
         }
     } else if(unicast_to_me && (rx_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_RTS)){
         // We need to send a CTS

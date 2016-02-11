@@ -16,7 +16,7 @@
 
 /***************************** Include Files *********************************/
 
-
+#include "wlan_mac_mgmt_tags.h"
 
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_AP_H_
@@ -52,6 +52,7 @@
 #define MCAST_QID                                          0
 #define MANAGEMENT_QID                                     1
 #define AID_TO_QID(x)                                    ((x) + 1)   /// Map association ID to Tx queue ID; min AID is 1
+#define QID_TO_AID(x)                                    ((x) - 1)
 
 
 //-----------------------------------------------
@@ -88,6 +89,12 @@ typedef struct{
 	u64 dtim_mcast_allow_window;
 } ps_conf;
 
+typedef struct {
+	u32						tag_size;
+	void*					tag_loc;
+	mgmt_tag_template_t* 	mgmt_tag_template;
+} mgmt_tag_tim_t;
+
 
 /*************************** Function Prototypes *****************************/
 int  main();
@@ -96,7 +103,10 @@ void ltg_event(u32 id, void* callback_arg);
 int  ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length);
 void mpdu_rx_process(void* pkt_buf_addr);
 void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details, u16 num_tx_low_details);
-void beacon_transmit();
+void set_power_save_configuration(ps_conf power_save_configuration);
+void queue_state_change(u32 QID, u32 queue_len);
+void update_tim_tag_all(u32 sched_id);
+void beacon_transmit_done();
 void poll_tx_queues();
 void purge_all_data_tx_queue();
 
