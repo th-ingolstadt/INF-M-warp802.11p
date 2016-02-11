@@ -37,7 +37,8 @@ module vb_decoder_top (
 		early_trace2
         ) ;
 parameter           SW = 4 ;        // soft input precision
-parameter           M = 7 ;         // Metric precision
+//parameter           M = 7 ;         // Metric precision
+parameter           M = 8 ;         // Metric precision
 
 parameter			R_EARLY1 = 24; //Early total trace depth
 parameter			C_EARLY1 = 0;  //Early unreliable trace

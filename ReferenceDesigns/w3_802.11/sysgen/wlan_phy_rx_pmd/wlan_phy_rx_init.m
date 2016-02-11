@@ -1,6 +1,6 @@
 % Mango 802.11 Reference Design
 % WLAN PHY Rx Init script
-% Copyright 2014 Mango Communications
+% Copyright 2016 Mango Communications
 % Distributed under the Mango Research License:
 % http://mangocomm.com/802.11/license
 
@@ -20,14 +20,15 @@ if(~exist('sim_many_waveform_mode','var'))
     
     %PHY debugging with ChipScope captures of I/Q
     % ChipScope waveforms must be saved in ASCII format with (at least) ADC_I and ADC_Q signals
-    %xlLoadChipScopeData('nonht_mcs7_520B_manyBad.prn'); cs_interp = 1; cs_start = 1500; cs_end = 1.55e4;%length(ADC_I);
+    %xlLoadChipScopeData('ht_bpsk_badFCS_v0.prn'); cs_interp = 1; cs_start = 1850; cs_end = length(ADC_I);
     %sim_sig = 1.0*complex(ADC_I([cs_start:cs_interp:cs_end]), ADC_Q(cs_start:cs_interp:cs_end));
 
     %Output of PHY Tx simulation
     % .mat files from Tx PHY sim store I/Q signal in 'wlan_tx_out' variable
-    load('rx_sigs/wlan_tx_HTMM_MCS0_52B.mat');wlan_tx_out = 1.0*wlan_tx_out;
+    load('rx_sigs/wlan_tx_NONHT_MCS1_52B.mat');wlan_tx_out = 1.0*wlan_tx_out;
     %load('rx_sigs/wlan_tx_HTMM_MCS7_52B.mat');wlan_tx_out = 1.0*wlan_tx_out;
     %load('../wlan_phy_tx_pmd/tx_nonht_MCS7_20M_29B_2tx.mat');wlan_tx_out = 1.0*wlan_tx_out;
+    %load('tx_11ac_20M_25B.mat');wlan_tx_out = 0.3*wlan_tx_out.';
     sim_sig = wlan_tx_out(1:end);
 end
 
@@ -113,8 +114,8 @@ PHY_CONFIG_RSSI_SUM_LEN = 8;
 
 PHY_SIGNAL_MIN_LEN = 14;
 
-PHY_CONFIG_LTS_CORR_THRESH_LOWSNR = 12500; %FIXME back to 10e3!
-PHY_CONFIG_LTS_CORR_THRESH_HIGHSNR = 12500; %FIXME back to 10e3!
+PHY_CONFIG_LTS_CORR_THRESH_LOWSNR = 12500;
+PHY_CONFIG_LTS_CORR_THRESH_HIGHSNR = 12500;
 PHY_CONFIG_LTS_CORR_RSSI_THRESH = PHY_CONFIG_RSSI_SUM_LEN*400;
 
 %PHY_CONFIG_LTS_CORR_TIMEOUT = 250; %v1.2
@@ -141,6 +142,7 @@ PHY_CONFIG_PKT_DET_RESET_EXT_DUR = hex2dec('3F');
 CS_CONFIG_CS_RSSI_THRESH = 300 * PHY_CONFIG_RSSI_SUM_LEN;
 CS_CONFIG_POSTRX_EXTENSION = 120; %6usec as 120 20MHz samples
 
+SOFT_DEMAP_SCALE_BPSK = 5;
 SOFT_DEMAP_SCALE_QPSK = 6;
 SOFT_DEMAP_SCALE_16QAM = 16;
 SOFT_DEMAP_SCALE_64QAM = 16;
@@ -230,9 +232,10 @@ REG_RX_PktBuf_Sel = ...
     0;
 
 REG_RX_FEC_Config = ...
-    2^0  * (SOFT_DEMAP_SCALE_QPSK) + ...
-    2^5  * (SOFT_DEMAP_SCALE_16QAM) + ...
-    2^10 * (SOFT_DEMAP_SCALE_64QAM) + ...
+    2^0  * (SOFT_DEMAP_SCALE_BPSK) + ...
+    2^5  * (SOFT_DEMAP_SCALE_QPSK) + ...
+    2^10  * (SOFT_DEMAP_SCALE_16QAM) + ...
+    2^15 * (SOFT_DEMAP_SCALE_64QAM) + ...
     0;
 
 REG_RX_PKT_BUF_Max_Write_Addr = 3800;
