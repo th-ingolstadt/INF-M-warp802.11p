@@ -191,7 +191,7 @@ inline void poll_timestamp(){
 	u32 curr_timestamp;
 
 	if(gl_periodic_tx_details.enable){
-		REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x01);
+//		REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x01);
 
 		curr_timestamp = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_LSB)%gl_periodic_tx_details.period_us;
 
@@ -201,21 +201,20 @@ inline void poll_timestamp(){
 				// We were unable to begin the transmission (most likely because the MAC Support Core A was
 				// already actively transmitting something). So, we won't update prev_timestamp and will instead
 				// allow us to attempt the beacon transmission on the next poll.
-				REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x01);
+//				REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x01);
 				return;
 			}
 
 		}
 
 		prev_timestamp = curr_timestamp;
-		REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x01);
+//		REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x01);
 	}
 	return;
 }
 
 inline int send_beacon(u8 tx_pkt_buf){
-	REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x02);
-
+//	REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x02);
 	int return_status = -1;
 #if 1 // At the moment the below code chunk requires -Os
 
@@ -352,7 +351,7 @@ inline int send_beacon(u8 tx_pkt_buf){
 	wlan_mac_pause_backoff_tx_ctrl_A(0);
 
 
-	REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x02);
+//	REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x02);
 #endif
 	return return_status;
 }
