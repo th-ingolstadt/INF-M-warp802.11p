@@ -78,13 +78,11 @@ typedef struct{
 #define WLAN_MAC_REG_TX_CTRL_B_GAINS                       XPAR_WLAN_MAC_HW_MEMMAP_TX_CTRL_B_GAINS
 #define WLAN_MAC_REG_TX_CTRL_C_PARAMS                      XPAR_WLAN_MAC_HW_MEMMAP_TX_CTRL_C_PARAMS
 #define WLAN_MAC_REG_TX_CTRL_C_GAINS                       XPAR_WLAN_MAC_HW_MEMMAP_TX_CTRL_C_GAINS
-
 #define WLAN_MAC_REG_POST_TX_TIMERS                        XPAR_WLAN_MAC_HW_MEMMAP_POST_TX_TIMERS
 #define WLAN_MAC_REG_POST_RX_TIMERS                        XPAR_WLAN_MAC_HW_MEMMAP_POST_RX_TIMERS
 #define WLAN_MAC_REG_NAV_CHECK_ADDR_1                      XPAR_WLAN_MAC_HW_MEMMAP_NAV_MATCH_ADDR_1
 #define WLAN_MAC_REG_NAV_CHECK_ADDR_2                      XPAR_WLAN_MAC_HW_MEMMAP_NAV_MATCH_ADDR_2
-
-
+#define WLAN_MAC_REG_TU_TARGET							   XPAR_WLAN_MAC_HW_MEMMAP_TU_TARGET
 
 //-----------------------------------------------
 // WLAN MAC HW - Tx/Rx timer bit masks / macros
@@ -138,7 +136,7 @@ typedef struct{
 #define WLAN_MAC_STATUS_MASK_TX_C_PENDING                  0x04000000     // b[26]
 #define WLAN_MAC_STATUS_MASK_TX_C_DONE                     0x08000000     // b[27]
 #define WLAN_MAC_STATUS_MASK_TX_C_STATE                    0x70000000     // b[30:28]
-
+#define WLAN_MAC_STATUS_MASK_TU_LATCH					   0x80000000     // b[31]
 
 #define WLAN_MAC_STATUS_TX_A_RESULT_NONE                  (0 << 2)        // FSM idle or still running
 #define WLAN_MAC_STATUS_TX_A_RESULT_TIMEOUT               (1 << 2)        // FSM completed with postTx timer expiration
@@ -171,7 +169,7 @@ typedef struct{
 
 
 
-#define wlan_mac_get_status()                             (Xil_In32(WLAN_MAC_REG_STATUS))
+#define wlan_mac_get_status() (Xil_In32(WLAN_MAC_REG_STATUS))
 
 
 
@@ -194,7 +192,6 @@ typedef struct{
 #define WLAN_MAC_PHY_RX_PARAMS_PHY_MODE_11AC               0x8
 
 
-
 //-----------------------------------------------
 // WLAN MAC HW - CONTROL bit masks / macros
 //
@@ -203,7 +200,7 @@ typedef struct{
 #define WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET              0x00000004
 #define WLAN_MAC_CTRL_MASK_DISABLE_NAV                     0x00000008
 #define WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_TX                  0x00000010
-
+#define WLAN_MAC_CTRL_MASK_RESET_TU_LATCH				   0x00000020
 #define WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_VALID_RXEND         0x00000040          // Blocks Rx on bad FCS pkts, only for logging/analysis
 #define WLAN_MAC_CTRL_MASK_CCA_IGNORE_PHY_CS               0x00000080
 #define WLAN_MAC_CTRL_MASK_CCA_IGNORE_TX_BUSY              0x00000100
@@ -217,14 +214,13 @@ typedef struct{
 #define WLAN_MAC_CTRL_MASK_FORCE_CCA_BUSY				   0x00010000
 #define WLAN_MAC_CTRL_MASK_PAUSE_A_BACKOFF				   0x00020000
 
-#define wlan_mac_set_A_backoff_reset(x)                      Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_A_BACKOFF) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_A_BACKOFF : 0))
-
-#define wlan_mac_reset(x)                      			   Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET) | ((x) ? WLAN_MAC_CTRL_MASK_RESET : 0))
-#define wlan_mac_reset_tx_ctrl_A(x)                        Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_A) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_A : 0))
-#define wlan_mac_reset_tx_ctrl_B(x)                        Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_B) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_B : 0))
-#define wlan_mac_reset_tx_ctrl_C(x)                        Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_C) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_C : 0))
-
-#define wlan_mac_pause_backoff_tx_ctrl_A(x)				   Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_PAUSE_A_BACKOFF) | ((x) ? WLAN_MAC_CTRL_MASK_PAUSE_A_BACKOFF : 0))
+#define wlan_mac_set_A_backoff_reset(x)         Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_A_BACKOFF) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_A_BACKOFF : 0))
+#define wlan_mac_reset(x)                      	Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET) | ((x) ? WLAN_MAC_CTRL_MASK_RESET : 0))
+#define wlan_mac_reset_tx_ctrl_A(x)             Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_A) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_A : 0))
+#define wlan_mac_reset_tx_ctrl_B(x)             Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_B) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_B : 0))
+#define wlan_mac_reset_tx_ctrl_C(x)             Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_C) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_C : 0))
+#define wlan_mac_pause_backoff_tx_ctrl_A(x)		Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_PAUSE_A_BACKOFF) | ((x) ? WLAN_MAC_CTRL_MASK_PAUSE_A_BACKOFF : 0))
+#define wlan_mac_reset_tu_target_latch(x)		Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_TU_LATCH) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_TU_LATCH : 0))
 
 //-----------------------------------------------
 // WLAN MAC HW - Macros
@@ -399,6 +395,10 @@ typedef struct{
 #define wlan_mac_low_get_rx_start_timestamp_frac() ((Xil_In32(WLAN_MAC_REG_TXRX_TIMESTAMPS_FRAC) & 0xFF00) >> 8)
 #define wlan_mac_low_get_tx_start_timestamp_frac()  (Xil_In32(WLAN_MAC_REG_TXRX_TIMESTAMPS_FRAC) & 0x00FF)
 
+// TU Target register - UFix32_0 TU target
+#define wlan_mac_get_tu_target()	Xil_In32(WLAN_MAC_REG_TU_TARGET)
+#define wlan_mac_set_tu_target(x)	Xil_Out32(WLAN_MAC_REG_TU_TARGET, (x))
+
 //-----------------------------------------------
 // MAC Polling defines
 //
@@ -429,7 +429,7 @@ typedef struct{
 /*************************** Function Prototypes *****************************/
 int                wlan_mac_low_init(u32 type);
 void               wlan_mac_low_init_finish();
-void               wlan_mac_low_init_dcf();
+void               wlan_mac_hw_init();
 void               wlan_mac_low_init_hw_info(u32 type);
 
 inline void        wlan_mac_low_send_exception(u32 reason);

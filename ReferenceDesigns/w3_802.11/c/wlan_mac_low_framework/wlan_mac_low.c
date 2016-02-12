@@ -197,7 +197,7 @@ int wlan_mac_low_init(u32 type){
 
     wlan_radio_init();
     wlan_phy_init();
-    wlan_mac_low_init_dcf();
+    wlan_mac_hw_init();
 
     // Initialize the HW info structure
     wlan_mac_low_init_hw_info(type);
@@ -251,7 +251,7 @@ void wlan_mac_low_init_finish(){
  * @param   None
  * @return  None
  */
-void wlan_mac_low_init_dcf(){
+void wlan_mac_hw_init(){
     u16            i;
     rx_frame_info* rx_mpdu;
 
@@ -282,6 +282,11 @@ void wlan_mac_low_init_dcf(){
     //     NAV adjust time - signed char (Fix8_0) value
     wlan_mac_set_NAV_adj(0*10);
     wlan_mac_set_EIFS(mac_timing_values.t_eifs*10);
+
+    // Set the TU target to 2^32-1 (max value) and hold TU_LATCH in reset
+    //  MAC Low application should re-enabled if needed
+    wlan_mac_set_tu_target(0xFFFFFFFF);
+    wlan_mac_reset_tu_target_latch(1);
 
     // Clear any stale Rx events
     wlan_mac_dcf_hw_unblock_rx_phy();
