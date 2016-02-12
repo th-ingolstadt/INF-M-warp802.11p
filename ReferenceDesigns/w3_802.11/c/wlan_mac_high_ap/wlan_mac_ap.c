@@ -373,11 +373,12 @@ void queue_state_change(u32 QID, u8 queue_len){
 		return;
 	}
 
-	if(mgmt_tag_tim_template == NULL || 1){
-		//TODO: Remove || 1 and test the single byte update
+	if(mgmt_tag_tim_template == NULL){
 		//The TIM tag is not present in the current beacon template.
 		//We have no choice but to do a full TIM tag update and write.
-		update_tim_tag_all(SCHEDULE_ID_RESERVED_MAX);
+		if((gl_power_save_configuration.enable != 0) && (num_dozed_stations != 0)){
+			update_tim_tag_all(SCHEDULE_ID_RESERVED_MAX);
+		}
 	} else {
 		//There is a TIM tag that is already present. We can update
 		//only the relevant byte that applies to this queue state
@@ -400,9 +401,9 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 	//Note: AID = 0 is invalid. And input of 0 to this function
 	//indicates that the multicast bit in the tim_control byte should
 	//be modified.
-	tx_frame_info*  	tx_frame_info_ptr 			= (tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON);
+	wlan_mac_high_set_debug_gpio(0x02);
+
 	u32 				existing_mgmt_tag_length 	= 0;	// Size of the management tag that is currently in the packet buffer
-	u32					next_mgmt_tag_length		= 0;	// Size that we will update the management tag to be.
 	u8                  tim_control					= 0;
 	u16 				tim_byte_idx           		= 0;
 	u8					tim_bit_idx            		= 0;
@@ -412,6 +413,7 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 	//for some time in the future. If it is, we can just return immediately and let that
 	//execution clean up any pending TIM state changes.
 	if(mgmt_tag_tim_update_schedule_id != SCHEDULE_ID_RESERVED_MAX){
+		wlan_mac_high_clear_debug_gpio(0x02);
 		return;
 	}
 
@@ -419,6 +421,7 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 		//There currently isn't any TIM tag in the packet buffer, which means
 		//that we need to restore the full state and not toggle a single
 		//bit
+		wlan_mac_high_clear_debug_gpio(0x02);
 		update_tim_tag_all(SCHEDULE_ID_RESERVED_MAX);
 		return;
 	}
@@ -431,6 +434,7 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 		//The current byte we intend to modify is larger than the existing tag. In this case,
 		//we fall back on the update_tim_tag_all function since we cannnot simply modify a single
 		//bit.
+		wlan_mac_high_clear_debug_gpio(0x02);
 		update_tim_tag_all(SCHEDULE_ID_RESERVED_MAX);
 		return;
 	}
@@ -444,6 +448,7 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 																		   (my_bss_info->beacon_interval * BSS_MICROSECONDS_IN_A_TU) / 4,
 																		   1,
 																		   (void*)update_tim_tag_all);
+		wlan_mac_high_clear_debug_gpio(0x02);
 		return;
 	}
 
@@ -453,7 +458,7 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 	// to the AID argument of the function.
 
 	if(aid == 0){
-		if(bit_val_in){
+		if(bit_val){
 			tim_control |= 0x01; //Raise the multicast bit in the TIM control field
 			mgmt_tag_tim_template->data[2] = tim_control; 			//TIM Control (top 7 bits are offset for partial map)
 			mgmt_tag_tim_template->data[3] |= tim_control&1; 		//Per 10.2.1.3 in 802.11-2012: AID 0 is treated as
@@ -465,7 +470,7 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 																	//the multicast buffer state
 		}
 	} else {
-		if(bit_val_in){
+		if(bit_val){
 			mgmt_tag_tim_template->data[3+tim_byte_idx] |= 1<<tim_bit_idx;
 		} else {
 			mgmt_tag_tim_template->data[3+tim_byte_idx] &= ~(1<<tim_bit_idx);
@@ -475,12 +480,12 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 	if(unlock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
 		xil_printf("Error: Unable to unlock Beacon packet buffer during update_tim_tag_all\n");
 	}
+	wlan_mac_high_clear_debug_gpio(0x02);
 	return;
 
 }
 
 void update_tim_tag_all(u32 sched_id){
-
 	wlan_mac_high_set_debug_gpio(0x01);
 	tx_frame_info*  	tx_frame_info_ptr 			= (tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON);
 	u32 				existing_mgmt_tag_length 	= 0;	// Size of the management tag that is currently in the packet buffer
