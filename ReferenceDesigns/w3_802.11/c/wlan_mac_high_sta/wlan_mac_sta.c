@@ -60,11 +60,11 @@
 #define  WLAN_EXP_ETH                            TRANSPORT_ETH_B
 #define  WLAN_EXP_NODE_TYPE                      (WLAN_EXP_TYPE_DESIGN_80211 + WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_STA)
 
-#define  WLAN_DEFAULT_CHANNEL       1
-#define  WLAN_DEFAULT_TX_PWR       15
-#define  WLAN_DEFAULT_TX_PHY_MODE  PHY_MODE_NONHT
-#define  WLAN_DEFAULT_TX_ANTENNA   TX_ANTMODE_SISO_ANTA
-#define  WLAN_DEFAULT_RX_ANTENNA   RX_ANTMODE_SISO_ANTA
+#define  WLAN_DEFAULT_CHANNEL                     1
+#define  WLAN_DEFAULT_TX_PWR                      15
+#define  WLAN_DEFAULT_TX_PHY_MODE                 PHY_MODE_NONHT
+#define  WLAN_DEFAULT_TX_ANTENNA                  TX_ANTMODE_SISO_ANTA
+#define  WLAN_DEFAULT_RX_ANTENNA                  RX_ANTMODE_SISO_ANTA
 
 
 /*********************** Global Variable Definitions *************************/
@@ -678,7 +678,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 				//---------------------------------------------------------------------
 				case (MAC_FRAME_CTRL1_SUBTYPE_AUTH):
-					// Authentication Reponse
+					// Authentication Response
 
 					if( wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr)) {
 
@@ -813,7 +813,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 	// Currently, asynchronous transmission of log entries is not supported
 	//
 #ifdef USE_WLAN_EXP
-	if ((rx_event_log_entry != NULL) && ((rx_event_log_entry->rate) != WLAN_MAC_MCS_1M)) {
+	if ((rx_event_log_entry != NULL) && (((rx_event_log_entry->mcs) != 0) && ((rx_event_log_entry->phy_mode) != 0))) {
         wlan_exp_transmit_log_entry((void *)rx_event_log_entry);
 	}
 #endif

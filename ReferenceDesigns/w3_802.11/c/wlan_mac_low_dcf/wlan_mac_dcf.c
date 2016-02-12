@@ -428,6 +428,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
     u32                 mac_hw_status;
 
     u8                  mpdu_tx_ant_mask         = 0;
+    u8                  ack_tx_ant               = 0;
     u8                  tx_ant_mask              = 0;
     u8                  num_resp_failures        = 0;
 
@@ -531,8 +532,18 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
         mpdu_info->resp_low_tx_details.duration = 0;
 
         // This element remains unused during MPDU-only transmissions
+        mpdu_info->resp_low_tx_details.phy_params_ctrl.phy_mode     = phy_details->phy_mode;
         mpdu_info->resp_low_tx_details.phy_params_ctrl.power        = wlan_mac_low_get_current_ctrl_tx_pow();
-        mpdu_info->resp_low_tx_details.phy_params_ctrl.antenna_mode = active_rx_ant;
+
+        switch(tx_ant_mask) {
+            case 0x1:  ack_tx_ant = TX_ANTMODE_SISO_ANTA; break;
+            case 0x2:  ack_tx_ant = TX_ANTMODE_SISO_ANTB; break;
+            case 0x4:  ack_tx_ant = TX_ANTMODE_SISO_ANTC; break;
+            case 0x8:  ack_tx_ant = TX_ANTMODE_SISO_ANTD; break;
+            default:   ack_tx_ant = TX_ANTMODE_SISO_ANTA; break;   // Default to RF_A
+        }
+
+        mpdu_info->resp_low_tx_details.phy_params_ctrl.antenna_mode = ack_tx_ant;
 
     } else if(unicast_to_me && (rx_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_CTS)){
         if(gl_mpdu_pkt_buf != PKT_BUF_INVALID) {
@@ -587,7 +598,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 
         rx_finish_state = RX_FINISH_SEND_B;
 
-        mpdu_info->resp_low_tx_details.tx_details_type      = TX_DETAILS_CTS;
+        mpdu_info->resp_low_tx_details.tx_details_type     = TX_DETAILS_CTS;
         mpdu_info->resp_low_tx_details.phy_params_ctrl.mcs = tx_mcs;
 
         // We let "duration" be equal to the duration field of an CTS. This value is provided explicitly to CPU_HIGH
@@ -596,8 +607,18 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
         mpdu_info->resp_low_tx_details.duration = cts_duration;
 
         // This element remains unused during MPDU-only transmissions
+        mpdu_info->resp_low_tx_details.phy_params_ctrl.phy_mode     = phy_details->phy_mode;
         mpdu_info->resp_low_tx_details.phy_params_ctrl.power        = wlan_mac_low_get_current_ctrl_tx_pow();
-        mpdu_info->resp_low_tx_details.phy_params_ctrl.antenna_mode = active_rx_ant;
+
+        switch(tx_ant_mask) {
+            case 0x1:  ack_tx_ant = TX_ANTMODE_SISO_ANTA; break;
+            case 0x2:  ack_tx_ant = TX_ANTMODE_SISO_ANTB; break;
+            case 0x4:  ack_tx_ant = TX_ANTMODE_SISO_ANTC; break;
+            case 0x8:  ack_tx_ant = TX_ANTMODE_SISO_ANTD; break;
+            default:   ack_tx_ant = TX_ANTMODE_SISO_ANTA; break;   // Default to RF_A
+        }
+
+        mpdu_info->resp_low_tx_details.phy_params_ctrl.antenna_mode = ack_tx_ant;
     }
 
     // Based on the RX length threshold, determine processing order
@@ -1166,8 +1187,8 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
         // receive one, CPU_HIGH will know to ignore this element of low_tx_details (since the MPDU will not be transmitted).
         low_tx_details_num = (frame_info->num_tx_attempts) - 1;
 
-        //FIXME: low_tx_details needs phy_mode
-        low_tx_details[low_tx_details_num].phy_params_mpdu.mcs         = frame_info->params.phy.mcs;
+        low_tx_details[low_tx_details_num].phy_params_mpdu.mcs          = frame_info->params.phy.mcs;
+        low_tx_details[low_tx_details_num].phy_params_mpdu.phy_mode     = frame_info->params.phy.phy_mode;
         low_tx_details[low_tx_details_num].phy_params_mpdu.power        = frame_info->params.phy.power;
         low_tx_details[low_tx_details_num].phy_params_mpdu.antenna_mode = frame_info->params.phy.antenna_mode;
 

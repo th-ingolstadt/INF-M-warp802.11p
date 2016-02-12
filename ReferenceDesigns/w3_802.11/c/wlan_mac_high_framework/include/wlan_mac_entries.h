@@ -286,17 +286,18 @@ typedef struct{
 //
 typedef struct{
     u64                 timestamp;               // Timestamp of the log entry
-    u8					timestamp_frac;			 // Additional fractional timestamp (160MHz clock units)
-    u8					phy_samp_rate;		 	 // PHY Sampling Rate Mode
-    u8					reserved[2];
-    u32					cfo_est;				 // CFO Estimate
+    u8                  timestamp_frac;          // Additional fractional timestamp (160MHz clock units)
+    u8                  phy_samp_rate;           // PHY Sampling Rate Mode
     u16                 length;                  // Length of the received packet
-    u8                  rate;                    // Rate at which the packet was received
+    u32                 cfo_est;                 // CFO Estimate
+    u8                  mcs;                     // MCS rate at which the packet was received
+    u8                  phy_mode;                // Mode of the PHY when the packet was received
+    u8                  ant_mode;                // Antenna mode of the received packet
     s8                  power;                   // Power of the received packet
     u8                  fcs_status;              // FCS Status of the packet
     u8                  pkt_type;                // Type of packet
     u8                  chan_num;                // Channel on which the packet was received
-    u8                  ant_mode;                // Antenna mode of the received packet
+    u8                  reserved;
     u8                  rf_gain;                 // RF gain of the received packet
     u8                  bb_gain;                 // Baseband gain of the received packet
     u16                 flags;                   // Flags
@@ -365,17 +366,15 @@ typedef struct{
     u32                 delay_accept;            // Delay from timestamp_create to when accepted by CPU Low
     u32                 delay_done;              // Delay from delay_accept to when CPU Low was done
     u64                 unique_seq;              // Unique packet sequence number
+    phy_tx_params       phy_params;              // Transmission parameters
     u8                  num_tx;                  // Number of Transmissions that it took to send the packet
-    s8                  power;                   // Power the packet was sent at
     u8                  chan_num;                // Channel on which the packet was sent
-    u8                  rate;                    // Rate at which the packet was sent
     u16                 length;                  // Length of the packet
     u8                  result;                  // Result of the transmission
     u8                  pkt_type;                // Type of packet
     u16                 queue_id;                // Queue ID this packet was sent from
     u16                 queue_occupancy;         // Occupancy of queue (includes itself)
-    u8                  ant_mode;                // Antenna mode used for transmission
-    u8                  padding[3];              // Padding for alignment
+    u8                  padding[2];              // Padding for alignment
     u32                 mac_payload_log_len;     // Number of payload bytes actually recorded in log entry
     u32                 mac_payload[MIN_MAC_PAYLOAD_LOG_LEN/4];
 } tx_high_entry;
@@ -404,8 +403,8 @@ typedef struct{
     u16                 cw;                      // Contention Window
     u8                  pkt_type;                // Type of packet
     u8                  flags;                   // Misc. flags from CPU_HIGH
-    u8					timestamp_send_frac;	 // Additional fractional timestamp (160MHz clock units)
-    u8                  phy_samp_rate;       	 // PHY Sampling Rate Mode
+    u8                  timestamp_send_frac;     // Additional fractional timestamp (160MHz clock units)
+    u8                  phy_samp_rate;           // PHY Sampling Rate Mode
     u32                 mac_payload_log_len;     // Number of payload bytes actually recorded in log entry
     u32                 mac_payload[MIN_MAC_PAYLOAD_LOG_LEN/4];
 } tx_low_entry;

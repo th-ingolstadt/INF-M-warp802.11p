@@ -66,10 +66,6 @@
 #define WLAN_EXP_ETH_NUM_BUFFER                            0x08                // Number of buffers allocated
 #define WLAN_EXP_ETH_BUFFER_ALIGNMENT                      0x40                // Buffer alignment (64 byte boundary)
 
-#define MCS_PHY_MODE_TO_RATE_INFO(mcs, phy_mode) (((mcs) & 0xFF) | (((phy_mode) & 0xFF) << 8))
-#define RATE_INFO_TO_MCS(rate_info)       ((rate_info) & 0x00FF)
-#define RATE_INFO_TO_PHY_MODE(rate_info) (((rate_info) & 0xFF00) >> 8)
-
 
 /*********************** Global Variable Definitions *************************/
 
@@ -98,8 +94,8 @@ void ltg_cleanup(u32 id, void* callback_arg);
 void create_wlan_exp_cmd_log_entry(cmd_resp * command);
 
 int process_tx_power(u32 cmd, u32 aid, int tx_power);
-u32 process_tx_rate(u32 cmd, u32 aid, u32 rate_info);
-u8 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode);
+u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 * ret_phy_mode);
+u8  process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode);
 
 // WLAN Exp buffer functions
 void          transfer_log_data(u32 socket_index, void * from,
@@ -2082,30 +2078,27 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // NODE_TX_RATE Packet Format:
             //   - cmd_args_32[0]      - Command
             //   - cmd_args_32[1]      - Type
-            //   - cmd_args_32[2]      - Rate and PHY mode
-            //   - cmd_args_32[3 - 4]  - MAC Address (All 0xF means all nodes)
+            //   - cmd_args_32[2]      - MCS
+            //   - cmd_args_32[3]      - PHY Mode
+            //   - cmd_args_32[4 - 5]  - MAC Address (All 0xF means all nodes)
             //
             u32 id;
             u8  mac_addr[ETH_MAC_ADDR_LEN];
             u32 status         = CMD_PARAM_SUCCESS;
             u32 msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
             u32 type           = Xil_Ntohl(cmd_args_32[1]);
-            u32 rate_info      = Xil_Ntohl(cmd_args_32[2]);
-
-            //FIXME: why right shift 24? Does calling context only interpret 0xFF as error?
-            u32 ret_rate_info = CMD_PARAM_ERROR >> 24;
-
-            u8 mcs, phy_mode;
-
-            mcs = RATE_INFO_TO_MCS(rate_info);
-            phy_mode = RATE_INFO_TO_PHY_MODE(rate_info);
+            u32 mcs            = Xil_Ntohl(cmd_args_32[2]) & 0xFF;
+            u32 phy_mode       = Xil_Ntohl(cmd_args_32[3]) & 0xFF;
+            u32 ret_mcs;
+            u32 ret_phy_mode;
 
             // Force invalid mcs / phy_mode values to sane defaults
-            if(mcs > 7) {
-            	mcs = 0;
+            if (mcs > 7) {
+                mcs = 7;
             }
-            if( (phy_mode & (PHY_MODE_NONHT | PHY_MODE_HTMF)) == 0) {
-            	phy_mode = PHY_MODE_NONHT;
+
+            if ((phy_mode & (PHY_MODE_NONHT | PHY_MODE_HTMF)) == 0) {
+                phy_mode = PHY_MODE_NONHT;
             }
 
             // Process the command
@@ -2114,30 +2107,26 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     case CMD_PARAM_WRITE_VAL:
                     case CMD_PARAM_READ_VAL:
                         // Get MAC Address
-                        wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[3], &mac_addr[0]);
+                        wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[4], &mac_addr[0]);
 
                         // If necessary, add an association.  This is primarily for IBSS nodes where
                         //   the association table might not be set up at the time this is called.
                         // NOTE: A multicast mac_addr should *not* be added to the association table.
-                        if(wlan_addr_mcast(mac_addr) == 0){
+                        if (wlan_addr_mcast(mac_addr) == 0){
                             wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
                         }
 
                         id = wlan_exp_get_id_in_associated_stations(&mac_addr[0]);
 
-                        ret_rate_info = process_tx_rate(msg_cmd, id, rate_info);
-
-                        if ( ret_rate_info == CMD_PARAM_ERROR ) {
-                            status = CMD_PARAM_ERROR;
-                        }
+                        status = process_tx_rate(msg_cmd, id, mcs, phy_mode, &ret_mcs, &ret_phy_mode);
                     break;
 
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
                         // Set the default unicast data & management parameter
-                        default_unicast_data_tx_params.phy.mcs = mcs;
+                        default_unicast_data_tx_params.phy.mcs      = mcs;
                         default_unicast_data_tx_params.phy.phy_mode = phy_mode;
 
-                        default_unicast_mgmt_tx_params.phy.mcs = mcs;
+                        default_unicast_mgmt_tx_params.phy.mcs      = mcs;
                         default_unicast_mgmt_tx_params.phy.phy_mode = phy_mode;
 
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
@@ -2146,7 +2135,8 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
                     case CMD_PARAM_READ_DEFAULT_VAL:
                         // Get the default unicast data parameter
-                    	ret_rate_info = MCS_PHY_MODE_TO_RATE_INFO(default_unicast_data_tx_params.phy.mcs, default_unicast_data_tx_params.phy.phy_mode);
+                        ret_mcs      = default_unicast_data_tx_params.phy.mcs;
+                        ret_phy_mode = default_unicast_data_tx_params.phy.phy_mode;
                     break;
 
                     default:
@@ -2159,7 +2149,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     case CMD_PARAM_WRITE_VAL:
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
                         // Set the default multicast data parameter
-                        default_multicast_data_tx_params.phy.mcs = mcs;
+                        default_multicast_data_tx_params.phy.mcs      = mcs;
                         default_multicast_data_tx_params.phy.phy_mode = phy_mode;
 
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
@@ -2169,7 +2159,8 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     case CMD_PARAM_READ_VAL:
                     case CMD_PARAM_READ_DEFAULT_VAL:
                         // Get the default multicast data parameter
-                    	ret_rate_info = MCS_PHY_MODE_TO_RATE_INFO(default_multicast_data_tx_params.phy.mcs, default_multicast_data_tx_params.phy.phy_mode);
+                        ret_mcs      = default_multicast_data_tx_params.phy.mcs;
+                        ret_phy_mode = default_multicast_data_tx_params.phy.phy_mode;
                     break;
 
                     default:
@@ -2182,7 +2173,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     case CMD_PARAM_WRITE_VAL:
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
                         // Set the default multicast management parameter
-                        default_multicast_mgmt_tx_params.phy.mcs = mcs;
+                        default_multicast_mgmt_tx_params.phy.mcs      = mcs;
                         default_multicast_mgmt_tx_params.phy.phy_mode = phy_mode;
 
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
@@ -2192,7 +2183,8 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     case CMD_PARAM_READ_VAL:
                     case CMD_PARAM_READ_DEFAULT_VAL:
                         // Get the default multicast management parameter
-                    	ret_rate_info = MCS_PHY_MODE_TO_RATE_INFO(default_multicast_mgmt_tx_params.phy.mcs, default_multicast_mgmt_tx_params.phy.phy_mode);
+                        ret_mcs      = default_multicast_mgmt_tx_params.phy.mcs;
+                        ret_phy_mode = default_multicast_mgmt_tx_params.phy.phy_mode;
                     break;
 
                     default:
@@ -2207,7 +2199,8 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             // Send response
             resp_args_32[resp_index++] = Xil_Htonl(status);
-            resp_args_32[resp_index++] = Xil_Htonl(ret_rate_info);
+            resp_args_32[resp_index++] = Xil_Htonl(ret_mcs);
+            resp_args_32[resp_index++] = Xil_Htonl(ret_phy_mode);
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
@@ -3851,31 +3844,30 @@ int process_tx_power(u32 cmd, u32 aid, int tx_power) {
  *
  * @param   cmd          - Command:  NODE_WRITE_VAL or NODE_READ_VAL
  * @param   aid          - AID of the station or NODE_CONFIG_ALL_ASSOCIATED
- * @param   rate_info    - Rate definition (mcs in byte 0, phy_mode in byte 1)
+ * @param   mcs          - MCS
  * @param   phy_mode     - PHY mode (PHY_MODE_NONHT or PHY_MODE_HTMF)
+ * @param   ret_mcs      - Pointer to return value for MCS
+ * @param   ret_phy_mode - Pointer to return value for PHY mode
  *
- * @return  u8               - Rate
- *                             - 0xFF on ERROR
+ * @return  u32          - Status
+ *                         - CMD_PARAM_SUCCESS
+ *                         - CMD_PARAM_ERROR
  *
  *****************************************************************************/
-u32 process_tx_rate(u32 cmd, u32 aid, u32 rate_info) {
+u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 * ret_phy_mode) {
 
     int           iter;
     dl_list     * curr_list;
     dl_entry    * curr_entry;
     station_info* curr_station_info;
-
-    u8 mcs      = (rate_info & 0x00FF);
-    u8 phy_mode = (rate_info & 0xFF00) >> 8;
-
-    u32 ret_rate = CMD_PARAM_ERROR;
+    u32           status               = CMD_PARAM_ERROR;
 
     // For Writes
     if (cmd == CMD_PARAM_WRITE_VAL) {
         curr_list  = get_station_info_list();
 
         if (curr_list != NULL) {
-            if (curr_list->length == 0) { return rate_info; }
+            if (curr_list->length == 0) { return status; }
 
             iter       = curr_list->length;
             curr_entry = curr_list->first;
@@ -3887,17 +3879,19 @@ u32 process_tx_rate(u32 cmd, u32 aid, u32 rate_info) {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                             "Set Tx rate on AID %d to MCS %d , PHY Mode %d\n", curr_station_info->AID, mcs, phy_mode);
 
-                    curr_station_info->tx.phy.mcs = mcs;
+                    curr_station_info->tx.phy.mcs      = mcs;
                     curr_station_info->tx.phy.phy_mode = phy_mode;
-                    ret_rate = rate_info;
+
+                    status = CMD_PARAM_SUCCESS;
 
                 } else if (aid == curr_station_info->AID) {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                             "Set Tx rate on AID %d to MCS %d , PHY Mode %d\n", curr_station_info->AID, mcs, phy_mode);
 
-                    curr_station_info->tx.phy.mcs = mcs;
-					curr_station_info->tx.phy.phy_mode = phy_mode;
-					ret_rate = rate_info;
+                    curr_station_info->tx.phy.mcs      = mcs;
+                    curr_station_info->tx.phy.phy_mode = phy_mode;
+
+                    status = CMD_PARAM_SUCCESS;
                     break;
                 }
                 curr_entry = dl_entry_next(curr_entry);
@@ -3906,8 +3900,14 @@ u32 process_tx_rate(u32 cmd, u32 aid, u32 rate_info) {
             if (aid == WLAN_EXP_AID_ALL) {
                 // This is not an error because we are trying to set the rate for all
                 // associations and there currently are none.
-            	ret_rate = rate_info;
+                status = CMD_PARAM_SUCCESS;
             }
+        }
+
+        // Set return values
+        if (status == CMD_PARAM_SUCCESS) {
+            *ret_mcs      = mcs;
+            *ret_phy_mode = phy_mode;
         }
 
     // For Reads
@@ -3922,7 +3922,9 @@ u32 process_tx_rate(u32 cmd, u32 aid, u32 rate_info) {
                 while ((curr_entry != NULL) && (iter-- > 0)) {
                     curr_station_info = (station_info*)(curr_entry->data);
                     if (aid == curr_station_info->AID) {
-                    	ret_rate = (curr_station_info->tx.phy.mcs & 0xFF) | ((curr_station_info->tx.phy.phy_mode & 0xFF) << 8);
+                        *ret_mcs      = (curr_station_info->tx.phy.mcs      & 0xFF);
+                        *ret_phy_mode = (curr_station_info->tx.phy.phy_mode & 0xFF);
+                        status       = CMD_PARAM_SUCCESS;
                         break;
                     }
                     curr_entry = dl_entry_next(curr_entry);
@@ -3933,7 +3935,7 @@ u32 process_tx_rate(u32 cmd, u32 aid, u32 rate_info) {
         // NOTE:  Trying to read the rate for all associations returns an error.
     }
 
-    return ret_rate;
+    return status;
 }
 
 
