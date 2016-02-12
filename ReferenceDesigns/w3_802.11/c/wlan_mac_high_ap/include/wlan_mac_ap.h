@@ -89,13 +89,6 @@ typedef struct{
 	u64 dtim_mcast_allow_window;
 } ps_conf;
 
-typedef struct {
-	u32						tag_size;
-	void*					tag_loc;
-	mgmt_tag_template_t* 	mgmt_tag_template;
-} mgmt_tag_tim_t;
-
-
 /*************************** Function Prototypes *****************************/
 int  main();
 
@@ -104,7 +97,8 @@ int  ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8*
 void mpdu_rx_process(void* pkt_buf_addr);
 void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details, u16 num_tx_low_details);
 void set_power_save_configuration(ps_conf power_save_configuration);
-void queue_state_change(u32 QID, u32 queue_len);
+void queue_state_change(u32 QID, u8 queue_len);
+inline void update_tim_tag_aid(u8 aid, u8 bit_val_in);
 void update_tim_tag_all(u32 sched_id);
 void beacon_transmit_done();
 void poll_tx_queues();
