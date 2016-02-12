@@ -176,39 +176,57 @@ int main(){
 }
 
 void configure_beacon_tx(u8 tx_pkt_buf, u32 interval_tu){
+	u32 current_tu;
 	if(interval_tu != 0xFFFFFFFF){
 		gl_periodic_tx_details.enable = 1;
 		gl_periodic_tx_details.tx_pkt_buf = tx_pkt_buf;
 		gl_periodic_tx_details.period_tu = interval_tu;
 		gl_periodic_tx_details.period_us = interval_tu*1024;
+
+	    current_tu = (u32)(get_mac_time_usec()>>10);
+
+	    // Set the TU target to 2^32-1 (max value) and hold TU_LATCH in reset
+	    //  MAC Low application should re-enabled if needed
+	    wlan_mac_set_tu_target(current_tu + gl_periodic_tx_details.period_tu);
+	    wlan_mac_reset_tu_target_latch(1);
+	    wlan_mac_reset_tu_target_latch(0);
+
+
 	} else {
 		gl_periodic_tx_details.enable = 0;
+		wlan_mac_set_tu_target(0xFFFFFFFF);
+		wlan_mac_reset_tu_target_latch(1);
 	}
 }
 
 inline void poll_timestamp(){
-	static u32 prev_timestamp = 0;
-	u32 curr_timestamp;
+	u32 tu_target;
+	u32 mac_hw_status;
 
 	if(gl_periodic_tx_details.enable){
-//		REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x01);
 
-		curr_timestamp = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_LSB)%gl_periodic_tx_details.period_us;
+		mac_hw_status = wlan_mac_get_status();
 
-		if(curr_timestamp <= prev_timestamp){
+		if(mac_hw_status & WLAN_MAC_STATUS_MASK_TU_LATCH) {
+			// Current TU >= Target TU
 
 			if(send_beacon(gl_periodic_tx_details.tx_pkt_buf) != 0){
 				// We were unable to begin the transmission (most likely because the MAC Support Core A was
-				// already actively transmitting something). So, we won't update prev_timestamp and will instead
-				// allow us to attempt the beacon transmission on the next poll.
-//				REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x01);
+				// already actively transmitting something). So we will just return and catch it on the next poll
 				return;
 			}
 
-		}
+			// Update TU target
+			//  Changing TU target automatically resets TU_LATCH
+			//  Latch will assert immediately if Current TU >= new Target TU
+			tu_target = wlan_mac_get_tu_target();
+			wlan_mac_set_tu_target(tu_target + gl_periodic_tx_details.period_tu);
 
-		prev_timestamp = curr_timestamp;
-//		REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x01);
+			//TODO
+			//If MAC time is adjusted by more than a TU (e.g a wlan_exp reset), then
+			//we can potentially be waiting a while to have the next TBTT fire. We should
+			//update the target when MAC time changes significantly.
+		}
 	}
 	return;
 }
