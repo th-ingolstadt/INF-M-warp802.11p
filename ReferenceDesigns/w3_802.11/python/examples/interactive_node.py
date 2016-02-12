@@ -20,8 +20,8 @@ Description:
 prompt to allow for manipulation of the nodes.
 ------------------------------------------------------------------------------
 """
-import wlan_exp.config as wlan_exp_config
-import wlan_exp.util as wlan_exp_util
+import wlan_exp.config as config
+import wlan_exp.util as util
 
 
 #-------------------------------------------------------------------------
@@ -37,16 +37,16 @@ NODE_SERIAL_LIST     = ['W3-a-00001']
 #  Initialization
 #
 # Create an object that describes the network configuration of the host PC
-network_config = wlan_exp_config.WlanExpNetworkConfiguration(network=NETWORK,
-                                                             jumbo_frame_support=USE_JUMBO_ETH_FRAMES)
+network_config = config.WlanExpNetworkConfiguration(network=NETWORK,
+                                                    jumbo_frame_support=USE_JUMBO_ETH_FRAMES)
 
 # Create an object that describes the WARP v3 nodes that will be used in this experiment
-nodes_config   = wlan_exp_config.WlanExpNodesConfiguration(network_config=network_config,
-                                                           serial_numbers=NODE_SERIAL_LIST)
+nodes_config   = config.WlanExpNodesConfiguration(network_config=network_config,
+                                                  serial_numbers=NODE_SERIAL_LIST)
 
 # Initialize the Nodes
 #  This command will fail if either WARP v3 node does not respond
-nodes = wlan_exp_util.init_nodes(nodes_config, network_config)
+nodes = util.init_nodes(nodes_config, network_config)
 
 print("\nInitialized nodes:")
 # Put each node in a known, good state
@@ -64,5 +64,5 @@ print("*********************************************************************")
 print("\n\n")
 
 # Create Debug prompt
-wlan_exp_util.debug_here()
+util.debug_here()
 

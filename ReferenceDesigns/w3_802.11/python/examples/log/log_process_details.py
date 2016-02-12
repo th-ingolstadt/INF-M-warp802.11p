@@ -101,63 +101,82 @@ log_np = log_util.log_data_to_np_arrays(log_data, log_index)
 #          being an empty list and does not need a try / except.
 #
 
-# Extract all OFDM CPU High transmissions
-log_tx = log_np['TX']
-
-# Extract an array of just the Tx rates from CPU High transmissions
-tx_rates = log_tx['rate']
-
-# Initialize an array to count number of Tx per PHY rate
-#   MAC uses rate_indexes 1:8 to encode OFDM rates
-tx_rate_counts = np.bincount(tx_rates, minlength=8)
-
-# Extract an array of just the 'time_to_done' timestamp offsets
-tx_done        = log_tx['time_to_done']
-tx_avg_time    = []
-
-# Calculate the average time to send a packet for each rate
-for rate in range(1, 9):
-    # Find indexes of all instances where addresses match
-    #   np.squeeze here flattens the result to a 1-D array
-    rate_idx = np.squeeze(tx_rates == rate)
-
-    # Calculate the average time to send a packet and add it to the array
-    if np.any(rate_idx):
-        tx_avg_time.append(np.average(tx_done[rate_idx]))
-    else:
-        tx_avg_time.append(0)
-
-# Extract all OFDM CPU Low transmissions
-log_tx_low = log_np['TX_LOW']
-
-# Extract an array of just the Tx rates from CPU Low transmissions
-tx_low_rates = log_tx_low['rate']
-
-# Initialize an array to count number of Tx per PHY rate
-#   MAC uses rate_indexes 1:8 to encode OFDM rates
-tx_low_rate_counts = np.bincount(tx_low_rates, minlength=8)
-
-
-
+# Initialize variables
+TX_CONSTS     = log_util.get_entry_constants('TX')
+log_tx        = log_np['TX']
+log_tx_low    = log_np['TX_LOW']
 total_retrans = 0
 
+# Print header
 print("\nExample 1: Tx Information per Rate:")
-print("{0:9} {1:^32} {2:^20}".format(
-    "Rate", "# Tx Pkts", "Avg Tx time (us)"))
-print("{0:9} {1:>10} {2:>10} {3:>10} {4:>10}".format(
-    "", "CPU High", "CPU Low", "Re-trans", "CPU High"))
-for (i,c) in enumerate(wlan_exp_util.wlan_rates):
-    retrans = tx_low_rate_counts[i] - tx_rate_counts[i]
-    total_retrans  += retrans
+print("{0:^30} {1:^32} {2:^20}".format("Rate", "# Tx Pkts", "Avg Tx time (us)"))
+print("{0:^30} {1:>10} {2:>10} {3:>10} {4:>10}".format("", "CPU High", "CPU Low", "Re-trans", "CPU High"))
 
-    print(" {0:2d} Mbps: {1:10} {2:10} {3:10} {4:>10.0f}".format(
-        int(c['rate']),
-        tx_rate_counts[i],
-        tx_low_rate_counts[i],
-        retrans,
-        tx_avg_time[i]))
+# For each PHY mode, process the MCS index counts
+for phy_mode in wlan_exp_util.phy_modes.keys():
+    # Create index based on phy_mode    
+    tx_idx             = (log_tx['phy_mode'] == TX_CONSTS.phy_mode[phy_mode])
+    tx_low_idx         = (log_tx_low['phy_mode'] == TX_CONSTS.phy_mode[phy_mode])    
+    tx_low_no_ctrl_idx = ((log_tx_low['phy_mode'] == TX_CONSTS.phy_mode[phy_mode]) & 
+                          ((log_tx_low['pkt_type'] == TX_CONSTS.pkt_type.DATA) | 
+                           (log_tx_low['pkt_type'] == TX_CONSTS.pkt_type.ENCAP_ETH) | 
+                           (log_tx_low['pkt_type'] == TX_CONSTS.pkt_type.LTG) | 
+                           (log_tx_low['pkt_type'] == TX_CONSTS.pkt_type.DATA_PROTECTED) | 
+                           (log_tx_low['pkt_type'] == TX_CONSTS.pkt_type.MGMT)))
+
+    # Extract arrays for each PHY mode
+    tx_phy_mode     = log_tx[tx_idx]
+    tx_low_phy_mode = log_tx_low[tx_low_idx]
+    tx_low_no_ctrl  = log_tx_low[tx_low_no_ctrl_idx]
+
+    # Extract arrays of just the MCS indexes
+    tx_phy_mode_mcs     = tx_phy_mode['mcs']
+    tx_low_phy_mode_mcs = tx_low_phy_mode['mcs']
+    tx_low_no_ctrl_mcs  = tx_low_no_ctrl['mcs']
+
+    # Initialize an array to count number of packets per MCS index
+    #   MAC uses MCS indexes 0:7 to encode OFDM rates
+    tx_phy_mode_mcs_counts     = np.bincount(tx_phy_mode_mcs, minlength=8)
+    tx_low_phy_mode_mcs_counts = np.bincount(tx_low_phy_mode_mcs, minlength=8)
+    tx_low_no_ctrl_mcs_counts  = np.bincount(tx_low_no_ctrl_mcs, minlength=8)
+    
+    # Extract an array of just the 'time_to_done' timestamp offsets
+    tx_done       = tx_phy_mode['time_to_done']
+
+    # Calculate the average time to send a packet for each rate
+    for mcs in range(0, 8):
+        # Find indexes of all instances where addresses match
+        #   np.squeeze here flattens the result to a 1-D array
+        mcs_idx = np.squeeze(tx_phy_mode_mcs == mcs)
+
+        # Calculate the average time to send a packet
+        tx_avg_time = 0
+        
+        if np.any(mcs_idx):
+            tx_avg_time = np.average(tx_done[mcs_idx])
+
+        # Calculate retransmissions
+        #    Must use the counts with no control packets since control packets
+        #    are transmitted without a corresponding CPU High TX entry
+        retrans = tx_low_no_ctrl_mcs_counts[mcs] - tx_phy_mode_mcs_counts[mcs]
+        total_retrans  += retrans
+
+        # Print info
+        try:
+            rate_info = wlan_exp_util.get_rate_info(mcs, phy_mode)
+            rate_str  = wlan_exp_util.rate_info_to_str(rate_info)
+            print("{0:30} {1:10} {2:10} {3:10} {4:>10.0f}".format(
+                rate_str,
+                tx_phy_mode_mcs_counts[mcs],
+                tx_low_phy_mode_mcs_counts[mcs],
+                retrans,
+                tx_avg_time))
+        except:
+            # Do nothing with unsupported PHY modes
+            pass
 
 print("\nTotal Retransmissions: {0:d}".format(total_retrans))
+
 
 
 ###############################################################################

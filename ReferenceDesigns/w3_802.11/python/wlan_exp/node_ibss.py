@@ -217,6 +217,19 @@ class WlanExpNodeIBSS(node.WlanExpNode):
         return self.send_cmd(cmd=cmds.NodeProcScanAndJoin(ssid=ssid, bssid=None, timeout=timeout), timeout=timeout)
 
 
+    def _check_supported_rate(self, mcs, phy_mode, verbose=False):
+        """Check that rate parameters are supported
+
+        Args:
+            mcs (int):           Modulation and coding scheme (MCS) index
+            phy_mode (str, int): PHY mode (from util.phy_modes)
+
+        Returns:
+            valid (bool):  Are all parameters valid?
+        """
+        return super(WlanExpNodeIBSS, self)._check_supported_rate(mcs, phy_mode, verbose)
+
+
 
     #-------------------------------------------------------------------------
     # Misc methods for the Node

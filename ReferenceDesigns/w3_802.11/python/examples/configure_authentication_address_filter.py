@@ -30,8 +30,8 @@ Description:
 """
 import sys
 
-import wlan_exp.config as wlan_exp_config
-import wlan_exp.util as wlan_exp_util
+import wlan_exp.config as config
+import wlan_exp.util as util
 import wlan_exp.device as wlan_device
 
 #-----------------------------------------------------------------------------
@@ -57,20 +57,20 @@ WLAN_DEVICE_LIST     = [(0x000000000000, 'My Device')]
 print("\nInitializing experiment\n")
 
 # Create an object that describes the configuration of the host PC
-network_config = wlan_exp_config.WlanExpNetworkConfiguration(network=NETWORK,
-                                                             jumbo_frame_support=USE_JUMBO_ETH_FRAMES)
+network_config = config.WlanExpNetworkConfiguration(network=NETWORK,
+                                                    jumbo_frame_support=USE_JUMBO_ETH_FRAMES)
 
 # Create an object that describes the WARP v3 nodes that will be used in this experiment
-nodes_config   = wlan_exp_config.WlanExpNodesConfiguration(network_config=network_config,
-                                                           serial_numbers=NODE_SERIAL_LIST)
+nodes_config   = config.WlanExpNodesConfiguration(network_config=network_config,
+                                                  serial_numbers=NODE_SERIAL_LIST)
 
 # Initialize the Nodes
 #  This command will fail if either WARP v3 node does not respond
-nodes = wlan_exp_util.init_nodes(nodes_config, network_config)
+nodes = util.init_nodes(nodes_config, network_config)
 
 # Extract the different types of nodes from the list of initialized nodes
 #   NOTE:  This will work for both 'DCF' and 'NOMAC' mac_low projects
-n_ap_l = wlan_exp_util.filter_nodes(nodes=nodes, mac_high='AP', serial_number=NODE_SERIAL_LIST)
+n_ap_l = util.filter_nodes(nodes=nodes, mac_high='AP', serial_number=NODE_SERIAL_LIST)
 
 # Setup WLAN devices
 devices = []
@@ -134,7 +134,7 @@ print("")
 #-----------------------------------------------------------------------------
 
 # Create Debug prompt
-wlan_exp_util.debug_here()
+util.debug_here()
 
 
 

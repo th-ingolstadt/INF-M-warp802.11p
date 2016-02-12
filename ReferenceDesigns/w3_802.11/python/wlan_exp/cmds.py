@@ -530,7 +530,7 @@ class LTGCommon(message.Cmd):
 
     def process_resp(self, resp):
         error_code    = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR
-        error_msg     = "LTG {0} command was not successful.".format(self.name)
+        error_msg     = "Could not {0} the LTG with that LTG ID.".format(self.name)
         status_errors = { error_code : error_msg }
 
         if resp.resp_is_valid(num_args=1,
@@ -566,7 +566,11 @@ class LTGConfigure(message.Cmd):
 
     def process_resp(self, resp):
         error_code    = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR
-        error_msg     = "LTG {0} command was not successful.".format(self.name)
+        error_msg     = "Could not create the LTG.  Check that the node has \n"
+        error_msg    += "enough heap available to perform this operation. \n"
+        error_msg    += "Commonly, this can occur if LTGs are not removed \n"
+        error_msg    += "(ie 'ltg_remove(ltg_id)') when they are finished \n"
+        error_msg    += "being used."
         status_errors = { error_code : error_msg }
 
         if resp.resp_is_valid(num_args=2,
@@ -640,7 +644,8 @@ class LTGStatus(message.Cmd):
 
     def process_resp(self, resp):
         error_code    = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR
-        error_msg     = "LTG {0} command was not successful.".format(self.name)
+        error_msg     = "Could not find status for given LTG ID.  Please \n"
+        error_msg    += "check that it has not been removed."
         status_errors = { error_code : error_msg }
 
         if resp.resp_is_valid(num_args=6,
@@ -1170,21 +1175,37 @@ class NodeProcTxRate(message.Cmd):
                        CMD_PARAM_UNICAST
                        CMD_PARAM_MULTICAST_DATA
                        CMD_PARAM_MULTICAST_MGMT
-        rate_info -- Combined MCS index (byte 0) and PHY mode (byte 1) for new
-                      Tx rate
+        rate      -- Tuple of values that make up Tx rate
+                       [0] - mcs       -- Modulation and coding scheme (MCS) index
+                       [1] - phy_mode  -- PHY mode (from util.phy_modes)
         device    -- 802.11 device for which the rate is being set.
     """
-    def __init__(self, cmd, tx_type, rate_info=None, device=None):
+    def __init__(self, cmd, tx_type, rate=None, device=None):
         super(NodeProcTxRate, self).__init__()
         self.command = _CMD_GROUP_NODE + CMDID_NODE_TX_RATE
         mac_address  = None
+        mcs          = None
+        phy_mode     = None
 
         self.add_args(cmd)
 
         self.add_args(self.check_type(tx_type))
 
-        if (rate_info is not None):
-            self.add_args(rate_info)
+        if (rate is not None):
+            mcs      = rate[0]
+            phy_mode = rate[1]
+
+        if (mcs is not None):
+            self.add_args(mcs)
+        else:
+            self.add_args(0)
+
+        if (phy_mode is not None):
+            if (type(phy_mode) is str):
+                import wlan_exp.util as util
+                self.add_args(util.phy_modes[phy_mode])
+            else:
+                self.add_args(phy_mode)
         else:
             self.add_args(0)
 
@@ -1216,15 +1237,13 @@ class NodeProcTxRate(message.Cmd):
             raise ValueError(msg)
 
     def process_resp(self, resp):
-        import wlan_exp.util as util
-
         error_code    = CMD_PARAM_ERROR
         error_msg     = "Could not get / set transmit rate on the node"
         status_errors = { error_code : error_msg }
 
-        if resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from Tx rate command'):
+        if resp.resp_is_valid(num_args=3, status_errors=status_errors, name='from Tx rate command'):
             args = resp.get_args()
-            return args[1]
+            return (args[1], args[2])
         else:
             return None
 

@@ -28,7 +28,6 @@ import time
 import numpy as np
 
 import wlan_exp.util as wlan_exp_util
-from  wlan_exp.util import wlan_rates
 
 import wlan_exp.log.util as log_util
 import wlan_exp.log.util_hdf as hdf_util
@@ -128,25 +127,46 @@ if(len(log_np['TIME_INFO']) > 0):
 #          empty list and does not need a try / except.
 #
 
+# Get entry constants
+TX_CONSTS = log_util.get_entry_constants('TX')
+RX_CONSTS = log_util.get_entry_constants('RX_OFDM')
+
 # Extract all OFDM transmissions and receptions
 log_tx = log_np['TX']
 log_rx = log_np['RX_OFDM']
 
-# Extract arrays of just the rates
-tx_rates = log_tx['rate']
-rx_rates = log_rx['rate']
+# Print header
+print("Example 1: Packets per PHY rate: (all packets)")
+print("  {0:^30}    {1:^10} {2:^10}".format("Rate", "Tx", "Rx"))
 
-# Initialize an array to count number of Rx per PHY rate
-#   MAC uses rate_indexes 1:8 to encode OFDM rates
-tx_rate_counts = np.bincount(tx_rates, minlength=8)
+# For each PHY mode, process the MCS index counts
+for phy_mode in wlan_exp_util.phy_modes.keys():
+    # Create index based on phy_mode
+    tx_idx = (log_tx['phy_mode'] == TX_CONSTS.phy_mode[phy_mode])
+    rx_idx = (log_rx['phy_mode'] == RX_CONSTS.phy_mode[phy_mode])
 
-rx_rate_counts = np.bincount(rx_rates, minlength=8)
+    # Extract arrays for each PHY mode
+    tx_phy_mode = log_tx[tx_idx]
+    rx_phy_mode = log_rx[rx_idx]
 
+    # Extract arrays of just the MCS indexes
+    tx_phy_mode_mcs = tx_phy_mode['mcs']
+    rx_phy_mode_mcs = rx_phy_mode['mcs']
 
-print("Example 1: Pkts per Rate:")
-print("  Rate       {0:7} {1:7}".format("Tx","Rx"))
-for i,(tx_c,rx_c) in enumerate(zip(tx_rate_counts, rx_rate_counts)):
-    print(" {0:2d} Mbps: {1:7} {2:7}".format( int(wlan_rates[i]['rate']), tx_c, rx_c))
+    # Initialize an array to count number of packets per MCS index
+    #   MAC uses MCS indexes 0:7 to encode OFDM rates
+    tx_phy_mode_mcs_counts = np.bincount(tx_phy_mode_mcs, minlength=8)
+    rx_phy_mode_mcs_counts = np.bincount(rx_phy_mode_mcs, minlength=8)
+
+    # Print counts per PHY rate
+    for i, (tx_c, rx_c) in enumerate(zip(tx_phy_mode_mcs_counts, rx_phy_mode_mcs_counts)):
+        try:
+            rate_info = wlan_exp_util.get_rate_info(i, phy_mode)
+            rate_str  = wlan_exp_util.rate_info_to_str(rate_info)
+            print("  {0:30}    {1:10} {2:10}".format(rate_str, tx_c, rx_c))
+        except:
+            # Do nothing with unsupported PHY modes
+            pass
 
 
 ###############################################################################
@@ -244,7 +264,7 @@ if('RX_OFDM' in log_np.keys()):
 
     # Print the results
     if (len(rx_counts) > 0):
-        print("\nExample 3: Rx Counts (including duplicates):");
+        print("\nExample 3: Rx Counts (including duplicates, no control packets):");
         print("{0:18}\t{1:>7}\t{2:>10}\t{3}".format(
             "Src Addr",
             "# Pkts",

@@ -28,9 +28,9 @@ traffic flows.
 """
 import sys
 import time
-import wlan_exp.config as wlan_exp_config
-import wlan_exp.util as wlan_exp_util
-import wlan_exp.ltg as wlan_exp_ltg
+import wlan_exp.config as config
+import wlan_exp.util as util
+import wlan_exp.ltg as ltg
 
 #-------------------------------------------------------------------------
 #  Global experiment variables
@@ -52,22 +52,22 @@ TRIAL_TIME           = 10
 print("\nInitializing experiment\n")
 
 # Create an object that describes the network configuration of the host PC
-network_config = wlan_exp_config.WlanExpNetworkConfiguration(network=NETWORK,
-                                                             jumbo_frame_support=USE_JUMBO_ETH_FRAMES)
+network_config = config.WlanExpNetworkConfiguration(network=NETWORK,
+                                                    jumbo_frame_support=USE_JUMBO_ETH_FRAMES)
 
 # Create an object that describes the WARP v3 nodes that will be used in this experiment
-nodes_config   = wlan_exp_config.WlanExpNodesConfiguration(network_config=network_config,
-                                                           serial_numbers=NODE_SERIAL_LIST)
+nodes_config   = config.WlanExpNodesConfiguration(network_config=network_config,
+                                                  serial_numbers=NODE_SERIAL_LIST)
 
 # Initialize the Nodes
 #   This command will fail if either WARP v3 node does not respond
-nodes = wlan_exp_util.init_nodes(nodes_config, network_config)
+nodes = util.init_nodes(nodes_config, network_config)
 
 # Extract the different types of nodes from the list of initialized nodes
 #   NOTE:  This will work for both 'DCF' and 'NOMAC' mac_low projects
-n_ap_l   = wlan_exp_util.filter_nodes(nodes=nodes, mac_high='AP',   serial_number=NODE_SERIAL_LIST, warn=False)
-n_sta_l  = wlan_exp_util.filter_nodes(nodes=nodes, mac_high='STA',  serial_number=NODE_SERIAL_LIST, warn=False)
-n_ibss_l = wlan_exp_util.filter_nodes(nodes=nodes, mac_high='IBSS', serial_number=NODE_SERIAL_LIST, warn=False)
+n_ap_l   = util.filter_nodes(nodes=nodes, mac_high='AP',   serial_number=NODE_SERIAL_LIST, warn=False)
+n_sta_l  = util.filter_nodes(nodes=nodes, mac_high='STA',  serial_number=NODE_SERIAL_LIST, warn=False)
+n_ibss_l = util.filter_nodes(nodes=nodes, mac_high='IBSS', serial_number=NODE_SERIAL_LIST, warn=False)
 
 # Check that we have a valid setup:
 #   1) AP and STA
@@ -91,8 +91,8 @@ elif len(n_ibss_l) == 2:
     node2 = n_ibss_l[1]
 
     # Create the BSS_INFO describing the ad-hoc network
-    bssid = wlan_exp_util.create_locally_administered_bssid(node1.wlan_mac_address)
-    bss_info = wlan_exp_util.create_bss_info(bssid=bssid, ssid='WARP Xput IBSS', channel=CHANNEL)
+    bssid    = util.create_locally_administered_bssid(node1.wlan_mac_address)
+    bss_info = util.create_bss_info(bssid=bssid, ssid='WARP Xput IBSS', channel=CHANNEL)
 
     # Add both nodes to the new IBSS
     node1.join(bss_info)
@@ -112,12 +112,14 @@ else:
 
 print("\nExperimental Setup:")
 
-# Set the rate of both nodes to 18 Mbps
-rate = wlan_exp_util.wlan_rates[3]
+# Set the rate of both nodes to 18 Mbps (mcs = 3, phy_mode = 'NONHT')
+mcs       = 3
+phy_mode  = util.phy_modes['NONHT']
+rate_info = util.get_rate_info(mcs, phy_mode)
 
 # Put each node in a known, good state
 for node in [node1, node2]:
-    node.set_tx_rate_unicast(rate, curr_assoc=True, new_assoc=True)
+    node.set_tx_rate_unicast(mcs, phy_mode, curr_assoc=True, new_assoc=True)
     node.reset(log=True, txrx_counts=True, ltg=True, queue_data=True) # Do not reset associations/bss_info
 
     msg = ""
@@ -127,8 +129,8 @@ for node in [node1, node2]:
         msg += "\nNode 2: \n"
 
     msg += "    Description = {0}\n".format(node.description)
-    msg += "    Channel     = {0}\n".format(wlan_exp_util.channel_to_str(CHANNEL))
-    msg += "    Rate        = {0}\n".format(wlan_exp_util.tx_rate_to_str(rate))
+    msg += "    Channel     = {0}\n".format(util.channel_to_str(CHANNEL))
+    msg += "    Rate        = {0}\n".format(util.rate_info_to_str(rate_info))
     print(msg)
 
 print("")
@@ -162,23 +164,23 @@ experiment_params = [{'node1_ltg_en' : True,  'node2_ltg_en' : False, 'desc' : '
 #
 for experiment in experiment_params:
 
-    print("\nTesting {0} throughput for rate {1} ...".format(experiment['desc'], wlan_exp_util.tx_rate_to_str(rate)))
+    print("\nTesting {0} throughput for rate {1} ...".format(experiment['desc'], util.rate_info_to_str(rate_info)))
 
     # Start a flow from the AP's local traffic generator (LTG) to the STA
     #    Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
     #    Start the flow immediately
     if (experiment['node1_ltg_en']):
-        node1_ltg_id  = node1.ltg_configure(wlan_exp_ltg.FlowConfigCBR(dest_addr=node2.wlan_mac_address,
-                                                                       payload_length=1400, 
-                                                                       interval=0), auto_start=True)
+        node1_ltg_id  = node1.ltg_configure(ltg.FlowConfigCBR(dest_addr=node2.wlan_mac_address,
+                                                              payload_length=1400, 
+                                                              interval=0), auto_start=True)
 
     # Start a flow from the STA's local traffic generator (LTG) to the AP
     #    Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
     #    Start the flow immediately
     if (experiment['node2_ltg_en']):
-        node2_ltg_id  = node2.ltg_configure(wlan_exp_ltg.FlowConfigCBR(dest_addr=node1.wlan_mac_address,
-                                                                       payload_length=1400, 
-                                                                       interval=0), auto_start=True)
+        node2_ltg_id  = node2.ltg_configure(ltg.FlowConfigCBR(dest_addr=node1.wlan_mac_address,
+                                                              payload_length=1400, 
+                                                              interval=0), auto_start=True)
 
     # Record the initial Tx/Rx counts
     #   NOTE: Since these are RX counts, we can only see those at the opposite node.  For example, to see the
@@ -216,11 +218,11 @@ for experiment in experiment_params:
     node1_to_node2_num_bits  = float((node2_txrx_counts_for_node1_end['data_num_rx_bytes'] - node2_txrx_counts_for_node1_start['data_num_rx_bytes']) * 8)
     node1_to_node2_time_span = float(node2_txrx_counts_for_node1_end['timestamp'] - node2_txrx_counts_for_node1_start['timestamp'])
     node1_to_node2_xput      = node1_to_node2_num_bits / node1_to_node2_time_span
-    print("    Node 1 -> Node 2:  Rate = {0:>4.1f} Mbps   Throughput = {1:>5.2f} Mbps".format(rate['rate'], node1_to_node2_xput))
+    print("    Node 1 -> Node 2:  Rate = {0:>4.1f} Mbps   Throughput = {1:>5.2f} Mbps".format(rate_info['phy_rate'], node1_to_node2_xput))
 
     node2_to_node1_num_bits  = float((node1_txrx_counts_for_node2_end['data_num_rx_bytes'] - node1_txrx_counts_for_node2_start['data_num_rx_bytes']) * 8)
     node2_to_node1_time_span = float(node1_txrx_counts_for_node2_end['timestamp'] - node1_txrx_counts_for_node2_start['timestamp'])
     node2_to_node1_xput      = node2_to_node1_num_bits / node2_to_node1_time_span
-    print("    Node 2 -> Node 1:  Rate = {0:>4.1f} Mbps   Throughput = {1:>5.2f} Mbps".format(rate['rate'], node2_to_node1_xput))
+    print("    Node 2 -> Node 1:  Rate = {0:>4.1f} Mbps   Throughput = {1:>5.2f} Mbps".format(rate_info['phy_rate'], node2_to_node1_xput))
 
 

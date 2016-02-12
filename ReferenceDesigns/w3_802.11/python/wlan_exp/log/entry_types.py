@@ -791,12 +791,6 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         'CONTROL_RTS'    : 22,
         'CONTROL_CTS'    : 23})
         
-    common_phy_samp_rate = util.consts_dict({
-        'PHY_5M'            :  5,
-        'PHY_10M'           :  10,
-        'PHY_20M'           :  20,
-        'PHY_40M'           :  40})
-
 
     # -----------------------------------------------------------------------------
     # NULL Log Entry Instance
@@ -827,16 +821,17 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     entry_rx_common.append_field_defs([
         ('timestamp',              'Q',      'uint64',  'Microsecond timer value at PHY Rx start'),
         ('timestamp_frac',         'B',      'uint8',   'Fractional timestamp (units of 6.25ns)'),
-        ('phy_samp_rate',      'B',      'uint8',   'PHY Sampling Rate Mode'),
-        ('padding',                '2x',     '2uint8',  ''),
-        ('cfo_est',                'i',      'int32',   'Time-domain CFO estimate from Rx PHY; Fix32_31 value, CFO as fraction of sampling frequency'),
+        ('phy_samp_rate',          'B',      'uint8',   'PHY Sampling Rate Mode'),
         ('length',                 'H',      'uint16',  'Length of payload in bytes'),
-        ('rate',                   'B',      'uint8',   'PHY rate index, in [1:8]'),
+        ('cfo_est',                'i',      'int32',   'Time-domain CFO estimate from Rx PHY; Fix32_31 value, CFO as fraction of sampling frequency'),
+        ('mcs',                    'B',      'uint8',   'MCS index, in [0:7]'),
+        ('phy_mode',               'B',      'uint8',   'PHY mode'),
+        ('ant_mode',               'B',      'uint8',   'Antenna mode: [1,2,3,4] for SISO Rx on RF [A,B,C,D]'),
         ('power',                  'b',      'int8',    'Rx power in dBm'),
         ('fcs_result',             'B',      'uint8',   'Checksum status, 0 = no errors'),
         ('pkt_type',               'B',      'uint8',   'Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS'),
         ('chan_num',               'B',      'uint8',   'Channel (center frequency) index'),
-        ('ant_mode',               'B',      'uint8',   'Antenna mode: [1,2,3,4] for SISO Rx on RF [A,B,C,D]'),
+        ('padding',                'x',      'uint8',   ''),
         ('rf_gain',                'B',      'uint8',   'AGC RF gain setting: [1,2,3] for [0,15,30]dB gain'),
         ('bb_gain',                'B',      'uint8',   'AGC BB gain setting: [0:31] for approx [0:63]dB gain'),
         ('flags',                  'H',      'uint16',  'Bit OR\'d flags: 0x1 = Rx was duplicate of previous Rx')])
@@ -846,8 +841,9 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
             'GOOD'           : 0x00,
             'BAD'            : 0x01
         }),
-        'pkt_type'              : common_pkt_type,
-        'phy_samp_rate'     : common_phy_samp_rate,
+        'pkt_type'      : common_pkt_type,
+        'phy_samp_rate' : util.phy_samp_rates,
+        'phy_mode'      : util.phy_modes,
         'flags'         : util.consts_dict({
             'DUPLICATE'      : 0x0001
         })
@@ -869,19 +865,21 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('time_to_accept',         'I',      'uint32',  'Time duration in microseconds between packet creation and packet acceptance by CPU Low'),
         ('time_to_done',           'I',      'uint32',  'Time duration in microseconds between packet acceptance by CPU Low and Tx completion in CPU Low'),
         ('uniq_seq',               'Q',      'uint64',  'Unique sequence number for Tx packet; 12 LSB of this used for 802.11 MAC header sequence number'),
+        ('mcs',                    'B',      'uint8',   'MCS index in [0:7]'),
+        ('phy_mode',               'B',      'uint8',   'PHY mode'),
+        ('ant_mode',               'B',      'uint8',   'PHY antenna mode in [0x10, 0x20, 0x30, 0x40]'),
+        ('tx_power',               'b',      'int8',    'Tx power in dBm'),
         ('num_tx',                 'B',      'uint8',   'Number of actual PHY Tx events which were used to transmit the MPDU (first Tx + all re-Tx)'),
-        ('tx_power',               'b',      'int8',    'Tx power in dBm of final Tx attempt'),
         ('chan_num',               'B',      'uint8',   'Channel (center frequency) index of transmission'),
-        ('rate',                   'B',      'uint8',   'PHY rate index in [1:8] of final Tx attempt'),
         ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
         ('result',                 'B',      'uint8',   'Tx result; 0 = ACK received or not required'),
         ('pkt_type',               'B',      'uint8',   'Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS'),
         ('queue_id',               'H',      'uint16',  'Tx queue ID from which the packet was retrieved'),
         ('queue_occupancy',        'H',      'uint16',  'Occupancy of the Tx queue at the time the packet was created (value includes itself)'),
-        ('ant_mode',               'B',      'uint8',   'PHY antenna mode of final Tx attempt'),
-        ('padding',                '3x',     '3uint8',  '')])
+        ('padding',                '2x',     '2uint8',  '')])
 
     entry_tx_common.consts = util.consts_dict({
+        'phy_mode'   : util.phy_modes,
         'result'     : util.consts_dict({
             'SUCCESS'        : 0x00,
             'FAILURE'        : 0x01
@@ -902,10 +900,10 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     entry_tx_low_common.append_field_defs([
         ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time packet transmission actually started (PHY TX_START time)'),
         ('uniq_seq',               'Q',      'uint64',  'Unique sequence number of original MPDU'),
-        ('rate',                   'B',      'uint8',   'PHY rate index in [1:8]'),
-        ('ant_mode',               'B',      'uint8',   'PHY antenna mode in [1:4]'),
+        ('mcs',                    'B',      'uint8',   'MCS index in [0:7]'),
+        ('phy_mode',               'B',      'uint8',   'PHY mode'),
+        ('ant_mode',               'B',      'uint8',   'PHY antenna mode in [0x10, 0x20, 0x30, 0x40]'),
         ('tx_power',               'b',      'int8',    'Tx power in dBm'),
-        ('phy_flags',              'B',      'uint8',   'Tx PHY flags'),
         ('tx_count',               'B',      'uint8',   'Transmission index for this attempt; 0 = initial Tx, 1+ = subsequent re-transmissions'),
         ('chan_num',               'B',      'uint8',   'Channel (center frequency) index'),
         ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
@@ -914,12 +912,13 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('pkt_type',               'B',      'uint8',   'Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS'),
         ('flags',                  'B',      'uint8',   'B0: 1 = ACKed, 0 = Not ACKed'),
         ('timestamp_frac',         'B',      'uint8',   'Fractional timestamp (units of 6.25ns)'),
-        ('phy_samp_rate',      'B',      'uint8',   'PHY Sampling Rate Mode')])
+        ('phy_samp_rate',          'B',      'uint8',   'PHY Sampling Rate Mode')])
 
     entry_tx_low_common.consts = util.consts_dict({
-        'pkt_type'              : common_pkt_type,
-        'phy_samp_rate'     : common_phy_samp_rate,
-        'flags'                 : util.consts_dict({
+        'phy_mode'      : util.phy_modes,
+        'pkt_type'      : common_pkt_type,
+        'phy_samp_rate' : util.phy_samp_rates,
+        'flags'         : util.consts_dict({
             'ACKED'          : 0x01
         })
     })

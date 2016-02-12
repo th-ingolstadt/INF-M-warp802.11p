@@ -67,13 +67,13 @@ info_field_defs = {
         ('latest_activity_timestamp',   'Q',      'uint64',  'Microsecond timer value at time of last successful Rx from device'),
         ('rx_last_seq',                 'H',      'uint16',  'Sequence number of last packet received from device'),
         ('rx_last_power',               'b',      'int8',    'Rx power in dBm of last packet received from device'),
-        ('rx_last_rate',                'B',      'uint8',   'PHY rate index in [1:8] of last packet received from device'),
-        ('tx_phy_rate',                 'B',      'uint8',   'Current PHY rate index in [1:8] for new transmissions to device'),
+        ('padding0',                    'x',      'uint8',   ''),
+        ('tx_phy_mcs',                  'B',      'uint8',   'Current PHY MCS index in [0:7] for new transmissions to device'),
+        ('tx_phy_mode',                 'B',      'uint8',   'Current PHY mode for new transmissions to deivce'),
         ('tx_phy_antenna_mode',         'B',      'uint8',   'Current PHY antenna mode in [1:4] for new transmissions to device'),
         ('tx_phy_power',                'b',      'int8',    'Current Tx power in dBm for new transmissions to device'),
-        ('tx_phy_flags',                'B',      'uint8',   'Flags for Tx PHY config for new transmissions to deivce'),
         ('tx_mac_flags',                'B',      'uint8',   'Flags for Tx MAC config for new transmissions to device'),
-        ('padding',                     '3x',     '3uint8',  '')],
+        ('padding1',                    '3x',     '3uint8',  '')],
 
     'BSS_INFO' : [
         ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of creation'),
@@ -122,7 +122,7 @@ info_consts_defs = {
             'DOZE'                     : 0x00000002,
             'DO_NOT_REMOVE'            : 0x80000000
         }),
-        'tx_phy_flags'  : util.consts_dict(),
+        'tx_phy_mode'   : util.phy_modes,
         'tx_mac_flags'  : util.consts_dict()
     }),
 

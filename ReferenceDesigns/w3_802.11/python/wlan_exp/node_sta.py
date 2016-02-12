@@ -203,7 +203,19 @@ class WlanExpNodeSta(node.WlanExpNode):
         else:
             return False
 
-    # End def
+
+    def _check_supported_rate(self, mcs, phy_mode, verbose=False):
+        """Check that rate parameters are supported
+
+        Args:
+            mcs (int):           Modulation and coding scheme (MCS) index
+            phy_mode (str, int): PHY mode (from util.phy_modes)
+
+        Returns:
+            valid (bool):  Are all parameters valid?
+        """
+        return super(WlanExpNodeSta, self)._check_supported_rate(mcs, phy_mode, verbose)
+
 
 
     #-------------------------------------------------------------------------

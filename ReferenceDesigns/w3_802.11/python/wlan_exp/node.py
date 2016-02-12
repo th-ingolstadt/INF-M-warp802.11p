@@ -793,8 +793,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         new_assoc, this method will set both the default unicast data and unicast management packet tx rate.
 
         Args:
-            rate (dict from util.wlan_rates):  Rate dictionary
-                (Dictionary from the wlan_rates list in wlan_exp.util)
+            mcs (int):           Modulation and coding scheme (MCS) index
+            phy_mode (str, int): PHY mode (from util.phy_modes)
             device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices
                 or single 802.11 device for which to set the unicast packet Tx rate to 'rate'
             curr_assoc (bool):  All current assocations will have the unicast packet Tx rate set to 'rate'
@@ -812,30 +812,39 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         .. note:: This will not affect the transmit antenna mode for control frames like ACKs that
             will be transmitted. The rate of control packets is determined by the 802.11 standard.
         """
-        rate_info = (mcs & 0xFF) | ((phy_mode & 0xFF) << 8)
-        self._node_set_tx_param_unicast(cmds.NodeProcTxRate, rate_info, 'rate', device_list, curr_assoc, new_assoc)
+        if self._check_supported_rate(mcs, phy_mode):
+            self._node_set_tx_param_unicast(cmds.NodeProcTxRate, (mcs, phy_mode), 'rate', device_list, curr_assoc, new_assoc)
+        else:
+            self._check_supported_rate(mcs=mcs, phy_mode=phy_mode, verbose=True)
+            raise AttributeError("Tx rate, (mcs, phy_mode) tuple, not supported by the design. See above error message.")
 
 
     def set_tx_rate_multicast_data(self, mcs, phy_mode):
         """Sets the multicast data packet transmit rate for a node.
 
         Args:
-            rate (dict from util.wlan_rates):  Rate dictionary
-                (Dictionary from the wlan_rates list in wlan_exp.util)
+            mcs (int):           Modulation and coding scheme (MCS) index
+            phy_mode (str, int): PHY mode (from util.phy_modes)
         """
-        rate_info = (mcs & 0xFF) | ((phy_mode & 0xFF) << 8)
-        self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_DATA, rate_info))
+        if self._check_supported_rate(mcs, phy_mode):
+            self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_DATA, (mcs, phy_mode)))
+        else:
+            self._check_supported_rate(mcs=mcs, phy_mode=phy_mode, verbose=True)
+            raise AttributeError("Tx rate, (mcs, phy_mode) tuple, not supported by the design. See above error message.")
 
 
     def set_tx_rate_multicast_mgmt(self, mcs, phy_mode):
         """Sets the multicast management packet transmit rate for a node.
 
         Args:
-            rate (dict from util.wlan_rates):  Rate dictionary
-                (Dictionary from the wlan_rates list in wlan_exp.util)
+            mcs (int):           Modulation and coding scheme (MCS) index
+            phy_mode (str, int): PHY mode (from util.phy_modes)
         """
-        rate_info = (mcs & 0xFF) | ((phy_mode & 0xFF) << 8)
-        self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_MGMT, rate_info))
+        if self._check_supported_rate(mcs, phy_mode):
+            self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_MGMT, (mcs, phy_mode)))
+        else:
+            self._check_supported_rate(mcs=mcs, phy_mode=phy_mode, verbose=True)
+            raise AttributeError("Tx rate, (mcs, phy_mode) tuple, not supported by the design. See above error message.")
 
 
     def get_tx_rate_unicast(self, device_list=None, new_assoc=False):
@@ -849,7 +858,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             new_assoc  (bool):  Get the unicast packet Tx rate for all new associations
 
         Returns:
-            rates (List of dict - Entries from the wlan_rates wlan_exp.util):  List of unicast packet Tx rate for the given devices.
+            rates (List of tuple):  List of unicast packet Tx rate tuples, (mcs, phy_mode), for the given devices.
 
         .. note:: If both new_assoc and device_list are specified, the return list will always have
             the unicast packet Tx rate for all new associations as the first item in the list.
@@ -861,7 +870,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Gets the current multicast data packet transmit rate for a node.
 
         Returns:
-            rate (Dict - Entry from the wlan_rates in wlan_exp.util):  Multicast data packet transmit rate for the node
+            rate (tuple):  Multicast data packet transmit rate tuple, (mcs, phy_mode), for the node
         """
         return self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_DATA))
 
@@ -870,7 +879,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Gets the current multicast transmit rate for a node.
 
         Returns:
-            rate (Dict - Entry from the wlan_rates in wlan_exp.util):  Multicast management packet transmit rate for the node
+            rate (tuple):  Multicast management packet transmit rate tuple, (mcs, phy_mode), for the node
         """
         return self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_MGMT))
 
@@ -1334,6 +1343,31 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     #--------------------------------------------
     # Internal helper methods to configure node attributes
     #--------------------------------------------
+    def _check_supported_rate(self, mcs, phy_mode, verbose=False):
+        """Check rate parameters are supported
+
+        Args:
+            mcs (int):           Modulation and coding scheme (MCS) index
+            phy_mode (str, int): PHY mode (from util.phy_modes)
+
+        Returns:
+            valid (bool):  Are all parameters valid?
+        """
+        import wlan_exp.util as util
+        
+        if ((mcs < 0) or (mcs > 7)):
+            if (verbose):
+                print("MCS must be in [0 .. 7] received {0}".format(mcs))
+            return False
+
+        if (phy_mode not in ['NONHT', 'HTMF', util.phy_modes['NONHT'], util.phy_modes['HTMF']]):
+            if (verbose):
+                print("PHY mode must be in ['NONHT', 'HTMF', phy_modes['NONHT'], phy_modes['HTMF'] received {0}".format(phy_mode))
+            return False
+    
+        return True
+
+
     def _node_set_tx_param_unicast(self, cmd, param, param_name,
                                          device_list=None, curr_assoc=False, new_assoc=False):
         """Sets the unicast transmit param of the node.
@@ -1362,13 +1396,13 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
         if curr_assoc:
             self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_UNICAST, param))
-        else:
-            if (device_list is not None):
-                try:
-                    for device in device_list:
-                        self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_UNICAST, param, device))
-                except TypeError:
-                    self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_UNICAST, param, device_list))
+            
+        if (device_list is not None):
+            try:
+                for device in device_list:
+                    self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_UNICAST, param, device))
+            except TypeError:
+                self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_UNICAST, param, device_list))
 
 
     def _node_get_tx_param_unicast(self, cmd, param_name, device_list=None, new_assoc=False):

@@ -29,9 +29,9 @@ traffic flows.
 """
 import sys
 import time
-import wlan_exp.config as wlan_exp_config
-import wlan_exp.util as wlan_exp_util
-import wlan_exp.ltg as wlan_exp_ltg
+import wlan_exp.config as config
+import wlan_exp.util as util
+import wlan_exp.ltg as ltg
 
 import numpy as np
 
@@ -59,21 +59,21 @@ print("\nInitializing experiment\n")
 pa = ProgAttenController()
 
 # Create an object that describes the network configuration of the host PC
-network_config = wlan_exp_config.WlanExpNetworkConfiguration(network=NETWORK,
-                                                             jumbo_frame_support=USE_JUMBO_ETH_FRAMES)
+network_config = config.WlanExpNetworkConfiguration(network=NETWORK,
+                                                    jumbo_frame_support=USE_JUMBO_ETH_FRAMES)
 
 # Create an object that describes the WARP v3 nodes that will be used in this experiment
-nodes_config   = wlan_exp_config.WlanExpNodesConfiguration(network_config=network_config,
-                                                           serial_numbers=NODE_SERIAL_LIST)
+nodes_config   = config.WlanExpNodesConfiguration(network_config=network_config,
+                                                  serial_numbers=NODE_SERIAL_LIST)
 
 # Initialize the Nodes
 #   This command will fail if either WARP v3 node does not respond
-nodes = wlan_exp_util.init_nodes(nodes_config, network_config)
+nodes = util.init_nodes(nodes_config, network_config)
 
 # Extract the different types of nodes from the list of initialized nodes
 #   NOTE:  This will work for both 'DCF' and 'NOMAC' mac_low projects
-n_ap_l  = wlan_exp_util.filter_nodes(nodes=nodes, mac_high='AP',  serial_number=NODE_SERIAL_LIST)
-n_sta_l = wlan_exp_util.filter_nodes(nodes=nodes, mac_high='STA', serial_number=NODE_SERIAL_LIST)
+n_ap_l  = util.filter_nodes(nodes=nodes, mac_high='AP',  serial_number=NODE_SERIAL_LIST)
+n_sta_l = util.filter_nodes(nodes=nodes, mac_high='STA', serial_number=NODE_SERIAL_LIST)
 
 # Check that we have a valid AP and STA
 if (((len(n_ap_l) == 1) and (len(n_sta_l) == 1))):
@@ -92,20 +92,22 @@ else:
 #
 print("\nExperimental Setup:")
 
-# Set the rate of both nodes to 18 Mbps
-rate = wlan_exp_util.wlan_rates[3]
+# Set the rate of both nodes to 18 Mbps (mcs = 3, phy_mode = 'NONHT')
+mcs       = 3
+phy_mode  = util.phy_modes['NONHT']
+rate_info = util.get_rate_info(mcs, phy_mode)
 
 # Put each node in a known, good state
 for node in nodes:
-    node.set_tx_rate_unicast(rate, curr_assoc=True, new_assoc=True)
+    node.set_tx_rate_unicast(mcs, phy_mode, curr_assoc=True, new_assoc=True)
     node.reset(log=True, txrx_counts=True, ltg=True, queue_data=True) # Do not reset associations/bss_info
 
     # Get some additional information about the experiment
     channel  = node.get_channel()
 
     print("\n{0}:".format(node.name))
-    print("    Channel  = {0}".format(wlan_exp_util.channel_to_str(channel)))
-    print("    Rate     = {0}".format(wlan_exp_util.tx_rate_to_str(rate)))
+    print("    Channel  = {0}".format(util.channel_to_str(channel)))
+    print("    Rate     = {0}".format(util.rate_info_to_str(rate_info)))
 
 print("")
 
@@ -134,9 +136,9 @@ print("\nRun Experiment:")
 attens = np.arange(49,56,0.5)
 xputs = [0]*len(attens)
 
-ap_ltg_id  = n_ap.ltg_configure(wlan_exp_ltg.FlowConfigCBR(dest_addr=n_sta.wlan_mac_address,
-                                                                       payload_length=1400, 
-                                                                       interval=0), auto_start=False)
+ap_ltg_id  = n_ap.ltg_configure(ltg.FlowConfigCBR(dest_addr=n_sta.wlan_mac_address,
+                                                  payload_length=1400, 
+                                                  interval=0), auto_start=False)
 
 for idx,atten in enumerate(attens):
     pa.set_atten(atten)

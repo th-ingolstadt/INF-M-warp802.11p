@@ -85,9 +85,10 @@ def add_data_to_log(log_tail_pad=500):
     buffer = node.log_get_all_new(log_tail_pad=log_tail_pad)
     data   = buffer.get_bytes()
 
-    # Write Log Files for processing by other scripts
-    print("\nWriting {0:15,d} bytes of data to log file {1}...".format(len(data), h5_file.filename))
-    log_container.write_log_data(data)
+    if (len(data) > 0):
+        # Write Log Files for processing by other scripts
+        print("\nWriting {0:15,d} bytes of data to log file {1}...".format(len(data), h5_file.filename))
+        log_container.write_log_data(data)
 
 # End def
 

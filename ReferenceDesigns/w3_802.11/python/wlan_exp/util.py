@@ -87,75 +87,107 @@ WLAN_EXP_PRINT_DEBUG              = 4
 # -----------------------------------------------------------------------------
 # WLAN Exp Rate definitions
 # -----------------------------------------------------------------------------
-wlan_rates = [{'index' :  0, 'rate' :  6.0, 'desc' : 'NONHT BPSK 1/2',   'NDBPS': 24},
-              {'index' :  1, 'rate' :  9.0, 'desc' : 'NONHT BPSK 3/4',   'NDBPS': 36},
-              {'index' :  2, 'rate' : 12.0, 'desc' : 'NONHT QPSK 1/2',   'NDBPS': 48},
-              {'index' :  3, 'rate' : 18.0, 'desc' : 'NONHT QPSK 3/4',   'NDBPS': 72},
-              {'index' :  4, 'rate' : 24.0, 'desc' : 'NONHT 16-QAM 1/2', 'NDBPS': 96},
-              {'index' :  5, 'rate' : 36.0, 'desc' : 'NONHT 16-QAM 3/4', 'NDBPS': 144},
-              {'index' :  6, 'rate' : 48.0, 'desc' : 'NONHT 64-QAM 2/3', 'NDBPS': 192},
-              {'index' :  7, 'rate' : 54.0, 'desc' : 'NONHT 64-QAM 3/4', 'NDBPS': 216},
-              {'index' :  0x80+0, 'rate' :  6.5, 'desc' : 'HTMM BPSK 1/2',   'NDBPS': 26},
-              {'index' :  0x80+1, 'rate' : 13.0, 'desc' : 'HTMM QPSK 1/2',   'NDBPS': 52},
-              {'index' :  0x80+2, 'rate' : 19.5, 'desc' : 'HTMM QPSK 3/4',   'NDBPS': 78},
-              {'index' :  0x80+3, 'rate' : 26.0, 'desc' : 'HTMM 16-QAM 1/2',   'NDBPS': 104},
-              {'index' :  0x80+4, 'rate' : 39.0, 'desc' : 'HTMM 16-QAM 3/4', 'NDBPS': 156},
-              {'index' :  0x80+5, 'rate' : 52.0, 'desc' : 'HTMM 64-QAM 2/3', 'NDBPS': 208},
-              {'index' :  0x80+6, 'rate' : 58.5, 'desc' : 'HTMM 64-QAM 3/4', 'NDBPS': 234},
-              {'index' :  0x80+7, 'rate' : 65.0, 'desc' : 'HTMM 64-QAM 5/6', 'NDBPS': 260},]
 
-#TODO: We need to make wlan_rates flexible for different PHY sampling modes
-#wlan_rates = [{'index' :  0, 'rate' :  12.0, 'desc' : 'BPSK 1/2',   'NDBPS': 24},
-#              {'index' :  1, 'rate' :  18.0, 'desc' : 'BPSK 3/4',   'NDBPS': 36},
-#              {'index' :  2, 'rate' : 24.0, 'desc' : 'QPSK 1/2',   'NDBPS': 48},
-#              {'index' :  3, 'rate' : 36.0, 'desc' : 'QPSK 3/4',   'NDBPS': 72},
-#              {'index' :  4, 'rate' : 48.0, 'desc' : '16-QAM 1/2', 'NDBPS': 96}]
+# Supported PHY Mode constants
+phy_modes = consts_dict({
+       'DSSS'      :  0,
+       'NONHT'     :  1,
+       'HTMF'      :  2,
+       'VHT'       :  4})
 
 
-def find_tx_rate_by_index(index):
-    """Return the wlan_rates entry for the given index.
+# Supported PHY Sample Rate constants
+phy_samp_rates = consts_dict({
+       'PHY_5M'    :  5,
+       'PHY_10M'   :  10,
+       'PHY_20M'   :  20,
+       'PHY_40M'   :  40})
+
+
+def get_rate_info(mcs, phy_mode, phy_samp_rate=20, short_GI=False):
+    """Convert a Rate info dictionary to a string.
 
     Args:
-        index (int):  Index into wlan_rate array.
+        mcs (int):                 Modulation and coding scheme (MCS) index
+        phy_mode (str, int):       PHY mode ('NONHT', 'HTMF')
+        phy_samp_rate (str, int):  PHY sampling rate
+        short_GI (bool):           Short Guard Interval (GI) (True/False)
 
     Returns:
-        rate (dict):  Rate dictionary corresponding to the index
+        rate_info (dict):  Rate info dictionary
     """
-    return _find_param_by_index(index, wlan_rates, 'tx rate')
+    ret_val = dict()
+
+    # 802.11 a/g rates - IEEE 802.11-2012 Table 18-4
+    #     Chapter 18 doesn't use the term "MCS", but it's a convenient
+    #     way to refer to these rates.
+    mod_orders_nonht        = ['BPSK', 'BPSK', 'QPSK', 'QPSK', '16-QAM', '16-QAM', '64-QAM', '64-QAM']
+    code_rates_nonht        = [ '1/2',  '3/4',  '1/2',  '3/4',    '1/2',    '3/4',    '2/3',    '3/4']
+    ndbps_nonht             = [    24,     36,     48,     72,       96,      144,      192,      216]
+    phy_rates_nonht         = [   6.0,    9.0,   12.0,   18.0,     24.0,     36.0,     48.0,     54.0]
+
+    # 802.11n rates - IEEE 802.11-2012 Tables 20-30 to 30-37
+    mod_orders_htmf         = ['BPSK', 'QPSK', 'QPSK', '16-QAM', '16-QAM', '64-QAM', '64-QAM', '64-QAM']
+    code_rates_htmf         = [ '1/2',  '1/2',  '3/4',    '1/2',    '3/4',    '2/3',    '3/4',    '5/6']
+    ndbps_htmf_bw20         = [    26,     52,     78,      104,      156,      208,      234,      260]
+    phy_rates_htmf_bw20_lgi = [   6.5,   13.0,   19.5,     26.0,     39.0,     52.0,     58.5,     65.0]
+    phy_rates_htmf_bw20_sgi = [   7.2,   14.4,   21.7,     28.9,     43.3,     57.8,     65.0,     72.2]
+    # ndbps_htmf_bw40         = [    54,    108,    162,      216,      324,      432,      486,      540]
+    # phy_rates_htmf_bw40_lgi = [  13.5,   27.0,   40.5,     54.0,     81.0,    108.0,    121.5,    135.0]
+    # phy_rates_htmf_bw40_sgi = [  15.0,   30.0,   45.0,     60.0,     90.0,    120.0,    135.0,    150.0]
+
+
+    # Check input arguments
+    if ((mcs < 0) or (mcs > 7)):
+        raise AttributeError("MCS must be in [0 .. 7]")
+
+    if (phy_mode not in ['NONHT', 'HTMF', phy_modes['NONHT'], phy_modes['HTMF']]):
+        raise AttributeError("PHY mode must be in ['NONHT', 'HTMF', phy_modes['NONHT'], phy_modes['HTMF']")
+
+    # Set common values
+    ret_val['mcs'] = mcs
+
+    # Set 'NONHT' values
+    if ((phy_mode == 'NONHT') or (phy_mode == phy_modes['NONHT'])):
+        ret_val['phy_mode'] = 'NONHT'
+        ret_val['desc']     = 'NONHT {0} {1}'.format(mod_orders_nonht[mcs], code_rates_nonht[mcs])
+        ret_val['NDBPS']    = ndbps_nonht[mcs]
+        ret_val['phy_rate'] = phy_rates_nonht[mcs]
+
+    # Set 'HTMF' values
+    elif ((phy_mode == 'HTMF') or (phy_mode == phy_modes['HTMF'])):
+        ret_val['phy_mode'] = 'HTMF'
+        ret_val['desc']     = 'HTMF {0} {1}'.format(mod_orders_htmf[mcs], code_rates_htmf[mcs])
+        ret_val['NDBPS']    = ndbps_htmf_bw20[mcs]
+        
+        if (short_GI):
+            ret_val['phy_rate'] = phy_rates_htmf_bw20_sgi[mcs]
+        else:
+            ret_val['phy_rate'] = phy_rates_htmf_bw20_lgi[mcs]
+
+    # Update PHY rate for other PHY sampling rates
+    ret_val['phy_rate'] = ret_val['phy_rate'] * (phy_samp_rate / 20)
+
+    return ret_val
 
 # End def
 
 
-def tx_rate_to_str(rate):
-    """Convert a wlan_rates entry to a string.
+def rate_info_to_str(rate_info):
+    """Convert a Rate info dictionary to a string.
 
     Args:
-        rate (dict):  Rate dictionary
+        rate_info (dict):  Rate info dictionary
 
     Returns:
         output (str):  String representation of the 'rate'
     """
     msg = ""
-    if type(rate) is dict:
-        msg += "{0:2.1f} Mbps ({1})".format(rate['rate'], rate['desc'])
+    if type(rate_info) is dict:
+        msg += "{0:>4.1f} Mbps ({1})".format(rate_info['phy_rate'], rate_info['desc'])
     else:
-        print("Invalid Tx rate type.  Needed dict, provided {0}.".format(type(rate)))
+        print("Invalid rate info type.  Needed dict, provided {0}.".format(type(rate_info)))
     return msg
-
-# End def
-
-
-def tx_rate_index_to_str(index):
-    """Convert a wlan_rates entry index to a string.
-
-    Args:
-        index (int):  Index into wlan_rate array.
-
-    Returns:
-        output (str):  String representation of the 'rate' corresponding to the index
-    """
-    rate = find_tx_rate_by_index(index)
-    return tx_rate_to_str(rate)
 
 # End def
 

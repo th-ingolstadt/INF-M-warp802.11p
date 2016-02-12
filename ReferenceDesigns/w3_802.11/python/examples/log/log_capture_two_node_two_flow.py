@@ -30,9 +30,9 @@ and then captures all the log data after the TRIAL_TIME.
 import sys
 import time
 
-import wlan_exp.config as wlan_exp_config
-import wlan_exp.util as wlan_exp_util
-import wlan_exp.ltg as wlan_exp_ltg
+import wlan_exp.config as config
+import wlan_exp.util as util
+import wlan_exp.ltg as ltg
 
 
 #-----------------------------------------------------------------------------
@@ -84,24 +84,24 @@ def write_log_file(filename, node, exp_name):
 print("\nInitializing experiment\n")
 
 # Create an object that describes the network configuration of the host PC
-network_config = wlan_exp_config.WlanExpNetworkConfiguration(network=NETWORK,
-                                                             jumbo_frame_support=USE_JUMBO_ETH_FRAMES)
+network_config = config.WlanExpNetworkConfiguration(network=NETWORK,
+                                                    jumbo_frame_support=USE_JUMBO_ETH_FRAMES)
 
 # Create an object that describes the WARP v3 nodes that will be used in this experiment
-nodes_config   = wlan_exp_config.WlanExpNodesConfiguration(network_config=network_config,
-                                                           serial_numbers=NODE_SERIAL_LIST)
+nodes_config   = config.WlanExpNodesConfiguration(network_config=network_config,
+                                                  serial_numbers=NODE_SERIAL_LIST)
 
 # Initialize the Nodes
 #   This command will fail if either WARP v3 node does not respond
-nodes = wlan_exp_util.init_nodes(nodes_config, network_config)
+nodes = util.init_nodes(nodes_config, network_config)
 
 # Set the time of all the nodes to zero
-wlan_exp_util.broadcast_cmd_set_mac_time(0.0, network_config)
+util.broadcast_cmd_set_mac_time(0.0, network_config)
 
 # Extract the different types of nodes from the list of initialized nodes
 #   NOTE:  This will work for both 'DCF' and 'NOMAC' mac_low projects
-n_ap_l  = wlan_exp_util.filter_nodes(nodes=nodes, mac_high='AP',  serial_number=NODE_SERIAL_LIST)
-n_sta_l = wlan_exp_util.filter_nodes(nodes=nodes, mac_high='STA', serial_number=NODE_SERIAL_LIST)
+n_ap_l  = util.filter_nodes(nodes=nodes, mac_high='AP',  serial_number=NODE_SERIAL_LIST)
+n_sta_l = util.filter_nodes(nodes=nodes, mac_high='STA', serial_number=NODE_SERIAL_LIST)
 
 # Check that we have a valid AP and STA
 if len(n_ap_l) == 1 and len(n_sta_l) == 1:
@@ -126,18 +126,20 @@ if not n_ap.is_associated(n_sta):
 
 print("\nExperimental Setup:")
 
-# Get the rates that we will move through during the experiment
-rate = wlan_exp_util.wlan_rates[3]
+# Set the rate of both nodes to 18 Mbps (mcs = 3, phy_mode = 'NONHT')
+mcs       = 3
+phy_mode  = util.phy_modes['NONHT']
+rate_info = util.get_rate_info(mcs, phy_mode)
 
 # Put each node in a known, good state
 for node in nodes:
-    node.set_tx_rate_unicast(rate, curr_assoc=True, new_assoc=True)
+    node.set_tx_rate_unicast(mcs, phy_mode, curr_assoc=True, new_assoc=True)
     node.log_configure(log_full_payloads=False)
     node.reset(log=True, txrx_counts=True, ltg=True, queue_data=True) # Do not reset associations/bss_info
     node.set_channel(CHANNEL)
 
 # Add the current time to all the nodes
-wlan_exp_util.broadcast_cmd_write_time_to_logs(network_config)
+util.broadcast_cmd_write_time_to_logs(network_config)
 
 
 print("\nRun Experiment:")
@@ -146,9 +148,9 @@ print("\nStart LTG - AP -> STA")
 # Start a flow from the AP's local traffic generator (LTG) to the STA
 #  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
 #  Start the flow immediately
-ap_ltg_id  = n_ap.ltg_configure(wlan_exp_ltg.FlowConfigCBR(dest_addr=n_sta.wlan_mac_address,
-                                                           payload_length=1400, 
-                                                           interval=0), auto_start=True)
+ap_ltg_id  = n_ap.ltg_configure(ltg.FlowConfigCBR(dest_addr=n_sta.wlan_mac_address,
+                                                  payload_length=1400, 
+                                                  interval=0), auto_start=True)
 
 # Let the LTG flows run at the new rate
 time.sleep(TRIAL_TIME/3)
@@ -158,9 +160,9 @@ print("\nStart LTG - STA -> AP")
 # Start a flow from the STA's local traffic generator (LTG) to the AP
 #  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
 #  Start the flow immediately
-sta_ltg_id = n_sta.ltg_configure(wlan_exp_ltg.FlowConfigCBR(dest_addr=n_ap.wlan_mac_address,
-                                                            payload_length=1400, 
-                                                            interval=0), auto_start=True)
+sta_ltg_id = n_sta.ltg_configure(ltg.FlowConfigCBR(dest_addr=n_ap.wlan_mac_address,
+                                                   payload_length=1400, 
+                                                   interval=0), auto_start=True)
 
 # Let the LTG flows run at the new rate
 time.sleep(TRIAL_TIME/3)
