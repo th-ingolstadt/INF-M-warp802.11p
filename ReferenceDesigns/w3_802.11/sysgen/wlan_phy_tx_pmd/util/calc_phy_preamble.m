@@ -1,4 +1,4 @@
-function [signal_bytes, ht_sig_bytes] = calc_phy_preamble(phy_mode, mcs, length)
+function [signal_bytes, ht_sig_bytes] = calc_phy_preamble(phy_mode, mcs, len)
 % phy_mode: 1 = 11a, 2 = 11n
 % mcs: integer MCS index
 % length: integer payload length, in bytes
@@ -32,7 +32,7 @@ if phy_mode == 1
             error('Invalid mod_order or code_rate');
     end
 
-    signal_bytes = calc_signal_field(length, SIG_RATE);
+    signal_bytes = calc_signal_field(len, SIG_RATE);
     ht_sig_bytes = [];
 
     return;
@@ -53,8 +53,8 @@ elseif phy_mode == 2
     % Calculating TXTIME is complicated in general; for now, since our PHY only
     % supports the 1SS, long-GI rates, we'll just use a 8-entry LUT
     mcs_datarates = [6.5 13 19.5 26 39 52 38.5 65]; %Table 20-30
-    ht_txtime_usec = 16 + 5*4 + (2+length)*8/mcs_datarates(mcs+1); %approx, good enough for sim
-    LSIG_LENGTH = 3*ceil(ht_txtime_usec - 6 - 20)/4 - 3;
+    ht_txtime_usec = 16 + 5*4 + ((2+len)*8 + 6)/mcs_datarates(mcs+1) + 6; %approx, good enough for sim
+    LSIG_LENGTH = 3*ceil((ht_txtime_usec - 6 - 20)/4) - 3;
     LSIG_RATE = uint8(11); %6Mb
     
     signal_bytes = calc_signal_field(LSIG_LENGTH, LSIG_RATE);
@@ -76,8 +76,8 @@ elseif phy_mode == 2
     % [10:17]: Checksum (CRC8 of HTSIG1[0:23] and HTSIG2[0:9])
     % [18:23]: Tail (6'b0)
     HTSIG1_b0 = uint8(bitand(uint8(mcs), hex2dec('3f'))); %CBW is 0 for 20MHz
-    HTSIG1_b1 = uint8(bitand(uint16(length), hex2dec('ff')));
-    HTSIG1_b2 = uint8(bitshift( bitand(uint16(length), hex2dec('ff00')), -8));
+    HTSIG1_b1 = uint8(bitand(uint16(len), hex2dec('ff')));
+    HTSIG1_b2 = uint8(bitshift( bitand(uint16(len), hex2dec('ff00')), -8));
 
     HTSIG2_b0 = uint8(bin2dec('00000111'));  %Yes smoothing
     HTSIG2_b1 = uint8(0); %0 ESS, CRC filled in by hardware

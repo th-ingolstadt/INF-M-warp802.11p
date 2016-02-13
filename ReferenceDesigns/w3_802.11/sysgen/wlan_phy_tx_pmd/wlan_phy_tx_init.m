@@ -9,10 +9,6 @@ addpath('./util');
 addpath('./mcode_blocks');
 addpath('./blackboxes');
 
-
-%Load the MCS info table
-[mcs_rom_11ag, mcs_rom_11n] = tx_mcs_info_rom_init();
-
 %Define sane values for maximum parameter values; these maximums define
 % the bit widths of various signals throughout the design. Increasing
 % these maximum values will increae resource usage in hardware.
@@ -55,10 +51,10 @@ MPDU_Null_Data = sscanf('48 11 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 5
 MPDU_Data_short = sscanf(['08 01 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 55 04 21 6a b0 90 aa aa 03 00 00 00 08 00 ' sprintf('%02x ', [0:15]) ' 00 00 00 00'], '%02x');
 
 %Mid-size pkt - 150 payload bytes
-MPDU_Data_mid = sscanf(['08 01 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 55 04 21 6a b0 90 aa aa 03 00 00 00 08 00 ' sprintf('%02x ', mod([1:64], 256)) ' 00 00 00 00'], '%02x');
+MPDU_Data_mid = sscanf(['08 01 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 55 04 21 6a b0 90 aa aa 03 00 00 00 08 00 ' sprintf('%02x ', mod([1:513], 256)) ' 00 00 00 00'], '%02x');
 
 %Long pkt - 1420 payload bytes
-MPDU_Data_long = sscanf(['08 01 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 55 04 21 6a b0 90 aa aa 03 00 00 00 08 00 ' sprintf('%02x ', mod([1:1420], 256)) ' 00 00 00 00'], '%02x');
+MPDU_Data_long = sscanf(['08 01 2c 00 40 d8 55 04 21 4a 40 d8 55 04 21 5a 40 d8 55 04 21 6a b0 90 aa aa 03 00 00 00 08 00 ' sprintf('%02x ', mod([1:1434], 256)) ' 00 00 00 00'], '%02x');
 
 %ACK frame:
 % Frame Control field: 0xd400
@@ -70,17 +66,19 @@ ControlFrame_ACK = sscanf('d4 00 00 00 40 d8 55 04 21 4a 00 00 00 00', '%02x');
 %100-Byte random payload with valid FCS, used with IEEE waveform generator
 %wgen_pyld = sscanf(['26 bd 8e b7 f4 13 e7 5c 31 c6 a4 5b ac 95 e9 5c 7c dc 42 10 6d 73 0f 0c 82 8e d9 b2 c8 48 f3 e2 75 fe 92 20 f4 74 f1 fa e0 ae cb 06 55 70 ed 63 1a 9b e7 6e 2b 61 7a df f4 fc b6 20 ba d1 09 8f 31 ea 8b de 1d 77 ce 78 c3 0b dd 25 d2 55 63 23 7c 31 cd 35 f5 75 1e 08 b2 2e 5b a4 67 3f 95 26 a3 54 37 cd'], '%02x');
 
+ltg_pyld = sscanf('08 02 26 00 40 d8 55 04 24 f4 40 d8 55 04 24 b6 40 d8 55 04 24 b6 30 f1 aa aa 03 00 00 00 90 90 13 3f bc 02 00 00 00 00 79 03 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 00 96 6d 42 55', '%02x'); 
+
 %Setup params for the sim
 % In hardware these params are set per packet by the MAC core/code
 % Bypass if running multiple sims via the gen_sim_waveforms script
 if(~exist('gen_waveform_mode', 'var'))
     tx_sim = struct();
-    tx_sim.MAC_payload = MPDU_Data_mid;
+    tx_sim.MAC_payload = 1:100;
     tx_sim.payload_len = length(tx_sim.MAC_payload);
-    tx_sim.PHY_mode = 1; %1=11a, 2=11n
-    tx_sim.mcs = 6;
-    tx_sim.samp_rate = 20; %Must be in [10 20 40]
-    tx_sim.num_pkts = 2;
+    tx_sim.PHY_mode = 2; %1=11a, 2=11n
+    tx_sim.mcs = 0;
+    tx_sim.samp_rate = 40; %Must be in [10 20 40]
+    tx_sim.num_pkts = 1;
 end
 
 %MCS6, length=57, HTSIG should be:
@@ -198,6 +196,12 @@ CRC_Table32 = CRC_table_gen(CRCPolynomial32, 32);
 CRCPolynomial8 = hex2dec('07'); %CRC-8, for HT-SIG
 CRC_Table8 = CRC_table_gen(CRCPolynomial8, 8);
 
+%%
+%Load the MCS info table
+[mcs_rom_11ag, mcs_rom_11n] = tx_mcs_info_rom_init();
+
+
+
 %% Constellation scaling
 
 %Common scaling for preamble and all constellations that keeps all points within
@@ -240,7 +244,9 @@ ht_ltf_20_fd = [0 1 -1 -1 1 1 -1 1 -1 1 -1 -1 -1 -1 -1 1 1 -1 -1 1 -1 1 -1 1 1 1
 
 %Define init vector for HT preamble ROM
 % 20MHz HT-STF and HT-LTF are concatenated
-ht_preamble_rom = ALL_MOD_SCALING .* [ht_stf_20_fd ht_ltf_20_fd];
+% FIXME: HT-STF scaling isn't quite right - it should be a bit bigger
+% Need to figure out best way to build that, given IFFT Fix16_15 input type
+ht_preamble_rom = [ht_stf_20_fd ALL_MOD_SCALING .* ht_ltf_20_fd];
 
 %% Interleaver and subcarrier maps
 
