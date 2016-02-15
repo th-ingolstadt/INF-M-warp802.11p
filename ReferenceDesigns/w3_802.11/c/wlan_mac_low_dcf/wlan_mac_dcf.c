@@ -185,9 +185,10 @@ void configure_beacon_tx(u8 tx_pkt_buf, u32 interval_tu){
 
 	    current_tu = (u32)(get_mac_time_usec()>>10);
 
-	    // Set the TU target to 2^32-1 (max value) and hold TU_LATCH in reset
-	    //  MAC Low application should re-enabled if needed
-	    wlan_mac_set_tu_target(current_tu + gl_periodic_tx_details.period_tu);
+	    //The current_tu can be anywhere within a beacon interval, so we need
+	    //to round up to the next TBTT.
+	    wlan_mac_set_tu_target(gl_periodic_tx_details.period_tu*((current_tu/gl_periodic_tx_details.period_tu)+1));
+
 	    wlan_mac_reset_tu_target_latch(1);
 	    wlan_mac_reset_tu_target_latch(0);
 
