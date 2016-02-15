@@ -169,7 +169,7 @@ int main(){
         wlan_mac_low_poll_ipc_rx();
 
         // Poll the timestamp (for periodic transmissions like beacons)
-        poll_timestamp();
+        poll_tbtt();
     }
 
     return 0;
@@ -200,9 +200,10 @@ void configure_beacon_tx(u8 tx_pkt_buf, u32 interval_tu){
 	}
 }
 
-inline void poll_timestamp(){
+inline poll_tbtt_return_t poll_tbtt(){
 	u32 tu_target;
 	u32 mac_hw_status;
+	poll_tbtt_return_t return_status = TBTT_NOT_ACHIEVED;
 
 	if(gl_periodic_tx_details.enable){
 
@@ -214,8 +215,11 @@ inline void poll_timestamp(){
 			if(send_beacon(gl_periodic_tx_details.tx_pkt_buf) != 0){
 				// We were unable to begin the transmission (most likely because the MAC Support Core A was
 				// already actively transmitting something). So we will just return and catch it on the next poll
-				return;
+				return_status = BEACON_DEFERRED;
+				return return_status;
 			}
+
+			return_status = BEACON_SENT;
 
 			// Update TU target
 			//  Changing TU target automatically resets TU_LATCH
@@ -229,7 +233,7 @@ inline void poll_timestamp(){
 			//update the target when MAC time changes significantly.
 		}
 	}
-	return;
+	return return_status;
 }
 
 inline int send_beacon(u8 tx_pkt_buf){
@@ -237,7 +241,8 @@ inline int send_beacon(u8 tx_pkt_buf){
 	int return_status = -1;
 #if 1 // At the moment the below code chunk requires -Os
 
-    wlan_ipc_msg   ipc_msg_to_high;
+    wlan_ipc_msg   				ipc_msg_to_high;
+    wlan_mac_low_tx_details 	low_tx_details;
 	u32 mac_hw_status;
 	u16 n_slots;
 	int tx_gain;
@@ -247,13 +252,6 @@ inline int send_beacon(u8 tx_pkt_buf){
 	u64 unique_seq;
 	tx_mode_t tx_mode;
 	u32 rx_status;
-
-//	u32 i;
-//	xil_printf("0x%08x\n", (u32)header);
-//	for(i=0; i<69; i++){
-//		xil_printf("0x%02x ", *((u8*)header + i));
-//	}
-//	xil_printf("\n-------\n");
 
 	//Attempt to pause the backoff counter in MAC Support Core A
 	wlan_mac_pause_backoff_tx_ctrl_A(1);
@@ -345,9 +343,21 @@ inline int send_beacon(u8 tx_pkt_buf){
                                 reset_cw();
                             break;
                         }
+                        // Start a post-Tx backoff using the updated contention window
+                        // Note: if MAC Core A has been suspended, this backoff request will
+                        // successfully be ignored. If MAC Core A is idle, then this backoff
+                        // will execute and future submissiont to MAC Core A may inherit the
+                        // current backoff state.
+                        // TODO: We should double check whether post-Tx backoffs are appropriate
+                        n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
+                        wlan_mac_dcf_hw_start_backoff(n_slots);
+
 		                ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TX_BEACON_DONE);
-		                ipc_msg_to_high.num_payload_words = 0; //TODO: need tx low details as payload
+		                ipc_msg_to_high.num_payload_words = sizeof(wlan_mac_low_tx_details)/4;
 		                ipc_msg_to_high.arg0              = tx_pkt_buf;
+		                ipc_msg_to_high.payload_ptr		  = (u32*)&low_tx_details;
+
+		                // TODO: fill low_tx_details
 
 		                ipc_mailbox_write_msg(&ipc_msg_to_high);
 
@@ -355,7 +365,7 @@ inline int send_beacon(u8 tx_pkt_buf){
 		                // Poll the MAC Rx state to check if a packet was received while our Tx was deferring
 		                if (mac_hw_status & (WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED)) {
 		                    rx_status = wlan_mac_low_poll_frame_rx();
-		                    //TODO: Cancel Core C Tx is this was a beacon
+		                    //TODO: Cancel Core C Tx if this was a beacon
 		                }
 		            } // END if(Tx A state machine done)
 		        } while( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_C_PENDING );
@@ -949,6 +959,8 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
     mac_header_80211  * header              = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
 
     mac_timing			mac_timing_values = wlan_mac_low_get_mac_timing_values();
+    poll_tbtt_return_t	poll_tbtt_return = TBTT_NOT_ACHIEVED;
+
 
     // Extract waveform params from the tx_frame_info
     u8  mcs      = frame_info->params.phy.mcs;
@@ -1246,6 +1258,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
                     low_tx_details[low_tx_details_num].tx_start_timestamp_frac_mpdu = wlan_mac_low_get_tx_start_timestamp_frac();
                 }
 
+
                 // Switch on the result of the transmission attempt
                 switch (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_RESULT) {
 
@@ -1371,7 +1384,6 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
                             // Start the post-Tx backoff
                             n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
                             wlan_mac_dcf_hw_start_backoff(n_slots);
-
                             // Now we evaluate the SRC and LRC to see if either has reached its maximum
                             //     NOTE:  Use >= here to handle unlikely case of retryLimit values changing mid-Tx
                             if ((frame_info->short_retry_count >= gl_dot11ShortRetryLimit) ||
@@ -1381,7 +1393,9 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
 
                                 return TX_MPDU_RESULT_FAILURE;
                             }
-
+                            if(poll_tbtt_return == BEACON_DEFERRED) {
+								poll_tbtt_return = poll_tbtt();
+							}
                             // Jump to next loop iteration
                             continue;
                         }
@@ -1433,7 +1447,9 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
 
                             return TX_MPDU_RESULT_FAILURE;
                         }
-
+                        if(poll_tbtt_return == BEACON_DEFERRED) {
+							poll_tbtt_return = poll_tbtt();
+						}
                         // Jump to next loop iteration
                         continue;
                     break;
@@ -1453,8 +1469,8 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
 
                         return TX_MPDU_RESULT_FAILURE;
                     }
-                } else {
-                	poll_timestamp();
+                } else if(poll_tbtt_return != BEACON_DEFERRED) {
+                	poll_tbtt_return = poll_tbtt();
                 }
             } // END if(Tx A state machine done)
         } while( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_PENDING );

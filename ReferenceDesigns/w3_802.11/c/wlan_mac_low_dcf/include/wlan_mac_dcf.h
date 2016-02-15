@@ -94,6 +94,12 @@ typedef enum {
     TX_MODE_LONG
 } tx_mode_t;
 
+typedef enum {
+	BEACON_SENT,
+	BEACON_DEFERRED,
+	TBTT_NOT_ACHIEVED,
+} poll_tbtt_return_t;
+
 
 
 /*************************** Function Prototypes *****************************/
@@ -106,8 +112,8 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details);
 inline void        increment_src_ssrc(u8* src_ptr);
 inline void        increment_lrc_slrc(u8* lrc_ptr);
 
-inline void 		poll_timestamp();
-inline int 			send_beacon(u8 tx_pkt_buf);
+inline poll_tbtt_return_t poll_tbtt();
+inline int 		   		  send_beacon(u8 tx_pkt_buf);
 
 inline void        reset_cw();
 inline void        reset_ssrc();
