@@ -642,85 +642,98 @@ def overwrite_payloads(log_data, byte_offsets, payload_offsets=None):
 
 
 
-def calc_tx_time(rate, payload_length, phy_samp_rate):
-    """Calculates the duration of an 802.11 transmission given its rate and payload length.
+def calc_tx_time(mcs, phy_mode, payload_length, phy_samp_rate):
+    """Calculates the duration of an 802.11 transmission given its rate and 
+    payload length.
 
     Args:
-        rate (list of dict from util.wlan_rates):  List of rate dictionaries
-            (Dictionary from the wlan_rates list in wlan_exp.util)
-        payload_length (list of int):              List of number of bytes in the payload
+        mcs (list of int):            List of modulation and coding scheme (MCS) index
+        phy_mode (list of str, int):  Liist of PHY mode (from util.phy_modes)
+        payload_length (list of int): List of number of bytes in the payload
+        phy_sample_rate (int):        Sample rate of the PHY 
 
-    This method accounts only for PHY overhead (preamble, SIGNAL field, etc.). It does *not*
-    account for MAC overhead. The payload_length argument must include any MAC fields
-    (typically a 24-byte MAC header plus 4 byte FCS).
+    This method accounts only for PHY overhead (preamble, SIGNAL field, etc.). 
+    It does *not* account for MAC overhead. The payload_length argument must 
+    include any MAC fields (typically a 24-byte MAC header plus 4 byte FCS).
 
-    .. note:: This method does not check that both rate and payload_length are the same length
+    .. note:: This method does not check that mcs, phy_mode and payload_length 
+        are the same length
     """
     import numpy as np
-    import wlan_exp.log.util as log_util    
+    import wlan_exp.util as util    
     
-    from wlan_exp.util import wlan_rates
-    
-    
-    #TODO: Here I'm exploiting the fact that there are not different definitions of PHY
-    #sampling rate for Tx vs. Rx. This is messy and should be rethought.
-    RX_CONSTS = log_util.get_entry_constants('RX_OFDM')
-    
-    if phy_samp_rate is RX_CONSTS.phy_samp_rate.PHY_20M:
-        # Below applies to the 2XCLK design
+    # TODO: This code exploits the fact that the definitions of PHY sampling 
+    #     rate for Tx vs. Rx are the same
+
+    # Determine constants based on PHY sample rate    
+    #     - Times in microseconds
+    if phy_samp_rate is util.phy_samp_rates.PHY_20M:
         T_PREAMBLE = 8
         T_SIG = 2
         T_SYM = 2
-        T_EXT = 6
-         
-        try:
-            r = np.array([wlan_rates[i]['NDBPS'] for i in (rate).tolist()])
-        except TypeError :
-            r = wlan_rates[rate]['NDBPS']
-    
-        # Rate entry encodes data bits per symbol
-        bytes_per_sym = (r/8.0)
-	
-        # 2 = LEN_SERVICE (2)
-        # (6.0/8) = LEN_TAIL (6 bits)
-        # Assumes that the length argument includes FCS
-        num_syms = np.ceil((2.0 + 6.0/8 + payload_length) / bytes_per_sym)
-
-        T_TOT = T_PREAMBLE + T_SIG + T_SYM*num_syms + T_EXT
-    else:            
-        # Times in microseconds
+        T_EXT = 6         
+    elif phy_samp_rate is util.phy_samp_rates.PHY_40M:
         T_PREAMBLE = 16
         T_SIG = 4
         T_SYM = 4
         T_EXT = 6
-         
-        try:
-            r = np.array([wlan_rates[i]['NDBPS'] for i in (rate).tolist()])
-        except TypeError :
-            r = wlan_rates[rate]['NDBPS']
-    
-        # Rate entry encodes data bits per symbol
-        bytes_per_sym = (r/8.0)
-    	
-        # 2 = LEN_SERVICE (2)
-        # (6.0/8) = LEN_TAIL (6 bits)
-        # Assumes that the length argument includes FCS
-        num_syms = np.ceil((2.0 + 6.0/8 + payload_length) / bytes_per_sym)
-    
-        T_TOT = T_PREAMBLE + T_SIG + T_SYM*num_syms + T_EXT
+    else:
+        raise AttributeError("Constants not defined for phy_samp_rate {0}".format(phy_samp_rate))
         
+    # (mcs, phy_mode) encodes number of data bits per symbol
+    try:
+        # LUT implementation (~2 sec for 150K entries)
+        #   - Construct NDBPS lookup table to be used during processing
+        # 
+        # TODO:  This implementation is dependent on the MCS range that is 
+        #     not defined in wlan_exp.util.  This function will need ot be 
+        #     updated if more MCS values are defined.
+        ndbps_lut = {}
+        
+        for m in range(0, 8):
+            phy_mode_lut = {}
+            
+            for p in util.phy_modes.values():
+                try:
+                    phy_mode_lut[p] = util.get_rate_info(m, p, phy_samp_rate)['NDBPS']
+                except:
+                    # Do nothing for undefined values
+                    pass
+                    
+            ndbps_lut[m] = phy_mode_lut
+
+        ndbps = np.array([ndbps_lut[m][p] for i, (m, p) in enumerate(zip(mcs, phy_mode))])
+        
+                
+        # Naive implementation (~7 sec for 150K entries)
+        #   - Get rate info for each entry to extract NDBPS
+        # ndbps = np.array([util.get_rate_info(m, p, phy_samp_rate)['NDBPS'] for i, (m, p) in enumerate(zip(mcs, phy_mode))])
+    except TypeError:
+        ndbps = util.get_rate_info(mcs, phy_mode, phy_samp_rate)['NDBPS']
+
+    # Compute bytes per sysmbol from Number of data bits per second    
+    bytes_per_sym = (ndbps/8.0)
+
+    # Compute the number of symbols
+    #   - 2 = LEN_SERVICE (2)
+    #   - (6.0/8) = LEN_TAIL (6 bits)
+    #   - Assumes that the length argument includes FCS
+    num_syms = np.ceil((2.0 + 6.0/8 + payload_length) / bytes_per_sym)
+    
+    T_TOT = T_PREAMBLE + T_SIG + (T_SYM * num_syms) + T_EXT
 
     return T_TOT
 
 # End def
 
 
-def find_overlapping_tx_low(src_tx_low, int_tx_low):
+def find_overlapping_tx_low(src_tx_low, int_tx_low, phy_samp_rate=20):
     """Finds TX_LOW entries in the source that are overlapped by the TX_LOW entries in other flow.
 
     Args:
         src_tx_low (Numpy Array):  Source TX_LOW numpy array of entries
         int_tx_low (Numpy Array):  Other TX_LOW numpy array of entries
+        phy_sample_rate (int):     Sample rate of the PHY         
 
     Returns:
         indexes (tuple):
@@ -733,8 +746,8 @@ def find_overlapping_tx_low(src_tx_low, int_tx_low):
     src_ts = src_tx_low['timestamp']
     int_ts = int_tx_low['timestamp']
 
-    src_dur = np.uint64(calc_tx_time(src_tx_low['rate'], src_tx_low['length']))
-    int_dur = np.uint64(calc_tx_time(int_tx_low['rate'], int_tx_low['length']))
+    src_dur = np.uint64(calc_tx_time(src_tx_low['mcs'], src_tx_low['phy_mode'], src_tx_low['length'], phy_samp_rate))
+    int_dur = np.uint64(calc_tx_time(int_tx_low['mcs'], int_tx_low['phy_mode'], int_tx_low['length'], phy_samp_rate))
 
     src_idx = []
     int_idx = []
