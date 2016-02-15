@@ -494,7 +494,7 @@ class Resp(CmdRespMessage):
         """Pretty print the Response"""
         msg = ""
         if self.command is not None:
-            msg += "Response [{0:d}] ".format(self.command)
+            msg += "Response [CMDID = 0x{0:08x}] ".format(self.command)
             msg += "({0:d} bytes): \n".format(self.length)
             
             if (self.num_args > 0):

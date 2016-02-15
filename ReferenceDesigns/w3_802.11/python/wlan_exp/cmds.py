@@ -539,7 +539,7 @@ class LTGCommon(message.Cmd):
             args = resp.get_args()
             return args[0]
         else:
-            return CMD_PARAM_LTG_ERROR
+            return CMD_PARAM_ERROR
 
 # End Class
 
@@ -566,11 +566,10 @@ class LTGConfigure(message.Cmd):
 
     def process_resp(self, resp):
         error_code    = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR
-        error_msg     = "Could not create the LTG.  Check that the node has \n"
-        error_msg    += "enough heap available to perform this operation. \n"
-        error_msg    += "Commonly, this can occur if LTGs are not removed \n"
-        error_msg    += "(ie 'ltg_remove(ltg_id)') when they are finished \n"
-        error_msg    += "being used."
+        error_msg     = "\n\nERROR MESSAGE: Could not create the LTG.  Check that the node \n"
+        error_msg    += "has enough heap available to perform this operation. Commonly, \n"
+        error_msg    += "this can occur if LTGs are not removed (ie 'ltg_remove(ltg_id)') \n"
+        error_msg    += "when they are finished being used.\n"
         status_errors = { error_code : error_msg }
 
         if resp.resp_is_valid(num_args=2,
@@ -579,7 +578,7 @@ class LTGConfigure(message.Cmd):
             args = resp.get_args()
             return args[1]
         else:
-            return CMD_PARAM_LTG_ERROR
+            return CMD_PARAM_ERROR
 
 # End Class
 
@@ -644,8 +643,8 @@ class LTGStatus(message.Cmd):
 
     def process_resp(self, resp):
         error_code    = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR
-        error_msg     = "Could not find status for given LTG ID.  Please \n"
-        error_msg    += "check that it has not been removed."
+        error_msg     = "\n\nERROR MESSAGE:  Could not find status for given LTG ID.\n"
+        error_msg    += "Please check that it has not been removed."
         status_errors = { error_code : error_msg }
 
         if resp.resp_is_valid(num_args=6,
