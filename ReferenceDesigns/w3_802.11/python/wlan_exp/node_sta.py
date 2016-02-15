@@ -204,8 +204,8 @@ class WlanExpNodeSta(node.WlanExpNode):
             return False
 
 
-    def _check_supported_rate(self, mcs, phy_mode, verbose=False):
-        """Check that rate parameters are supported
+    def _check_allowed_rate(self, mcs, phy_mode, verbose=False):
+        """Check that rate parameters are allowed
 
         Args:
             mcs (int):           Modulation and coding scheme (MCS) index
@@ -214,7 +214,7 @@ class WlanExpNodeSta(node.WlanExpNode):
         Returns:
             valid (bool):  Are all parameters valid?
         """
-        return super(WlanExpNodeSta, self)._check_supported_rate(mcs, phy_mode, verbose)
+        return super(WlanExpNodeSta, self)._check_allowed_rate(mcs, phy_mode, verbose)
 
 
 

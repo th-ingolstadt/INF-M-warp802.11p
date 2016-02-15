@@ -812,10 +812,10 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         .. note:: This will not affect the transmit antenna mode for control frames like ACKs that
             will be transmitted. The rate of control packets is determined by the 802.11 standard.
         """
-        if self._check_supported_rate(mcs, phy_mode):
+        if self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode):
             self._node_set_tx_param_unicast(cmds.NodeProcTxRate, (mcs, phy_mode), 'rate', device_list, curr_assoc, new_assoc)
         else:
-            self._check_supported_rate(mcs=mcs, phy_mode=phy_mode, verbose=True)
+            self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode, verbose=True)
             raise AttributeError("Tx rate, (mcs, phy_mode) tuple, not supported by the design. See above error message.")
 
 
@@ -826,10 +826,10 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             mcs (int):           Modulation and coding scheme (MCS) index
             phy_mode (str, int): PHY mode (from util.phy_modes)
         """
-        if self._check_supported_rate(mcs, phy_mode):
+        if self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode):
             self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_DATA, (mcs, phy_mode)))
         else:
-            self._check_supported_rate(mcs=mcs, phy_mode=phy_mode, verbose=True)
+            self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode, verbose=True)
             raise AttributeError("Tx rate, (mcs, phy_mode) tuple, not supported by the design. See above error message.")
 
 
@@ -840,10 +840,10 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             mcs (int):           Modulation and coding scheme (MCS) index
             phy_mode (str, int): PHY mode (from util.phy_modes)
         """
-        if self._check_supported_rate(mcs, phy_mode):
+        if self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode):
             self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_MGMT, (mcs, phy_mode)))
         else:
-            self._check_supported_rate(mcs=mcs, phy_mode=phy_mode, verbose=True)
+            self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode, verbose=True)
             raise AttributeError("Tx rate, (mcs, phy_mode) tuple, not supported by the design. See above error message.")
 
 
@@ -1343,6 +1343,19 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     #--------------------------------------------
     # Internal helper methods to configure node attributes
     #--------------------------------------------
+    def _check_allowed_rate(self, mcs, phy_mode, verbose=False):
+        """Check rate parameters are allowed
+
+        Args:
+            mcs (int):           Modulation and coding scheme (MCS) index
+            phy_mode (str, int): PHY mode (from util.phy_modes)
+
+        Returns:
+            valid (bool):  Are all parameters valid?
+        """
+        return self._check_supported_rate(mcs, phy_mode, verbose)
+
+
     def _check_supported_rate(self, mcs, phy_mode, verbose=False):
         """Check rate parameters are supported
 
