@@ -952,11 +952,21 @@ void reset_bss_info(){
  * @return None
  */
 void reset_all_associations(){
+    interrupt_state_t     prev_interrupt_state;
+
     xil_printf("Reset All Associations\n");
 
-    // STA disassociate command is the same for an individual AP or ALL
-	sta_disassociate();
+    // Stop any scan / join in progress
+    wlan_mac_sta_return_to_idle();
 
+    // Disable interrupts so no packets interrupt the disassociate
+    prev_interrupt_state = wlan_mac_high_interrupt_stop();
+
+    // STA disassociate command is the same for an individual AP or ALL
+    sta_disassociate();
+
+    // Re-enable interrupts
+    wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 }
 
 

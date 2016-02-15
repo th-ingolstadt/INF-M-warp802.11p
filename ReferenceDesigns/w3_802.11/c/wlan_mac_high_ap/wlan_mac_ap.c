@@ -1875,10 +1875,18 @@ void reset_bss_info(){
  * @return None
  */
 void reset_all_associations(){
+    interrupt_state_t     prev_interrupt_state;
+
     xil_printf("Reset All Associations\n");
 
-	// Deauthenticate all stations
-	deauthenticate_stations();
+    // Disable interrupts so no packets interrupt the disassociate
+    prev_interrupt_state = wlan_mac_high_interrupt_stop();
+
+    // Deauthenticate all stations
+    deauthenticate_stations();
+
+    // Re-enable interrupts
+    wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
 }
 
