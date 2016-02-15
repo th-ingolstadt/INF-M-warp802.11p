@@ -17,19 +17,36 @@ if(~exist('sim_many_waveform_mode','var'))
     clear sig;
     clear tx_sig;
     clear ADC_I ADC_Q;
+    clear sim_sig;
     
     %PHY debugging with ChipScope captures of I/Q
     % ChipScope waveforms must be saved in ASCII format with (at least) ADC_I and ADC_Q signals
-    %xlLoadChipScopeData('ht_bpsk_badFCS_v0.prn'); cs_interp = 1; cs_start = 1850; cs_end = length(ADC_I);
-    %sim_sig = 1.0*complex(ADC_I([cs_start:cs_interp:cs_end]), ADC_Q(cs_start:cs_interp:cs_end));
+    %xlLoadChipScopeData('mcs7_11n_4rx_1bad_v0.prn'); cs_interp = 1; cs_start = 1; cs_end = length(ADC_I);
+    xlLoadChipScopeData('mcs7_11n_4rx_1bad_v1.prn'); cs_interp = 1; cs_start = 8300; cs_end = 1.2e4;
+    sim_sig = 1.0*complex(ADC_I([cs_start:cs_interp:cs_end]), ADC_Q(cs_start:cs_interp:cs_end));
 
+    if 0
+    
     %Output of PHY Tx simulation
     % .mat files from Tx PHY sim store I/Q signal in 'wlan_tx_out' variable
-    load('rx_sigs/wlan_tx_NONHT_MCS1_52B.mat');wlan_tx_out = 1.0*wlan_tx_out;
-    %load('rx_sigs/wlan_tx_HTMM_MCS7_52B.mat');wlan_tx_out = 1.0*wlan_tx_out;
+    %load('rx_sigs/wlan_tx_NONHT_MCS1_52B.mat');wlan_tx_out = 1.0*wlan_tx_out;
+    %load('rx_sigs/wlan_tx_HTMM_MCS0_52B.mat');wlan_tx_out = 1.0*wlan_tx_out;
     %load('../wlan_phy_tx_pmd/tx_nonht_MCS7_20M_29B_2tx.mat');wlan_tx_out = 1.0*wlan_tx_out;
-    %load('tx_11ac_20M_25B.mat');wlan_tx_out = 0.3*wlan_tx_out.';
-    sim_sig = wlan_tx_out(1:end);
+    load('tx_htmf_MCS7_20M_1000B.mat');wlan_tx_out = 1.0*wlan_tx_out.';
+
+    sig_with_cfo = wlan_tx_out .* exp(j*2*pi*-1e-4*(0:length(wlan_tx_out)-1));
+    
+    wlan_tx_out = [sig_with_cfo zeros(1,200) wlan_tx_out];
+    
+    % Apply CFO
+    
+    %wlan_tx_out = wlan_tx_out .* exp(j*2*pi*1e-4*(0:length(wlan_tx_out)-1));
+    %wlan_tx_out = wlan_tx_out + 1e-2*complex(randn(1,length(wlan_tx_out)), randn(1,length(wlan_tx_out)));
+    
+    %load('tx_htmf_MCS0_40M_100B.mat');
+    %load('ieee_wgen_HTMM_MCS0_100B.mat'); wlan_tx_out = 0.3*sig.';
+    sim_sig = wlan_tx_out(1:end).';
+    end
 end
 
 %Define the simulation paramters - waveform, sample rate, sim duration, etc
@@ -142,10 +159,10 @@ PHY_CONFIG_PKT_DET_RESET_EXT_DUR = hex2dec('3F');
 CS_CONFIG_CS_RSSI_THRESH = 300 * PHY_CONFIG_RSSI_SUM_LEN;
 CS_CONFIG_POSTRX_EXTENSION = 120; %6usec as 120 20MHz samples
 
-SOFT_DEMAP_SCALE_BPSK = 5;
-SOFT_DEMAP_SCALE_QPSK = 6;
-SOFT_DEMAP_SCALE_16QAM = 16;
-SOFT_DEMAP_SCALE_64QAM = 16;
+SOFT_DEMAP_SCALE_BPSK = 13;
+SOFT_DEMAP_SCALE_QPSK = 12;
+SOFT_DEMAP_SCALE_16QAM = 12;
+SOFT_DEMAP_SCALE_64QAM = 18;
 
 REG_RX_PktDet_AutoCorr_Config = ...
     2^0  *  (PHY_CONFIG_PKT_DET_CORR_THRESH) +...%b[7:0] UFix8_8
