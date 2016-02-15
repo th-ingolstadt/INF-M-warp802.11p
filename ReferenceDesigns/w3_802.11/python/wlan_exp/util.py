@@ -105,7 +105,7 @@ phy_samp_rates = consts_dict({
 
 
 def get_rate_info(mcs, phy_mode, phy_samp_rate=20, short_GI=False):
-    """Convert a Rate info dictionary to a string.
+    """Get Rate info dictionary based on rate parameters
 
     Args:
         mcs (int):                 Modulation and coding scheme (MCS) index
