@@ -192,6 +192,7 @@
 //
 #define CMDID_DEV_MEM_HIGH                                 0xFFF000
 #define CMDID_DEV_MEM_LOW                                  0xFFF001
+#define CMDID_DEV_EEPROM                                   0xFFF002
 
 
 // ****************************************************************************
