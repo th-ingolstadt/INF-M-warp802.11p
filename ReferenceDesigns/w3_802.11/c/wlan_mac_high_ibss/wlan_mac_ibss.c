@@ -587,7 +587,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_
 	}
 
 	// Log the TX MPDU
-	wlan_exp_log_create_tx_entry(tx_mpdu, mac_param_chan);
+	wlan_exp_log_create_tx_high_entry(tx_mpdu, mac_param_chan);
 
 	// Update the counts for the node to which the packet was just transmitted
 	if(tx_mpdu->AID != 0) {

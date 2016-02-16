@@ -367,7 +367,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
 
 /*****************************************************************************/
 /**
- * Create a TX Log entry
+ * Create a TX High Log entry
  *
  * @param   tx_mpdu          - Pointer to TX MPDU of the associated TX entry
  * @param   channel_number   - Indicates the channel on which the transmission occurred
@@ -376,7 +376,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
  *                               NOTE: This can be NULL if an entry was not allocated
  *
  *****************************************************************************/
-tx_high_entry * wlan_exp_log_create_tx_entry(tx_frame_info* tx_mpdu, u8 channel_num){
+tx_high_entry * wlan_exp_log_create_tx_high_entry(tx_frame_info* tx_mpdu, u8 channel_num){
 
     tx_high_entry*    tx_high_event_log_entry = NULL;
     void*             mpdu                    = (u8*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
