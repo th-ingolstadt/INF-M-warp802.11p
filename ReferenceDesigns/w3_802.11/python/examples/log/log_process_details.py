@@ -125,29 +125,29 @@ for phy_mode in wlan_exp_util.phy_modes.keys():
                            (log_tx_low['pkt_type'] == TX_CONSTS.pkt_type.MGMT)))
 
     # Extract arrays for each PHY mode
-    tx_phy_mode     = log_tx[tx_idx]
-    tx_low_phy_mode = log_tx_low[tx_low_idx]
-    tx_low_no_ctrl  = log_tx_low[tx_low_no_ctrl_idx]
+    tx_entries     = log_tx[tx_idx]
+    tx_low_entries = log_tx_low[tx_low_idx]
+    tx_low_no_ctrl = log_tx_low[tx_low_no_ctrl_idx]
 
     # Extract arrays of just the MCS indexes
-    tx_phy_mode_mcs     = tx_phy_mode['mcs']
-    tx_low_phy_mode_mcs = tx_low_phy_mode['mcs']
-    tx_low_no_ctrl_mcs  = tx_low_no_ctrl['mcs']
+    tx_entries_mcs     = tx_entries['mcs']
+    tx_low_entries_mcs = tx_low_entries['mcs']
+    tx_low_no_ctrl_mcs = tx_low_no_ctrl['mcs']
 
     # Initialize an array to count number of packets per MCS index
     #   MAC uses MCS indexes 0:7 to encode OFDM rates
-    tx_phy_mode_mcs_counts     = np.bincount(tx_phy_mode_mcs, minlength=8)
-    tx_low_phy_mode_mcs_counts = np.bincount(tx_low_phy_mode_mcs, minlength=8)
-    tx_low_no_ctrl_mcs_counts  = np.bincount(tx_low_no_ctrl_mcs, minlength=8)
+    tx_entries_mcs_counts     = np.bincount(tx_entries_mcs, minlength=8)
+    tx_low_entries_mcs_counts = np.bincount(tx_low_entries_mcs, minlength=8)
+    tx_low_no_ctrl_mcs_counts = np.bincount(tx_low_no_ctrl_mcs, minlength=8)
     
     # Extract an array of just the 'time_to_done' timestamp offsets
-    tx_done       = tx_phy_mode['time_to_done']
+    tx_done       = tx_entries['time_to_done']
 
     # Calculate the average time to send a packet for each rate
     for mcs in range(0, 8):
         # Find indexes of all instances where addresses match
         #   np.squeeze here flattens the result to a 1-D array
-        mcs_idx = np.squeeze(tx_phy_mode_mcs == mcs)
+        mcs_idx = np.squeeze(tx_entries_mcs == mcs)
 
         # Calculate the average time to send a packet
         tx_avg_time = 0
@@ -158,7 +158,7 @@ for phy_mode in wlan_exp_util.phy_modes.keys():
         # Calculate retransmissions
         #    Must use the counts with no control packets since control packets
         #    are transmitted without a corresponding CPU High TX entry
-        retrans = tx_low_no_ctrl_mcs_counts[mcs] - tx_phy_mode_mcs_counts[mcs]
+        retrans = tx_low_no_ctrl_mcs_counts[mcs] - tx_entries_mcs_counts[mcs]
         total_retrans  += retrans
 
         # Print info
@@ -167,8 +167,8 @@ for phy_mode in wlan_exp_util.phy_modes.keys():
             rate_str  = wlan_exp_util.rate_info_to_str(rate_info)
             print("{0:30} {1:10} {2:10} {3:10} {4:>10.0f}".format(
                 rate_str,
-                tx_phy_mode_mcs_counts[mcs],
-                tx_low_phy_mode_mcs_counts[mcs],
+                tx_entries_mcs_counts[mcs],
+                tx_low_entries_mcs_counts[mcs],
                 retrans,
                 tx_avg_time))
         except:

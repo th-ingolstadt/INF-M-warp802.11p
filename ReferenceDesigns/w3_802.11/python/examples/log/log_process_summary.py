@@ -146,20 +146,20 @@ for phy_mode in wlan_exp_util.phy_modes.keys():
     rx_idx = (log_rx['phy_mode'] == RX_CONSTS.phy_mode[phy_mode])
 
     # Extract arrays for each PHY mode
-    tx_phy_mode = log_tx[tx_idx]
-    rx_phy_mode = log_rx[rx_idx]
+    tx_entries = log_tx[tx_idx]
+    rx_entries = log_rx[rx_idx]
 
     # Extract arrays of just the MCS indexes
-    tx_phy_mode_mcs = tx_phy_mode['mcs']
-    rx_phy_mode_mcs = rx_phy_mode['mcs']
+    tx_entries_mcs = tx_entries['mcs']
+    rx_entries_mcs = rx_entries['mcs']
 
     # Initialize an array to count number of packets per MCS index
     #   MAC uses MCS indexes 0:7 to encode OFDM rates
-    tx_phy_mode_mcs_counts = np.bincount(tx_phy_mode_mcs, minlength=8)
-    rx_phy_mode_mcs_counts = np.bincount(rx_phy_mode_mcs, minlength=8)
+    tx_entries_mcs_counts = np.bincount(tx_entries_mcs, minlength=8)
+    rx_entries_mcs_counts = np.bincount(rx_entries_mcs, minlength=8)
 
     # Print counts per PHY rate
-    for i, (tx_c, rx_c) in enumerate(zip(tx_phy_mode_mcs_counts, rx_phy_mode_mcs_counts)):
+    for i, (tx_c, rx_c) in enumerate(zip(tx_entries_mcs_counts, rx_entries_mcs_counts)):
         try:
             rate_info = wlan_exp_util.get_rate_info(i, phy_mode)
             rate_str  = wlan_exp_util.rate_info_to_str(rate_info)
