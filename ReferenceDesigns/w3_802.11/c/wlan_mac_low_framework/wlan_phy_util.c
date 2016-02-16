@@ -320,7 +320,7 @@ void wlan_phy_init() {
 
     // Set pre-quantizer scaling for decoder inputs
     //  These values were found empirically by vs PER by sweeping scaling and attenuation
-    wlan_phy_rx_set_fec_scaling(5, 8, 11, 20);
+    wlan_phy_rx_set_fec_scaling(15, 15, 18, 22);
 
     // Set post Rx extension
     //  Number of sample periods post-Rx the PHY waits before asserting Rx END - must be long enough for worst-case

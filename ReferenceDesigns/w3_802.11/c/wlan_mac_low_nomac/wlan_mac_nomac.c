@@ -168,8 +168,10 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
     // Wait until the PHY has written enough bytes so that the first address field can be processed
     while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1){
 		mac_hw_status = wlan_mac_get_status();
-		if(((mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE) == 0) && (wlan_mac_get_last_byte_index() == 0)) {
+		//if(((mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE) == 0) && (wlan_mac_get_last_byte_index() == 0)) {
+		if(((mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE) == 0)) {
 			//Rx PHY is idle, but we're still waiting for bytes - bad MAC/PHY status, ignore Rx and return
+			 wlan_mac_dcf_hw_unblock_rx_phy();
 			return 0;
 		}
     };
@@ -179,8 +181,13 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
         green_led_index = (green_led_index + 1) % NUM_LEDS;
         userio_write_leds_green(USERIO_BASEADDR, (1 << green_led_index));
     } else {
+        REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x01);
+
         red_led_index = (red_led_index + 1) % NUM_LEDS;
         userio_write_leds_red(USERIO_BASEADDR, (1 << red_led_index));
+
+        REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x01);
+
     }
 
     // Unlock the pkt buf mutex before passing the packet up
