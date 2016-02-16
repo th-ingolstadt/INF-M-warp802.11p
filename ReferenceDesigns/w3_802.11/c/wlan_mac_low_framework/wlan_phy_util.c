@@ -862,6 +862,7 @@ inline void wlan_tx_start() {
 inline u16 wlan_ofdm_txtime(u16 length, u16 n_DBPS, phy_samp_rate_t phy_samp_rate){
 
     #define T_SIG_EXT                                      6
+    #define WLAN_OFDM_TXTIME_FAST                          0
 
     u16 txTime;
     u16 n_sym, n_b;
@@ -872,19 +873,27 @@ inline u16 wlan_ofdm_txtime(u16 length, u16 n_DBPS, phy_samp_rate_t phy_samp_rat
     u32 t_ext;
 
     switch(phy_samp_rate){
-    	default: //TODO: Generalize to 5MHz, 10MHz. Requires fractions.
-    	case PHY_20M:
-    	    t_preamble	= 8;
-    	    t_sig = 2;
-    	    t_sym = 2;
-    	    t_ext = 6;
-		break;
-    	case PHY_40M:
-    	    t_preamble	= 16;
-    	    t_sig = 4;
-    	    t_sym = 4;
-    	    t_ext = 6;
-		break;
+        case PHY_40M:
+            t_preamble	= 8;
+            t_sig = 2;
+            t_sym = 2;
+            t_ext = T_SIG_EXT;
+        break;
+
+        default:
+        case PHY_20M:
+            t_preamble	= 16;
+            t_sig = 4;
+            t_sym = 4;
+            t_ext = T_SIG_EXT;
+        break;
+
+        case PHY_10M:
+            t_preamble	= 32;
+            t_sig = 8;
+            t_sym = 8;
+            t_ext = T_SIG_EXT;
+        break;
     }
 
     // Calculate num bits:
@@ -893,57 +902,12 @@ inline u16 wlan_ofdm_txtime(u16 length, u16 n_DBPS, phy_samp_rate_t phy_samp_rat
     //     6         : TAIL bits (zeros, required in all pkts to terminate FEC)
     n_b = (16 + (8 * length) + 6);
 
-    // Calculate num OFDM syms
-    //     This integer divide is effectively floor(n_b / n_DBPS)
-    n_sym = n_b / n_DBPS;
-
-    // If actual n_sym was non-integer, round up
-    //     This is effectively ceil(n_b / n_DBPS)
-    if ((n_sym * n_DBPS) < n_b) n_sym++;
-
-    txTime = t_preamble + t_sig + t_sym * n_sym + t_ext;
-
-    return txTime;
-}
-
-
-inline u16 wlan_ofdm_txtime_fast(u16 length, u16 n_DBPS, phy_samp_rate_t phy_samp_rate){
-
-    u16 txTime;
-    u16 n_sym, n_b;
-
-    u32 t_preamble;
-	u32 t_sig;
-	u32 t_sym;
-	u32 t_ext;
-
-	switch(phy_samp_rate){
-		default: //TODO: Generalize to 5MHz, 10MHz. Requires fractions.
-		case PHY_20M:
-			t_preamble	= 8;
-			t_sig = 2;
-			t_sym = 2;
-			t_ext = 6;
-		break;
-		case PHY_40M:
-			t_preamble	= 16;
-			t_sig = 4;
-			t_sym = 4;
-			t_ext = 6;
-		break;
-	}
-
-
-    // Calculate num bits:
-    //     16        : SERVICE field
-    //     8 * length: actual MAC payload
-    //     6         : TAIL bits (zeros, required in all pkts to terminate FEC)
-    n_b = (16 + (8 * length) + 6);
-
+#if WLAN_OFDM_TXTIME_FAST
     // Calculate num OFDM syms
     //     This integer divide is effectively floor(n_b / n_DBPS)
     //
     // NOTE:  The following code is a faster implementation of:  n_sym = n_b / n_DBPS;
+    //     that uses macros.  To enable, change the define at the top of this function.
     //
     switch(n_DBPS){
         default:
@@ -972,6 +936,11 @@ inline u16 wlan_ofdm_txtime_fast(u16 length, u16 n_DBPS, phy_samp_rate_t phy_sam
             n_sym = U16DIVBY216(n_b);
         break;
     }
+#else
+    // Calculate num OFDM syms
+    //     This integer divide is effectively floor(n_b / n_DBPS)
+    n_sym = n_b / n_DBPS;
+#endif
 
     // If actual n_sym was non-integer, round up
     //     This is effectively ceil(n_b / n_DBPS)
