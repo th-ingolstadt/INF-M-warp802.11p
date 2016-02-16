@@ -1753,55 +1753,158 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     # Memory Access Commands - For developer use only
     #--------------------------------------------
     def _mem_write_high(self, address, values):
-        """Writes 'values' directly to CPU High memory starting at 'address'"""
-        if(self._check_mem_access_args(address, values)):
-            try:
-                vals = list(values)
-            except TypeError:
-                vals = [values]
-
-            return self.send_cmd(cmds.NodeMemAccess(cmd=cmds.CMD_PARAM_WRITE, high=True, address=address, length=len(vals), values=vals))
+        """Writes 'values' to CPU High memory starting at 'address'
+        
+        Attributes:
+            address (int):         Address must be in [0 .. (2^32 - 1)]
+            values (list of int):  Each value must be in [0 .. (2^32 - 1)]
+        """
+        # Convert scalar values to a list for processing
+        if (type(values) is not list):
+            values = [values]
+            
+        if (self._check_mem_access_args(address, values)):
+            return self.send_cmd(cmds.NodeMemAccess(cmd=cmds.CMD_PARAM_WRITE, high=True, address=address, length=len(values), values=values))
 
 
     def _mem_read_high(self, address, length):
-        """Reads 'length' values directly CPU High memory starting at 'address'"""
-        if(self._check_mem_access_args(address, values=None)):
+        """Reads 'length' values from CPU High memory starting at 'address'
+        
+        Attributes:
+            address (int):  Address must be in [0 .. (2^32 - 1)]
+            length (int):   Length must be in [1 .. 320] (ie fit in a 1400 byte packet)
+
+        Returns:
+            values (list of u32):  List of u32 values received from the node
+        """
+        if (self._check_mem_access_args(address, values=None)):
             return self.send_cmd(cmds.NodeMemAccess(cmd=cmds.CMD_PARAM_READ, high=True, address=address, length=length))
 
 
     def _mem_write_low(self, address, values):
-        """Writes 'values' directly to CPU High memory starting at 'address'"""
-        if(self._check_mem_access_args(address, values)):
-            try:
-                vals = list(values)
-            except TypeError:
-                vals = [values]
-
-            return self.send_cmd(cmds.NodeMemAccess(cmd=cmds.CMD_PARAM_WRITE, high=False, address=address, length=len(vals), values=vals))
+        """Writes 'values' to CPU Low memory starting at 'address'
+        
+        Attributes:
+            address (int):         Address must be in [0 .. (2^32 - 1)]
+            values (list of int):  Each value must be in [0 .. (2^32 - 1)]
+        """
+        # Convert scalar values to a list for processing
+        if (type(values) is not list):
+            values = [values]
+            
+        if (self._check_mem_access_args(address, values)):
+            return self.send_cmd(cmds.NodeMemAccess(cmd=cmds.CMD_PARAM_WRITE, high=False, address=address, length=len(values), values=values))
 
 
     def _mem_read_low(self, address, length):
-        """Reads 'length' values directly CPU High memory starting at 'address'"""
-        if(self._check_mem_access_args(address, values=None)):
+        """Reads 'length' values from CPU Low memory starting at 'address'
+        
+        Attributes:
+            address (int):  Address must be in [0 .. (2^32 - 1)]
+            length (int):   Length must be in [1 .. 320] (ie fit in a 1400 byte packet)
+
+        Returns:
+            values (list of u32):  List of u32 values received from the node
+        """
+        if (self._check_mem_access_args(address, values=None)):
             return self.send_cmd(cmds.NodeMemAccess(cmd=cmds.CMD_PARAM_READ, high=False, address=address, length=length))
 
 
     def _check_mem_access_args(self, address, values=None, length=None):
-        if(int(address) != address) or (address >= 2**32):
-            raise Exception('ERROR: address must be integer value in [0,2^32-1]!')
+        """Check memory access variables
+        
+        Attributes:
+            address (int):         Address must be in [0 .. (2^32 - 1)]
+            values (list of int):  Each value must be in [0 .. (2^32 - 1)]
+            length (int):          Length must be in [1 .. 320] (ie fit in a 1400 byte packet)
 
-        if(values is not None):
-            try:
-                v0 = values[0]
-            except TypeError:
-                v0 = values
+        Returns:
+            valid (bool):  Are all arguments valid?
+        """
+        if ((int(address) != address) or (address >= 2**32) or (address < 0)):
+            raise Exception('ERROR: address must be integer value in [0 .. (2^32 - 1)]!')
 
-            if((type(v0) is not int) and (type(v0) is not long)) or (v0 >= 2**32):
-                raise Exception('ERROR: values must be scalar or iterable of ints in [0,2^32-1]!')
+        if (values is not None):
+            if (type(values) is not list):
+                values = [values]
+                    
+            error = False
+            
+            for value in values:
+                if (((type(value) is not int) and (type(value) is not long)) or 
+                    (value >= 2**32) or (value < 0)):
+                    error = True
+
+            if (error):
+                raise Exception('ERROR: values must be scalar or iterable of ints in [0 .. (2^32 - 1)]!')
+                
+        if length is not None:
+            if ((int(length) != length) or (length > 320) or (length <= 0)):
+                raise Exception('ERROR: length must be an integer [1 .. 320] words (ie, 4 to 1400 bytes)!')
+
+        return True
+
+
+    def _eeprom_write(self, address, values):
+        """Writes 'values' to EEPROM starting at 'address'
+        
+        Attributes:
+            address (int):         Address must be in [0 .. (2^16 - 1)]
+            values (list of int):  Each value must be in [0 .. 255]
+        """
+        # Convert scalar values to a list for processing
+        if (type(values) is not list):
+            values = [values]
+        
+        if (self._check_eeprom_access_args(address=address, values=values, length=len(values))):
+            return self.send_cmd(cmds.NodeEEPROMAccess(cmd=cmds.CMD_PARAM_WRITE, address=address, length=len(values), values=values))
+
+
+    def _eeprom_read(self, address, length):
+        """Reads 'length' values from EEPROM starting at 'address'
+        
+        Attributes:
+            address (int):  Address must be in [0 .. (2^16 - 1)]
+            length (int):   Length must be in [1 .. 320] (ie fit in a 1400 byte packet)
+
+        Returns:
+            values (list of u8):  List of u8 values received from the node
+        """
+        if (self._check_eeprom_access_args(address=address, length=length)):
+            return self.send_cmd(cmds.NodeEEPROMAccess(cmd=cmds.CMD_PARAM_READ, address=address, length=length))
+
+
+    def _check_eeprom_access_args(self, address, values=None, length=None):
+        """Check EEPROM access variables
+        
+        Attributes:
+            address (int):         Address must be in [0 .. (2^16 - 1)]
+            values (list of int):  Each value must be in [0 .. 255]
+            length (int):          Length must be in [1 .. 320] (ie fit in a 1400 byte packet)
+
+        Returns:
+            valid (bool):  Are all arguments valid?
+        """
+        if ((int(address) != address) or (address >= 2**16) or (address < 0)):
+            raise Exception('ERROR: address must be integer value in [0 .. (2^16 - 1)]!')
+
+        if (values is not None):
+            if (type(values) is not list):
+                values = [values]
+                    
+            error = False
+            
+            for value in values:
+                if (((type(value) is not int) and (type(value) is not long)) or 
+                    (value >= 2**8) or (value < 0)):
+                    error = True
+
+            if (error):
+                raise Exception('ERROR: values must be scalar or iterable of ints in [0 .. 255]!')
 
         if length is not None:
-            if (int(length) != length) or (length >= 320):
-                raise Exception('ERROR: length must be an integer [0, 320] words (ie, 0 to 1400 bytes)!')
+            if ((int(length) != length) or (length > 320) or (length <= 0)):
+                raise Exception('ERROR: length must be an integer [1 .. 320] words (ie, 4 to 1400 bytes)!')
 
         return True
 

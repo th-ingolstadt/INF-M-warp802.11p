@@ -246,6 +246,7 @@ CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TRANSMIT       = 0x00000002
 # Developer commands and defined values
 CMDID_DEV_MEM_HIGH                               = 0xFFF000
 CMDID_DEV_MEM_LOW                                = 0xFFF001
+CMDID_DEV_EEPROM                                 = 0xFFF002
 
 
 # Local Constants
@@ -2148,23 +2149,19 @@ class NodeMemAccess(message.Cmd):
 
     def __init__(self, cmd, high, address, values=None, length=None):
         super(NodeMemAccess, self).__init__()
-        if(high):
+        if (high):
             self.command = _CMD_GROUP_NODE + CMDID_DEV_MEM_HIGH
         else:
             self.command = _CMD_GROUP_NODE + CMDID_DEV_MEM_LOW
 
-        if(cmd == CMD_PARAM_READ):
-            self.add_args(cmd)
-            self.add_args(address)
-            self.add_args(length)
+        self.add_args(cmd)
+        self.add_args(address)
+        self.add_args(length)
 
+        if (cmd == CMD_PARAM_READ):
             self._read_len = length
 
-        elif(cmd == CMD_PARAM_WRITE):
-            self.add_args(cmd)
-            self.add_args(address)
-            self.add_args(length)
-
+        elif (cmd == CMD_PARAM_WRITE):
             try:
                 for v in values:
                     self.add_args(v)
@@ -2174,26 +2171,119 @@ class NodeMemAccess(message.Cmd):
         else:
             raise Exception('ERROR: NodeMemAccess constructor arguments invalid');
 
-    def process_resp(self, resp):
-        if (self._read_len is not None): # Was a read command
-            error_code    = CMD_PARAM_ERROR
-            error_msg     = "Memory access failed."
-            status_errors = { error_code : error_msg }
 
-            if resp.resp_is_valid(num_args=(2 + self._read_len), status_errors=status_errors,
-                                  name='from CPU Mem command'):
+    def process_resp(self, resp):
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Memory access failed."
+        status_errors = { error_code : error_msg }
+        
+        if (self._read_len is not None): 
+            # Read command
+            if (self.command == _CMD_GROUP_NODE + CMDID_DEV_MEM_HIGH):
+                msg = "from CPU High Mem read command"
+            else:
+                msg = "from CPU Low Mem read command"
+            
+            if resp.resp_is_valid(num_args=(2 + self._read_len), status_errors=status_errors, name=msg):
                 args = resp.get_args()
 
-                if(len(args) == 3):
+                if (len(args) == 3):
                     return args[2]
-                elif(len(args) > 3):
+                elif (len(args) > 3):
                     return args[2:]
                 else:
-                    raise Exception('ERROR: invalid response to read_mem - N_ARGS = {0}'.format(len(args)))
+                    raise Exception('ERROR: Invalid memory read response.  Num Args = {0}'.format(len(args)))
             else:
                 return CMD_PARAM_ERROR
-        else: # Was a write command
-            pass
+        else: 
+            # Write command
+            if (self.command == _CMD_GROUP_NODE + CMDID_DEV_MEM_HIGH):
+                msg = "from CPU High Mem write command"
+            else:
+                msg = "from CPU Low Mem write command"
+            
+            if resp.resp_is_valid(num_args=1, status_errors=status_errors, name=msg):
+                pass
+            else:
+                return CMD_PARAM_ERROR
+
+# End Class
+
+
+
+#--------------------------------------------
+# EEPROM Access Commands - For developer use only
+#--------------------------------------------
+class NodeEEPROMAccess(message.Cmd):
+    """Command to read/write EEPROM
+
+    Attributes:
+        cmd       -- Sub-command to send over the command.  Valid values are:
+                       CMD_PARAM_READ
+                       CMD_PARAM_WRITE
+        address   -- u16 memory address to read/write
+
+        values    -- When cmd==CMD_PARAM_WRITE, scalar or list of u8 values to write
+                     When cmd==CMD_PARAM_READ, None
+
+        length    -- When cmd==CMD_PARAM_WRITE, number of u8 values to write
+                     When cmd==CMD_PARAM_READ, number of u8 values to read
+                     
+        on_board  -- True for "On Board" EEPROM access, False for "FMC" EEPROM access        
+    """
+    _read_len = None
+
+    def __init__(self, cmd, address, values=None, length=None, on_board=True):
+        super(NodeEEPROMAccess, self).__init__()
+        self.command = _CMD_GROUP_NODE + CMDID_DEV_EEPROM
+        
+        self.add_args(cmd)
+        self.add_args(on_board)
+        self.add_args(address)
+        self.add_args(length)
+
+        if (cmd == CMD_PARAM_READ):
+            self._read_len = length
+
+        elif (cmd == CMD_PARAM_WRITE):
+            try:
+                for v in values:
+                    self.add_args(v)
+            except TypeError:
+                self.add_args(values)
+
+        else:
+            raise Exception('ERROR: NodeEEPROMAccess constructor arguments invalid');
+
+
+    def process_resp(self, resp):
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Memory access failed."
+        status_errors = { error_code : error_msg }
+            
+        if (self._read_len is not None):
+            # Read command
+            msg = "from EEPROM write command"
+        
+            if resp.resp_is_valid(num_args=(2 + self._read_len), status_errors=status_errors, name=msg):
+                args = resp.get_args()
+
+                if (len(args) == 3):
+                    return args[2]
+                elif (len(args) > 3):
+                    return args[2:]
+                else:
+                    raise Exception('ERROR: Invalid EEPROM read response:  Num Args = {0}'.format(len(args)))
+            else:
+                return CMD_PARAM_ERROR
+        else: 
+            # Write command
+            msg = "from EEPROM write command"
+        
+            if resp.resp_is_valid(num_args=1, status_errors=status_errors, name=msg):
+                pass
+            else:
+                return CMD_PARAM_ERROR
 
 # End Class
 
