@@ -100,7 +100,7 @@ void set_power_save_configuration(ps_conf power_save_configuration);
 void queue_state_change(u32 QID, u8 queue_len);
 inline void update_tim_tag_aid(u8 aid, u8 bit_val_in);
 void update_tim_tag_all(u32 sched_id);
-void beacon_transmit_done();
+void beacon_transmit_done( tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details );
 void poll_tx_queues();
 void purge_all_data_tx_queue();
 

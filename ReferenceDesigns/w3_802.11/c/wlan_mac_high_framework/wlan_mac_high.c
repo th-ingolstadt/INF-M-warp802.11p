@@ -1577,7 +1577,8 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 
 		//---------------------------------------------------------------------
 		case IPC_MBOX_TX_BEACON_DONE:
-			beacon_tx_done_callback();
+			tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(msg->arg0);
+			beacon_tx_done_callback( tx_mpdu, (wlan_mac_low_tx_details*)(msg->payload_ptr) );
 			tx_poll_callback();
 		break;
 

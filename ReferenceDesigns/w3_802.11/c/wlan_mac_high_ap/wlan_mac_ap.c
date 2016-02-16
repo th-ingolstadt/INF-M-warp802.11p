@@ -620,8 +620,24 @@ void update_tim_tag_all(u32 sched_id){
 	return;
 }
 
-void beacon_transmit_done(){
+void beacon_transmit_done( tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details ){
+	u32 first_tx_time_delta;
+
 	gl_power_save_configuration.dtim_timestamp = get_system_time_usec() + gl_power_save_configuration.dtim_mcast_allow_window;
+
+	first_tx_time_delta = (u32)(tx_low_details->tx_start_timestamp_mpdu - (tx_mpdu->timestamp_create + tx_mpdu->delay_accept));
+
+	if( (first_tx_time_delta < 9) ){
+		//This captures a subtle effect in the DCF hardware. A random backoff is calculated on the
+		//first transmission of an MPDU in case a CCA_BUSY causes a deferral. If there is no deferral,
+		//this slot count is not used. We can sanitize this value here by seeing if the packet transmitted
+		//immediately (i.e. a time from start to accept that is less than a slot). In this case, we know
+		//there was no backoff needed for this transmission. We signify this event with a num_slots value
+		//of -1.
+		tx_low_details->num_slots = -1;
+	}
+	// Log the TX low
+	wlan_exp_log_create_tx_low_entry(tx_mpdu, tx_low_details, 0);
 }
 
 /**
