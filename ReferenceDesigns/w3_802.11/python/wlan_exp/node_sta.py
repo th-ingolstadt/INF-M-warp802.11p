@@ -214,7 +214,10 @@ class WlanExpNodeSta(node.WlanExpNode):
         Returns:
             valid (bool):  Are all parameters valid?
         """
-        return super(WlanExpNodeSta, self)._check_allowed_rate(mcs, phy_mode, verbose)
+        # TODO: implement STA-specific rate checking here
+        #  Allow all supported rates for now
+
+        return self._check_supported_rate(mcs, phy_mode, verbose)
 
 
 

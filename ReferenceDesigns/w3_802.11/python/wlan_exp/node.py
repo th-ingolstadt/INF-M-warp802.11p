@@ -1343,43 +1343,35 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     #--------------------------------------------
     # Internal helper methods to configure node attributes
     #--------------------------------------------
-    def _check_allowed_rate(self, mcs, phy_mode, verbose=False):
-        """Check rate parameters are allowed
-
-        Args:
-            mcs (int):           Modulation and coding scheme (MCS) index
-            phy_mode (str, int): PHY mode (from util.phy_modes)
-
-        Returns:
-            valid (bool):  Are all parameters valid?
-        """
-        return self._check_supported_rate(mcs, phy_mode, verbose)
-
-
     def _check_supported_rate(self, mcs, phy_mode, verbose=False):
-        """Check rate parameters are supported
+        """Checks that the selected rate parameters are supported by the
+        current MAC and PHY implementation. This method only checks if a
+        rate can be used in hardware. The application-specific method
+        _check_allowed_rate() should be used to confirm a selected rate is
+        both supported and allowed given the currnet MAC and network state.
 
         Args:
             mcs (int):           Modulation and coding scheme (MCS) index
             phy_mode (str, int): PHY mode (from util.phy_modes)
 
         Returns:
-            valid (bool):  Are all parameters valid?
+            rate_suppored (bool):  True if the specified rate is supported
         """
         import wlan_exp.util as util
         
+        rate_ok = True
+
         if ((mcs < 0) or (mcs > 7)):
             if (verbose):
-                print("MCS must be in [0 .. 7] received {0}".format(mcs))
-            return False
+                print("Invalid MCS {0}. MCS must be integer in [0 .. 7]".format(mcs))
+            rate_ok = False
 
         if (phy_mode not in ['NONHT', 'HTMF', util.phy_modes['NONHT'], util.phy_modes['HTMF']]):
             if (verbose):
-                print("PHY mode must be in ['NONHT', 'HTMF', phy_modes['NONHT'], phy_modes['HTMF'] received {0}".format(phy_mode))
-            return False
+                print("Invalid PHY mode {0}. PHY mode must be one of ['NONHT', 'HTMF', phy_modes['NONHT'], phy_modes['HTMF']".format(phy_mode))
+            rate_ok = False
     
-        return True
-
+        return rate_ok
 
     def _node_set_tx_param_unicast(self, cmd, param, param_name,
                                          device_list=None, curr_assoc=False, new_assoc=False):

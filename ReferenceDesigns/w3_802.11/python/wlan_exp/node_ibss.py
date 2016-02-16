@@ -227,7 +227,10 @@ class WlanExpNodeIBSS(node.WlanExpNode):
         Returns:
             valid (bool):  Are all parameters valid?
         """
-        return super(WlanExpNodeIBSS, self)._check_allowed_rate(mcs, phy_mode, verbose)
+        # TODO: implement IBSS-specific rate checking here
+        #  Allow all supported rates for now
+
+        return self._check_supported_rate(mcs, phy_mode, verbose)
 
 
 

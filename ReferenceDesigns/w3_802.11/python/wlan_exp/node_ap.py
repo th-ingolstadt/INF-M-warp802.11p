@@ -216,7 +216,11 @@ class WlanExpNodeAp(node.WlanExpNode):
         Returns:
             valid (bool):  Are all parameters valid?
         """
-        return super(WlanExpNodeAp, self)._check_allowed_rate(mcs, phy_mode, verbose)
+
+        # TODO: implement AP-specific rate checking here
+        #  Allow all supported rates for now
+
+        return self._check_supported_rate(mcs, phy_mode, verbose)
 
 
 
