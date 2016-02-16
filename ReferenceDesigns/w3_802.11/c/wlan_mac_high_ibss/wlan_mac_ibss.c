@@ -62,7 +62,7 @@
 #define  WLAN_DEFAULT_TX_PWR                     15
 #define  WLAN_DEFAULT_TX_ANTENNA                 TX_ANTMODE_SISO_ANTA
 #define  WLAN_DEFAULT_RX_ANTENNA                 RX_ANTMODE_SISO_ANTA
-
+#define  WLAN_DEFAULT_TX_PHY_MODE  				 PHY_MODE_NONHT
 #define  SCAN_TIMEOUT_SEC                        5
 #define  SCAN_TIMEOUT_USEC                      (SCAN_TIMEOUT_SEC*1000000)
 
@@ -152,22 +152,26 @@ int main() {
 
 	//New associations adopt these unicast params; the per-node params can be
 	// overridden via wlan_exp calls or by custom C code
-	default_unicast_data_tx_params.phy.power               = WLAN_DEFAULT_TX_PWR;
-	default_unicast_data_tx_params.phy.rate                = WLAN_MAC_MCS_18M;
-	default_unicast_data_tx_params.phy.antenna_mode        = WLAN_DEFAULT_TX_ANTENNA;
+	default_unicast_data_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
+	default_unicast_data_tx_params.phy.mcs            = WLAN_MAC_MCS_18M;
+	default_unicast_data_tx_params.phy.phy_mode       = WLAN_DEFAULT_TX_PHY_MODE;
+	default_unicast_data_tx_params.phy.antenna_mode   = WLAN_DEFAULT_TX_ANTENNA;
 
-	default_unicast_mgmt_tx_params.phy.power               = WLAN_DEFAULT_TX_PWR;
-	default_unicast_mgmt_tx_params.phy.rate                = WLAN_MAC_MCS_6M;
-	default_unicast_mgmt_tx_params.phy.antenna_mode        = WLAN_DEFAULT_TX_ANTENNA;
+	default_unicast_mgmt_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
+	default_unicast_mgmt_tx_params.phy.mcs            = WLAN_MAC_MCS_6M;
+	default_unicast_mgmt_tx_params.phy.phy_mode       = WLAN_DEFAULT_TX_PHY_MODE;
+	default_unicast_mgmt_tx_params.phy.antenna_mode   = WLAN_DEFAULT_TX_ANTENNA;
 
 	//All multicast traffic (incl. broadcast) uses these default Tx params
-	default_multicast_data_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
-	default_multicast_data_tx_params.phy.rate              = WLAN_MAC_MCS_6M;
-	default_multicast_data_tx_params.phy.antenna_mode      = WLAN_DEFAULT_TX_ANTENNA;
+	default_multicast_data_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
+	default_multicast_data_tx_params.phy.mcs          = WLAN_MAC_MCS_6M;
+	default_multicast_data_tx_params.phy.phy_mode     = WLAN_DEFAULT_TX_PHY_MODE;
+	default_multicast_data_tx_params.phy.antenna_mode = WLAN_DEFAULT_TX_ANTENNA;
 
-	default_multicast_mgmt_tx_params.phy.power             = WLAN_DEFAULT_TX_PWR;
-	default_multicast_mgmt_tx_params.phy.rate              = WLAN_MAC_MCS_6M;
-	default_multicast_mgmt_tx_params.phy.antenna_mode      = WLAN_DEFAULT_TX_ANTENNA;
+	default_multicast_mgmt_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
+	default_multicast_mgmt_tx_params.phy.mcs          = WLAN_MAC_MCS_6M;
+	default_multicast_mgmt_tx_params.phy.phy_mode     = WLAN_DEFAULT_TX_PHY_MODE;
+	default_multicast_mgmt_tx_params.phy.antenna_mode = WLAN_DEFAULT_TX_ANTENNA;
 
 
 	// Initialize the utility library
@@ -726,11 +730,11 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 	u32					tx_length;
 	u8					pre_llc_offset			 = 0;
 
-	u8 					rate					 = mpdu_info->phy_details.mcs;
-	u16 				length					 = mpdu_info->phy_details.length;
+	u8 					mcs					 = mpdu_info->phy_details.mcs;
+	u16 				length				 = mpdu_info->phy_details.length;
 
 	// Log the reception
-	rx_event_log_entry = wlan_exp_log_create_rx_entry(mpdu_info, rate);
+	rx_event_log_entry = wlan_exp_log_create_rx_entry(mpdu_info);
 
 	// If this function was passed a CTRL frame (e.g., CTS, ACK), then we should just quit.
 	// The only reason this occured was so that it could be logged in the line above.
@@ -760,7 +764,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 			// Update station information
 			associated_station->latest_activity_timestamp = get_system_time_usec();
 			associated_station->rx.last_power             = mpdu_info->rx_power;
-			associated_station->rx.last_rate              = rate;
+			associated_station->rx.last_mcs               = mcs;
 
 			rx_seq         = ((rx_80211_header->sequence_control)>>4)&0xFFF;
 			station_counts = associated_station->counts;
@@ -964,11 +968,11 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 	// Currently, asynchronous transmission of log entries is not supported
 	//
-#ifdef USE_WLAN_EXP
-	if ((rx_event_log_entry != NULL) && ((rx_event_log_entry->rate) != WLAN_MAC_MCS_1M)) {
-        wlan_exp_transmit_log_entry((void *)rx_event_log_entry);
-	}
-#endif
+//#ifdef USE_WLAN_EXP
+//	if ((rx_event_log_entry != NULL)) {
+//        wlan_exp_transmit_log_entry((void *)rx_event_log_entry);
+//	}
+//#endif
 
     return;
 }
