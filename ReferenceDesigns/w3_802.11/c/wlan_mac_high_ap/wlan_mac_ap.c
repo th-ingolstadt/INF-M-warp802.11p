@@ -401,19 +401,18 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 	//Note: AID = 0 is invalid. And input of 0 to this function
 	//indicates that the multicast bit in the tim_control byte should
 	//be modified.
-	wlan_mac_high_set_debug_gpio(0x02);
 
 	u32 				existing_mgmt_tag_length 	= 0;	// Size of the management tag that is currently in the packet buffer
 	u8                  tim_control					= 0;
 	u16 				tim_byte_idx           		= 0;
 	u8					tim_bit_idx            		= 0;
 	u8 					bit_val 					= (bit_val_in & 1);
+	tx_frame_info*  	tx_frame_info_ptr 			= (tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON);
 
 	//First, we should determine whether a call to update_time_tag_all is scheduled
 	//for some time in the future. If it is, we can just return immediately and let that
 	//execution clean up any pending TIM state changes.
 	if(mgmt_tag_tim_update_schedule_id != SCHEDULE_ID_RESERVED_MAX){
-		wlan_mac_high_clear_debug_gpio(0x02);
 		return;
 	}
 
@@ -421,7 +420,6 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 		//There currently isn't any TIM tag in the packet buffer, which means
 		//that we need to restore the full state and not toggle a single
 		//bit
-		wlan_mac_high_clear_debug_gpio(0x02);
 		update_tim_tag_all(SCHEDULE_ID_RESERVED_MAX);
 		return;
 	}
@@ -434,12 +432,16 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 		//The current byte we intend to modify is larger than the existing tag. In this case,
 		//we fall back on the update_tim_tag_all function since we cannnot simply modify a single
 		//bit.
-		wlan_mac_high_clear_debug_gpio(0x02);
 		update_tim_tag_all(SCHEDULE_ID_RESERVED_MAX);
 		return;
 	}
 
-	if(lock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
+	if((tx_frame_info_ptr->tx_pkt_buf_state != READY) || (lock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS)){
+		//Note: The order of operations in the above if() clause is important. If the tx_pkt_buf_state is not ready.
+		//then we should not even attempt to lock the beacon template packet buffer. This behavior is ensured if
+		//the tx_pkt_buf_state is checked on on the left-hand side of the || because the || operation is a sequence
+		//point in C.
+
 		//CPU_LOW currently has the beacon packet buffer locked, which means that it is actively
 		//transmitting the beacon and it is not safe to modify the contents of the packet. We will
 		//use the scheduler to call update_tim_tag_all() sometime later when it is likely that the
@@ -448,7 +450,6 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 																		   (my_bss_info->beacon_interval * BSS_MICROSECONDS_IN_A_TU) / 4,
 																		   1,
 																		   (void*)update_tim_tag_all);
-		wlan_mac_high_clear_debug_gpio(0x02);
 		return;
 	}
 
@@ -480,13 +481,12 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 	if(unlock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
 		xil_printf("Error: Unable to unlock Beacon packet buffer during update_tim_tag_all\n");
 	}
-	wlan_mac_high_clear_debug_gpio(0x02);
 	return;
 
 }
 
 void update_tim_tag_all(u32 sched_id){
-	wlan_mac_high_set_debug_gpio(0x01);
+
 	tx_frame_info*  	tx_frame_info_ptr 			= (tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON);
 	u32 				existing_mgmt_tag_length 	= 0;	// Size of the management tag that is currently in the packet buffer
 	u32					next_mgmt_tag_length		= 0;	// Size that we will update the management tag to be.
@@ -506,7 +506,6 @@ void update_tim_tag_all(u32 sched_id){
 		//for some time in the future. If it is, we can just return immediately and let that
 		//execution clean up any pending TIM state changes.
 		if(mgmt_tag_tim_update_schedule_id != SCHEDULE_ID_RESERVED_MAX){
-			wlan_mac_high_clear_debug_gpio(0x01);
 			return;
 		}
 
@@ -514,7 +513,12 @@ void update_tim_tag_all(u32 sched_id){
 
 	mgmt_tag_tim_update_schedule_id = SCHEDULE_ID_RESERVED_MAX;
 
-	if(lock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
+	if((tx_frame_info_ptr->tx_pkt_buf_state != READY) || (lock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS)){
+		//Note: The order of operations in the above if() clause is important. If the tx_pkt_buf_state is not ready.
+		//then we should not even attempt to lock the beacon template packet buffer. This behavior is ensured if
+		//the tx_pkt_buf_state is checked on on the left-hand side of the || because the || operation is a sequence
+		//point in C.
+
 		//CPU_LOW currently has the beacon packet buffer locked, which means that it is actively
 		//transmitting the beacon and it is not safe to modify the contents of the packet. We will
 		//use the scheduler to call update_tim_tag_all() sometime later when it is likely that the
@@ -523,7 +527,6 @@ void update_tim_tag_all(u32 sched_id){
 																		   (my_bss_info->beacon_interval * BSS_MICROSECONDS_IN_A_TU) / 4,
 																		   1,
 																		   (void*)update_tim_tag_all);
-		wlan_mac_high_clear_debug_gpio(0x01);
 		return;
 	}
 
@@ -616,7 +619,6 @@ void update_tim_tag_all(u32 sched_id){
 	if(unlock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
 		xil_printf("Error: Unable to unlock Beacon packet buffer during update_tim_tag_all\n");
 	}
-	wlan_mac_high_clear_debug_gpio(0x01);
 	return;
 }
 
@@ -624,6 +626,9 @@ void beacon_transmit_done( tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_l
 	u32 first_tx_time_delta;
 
 	gl_power_save_configuration.dtim_timestamp = get_system_time_usec() + gl_power_save_configuration.dtim_mcast_allow_window;
+
+	poll_tx_queues(); //We just entered a window where we are allowing multicast packets to dequeue. We should
+					  //poll the Tx queues and see if there are any ready to be dequeued.
 
 	first_tx_time_delta = (u32)(tx_low_details->tx_start_timestamp_mpdu - (tx_mpdu->timestamp_create + tx_mpdu->delay_accept));
 

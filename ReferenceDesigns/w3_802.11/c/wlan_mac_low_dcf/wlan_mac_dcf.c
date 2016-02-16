@@ -261,8 +261,10 @@ inline int send_beacon(u8 tx_pkt_buf){
 		//already be active. We can only continue submitting the beacon transmission
 		//to MAC Support Core C is we successfully paused Core A.
 
-		while(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-			//Keep attempting to lock tx_pkt_buf. The only reason a lock should fail is that CPU_HIGH
+		while( (tx_frame_info_ptr->tx_pkt_buf_state != READY) && (lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) ){
+			//We will only continue with the send_beacon state when we are both assured that the
+			//tx_pkt_buf_state is READY (i.e. CPU_HIGH is not currently trying to log a beacon transmission)
+			//and we are able to clock the tx_pkt_buf. The only reason a lock should fail is that CPU_HIGH
 			//is actively modifying the contents of the beacon packet buffer. This is a short duration
 			//operation so we should just wait.
 		}
@@ -385,15 +387,6 @@ inline int send_beacon(u8 tx_pkt_buf){
 				// TODO: We should double check whether post-Tx backoffs are appropriate
 				n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
 				wlan_mac_dcf_hw_start_backoff(n_slots);
-
-				ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TX_BEACON_DONE);
-				ipc_msg_to_high.num_payload_words = sizeof(wlan_mac_low_tx_details)/4;
-				ipc_msg_to_high.arg0              = tx_pkt_buf;
-				ipc_msg_to_high.payload_ptr		  = (u32*)&low_tx_details;
-
-				ipc_mailbox_write_msg(&ipc_msg_to_high);
-
-
 			} else {
 				// Poll the MAC Rx state to check if a packet was received while our Tx was deferring
 				if (mac_hw_status & (WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED)) {
@@ -404,10 +397,17 @@ inline int send_beacon(u8 tx_pkt_buf){
 		} while( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_C_PENDING );
 
 		return_status = 0;
+		tx_frame_info_ptr->tx_pkt_buf_state = DONE;
 		if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 			xil_printf("Error: Unable to unlock Beacon packet buffer\n");
 			return -1;
 		}
+		ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TX_BEACON_DONE);
+		ipc_msg_to_high.num_payload_words = sizeof(wlan_mac_low_tx_details)/4;
+		ipc_msg_to_high.arg0              = tx_pkt_buf;
+		ipc_msg_to_high.payload_ptr		  = (u32*)&low_tx_details;
+
+		ipc_mailbox_write_msg(&ipc_msg_to_high);
 	}
 
 	wlan_mac_pause_backoff_tx_ctrl_A(0);

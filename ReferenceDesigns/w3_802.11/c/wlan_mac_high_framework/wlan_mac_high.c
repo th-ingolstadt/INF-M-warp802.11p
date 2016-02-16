@@ -1578,8 +1578,16 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 		//---------------------------------------------------------------------
 		case IPC_MBOX_TX_BEACON_DONE:
 			tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(msg->arg0);
+			if(lock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
+				xil_printf("Error: CPU_LOW had lock on Beacon packet buffer during initial configuration\n");
+				return;
+			}
 			beacon_tx_done_callback( tx_mpdu, (wlan_mac_low_tx_details*)(msg->payload_ptr) );
-			tx_poll_callback();
+			tx_mpdu->tx_pkt_buf_state = READY;
+			if(unlock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
+				xil_printf("Error: Unable to unlock Beacon packet buffer during initial configuration\n");
+				return;
+			}
 		break;
 
 		//---------------------------------------------------------------------
@@ -2786,7 +2794,7 @@ int wlan_mac_high_configure_beacon_transmit(mac_header_80211_common* tx_header_c
 		return -1;
 	}
 
-	tx_frame_info_ptr->tx_pkt_buf_state = EMPTY;
+	tx_frame_info_ptr->tx_pkt_buf_state = READY;
 
 	// Fill in the data
 	tx_length = wlan_create_beacon_frame(
