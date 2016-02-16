@@ -1343,6 +1343,19 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     #--------------------------------------------
     # Internal helper methods to configure node attributes
     #--------------------------------------------
+    def _check_allowed_rate(self, mcs, phy_mode, verbose=False):
+        """Check that rate parameters are allowed
+
+        Args:
+            mcs (int):           Modulation and coding scheme (MCS) index
+            phy_mode (str, int): PHY mode (from util.phy_modes)
+
+        Returns:
+            valid (bool):  Are all parameters valid?
+        """
+        return self._check_supported_rate(mcs, phy_mode, verbose)
+
+
     def _check_supported_rate(self, mcs, phy_mode, verbose=False):
         """Checks that the selected rate parameters are supported by the
         current MAC and PHY implementation. This method only checks if a
@@ -1372,6 +1385,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             rate_ok = False
     
         return rate_ok
+
 
     def _node_set_tx_param_unicast(self, cmd, param, param_name,
                                          device_list=None, curr_assoc=False, new_assoc=False):
