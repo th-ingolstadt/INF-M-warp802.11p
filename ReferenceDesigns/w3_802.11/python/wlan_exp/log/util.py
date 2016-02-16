@@ -667,15 +667,20 @@ def calc_tx_time(mcs, phy_mode, payload_length, phy_samp_rate):
 
     # Determine constants based on PHY sample rate    
     #     - Times in microseconds
-    if phy_samp_rate is util.phy_samp_rates.PHY_20M:
+    if phy_samp_rate is util.phy_samp_rates.PHY_40M:
         T_PREAMBLE = 8
         T_SIG = 2
         T_SYM = 2
         T_EXT = 6         
-    elif phy_samp_rate is util.phy_samp_rates.PHY_40M:
+    elif phy_samp_rate is util.phy_samp_rates.PHY_20M:
         T_PREAMBLE = 16
         T_SIG = 4
         T_SYM = 4
+        T_EXT = 6
+    elif phy_samp_rate is util.phy_samp_rates.PHY_10M:
+        T_PREAMBLE = 32
+        T_SIG = 8
+        T_SYM = 8
         T_EXT = 6
     else:
         raise AttributeError("Constants not defined for phy_samp_rate {0}".format(phy_samp_rate))
@@ -711,16 +716,18 @@ def calc_tx_time(mcs, phy_mode, payload_length, phy_samp_rate):
     except TypeError:
         ndbps = util.get_rate_info(mcs, phy_mode, phy_samp_rate)['NDBPS']
 
-    # Compute bytes per sysmbol from Number of data bits per second    
-    bytes_per_sym = (ndbps/8.0)
+    # Compute the number of symbols in DATA field
+    #  - 16 = LEN_SERVICE (2 bytes)
+    #  - 6  = LEN_TAIL (6 bits)
+    #  - np.ceil() infers any PAD bits
 
-    # Compute the number of symbols
-    #   - 2 = LEN_SERVICE (2)
-    #   - (6.0/8) = LEN_TAIL (6 bits)
-    #   - Assumes that the length argument includes FCS
-    num_syms = np.ceil((2.0 + 6.0/8 + payload_length) / bytes_per_sym)
-    
-    T_TOT = T_PREAMBLE + T_SIG + (T_SYM * num_syms) + T_EXT
+    num_data_syms = np.ceil((16.0 + 6.0 + 8*payload_length) / ndbps)
+
+    # HTMF waveforms have 4 extra preamble symbols
+    #  HT-SIG1, HT-SIG2, HT-STF, HT-LTF
+    num_ht_preamble_syms = 4 * (phy_mode == util.phy_mode['HTMF'])
+
+    T_TOT = T_PREAMBLE + T_SIG + (T_SYM * num_ht_preamble_syms) + (T_SYM * num_syms) + T_EXT
 
     return T_TOT
 
