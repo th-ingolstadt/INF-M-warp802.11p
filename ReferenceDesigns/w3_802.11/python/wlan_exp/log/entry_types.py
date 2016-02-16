@@ -87,8 +87,8 @@ ENTRY_TYPE_RX_OFDM_LTG            = 11
 
 ENTRY_TYPE_RX_DSSS                = 15
 
-ENTRY_TYPE_TX                     = 20
-ENTRY_TYPE_TX_LTG                 = 21
+ENTRY_TYPE_TX_HIGH                = 20
+ENTRY_TYPE_TX_HIGH_LTG            = 21
 
 ENTRY_TYPE_TX_LOW                 = 25
 ENTRY_TYPE_TX_LOW_LTG             = 26
@@ -1119,7 +1119,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     ###########################################################################
     # Transmit from CPU High
     #
-    entry_tx = WlanExpLogEntryType(name='TX', entry_type_id=ENTRY_TYPE_TX)
+    entry_tx = WlanExpLogEntryType(name='TX_HIGH', entry_type_id=ENTRY_TYPE_TX_HIGH)
 
     entry_tx.description  = entry_tx_common.description
 
@@ -1136,7 +1136,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     ###########################################################################
     # Transmit from CPU High LTG packet
     #
-    entry_tx_ltg = WlanExpLogEntryType(name='TX_LTG', entry_type_id=ENTRY_TYPE_TX_LTG)
+    entry_tx_ltg = WlanExpLogEntryType(name='TX_HIGH_LTG', entry_type_id=ENTRY_TYPE_TX_HIGH_LTG)
 
     entry_tx_ltg.description  = entry_tx_common.description
 

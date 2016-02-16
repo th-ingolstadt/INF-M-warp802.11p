@@ -80,9 +80,9 @@ log_util.print_log_index_summary(raw_log_index, "Log Index Contents:")
 
 # Filter log index to include all Rx entries and all Tx entries
 log_index = log_util.filter_log_index(raw_log_index,
-                                      include_only=['NODE_INFO', 'RX_OFDM', 'TX', 'TX_LOW'],
+                                      include_only=['NODE_INFO', 'RX_OFDM', 'TX_HIGH', 'TX_LOW'],
                                       merge={'RX_OFDM': ['RX_OFDM', 'RX_OFDM_LTG'],
-                                             'TX'     : ['TX', 'TX_LTG'],
+                                             'TX_HIGH': ['TX_HIGH', 'TX_HIGH_LTG'],
                                              'TX_LOW' : ['TX_LOW', 'TX_LOW_LTG']})
 
 log_util.print_log_index_summary(log_index, "Filtered Log Index:")
@@ -97,13 +97,13 @@ log_np = log_util.log_data_to_np_arrays(log_data, log_index)
 
 ###############################################################################
 # Example 1: Gather some Tx information from the log
-#   NOTE:  Since there are only loops, this example can deal with TX / TX_LOW
+#   NOTE:  Since there are only loops, this example can deal with TX_HIGH / TX_LOW
 #          being an empty list and does not need a try / except.
 #
 
 # Initialize variables
-TX_CONSTS     = log_util.get_entry_constants('TX')
-log_tx        = log_np['TX']
+TX_CONSTS     = log_util.get_entry_constants('TX_HIGH')
+log_tx_high   = log_np['TX_HIGH']
 log_tx_low    = log_np['TX_LOW']
 total_retrans = 0
 
@@ -115,7 +115,7 @@ print("{0:^30} {1:>10} {2:>10} {3:>10} {4:>10}".format("", "CPU High", "CPU Low"
 # For each PHY mode, process the MCS index counts
 for phy_mode in wlan_exp_util.phy_modes.keys():
     # Create index based on phy_mode    
-    tx_idx             = (log_tx['phy_mode'] == TX_CONSTS.phy_mode[phy_mode])
+    tx_high_idx        = (log_tx_high['phy_mode'] == TX_CONSTS.phy_mode[phy_mode])
     tx_low_idx         = (log_tx_low['phy_mode'] == TX_CONSTS.phy_mode[phy_mode])    
     tx_low_no_ctrl_idx = ((log_tx_low['phy_mode'] == TX_CONSTS.phy_mode[phy_mode]) & 
                           ((log_tx_low['pkt_type'] == TX_CONSTS.pkt_type.DATA) | 
@@ -125,40 +125,40 @@ for phy_mode in wlan_exp_util.phy_modes.keys():
                            (log_tx_low['pkt_type'] == TX_CONSTS.pkt_type.MGMT)))
 
     # Extract arrays for each PHY mode
-    tx_entries     = log_tx[tx_idx]
-    tx_low_entries = log_tx_low[tx_low_idx]
-    tx_low_no_ctrl = log_tx_low[tx_low_no_ctrl_idx]
+    tx_high_entries = log_tx_high[tx_high_idx]
+    tx_low_entries  = log_tx_low[tx_low_idx]
+    tx_low_no_ctrl  = log_tx_low[tx_low_no_ctrl_idx]
 
     # Extract arrays of just the MCS indexes
-    tx_entries_mcs     = tx_entries['mcs']
-    tx_low_entries_mcs = tx_low_entries['mcs']
-    tx_low_no_ctrl_mcs = tx_low_no_ctrl['mcs']
+    tx_high_entries_mcs = tx_high_entries['mcs']
+    tx_low_entries_mcs  = tx_low_entries['mcs']
+    tx_low_no_ctrl_mcs  = tx_low_no_ctrl['mcs']
 
     # Initialize an array to count number of packets per MCS index
     #   MAC uses MCS indexes 0:7 to encode OFDM rates
-    tx_entries_mcs_counts     = np.bincount(tx_entries_mcs, minlength=8)
-    tx_low_entries_mcs_counts = np.bincount(tx_low_entries_mcs, minlength=8)
-    tx_low_no_ctrl_mcs_counts = np.bincount(tx_low_no_ctrl_mcs, minlength=8)
+    tx_high_entries_mcs_counts = np.bincount(tx_high_entries_mcs, minlength=8)
+    tx_low_entries_mcs_counts  = np.bincount(tx_low_entries_mcs, minlength=8)
+    tx_low_no_ctrl_mcs_counts  = np.bincount(tx_low_no_ctrl_mcs, minlength=8)
     
     # Extract an array of just the 'time_to_done' timestamp offsets
-    tx_done       = tx_entries['time_to_done']
+    tx_high_done = tx_high_entries['time_to_done']
 
     # Calculate the average time to send a packet for each rate
     for mcs in range(0, 8):
         # Find indexes of all instances where addresses match
         #   np.squeeze here flattens the result to a 1-D array
-        mcs_idx = np.squeeze(tx_entries_mcs == mcs)
+        mcs_idx = np.squeeze(tx_high_entries_mcs == mcs)
 
         # Calculate the average time to send a packet
-        tx_avg_time = 0
+        tx_high_avg_time = 0
         
         if np.any(mcs_idx):
-            tx_avg_time = np.average(tx_done[mcs_idx])
+            tx_high_avg_time = np.average(tx_high_done[mcs_idx])
 
         # Calculate retransmissions
         #    Must use the counts with no control packets since control packets
-        #    are transmitted without a corresponding CPU High TX entry
-        retrans = tx_low_no_ctrl_mcs_counts[mcs] - tx_entries_mcs_counts[mcs]
+        #    are transmitted without a corresponding TX_HIGH entry
+        retrans = tx_low_no_ctrl_mcs_counts[mcs] - tx_high_entries_mcs_counts[mcs]
         total_retrans  += retrans
 
         # Print info
@@ -167,10 +167,10 @@ for phy_mode in wlan_exp_util.phy_modes.keys():
             rate_str  = wlan_exp_util.rate_info_to_str(rate_info)
             print("{0:30} {1:10} {2:10} {3:10} {4:>10.0f}".format(
                 rate_str,
-                tx_entries_mcs_counts[mcs],
+                tx_high_entries_mcs_counts[mcs],
                 tx_low_entries_mcs_counts[mcs],
                 retrans,
-                tx_avg_time))
+                tx_high_avg_time))
         except:
             # Do nothing with unsupported PHY modes
             pass
@@ -183,11 +183,12 @@ print("\nTotal Retransmissions: {0:d}".format(total_retrans))
 # Example 2: Calculate total number of packets and bytes transmitted to each
 #            distinct MAC address for each of the MAC addresses in the header
 #   NOTE:  Since there are direct accesses to array memory, we need a try/except
-#          in order to catch index errors when there are no 'TX' entries in the log.
+#          in order to catch index errors when there are no 'TX_HIGH' entries in
+#          the log.
 #
 
 # Skip this example if the log doesn't contain TX events
-for tx in ['TX', 'TX_LOW']:
+for tx in ['TX_HIGH', 'TX_LOW']:
     if(tx in log_np.keys()):
         # Extract all OFDM transmissions
         log_tx = log_np[tx]
@@ -211,7 +212,7 @@ for tx in ['TX', 'TX_LOW']:
             tx_counts[addr] = (tx_pkts_to_addr, tx_bytes_to_addr)
 
         # Print the results
-        if (tx == 'TX'):
+        if (tx == 'TX_HIGH'):
             print("\nExample 2: Tx Counts (CPU High):");
         else:
             print("\nExample 2: Tx Counts (CPU Low - includes retransmissions):");

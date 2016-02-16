@@ -84,9 +84,9 @@ log_util.print_log_index_summary(raw_log_index, "Raw Log Index Contents:")
 # Merge LTG events into the non-LTG log entry types, so we can
 #  count all Tx/Rx events together
 log_index = log_util.filter_log_index(raw_log_index,
-                                      include_only=['NODE_INFO', 'TIME_INFO', 'RX_OFDM', 'TX', 'EXP_INFO'],
+                                      include_only=['NODE_INFO', 'TIME_INFO', 'RX_OFDM', 'TX_HIGH', 'EXP_INFO'],
                                       merge={'RX_OFDM': ['RX_OFDM', 'RX_OFDM_LTG'],
-                                             'TX'     : ['TX', 'TX_LTG']})
+                                             'TX_HIGH': ['TX_HIGH', 'TX_HIGH_LTG']})
 
 log_util.print_log_index_summary(log_index, "Filtered Log Index:")
 
@@ -128,11 +128,11 @@ if(len(log_np['TIME_INFO']) > 0):
 #
 
 # Get entry constants
-TX_CONSTS = log_util.get_entry_constants('TX')
+TX_CONSTS = log_util.get_entry_constants('TX_HIGH')
 RX_CONSTS = log_util.get_entry_constants('RX_OFDM')
 
 # Extract all OFDM transmissions and receptions
-log_tx = log_np['TX']
+log_tx = log_np['TX_HIGH']
 log_rx = log_np['RX_OFDM']
 
 # Print header
@@ -174,9 +174,9 @@ for phy_mode in wlan_exp_util.phy_modes.keys():
 #            distinct MAC address for each of the MAC addresses in the header
 
 # Skip this example if the log doesn't contain TX events
-if('TX' in log_np.keys()):
+if('TX_HIGH' in log_np.keys()):
     # Extract all OFDM transmissions
-    log_tx = log_np['TX']
+    log_tx = log_np['TX_HIGH']
 
     # Count number of packets transmitted to each unique address in the 'addr1' field
     tx_addrs_1 = log_tx['addr1']

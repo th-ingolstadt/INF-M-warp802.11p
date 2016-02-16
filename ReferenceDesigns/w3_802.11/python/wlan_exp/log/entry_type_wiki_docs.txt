@@ -1,4 +1,4 @@
-== WLAN Exp v1.4.0   Log Entry Types ==
+== WLAN Exp v1.4.5   Log Entry Types ==
 
 ----
 
@@ -41,7 +41,7 @@ Information about an 802.11 association. At the AP one STATION_INFO is created f
 Entry type ID: 3
 
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| timestamp ||  uint64  || Microsecond timer value at time of log entry creation ||
+|| timestamp ||  uint64  || Microsecond timer value at time of creation ||
 || mac_addr ||  6uint8  || MAC address of associated device ||
 || aid ||  uint16  || Association ID (AID) of device ||
 || host_name ||  20uint8  || String hostname (19 chars max), taken from DHCP DISCOVER packets ||
@@ -49,14 +49,13 @@ Entry type ID: 3
 || latest_activity_timestamp ||  uint64  || Microsecond timer value at time of last successful Rx from device ||
 || rx_last_seq ||  uint16  || Sequence number of last packet received from device ||
 || rx_last_power ||  int8  || Rx power in dBm of last packet received from device ||
-|| rx_last_rate ||  uint8  || PHY rate index in ![1:8] of last packet received from device ||
-|| tx_phy_rate ||  uint8  || Current PHY rate index in ![1:8] for new transmissions to device ||
+|| padding0 ||  uint8  ||  ||
+|| tx_phy_mcs ||  uint8  || Current PHY MCS index in ![0:7] for new transmissions to device ||
+|| tx_phy_mode ||  uint8  || Current PHY mode for new transmissions to deivce ||
 || tx_phy_antenna_mode ||  uint8  || Current PHY antenna mode in ![1:4] for new transmissions to device ||
 || tx_phy_power ||  int8  || Current Tx power in dBm for new transmissions to device ||
-|| tx_phy_flags ||  uint8  || Flags for Tx PHY config for new transmissions to deivce ||
-|| tx_mac_num_tx_max ||  uint8  || Maximum number of transmissions (original Tx + re-Tx) per MPDU to device ||
 || tx_mac_flags ||  uint8  || Flags for Tx MAC config for new transmissions to device ||
-|| padding ||  2uint8  ||  ||
+|| padding1 ||  3uint8  ||  ||
 
 
 ----
@@ -114,7 +113,7 @@ Information about an 802.11 basic service set (BSS).
 Entry type ID: 7
 
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| timestamp ||  uint64  || Microsecond timer value at time of log entry creation ||
+|| timestamp ||  uint64  || Microsecond timer value at time of creation ||
 || bssid ||  6uint8  || BSS ID ||
 || chan_num ||  uint8  || Channel (center frequency) index of transmission ||
 || flags ||  uint8  || BSS flags ||
@@ -126,7 +125,8 @@ Entry type ID: 7
 || padding0 ||  uint8  ||  ||
 || num_basic_rates ||  uint8  || Number of basic rates supported ||
 || basic_rates ||  10uint8  || Supported basic rates ||
-|| padding1 ||  2uint8  ||  ||
+|| phy_mode ||  uint8  || PHY Mode (Legacy, HT) ||
+|| padding1 ||  uint8  ||  ||
 
 
 ----
@@ -138,13 +138,18 @@ Entry type ID: 10
 
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
 || timestamp ||  uint64  || Microsecond timer value at PHY Rx start ||
+|| timestamp_frac ||  uint8  || Fractional timestamp (units of 6.25ns) ||
+|| phy_samp_rate ||  uint8  || PHY Sampling Rate Mode ||
 || length ||  uint16  || Length of payload in bytes ||
-|| rate ||  uint8  || PHY rate index, in ![1:8] ||
+|| cfo_est ||  int32  || Time-domain CFO estimate from Rx PHY; Fix32_31 value, CFO as fraction of sampling frequency ||
+|| mcs ||  uint8  || MCS index, in ![0:7] ||
+|| phy_mode ||  uint8  || PHY mode ||
+|| ant_mode ||  uint8  || Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D] ||
 || power ||  int8  || Rx power in dBm ||
 || fcs_result ||  uint8  || Checksum status, 0 = no errors ||
-|| pkt_type ||  uint8  || Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control ||
+|| pkt_type ||  uint8  || Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS ||
 || chan_num ||  uint8  || Channel (center frequency) index ||
-|| ant_mode ||  uint8  || Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D] ||
+|| padding ||  uint8  ||  ||
 || rf_gain ||  uint8  || AGC RF gain setting: ![1,2,3] for ![0,15,30]dB gain ||
 || bb_gain ||  uint8  || AGC BB gain setting: ![0:31] for approx ![0:63]dB gain ||
 || flags ||  uint16  || Bit OR'd flags: 0x1 = Rx was duplicate of previous Rx ||
@@ -171,13 +176,18 @@ Entry type ID: 11
 
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
 || timestamp ||  uint64  || Microsecond timer value at PHY Rx start ||
+|| timestamp_frac ||  uint8  || Fractional timestamp (units of 6.25ns) ||
+|| phy_samp_rate ||  uint8  || PHY Sampling Rate Mode ||
 || length ||  uint16  || Length of payload in bytes ||
-|| rate ||  uint8  || PHY rate index, in ![1:8] ||
+|| cfo_est ||  int32  || Time-domain CFO estimate from Rx PHY; Fix32_31 value, CFO as fraction of sampling frequency ||
+|| mcs ||  uint8  || MCS index, in ![0:7] ||
+|| phy_mode ||  uint8  || PHY mode ||
+|| ant_mode ||  uint8  || Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D] ||
 || power ||  int8  || Rx power in dBm ||
 || fcs_result ||  uint8  || Checksum status, 0 = no errors ||
-|| pkt_type ||  uint8  || Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control ||
+|| pkt_type ||  uint8  || Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS ||
 || chan_num ||  uint8  || Channel (center frequency) index ||
-|| ant_mode ||  uint8  || Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D] ||
+|| padding ||  uint8  ||  ||
 || rf_gain ||  uint8  || AGC RF gain setting: ![1,2,3] for ![0,15,30]dB gain ||
 || bb_gain ||  uint8  || AGC BB gain setting: ![0:31] for approx ![0:63]dB gain ||
 || flags ||  uint16  || Bit OR'd flags: 0x1 = Rx was duplicate of previous Rx ||
@@ -206,13 +216,18 @@ Entry type ID: 15
 
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
 || timestamp ||  uint64  || Microsecond timer value at PHY Rx start ||
+|| timestamp_frac ||  uint8  || Fractional timestamp (units of 6.25ns) ||
+|| phy_samp_rate ||  uint8  || PHY Sampling Rate Mode ||
 || length ||  uint16  || Length of payload in bytes ||
-|| rate ||  uint8  || PHY rate index, in ![1:8] ||
+|| cfo_est ||  int32  || Time-domain CFO estimate from Rx PHY; Fix32_31 value, CFO as fraction of sampling frequency ||
+|| mcs ||  uint8  || MCS index, in ![0:7] ||
+|| phy_mode ||  uint8  || PHY mode ||
+|| ant_mode ||  uint8  || Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D] ||
 || power ||  int8  || Rx power in dBm ||
 || fcs_result ||  uint8  || Checksum status, 0 = no errors ||
-|| pkt_type ||  uint8  || Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control ||
+|| pkt_type ||  uint8  || Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS ||
 || chan_num ||  uint8  || Channel (center frequency) index ||
-|| ant_mode ||  uint8  || Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D] ||
+|| padding ||  uint8  ||  ||
 || rf_gain ||  uint8  || AGC RF gain setting: ![1,2,3] for ![0,15,30]dB gain ||
 || bb_gain ||  uint8  || AGC BB gain setting: ![0:31] for approx ![0:63]dB gain ||
 || flags ||  uint16  || Bit OR'd flags: 0x1 = Rx was duplicate of previous Rx ||
@@ -231,7 +246,7 @@ The following fields are populated when the log entry is part of a numpy array g
 
 ----
 
-=== Entry Type TX ===
+=== Entry Type TX_HIGH ===
 Tx events in CPU High, logged for each MPDU frame created and enqueued in CPU High. See TX_LOW for log entries of actual Tx events, including re-transmissions. The time values in this log entry can be used to determine time in queue (time_to_accept), time taken by CPU Low for all Tx attempts (time_to_done) and total time from creation to completion (time_to_accept+time_to_done).
 
 Entry type ID: 20
@@ -241,17 +256,18 @@ Entry type ID: 20
 || time_to_accept ||  uint32  || Time duration in microseconds between packet creation and packet acceptance by CPU Low ||
 || time_to_done ||  uint32  || Time duration in microseconds between packet acceptance by CPU Low and Tx completion in CPU Low ||
 || uniq_seq ||  uint64  || Unique sequence number for Tx packet; 12 LSB of this used for 802.11 MAC header sequence number ||
+|| mcs ||  uint8  || MCS index in ![0:7] ||
+|| phy_mode ||  uint8  || PHY mode ||
+|| ant_mode ||  uint8  || PHY antenna mode in [0x10, 0x20, 0x30, 0x40] ||
+|| tx_power ||  int8  || Tx power in dBm ||
 || num_tx ||  uint8  || Number of actual PHY Tx events which were used to transmit the MPDU (first Tx + all re-Tx) ||
-|| tx_power ||  int8  || Tx power in dBm of final Tx attempt ||
 || chan_num ||  uint8  || Channel (center frequency) index of transmission ||
-|| rate ||  uint8  || PHY rate index in ![1:8] of final Tx attempt ||
 || length ||  uint16  || Length in bytes of MPDU; includes MAC header, payload and FCS ||
 || result ||  uint8  || Tx result; 0 = ACK received or not required ||
-|| pkt_type ||  uint8  || Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control ||
+|| pkt_type ||  uint8  || Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS ||
 || queue_id ||  uint16  || Tx queue ID from which the packet was retrieved ||
 || queue_occupancy ||  uint16  || Occupancy of the Tx queue at the time the packet was created (value includes itself) ||
-|| ant_mode ||  uint8  || PHY antenna mode of final Tx attempt ||
-|| padding ||  3uint8  ||  ||
+|| padding ||  2uint8  ||  ||
 || mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
 || mac_payload ||  24uint8  || First 24 bytes of MAC payload, typically the 802.11 MAC header ||
 
@@ -267,7 +283,7 @@ The following fields are populated when the log entry is part of a numpy array g
 
 ----
 
-=== Entry Type TX_LTG ===
+=== Entry Type TX_HIGH_LTG ===
 Tx events in CPU High, logged for each MPDU frame created and enqueued in CPU High. See TX_LOW for log entries of actual Tx events, including re-transmissions. The time values in this log entry can be used to determine time in queue (time_to_accept), time taken by CPU Low for all Tx attempts (time_to_done) and total time from creation to completion (time_to_accept+time_to_done).
 
 Entry type ID: 21
@@ -277,17 +293,18 @@ Entry type ID: 21
 || time_to_accept ||  uint32  || Time duration in microseconds between packet creation and packet acceptance by CPU Low ||
 || time_to_done ||  uint32  || Time duration in microseconds between packet acceptance by CPU Low and Tx completion in CPU Low ||
 || uniq_seq ||  uint64  || Unique sequence number for Tx packet; 12 LSB of this used for 802.11 MAC header sequence number ||
+|| mcs ||  uint8  || MCS index in ![0:7] ||
+|| phy_mode ||  uint8  || PHY mode ||
+|| ant_mode ||  uint8  || PHY antenna mode in [0x10, 0x20, 0x30, 0x40] ||
+|| tx_power ||  int8  || Tx power in dBm ||
 || num_tx ||  uint8  || Number of actual PHY Tx events which were used to transmit the MPDU (first Tx + all re-Tx) ||
-|| tx_power ||  int8  || Tx power in dBm of final Tx attempt ||
 || chan_num ||  uint8  || Channel (center frequency) index of transmission ||
-|| rate ||  uint8  || PHY rate index in ![1:8] of final Tx attempt ||
 || length ||  uint16  || Length in bytes of MPDU; includes MAC header, payload and FCS ||
 || result ||  uint8  || Tx result; 0 = ACK received or not required ||
-|| pkt_type ||  uint8  || Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control ||
+|| pkt_type ||  uint8  || Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS ||
 || queue_id ||  uint16  || Tx queue ID from which the packet was retrieved ||
 || queue_occupancy ||  uint16  || Occupancy of the Tx queue at the time the packet was created (value includes itself) ||
-|| ant_mode ||  uint8  || PHY antenna mode of final Tx attempt ||
-|| padding ||  3uint8  ||  ||
+|| padding ||  2uint8  ||  ||
 || mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
 || mac_payload ||  44uint8  || First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG ID ||
 
@@ -313,19 +330,19 @@ Entry type ID: 25
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
 || timestamp ||  uint64  || Microsecond timer value at time packet transmission actually started (PHY TX_START time) ||
 || uniq_seq ||  uint64  || Unique sequence number of original MPDU ||
-|| rate ||  uint8  || PHY rate index in ![1:8] ||
-|| ant_mode ||  uint8  || PHY antenna mode in ![1:4] ||
+|| mcs ||  uint8  || MCS index in ![0:7] ||
+|| phy_mode ||  uint8  || PHY mode ||
+|| ant_mode ||  uint8  || PHY antenna mode in [0x10, 0x20, 0x30, 0x40] ||
 || tx_power ||  int8  || Tx power in dBm ||
-|| phy_flags ||  uint8  || Tx PHY flags ||
 || tx_count ||  uint8  || Transmission index for this attempt; 0 = initial Tx, 1+ = subsequent re-transmissions ||
 || chan_num ||  uint8  || Channel (center frequency) index ||
 || length ||  uint16  || Length in bytes of MPDU; includes MAC header, payload and FCS ||
 || num_slots ||  int16  || Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0); A value of -1 in this field means no backoff occured ||
 || cw ||  uint16  || Contention window value at time of this Tx ||
-|| pkt_type ||  uint8  || Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control ||
+|| pkt_type ||  uint8  || Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS ||
 || flags ||  uint8  || B0: 1 = ACKed, 0 = Not ACKed ||
-|| padding0 ||  uint8  ||  ||
-|| padding1 ||  uint8  ||  ||
+|| timestamp_frac ||  uint8  || Fractional timestamp (units of 6.25ns) ||
+|| phy_samp_rate ||  uint8  || PHY Sampling Rate Mode ||
 || mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
 || mac_payload ||  24uint8  || First 24 bytes of MAC payload, typically the 802.11 MAC header ||
 
@@ -349,19 +366,19 @@ Entry type ID: 26
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
 || timestamp ||  uint64  || Microsecond timer value at time packet transmission actually started (PHY TX_START time) ||
 || uniq_seq ||  uint64  || Unique sequence number of original MPDU ||
-|| rate ||  uint8  || PHY rate index in ![1:8] ||
-|| ant_mode ||  uint8  || PHY antenna mode in ![1:4] ||
+|| mcs ||  uint8  || MCS index in ![0:7] ||
+|| phy_mode ||  uint8  || PHY mode ||
+|| ant_mode ||  uint8  || PHY antenna mode in [0x10, 0x20, 0x30, 0x40] ||
 || tx_power ||  int8  || Tx power in dBm ||
-|| phy_flags ||  uint8  || Tx PHY flags ||
 || tx_count ||  uint8  || Transmission index for this attempt; 0 = initial Tx, 1+ = subsequent re-transmissions ||
 || chan_num ||  uint8  || Channel (center frequency) index ||
 || length ||  uint16  || Length in bytes of MPDU; includes MAC header, payload and FCS ||
 || num_slots ||  int16  || Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0); A value of -1 in this field means no backoff occured ||
 || cw ||  uint16  || Contention window value at time of this Tx ||
-|| pkt_type ||  uint8  || Packet type: 1 = other data, 2 = encapsulated Ethernet, 3 = LTG, 11 = management, 21 = control ||
+|| pkt_type ||  uint8  || Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS ||
 || flags ||  uint8  || B0: 1 = ACKed, 0 = Not ACKed ||
-|| padding0 ||  uint8  ||  ||
-|| padding1 ||  uint8  ||  ||
+|| timestamp_frac ||  uint8  || Fractional timestamp (units of 6.25ns) ||
+|| phy_samp_rate ||  uint8  || PHY Sampling Rate Mode ||
 || mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
 || mac_payload ||  44uint8  || First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG ID ||
 
@@ -385,7 +402,7 @@ Copy of the Tx/Rx counts struct maintained by CPU High. If promiscuous counts mo
 Entry type ID: 30
 
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| timestamp ||  uint64  || Microsecond timer value at time of log entry creation ||
+|| timestamp ||  uint64  || Microsecond timer value at time of creation ||
 || mac_addr ||  6uint8  || MAC address of remote node whose statics are recorded here ||
 || associated ||  uint8  || Boolean indicating whether remote node is currently associated with this node ||
 || padding ||  uint8  ||  ||
@@ -403,4 +420,5 @@ Entry type ID: 30
 || mgmt_num_tx_packets_success ||  uint32  || Total number of management packets successfully transmitted to remote node ||
 || mgmt_num_tx_packets_total ||  uint32  || Total number of management packets transmitted (successfully or not) to remote node ||
 || mgmt_num_tx_packets_low ||  uint32  || Total number of PHY transmissions of management packets to remote node (includes re-transmissions) ||
+|| latest_txrx_timestamp ||  uint64  || Microsecond timer value (system time) of last transmission / reception ||
 

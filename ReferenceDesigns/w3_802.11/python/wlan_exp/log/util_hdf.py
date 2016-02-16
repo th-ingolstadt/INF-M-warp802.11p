@@ -790,24 +790,24 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
         # No groups - all datasets in root group
         np_log_dict = {
             'RX_OFDM':  np_array_of_rx_etries,
-            'TX':       np_array_of_tx_entries
+            'TX_HIGH':  np_array_of_tx_entries
         }
 
         attr_dict = {
             '/':        'Data from some_log_file.bin, node serial number W3-a-00001, written on 2014-03-18',
             'RX_OFDM':  'Filtered Rx OFDM events, only good FCS receptions',
-            'TX':       'Filtered Tx events, only DATA packets'
+            'TX_HIGH':  'Filtered Tx events, only DATA packets'
         }
     
         # Two groups, with two datasets in each group
         np_log_dict = {
             'Log_Node_A': {
                 'RX_OFDM':  np_array_of_rx_etries_A,
-                'TX':       np_array_of_tx_entries_A
+                'TX_HIGH':  np_array_of_tx_entries_A
             },
             'Log_Node_B': {
                 'RX_OFDM':  np_array_of_rx_etries_B,
-                'TX':       np_array_of_tx_entries_B
+                'TX_HIGH':  np_array_of_tx_entries_B
             }
         }
 
@@ -816,12 +816,12 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
             'Log_Node_A': {
                 '/':        'Data from node_A_log_file.bin, node serial number W3-a-00001',
                 'RX_OFDM':  'Filtered Rx OFDM events, only good FCS receptions',
-                'TX':       'Filtered Tx events, only DATA packets'
+                'TX_HIGH':  'Filtered Tx events, only DATA packets'
             }
             'Log_Node_B': {
                 '/':        'Data from node_B_log_file.bin, node serial number W3-a-00002',
                 'RX_OFDM':  'Filtered Rx OFDM events, only good FCS receptions',
-                'TX':       'Filtered Tx events, only DATA packets'
+                'TX_HIGH':  'Filtered Tx events, only DATA packets'
             }
         }
     """

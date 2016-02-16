@@ -113,7 +113,7 @@ def log_anonymize(filename):
     #    Merge the Rx / Tx subtypes that can be processed together
     log_index      = log_util.filter_log_index(raw_log_index,
                                                merge={'RX_OFDM': ['RX_OFDM', 'RX_OFDM_LTG'],
-                                                      'TX'     : ['TX', 'TX_LTG'],
+                                                      'TX_HIGH': ['TX_HIGH', 'TX_HIGH_LTG'],
                                                       'TX_LOW' : ['TX_LOW', 'TX_LOW_LTG']})
 
     # Re-initialize the address-byteindex map per file using the running
@@ -202,9 +202,9 @@ def log_anonymize(filename):
     # Tx entries
     #
     try:
-        print("    Anonmyizing {0} TX entries".format(len(log_index['TX'])))
+        print("    Anonmyizing {0} TX_HIGH entries".format(len(log_index['TX_HIGH'])))
 
-        for idx in log_index['TX']:
+        for idx in log_index['TX_HIGH']:
             # 6-byte addresses at offsets 44, 50, 56
             for o in (44, 50, 56):
                 addr_to_replace(tuple(log_bytes[idx+o:idx+o+6]), idx+o, addr_idx_map)

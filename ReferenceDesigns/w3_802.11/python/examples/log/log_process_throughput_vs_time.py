@@ -80,9 +80,9 @@ log_data_sta      = hdf_util.hdf5_to_log_data(filename=LOGFILE_STA)
 raw_log_index_sta = hdf_util.hdf5_to_log_index(filename=LOGFILE_STA)
 
 # Generate indexes with just Tx and Rx events
-entries_filt  = ['NODE_INFO', 'RX_OFDM', 'TX', 'TX_LOW']
+entries_filt  = ['NODE_INFO', 'RX_OFDM', 'TX_HIGH', 'TX_LOW']
 entries_merge = {'RX_OFDM': ['RX_OFDM', 'RX_OFDM_LTG'],
-                 'TX'     : ['TX', 'TX_LTG'],
+                 'TX_HIGH': ['TX_HIGH', 'TX_HIGH_LTG'],
                  'TX_LOW' : ['TX_LOW', 'TX_LOW_LTG']}
 
 log_index_txrx_ap  = log_util.filter_log_index(raw_log_index_ap,  include_only=entries_filt, merge=entries_merge)
@@ -107,13 +107,13 @@ except:
 
 # Extract Tx entry arrays
 try:
-    tx_ap  = log_np_ap['TX']
+    tx_ap  = log_np_ap['TX_HIGH']
 except:
     print("ERROR: Log for AP did not contain any transmissions.\n")
     exit_script = True
 
 try:
-    tx_sta = log_np_sta['TX']
+    tx_sta = log_np_sta['TX_HIGH']
 except:
     print("ERROR: Log for STA did not contain any transmissions.\n")
     exit_script = True

@@ -75,12 +75,12 @@ log_data      = hdf_util.hdf5_to_log_data(filename=LOGFILE)
 raw_log_index = hdf_util.hdf5_to_log_index(filename=LOGFILE)
 
 # Extract just OFDM Tx events
-tx_log_index  = log_util.filter_log_index(raw_log_index, include_only=['TX'],
-                                          merge={'TX' : ['TX', 'TX_LTG']})
+tx_log_index  = log_util.filter_log_index(raw_log_index, include_only=['TX_HIGH'],
+                                          merge={'TX_HIGH' : ['TX_HIGH', 'TX_HIGH_LTG']})
 
 # Generate numpy array
 log_np = log_util.log_data_to_np_arrays(log_data, tx_log_index)
-log_tx = log_np['TX']
+log_tx = log_np['TX_HIGH']
 
 # Define the fields to group by
 group_fields = ('addr1',)

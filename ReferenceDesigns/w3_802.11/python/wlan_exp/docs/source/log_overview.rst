@@ -168,11 +168,11 @@ For example, assume the following log entry type definitions::
 
 	ENTRY_TYPE_RX_OFDM = 10
 	ENTRY_TYPE_RX_DSSS = 11
-	ENTRY_TYPE_TX      = 20
+	ENTRY_TYPE_TX_HIGH = 20
 
 	entry_rx_ofdm = WlanExpLogEntryType(name='RX_OFDM', entry_type_id=ENTRY_TYPE_RX_OFDM)
 	entry_rx_dsss = WlanExpLogEntryType(name='RX_DSSS', entry_type_id=ENTRY_TYPE_RX_DSSS)
-	entry_tx = WlanExpLogEntryType(name='TX', entry_type_id=ENTRY_TYPE_TX)
+	entry_tx_high = WlanExpLogEntryType(name='TX_HIGH', entry_type_id=ENTRY_TYPE_TX_HIGH)
 
 	#Entry type fields omitted for clarity - actual field definitions are required!
 
@@ -189,11 +189,11 @@ Using the `filter_log_index` method to translate the entry type keys will give::
 	>>>log_index
 	{RX_OFDM: [7724, 8116, 8428, 9716],
 	 RX_DSSS: [3572, 4468, 6900],
-	 TX: [144, 336, 528, 720, 912, 1104, 1296, 1488]}
+	 TX_HIGH: [144, 336, 528, 720, 912, 1104, 1296, 1488]}
 
 Notice that the lists of log entry locations are unchanged, only the dictionary keys have been replaced. Now this index can be accessed by entry type name::
 
-	>>>log_index['TX']
+	>>>log_index['TX_HIGH']
 	[144, 336, 528, 720, 912, 1104, 1296, 1488]
 
 .. [#entry_type_names] Technically, `filter_log_index` uses *instances* of the :ref:`WlanExpLogEntryType` class as keys in its output dictionary. The :ref:`WlanExpLogEntryType.__repr__` method returns the entry type name. The class itself overloads the `__eq__` and `__hash__` methods so an instance will "match" its name when the name is used to access a dictionary.
@@ -224,22 +224,22 @@ The following code snippets illustrate this include/exclude behavior::
 	>>> log_index
 	{RX_OFDM: [7724, 8116, 8428, 9716],
 	 RX_DSSS: [3572, 4468, 6900],
-	 TX: [144, 336, 528, 720, 912, 1104, 1296, 1488]}
+	 TX_HIGH: [144, 336, 528, 720, 912, 1104, 1296, 1488]}
 
-	>>> log_index = filter_log_index(my_raw_log_index, include_only=['TX', 'RX_OFDM'])
+	>>> log_index = filter_log_index(my_raw_log_index, include_only=['TX_HIGH', 'RX_OFDM'])
 	>>> log_index
 	{RX_OFDM: [7724, 8116, 8428, 9716],
-	 TX: [144, 336, 528, 720, 912, 1104, 1296, 1488]}
+	 TX_HIGH: [144, 336, 528, 720, 912, 1104, 1296, 1488]}
 
-	>>> log_index = filter_log_index(my_raw_log_index, exclude=['TX'])
+	>>> log_index = filter_log_index(my_raw_log_index, exclude=['TX_HIGH'])
 	>>> log_index
 	{RX_OFDM: [7724, 8116, 8428, 9716],
 	 RX_DSSS: [3572, 4468, 6900]}
 
-	>>> log_index = filter_log_index(my_raw_log_index, include_only=['TX', 'RX_OFDM', 'NODE_INFO'])
+	>>> log_index = filter_log_index(my_raw_log_index, include_only=['TX_HIGH', 'RX_OFDM', 'NODE_INFO'])
 	>>> log_index
 	{RX_OFDM: [7724, 8116, 8428, 9716],
-	 TX: [144, 336, 528, 720, 912, 1104, 1296, 1488],
+	 TX_HIGH: [144, 336, 528, 720, 912, 1104, 1296, 1488],
 	 NODE_INFO: []}
 
 
