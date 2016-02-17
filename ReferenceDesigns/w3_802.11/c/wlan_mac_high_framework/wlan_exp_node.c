@@ -97,7 +97,7 @@ void create_wlan_exp_cmd_log_entry(cmd_resp * command);
 
 int process_tx_power(u32 cmd, u32 aid, int tx_power);
 u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 * ret_phy_mode);
-u8  process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode);
+u32 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode);
 
 // WLAN Exp buffer functions
 void          transfer_log_data(u32 socket_index, void * from,
@@ -2246,7 +2246,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
                         ant_mode = process_tx_ant_mode(msg_cmd, id, (ant_mode & 0xFF));
 
-                        if ( (ant_mode << 24) == CMD_PARAM_ERROR ) {
+                        if (ant_mode == CMD_PARAM_ERROR) {
                             status = CMD_PARAM_ERROR;
                         }
                     break;
@@ -2308,14 +2308,37 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                         status = CMD_PARAM_ERROR;
                     break;
                 }
+            } else if (type == CMD_PARAM_NODE_TX_ANT_ALL) {
+                // Set all power values:
+                //     * Default Unicast Management Packet Tx antenna mode for new associations
+                //     * Default Unicast Data Packet Tx antenna mode for new associations
+                //     * Default Multicast Management Packet Tx antenna mode for new associations
+                //     * Default Multicast Data Packet Tx antenna mode for new associations
+                //     * Update the transmit antenna mode of all current associations on the node.
+                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set all TX ant mode = %d\n", ant_mode);
+
+                // Set the default unicast antenna mode for new associations
+                default_unicast_data_tx_params.phy.antenna_mode = ant_mode;
+                default_unicast_mgmt_tx_params.phy.antenna_mode = ant_mode;
+
+                // Set the default multicast antenna mode for new associations
+                default_multicast_data_tx_params.phy.antenna_mode = ant_mode;
+                default_multicast_mgmt_tx_params.phy.antenna_mode = ant_mode;
+
+                // Update the Tx antenna mode in each current association
+                ant_mode = process_tx_ant_mode(CMD_PARAM_WRITE_VAL, WLAN_EXP_AID_ALL, (ant_mode & 0xFF));
+
+                if (ant_mode == CMD_PARAM_ERROR) {
+                    status = CMD_PARAM_ERROR;
+                }
             } else {
-                wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown type for NODE_TX_RATE: %d\n", type);
+                wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown type for NODE_TX_ANT_MODE: %d\n", type);
                 status = CMD_PARAM_ERROR;
             }
 
             // Send response
             resp_args_32[resp_index++] = Xil_Htonl(status);
-            resp_args_32[resp_index++] = Xil_Htonl(ant_mode);
+            resp_args_32[resp_index++] = Xil_Htonl(ant_mode & 0xFF);
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
@@ -4084,19 +4107,19 @@ u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 
  * @param   aid              - AID of the station or NODE_CONFIG_ALL_ASSOCIATED
  * @param   ant_mode         - Antenna mode (function assumes antenna mode is valid)
  *
- * @return  u8               - Antenna mode
- *                             - 0xFF on ERROR
+ * @return  u32              - Antenna mode
+ *                             - CMD_PARAM_ERROR on ERROR
  *
  *****************************************************************************/
-u8 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
+u32 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 
     int           iter;
-    u8            mode;
+    u32           mode;
     dl_list     * curr_list;
     dl_entry    * curr_entry;
     station_info* curr_station_info;
 
-    mode = CMD_PARAM_ERROR >> 24;
+    mode = CMD_PARAM_ERROR;
 
     // For Writes
     if (cmd == CMD_PARAM_WRITE_VAL) {

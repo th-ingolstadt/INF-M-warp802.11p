@@ -97,6 +97,8 @@
 #define CMD_PARAM_NODE_TX_POWER_LOW                        0x00000010
 #define CMD_PARAM_NODE_TX_POWER_ALL                        0x00000020
 
+#define CMD_PARAM_NODE_TX_ANT_ALL                          0x00000010
+
 #define CMD_PARAM_RSVD_CHANNEL                             0x00000000
 #define CMD_PARAM_RSVD_MAC_ADDR                            0xFFFFFFFF
 
