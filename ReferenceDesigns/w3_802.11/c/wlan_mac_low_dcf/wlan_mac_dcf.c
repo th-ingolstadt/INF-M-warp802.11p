@@ -59,7 +59,7 @@ volatile static u8                     gl_cw_exp_max;
 
 volatile static u32                    gl_dot11RTSThreshold;
 
-volatile static u8                     gl_beaconcancel_en;
+volatile static u8                     gl_beacon_allow_submit_en;
 volatile static u8                     gl_beaconcancel_match_type;
 volatile static u8                     gl_beaconcancel_match_addr3[6];
 
@@ -98,7 +98,7 @@ int main(){
     xil_printf("This switch can be toggled any time while the design is running.\n\n");
     xil_printf("------------------------\n");
 
-    gl_beaconcancel_en = 0;
+    gl_beacon_allow_submit_en = 0;
     gl_mpdu_pkt_buf = PKT_BUF_INVALID;
     gl_periodic_tx_details.enable = 0;
 
@@ -186,9 +186,10 @@ void configure_beacon_tx(u8 tx_pkt_buf, u32 interval_tu){
 	    //The current_tu can be anywhere within a beacon interval, so we need
 	    //to round up to the next TBTT.
 	    wlan_mac_set_tu_target(gl_periodic_tx_details.period_tu*((current_tu/gl_periodic_tx_details.period_tu)+1));
-
+	    gl_beacon_allow_submit_en = 1;
 	    wlan_mac_reset_tu_target_latch(1);
 	    wlan_mac_reset_tu_target_latch(0);
+
 
 
 	} else {
@@ -210,7 +211,7 @@ inline poll_tbtt_return_t poll_tbtt(){
 		if(mac_hw_status & WLAN_MAC_STATUS_MASK_TU_LATCH) {
 			// Current TU >= Target TU
 
-			if(send_beacon(gl_periodic_tx_details.tx_pkt_buf) != 0){
+			if(gl_beacon_allow_submit_en && send_beacon(gl_periodic_tx_details.tx_pkt_buf) != 0){
 				// We were unable to begin the transmission (most likely because the MAC Support Core A was
 				// already actively transmitting something). So we will just return and catch it on the next poll
 				return_status = BEACON_DEFERRED;
@@ -224,6 +225,7 @@ inline poll_tbtt_return_t poll_tbtt(){
 			//  Latch will assert immediately if Current TU >= new Target TU
 			tu_target = wlan_mac_get_tu_target();
 			wlan_mac_set_tu_target(tu_target + gl_periodic_tx_details.period_tu);
+			gl_beacon_allow_submit_en = 1;
 
 			//TODO
 			//If MAC time is adjusted by more than a TU (e.g a wlan_exp reset), then
@@ -291,20 +293,32 @@ inline int send_beacon(u8 tx_pkt_buf){
             default:                    mpdu_tx_ant_mask  = 0x1;  break;       // Default to RF_A
         }
 
-        n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
-
-		//wlan_mac_tx_ctrl_C_params(pktBuf, antMask, req_backoff, phy_mode, num_slots)
-        //TODO: Generalize to IBSS -- require pre-BO
-        wlan_mac_tx_ctrl_C_params(tx_pkt_buf, mpdu_tx_ant_mask, 0, TMP_C_PHY_MODE, n_slots);
+        if(((tx_frame_info_ptr->flags) & TX_MPDU_FLAGS_REQ_BO) == 0){
+        	n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
+        	//wlan_mac_tx_ctrl_C_params(pktBuf, antMask, req_backoff, phy_mode, num_slots)
+			wlan_mac_tx_ctrl_C_params(tx_pkt_buf, mpdu_tx_ant_mask, 0, TMP_C_PHY_MODE, n_slots);
+        } else {
+        	n_slots = rand_num_slots(RAND_SLOT_REASON_IBSS_BEACON);
+        	//wlan_mac_tx_ctrl_C_params(pktBuf, antMask, req_backoff, phy_mode, num_slots)
+        	wlan_mac_tx_ctrl_C_params(tx_pkt_buf, mpdu_tx_ant_mask, 1, TMP_C_PHY_MODE, n_slots);
+        }
 
         tx_gain = wlan_mac_low_dbm_to_gain_target(tx_frame_info_ptr->params.phy.power);
         wlan_mac_tx_ctrl_C_gains(tx_gain, tx_gain, tx_gain, tx_gain);
 
-		// Write the SIGNAL field for the ACK
         write_phy_preamble(tx_pkt_buf,
         				   PHY_MODE_NONHT,
         				   tx_frame_info_ptr->params.phy.mcs,
         				   tx_frame_info_ptr->length);
+
+
+
+        if(((tx_frame_info_ptr->flags) & TX_MPDU_FLAGS_BEACONCANCEL)) {
+            // Define the conditions to apply to receptions that would trigger cancellation of this transmission
+            gl_beaconcancel_match_type  = header->frame_control_1;
+
+            memcpy((void*)gl_beaconcancel_match_addr3, header->address_3, 6);
+        }
 
 		wlan_mac_tx_ctrl_C_start(1);
 		wlan_mac_tx_ctrl_C_start(0);
@@ -389,7 +403,21 @@ inline int send_beacon(u8 tx_pkt_buf){
 				// Poll the MAC Rx state to check if a packet was received while our Tx was deferring
 				if (mac_hw_status & (WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED)) {
 					rx_status = wlan_mac_low_poll_frame_rx();
-					//TODO: Cancel Core C Tx if this was a beacon
+                    // Check if the new reception met the conditions to cancel the already-submitted transmission
+                    if (((rx_status & POLL_MAC_CANCEL_TX) != 0)) {
+                        // The Rx handler killed this transmission already by resetting the MAC core
+                        // Our return_status should still be considered a success -- we successfully did not
+                        // transmit the beacon. This will tell the TBTT logic to move on to the next beacon interval
+                        // before attempting another beacon transmission.
+                		return_status = 0;
+                		tx_frame_info_ptr->tx_pkt_buf_state = DONE;
+                		if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+                			xil_printf("Error: Unable to unlock Beacon packet buffer\n");
+                			return -1;
+                		}
+                        return return_status;
+                    }
+
 				}
 			} // END if(Tx A state machine done)
 		} while( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_C_PENDING );
@@ -724,27 +752,19 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
     //     a beacon is received from a peer node
     //
 
-#if 0
+
     if ((mpdu_info->state == RX_MPDU_STATE_FCS_GOOD)                   && // Rx pkt checksum good
-        (rx_header->frame_control_1 == gl_autocancel_match_type)       && // Pkt type matches auto-cancel condition
-        (wlan_addr_eq(rx_header->address_3, gl_autocancel_match_addr3) && // Pkt addr3 matches auto-cancel condition when pkt has addr3
+        (rx_header->frame_control_1 == gl_beaconcancel_match_type)       && // Pkt type matches auto-cancel condition
+        (wlan_addr_eq(rx_header->address_3, gl_beaconcancel_match_addr3) && // Pkt addr3 matches auto-cancel condition when pkt has addr3
          (phy_details->length) >= sizeof(mac_header_80211))) {
 
-        if(gl_autocancel_en) {
-            // Reset all state in the DCF core - this cancels deferrals and pending transmissions
-            wlan_mac_reset(1);
-            wlan_mac_reset(0);
-            return_value |= POLL_MAC_CANCEL_TX;
-        }
+    	gl_beacon_allow_submit_en = 0;
+		// Reset all state in the DCF core - this cancels deferrals and pending transmissions
+		wlan_mac_reset_tx_ctrl_C(1);
+		wlan_mac_reset_tx_ctrl_C(0);
+		return_value |= POLL_MAC_CANCEL_TX;
 
-        // Whether or not a transmission was just canceled, remember the timestamp of this auto-cancel-worthy packet reception
-        // This handles a race condition, where a beacon is received after CPU High has pushed down a new beacon with the
-        // TX_MPDU_FLAGS_AUTOCANCEL flag set, but a beacon is received before frame_transmit() is called. The timestamp
-        // recorded here is compared to the current time immediately before a new beacon might be transmitted, allowing
-        // just-in-time cancellation of the transmission
-        gl_autocancel_last_rx_ts = wlan_mac_low_get_rx_start_timestamp();
     }
-#endif
 
     // Received packet had good checksum
     if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) {
@@ -971,9 +991,6 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
 
     u16                 MPDU_N_DBPS;
 
-    u64                 autocancel_curr_timestamp;
-    u64                 autocancel_timestamp_diff;
-
     u32                 rx_status;
     u32                 mac_hw_status;
 
@@ -1023,33 +1040,6 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
         // Check if the higher-layer MAC requires this transmission have a pre-Tx backoff or post-Tx timeout
         req_timeout = ((frame_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
         req_backoff = ((frame_info->flags) & TX_MPDU_FLAGS_REQ_BO) != 0;
-#if 0
-        // Check whether this transmission can be canceled - used by IBSS nodes competing with peers to send beacons
-        gl_autocancel_en = ((frame_info->flags) & TX_MPDU_FLAGS_AUTOCANCEL) != 0;
-
-        if(gl_autocancel_en) {
-            // Define the conditions to apply to receptions that would trigger cancellation of this transmission
-            gl_autocancel_match_type  = header->frame_control_1;
-
-            memcpy((void*)gl_autocancel_match_addr3, header->address_3, 6);
-
-            autocancel_curr_timestamp = get_mac_time_usec();
-
-            if(autocancel_curr_timestamp >= gl_autocancel_last_rx_ts){
-                autocancel_timestamp_diff = autocancel_curr_timestamp - gl_autocancel_last_rx_ts;
-            } else {
-                autocancel_timestamp_diff = gl_autocancel_last_rx_ts - autocancel_curr_timestamp;
-            }
-
-            if(autocancel_timestamp_diff < 50000){
-                // TODO: this is currently hardcoded to 50ms. In the future, it should be a parameter that passes down from CPU_HIGH
-                // Conceptually, this value should be just less than a beacon interval. Any beacon transmission will be canceled if it
-                // happens in this interval after the previous beacon reception.
-                gl_autocancel_en = 0;
-                return -1;
-            }
-        }
-#endif
 
         // Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
         // This is the SIGNAL field for the MPDU we will eventually transmit. It's possible
@@ -1313,12 +1303,6 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
                         // Start a post-Tx backoff using the updated contention window
                         n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
                         wlan_mac_dcf_hw_start_backoff(n_slots);
-
-#if 0
-                        // Disable any auto-cancellation of transmissions (to be re-enabled by future transmissions if needed)
-                        gl_autocancel_en = 0;
-#endif
-
                         return 0;
                     break;
 
@@ -1377,10 +1361,6 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
                                 // Start a post-Tx backoff using the updated contention window
                                 n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
                                 wlan_mac_dcf_hw_start_backoff(n_slots);
-#if 0
-                                // Disable any auto-cancellation of transmissions (to be re-enabled by future transmissions if needed)
-                                gl_autocancel_en = 0;
-#endif
 
                                 return TX_MPDU_RESULT_SUCCESS;
 
@@ -1423,10 +1403,6 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
                             //     NOTE:  Use >= here to handle unlikely case of retryLimit values changing mid-Tx
                             if ((frame_info->short_retry_count >= gl_dot11ShortRetryLimit) ||
                                 (frame_info->long_retry_count  >= gl_dot11LongRetryLimit )) {
-#if 0
-                            	// We are done transmitting. We now break out of the retry while loop
-                                gl_autocancel_en = 0;
-#endif
 
                                 return TX_MPDU_RESULT_FAILURE;
                             }
@@ -1480,11 +1456,6 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
                         if ((frame_info->short_retry_count == gl_dot11ShortRetryLimit) ||
                             (frame_info->long_retry_count  == gl_dot11LongRetryLimit )) {
 
-#if 0
-                            // We are done transmitting. We now break out of the retry while loop
-                            gl_autocancel_en = 0;
-#endif
-
                             return TX_MPDU_RESULT_FAILURE;
                         }
                         if(poll_tbtt_return == BEACON_DEFERRED) {
@@ -1500,17 +1471,6 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
                 // Poll the MAC Rx state to check if a packet was received while our Tx was deferring
                 if (mac_hw_status & (WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED)) {
                     rx_status = wlan_mac_low_poll_frame_rx();
-
-#if 0
-                    // Check if the new reception met the conditions to cancel the already-submitted transmission
-                    if ((gl_autocancel_en == 1) && ((rx_status & POLL_MAC_CANCEL_TX) != 0)) {
-                        // The Rx handler killed this transmission already by resetting the MAC core
-                        //     - Reset the global gl_autocancel_en variable and return failure
-                        gl_autocancel_en = 0;
-
-                        return TX_MPDU_RESULT_FAILURE;
-                    }
-#endif
                 } else if(poll_tbtt_return != BEACON_DEFERRED) {
                 	poll_tbtt_return = poll_tbtt();
                 }
