@@ -25,6 +25,7 @@
 
 // WLAN includes
 #include "wlan_mac_ipc_util.h"
+#include "wlan_mac_userio_util.h"
 #include "wlan_mac_high.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_dl_list.h"

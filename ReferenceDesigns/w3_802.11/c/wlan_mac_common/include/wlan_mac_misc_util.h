@@ -21,12 +21,6 @@
 
 
 //-----------------------------------------------
-// Base Addresses
-//
-#define USERIO_BASEADDR                                    XPAR_W3_USERIO_BASEADDR            ///< XParameters rename of base address of User I/O
-
-
-//-----------------------------------------------
 // Common function defines
 //
 #define max(a, b)                                       (((a) > (b)) ? (a) : (b))
@@ -421,21 +415,6 @@ typedef struct{
 
 
 /*************************** Function Prototypes *****************************/
-void               enable_hex_pwm();
-void               disable_hex_pwm();
-void               set_hex_pwm_period(u16 period);
-void               set_hex_pwm_min_max(u16 min, u16 max);
-
-void               write_hex_display(u8 val);
-void               write_hex_display_with_pwm(u8 val);
-void               blink_hex_display(u32 num_blinks, u32 blink_time);
-
-void               set_hex_display_right_dp(u8 val);
-void               set_hex_display_left_dp(u8 val);
-
-void               set_hex_display_error_status(u8 status);
-
 int                str2num(char* str);
-u8                 hex_to_seven_segment(u8 hex_value);
 
 #endif   // END WLAN_MAC_MISC_UTIL_H_

@@ -25,8 +25,8 @@
 #include "xintc.h"
 
 // WLAN includes
-#include "w3_userio.h"
 #include "wlan_mac_time_util.h"
+#include "wlan_mac_userio_util.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_802_11_defs.h"
