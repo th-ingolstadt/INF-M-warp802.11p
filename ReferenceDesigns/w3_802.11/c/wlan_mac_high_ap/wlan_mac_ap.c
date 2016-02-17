@@ -286,7 +286,7 @@ int main(){
 
 	// Set up beacon transmissions
 	wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, wlan_mac_addr );
-	wlan_mac_high_configure_beacon_transmit( &tx_header_common, my_bss_info, &default_multicast_mgmt_tx_params );
+	wlan_mac_high_configure_beacon_transmit( &tx_header_common, my_bss_info, &default_multicast_mgmt_tx_params, TX_MPDU_FLAGS_FILL_TIMESTAMP );
 
 	// Set the global power save configuration
 	//   Note: this should be called after wlan_mac_high_configure_beacon_transmit

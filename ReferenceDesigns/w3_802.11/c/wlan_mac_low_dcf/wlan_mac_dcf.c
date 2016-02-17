@@ -59,10 +59,9 @@ volatile static u8                     gl_cw_exp_max;
 
 volatile static u32                    gl_dot11RTSThreshold;
 
-volatile static u8                     gl_autocancel_en;
-volatile static u8                     gl_autocancel_match_type;
-volatile static u8                     gl_autocancel_match_addr3[6];
-volatile static u64                    gl_autocancel_last_rx_ts;
+volatile static u8                     gl_beaconcancel_en;
+volatile static u8                     gl_beaconcancel_match_type;
+volatile static u8                     gl_beaconcancel_match_addr3[6];
 
 volatile static u8                     gl_eeprom_addr[6];
 
@@ -99,18 +98,17 @@ int main(){
     xil_printf("This switch can be toggled any time while the design is running.\n\n");
     xil_printf("------------------------\n");
 
-    gl_autocancel_en = 0;
+    gl_beaconcancel_en = 0;
     gl_mpdu_pkt_buf = PKT_BUF_INVALID;
     gl_periodic_tx_details.enable = 0;
 
-    gl_autocancel_match_addr3[0] = 0x00;
-    gl_autocancel_match_addr3[1] = 0x00;
-    gl_autocancel_match_addr3[2] = 0x00;
-    gl_autocancel_match_addr3[3] = 0x00;
-    gl_autocancel_match_addr3[4] = 0x00;
-    gl_autocancel_match_addr3[5] = 0x00;
-    gl_autocancel_match_type     = 0x00;
-    gl_autocancel_last_rx_ts     = 0;
+    gl_beaconcancel_match_addr3[0] = 0x00;
+    gl_beaconcancel_match_addr3[1] = 0x00;
+    gl_beaconcancel_match_addr3[2] = 0x00;
+    gl_beaconcancel_match_addr3[3] = 0x00;
+    gl_beaconcancel_match_addr3[4] = 0x00;
+    gl_beaconcancel_match_addr3[5] = 0x00;
+    gl_beaconcancel_match_type     = 0x00;
 
     gl_dot11ShortRetryLimit      = 7;
     gl_dot11LongRetryLimit       = 4;
@@ -529,7 +527,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 
     	//Invalid HT-SIG hack
 		mac_hw_status = wlan_mac_get_status();
-		if(((mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE) == 0) && (wlan_mac_get_last_byte_index() == 0)) {
+		if((wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1) && ((mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE) == 0)) {
 			//Rx PHY is idle, but we're still waiting for bytes - bad MAC/PHY status, ignore Rx and return
 			wlan_mac_dcf_hw_rx_finish();
 		  	wlan_mac_dcf_hw_unblock_rx_phy();
@@ -725,6 +723,8 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
     //     This is used by the IBSS application to cancel a pending beacon transmission when
     //     a beacon is received from a peer node
     //
+
+#if 0
     if ((mpdu_info->state == RX_MPDU_STATE_FCS_GOOD)                   && // Rx pkt checksum good
         (rx_header->frame_control_1 == gl_autocancel_match_type)       && // Pkt type matches auto-cancel condition
         (wlan_addr_eq(rx_header->address_3, gl_autocancel_match_addr3) && // Pkt addr3 matches auto-cancel condition when pkt has addr3
@@ -744,6 +744,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
         // just-in-time cancellation of the transmission
         gl_autocancel_last_rx_ts = wlan_mac_low_get_rx_start_timestamp();
     }
+#endif
 
     // Received packet had good checksum
     if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) {
@@ -1022,7 +1023,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
         // Check if the higher-layer MAC requires this transmission have a pre-Tx backoff or post-Tx timeout
         req_timeout = ((frame_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
         req_backoff = ((frame_info->flags) & TX_MPDU_FLAGS_REQ_BO) != 0;
-
+#if 0
         // Check whether this transmission can be canceled - used by IBSS nodes competing with peers to send beacons
         gl_autocancel_en = ((frame_info->flags) & TX_MPDU_FLAGS_AUTOCANCEL) != 0;
 
@@ -1048,6 +1049,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
                 return -1;
             }
         }
+#endif
 
         // Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
         // This is the SIGNAL field for the MPDU we will eventually transmit. It's possible
@@ -1312,8 +1314,10 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
                         n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
                         wlan_mac_dcf_hw_start_backoff(n_slots);
 
+#if 0
                         // Disable any auto-cancellation of transmissions (to be re-enabled by future transmissions if needed)
                         gl_autocancel_en = 0;
+#endif
 
                         return 0;
                     break;
@@ -1373,9 +1377,10 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
                                 // Start a post-Tx backoff using the updated contention window
                                 n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
                                 wlan_mac_dcf_hw_start_backoff(n_slots);
-
+#if 0
                                 // Disable any auto-cancellation of transmissions (to be re-enabled by future transmissions if needed)
                                 gl_autocancel_en = 0;
+#endif
 
                                 return TX_MPDU_RESULT_SUCCESS;
 
@@ -1418,8 +1423,10 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
                             //     NOTE:  Use >= here to handle unlikely case of retryLimit values changing mid-Tx
                             if ((frame_info->short_retry_count >= gl_dot11ShortRetryLimit) ||
                                 (frame_info->long_retry_count  >= gl_dot11LongRetryLimit )) {
-                                // We are done transmitting. We now break out of the retry while loop
+#if 0
+                            	// We are done transmitting. We now break out of the retry while loop
                                 gl_autocancel_en = 0;
+#endif
 
                                 return TX_MPDU_RESULT_FAILURE;
                             }
@@ -1472,8 +1479,11 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
                         // Now we evaluate the SRC and LRC to see if either has reached its maximum
                         if ((frame_info->short_retry_count == gl_dot11ShortRetryLimit) ||
                             (frame_info->long_retry_count  == gl_dot11LongRetryLimit )) {
+
+#if 0
                             // We are done transmitting. We now break out of the retry while loop
                             gl_autocancel_en = 0;
+#endif
 
                             return TX_MPDU_RESULT_FAILURE;
                         }
@@ -1491,6 +1501,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
                 if (mac_hw_status & (WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED)) {
                     rx_status = wlan_mac_low_poll_frame_rx();
 
+#if 0
                     // Check if the new reception met the conditions to cancel the already-submitted transmission
                     if ((gl_autocancel_en == 1) && ((rx_status & POLL_MAC_CANCEL_TX) != 0)) {
                         // The Rx handler killed this transmission already by resetting the MAC core
@@ -1499,6 +1510,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
 
                         return TX_MPDU_RESULT_FAILURE;
                     }
+#endif
                 } else if(poll_tbtt_return != BEACON_DEFERRED) {
                 	poll_tbtt_return = poll_tbtt();
                 }

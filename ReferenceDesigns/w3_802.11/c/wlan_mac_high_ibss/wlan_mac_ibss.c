@@ -104,8 +104,6 @@ volatile u32                      mac_param_chan;
 static u8 	                      wlan_mac_addr[6];
 
 // Beacon variables
-volatile u32                      beacon_schedule_id = SCHEDULE_FAILURE;
-volatile u8                       enable_beacon_tx;
 volatile u8	                      allow_beacon_ts_update;            // Allow timebase to be updated from beacons
 
 
@@ -144,7 +142,6 @@ int main() {
 
 	// Set default behavior
 	pause_data_queue       = 0;
-	enable_beacon_tx       = 1;
 	allow_beacon_ts_update = 1;
 
 	// Set my_bss_info to NULL (ie IBSS is not currently on a BSS)
@@ -325,7 +322,6 @@ int main() {
 
 
 void ibss_set_association_state( bss_info* new_bss_info ){
-
 	leave_ibss();
 
 	mac_param_chan = new_bss_info->chan;
@@ -339,64 +335,11 @@ void ibss_set_association_state( bss_info* new_bss_info ){
 	xil_printf("   Channel        : %d\n", my_bss_info->chan);
 	xil_printf("   Beacon Interval: %d TU (%d us)\n",my_bss_info->beacon_interval, my_bss_info->beacon_interval*1024);
 
-
-	//802.11-2012 10.1.3.3 Beacon generation in an IBSS
-	//Note: Unlike the AP implementation, we need to use the SCHEDULE_FINE scheduler sub-beacon-interval fidelity
-	if(enable_beacon_tx) beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1024, 1, (void*)beacon_transmit);
-}
-
-
-/**
- * @brief Transmit a beacon
- *
- * This function will create and enqueue a beacon.
- *
- * @param  None
- * @return None
- */
-void beacon_transmit(u32 schedule_id) {
-
- 	u16 tx_length;
- 	tx_queue_element*	curr_tx_queue_element;
- 	tx_queue_buffer* 	curr_tx_queue_buffer;
-
-	if(my_bss_info != NULL && enable_beacon_tx == 1){
-
-		//When an IBSS node receives a beacon, it schedules the call of this beacon_transmit function
-		//for some point in the future that is generally less than the beacon interval to account for
-		//the delay in reception and processing. As such, this function will update the period of this
-		//schedule with the actual beacon interval.
-
-		beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1024, 1, (void*)beacon_transmit);
-
-		// Create a beacon
-		curr_tx_queue_element = queue_checkout();
-
-		if((curr_tx_queue_element != NULL) && (my_bss_info != NULL)){
-			curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
-
-			// Setup the TX header
-			wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, my_bss_info->bssid );
-
-			// Fill in the data
-			tx_length = wlan_create_beacon_frame(
-				(void*)(curr_tx_queue_buffer->frame),
-				&tx_header_common,
-				my_bss_info);
-
-			// Setup the TX frame info
-			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_REQ_BO | TX_MPDU_FLAGS_AUTOCANCEL), BEACON_QID );
-
-			// Set the information in the TX queue buffer
-			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-			curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_mgmt_tx_params);
-			curr_tx_queue_buffer->frame_info.AID         = 0;
-
-			// Put the packet in the queue
-			enqueue_after_tail(BEACON_QID, curr_tx_queue_element);
-
-		}
-	}
+	// Set up beacon transmissions
+	wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, my_bss_info->bssid );
+	wlan_mac_high_configure_beacon_transmit( &tx_header_common, my_bss_info,
+											 &default_multicast_mgmt_tx_params,
+											 (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_REQ_BO | TX_MPDU_FLAGS_BEACONCANCEL) );
 }
 
 
@@ -917,13 +860,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 									// Update the MAC time
 									apply_mac_time_delta_usec(time_delta);
 								}
-
-								// We need to adjust the phase of our TBTT. To do this, we will kill the old schedule event, and restart now (which is near the TBTT)
-								if(beacon_schedule_id != SCHEDULE_FAILURE){
-									wlan_mac_remove_schedule(SCHEDULE_FINE, beacon_schedule_id);
-									time_delta         = get_mac_time_usec() - ((beacon_probe_frame*)mpdu_ptr_u8)->timestamp;
-									beacon_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, (my_bss_info->beacon_interval)*1024 - time_delta, 1, (void*)beacon_transmit);
-								}
 							}
 							if(queue_num_queued(BEACON_QID)){
 
@@ -1235,7 +1171,6 @@ void reset_bss_info(){
 void leave_ibss(){
 
 	int		   iter;
-
 	xil_printf("Resetting IBSS state (current BSS and all peer station_info structs)\n");
 
 	if(my_bss_info != NULL){
@@ -1258,9 +1193,7 @@ void leave_ibss(){
 
 		my_bss_info = NULL;
 
-		if(beacon_schedule_id != SCHEDULE_FAILURE){
-			wlan_mac_remove_schedule(SCHEDULE_FINE, beacon_schedule_id);
-		}
+		// TODO: Need a way to tell CPU_LOW to stop sending beacons
 	}
 }
 

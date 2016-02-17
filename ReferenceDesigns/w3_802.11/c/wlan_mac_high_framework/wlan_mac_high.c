@@ -1579,13 +1579,13 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 		case IPC_MBOX_TX_BEACON_DONE:
 			tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(msg->arg0);
 			if(lock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
-				xil_printf("Error: CPU_LOW had lock on Beacon packet buffer during initial configuration\n");
+				xil_printf("Error: CPU_LOW had lock on Beacon packet buffer during IPC_MBOX_TX_BEACON_DONE\n");
 				return;
 			}
 			beacon_tx_done_callback( tx_mpdu, (wlan_mac_low_tx_details*)(msg->payload_ptr) );
 			tx_mpdu->tx_pkt_buf_state = READY;
 			if(unlock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
-				xil_printf("Error: Unable to unlock Beacon packet buffer during initial configuration\n");
+				xil_printf("Error: Unable to unlock Beacon packet buffer during IPC_MBOX_TX_BEACON_DONE\n");
 				return;
 			}
 		break;
@@ -2782,9 +2782,10 @@ void wlan_mac_high_update_tx_counts(tx_frame_info* tx_mpdu, station_info* statio
  * @param  None
  * @return None
  */
-int wlan_mac_high_configure_beacon_transmit(mac_header_80211_common* tx_header_common_ptr, bss_info* bss_info_ptr, tx_params* tx_params_ptr) {
+int wlan_mac_high_configure_beacon_transmit(mac_header_80211_common* tx_header_common_ptr, bss_info* bss_info_ptr, tx_params* tx_params_ptr, u8 flags) {
 	u16 tx_length;
 	wlan_ipc_msg ipc_msg_to_low;
+	u32	beacon_interval;
 
 	// TODO: need to set the Tx Params independently with wlan_exp changes or any other updates
 
@@ -2807,11 +2808,12 @@ int wlan_mac_high_configure_beacon_transmit(mac_header_80211_common* tx_header_c
 	// Set up frame info data
 	tx_frame_info_ptr->timestamp_create            = get_mac_time_usec();
 	tx_frame_info_ptr->length                      = tx_length;
-	tx_frame_info_ptr->flags                       = TX_MPDU_FLAGS_FILL_TIMESTAMP;
+	tx_frame_info_ptr->flags                       = flags;
 	tx_frame_info_ptr->queue_info.QID			   = 0xFF;
 	tx_frame_info_ptr->queue_info.occupancy 	   = 0;
 
 
+	beacon_interval = bss_info_ptr->beacon_interval;
 
 
 	// Unique_seq will be filled in by CPU_LOW
@@ -2825,8 +2827,7 @@ int wlan_mac_high_configure_beacon_transmit(mac_header_80211_common* tx_header_c
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TX_BEACON_CONFIGURE);
 	ipc_msg_to_low.arg0              = TX_PKT_BUF_BEACON;
 	ipc_msg_to_low.num_payload_words = 1;
-	ipc_msg_to_low.payload_ptr		 = (u32*)(&(bss_info_ptr->beacon_interval));
-
+	ipc_msg_to_low.payload_ptr		 = &beacon_interval;
 
 	if(unlock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
 		xil_printf("Error: Unable to unlock Beacon packet buffer during initial configuration\n");

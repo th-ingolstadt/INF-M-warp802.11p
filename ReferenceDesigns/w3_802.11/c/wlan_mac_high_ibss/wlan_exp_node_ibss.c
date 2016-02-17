@@ -201,6 +201,11 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
         //---------------------------------------------------------------------
         case CMDID_NODE_IBSS_CONFIG: {
+#if 0
+
+        	//TODO: This need to be re-tooled. We will no longer be toggling beacons on or off
+        	//this way.
+
             // CMDID_NODE_IBSS_CONFIG Packet Format:
             //   - cmd_args_32[0]  - flags
             //                         [ 0] - NODE_CONFIG_FLAG_BEACON_TS_UPDATE
@@ -238,6 +243,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+#endif
         }
         break;
 

@@ -166,15 +166,17 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
     frame_info->rx_power       = wlan_mac_low_calculate_rx_power(wlan_phy_rx_get_pkt_rssi(frame_info->ant_mode), wlan_phy_rx_get_agc_RFG(frame_info->ant_mode));
 
     // Wait until the PHY has written enough bytes so that the first address field can be processed
-    while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1){
-		mac_hw_status = wlan_mac_get_status();
-		//if(((mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE) == 0) && (wlan_mac_get_last_byte_index() == 0)) {
-		if(((mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE) == 0)) {
-			//Rx PHY is idle, but we're still waiting for bytes - bad MAC/PHY status, ignore Rx and return
-			 wlan_mac_dcf_hw_unblock_rx_phy();
-			return 0;
-		}
-    };
+     while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1){
+     	//Invalid HT-SIG hack
+ 		mac_hw_status = wlan_mac_get_status();
+ 		if((wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1) && ((mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE) == 0)) {
+ 			//Rx PHY is idle, but we're still waiting for bytes - bad MAC/PHY status, ignore Rx and return
+ 			wlan_mac_dcf_hw_rx_finish();
+ 		  	wlan_mac_dcf_hw_unblock_rx_phy();
+ 		  	return 0;
+ 		}
+     }
+
 
     // Increment the LEDs based on the FCS status
     if(frame_info->state == RX_MPDU_STATE_FCS_GOOD){
