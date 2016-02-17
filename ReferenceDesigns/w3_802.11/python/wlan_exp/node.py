@@ -976,6 +976,33 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         return self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_MGMT))
 
 
+    def set_tx_ant_mode(self, ant_mode):
+        """Sets the transmit antenna mode of the node.
+
+        This command will set all transmit antenna mode fields on the node to the same value:
+            * Default Unicast Management Packet Tx Antenna mode for new associations
+            * Default Unicast Data Packet Tx Tx Antenna mode for new associations
+            * Default Multicast Management Packet Tx Antenna mode for new associations
+            * Default Multicast Data Packet Tx Antenna mode for new associations
+
+        It will also update the transmit antenna mode of all current associations on the node.
+
+        Args:
+            ant_mode (dict from util.wlan_tx_ant_mode):  Antenna dictionary
+                (Dictionary from the wlan_tx_ant_mode list in wlan_exp.util)
+        """
+        self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_NODE_TX_ANT_ALL, ant_mode))
+
+
+    def get_tx_ant_mode(self):
+        """Gets the current default unicast data transmit antenna mode of the node for new associations.
+
+        Returns:
+            ant_modes (Entries from the wlan_tx_ant_mode in wlan_exp.util):  Current unicast packet Tx antenna mode.
+        """
+        return self.get_tx_ant_mode_unicast(new_assoc=True)[0]
+
+
     #------------------------
     # Rx Antenna Mode commands
 
@@ -1119,7 +1146,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             power (int):  Transmit power in dBm (a value between util.get_node_max_tx_power() and
                 util.get_node_min_tx_power())
         """
-        return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_NODE_TX_POWER_ALL, power))
+        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_NODE_TX_POWER_ALL, power))
 
 
     def get_tx_power(self):

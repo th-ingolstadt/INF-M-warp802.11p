@@ -112,6 +112,8 @@ CMD_PARAM_NODE_TX_POWER_ALL                      = 0x00000020
 CMD_PARAM_NODE_TX_POWER_MAX_DBM                  = 21
 CMD_PARAM_NODE_TX_POWER_MIN_DBM                  = -9
 
+CMD_PARAM_NODE_TX_ANT_ALL                        = 0x00000010
+
 CMD_PARAM_RX_FILTER_FCS_GOOD                     = 0x1000
 CMD_PARAM_RX_FILTER_FCS_ALL                      = 0x2000
 CMD_PARAM_RX_FILTER_FCS_NOCHANGE                 = 0xF000
@@ -1263,6 +1265,7 @@ class NodeProcTxAntMode(message.Cmd):
                        CMD_PARAM_UNICAST
                        CMD_PARAM_MULTICAST_DATA
                        CMD_PARAM_MULTICAST_MGMT
+                       CMD_PARAM_NODE_TX_ANT_ALL
         ant_mode  -- Transmit antenna mode for the node.  Checking is
                      done both in the command and on the node.  The current
                      antenna mode will be returned by the node.
@@ -1293,7 +1296,8 @@ class NodeProcTxAntMode(message.Cmd):
         return_type = None
         valid_types = [('CMD_PARAM_UNICAST',           CMD_PARAM_UNICAST),
                        ('CMD_PARAM_MULTICAST_DATA',    CMD_PARAM_MULTICAST_DATA),
-                       ('CMD_PARAM_MULTICAST_MGMT',    CMD_PARAM_MULTICAST_MGMT)]
+                       ('CMD_PARAM_MULTICAST_MGMT',    CMD_PARAM_MULTICAST_MGMT),
+                       ('CMD_PARAM_NODE_TX_ANT_ALL',   CMD_PARAM_NODE_TX_ANT_ALL)]
 
         for tmp_type in valid_types:
             if (tx_type == tmp_type[1]):
