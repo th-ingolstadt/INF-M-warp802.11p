@@ -35,32 +35,6 @@
 /******************************** Functions **********************************/
 
 
-/*****************************************************************************/
-/**
- * @brief Convert a string to a number
- *
- * @param   str              - String to convert (char *)
- * @return  int              - Integer value of the string
- *
- * @note    For now this only works with non-negative values
- */
-int str2num(char* str) {
-    u32 i;
-    u8  decade_index;
-    int multiplier;
-    int return_value  = 0;
-    u8  string_length = strlen(str);
-
-    for(decade_index = 0; decade_index < string_length; decade_index++){
-        multiplier = 1;
-        for(i = 0; i < (string_length - 1 - decade_index) ; i++){
-            multiplier = multiplier*10;
-        }
-        return_value += multiplier*(u8)(str[decade_index] - 48);
-    }
-
-    return return_value;
-}
 
 
 

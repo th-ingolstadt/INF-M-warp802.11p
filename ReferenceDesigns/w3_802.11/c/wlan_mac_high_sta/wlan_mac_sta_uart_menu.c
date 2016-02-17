@@ -146,7 +146,7 @@ void uart_rx(u8 rxByte){
 
                     if(access_point != NULL) access_point->tx.phy.mcs = (default_unicast_data_tx_params.phy.mcs);
 
-                    xil_printf("(-) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps((default_unicast_data_tx_params.phy.mcs)));
+                    xil_printf("(-) Default Unicast MCS Index: %d\n", default_unicast_data_tx_params.phy.mcs);
                 break;
 
                 case ASCII_R:
@@ -158,7 +158,7 @@ void uart_rx(u8 rxByte){
 
                     if(access_point != NULL) access_point->tx.phy.mcs = (default_unicast_data_tx_params.phy.mcs);
 
-                    xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps((default_unicast_data_tx_params.phy.mcs)));
+                    xil_printf("(+) Default Unicast MCS Index: %d\n", default_unicast_data_tx_params.phy.mcs);
                 break;
             }
         break;
@@ -228,7 +228,7 @@ void print_menu(){
     xil_printf("[2]   - Print all Observed Counts\n");
     xil_printf("\n");
     xil_printf("[a]   - Display BSS information\n");
-    xil_printf("[r/R] - change unicast rate\n");
+    xil_printf("[r/R] - change unicast MCS index (rate)\n");
     xil_printf("**********************************************************\n");
 }
 

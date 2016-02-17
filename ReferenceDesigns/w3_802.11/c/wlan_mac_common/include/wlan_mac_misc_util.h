@@ -415,6 +415,6 @@ typedef struct{
 
 
 /*************************** Function Prototypes *****************************/
-int                str2num(char* str);
+
 
 #endif   // END WLAN_MAC_MISC_UTIL_H_

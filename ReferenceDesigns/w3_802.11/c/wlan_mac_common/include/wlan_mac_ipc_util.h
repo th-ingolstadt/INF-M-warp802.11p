@@ -125,7 +125,6 @@ typedef struct {
 
 int wlan_lib_init ();
 inline int ipc_mailbox_read_isempty();
-inline int wlan_lib_mac_rate_to_mbps (u8 rate);
 int lock_pkt_buf_tx(u8 pkt_buf_ind);
 int lock_pkt_buf_rx(u8 pkt_buf_ind);
 int unlock_pkt_buf_tx(u8 pkt_buf_ind);
@@ -135,6 +134,8 @@ int status_pkt_buf_rx(u8 pkt_buf_ind, u32* Locked, u32 *Owner);
 
 int ipc_mailbox_read_msg(wlan_ipc_msg* msg);
 int ipc_mailbox_write_msg(wlan_ipc_msg* msg);
+
+
 void nullCallback(void* param);
 inline int wlan_lib_channel_verify (u32 mac_channel);
 

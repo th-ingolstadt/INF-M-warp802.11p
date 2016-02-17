@@ -179,7 +179,7 @@ void uart_rx(u8 rxByte){
 						curr_station_info_entry = dl_entry_next(curr_station_info_entry);
 					}
 
-					xil_printf("(-) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps((default_unicast_data_tx_params.phy.mcs)));
+					xil_printf("(-) Default Unicast MCS Index: %d\n", default_unicast_data_tx_params.phy.mcs);
 				break;
 				case ASCII_R:
 					if((default_unicast_data_tx_params.phy.mcs) < WLAN_MAC_MCS_54M){
@@ -194,7 +194,7 @@ void uart_rx(u8 rxByte){
 						curr_station_info->tx.phy.mcs = (default_unicast_data_tx_params.phy.mcs);
 						curr_station_info_entry = dl_entry_next(curr_station_info_entry);
 					}
-					xil_printf("(+) Default Unicast Rate: %d Mbps\n", wlan_lib_mac_rate_to_mbps((default_unicast_data_tx_params.phy.mcs)));
+					xil_printf("(+) Default Unicast MCS Index: %d\n", default_unicast_data_tx_params.phy.mcs);
 				break;
 				case ASCII_s:
 					uart_mode = UART_MODE_SSID_CHANGE;
@@ -345,7 +345,7 @@ void print_menu(){
 	xil_printf("[c/C] - change channel (note: changing channel will\n");
 	xil_printf("        purge any associations, forcing stations to\n");
 	xil_printf("        join the network again)\n");
-	xil_printf("[r/R] - change default unicast rate\n");
+	xil_printf("[r/R] - change default unicast MCS index (rate)\n");
 	xil_printf("[s]   - change SSID (note: changing SSID will purge)\n");
 	xil_printf("        any associations)\n");
 	xil_printf("*****************************************************\n");
