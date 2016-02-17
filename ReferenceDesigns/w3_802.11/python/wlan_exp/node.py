@@ -1863,7 +1863,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Writes 'values' to EEPROM starting at 'address'
 
         Attributes:
-            address (int):         Address must be in [0 .. 16000]
+            address (int):         Address must be in [0 .. 15999]
             values (list of int):  Each value must be in [0 .. 255]
         """
         # Convert scalar values to a list for processing
