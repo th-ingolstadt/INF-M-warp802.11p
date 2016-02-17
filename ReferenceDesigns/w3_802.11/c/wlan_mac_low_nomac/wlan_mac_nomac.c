@@ -316,7 +316,8 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
         }
     } while (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_PENDING);
 
-    return -1;
+    // NoMAC Tx is always "successful"
+    return TX_MPDU_RESULT_SUCCESS;
 }
 
 
