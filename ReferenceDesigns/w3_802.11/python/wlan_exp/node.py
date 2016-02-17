@@ -1371,7 +1371,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             rate_suppored (bool):  True if the specified rate is supported
         """
         import wlan_exp.util as util
-        
+
         rate_ok = True
 
         if ((mcs < 0) or (mcs > 7)):
@@ -1383,7 +1383,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             if (verbose):
                 print("Invalid PHY mode {0}. PHY mode must be one of ['NONHT', 'HTMF', phy_modes['NONHT'], phy_modes['HTMF']".format(phy_mode))
             rate_ok = False
-    
+
         return rate_ok
 
 
@@ -1415,7 +1415,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
         if curr_assoc:
             self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_UNICAST, param))
-            
+
         if (device_list is not None):
             try:
                 for device in device_list:
@@ -1768,7 +1768,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     #--------------------------------------------
     def _mem_write_high(self, address, values):
         """Writes 'values' to CPU High memory starting at 'address'
-        
+
         Attributes:
             address (int):         Address must be in [0 .. (2^32 - 1)]
             values (list of int):  Each value must be in [0 .. (2^32 - 1)]
@@ -1776,14 +1776,14 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         # Convert scalar values to a list for processing
         if (type(values) is not list):
             values = [values]
-            
+
         if (self._check_mem_access_args(address, values)):
             return self.send_cmd(cmds.NodeMemAccess(cmd=cmds.CMD_PARAM_WRITE, high=True, address=address, length=len(values), values=values))
 
 
     def _mem_read_high(self, address, length):
         """Reads 'length' values from CPU High memory starting at 'address'
-        
+
         Attributes:
             address (int):  Address must be in [0 .. (2^32 - 1)]
             length (int):   Length must be in [1 .. 320] (ie fit in a 1400 byte packet)
@@ -1797,7 +1797,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
     def _mem_write_low(self, address, values):
         """Writes 'values' to CPU Low memory starting at 'address'
-        
+
         Attributes:
             address (int):         Address must be in [0 .. (2^32 - 1)]
             values (list of int):  Each value must be in [0 .. (2^32 - 1)]
@@ -1805,14 +1805,14 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         # Convert scalar values to a list for processing
         if (type(values) is not list):
             values = [values]
-            
+
         if (self._check_mem_access_args(address, values)):
             return self.send_cmd(cmds.NodeMemAccess(cmd=cmds.CMD_PARAM_WRITE, high=False, address=address, length=len(values), values=values))
 
 
     def _mem_read_low(self, address, length):
         """Reads 'length' values from CPU Low memory starting at 'address'
-        
+
         Attributes:
             address (int):  Address must be in [0 .. (2^32 - 1)]
             length (int):   Length must be in [1 .. 320] (ie fit in a 1400 byte packet)
@@ -1826,7 +1826,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
     def _check_mem_access_args(self, address, values=None, length=None):
         """Check memory access variables
-        
+
         Attributes:
             address (int):         Address must be in [0 .. (2^32 - 1)]
             values (list of int):  Each value must be in [0 .. (2^32 - 1)]
@@ -1841,17 +1841,17 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         if (values is not None):
             if (type(values) is not list):
                 values = [values]
-                    
+
             error = False
-            
+
             for value in values:
-                if (((type(value) is not int) and (type(value) is not long)) or 
+                if (((type(value) is not int) and (type(value) is not long)) or
                     (value >= 2**32) or (value < 0)):
                     error = True
 
             if (error):
                 raise Exception('ERROR: values must be scalar or iterable of ints in [0 .. (2^32 - 1)]!')
-                
+
         if length is not None:
             if ((int(length) != length) or (length > 320) or (length <= 0)):
                 raise Exception('ERROR: length must be an integer [1 .. 320] words (ie, 4 to 1400 bytes)!')
@@ -1861,24 +1861,27 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
     def _eeprom_write(self, address, values):
         """Writes 'values' to EEPROM starting at 'address'
-        
+
         Attributes:
-            address (int):         Address must be in [0 .. (2^16 - 1)]
+            address (int):         Address must be in [0 .. 16000]
             values (list of int):  Each value must be in [0 .. 255]
         """
         # Convert scalar values to a list for processing
         if (type(values) is not list):
             values = [values]
-        
+
         if (self._check_eeprom_access_args(address=address, values=values, length=len(values))):
-            return self.send_cmd(cmds.NodeEEPROMAccess(cmd=cmds.CMD_PARAM_WRITE, address=address, length=len(values), values=values))
+            if(address >= 16000):
+                raise Exception('ERROR: EEPROM addresses [16000 .. 16383] are read only!')
+            else:
+                return self.send_cmd(cmds.NodeEEPROMAccess(cmd=cmds.CMD_PARAM_WRITE, address=address, length=len(values), values=values))
 
 
     def _eeprom_read(self, address, length):
         """Reads 'length' values from EEPROM starting at 'address'
-        
+
         Attributes:
-            address (int):  Address must be in [0 .. (2^16 - 1)]
+            address (int):  Address must be in [0 .. 16383]
             length (int):   Length must be in [1 .. 320] (ie fit in a 1400 byte packet)
 
         Returns:
@@ -1890,9 +1893,9 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
     def _check_eeprom_access_args(self, address, values=None, length=None):
         """Check EEPROM access variables
-        
+
         Attributes:
-            address (int):         Address must be in [0 .. (2^16 - 1)]
+            address (int):         Address must be in [0 .. 16383]
             values (list of int):  Each value must be in [0 .. 255]
             length (int):          Length must be in [1 .. 320] (ie fit in a 1400 byte packet)
 
@@ -1905,11 +1908,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         if (values is not None):
             if (type(values) is not list):
                 values = [values]
-                    
+
             error = False
-            
+
             for value in values:
-                if (((type(value) is not int) and (type(value) is not long)) or 
+                if (((type(value) is not int) and (type(value) is not long)) or
                     (value >= 2**8) or (value < 0)):
                     error = True
 
