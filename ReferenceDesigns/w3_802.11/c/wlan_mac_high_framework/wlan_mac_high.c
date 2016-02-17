@@ -2770,6 +2770,9 @@ void wlan_mac_high_update_tx_counts(tx_frame_info* tx_mpdu, station_info* statio
 			if((tx_mpdu->tx_result) == TX_MPDU_RESULT_SUCCESS){
 				(frame_counts->tx_num_packets_success)++;
 				(frame_counts->tx_num_bytes_success) += tx_mpdu->length;
+
+				// Update the latest_activity_timestamp for the station because we had a successful TX
+				station->latest_activity_timestamp = get_system_time_usec();
 			}
 		}
 	}
