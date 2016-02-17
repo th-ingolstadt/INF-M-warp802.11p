@@ -155,7 +155,9 @@ void apply_mac_time_delta_usec(s64 time_delta) {
     u64                new_mac_time;
 
     // Compute the new MAC time based on the current MAC time and the time delta
-    new_mac_time = get_mac_time_usec() + time_delta;
+    // The extra 1 usec is empirically determined. This compensates for the time it
+    // takes to read, modify, then write the new MAC time back to the core.
+    new_mac_time = get_mac_time_usec() + time_delta + 1;
 
     // Update the time in the MAC Time HW core
     set_mac_time_usec(new_mac_time);
