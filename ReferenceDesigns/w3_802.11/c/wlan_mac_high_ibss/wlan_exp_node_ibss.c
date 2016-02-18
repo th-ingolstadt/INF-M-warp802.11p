@@ -64,7 +64,6 @@ extern dl_list        counts_table;
 extern u8             pause_data_queue;
 extern u32            mac_param_chan;
 
-extern u8             allow_beacon_ts_update;
 extern u8             enable_beacon_tx;
 
 extern bss_info*      my_bss_info;
@@ -203,7 +202,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
         case CMDID_NODE_IBSS_CONFIG: {
 #if 0
 
-        	//TODO: This need to be re-tooled. We will no longer be toggling beacons on or off
+        	//FIXME: This need to be re-tooled. We will no longer be toggling beacons on or off
         	//this way.
 
             // CMDID_NODE_IBSS_CONFIG Packet Format:

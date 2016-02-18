@@ -231,6 +231,19 @@ typedef struct {
 	u32         ltg_id;
 } ltg_packet_id;
 
+//-----------------------------------------------
+// Timestamp Update Configuration
+//
+typedef enum {
+	NEVER_UPDATE,
+	ALWAYS_UPDATE,
+	FUTURE_ONLY_UPDATE,
+} ts_update_mode_t;
+
+typedef struct{
+	ts_update_mode_t 	ts_update_mode;
+	u8					bssid_match[6];
+} config_ts_update_t;
 
 //-----------------------------------------------
 // TX parameters

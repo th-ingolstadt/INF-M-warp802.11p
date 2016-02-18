@@ -60,8 +60,8 @@ volatile static u8                     gl_cw_exp_max;
 volatile static u32                    gl_dot11RTSThreshold;
 
 volatile static u8                     gl_beacon_allow_submit_en;
-volatile static u8                     gl_beaconcancel_match_type;
-volatile static u8                     gl_beaconcancel_match_addr3[6];
+volatile static u8                     gl_beaconcancel_match_type;	   //TODO: remove
+volatile static u8                     gl_beaconcancel_match_addr3[6]; //TODO: remove
 
 volatile static u8                     gl_eeprom_addr[6];
 
@@ -74,6 +74,7 @@ volatile u8                            gl_red_led_index;
 volatile u8                            gl_green_led_index;
 
 volatile periodic_tx_details		   gl_periodic_tx_details;
+volatile config_ts_update_t			   gl_config_ts_update;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -101,6 +102,8 @@ int main(){
     gl_beacon_allow_submit_en = 0;
     gl_mpdu_pkt_buf = PKT_BUF_INVALID;
     gl_periodic_tx_details.enable = 0;
+
+    bzero((void*)gl_config_ts_update.bssid_match,6);
 
     gl_beaconcancel_match_addr3[0] = 0x00;
     gl_beaconcancel_match_addr3[1] = 0x00;
@@ -136,7 +139,7 @@ int main(){
     wlan_mac_low_set_frame_rx_callback((void*)frame_receive);
     wlan_mac_low_set_frame_tx_callback((void*)frame_transmit);
     wlan_mac_low_set_beacon_tx_config_callback((void*)configure_beacon_tx);
-
+    wlan_mac_low_set_ts_update_config_callback((void*)configure_ts_update);
     wlan_mac_low_set_ipc_low_param_callback((void*)process_low_param);
 
     if(lock_pkt_buf_tx(TX_PKT_BUF_ACK_CTS) != PKT_BUF_MUTEX_SUCCESS){
@@ -197,6 +200,18 @@ void configure_beacon_tx(u8 tx_pkt_buf, u32 interval_tu){
 		wlan_mac_set_tu_target(0xFFFFFFFF);
 		wlan_mac_reset_tu_target_latch(1);
 	}
+}
+
+void configure_ts_update(config_ts_update_t* config_ts_update){
+	memcpy((void*)&gl_config_ts_update, (void*)config_ts_update, sizeof(config_ts_update_t));
+
+	xil_printf("ts_update_mode             = %d\n",gl_config_ts_update.ts_update_mode);
+	xil_printf("bssid_match.ts_update_mode = %02x:%02x:%02x:%02x:%02x:%02x\n",gl_config_ts_update.bssid_match[0],
+																			  gl_config_ts_update.bssid_match[1],
+																			  gl_config_ts_update.bssid_match[2],
+																			  gl_config_ts_update.bssid_match[3],
+																			  gl_config_ts_update.bssid_match[4],
+																			  gl_config_ts_update.bssid_match[5]);
 }
 
 inline poll_tbtt_return_t poll_tbtt(){
@@ -415,6 +430,7 @@ inline int send_beacon(u8 tx_pkt_buf){
                 			xil_printf("Error: Unable to unlock Beacon packet buffer\n");
                 			return -1;
                 		}
+                		wlan_mac_pause_backoff_tx_ctrl_A(0);
                         return return_status;
                     }
 
@@ -435,7 +451,6 @@ inline int send_beacon(u8 tx_pkt_buf){
 
 		ipc_mailbox_write_msg(&ipc_msg_to_high);
 	}
-
 	wlan_mac_pause_backoff_tx_ctrl_A(0);
 
 	return return_status;
@@ -493,6 +508,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
     int                 curr_tx_pow;
     u8                  ctrl_tx_gain;
     u32                 mac_hw_status;
+    s64					time_delta;
 
     u8                  mpdu_tx_ant_mask         = 0;
     u8                  ack_tx_ant               = 0;
@@ -505,6 +521,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
     rx_frame_info     * mpdu_info;
     tx_frame_info     * tx_mpdu_info;
     mac_header_80211  * rx_header;
+    u8				  * mpdu_ptr_u8;
 
     mac_timing			mac_timing_values = wlan_mac_low_get_mac_timing_values();
 
@@ -520,6 +537,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
 
     // Apply the mac_header_80211 template to the first bytes of the received MPDU
     rx_header = (mac_header_80211*)((void*)(pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET));
+    mpdu_ptr_u8 = (u8*)rx_header;
 
     // Sanity check length value - anything shorter than an ACK must be bogus
     if((phy_details->length) < (sizeof(mac_header_80211_ACK) + WLAN_PHY_FCS_NBYTES)) {
@@ -822,6 +840,41 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
                 break;
             }
         }
+
+		// Check to see if this was a beacon or probe response frame and update the MAC time if appropriate
+		switch(rx_header->frame_control_1) {
+			//---------------------------------------------------------------------
+			case (MAC_FRAME_CTRL1_SUBTYPE_BEACON):
+			case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP):
+				// Beacon Packet / Probe Response Packet
+				//   -
+				//
+
+				// If this packet was from our BSS
+				if(wlan_addr_eq(gl_config_ts_update.bssid_match, rx_header->address_3)){
+
+					// Move the packet pointer to after the header
+					mpdu_ptr_u8 += sizeof(mac_header_80211);
+
+					// Calculate the difference between the beacon timestamp and the packet timestamp
+					time_delta = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(mpdu_info->timestamp) + mac_timing_values.t_phy_rx_start_dly;
+
+					// Update the MAC time
+
+					switch(gl_config_ts_update.ts_update_mode){
+						case NEVER_UPDATE:
+						break;
+						case ALWAYS_UPDATE:
+							apply_mac_time_delta_usec(time_delta);
+						break;
+						case FUTURE_ONLY_UPDATE:
+							if(time_delta > 0) apply_mac_time_delta_usec(time_delta);
+						break;
+					}
+				}
+
+			break;
+		}
 
     // Received checksum was bad
     } else {

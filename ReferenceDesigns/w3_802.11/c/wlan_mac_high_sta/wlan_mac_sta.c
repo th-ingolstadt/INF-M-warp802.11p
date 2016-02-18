@@ -102,9 +102,7 @@ volatile u32                      mac_param_chan;
 // MAC address
 static u8 	                      wlan_mac_addr[6];
 
-// Beacon variables
-volatile u8	                      allow_beacon_ts_update;            // Allow timebase to be updated from beacons
-
+static	config_ts_update_t		  gl_config_ts_update; //TODO: Need to create a setter for this struct that also pushes it via IPC to CPU_LOW to toggle TS updates on and off
 
 
 /*************************** Functions Prototypes ****************************/
@@ -141,14 +139,14 @@ int main() {
 	// Initialize the maximum TX queue size
 	max_queue_size = MAX_TX_QUEUE_LEN;
 
-    // Do not allow timebase updates from beacons
-	allow_beacon_ts_update = 1;
-
 	// Unpause the queue
 	pause_data_queue = 0;
 
 	// Set my_bss_info to NULL (ie STA is not currently on a BSS)
-	my_bss_info = NULL;
+	sta_set_association_state(NULL, 0);
+
+	gl_config_ts_update.ts_update_mode = ALWAYS_UPDATE;
+	bzero(gl_config_ts_update.bssid_match, 6);
 
 	//New associations adopt these unicast params; the per-node params can be
 	// overridden via wlan_exp calls or by custom C code
@@ -557,7 +555,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 	u8                  unicast_to_me;
 	u8                  to_multicast;
-	s64                 time_delta;
 	u8                  is_associated            = 0;
 	dl_entry*			bss_info_entry;
 	bss_info*			curr_bss_info;
@@ -634,6 +631,11 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 		if(unicast_to_me || to_multicast){
 			// Process the packet
 			switch(rx_80211_header->frame_control_1) {
+				//---------------------------------------------------------------------
+				case (MAC_FRAME_CTRL1_SUBTYPE_BEACON):
+				case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP):
+					//TODO: Log a MAC time change
+				break;
 
 				//---------------------------------------------------------------------
 				case MAC_FRAME_CTRL1_SUBTYPE_QOSDATA:
@@ -742,53 +744,13 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 							my_bss_info->state = BSS_STATE_UNAUTHENTICATED;
 
 							curr_bss_info = my_bss_info;
-							my_bss_info = NULL;
+							sta_set_association_state(NULL, 0);
 
 							wlan_mac_sta_join(curr_bss_info,0); //Attempt to rejoin the AP
 
 						}
 					}
 				break;
-
-
-				//---------------------------------------------------------------------
-				case (MAC_FRAME_CTRL1_SUBTYPE_BEACON):
-				case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP):
-					// Beacon Packet / Probe Response Packet
-					//   -
-					//
-
-					// Define the PHY timestamp offset
-					#define PHY_T_OFFSET 25
-
-					// Update the timestamp from the beacon / probe response if allowed
-					if(my_bss_info != NULL && allow_beacon_ts_update == 1){
-
-						// If this packet was from our AP
-						if(wlan_addr_eq(((station_info*)(((my_bss_info->associated_stations).first)->data))->addr, rx_80211_header->address_3)){
-
-							// Move the packet pointer to after the header
-							mpdu_ptr_u8 += sizeof(mac_header_80211);
-
-							// Calculate the difference between the beacon timestamp and the packet timestamp
-							//     NOTE:  We need to compensate for the time it takes to set the timestamp in the PHY
-							time_delta = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(frame_info->timestamp) + PHY_T_OFFSET;
-
-							// xil_printf("0x%08x 0x%08x\n", (u32)((((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) >> 32), (u32)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp));
-							// xil_printf("0x%08x 0x%08x\n", (u32)((frame_info->timestamp) >> 32), (u32)(frame_info->timestamp));
-							// xil_printf("0x%08x 0x%08x\n", (u32)(time_delta >> 32), (u32)(time_delta));
-							// xil_printf("\n");
-
-							// Update the MAC time
-							apply_mac_time_delta_usec(time_delta);
-
-							// Move the packet pointer back to the start for the rest of the function
-							mpdu_ptr_u8 -= sizeof(mac_header_80211);
-						}
-					}
-
-				break;
-
 
 				//---------------------------------------------------------------------
 				default:
@@ -1074,48 +1036,57 @@ int  sta_set_association_state( bss_info* new_bss_info, u16 aid ) {
     int                 status = -1;
 	station_info*       associated_station = NULL;
 
-	xil_printf("Setting New Association State:\n");
-	xil_printf("SSID:  %s\n", new_bss_info->ssid);
-	xil_printf("AID:   %d\n", aid);
-	xil_printf("BSSID: %02x-%02x-%02x-%02x-%02x-%02x\n", new_bss_info->bssid[0],new_bss_info->bssid[1],new_bss_info->bssid[2],new_bss_info->bssid[3],new_bss_info->bssid[4],new_bss_info->bssid[5]);
-	xil_printf("State: %d\n", new_bss_info->state);
+	if(new_bss_info != NULL){
+		xil_printf("Setting New Association State:\n");
+		xil_printf("SSID:  %s\n", new_bss_info->ssid);
+		xil_printf("AID:   %d\n", aid);
+		xil_printf("BSSID: %02x-%02x-%02x-%02x-%02x-%02x\n", new_bss_info->bssid[0],new_bss_info->bssid[1],new_bss_info->bssid[2],new_bss_info->bssid[3],new_bss_info->bssid[4],new_bss_info->bssid[5]);
+		xil_printf("State: %d\n", new_bss_info->state);
 
-	// Disassociate from any currently associated APs
-	status = sta_disassociate();
+		// Disassociate from any currently associated APs
+		status = sta_disassociate();
 
-	// The disassociate step may have changed channels to send a message to the old AP.
-	mac_param_chan = new_bss_info->chan;
-	wlan_mac_high_set_channel(mac_param_chan);
+		// The disassociate step may have changed channels to send a message to the old AP.
+		mac_param_chan = new_bss_info->chan;
+		wlan_mac_high_set_channel(mac_param_chan);
 
-	my_bss_info = new_bss_info;
+		my_bss_info = new_bss_info;
 
-	if ( new_bss_info->state == BSS_STATE_ASSOCIATED ) {
-		// Add the new association
-		associated_station = wlan_mac_high_add_association(&(my_bss_info->associated_stations), &counts_table, my_bss_info->bssid, aid);
+		memcpy(gl_config_ts_update.bssid_match, my_bss_info->bssid, 6);
 
-		if ( associated_station != NULL ) {
+		if ( new_bss_info->state == BSS_STATE_ASSOCIATED ) {
+			// Add the new association
+			associated_station = wlan_mac_high_add_association(&(my_bss_info->associated_stations), &counts_table, my_bss_info->bssid, aid);
 
-			// Log association change
-			add_station_info_to_log(associated_station, STATION_INFO_ENTRY_NO_CHANGE, WLAN_EXP_STREAM_ASSOC_CHANGE);
+			if ( associated_station != NULL ) {
 
-#if _DEBUG_
-			u32 i;
-			xil_printf("Associating node: %02x", (associated_station->addr)[0]);
-			for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", (associated_station->addr)[i] ); } xil_printf("\n");
-#endif
+				// Log association change
+				add_station_info_to_log(associated_station, STATION_INFO_ENTRY_NO_CHANGE, WLAN_EXP_STREAM_ASSOC_CHANGE);
 
-			// Update the HEX display
-			sta_update_hex_display(associated_station->AID);
+	#if _DEBUG_
+				u32 i;
+				xil_printf("Associating node: %02x", (associated_station->addr)[0]);
+				for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", (associated_station->addr)[i] ); } xil_printf("\n");
+	#endif
 
-			pause_data_queue = 0;
+				// Update the HEX display
+				sta_update_hex_display(associated_station->AID);
 
-			status = 0;
+				pause_data_queue = 0;
 
-		} else {
-		    status = -1;
+				status = 0;
+
+			} else {
+				status = -1;
+			}
 		}
+	} else {
+		xil_printf("Disconnected from BSS\n");
+		my_bss_info = NULL;
+		bzero(gl_config_ts_update.bssid_match, 6);
+		status = 0;
 	}
-
+	wlan_mac_high_config_ts_update(&gl_config_ts_update);
 	return status;
 }
 

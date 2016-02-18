@@ -1758,6 +1758,18 @@ void wlan_mac_high_set_channel(u32 mac_channel) {
 	}
 }
 
+void wlan_mac_high_config_ts_update(config_ts_update_t* config_ts_update){
+	wlan_ipc_msg       ipc_msg_to_low;
+
+	// Send message to CPU Low
+	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TS_UPDATE_CONFIGURE);
+	ipc_msg_to_low.num_payload_words = sizeof(config_ts_update_t)/sizeof(u32);
+	ipc_msg_to_low.payload_ptr       = (u32*)config_ts_update;
+
+	ipc_mailbox_write_msg(&ipc_msg_to_low);
+
+}
+
 /**
  * @brief Set Rx Antenna Mode
  *

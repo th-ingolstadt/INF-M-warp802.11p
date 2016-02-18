@@ -62,8 +62,6 @@ extern dl_list                    association_table;
 extern u8                         pause_data_queue;
 extern u32                        mac_param_chan;
 
-extern u8                         allow_beacon_ts_update;
-
 extern wlan_exp_function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback;
 extern wlan_exp_function_ptr_t    wlan_exp_reset_all_associations_callback;
 extern wlan_exp_function_ptr_t    wlan_exp_reset_bss_info_callback;
@@ -247,6 +245,9 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             //   - resp_args_32[0] - CMD_PARAM_SUCCESS
             //                     - CMD_PARAM_ERROR
             //
+
+#if 0	//FIXME: Beacon TS updates no longer controlled through allow_beacon_ts_update
+
             u32    status         = CMD_PARAM_SUCCESS;
             u32    flags          = Xil_Ntohl(cmd_args_32[0]);
             u32    mask           = Xil_Ntohl(cmd_args_32[1]);
@@ -267,6 +268,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+#endif
         }
         break;
 
