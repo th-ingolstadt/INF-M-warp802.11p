@@ -76,8 +76,7 @@ volatile static s8           pkt_buf_pending_tx;									///< Internal state var
 static function_ptr_t        frame_rx_callback;                                     ///< User callback frame receptions
 static function_ptr_t        frame_tx_callback;                                     ///< User callback frame transmissions
 
-static function_ptr_t        beacon_tx_config_callback;
-static function_ptr_t		 ts_update_config_callback;
+static function_ptr_t		 beacon_txrx_config_callback;
 
 static function_ptr_t        ipc_low_param_callback;                                ///< User callback for IPC_MBOX_LOW_PARAM ipc calls
 
@@ -161,8 +160,7 @@ int wlan_mac_low_init(u32 type){
     frame_rx_callback         = (function_ptr_t) nullCallback;
     frame_tx_callback         = (function_ptr_t) nullCallback;
     ipc_low_param_callback    = (function_ptr_t) nullCallback;
-    beacon_tx_config_callback = (function_ptr_t) nullCallback;
-    ts_update_config_callback = (function_ptr_t) nullCallback;
+    beacon_txrx_config_callback = (function_ptr_t) nullCallback;
     allow_new_mpdu_tx        = 1;
     pkt_buf_pending_tx       = -1; // -1 is an invalid pkt_buf index
 
@@ -528,16 +526,10 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg* msg){
     switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
 
     	//---------------------------------------------------------------------
-    	case IPC_MBOX_TS_UPDATE_CONFIGURE: {
-    		ts_update_config_callback(msg->payload_ptr);
+    	case IPC_MBOX_TXRX_BEACON_CONFIGURE: {
+    		beacon_txrx_config_callback(msg->payload_ptr);
     	}
     	break;
-
-    	//---------------------------------------------------------------------
-		case IPC_MBOX_TX_BEACON_CONFIGURE: {
-			beacon_tx_config_callback(msg->arg0, ipc_msg_from_high_payload[0]); //TODO: Need to specify an interval that will disable beacon Tx
-		}
-		break;
 
 		//---------------------------------------------------------------------
         case IPC_MBOX_CPU_STATUS: {
@@ -946,14 +938,9 @@ inline void wlan_mac_low_set_frame_rx_callback(function_ptr_t callback){
     frame_rx_callback = callback;
 }
 
-inline void wlan_mac_low_set_beacon_tx_config_callback(function_ptr_t callback){
-	beacon_tx_config_callback = callback;
+inline void wlan_mac_low_set_beacon_txrx_config_callback(function_ptr_t callback){
+	beacon_txrx_config_callback = callback;
 }
-
-inline void wlan_mac_low_set_ts_update_config_callback(function_ptr_t callback){
-	ts_update_config_callback = callback;
-}
-
 
 
 /*****************************************************************************/

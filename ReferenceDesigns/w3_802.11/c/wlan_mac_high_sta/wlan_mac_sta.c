@@ -102,7 +102,7 @@ volatile u32                      mac_param_chan;
 // MAC address
 static u8 	                      wlan_mac_addr[6];
 
-static	config_ts_update_t		  gl_config_ts_update; //TODO: Need to create a setter for this struct that also pushes it via IPC to CPU_LOW to toggle TS updates on and off
+static	beacon_txrx_configure_t	  gl_beacon_txrx_configure; //TODO: Need to create a setter for this struct that also pushes it via IPC to CPU_LOW
 
 
 /*************************** Functions Prototypes ****************************/
@@ -145,8 +145,9 @@ int main() {
 	// Set my_bss_info to NULL (ie STA is not currently on a BSS)
 	sta_set_association_state(NULL, 0);
 
-	gl_config_ts_update.ts_update_mode = ALWAYS_UPDATE;
-	bzero(gl_config_ts_update.bssid_match, 6);
+	gl_beacon_txrx_configure.ts_update_mode = ALWAYS_UPDATE;
+	bzero(gl_beacon_txrx_configure.bssid_match, 6);
+	gl_beacon_txrx_configure.beacon_tx_mode = NO_BEACON_TX;
 
 	//New associations adopt these unicast params; the per-node params can be
 	// overridden via wlan_exp calls or by custom C code
@@ -1052,7 +1053,7 @@ int  sta_set_association_state( bss_info* new_bss_info, u16 aid ) {
 
 		my_bss_info = new_bss_info;
 
-		memcpy(gl_config_ts_update.bssid_match, my_bss_info->bssid, 6);
+		memcpy(gl_beacon_txrx_configure.bssid_match, my_bss_info->bssid, 6);
 
 		if ( new_bss_info->state == BSS_STATE_ASSOCIATED ) {
 			// Add the new association
@@ -1083,10 +1084,10 @@ int  sta_set_association_state( bss_info* new_bss_info, u16 aid ) {
 	} else {
 		xil_printf("Disconnected from BSS\n");
 		my_bss_info = NULL;
-		bzero(gl_config_ts_update.bssid_match, 6);
+		bzero(gl_beacon_txrx_configure.bssid_match, 6);
 		status = 0;
 	}
-	wlan_mac_high_config_ts_update(&gl_config_ts_update);
+	wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_configure);
 	return status;
 }
 

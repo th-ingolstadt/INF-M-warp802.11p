@@ -114,6 +114,8 @@ static volatile	u32				  		num_dozed_stations;
 static volatile mgmt_tag_template_t*	mgmt_tag_tim_template;
 static volatile u32				  		mgmt_tag_tim_update_schedule_id;
 
+static	beacon_txrx_configure_t	  gl_beacon_txrx_configure; //TODO: Need to create a setter for this struct that also pushes it via IPC to CPU_LOW
+
 
 
 /*************************** Functions Prototypes ****************************/
@@ -286,8 +288,14 @@ int main(){
 	mgmt_tag_tim_template = NULL;
 
 	// Set up beacon transmissions
+	gl_beacon_txrx_configure.ts_update_mode = NEVER_UPDATE;
+	bzero(gl_beacon_txrx_configure.bssid_match, 6);
+	gl_beacon_txrx_configure.beacon_tx_mode = BSS_BEACON_TX;
+	gl_beacon_txrx_configure.beacon_interval_tu = my_bss_info->beacon_interval;
+	gl_beacon_txrx_configure.beacon_template_pkt_buf = TX_PKT_BUF_BEACON;
 	wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, wlan_mac_addr );
-	wlan_mac_high_configure_beacon_transmit( &tx_header_common, my_bss_info, &default_multicast_mgmt_tx_params, TX_MPDU_FLAGS_FILL_TIMESTAMP );
+	wlan_mac_high_configure_beacon_tx_template( &tx_header_common, my_bss_info, &default_multicast_mgmt_tx_params, TX_MPDU_FLAGS_FILL_TIMESTAMP );
+	wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_configure);
 
 	// Set the global power save configuration
 	//   Note: this should be called after wlan_mac_high_configure_beacon_transmit

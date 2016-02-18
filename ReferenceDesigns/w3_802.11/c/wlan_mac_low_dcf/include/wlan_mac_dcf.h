@@ -61,13 +61,6 @@
 
 /*********************** Global Structure Definitions ************************/
 
-typedef struct {
-	u32 period_tu;
-	u32 period_us;
-	u8 	enable;
-	u8	tx_pkt_buf;
-} periodic_tx_details;
-
 typedef enum {
     RX_FINISH_SEND_NONE,
     RX_FINISH_SEND_A,
@@ -106,8 +99,7 @@ typedef enum {
 int                main();
 
 u32                frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details);
-void 			   configure_beacon_tx(u8 tx_pkt_buf, u32 interval_tu);
-void 			   configure_ts_update(config_ts_update_t* config_ts_update);
+void 				configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure);
 int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details);
 
 inline void        increment_src_ssrc(u8* src_ptr);

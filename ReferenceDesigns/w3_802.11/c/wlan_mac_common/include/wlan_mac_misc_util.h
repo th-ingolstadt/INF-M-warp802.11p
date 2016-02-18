@@ -232,18 +232,29 @@ typedef struct {
 } ltg_packet_id;
 
 //-----------------------------------------------
-// Timestamp Update Configuration
+// Beacon Tx/Rx Configuration Struct
 //
 typedef enum {
 	NEVER_UPDATE,
 	ALWAYS_UPDATE,
 	FUTURE_ONLY_UPDATE,
-} ts_update_mode_t;
+} mactime_update_mode_t;
+
+typedef enum {
+	NO_BEACON_TX,
+	BSS_BEACON_TX,
+	IBSS_BEACON_TX,
+} beacon_tx_mode_t;
 
 typedef struct{
-	ts_update_mode_t 	ts_update_mode;
-	u8					bssid_match[6];
-} config_ts_update_t;
+	//Beacon Rx Configuration Parameters
+	mactime_update_mode_t 	ts_update_mode;				//Determines how MAC time is updated on reception of beacons
+	u8						bssid_match[6];				//BSSID of current association for Rx matching
+	//Beacon Tx Configuration Parameters
+	u8						beacon_template_pkt_buf;	//Packet Buffer that contains the the beacon template to transmit
+	beacon_tx_mode_t		beacon_tx_mode;				//Tx Beacon Mode
+	u32						beacon_interval_tu;			//Beacon Interval (in TU)
+} beacon_txrx_configure_t;
 
 //-----------------------------------------------
 // TX parameters
