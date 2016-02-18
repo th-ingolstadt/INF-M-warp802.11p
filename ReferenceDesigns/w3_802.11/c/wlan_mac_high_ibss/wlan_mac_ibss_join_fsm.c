@@ -24,6 +24,7 @@
 #include "xintc.h"
 
 // WLAN includes
+#include "wlan_mac_common.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"
@@ -49,7 +50,7 @@ extern tx_params                  default_unicast_mgmt_tx_params;
 
 // File Variables
 static join_state_t               join_state = JOIN_IDLE;
-static function_ptr_t             join_success_callback = (function_ptr_t)nullCallback;
+static function_ptr_t             join_success_callback = (function_ptr_t)wlan_null_callback;
 
 //JOIN_SEARCHING Global Variables:
 static char                       search_ssid[SSID_LEN_MAX + 1];

@@ -25,6 +25,7 @@
 
 #include "wlan_exp_common.h"
 
+#include "wlan_mac_common.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_time_util.h"
 #include "wlan_mac_eth_util.h"
@@ -64,7 +65,7 @@ int  wlan_mac_ltg_sched_init(){
 	num_ltg_checks   = 0;
 	ltg_sched_remove(LTG_REMOVE_ALL);
 	dl_list_init(&tg_list);
-	ltg_callback = (function_ptr_t)nullCallback;
+	ltg_callback = (function_ptr_t)wlan_null_callback;
 
 	return return_value;
 }
@@ -566,7 +567,7 @@ dl_entry* ltg_sched_find_tg_schedule(u32 id){
 int wlan_create_ltg_frame(void* pkt_buf, mac_header_80211_common* common, u8 tx_flags, u32 ltg_id){
 	u32               tx_length;
 	u8*               mpdu_ptr_u8;
-	ltg_packet_id*    pkt_id;
+	ltg_packet_id_t*  pkt_id;
 
 	mpdu_ptr_u8 = (u8*)pkt_buf;
 
@@ -574,7 +575,7 @@ int wlan_create_ltg_frame(void* pkt_buf, mac_header_80211_common* common, u8 tx_
 
 	// Prepare the MPDU LLC header
 	mpdu_ptr_u8 += sizeof(mac_header_80211);
-	pkt_id = (ltg_packet_id*)(mpdu_ptr_u8);
+	pkt_id = (ltg_packet_id_t*)(mpdu_ptr_u8);
 
 	(pkt_id->llc_hdr).dsap = LLC_SNAP;
 	(pkt_id->llc_hdr).ssap = LLC_SNAP;
@@ -586,7 +587,7 @@ int wlan_create_ltg_frame(void* pkt_buf, mac_header_80211_common* common, u8 tx_
 	pkt_id->ltg_id         = ltg_id;
 
 	// LTG packets always have LLC header, LTG payload id, plus any extra payload requested by user
-	tx_length += ((sizeof(ltg_packet_id)));
+	tx_length += ((sizeof(ltg_packet_id_t)));
 
 	return tx_length;
 }

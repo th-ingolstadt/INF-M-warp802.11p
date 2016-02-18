@@ -465,9 +465,6 @@ void               wlan_mac_high_cdma_finish_transfer();
 
 void               wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf);
 
-wlan_mac_hw_info*  wlan_mac_high_get_hw_info();
-u8*                wlan_mac_high_get_eeprom_mac_addr();
-
 u8                 wlan_mac_high_valid_tagged_rate(u8 rate);
 void               wlan_mac_high_tagged_rate_to_readable_rate(u8 rate, char* str);
 
@@ -510,7 +507,6 @@ void               wlan_mac_high_reset_counts(dl_list* counts_tbl);
 void               wlan_mac_high_update_tx_counts(tx_frame_info* tx_mpdu, station_info* station);
 int 			   wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, bss_info* bss_info_ptr, tx_params* tx_params_ptr, u8 flags);
 
-void               wlan_mac_high_print_hw_info( wlan_mac_hw_info * info );
 void               wlan_mac_high_print_associations(dl_list* assoc_tbl);
 
 

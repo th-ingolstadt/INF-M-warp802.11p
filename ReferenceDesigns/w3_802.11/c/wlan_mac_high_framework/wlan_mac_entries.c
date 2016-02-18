@@ -31,6 +31,7 @@
 #include "xil_types.h"
 
 // WLAN includes
+#include "wlan_mac_common.h"
 #include "wlan_mac_sysmon_util.h"
 #include "wlan_mac_time_util.h"
 #include "wlan_mac_event_log.h"
@@ -484,7 +485,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* frame_info){
     tx_low_entry*     tx_low_event_log_entry  = NULL; //This is for any inferred CTRL transmissions
     void*             mpdu                    = (u8*)frame_info + PHY_RX_PKT_BUF_MPDU_OFFSET;
     u8*               mpdu_ptr_u8             = (u8*)mpdu;
-    ltg_packet_id*    pkt_id;
+    ltg_packet_id_t*  pkt_id;
     mac_header_80211* rx_80211_header         = (mac_header_80211*)((void *)mpdu_ptr_u8);
     u32               packet_payload_size     = frame_info->phy_details.length;
     u8                mcs                     = frame_info->phy_details.mcs;
@@ -497,7 +498,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* frame_info){
     u32               min_entry_payload_size;
     u32               transfer_len;
 
-    pkt_id = (ltg_packet_id*)(mpdu_ptr_u8 + sizeof(mac_header_80211));
+    pkt_id = (ltg_packet_id_t*)(mpdu_ptr_u8 + sizeof(mac_header_80211));
 
     typedef enum {PAYLOAD_FIRST, CHAN_EST_FIRST} copy_order_t;
     copy_order_t      copy_order;
@@ -897,8 +898,8 @@ void wlan_exp_log_get_txrx_entry_sizes( u32 entry_type, u16 packet_payload_size,
         //     - Log the MAC header, LLC header, and LTG payload ID
         //
         case ENTRY_TYPE_TX_LOW_LTG:
-            tmp_entry_size             = base_entry_size + sizeof(ltg_packet_id);
-            tmp_entry_payload_size     = sizeof(mac_header_80211) + sizeof(ltg_packet_id);
+            tmp_entry_size             = base_entry_size + sizeof(ltg_packet_id_t);
+            tmp_entry_payload_size     = sizeof(mac_header_80211) + sizeof(ltg_packet_id_t);
         break;
 
 

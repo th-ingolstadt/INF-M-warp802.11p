@@ -15,6 +15,7 @@
 /***************************** Include Files *********************************/
 
 #include "wlan_mac_dl_list.h"
+#include "wlan_mac_common.h"
 #include "wlan_mac_misc_util.h"
 
 

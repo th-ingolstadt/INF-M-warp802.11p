@@ -85,7 +85,7 @@ int process_low_param(u8 mode, u32* payload);
 
 int main(){
 
-    wlan_mac_hw_info* hw_info;
+    wlan_mac_hw_info_t* hw_info;
 
     xil_printf("\f");
     xil_printf("----- Mango 802.11 Reference Design -----\n");
@@ -133,7 +133,7 @@ int main(){
 
     gl_cw_exp = gl_cw_exp_min;
 
-    hw_info = wlan_mac_low_get_hw_info();
+    hw_info = get_mac_hw_info();
     memcpy((void*)gl_eeprom_addr, hw_info->hw_addr_wlan, 6);
 
     wlan_mac_low_set_frame_rx_callback((void*)frame_receive);
@@ -143,13 +143,13 @@ int main(){
 
     if(lock_pkt_buf_tx(TX_PKT_BUF_ACK_CTS) != PKT_BUF_MUTEX_SUCCESS){
         wlan_printf(PL_ERROR, "Error: unable to lock ACK packet buf %d\n", TX_PKT_BUF_ACK_CTS);
-        wlan_mac_low_send_exception(EXC_MUTEX_TX_FAILURE);
+        wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_TX_MUTEX);
         return -1;
     }
 
     if(lock_pkt_buf_tx(TX_PKT_BUF_RTS) != PKT_BUF_MUTEX_SUCCESS){
         wlan_printf(PL_ERROR, "Error: unable to lock ACK packet buf %d\n", TX_PKT_BUF_RTS);
-        wlan_mac_low_send_exception(EXC_MUTEX_TX_FAILURE);
+        wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_TX_MUTEX);
         return -1;
     }
 
@@ -976,7 +976,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
         //     If this fails, something has gone horribly wrong
         if (unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) {
             xil_printf("Error: unable to unlock RX pkt_buf %d\n", rx_pkt_buf);
-            wlan_mac_low_send_exception(EXC_MUTEX_RX_FAILURE);
+            wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_RX_MUTEX);
         } else {
             wlan_mac_low_frame_ipc_send();
 

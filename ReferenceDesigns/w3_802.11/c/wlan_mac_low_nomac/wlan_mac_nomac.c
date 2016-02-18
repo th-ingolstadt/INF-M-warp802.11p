@@ -64,7 +64,7 @@ int process_low_param(u8 mode, u32* payload);
 
 int main(){
 
-    wlan_mac_hw_info* hw_info;
+    wlan_mac_hw_info_t* hw_info;
 
     xil_printf("\f");
     xil_printf("----- Mango 802.11 Reference Design -----\n");
@@ -88,7 +88,7 @@ int main(){
     wlan_mac_low_init(WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW);
 
     // Get the node's HW address
-    hw_info = wlan_mac_low_get_hw_info();
+    hw_info = get_mac_hw_info();
     memcpy(eeprom_addr, hw_info->hw_addr_wlan, 6);
 
     // Set up the TX / RX callbacks
@@ -197,7 +197,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
     //
     if (unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) {
         xil_printf("Error: unable to unlock RX pkt_buf %d\n", rx_pkt_buf);
-        wlan_mac_low_send_exception(EXC_MUTEX_RX_FAILURE);
+        wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_RX_MUTEX);
     } else {
         wlan_mac_low_frame_ipc_send();
 

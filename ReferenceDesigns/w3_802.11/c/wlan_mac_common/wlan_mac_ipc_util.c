@@ -30,6 +30,7 @@
 #include "wlan_mac_high.h"
 #endif
 
+#include "wlan_mac_common.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_802_11_defs.h"
@@ -56,8 +57,6 @@ static XMutex                pkt_buf_mutex;
 
 /*************************** Functions Prototypes ****************************/
 
-void nullCallback(void* param){};
-
 
 /******************************** Functions **********************************/
 
@@ -65,7 +64,7 @@ int wlan_lib_init () {
 	u32 i;
 
 #ifdef XPAR_INTC_0_DEVICE_ID
-	mailbox_rx_callback = (function_ptr_t)nullCallback;
+	mailbox_rx_callback = (function_ptr_t)wlan_null_callback;
 #endif
 
 	//Initialize the pkt buffer mutex core
@@ -151,37 +150,6 @@ void MailboxIntrHandler(void *CallbackRef){
 
 
 
-
-int wlan_lib_channel_verify (u32 mac_channel){
-	int return_value;
-
-	//We allow a subset of 2.4 and 5 GHz channels
-	switch(mac_channel){
-		//2.4GHz channels
-		case 1:
-		case 2:
-		case 3:
-		case 4:
-		case 5:
-		case 6:
-		case 7:
-		case 8:
-		case 9:
-		case 10:
-		case 11:
-		//5GHz channels
-		case 36:
-		case 40:
-		case 44:
-		case 48:
-			return_value = 0;
-		break;
-		default:
-			return_value = -1;
-		break;
-	}
-	return return_value;
-}
 
 /************** Pkt Buffer Mutex Management ************/
 int lock_pkt_buf_tx(u8 pkt_buf_ind) {

@@ -207,7 +207,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             if (msg_cmd == CMD_PARAM_WRITE_VAL) {
                 // Set the Channel
-                if (wlan_lib_channel_verify(channel) == 0){
+                if (wlan_verify_channel(channel) == XST_SUCCESS){
                     mac_param_chan = channel;
                     wlan_mac_high_set_channel(mac_param_chan);
 
@@ -556,7 +556,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[2], &mac_addr[0]);
 
             // Verify channel
-            if (wlan_lib_channel_verify(channel) != 0) {
+            if (wlan_verify_channel(channel) != XST_SUCCESS) {
                 wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node,
                                 "Channel %d is not supported by the node. Setting association with Channel %d\n", channel, mac_param_chan);
                 channel = mac_param_chan;

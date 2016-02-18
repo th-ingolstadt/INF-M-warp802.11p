@@ -70,13 +70,13 @@ int wlan_mac_set_scan_channels(u8* channel_vec, u32 len){
 	u32 start_scan   = 0;
 	int return_value = -1;
 
-	if(len > MAX_NUM_CHAN){
+	if (len > MAX_NUM_CHAN) {
 		xil_printf("Error: too many channels requested\n");
 		return return_value;
 	}
 
-	for(i=0;i<len;i++){
-		if( wlan_lib_channel_verify(channel_vec[i]) == -1){
+	for (i = 0; i < len; i++) {
+		if (wlan_verify_channel(channel_vec[i]) != XST_SUCCESS) {
 			xil_printf("Error: invalid channel selection %d\n", channel_vec[i]);
 			return return_value;
 		}

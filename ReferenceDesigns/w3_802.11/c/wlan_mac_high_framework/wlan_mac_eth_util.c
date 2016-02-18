@@ -23,6 +23,7 @@
 
 #include "WARP_ip_udp.h"
 
+#include "wlan_mac_common.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_userio_util.h"
@@ -53,8 +54,6 @@
 //
 #define PERF_MON_ETH_BD                                    0
 
-
-extern wlan_mac_hw_info      hw_info;
 
 /*************************** Variable Definitions ****************************/
 
@@ -148,14 +147,12 @@ int wlan_eth_init() {
     // Check to see if we were given enough room by wlan_mac_high.h for our buffer descriptors
     if (ETH_TX_BD_SIZE < XAXIDMA_BD_MINIMUM_ALIGNMENT) {
         xil_printf("Only %d bytes allocated for Eth Tx BD. Must be at least %d bytes\n", ETH_TX_BD_SIZE, XAXIDMA_BD_MINIMUM_ALIGNMENT);
-        set_hex_display_error_status(ERROR_NODE_INSUFFICIENT_BD_SIZE);
-        blink_hex_display(0, 250000);
+        cpu_error_halt(WLAN_ERROR_CODE_INSUFFICIENT_BD_SIZE);
     }
 
     if (ETH_RX_BD_SIZE < XAXIDMA_BD_MINIMUM_ALIGNMENT) {
         xil_printf("Only %d bytes allocated for Eth Rx BDs. Must be at least %d bytes\n", ETH_RX_BD_SIZE, XAXIDMA_BD_MINIMUM_ALIGNMENT);
-        set_hex_display_error_status(ERROR_NODE_INSUFFICIENT_BD_SIZE);
-        blink_hex_display(0, 250000);
+        cpu_error_halt(WLAN_ERROR_CODE_INSUFFICIENT_BD_SIZE);
     }
 
     // Initialize buffer descriptor counts
@@ -166,7 +163,7 @@ int wlan_eth_init() {
     xil_printf("%3d Eth Rx BDs placed in BRAM: using %d kB\n", num_rx_bd, num_rx_bd*XAXIDMA_BD_MINIMUM_ALIGNMENT/1024);
 
     // Initialize Callback
-    eth_rx_callback = (function_ptr_t)nullCallback;
+    eth_rx_callback = (function_ptr_t)wlan_null_callback;
 
     // Initialize Ethernet instance
     eth_cfg_ptr = XAxiEthernet_LookupConfig(WLAN_ETH_DEV_ID);
@@ -332,7 +329,7 @@ int init_rx_bd(XAxiDma_Bd * bd_ptr, tx_queue_element * tqe_ptr, u32 max_transfer
     //     NOTE:  This pointer is offset by the size of a MAC header and LLC header, which results
     //         in the Ethernet payload being copied to its post-encapsulated location. This
     //         speeds up the encapsulation process by skipping any re-copying of Ethernet payloads
-    buf_addr = (u32)((void*)((tx_queue_buffer*)(tqe_ptr->data))->frame + sizeof(mac_header_80211) + sizeof(llc_header) - sizeof(ethernet_header));
+    buf_addr = (u32)((void*)((tx_queue_buffer*)(tqe_ptr->data))->frame + sizeof(mac_header_80211) + sizeof(llc_header_t) - sizeof(ethernet_header));
     status   = XAxiDma_BdSetBufAddr(bd_ptr, buf_addr);
     if (status != XST_SUCCESS) { xil_printf("XAxiDma_BdSetBufAddr failed (addr 0x08x)! Err = %d\n", buf_addr, status); return -1; }
 
@@ -715,15 +712,15 @@ int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_
     arp_ipv4_packet        * arp;
     udp_header             * udp;
     dhcp_packet            * dhcp;
-    llc_header             * llc_hdr;
+    llc_header_t           * llc_hdr;
     u32                      mpdu_tx_len;
 
     // Calculate actual wireless Tx len (eth payload - eth header + wireless header)
-    mpdu_tx_len = eth_rx_len - sizeof(ethernet_header) + sizeof(llc_header) + sizeof(mac_header_80211) + WLAN_PHY_FCS_NBYTES;
+    mpdu_tx_len = eth_rx_len - sizeof(ethernet_header) + sizeof(llc_header_t) + sizeof(mac_header_80211) + WLAN_PHY_FCS_NBYTES;
 
     // Helper pointers to interpret/fill fields in the new MPDU
     eth_hdr = (ethernet_header*)eth_start_ptr;
-    llc_hdr = (llc_header*)(mpdu_start_ptr + sizeof(mac_header_80211));
+    llc_hdr = (llc_header_t*)(mpdu_start_ptr + sizeof(mac_header_80211));
 
     // Copy the src/dest addresses from the received Eth packet to temp space
     memcpy(eth_src, eth_hdr->src_mac_addr, 6);
@@ -760,7 +757,7 @@ int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_
         case ENCAP_MODE_STA:
             // Save this ethernet src address
             memcpy(eth_sta_mac_addr, eth_src, 6);
-            memcpy(eth_src, hw_info.hw_addr_wlan, 6);
+            memcpy(eth_src, get_mac_hw_addr_wlan(), 6);
 
             switch(eth_hdr->ethertype) {
                 case ETH_TYPE_ARP:
@@ -768,7 +765,7 @@ int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_
 
                     // Overwrite ARP request source MAC address field with the station's wireless MAC address.
                     arp = (arp_ipv4_packet*)((void*)eth_hdr + sizeof(ethernet_header));
-                    memcpy(arp->sender_haddr, hw_info.hw_addr_wlan, 6);
+                    memcpy(arp->sender_haddr, get_mac_hw_addr_wlan(), 6);
                 break;
 
                 case ETH_TYPE_IP:
@@ -993,7 +990,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
     rx_frame_info          * frame_info;
 
     mac_header_80211       * rx80211_hdr;
-    llc_header             * llc_hdr;
+    llc_header_t           * llc_hdr;
 
     ethernet_header        * eth_hdr;
     ipv4_header            * ip_hdr;
@@ -1008,7 +1005,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
     u8                       addr_cache[6];
     u32                      len_to_send;
 
-    u32                      min_pkt_len = sizeof(mac_header_80211) + sizeof(llc_header);
+    u32                      min_pkt_len = sizeof(mac_header_80211) + sizeof(llc_header_t);
 
     if(length < (min_pkt_len + pre_llc_offset + WLAN_PHY_FCS_NBYTES)){
         xil_printf("Error in wlan_mpdu_eth_send: length of %d is too small... must be at least %d\n", length, min_pkt_len);
@@ -1017,8 +1014,8 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
 
     // Get helper pointers to various byte offsets in the packet payload
     rx80211_hdr = (mac_header_80211*)((void *)mpdu);
-    llc_hdr     = (llc_header*)((void *)mpdu + sizeof(mac_header_80211) + pre_llc_offset);
-    eth_hdr     = (ethernet_header*)((void *)mpdu + sizeof(mac_header_80211) + sizeof(llc_header) + pre_llc_offset - sizeof(ethernet_header));
+    llc_hdr     = (llc_header_t*)((void *)mpdu + sizeof(mac_header_80211) + pre_llc_offset);
+    eth_hdr     = (ethernet_header*)((void *)mpdu + sizeof(mac_header_80211) + sizeof(llc_header_t) + pre_llc_offset - sizeof(ethernet_header));
 
     // Calculate length of de-encapsulated Ethernet packet
     len_to_send = length - min_pkt_len - pre_llc_offset - WLAN_PHY_FCS_NBYTES + sizeof(ethernet_header);
@@ -1117,7 +1114,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
 
         // ------------------------------------------------
         case ENCAP_MODE_STA:
-            if (wlan_addr_eq(rx80211_hdr->address_3, hw_info.hw_addr_wlan)) {
+            if (wlan_addr_eq(rx80211_hdr->address_3, get_mac_hw_addr_wlan())) {
                 // This case handles the behavior of an AP reflecting a station-sent broadcast
                 // packet back out over the air.  Without this filtering, a station would forward
                 // the packet it just transmitted back to its wired interface.  This messes up
@@ -1129,7 +1126,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
             memcpy(addr_cache, rx80211_hdr->address_3, 6);
 
             // If this packet is addressed to this STA, use the wired device's MAC address as the Eth dest address
-            if (wlan_addr_eq(rx80211_hdr->address_1, hw_info.hw_addr_wlan)) {
+            if (wlan_addr_eq(rx80211_hdr->address_1, get_mac_hw_addr_wlan())) {
                 memcpy(eth_hdr->dest_mac_addr, eth_sta_mac_addr, 6);
             } else {
                 memmove(eth_hdr->dest_mac_addr, rx80211_hdr->address_1, 6);
@@ -1145,7 +1142,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
                     // If the ARP packet is addressed to this STA wireless address, replace the ARP dest address
                     // with the connected wired device's MAC address
                     arp = (arp_ipv4_packet *)((void*)eth_hdr + sizeof(ethernet_header));
-                    if (wlan_addr_eq(arp->target_haddr, hw_info.hw_addr_wlan)) {
+                    if (wlan_addr_eq(arp->target_haddr, get_mac_hw_addr_wlan())) {
                         memcpy(arp->target_haddr, eth_sta_mac_addr, 6);
                     }
                 break;
@@ -1168,7 +1165,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
             memcpy(addr_cache, rx80211_hdr->address_2, 6);
 
             // If this packet is addressed to this STA, use the wired device's MAC address as the Eth dest address
-            if(wlan_addr_eq(rx80211_hdr->address_1, hw_info.hw_addr_wlan)) {
+            if(wlan_addr_eq(rx80211_hdr->address_1, get_mac_hw_addr_wlan())) {
                 memcpy(eth_hdr->dest_mac_addr, eth_sta_mac_addr, 6);
             } else {
                 memmove(eth_hdr->dest_mac_addr, rx80211_hdr->address_1, 6);
@@ -1184,7 +1181,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
                     // If the ARP packet is addressed to this STA wireless address, replace the ARP dest address
                     // with the connected wired device's MAC address
                     arp = (arp_ipv4_packet*)((void*)eth_hdr + sizeof(ethernet_header));
-                    if (wlan_addr_eq(arp->target_haddr, hw_info.hw_addr_wlan)) {
+                    if (wlan_addr_eq(arp->target_haddr, get_mac_hw_addr_wlan())) {
                         memcpy(arp->target_haddr, eth_sta_mac_addr, 6);
                     }
                 break;

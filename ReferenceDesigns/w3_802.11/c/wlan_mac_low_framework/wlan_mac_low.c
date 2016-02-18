@@ -55,22 +55,22 @@
 
 
 /*************************** Variable Definitions ****************************/
-volatile static phy_samp_rate_t	 phy_samp_rate;											///< Current bandwidth selection
-volatile static mac_timing   	 mac_timing_values;										///< MAC Timing Constants
-volatile static u32          	 mac_param_chan;                                        ///< Current channel of the lower-level MAC
-volatile static u8           	 mac_param_band;                                        ///< Current band of the lower-level MAC
-volatile static s8           	 mac_param_ctrl_tx_pow;                                 ///< Current transmit power (dBm) for control packets
-volatile static u32         	 mac_param_rx_filter;                                   ///< Current filter applied to packet receptions
-volatile static u8          	 rx_pkt_buf;                                            ///< Current receive buffer of the lower-level MAC
+volatile static phy_samp_rate_t   phy_samp_rate;                                    ///< Current bandwidth selection
+volatile static mac_timing        mac_timing_values;                                ///< MAC Timing Constants
+volatile static u32               mac_param_chan;                                   ///< Current channel of the lower-level MAC
+volatile static u8                mac_param_band;                                   ///< Current band of the lower-level MAC
+volatile static s8                mac_param_ctrl_tx_pow;                            ///< Current transmit power (dBm) for control packets
+volatile static u32               mac_param_rx_filter;                              ///< Current filter applied to packet receptions
+volatile static u8                rx_pkt_buf;                                       ///< Current receive buffer of the lower-level MAC
 
-static u32                   	 cpu_low_status;                                        ///< Status flags that are reported to upper-level MAC
+static u32                        cpu_low_status;                                   ///< Status flags that are reported to upper-level MAC
 
-static wlan_mac_hw_info      hw_info;                                               ///< Information about the hardware reported to upper-level MAC
+static wlan_mac_hw_info_t  * hw_info;                                               ///< Information about the hardware reported to upper-level MAC
 static wlan_ipc_msg          ipc_msg_from_high;                                     ///< Buffer for incoming IPC messages
 static u32                   ipc_msg_from_high_payload[IPC_BUFFER_MAX_NUM_WORDS];   ///< Buffer for payload of incoming IPC messages
 
-volatile static u8           allow_new_mpdu_tx;										///< Toggle for allowing new MPDU Tx requests to be processed
-volatile static s8           pkt_buf_pending_tx;									///< Internal state variable for knowing if an MPDU Tx request is pending
+volatile static u8           allow_new_mpdu_tx;                                     ///< Toggle for allowing new MPDU Tx requests to be processed
+volatile static s8           pkt_buf_pending_tx;                                    ///< Internal state variable for knowing if an MPDU Tx request is pending
 
 // Callback function pointers
 static function_ptr_t        frame_rx_callback;                                     ///< User callback frame receptions
@@ -157,10 +157,10 @@ int wlan_mac_low_init(u32 type){
     // mac_param_rx_filter      = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ADDR_MATCH_MPDU);
     mac_param_rx_filter      = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL);
 
-    frame_rx_callback         = (function_ptr_t) nullCallback;
-    frame_tx_callback         = (function_ptr_t) nullCallback;
-    ipc_low_param_callback    = (function_ptr_t) nullCallback;
-    beacon_txrx_config_callback = (function_ptr_t) nullCallback;
+    frame_rx_callback           = (function_ptr_t) wlan_null_callback;
+    frame_tx_callback           = (function_ptr_t) wlan_null_callback;
+    ipc_low_param_callback      = (function_ptr_t) wlan_null_callback;
+    beacon_txrx_config_callback = (function_ptr_t) wlan_null_callback;
     allow_new_mpdu_tx        = 1;
     pkt_buf_pending_tx       = -1; // -1 is an invalid pkt_buf index
 
@@ -180,7 +180,7 @@ int wlan_mac_low_init(u32 type){
     rx_pkt_buf = 0;
     if(lock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
         wlan_printf(PL_ERROR, "Error: unable to lock pkt_buf %d\n", rx_pkt_buf);
-        wlan_mac_low_send_exception(EXC_MUTEX_RX_FAILURE);
+        wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_RX_MUTEX);
         return -1;
     } else {
         rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
@@ -199,12 +199,16 @@ int wlan_mac_low_init(u32 type){
     wlan_mac_hw_init();
 
     // Initialize the HW info structure
-    wlan_mac_low_init_hw_info(type);
+    init_mac_hw_info(type);
+    hw_info = get_mac_hw_info();
+
+    // Set the NAV ignore addr to this HW address
+    wlan_mac_low_set_nav_check_addr(get_mac_hw_addr_wlan());
 
     // Send a message to other processor to identify hw info of cpu low
     ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_HW_INFO);
     ipc_msg_to_high.num_payload_words = 8;
-    ipc_msg_to_high.payload_ptr       = (u32 *) &(hw_info);
+    ipc_msg_to_high.payload_ptr       = (u32 *) hw_info;
 
     ipc_mailbox_write_msg(&ipc_msg_to_high);
 
@@ -300,41 +304,6 @@ void wlan_mac_hw_init(){
 
 /*****************************************************************************/
 /**
- * @brief Initialize Hardware Info Struct
- *
- * This function initializes the hardware info struct with values read from the EEPROM.
- *
- * @param   None
- * @return  None
- */
-void wlan_mac_low_init_hw_info(u32 type) {
-
-    // Initialize the wlan_mac_hw_info structure to all zeros
-    memset((void*)(&hw_info), 0x0, sizeof(wlan_mac_hw_info));
-
-    // Set General Node information
-    hw_info.cpu_low_type  = type;
-    hw_info.serial_number = w3_eeprom_read_serial_num(EEPROM_BASEADDR);
-    hw_info.fpga_dna[1]   = w3_eeprom_read_fpga_dna(EEPROM_BASEADDR, 1);
-    hw_info.fpga_dna[0]   = w3_eeprom_read_fpga_dna(EEPROM_BASEADDR, 0);
-
-    // Set HW Addresses
-    //   - NOTE:  The w3_eeprom_readEthAddr() function handles the case when the WARP v3
-    //     hardware does not have a valid Ethernet address
-    //
-    // Use address 0 for the WLAN interface, address 1 for the WLAN Exp interface
-    //
-    w3_eeprom_read_eth_addr(EEPROM_BASEADDR, 0, hw_info.hw_addr_wlan);
-    w3_eeprom_read_eth_addr(EEPROM_BASEADDR, 1, hw_info.hw_addr_wlan_exp);
-
-    // Set the NAV ignore addr to this HW address
-    wlan_mac_low_set_nav_check_addr(hw_info.hw_addr_wlan);
-}
-
-
-
-/*****************************************************************************/
-/**
  * @brief Send Exception to Upper-Level MAC
  *
  * This function generates an IPC message for the upper-level MAC
@@ -361,15 +330,7 @@ inline void wlan_mac_low_send_exception(u32 reason){
     ipc_mailbox_write_msg(&ipc_msg_to_high);
 
     // Set the Hex display with the reason code and flash the LEDs
-    userio_write_hexdisp_left(USERIO_BASEADDR, reason & 0xF);
-    userio_write_hexdisp_right(USERIO_BASEADDR, (reason>>4) & 0xF);
-
-    while(1){
-        userio_write_leds_red(USERIO_BASEADDR, 0x5);
-        usleep(250000);
-        userio_write_leds_red(USERIO_BASEADDR, 0xA);
-        usleep(250000);
-    }
+    cpu_error_halt(reason);
 }
 
 
@@ -537,7 +498,7 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg* msg){
             // Send a message to other processor to identify hw info of cpu low
             ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_HW_INFO);
             ipc_msg_to_high.num_payload_words = 8;
-            ipc_msg_to_high.payload_ptr       = (u32 *) &(hw_info);
+            ipc_msg_to_high.payload_ptr       = (u32 *) hw_info;
             ipc_mailbox_write_msg(&ipc_msg_to_high);
 
             //Send the status that we are booted
@@ -669,7 +630,7 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg* msg){
         case IPC_MBOX_CONFIG_CHANNEL: {
             mac_param_chan = ipc_msg_from_high_payload[0];
 
-            if(wlan_lib_channel_verify(mac_param_chan) == 0){
+            if(wlan_verify_channel(mac_param_chan) == XST_SUCCESS){
                 if(mac_param_chan <= 14){
                     mac_param_band = RC_24GHZ;
                 } else {
@@ -810,7 +771,7 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
     u32                      isLocked, owner;
     u32                      low_tx_details_size;
     wlan_ipc_msg             ipc_msg_to_high;
-    ltg_packet_id*			 pkt_id;
+    ltg_packet_id_t*         pkt_id;
 
     // TODO: Sanity check tx_pkt_buf so that it's within the number of tx packet bufs
 
@@ -847,7 +808,7 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 
 		if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_UNIQ_SEQ){
 			// Fill unique sequence number into LTG payload
-			pkt_id		       = (ltg_packet_id*)((u8*)tx_80211_header + sizeof(mac_header_80211));
+			pkt_id             = (ltg_packet_id_t*)((u8*)tx_80211_header + sizeof(mac_header_80211));
 			pkt_id->unique_seq = unique_seq;
 		}
 
@@ -856,7 +817,10 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 
 		// Submit the MPDU for transmission - this callback will return only when the MPDU Tx is
 		//     complete (after all re-transmissions, ACK Rx, timeouts, etc.)
-
+		//
+		// If a frame_tx_callback is not provided, the wlan_null_callback will always
+		// return 0 (ie TX_MPDU_RESULT_SUCCESS).
+		//
 		status = frame_tx_callback(tx_pkt_buf, low_tx_details);
 
 		//Record the total time this MPDU spent in the Tx state machine
@@ -875,7 +839,7 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 		//Revert the state of the packet buffer and return control to CPU High
 		if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 			wlan_printf(PL_ERROR, "Error: unable to unlock TX pkt_buf %d\n", tx_pkt_buf);
-			wlan_mac_low_send_exception(EXC_MUTEX_TX_FAILURE);
+			wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_TX_MUTEX);
 		} else {
 			ipc_msg_to_high.msg_id =  IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_DONE);
 
@@ -984,11 +948,6 @@ void wlan_mac_low_set_ipc_low_param_callback(function_ptr_t callback){
  * @param   None
  * @return  (see individual function)
  */
-inline wlan_mac_hw_info* wlan_mac_low_get_hw_info(){
-    return &hw_info;
-}
-
-
 inline u32 wlan_mac_low_get_active_channel(){
     return mac_param_chan;
 }

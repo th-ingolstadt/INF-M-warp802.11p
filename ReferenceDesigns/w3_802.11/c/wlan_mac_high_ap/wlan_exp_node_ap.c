@@ -222,7 +222,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             if (msg_cmd == CMD_PARAM_WRITE_VAL) {
                 // Set the Channel
-                if (wlan_lib_channel_verify(channel) == 0){
+                if (wlan_verify_channel(channel) == XST_SUCCESS){
                     //
                     // NOTE:  This will only change the channel of the node.  It does not notify any associated
                     //     clients of this channel change.  If you are using WARP nodes as part of the network, then

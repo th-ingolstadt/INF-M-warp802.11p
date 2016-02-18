@@ -210,8 +210,8 @@ int main(){
 	}
 
 #ifdef USE_WLAN_EXP
-    u32                node_type;
-    wlan_mac_hw_info * hw_info;
+    u32                  node_type;
+    wlan_mac_hw_info_t * hw_info;
 
     // NOTE:  To use the WLAN Experiments Framework, it must be initialized after
     //        CPU low has populated the hw_info structure in the MAC High framework.
@@ -230,10 +230,10 @@ int main(){
     wlan_exp_set_process_user_cmd_callback(        (void *) wlan_exp_process_user_cmd);
 
     // Get the hardware info that has been collected from CPU low
-    hw_info = wlan_mac_high_get_hw_info();
+    hw_info = get_mac_hw_info();
 
     // Set the node type
-    node_type = WLAN_EXP_NODE_TYPE + hw_info->cpu_low_type;
+    node_type = WLAN_EXP_NODE_TYPE + hw_info->wlan_exp_type;
 
     // Configure the wlan_exp framework
     wlan_exp_init(node_type, WLAN_EXP_ETH);
@@ -246,7 +246,7 @@ int main(){
 
 	// The node's MAC address is stored in the EEPROM, accessible only to CPU Low
 	// CPU Low provides this to CPU High after it boots
-	memcpy((void*) &(wlan_mac_addr[0]), (void*) wlan_mac_high_get_eeprom_mac_addr(), 6);
+	memcpy((void*) &(wlan_mac_addr[0]), (void*) get_mac_hw_addr_wlan(), 6);
 
     // Set Header information
 	tx_header_common.address_2 = &(wlan_mac_addr[0]);

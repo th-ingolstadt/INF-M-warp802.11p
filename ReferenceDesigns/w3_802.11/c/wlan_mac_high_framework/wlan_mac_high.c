@@ -27,6 +27,7 @@
 #include "xaxicdma.h"
 
 // WLAN Includes
+#include "wlan_mac_common.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_time_util.h"
@@ -101,10 +102,10 @@ volatile function_ptr_t		 beacon_tx_done_callback;	   ///< User callback for low
 volatile function_ptr_t      mpdu_tx_dequeue_callback;     ///< User callback for higher-level framework dequeuing a packet
 
 // Node information
-wlan_mac_hw_info             hw_info;                      ///< Information about hardware
 volatile u8                  dram_present;                 ///< Indication variable for whether DRAM SODIMM is present on this hardware
 
 // Status information
+wlan_mac_hw_info_t         * hw_info;
 volatile static u32          cpu_low_status;               ///< Tracking variable for lower-level CPU status
 
 // CPU Low Register Read Buffer
@@ -279,8 +280,7 @@ void wlan_mac_high_init(){
 	// Check that right shift works correctly
 	//   Issue with -Os in Xilinx SDK 14.7
 	if (wlan_mac_high_right_shift_test() != 0) {
-		set_hex_display_error_status(ERROR_NODE_RIGHT_SHIFT);
-		blink_hex_display(0, 250000);
+		cpu_error_halt(WLAN_ERROR_CODE_RIGHT_SHIFT);
 	}
 
 	// Force the MPDU packet buffers owned by CPU_HIGH into the empty state
@@ -314,15 +314,15 @@ void wlan_mac_high_init(){
 	// ***************************************************
     // Initialize callbacks and global state variables
 	// ***************************************************
-	pb_u_callback            = (function_ptr_t)nullCallback;
-	pb_m_callback            = (function_ptr_t)nullCallback;
-	pb_d_callback            = (function_ptr_t)nullCallback;
-	uart_callback            = (function_ptr_t)nullCallback;
-	mpdu_rx_callback         = (function_ptr_t)nullCallback;
-	mpdu_tx_done_callback    = (function_ptr_t)nullCallback;
-	beacon_tx_done_callback	 = (function_ptr_t)nullCallback;
-	tx_poll_callback	     = (function_ptr_t)nullCallback;
-	mpdu_tx_dequeue_callback = (function_ptr_t)nullCallback;
+	pb_u_callback            = (function_ptr_t)wlan_null_callback;
+	pb_m_callback            = (function_ptr_t)wlan_null_callback;
+	pb_d_callback            = (function_ptr_t)wlan_null_callback;
+	uart_callback            = (function_ptr_t)wlan_null_callback;
+	mpdu_rx_callback         = (function_ptr_t)wlan_null_callback;
+	mpdu_tx_done_callback    = (function_ptr_t)wlan_null_callback;
+	beacon_tx_done_callback	 = (function_ptr_t)wlan_null_callback;
+	tx_poll_callback         = (function_ptr_t)wlan_null_callback;
+	mpdu_tx_dequeue_callback = (function_ptr_t)wlan_null_callback;
 
 	wlan_lib_mailbox_set_rx_callback((function_ptr_t)wlan_mac_high_ipc_rx);
 
@@ -1317,7 +1317,7 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
     }
     
     // Call user code to notify it of dequeue
-	if(mpdu_tx_dequeue_callback != NULL) mpdu_tx_dequeue_callback(packet);
+	mpdu_tx_dequeue_callback(packet);
 
     // Set local variables
     //     NOTE:  This must be done after the mpdu_tx_dequeue_callback since that call can
@@ -1368,38 +1368,6 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
 	}
 
 }
-
-/**
- * @brief Retrieve Hardware Information
- *
- * This function returns the node hardware information structure maintained by CPU High.
- *
- * @param None
- * @return wlan_mac_hw_info*
- *  - Pointer to the hardware info struct maintained by the MAC High Framework
- *
- */
-wlan_mac_hw_info* wlan_mac_high_get_hw_info(){
-    return &hw_info;
-}
-
-
-
-/**
- * @brief Retrieve Hardware MAC Address from EEPROM
- *
- * This function returns the 6-byte unique hardware MAC address of the board.
- *
- * @param None
- * @return u8*
- *  - Pointer to 6-byte MAC address
- *
- */
-u8* wlan_mac_high_get_eeprom_mac_addr(){
-    return (u8 *) &(hw_info.hw_addr_wlan);
-}
-
-
 
 /**
  * @brief Check Validity of Tagged Rate
@@ -1648,8 +1616,8 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 			//
             //     NOTE:  This information is typically stored in the WARP v3 EEPROM, accessible only to CPU Low
 			//
-			memcpy((void*) &hw_info, (void*) &(ipc_msg_from_low_payload[0]), sizeof(wlan_mac_hw_info));
-
+			hw_info = get_mac_hw_info();
+			memcpy((void*) hw_info, (void*) &(ipc_msg_from_low_payload[0]), sizeof(wlan_mac_hw_info_t));
 		break;
 
 
@@ -1662,7 +1630,7 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
 			if(cpu_low_status & CPU_STATUS_EXCEPTION){
 				wlan_printf(PL_ERROR, "ERROR:  An unrecoverable exception has occurred in CPU_LOW, halting...\n");
 				wlan_printf(PL_ERROR, "    Reason code: %d\n", ipc_msg_from_low_payload[1]);
-				while(1){}
+				cpu_error_halt(WLAN_ERROR_CPU_STOP);
 			}
 		break;
 
@@ -1745,7 +1713,7 @@ void wlan_mac_high_set_channel(u32 mac_channel) {
 	u32                ipc_msg_to_low_payload = mac_channel;
 
 
-	if(wlan_lib_channel_verify(mac_channel) == 0){
+	if(wlan_verify_channel(mac_channel) == XST_SUCCESS){
 
 		// Send message to CPU Low
 		ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_CHANNEL);
@@ -2149,7 +2117,7 @@ int wlan_mac_high_release_tx_packet_buffer(int pkt_buf){
 u8 wlan_mac_high_pkt_type(void* mpdu, u16 length){
 
 	mac_header_80211* hdr_80211;
-	llc_header* llc_hdr;
+	llc_header_t* llc_hdr;
 
 	hdr_80211 = (mac_header_80211*)((void*)mpdu);
 
@@ -2173,9 +2141,9 @@ u8 wlan_mac_high_pkt_type(void* mpdu, u16 length){
 			return PKT_TYPE_DATA_PROTECTED;
 		}
 
-		llc_hdr = (llc_header*)((u8*)mpdu + sizeof(mac_header_80211));
+		llc_hdr = (llc_header_t*)((u8*)mpdu + sizeof(mac_header_80211));
 
-		if(length < (sizeof(mac_header_80211) + sizeof(llc_header) + WLAN_PHY_FCS_NBYTES)){
+		if(length < (sizeof(mac_header_80211) + sizeof(llc_header_t) + WLAN_PHY_FCS_NBYTES)){
 			// This was a DATA packet, but it wasn't long enough to have an LLC header.
 			return PKT_TYPE_DATA_OTHER;
 

@@ -24,6 +24,7 @@
 #include "string.h"
 
 // WLAN includes
+#include "wlan_mac_common.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_userio_util.h"
 #include "wlan_mac_high.h"
@@ -96,9 +97,7 @@ void queue_init(u8 dram_present){
 	if(dram_present != 1){
 		xil_printf("A working DRAM SODIMM has not been detected on this board.\n");
 		xil_printf("DRAM is required for the wireless transmission queue.  Halting.\n");
-
-		set_hex_display_error_status(ERROR_NODE_DRAM_NOT_PRESENT);
-		blink_hex_display(0, 250000);
+		cpu_error_halt(WLAN_ERROR_CODE_DRAM_NOT_PRESENT);
 	}
 
 	// Set the total number of supported Tx Queue entries
@@ -112,7 +111,7 @@ void queue_init(u8 dram_present){
 	tx_queues     = NULL;
 	num_tx_queues = 0;
 
-	queue_state_change_callback = (function_ptr_t)nullCallback;
+	queue_state_change_callback = (function_ptr_t)wlan_null_callback;
 
 	// Initialize the free queue
 	dl_list_init(&free_queue);
