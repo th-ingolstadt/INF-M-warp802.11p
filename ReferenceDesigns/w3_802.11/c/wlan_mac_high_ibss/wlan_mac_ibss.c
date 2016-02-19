@@ -104,9 +104,9 @@ volatile u32                      mac_param_chan;
 // MAC address
 static u8 	                      wlan_mac_addr[6];
 
-// Beacon variables
-volatile u8	                      allow_beacon_ts_update;            // Allow timebase to be updated from beacons
-
+static	beacon_txrx_configure_t	  gl_beacon_txrx_configure; //TODO: Need to create a setter for this struct that also pushes it via IPC to CPU_LOW
+															//Also, bss_info as well as beacon template packet contents should be updated as well
+															//for beacon_interval changes
 
 
 /*************************** Functions Prototypes ****************************/
@@ -143,7 +143,10 @@ int main() {
 
 	// Set default behavior
 	pause_data_queue       = 0;
-	allow_beacon_ts_update = 1;
+
+	gl_beacon_txrx_configure.ts_update_mode = ALWAYS_UPDATE;
+	bzero(gl_beacon_txrx_configure.bssid_match, 6);
+	gl_beacon_txrx_configure.beacon_tx_mode = NO_BEACON_TX;
 
 	// Set my_bss_info to NULL (ie IBSS is not currently on a BSS)
 	my_bss_info = NULL;
@@ -338,9 +341,16 @@ void ibss_set_association_state( bss_info* new_bss_info ){
 
 	// Set up beacon transmissions
 	wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, my_bss_info->bssid );
-	wlan_mac_high_configure_beacon_transmit( &tx_header_common, my_bss_info,
-											 &default_multicast_mgmt_tx_params,
-											 (TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_REQ_BO | TX_MPDU_FLAGS_BEACONCANCEL) );
+
+	// Set up beacon transmissions
+	gl_beacon_txrx_configure.ts_update_mode = FUTURE_ONLY_UPDATE;
+	memcpy(gl_beacon_txrx_configure.bssid_match, my_bss_info->bssid, 6);
+	gl_beacon_txrx_configure.beacon_tx_mode = IBSS_BEACON_TX;
+	gl_beacon_txrx_configure.beacon_interval_tu = my_bss_info->beacon_interval;
+	gl_beacon_txrx_configure.beacon_template_pkt_buf = TX_PKT_BUF_BEACON;
+	wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, my_bss_info->bssid );
+	wlan_mac_high_configure_beacon_tx_template( &tx_header_common, my_bss_info, &default_multicast_mgmt_tx_params, TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_REQ_BO );
+	wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_configure);
 }
 
 
@@ -833,58 +843,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 				break;
 
 				//---------------------------------------------------------------------
-				case (MAC_FRAME_CTRL1_SUBTYPE_BEACON):
-					// Beacon Packet
-					//   -
-					//
-
-					// Define the PHY timestamp offset
-					#define PHY_T_OFFSET 25
-
-					// Update the timestamp from the beacon
-					if(my_bss_info != NULL){
-						// If this packet was from our IBSS
-						if( wlan_addr_eq( my_bss_info->bssid, rx_80211_header->address_3)){
-
-
-
-							// Move the packet pointer to after the header
-							mpdu_ptr_u8 += sizeof(mac_header_80211);
-
-							// Calculate the difference between the beacon timestamp and the packet timestamp
-							//TODO: PHY_T_OFFSET is PHY_RX_START_DELAY
-							time_delta = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(mpdu_info->timestamp) + PHY_T_OFFSET;
-
-							// Set the timestamp
-							if (allow_beacon_ts_update == 1) {
-								if (time_delta > 0) {
-									// Update the MAC time
-									apply_mac_time_delta_usec(time_delta);
-								}
-							}
-							if(queue_num_queued(BEACON_QID)){
-
-								//We should destroy the beacon that is currently enqueued if
-								//it exists. Note: these statements aren't typically executed.
-								//It's very likely the to-be-transmitted BEACON is already down
-								//in CPU_LOW's domain and needs to be cancelled there.
-								curr_tx_queue_element = dequeue_from_head(BEACON_QID);
-								if(curr_tx_queue_element != NULL){
-									queue_checkin(curr_tx_queue_element);
-									wlan_eth_dma_update();
-								}
-							}
-
-							// Move the packet pointer back to the start for the rest of the function
-							mpdu_ptr_u8 -= sizeof(mac_header_80211);
-						}
-
-					}
-
-				break;
-
-
-				//---------------------------------------------------------------------
 				default:
 					//This should be left as a verbose print. It occurs often when communicating with mobile devices since they tend to send
 					//null data frames (type: DATA, subtype: 0x4) for power management reasons.
@@ -1193,8 +1151,9 @@ void leave_ibss(){
 		}
 
 		my_bss_info = NULL;
-
-		// TODO: Need a way to tell CPU_LOW to stop sending beacons
+		gl_beacon_txrx_configure.beacon_tx_mode = NO_BEACON_TX;
+		bzero(gl_beacon_txrx_configure.bssid_match, 6);
+		wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_configure);
 	}
 }
 

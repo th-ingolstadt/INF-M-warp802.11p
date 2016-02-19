@@ -59,10 +59,6 @@ volatile static u8                     gl_cw_exp_max;
 
 volatile static u32                    gl_dot11RTSThreshold;
 
-volatile static u8                     gl_beacon_allow_submit_en;
-volatile static u8                     gl_beaconcancel_match_type;	   //TODO: remove
-volatile static u8                     gl_beaconcancel_match_addr3[6]; //TODO: remove
-
 volatile static u8                     gl_eeprom_addr[6];
 
 volatile static u8                     gl_mpdu_pkt_buf;
@@ -98,20 +94,11 @@ int main(){
     xil_printf("This switch can be toggled any time while the design is running.\n\n");
     xil_printf("------------------------\n");
 
-    gl_beacon_allow_submit_en = 0;
     gl_mpdu_pkt_buf = PKT_BUF_INVALID;
 
     gl_beacon_txrx_configure.beacon_tx_mode = NO_BEACON_TX;
     gl_beacon_txrx_configure.ts_update_mode = NEVER_UPDATE;
     bzero((void*)gl_beacon_txrx_configure.bssid_match,6);
-
-    gl_beaconcancel_match_addr3[0] = 0x00;
-    gl_beaconcancel_match_addr3[1] = 0x00;
-    gl_beaconcancel_match_addr3[2] = 0x00;
-    gl_beaconcancel_match_addr3[3] = 0x00;
-    gl_beaconcancel_match_addr3[4] = 0x00;
-    gl_beaconcancel_match_addr3[5] = 0x00;
-    gl_beaconcancel_match_type     = 0x00;
 
     gl_dot11ShortRetryLimit      = 7;
     gl_dot11LongRetryLimit       = 4;
@@ -175,13 +162,28 @@ int main(){
     return 0;
 }
 
+void handle_mactime_change(s64 time_delta_usec){
+	u32 current_tu;
+	if(( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ) ||
+	   ( gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX )){
+		//The MAC Time has changed. We should explicitly update the next TU target
+		//for beacon transmission.
+		current_tu = (u32)(get_mac_time_usec()>>10);
+
+		//The current_tu can be anywhere within a beacon interval, so we need
+		//to round up to the next TBTT.
+		wlan_mac_set_tu_target(gl_beacon_txrx_configure.beacon_interval_tu*((current_tu/gl_beacon_txrx_configure.beacon_interval_tu)+1));
+	}
+	return;
+}
+
 void configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure){
 
 	memcpy((void*)&gl_beacon_txrx_configure, beacon_txrx_configure, sizeof(beacon_txrx_configure_t));
 
 	u32 current_tu;
 
-	if(( gl_beacon_txrx_configure.beacon_tx_mode == BSS_BEACON_TX ) ||
+	if(( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ) ||
 	   ( gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX )){
 
 		current_tu = (u32)(get_mac_time_usec()>>10);
@@ -189,7 +191,6 @@ void configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure){
 		//The current_tu can be anywhere within a beacon interval, so we need
 		//to round up to the next TBTT.
 		wlan_mac_set_tu_target(gl_beacon_txrx_configure.beacon_interval_tu*((current_tu/gl_beacon_txrx_configure.beacon_interval_tu)+1));
-		gl_beacon_allow_submit_en = 1;
 		wlan_mac_reset_tu_target_latch(1);
 		wlan_mac_reset_tu_target_latch(0);
 	}  else {
@@ -199,11 +200,12 @@ void configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure){
 }
 
 inline poll_tbtt_return_t poll_tbtt(){
-	u32 tu_target;
+	//u32 tu_target;
 	u32 mac_hw_status;
 	poll_tbtt_return_t return_status = TBTT_NOT_ACHIEVED;
+	u32 current_tu;
 
-	if(( gl_beacon_txrx_configure.beacon_tx_mode == BSS_BEACON_TX ) ||
+	if(( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ) ||
 	   ( gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX )){
 
 		mac_hw_status = wlan_mac_get_status();
@@ -211,7 +213,7 @@ inline poll_tbtt_return_t poll_tbtt(){
 		if(mac_hw_status & WLAN_MAC_STATUS_MASK_TU_LATCH) {
 			// Current TU >= Target TU
 
-			if(gl_beacon_allow_submit_en && send_beacon(gl_beacon_txrx_configure.beacon_template_pkt_buf) != 0){
+			if(send_beacon(gl_beacon_txrx_configure.beacon_template_pkt_buf) != 0){
 				// We were unable to begin the transmission (most likely because the MAC Support Core A was
 				// already actively transmitting something). So we will just return and catch it on the next poll
 				return_status = BEACON_DEFERRED;
@@ -223,9 +225,10 @@ inline poll_tbtt_return_t poll_tbtt(){
 			// Update TU target
 			//  Changing TU target automatically resets TU_LATCH
 			//  Latch will assert immediately if Current TU >= new Target TU
-			tu_target = wlan_mac_get_tu_target();
-			wlan_mac_set_tu_target(tu_target + gl_beacon_txrx_configure.beacon_interval_tu);
-			gl_beacon_allow_submit_en = 1;
+			//tu_target = wlan_mac_get_tu_target();
+			//wlan_mac_set_tu_target(tu_target + gl_beacon_txrx_configure.beacon_interval_tu);
+			current_tu = (u32)(get_mac_time_usec()>>10);
+			wlan_mac_set_tu_target(gl_beacon_txrx_configure.beacon_interval_tu*((current_tu/gl_beacon_txrx_configure.beacon_interval_tu)+1));
 
 			//TODO
 			//If MAC time is adjusted by more than a TU (e.g a wlan_exp reset), then
@@ -240,13 +243,15 @@ inline int send_beacon(u8 tx_pkt_buf){
 	int return_status = -1;
 
     wlan_ipc_msg_t           ipc_msg_to_high;
-    wlan_mac_low_tx_details  low_tx_details;
+    wlan_mac_low_tx_details 	low_tx_details;
 	u32 mac_hw_status;
 	u16 n_slots;
 	int tx_gain;
 	u8 mpdu_tx_ant_mask;
-	tx_frame_info* tx_frame_info_ptr     = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(tx_pkt_buf));
-	mac_header_80211* header             = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
+	//Note: This needs to be a volatile to allow the tx_pkt_buf_state to be re-read in the initial while
+	//loop below
+	volatile tx_frame_info* tx_frame_info_ptr		= (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(tx_pkt_buf));
+	mac_header_80211* header             			= (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
 	u64 unique_seq;
 	tx_mode_t tx_mode;
 	u32 rx_status;
@@ -261,7 +266,11 @@ inline int send_beacon(u8 tx_pkt_buf){
 		//already be active. We can only continue submitting the beacon transmission
 		//to MAC Support Core C is we successfully paused Core A.
 
-		while( (tx_frame_info_ptr->tx_pkt_buf_state != READY) && (lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) ){
+		while( (tx_frame_info_ptr->tx_pkt_buf_state != READY) ){
+			 userio_write_hexdisp_right(USERIO_BASEADDR, 0x2);
+			 userio_write_hexdisp_right(USERIO_BASEADDR, 0x0);
+		}
+		while( (lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) ){
 			//We will only continue with the send_beacon state when we are both assured that the
 			//tx_pkt_buf_state is READY (i.e. CPU_HIGH is not currently trying to log a beacon transmission)
 			//and we are able to clock the tx_pkt_buf. The only reason a lock should fail is that CPU_HIGH
@@ -310,15 +319,6 @@ inline int send_beacon(u8 tx_pkt_buf){
         				   PHY_MODE_NONHT,
         				   tx_frame_info_ptr->params.phy.mcs,
         				   tx_frame_info_ptr->length);
-
-
-
-        if(((tx_frame_info_ptr->flags) & TX_MPDU_FLAGS_BEACONCANCEL)) {
-            // Define the conditions to apply to receptions that would trigger cancellation of this transmission
-            gl_beaconcancel_match_type  = header->frame_control_1;
-
-            memcpy((void*)gl_beaconcancel_match_addr3, header->address_3, 6);
-        }
 
 		wlan_mac_tx_ctrl_C_start(1);
 		wlan_mac_tx_ctrl_C_start(0);
@@ -410,10 +410,11 @@ inline int send_beacon(u8 tx_pkt_buf){
                         // transmit the beacon. This will tell the TBTT logic to move on to the next beacon interval
                         // before attempting another beacon transmission.
                 		return_status = 0;
-                		tx_frame_info_ptr->tx_pkt_buf_state = DONE;
+                		// We will not sent a BEACON_DONE IPC message to CPU_HIGH, so
+                		// tx_frame_info_ptr->tx_pkt_buf_state should remain READY
+                		tx_frame_info_ptr->tx_pkt_buf_state = READY;
                 		if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-                			xil_printf("Error: Unable to unlock Beacon packet buffer\n");
-                			return -1;
+                			xil_printf("Error: Unable to unlock Beacon packet buffer (beacon cancel)\n");
                 		}
                 		wlan_mac_pause_backoff_tx_ctrl_A(0);
                         return return_status;
@@ -426,9 +427,9 @@ inline int send_beacon(u8 tx_pkt_buf){
 		return_status = 0;
 		tx_frame_info_ptr->tx_pkt_buf_state = DONE;
 		if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-			xil_printf("Error: Unable to unlock Beacon packet buffer\n");
-			return -1;
+			xil_printf("Error: Unable to unlock Beacon packet buffer (beacon sent) %d\n", unlock_pkt_buf_tx(tx_pkt_buf));
 		}
+
 		ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TX_BEACON_DONE);
 		ipc_msg_to_high.num_payload_words = sizeof(wlan_mac_low_tx_details)/4;
 		ipc_msg_to_high.arg0              = tx_pkt_buf;
@@ -494,6 +495,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
     u8                  ctrl_tx_gain;
     u32                 mac_hw_status;
     s64					time_delta;
+    u32 				current_tu;
 
     u8                  mpdu_tx_ant_mask         = 0;
     u8                  ack_tx_ant               = 0;
@@ -750,25 +752,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
         mpdu_info->state = wlan_mac_dcf_hw_rx_finish();
     }
 
-    // Check if this reception should trigger the cancellation of a pending or future transmission
-    //     This is used by the IBSS application to cancel a pending beacon transmission when
-    //     a beacon is received from a peer node
-    //
-
-
-    if ((mpdu_info->state == RX_MPDU_STATE_FCS_GOOD)                   && // Rx pkt checksum good
-        (rx_header->frame_control_1 == gl_beaconcancel_match_type)       && // Pkt type matches auto-cancel condition
-        (wlan_addr_eq(rx_header->address_3, gl_beaconcancel_match_addr3) && // Pkt addr3 matches auto-cancel condition when pkt has addr3
-         (phy_details->length) >= sizeof(mac_header_80211))) {
-
-    	gl_beacon_allow_submit_en = 0;
-		// Reset all state in the DCF core - this cancels deferrals and pending transmissions
-		wlan_mac_reset_tx_ctrl_C(1);
-		wlan_mac_reset_tx_ctrl_C(0);
-		return_value |= POLL_MAC_CANCEL_TX;
-
-    }
-
     // Received packet had good checksum
     if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) {
         // Increment green LEDs
@@ -826,43 +809,64 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
             }
         }
 
-        if(gl_beacon_txrx_configure.ts_update_mode != NEVER_UPDATE){
-			// Check to see if this was a beacon or probe response frame and update the MAC time if appropriate
-			switch(rx_header->frame_control_1) {
-				//---------------------------------------------------------------------
-				case (MAC_FRAME_CTRL1_SUBTYPE_BEACON):
-				case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP):
-					// Beacon Packet / Probe Response Packet
-					//   -
-					//
 
-					// If this packet was from our BSS
-					if(wlan_addr_eq(gl_beacon_txrx_configure.bssid_match, rx_header->address_3)){
+		// Check to see if this was a beacon or probe response frame and update the MAC time if appropriate
+		switch(rx_header->frame_control_1) {
+			//---------------------------------------------------------------------
+			case (MAC_FRAME_CTRL1_SUBTYPE_BEACON):
+			case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP):
+				// Beacon Packet / Probe Response Packet
+				//   -
+				//
 
-						// Move the packet pointer to after the header
-						mpdu_ptr_u8 += sizeof(mac_header_80211);
+				// If this packet was from our BSS
+				if(wlan_addr_eq(gl_beacon_txrx_configure.bssid_match, rx_header->address_3)){
 
-						// Calculate the difference between the beacon timestamp and the packet timestamp
-						time_delta = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(mpdu_info->timestamp) + mac_timing_values.t_phy_rx_start_dly;
-
-						// Update the MAC time
-
-						switch(gl_beacon_txrx_configure.ts_update_mode){
-							// TODO: notify the MAC Low Framework of this change so that TBTT can be updated (if necessary)
-							case NEVER_UPDATE:
-							break;
-							case ALWAYS_UPDATE:
-								apply_mac_time_delta_usec(time_delta);
-							break;
-							case FUTURE_ONLY_UPDATE:
-								if(time_delta > 0) apply_mac_time_delta_usec(time_delta);
-							break;
-						}
+					if(gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX){
+						// Reset all state in the DCF core - this cancels deferrals and pending transmissions
+						wlan_mac_reset_tx_ctrl_C(1);
+						wlan_mac_reset_tx_ctrl_C(0);
+						return_value |= POLL_MAC_CANCEL_TX;
 					}
 
-				break;
-			}
-        }
+					// Move the packet pointer to after the header
+					mpdu_ptr_u8 += sizeof(mac_header_80211);
+
+					// Calculate the difference between the beacon timestamp and the packet timestamp
+					time_delta = (s64)(((beacon_probe_frame*)mpdu_ptr_u8)->timestamp) - (s64)(mpdu_info->timestamp) + mac_timing_values.t_phy_rx_start_dly;
+
+					// Update the MAC time
+					switch(gl_beacon_txrx_configure.ts_update_mode){
+						// TODO: notify the MAC Low Framework of this change so that TBTT can be updated (if necessary)
+						case NEVER_UPDATE:
+						break;
+						case ALWAYS_UPDATE:
+							apply_mac_time_delta_usec(time_delta);
+							//handle_mactime_change(time_delta); //This call is actually not necessary here since, whether or not we adopt the
+																 //new MAC time, we will update next TBTT target anyway
+						break;
+						case FUTURE_ONLY_UPDATE:
+							if(time_delta > 0){
+								apply_mac_time_delta_usec(time_delta);
+								//handle_mactime_change(time_delta); //This call is actually not necessary here since, whether or not we adopt the
+																	 //new MAC time, we will update next TBTT target anyway
+							}
+						break;
+					}
+
+					if(( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ) ||
+					   ( gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX )){
+						current_tu = (u32)(get_mac_time_usec()>>10);
+
+						//The current_tu can be anywhere within a beacon interval, so we need
+						//to round up to the next TBTT.
+						wlan_mac_set_tu_target(gl_beacon_txrx_configure.beacon_interval_tu*((current_tu/gl_beacon_txrx_configure.beacon_interval_tu)+1));
+					}
+				}
+
+			break;
+		}
+
 
     // Received checksum was bad
     } else {

@@ -99,8 +99,9 @@ typedef enum {
 int                main();
 
 u32                frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details);
-void 				configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure);
-int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details);
+void 			   handle_mactime_change(s64 time_delta_usec);
+void 			   configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure);
+int 			   frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details);
 
 inline void        increment_src_ssrc(u8* src_ptr);
 inline void        increment_lrc_slrc(u8* lrc_ptr);

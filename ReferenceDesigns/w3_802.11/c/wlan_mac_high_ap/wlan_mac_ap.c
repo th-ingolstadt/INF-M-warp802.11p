@@ -115,6 +115,8 @@ static volatile mgmt_tag_template_t*	mgmt_tag_tim_template;
 static volatile u32				  		mgmt_tag_tim_update_schedule_id;
 
 static	beacon_txrx_configure_t	  gl_beacon_txrx_configure; //TODO: Need to create a setter for this struct that also pushes it via IPC to CPU_LOW
+															//Also, bss_info as well as beacon template packet contents should be updated as well
+															//for beacon_interval changes
 
 
 
@@ -290,7 +292,7 @@ int main(){
 	// Set up beacon transmissions
 	gl_beacon_txrx_configure.ts_update_mode = NEVER_UPDATE;
 	bzero(gl_beacon_txrx_configure.bssid_match, 6);
-	gl_beacon_txrx_configure.beacon_tx_mode = BSS_BEACON_TX;
+	gl_beacon_txrx_configure.beacon_tx_mode = AP_BEACON_TX;
 	gl_beacon_txrx_configure.beacon_interval_tu = my_bss_info->beacon_interval;
 	gl_beacon_txrx_configure.beacon_template_pkt_buf = TX_PKT_BUF_BEACON;
 	wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, wlan_mac_addr );

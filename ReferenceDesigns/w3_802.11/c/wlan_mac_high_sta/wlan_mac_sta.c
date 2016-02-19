@@ -105,6 +105,7 @@ static u8 	                      wlan_mac_addr[6];
 static	beacon_txrx_configure_t	  gl_beacon_txrx_configure; //TODO: Need to create a setter for this struct that also pushes it via IPC to CPU_LOW
 
 
+
 /*************************** Functions Prototypes ****************************/
 
 #ifdef USE_WLAN_EXP

@@ -2777,8 +2777,6 @@ int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_heade
 		return -1;
 	}
 
-	tx_frame_info_ptr->tx_pkt_buf_state = READY;
-
 	// Fill in the data
 	tx_length = wlan_create_beacon_frame(
 		(void*)(tx_frame_info_ptr)+PHY_TX_PKT_BUF_MPDU_OFFSET,
@@ -2803,11 +2801,12 @@ int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_heade
 	tx_frame_info_ptr->short_retry_count = 0;
 	tx_frame_info_ptr->long_retry_count = 0;
 
+	tx_frame_info_ptr->tx_pkt_buf_state = READY;
 	if(unlock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
 		xil_printf("Error: Unable to unlock Beacon packet buffer during initial configuration\n");
 		return -1;
 	}
-	tx_frame_info_ptr->tx_pkt_buf_state = READY;
+
 
 	return 0;
 }

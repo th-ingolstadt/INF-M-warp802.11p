@@ -215,7 +215,7 @@ typedef enum {
 
 typedef enum {
     NO_BEACON_TX,
-    BSS_BEACON_TX,
+    AP_BEACON_TX,
     IBSS_BEACON_TX,
 } beacon_tx_mode_t;
 
