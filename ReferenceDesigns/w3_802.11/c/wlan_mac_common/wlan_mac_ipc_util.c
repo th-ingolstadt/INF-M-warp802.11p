@@ -24,6 +24,7 @@
 #include "xparameters.h"
 
 #include "wlan_mac_common.h"
+#include "wlan_mac_mailbox_util.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_802_11_defs.h"
@@ -42,6 +43,10 @@ static XMutex                pkt_buf_mutex;
 
 int wlan_lib_init () {
 	u32 i;
+
+	// Initialize mailbox
+	init_mailbox();
+
 
 	//Initialize the pkt buffer mutex core
 	XMutex_Config *mutex_ConfigPtr;
