@@ -239,14 +239,14 @@ inline poll_tbtt_return_t poll_tbtt(){
 inline int send_beacon(u8 tx_pkt_buf){
 	int return_status = -1;
 
-    wlan_ipc_msg   				ipc_msg_to_high;
-    wlan_mac_low_tx_details 	low_tx_details;
+    wlan_ipc_msg_t           ipc_msg_to_high;
+    wlan_mac_low_tx_details  low_tx_details;
 	u32 mac_hw_status;
 	u16 n_slots;
 	int tx_gain;
 	u8 mpdu_tx_ant_mask;
-	tx_frame_info* tx_frame_info_ptr		= (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(tx_pkt_buf));
-	mac_header_80211* header             	= (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
+	tx_frame_info* tx_frame_info_ptr     = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(tx_pkt_buf));
+	mac_header_80211* header             = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
 	u64 unique_seq;
 	tx_mode_t tx_mode;
 	u32 rx_status;
@@ -434,7 +434,7 @@ inline int send_beacon(u8 tx_pkt_buf){
 		ipc_msg_to_high.arg0              = tx_pkt_buf;
 		ipc_msg_to_high.payload_ptr		  = (u32*)&low_tx_details;
 
-		ipc_mailbox_write_msg(&ipc_msg_to_high);
+		write_mailbox_msg(&ipc_msg_to_high);
 	}
 	wlan_mac_pause_backoff_tx_ctrl_A(0);
 

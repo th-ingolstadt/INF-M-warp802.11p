@@ -30,6 +30,7 @@
 
 // WLAN includes
 #include "wlan_mac_ipc_util.h"
+#include "wlan_mac_mailbox_util.h"
 #include "wlan_mac_misc_util.h"
 #include "wlan_phy_util.h"
 #include "wlan_mac_low.h"
@@ -961,7 +962,7 @@ inline u16 wlan_ofdm_txtime(u16 length, u16 n_DBPS, phy_samp_rate_t phy_samp_rat
  * @return  None
  *
  *****************************************************************************/
-void process_config_phy_rx(ipc_config_phy_rx* config_phy_rx){
+void process_config_phy_rx(ipc_config_phy_rx_t * config_phy_rx){
 
     if (config_phy_rx->enable_dsss != 0xFF) {
         if (config_phy_rx->enable_dsss == 1) {
@@ -984,7 +985,7 @@ void process_config_phy_rx(ipc_config_phy_rx* config_phy_rx){
  * @return  None
  *
  *****************************************************************************/
-void process_config_phy_tx(ipc_config_phy_tx* config_phy_tx){
+void process_config_phy_tx(ipc_config_phy_tx_t * config_phy_tx){
     //
     // Nothing to implement at this time
     //

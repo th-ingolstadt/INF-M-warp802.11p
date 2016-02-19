@@ -29,6 +29,7 @@
 // WLAN Includes
 #include "wlan_mac_common.h"
 #include "wlan_mac_dl_list.h"
+#include "wlan_mac_mailbox_util.h"
 #include "wlan_mac_ipc_util.h"
 #include "wlan_mac_time_util.h"
 #include "wlan_mac_userio_util.h"
@@ -122,8 +123,8 @@ volatile static interrupt_state_t interrupt_state;
 volatile static u8           debug_gpio_state;             ///< Current state of debug GPIO pins
 
 // IPC variables
-wlan_ipc_msg                 ipc_msg_from_low;							            ///< IPC message from lower-level
-u32                          ipc_msg_from_low_payload[IPC_BUFFER_MAX_NUM_WORDS];	///< Buffer space for IPC message from lower-level
+wlan_ipc_msg_t               ipc_msg_from_low;                                           ///< IPC message from lower-level
+u32                          ipc_msg_from_low_payload[MAILBOX_BUFFER_MAX_NUM_WORDS];     ///< Buffer space for IPC message from lower-level
 
 // Memory Allocation Debugging
 volatile static u32          num_malloc;                   ///< Tracking variable for number of times malloc has been called
@@ -324,7 +325,7 @@ void wlan_mac_high_init(){
 	tx_poll_callback         = (function_ptr_t)wlan_null_callback;
 	mpdu_tx_dequeue_callback = (function_ptr_t)wlan_null_callback;
 
-	wlan_lib_mailbox_set_rx_callback((function_ptr_t)wlan_mac_high_ipc_rx);
+	set_mailbox_rx_callback((function_ptr_t)wlan_mac_high_ipc_rx);
 
 	interrupt_state = INTERRUPTS_DISABLED;
 
@@ -481,7 +482,7 @@ int wlan_mac_high_interrupt_init(){
 		return -1;
 	}
 
-	Result = wlan_lib_mailbox_setup_interrupt(&InterruptController);
+	Result = setup_mailbox_interrupt(&InterruptController);
 	if (Result != XST_SUCCESS) {
 		wlan_printf(PL_ERROR, "Failed to set up wlan_lib mailbox interrupt\n");
 		return -1;
@@ -1300,7 +1301,7 @@ void wlan_mac_high_cdma_finish_transfer(){
  *
  */
 void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
-	wlan_ipc_msg ipc_msg_to_low;
+	wlan_ipc_msg_t ipc_msg_to_low;
 	tx_frame_info* tx_mpdu;
 	station_info* station;
 	void* dest_addr;
@@ -1364,7 +1365,7 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
 	if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 		wlan_printf(PL_ERROR, "Error: unable to unlock tx pkt_buf %d\n",tx_pkt_buf);
 	} else {
-		ipc_mailbox_write_msg(&ipc_msg_to_low);
+		write_mailbox_msg(&ipc_msg_to_low);
 	}
 
 }
@@ -1510,7 +1511,7 @@ void wlan_mac_high_ipc_rx(){
 	xil_printf("Mailbox Rx:  ");
 #endif
 
-	while( ipc_mailbox_read_msg( &ipc_msg_from_low ) == IPC_MBOX_SUCCESS ) {
+	while (read_mailbox_msg(&ipc_msg_from_low) == IPC_MBOX_SUCCESS) {
 		wlan_mac_high_process_ipc_msg(&ipc_msg_from_low);
 
 #ifdef _DEBUG_
@@ -1534,7 +1535,7 @@ void wlan_mac_high_ipc_rx(){
  *     - Pointer to the IPC message
  * @return None
  */
-void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
+void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 
 	u8                  rx_pkt_buf;
     u32                 temp_1;
@@ -1685,7 +1686,7 @@ void wlan_mac_high_process_ipc_msg( wlan_ipc_msg* msg ) {
  */
 void wlan_mac_high_set_srand(u32 seed) {
 
-	wlan_ipc_msg       ipc_msg_to_low;
+	wlan_ipc_msg_t     ipc_msg_to_low;
 	u32                ipc_msg_to_low_payload = seed;
 
 	// Send message to CPU Low
@@ -1693,7 +1694,7 @@ void wlan_mac_high_set_srand(u32 seed) {
 	ipc_msg_to_low.num_payload_words = 1;
 	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload);
 
-	ipc_mailbox_write_msg(&ipc_msg_to_low);
+	write_mailbox_msg(&ipc_msg_to_low);
 }
 
 
@@ -1709,7 +1710,7 @@ void wlan_mac_high_set_srand(u32 seed) {
  */
 void wlan_mac_high_set_channel(u32 mac_channel) {
 
-	wlan_ipc_msg       ipc_msg_to_low;
+	wlan_ipc_msg_t     ipc_msg_to_low;
 	u32                ipc_msg_to_low_payload = mac_channel;
 
 
@@ -1720,21 +1721,21 @@ void wlan_mac_high_set_channel(u32 mac_channel) {
 		ipc_msg_to_low.num_payload_words = 1;
 		ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload);
 
-		ipc_mailbox_write_msg(&ipc_msg_to_low);
+		write_mailbox_msg(&ipc_msg_to_low);
 	} else {
 		xil_printf("Channel %d not allowed\n", mac_channel);
 	}
 }
 
 void wlan_mac_high_config_txrx_beacon(beacon_txrx_configure_t* beacon_txrx_configure){
-	wlan_ipc_msg       ipc_msg_to_low;
+	wlan_ipc_msg_t ipc_msg_to_low;
 
 	// Send message to CPU Low
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TXRX_BEACON_CONFIGURE);
 	ipc_msg_to_low.num_payload_words = sizeof(beacon_txrx_configure_t)/sizeof(u32);
 	ipc_msg_to_low.payload_ptr       = (u32*)beacon_txrx_configure;
 
-	ipc_mailbox_write_msg(&ipc_msg_to_low);
+	write_mailbox_msg(&ipc_msg_to_low);
 
 }
 
@@ -1748,8 +1749,7 @@ void wlan_mac_high_config_txrx_beacon(beacon_txrx_configure_t* beacon_txrx_confi
  * @return None
  */
 void wlan_mac_high_set_rx_ant_mode(u8 ant_mode) {
-
-	wlan_ipc_msg       ipc_msg_to_low;
+	wlan_ipc_msg_t     ipc_msg_to_low;
 	u32                ipc_msg_to_low_payload = (u32)ant_mode;
 
 	//Sanity check input
@@ -1772,7 +1772,7 @@ void wlan_mac_high_set_rx_ant_mode(u8 ant_mode) {
 	ipc_msg_to_low.num_payload_words = 1;
 	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload);
 
-	ipc_mailbox_write_msg(&ipc_msg_to_low);
+	write_mailbox_msg(&ipc_msg_to_low);
 }
 
 
@@ -1788,7 +1788,7 @@ void wlan_mac_high_set_rx_ant_mode(u8 ant_mode) {
  */
 void wlan_mac_high_set_tx_ctrl_pow(s8 pow) {
 
-	wlan_ipc_msg       ipc_msg_to_low;
+	wlan_ipc_msg_t     ipc_msg_to_low;
 	u32                ipc_msg_to_low_payload = (u32)pow;
 
 	// Send message to CPU Low
@@ -1796,7 +1796,7 @@ void wlan_mac_high_set_tx_ctrl_pow(s8 pow) {
 	ipc_msg_to_low.num_payload_words = 1;
 	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload);
 
-	ipc_mailbox_write_msg(&ipc_msg_to_low);
+	write_mailbox_msg(&ipc_msg_to_low);
 }
 
 
@@ -1821,7 +1821,7 @@ void wlan_mac_high_set_tx_ctrl_pow(s8 pow) {
  */
 void wlan_mac_high_set_rx_filter_mode(u32 filter_mode) {
 
-	wlan_ipc_msg       ipc_msg_to_low;
+	wlan_ipc_msg_t     ipc_msg_to_low;
 	u32                ipc_msg_to_low_payload = (u32)filter_mode;
 
 	// Send message to CPU Low
@@ -1829,7 +1829,7 @@ void wlan_mac_high_set_rx_filter_mode(u32 filter_mode) {
 	ipc_msg_to_low.num_payload_words = 1;
 	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload);
 
-	ipc_mailbox_write_msg(&ipc_msg_to_low);
+	write_mailbox_msg(&ipc_msg_to_low);
 }
 
 
@@ -1845,9 +1845,9 @@ void wlan_mac_high_set_rx_filter_mode(u32 filter_mode) {
  * @return  int              - Status of command:  0 = Success; -1 = Failure
  */
 int wlan_mac_high_write_low_mem(u32 num_words, u32* payload) {
-	wlan_ipc_msg   ipc_msg_to_low;
+	wlan_ipc_msg_t ipc_msg_to_low;
 
-	if (num_words > IPC_BUFFER_MAX_NUM_WORDS) {
+	if (num_words > MAILBOX_BUFFER_MAX_NUM_WORDS) {
 	    return -1;
 	}
 
@@ -1857,7 +1857,7 @@ int wlan_mac_high_write_low_mem(u32 num_words, u32* payload) {
 	ipc_msg_to_low.arg0              = IPC_REG_WRITE_MODE;
 	ipc_msg_to_low.payload_ptr       = payload;
 
-	ipc_mailbox_write_msg(&ipc_msg_to_low);
+	write_mailbox_msg(&ipc_msg_to_low);
 
 	return 0;
 }
@@ -1877,14 +1877,14 @@ int wlan_mac_high_write_low_mem(u32 num_words, u32* payload) {
  */
 int wlan_mac_high_read_low_mem(u32 num_words, u32 baseaddr, u32* payload) {
 
-    u64                start_timestamp;
-    wlan_ipc_msg       ipc_msg_to_low;
-    ipc_reg_read_write ipc_msg_to_low_payload;
+    u64                  start_timestamp;
+    wlan_ipc_msg_t       ipc_msg_to_low;
+    ipc_reg_read_write_t ipc_msg_to_low_payload;
 
     if(InterruptController.IsStarted == XIL_COMPONENT_IS_STARTED){
         // Send message to CPU Low
         ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_MEM_READ_WRITE);
-        ipc_msg_to_low.num_payload_words = sizeof(ipc_reg_read_write) / sizeof(u32);
+        ipc_msg_to_low.num_payload_words = sizeof(ipc_reg_read_write_t) / sizeof(u32);
         ipc_msg_to_low.arg0              = IPC_REG_READ_MODE;
         ipc_msg_to_low.payload_ptr       = (u32*)(&(ipc_msg_to_low_payload));
 
@@ -1895,7 +1895,7 @@ int wlan_mac_high_read_low_mem(u32 num_words, u32 baseaddr, u32* payload) {
         cpu_low_reg_read_buffer          = payload;
         cpu_low_reg_read_buffer_status   = CPU_LOW_REG_READ_BUFFER_STATUS_NOT_READY;
 
-        ipc_mailbox_write_msg(&ipc_msg_to_low);
+        write_mailbox_msg(&ipc_msg_to_low);
 
         // Get start time
         start_timestamp = get_system_time_usec();
@@ -1936,9 +1936,9 @@ int wlan_mac_high_read_low_mem(u32 num_words, u32 baseaddr, u32* payload) {
  * @return  int              - Status of command:  0 = Success; -1 = Failure
  */
 int wlan_mac_high_write_low_param(u32 num_words, u32* payload) {
-    wlan_ipc_msg   ipc_msg_to_low;
+    wlan_ipc_msg_t ipc_msg_to_low;
 
-    if (num_words > IPC_BUFFER_MAX_NUM_WORDS) {
+    if (num_words > MAILBOX_BUFFER_MAX_NUM_WORDS) {
         return -1;
     }
 
@@ -1948,7 +1948,7 @@ int wlan_mac_high_write_low_param(u32 num_words, u32* payload) {
     ipc_msg_to_low.arg0              = IPC_REG_WRITE_MODE;
     ipc_msg_to_low.payload_ptr       = payload;
 
-    ipc_mailbox_write_msg(&ipc_msg_to_low);
+    write_mailbox_msg(&ipc_msg_to_low);
 
     return 0;
 }
@@ -1966,21 +1966,21 @@ int wlan_mac_high_write_low_param(u32 num_words, u32* payload) {
  */
 void wlan_mac_high_set_dsss(u32 dsss_value) {
 
-	wlan_ipc_msg       ipc_msg_to_low;
-	u32                ipc_msg_to_low_payload[1];
-	ipc_config_phy_rx* config_phy_rx;
+	wlan_ipc_msg_t       ipc_msg_to_low;
+	u32                  ipc_msg_to_low_payload[1];
+	ipc_config_phy_rx_t* config_phy_rx;
 
 	// Send message to CPU Low
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_PHY_RX);
-	ipc_msg_to_low.num_payload_words = sizeof(ipc_config_phy_rx)/sizeof(u32);
+	ipc_msg_to_low.num_payload_words = sizeof(ipc_config_phy_rx_t)/sizeof(u32);
 	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload[0]);
 
 	// Initialize the payload
-	init_ipc_config(config_phy_rx, ipc_msg_to_low_payload, ipc_config_phy_rx);
+	init_ipc_config(config_phy_rx, ipc_msg_to_low_payload, ipc_config_phy_rx_t);
 
 	config_phy_rx->enable_dsss = dsss_value;
 
-	ipc_mailbox_write_msg(&ipc_msg_to_low);
+	write_mailbox_msg(&ipc_msg_to_low);
 }
 
 
@@ -1994,14 +1994,14 @@ void wlan_mac_high_set_dsss(u32 dsss_value) {
  * @return None
  */
 void wlan_mac_high_request_low_state(){
-	wlan_ipc_msg       ipc_msg_to_low;
+	wlan_ipc_msg_t      ipc_msg_to_low;
 
 	// Send message to CPU Low
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CPU_STATUS);
 	ipc_msg_to_low.num_payload_words = 0;
 	ipc_msg_to_low.arg0              = 1; // This means a request for a status update
 
-	ipc_mailbox_write_msg(&ipc_msg_to_low);
+	write_mailbox_msg(&ipc_msg_to_low);
 }
 
 

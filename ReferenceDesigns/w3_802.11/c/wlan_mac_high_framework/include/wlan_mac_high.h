@@ -270,7 +270,7 @@
  ********************************************************************/
 #include "wlan_mac_queue.h"
 #include "wlan_mac_packet_types.h"
-#include "wlan_mac_ipc_util.h"
+#include "wlan_mac_mailbox_util.h"
 #include "wlan_mac_misc_util.h"
 #include "wlan_mac_dl_list.h"
 
@@ -446,7 +446,7 @@ void               wlan_mac_high_set_pb_m_callback(function_ptr_t callback);
 void               wlan_mac_high_set_pb_d_callback(function_ptr_t callback);
 void               wlan_mac_high_set_uart_rx_callback(function_ptr_t callback);
 void               wlan_mac_high_set_mpdu_tx_done_callback(function_ptr_t callback);
-void 			   wlan_mac_high_set_beacon_tx_done_callback(function_ptr_t callback);
+void               wlan_mac_high_set_beacon_tx_done_callback(function_ptr_t callback);
 void               wlan_mac_high_set_mpdu_rx_callback(function_ptr_t callback);
 void               wlan_mac_high_set_poll_tx_queues_callback(function_ptr_t callback);
 void               wlan_mac_high_set_mpdu_dequeue_callback(function_ptr_t callback);
@@ -472,11 +472,11 @@ void               wlan_mac_high_setup_tx_header( mac_header_80211_common * head
 void               wlan_mac_high_setup_tx_frame_info( mac_header_80211_common * header, tx_queue_element * curr_tx_queue_element, u32 tx_length, u8 flags, u8 QID );
 
 void               wlan_mac_high_ipc_rx();
-void               wlan_mac_high_process_ipc_msg(wlan_ipc_msg* msg);
+void               wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg);
 
 void               wlan_mac_high_set_srand(u32 seed);
 void               wlan_mac_high_set_channel(u32 mac_channel);
-void 			   wlan_mac_high_config_txrx_beacon(beacon_txrx_configure_t* beacon_txrx_configure);
+void               wlan_mac_high_config_txrx_beacon(beacon_txrx_configure_t* beacon_txrx_configure);
 void               wlan_mac_high_set_rx_ant_mode(u8 ant_mode);
 void               wlan_mac_high_set_tx_ctrl_pow(s8 pow);
 void               wlan_mac_high_set_rx_filter_mode(u32 filter_mode);
@@ -505,7 +505,7 @@ u32                wlan_mac_high_get_max_associations();
 counts_txrx *      wlan_mac_high_add_counts(dl_list* counts_tbl, station_info* station, u8* addr);
 void               wlan_mac_high_reset_counts(dl_list* counts_tbl);
 void               wlan_mac_high_update_tx_counts(tx_frame_info* tx_mpdu, station_info* station);
-int 			   wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, bss_info* bss_info_ptr, tx_params* tx_params_ptr, u8 flags);
+int                wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, bss_info* bss_info_ptr, tx_params* tx_params_ptr, u8 flags);
 
 void               wlan_mac_high_print_associations(dl_list* assoc_tbl);
 

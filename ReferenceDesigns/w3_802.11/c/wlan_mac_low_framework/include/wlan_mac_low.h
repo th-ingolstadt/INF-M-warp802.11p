@@ -19,6 +19,7 @@
 #define WLAN_MAC_LOW_H_
 
 #include "wlan_mac_ipc_util.h"
+#include "wlan_mac_mailbox_util.h"
 
 //-----------------------------------------------
 // MAC Header defines
@@ -437,7 +438,7 @@ inline void        wlan_mac_low_send_exception(u32 reason);
 inline u32         wlan_mac_low_poll_frame_rx();
 inline void        wlan_mac_low_poll_ipc_rx();
 
-void               wlan_mac_low_process_ipc_msg(wlan_ipc_msg* msg);
+void               wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg);
 void               wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf);
 void               wlan_mac_low_disable_new_mpdu_tx();
 void               wlan_mac_low_enable_new_mpdu_tx();
