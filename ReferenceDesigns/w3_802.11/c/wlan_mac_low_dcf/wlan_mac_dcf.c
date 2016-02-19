@@ -267,8 +267,6 @@ inline int send_beacon(u8 tx_pkt_buf){
 		//to MAC Support Core C is we successfully paused Core A.
 
 		while( (tx_frame_info_ptr->tx_pkt_buf_state != READY) ){
-			 userio_write_hexdisp_right(USERIO_BASEADDR, 0x2);
-			 userio_write_hexdisp_right(USERIO_BASEADDR, 0x0);
 		}
 		while( (lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) ){
 			//We will only continue with the send_beacon state when we are both assured that the
