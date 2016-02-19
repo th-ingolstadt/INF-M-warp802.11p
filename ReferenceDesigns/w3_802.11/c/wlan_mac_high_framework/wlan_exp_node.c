@@ -2103,24 +2103,34 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 phy_mode = PHY_MODE_NONHT;
             }
 
+            // Set default return values
+            ret_mcs      = mcs;
+            ret_phy_mode = phy_mode;
+
             // Process the command
             if (type == CMD_PARAM_UNICAST_VAL) {
                 switch (msg_cmd) {
                     case CMD_PARAM_WRITE_VAL:
                     case CMD_PARAM_READ_VAL:
                         // Get MAC Address
-                        wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[4], &mac_addr[0]);
+                        wlan_exp_get_mac_addr(&cmd_args_32[4], &mac_addr[0]);
 
                         // If necessary, add an association.  This is primarily for IBSS nodes where
                         //   the association table might not be set up at the time this is called.
                         // NOTE: A multicast mac_addr should *not* be added to the association table.
-                        if (wlan_addr_mcast(mac_addr) == 0){
+                        if (!wlan_addr_mcast(mac_addr)){
                             wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
                         }
 
                         id = wlan_exp_get_id_in_associated_stations(&mac_addr[0]);
 
-                        status = process_tx_rate(msg_cmd, id, mcs, phy_mode, &ret_mcs, &ret_phy_mode);
+                        if (id != WLAN_EXP_AID_NONE) {
+                            status = process_tx_rate(msg_cmd, id, mcs, phy_mode, &ret_mcs, &ret_phy_mode);
+                        } else {
+                            wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Station not found\n");
+                            status = CMD_PARAM_ERROR;
+                        }
+
                     break;
 
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
@@ -4026,7 +4036,7 @@ u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 
         curr_list  = get_station_info_list();
 
         if (curr_list != NULL) {
-            if (curr_list->length == 0) { return status; }
+            if (curr_list->length == 0) { return CMD_PARAM_SUCCESS; }
 
             iter       = curr_list->length;
             curr_entry = curr_list->first;
