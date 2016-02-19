@@ -1929,8 +1929,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         Returns:
             valid (bool):  Are all arguments valid?
         """
-        if ((int(address) != address) or (address >= 2**16) or (address < 0)):
-            raise Exception('ERROR: address must be integer value in [0 .. (2^16 - 1)]!')
+        if ((int(address) != address) or (address >= 16384) or (address < 0)):
+            raise Exception('ERROR: address must be integer value in [0 .. 16383]!')
 
         if (values is not None):
             if (type(values) is not list):
