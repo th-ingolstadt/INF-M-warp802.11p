@@ -393,7 +393,21 @@ def mac_addr_to_byte_str(mac_address):
     ret_val = b''
     
     if mac_address is not None:
-        ret_val = bytes([((mac_address >> ((6 - i - 1) * 8)) % 256) for i in range(6)])
+        import sys
+    
+        # Fix to support Python 2.x and 3.x
+        if sys.version[0]=="2":
+            ret_val   = ""
+            int_array = [((mac_address >> ((6 - i - 1) * 8)) % 256) for i in range(6)]
+            for value in int_array:
+                ret_val += "{0}".format(chr(value))
+            ret_val = bytes(ret_val)
+        elif sys.version[0]=="3":
+            ret_val = bytes([((mac_address >> ((6 - i - 1) * 8)) % 256) for i in range(6)])
+        else:
+            msg  = "WARNING:  Cannot convert MAC Address to byte string:\n"
+            msg += "    Unsupported Python version."
+            print(msg)
         
     return ret_val
 
