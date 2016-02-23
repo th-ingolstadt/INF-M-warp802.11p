@@ -18,7 +18,7 @@
 #ifndef WLAN_MAC_LOW_H_
 #define WLAN_MAC_LOW_H_
 
-#include "wlan_mac_ipc_util.h"
+#include "wlan_mac_pkt_buf_util.h"
 #include "wlan_mac_mailbox_util.h"
 
 //-----------------------------------------------
@@ -397,8 +397,8 @@ typedef struct{
 #define wlan_mac_low_get_tx_start_timestamp_frac()  (Xil_In32(WLAN_MAC_REG_TXRX_TIMESTAMPS_FRAC) & 0x00FF)
 
 // TU Target register - UFix32_0 TU target
-#define wlan_mac_get_tu_target()	Xil_In32(WLAN_MAC_REG_TU_TARGET)
-#define wlan_mac_set_tu_target(x)	Xil_Out32(WLAN_MAC_REG_TU_TARGET, (x))
+#define wlan_mac_get_tu_target()    Xil_In32(WLAN_MAC_REG_TU_TARGET)
+#define wlan_mac_set_tu_target(x)   Xil_Out32(WLAN_MAC_REG_TU_TARGET, (x))
 
 //-----------------------------------------------
 // MAC Polling defines

@@ -83,10 +83,10 @@ static char                       default_ssid[SSID_LEN_MAX + 1] = "WARP-IBSS";
 mac_header_80211_common           tx_header_common;
 
 // Default transmission parameters
-tx_params                         default_unicast_mgmt_tx_params;
-tx_params                         default_unicast_data_tx_params;
-tx_params                         default_multicast_mgmt_tx_params;
-tx_params                         default_multicast_data_tx_params;
+tx_params_t                       default_unicast_mgmt_tx_params;
+tx_params_t                       default_unicast_data_tx_params;
+tx_params_t                       default_multicast_mgmt_tx_params;
+tx_params_t                       default_multicast_data_tx_params;
 
 // Top level IBSS state
 bss_info*                         my_bss_info;
@@ -503,7 +503,7 @@ void purge_all_data_tx_queue(){
  *  - number of elements in array pointed to by previous argument
  * @return None
 */
-void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details, u16 num_tx_low_details) {
+void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details_t* tx_low_details, u16 num_tx_low_details) {
 	u32                    i;
 	u32					   first_tx_time_delta;
 	dl_entry*              entry                   = NULL;
@@ -679,7 +679,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 	u8                  unicast_to_me;
 	u8                  to_multicast;
-	s64                 time_delta;
 	u8					send_response			 = 0;
 	u32					tx_length;
 	u8					pre_llc_offset			 = 0;

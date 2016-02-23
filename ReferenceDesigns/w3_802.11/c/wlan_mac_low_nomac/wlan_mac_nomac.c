@@ -27,7 +27,7 @@
 
 // WLAN includes
 #include "wlan_mac_low.h"
-#include "wlan_mac_ipc_util.h"
+#include "wlan_mac_pkt_buf_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_misc_util.h"
 #include "wlan_phy_util.h"
@@ -144,7 +144,7 @@ int main(){
  *
  * @note    Default NOMAC implementation always returns 0
  */
-u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
+u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details){
 
     void              * pkt_buf_addr        = (void *) RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
     rx_frame_info     * frame_info           = (rx_frame_info *) pkt_buf_addr;
@@ -195,7 +195,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
     // Unlock the pkt buf mutex before passing the packet up
     //     If this fails, something has gone horribly wrong
     //
-    if (unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) {
+    if (unlock_rx_pkt_buf(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) {
         xil_printf("Error: unable to unlock RX pkt_buf %d\n", rx_pkt_buf);
         wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_RX_MUTEX);
     } else {
@@ -229,7 +229,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details){
  *                             (eventually leading to TX_LOW log entries)
  * @return  int              - Transmission result
  */
-int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
+int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
     // The pkt_buf, rate, and length arguments provided to this function specifically relate to
     // the MPDU that the WLAN MAC LOW framework wants to send.
 

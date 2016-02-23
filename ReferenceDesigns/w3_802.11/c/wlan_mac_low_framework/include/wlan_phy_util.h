@@ -14,6 +14,7 @@
  */
 
 
+#include "wlan_mac_common.h"
 #include "wlan_mac_mailbox_util.h"
 
 /*************************** Constant Definitions ****************************/
@@ -426,7 +427,6 @@ inline void wlan_tx_start();
 
 // Calculate transmit times
 inline u16 wlan_ofdm_txtime(u16 length,u16 n_DBPS, phy_samp_rate_t phy_samp_rate);
-inline u16 wlan_ofdm_txtime_fast(u16 length,u16 n_DBPS, phy_samp_rate_t phy_samp_rate);
 
 // IPC message processing functions
 void process_config_phy_rx(ipc_config_phy_rx_t* config_phy_rx);

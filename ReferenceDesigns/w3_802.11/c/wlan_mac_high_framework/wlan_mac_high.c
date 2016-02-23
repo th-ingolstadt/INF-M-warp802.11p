@@ -30,7 +30,7 @@
 #include "wlan_mac_common.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_mailbox_util.h"
-#include "wlan_mac_ipc_util.h"
+#include "wlan_mac_pkt_buf_util.h"
 #include "wlan_mac_time_util.h"
 #include "wlan_mac_userio_util.h"
 #include "wlan_mac_802_11_defs.h"
@@ -67,10 +67,10 @@ extern int                   __stack;                      ///< End of the stack
 
 
 // Variables implemented in child classes (ie AP, STA, etc)
-extern tx_params             default_unicast_mgmt_tx_params;
-extern tx_params             default_unicast_data_tx_params;
-extern tx_params             default_multicast_mgmt_tx_params;
-extern tx_params             default_multicast_data_tx_params;
+extern tx_params_t           default_unicast_mgmt_tx_params;
+extern tx_params_t           default_unicast_data_tx_params;
+extern tx_params_t           default_multicast_mgmt_tx_params;
+extern tx_params_t           default_multicast_data_tx_params;
 
 
 
@@ -305,10 +305,16 @@ void wlan_mac_high_init(){
 
 
 	// ***************************************************
-	// Initialize the utility library
+	// Initialize libraries
 	// ***************************************************
-	wlan_lib_init();
 
+	// Initialize mailbox
+	init_mailbox();
+
+    // Initialize packet buffers
+	init_pkt_buf();
+
+	// Set stack protection addresses
 	mtshr(&__stack);
 	mtslr(&_stack_end);
 
@@ -342,7 +348,7 @@ void wlan_mac_high_init(){
 	// Initialize Transmit Packet Buffers
 	// ***************************************************
 	for(i=0;i < NUM_TX_PKT_BUFS; i++){
-		unlock_pkt_buf_tx(i);
+		unlock_tx_pkt_buf(i);
 	}
 
 
@@ -1347,11 +1353,11 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
 			// NOTE: this would be a good place to add code to handle the automatic adjustment of transmission properties like rate
 			//
 
-			memcpy(&(tx_mpdu->params), &(station->tx), sizeof(tx_params));
+			memcpy(&(tx_mpdu->params), &(station->tx), sizeof(tx_params_t));
 		break;
 
 		case QUEUE_METADATA_TYPE_TX_PARAMS:
-			memcpy(&(tx_mpdu->params), (void*)(((tx_queue_buffer*)(packet->data))->metadata.metadata_ptr), sizeof(tx_params));
+			memcpy(&(tx_mpdu->params), (void*)(((tx_queue_buffer*)(packet->data))->metadata.metadata_ptr), sizeof(tx_params_t));
 		break;
 	}
 
@@ -1362,7 +1368,7 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
 	ipc_msg_to_low.arg0              = tx_pkt_buf;
 	ipc_msg_to_low.num_payload_words = 0;
 
-	if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+	if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 		wlan_printf(PL_ERROR, "Error: unable to unlock tx pkt_buf %d\n",tx_pkt_buf);
 	} else {
 		write_mailbox_msg(&ipc_msg_to_low);
@@ -1548,13 +1554,13 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 		//---------------------------------------------------------------------
 		case IPC_MBOX_TX_BEACON_DONE:
 			tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(msg->arg0);
-			if(lock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
+			if(lock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
 				xil_printf("Error: CPU_LOW had lock on Beacon packet buffer during IPC_MBOX_TX_BEACON_DONE\n");
 				return;
 			}
-			beacon_tx_done_callback( tx_mpdu, (wlan_mac_low_tx_details*)(msg->payload_ptr) );
+			beacon_tx_done_callback( tx_mpdu, (wlan_mac_low_tx_details_t*)(msg->payload_ptr) );
 			tx_mpdu->tx_pkt_buf_state = READY;
-			if(unlock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
+			if(unlock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
 				xil_printf("Error: Unable to unlock Beacon packet buffer during IPC_MBOX_TX_BEACON_DONE\n");
 				return;
 			}
@@ -1567,7 +1573,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 			rx_pkt_buf = msg->arg0;
 
 			// First attempt to lock the indicated Rx pkt buf (CPU Low must unlock it before sending this msg)
-			if(lock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+			if(lock_rx_pkt_buf(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 				wlan_printf(PL_ERROR, "Error: unable to lock pkt_buf %d\n", rx_pkt_buf);
 			} else {
 				rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
@@ -1581,7 +1587,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 				// Free up the rx_pkt_buf
 				rx_mpdu->state = RX_MPDU_STATE_EMPTY;
 
-				if(unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+				if(unlock_rx_pkt_buf(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 					wlan_printf(PL_ERROR, "Error: unable to unlock rx pkt_buf %d\n", rx_pkt_buf);
 				}
 			}
@@ -1594,7 +1600,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
             //
 
 			// Lock this packet buffer
-			if(lock_pkt_buf_tx(msg->arg0) != PKT_BUF_MUTEX_SUCCESS){
+			if(lock_tx_pkt_buf(msg->arg0) != PKT_BUF_MUTEX_SUCCESS){
 				xil_printf("Error: DONE Lock Tx Pkt Buf State Mismatch\n");
 				return;
 			}
@@ -1604,8 +1610,8 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 			tx_poll_callback();
 
 			tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(msg->arg0);
-			temp_1  = (4*(msg->num_payload_words)) / sizeof(wlan_mac_low_tx_details);
-			mpdu_tx_done_callback(tx_mpdu, (wlan_mac_low_tx_details*)(msg->payload_ptr), temp_1);
+			temp_1  = (4*(msg->num_payload_words)) / sizeof(wlan_mac_low_tx_details_t);
+			mpdu_tx_done_callback(tx_mpdu, (wlan_mac_low_tx_details_t*)(msg->payload_ptr), temp_1);
 
 			wlan_mac_high_release_tx_packet_buffer(msg->arg0);
 		break;
@@ -2075,7 +2081,7 @@ int wlan_mac_high_lock_new_tx_packet_buffer(){
 	}
 
 	if(pkt_buf_sel != -1){
-		if(lock_pkt_buf_tx(pkt_buf_sel) != PKT_BUF_MUTEX_SUCCESS){
+		if(lock_tx_pkt_buf(pkt_buf_sel) != PKT_BUF_MUTEX_SUCCESS){
 			xil_printf("Error: Unlock Tx Pkt Buf State Mismatch\n");
 			return -1;
 		}
@@ -2096,7 +2102,7 @@ int wlan_mac_high_release_tx_packet_buffer(int pkt_buf){
 
 	((tx_frame_info*)TX_PKT_BUF_TO_ADDR(pkt_buf))->tx_pkt_buf_state = EMPTY;
 
-	if(unlock_pkt_buf_tx(pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+	if(unlock_tx_pkt_buf(pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 		xil_printf("Error: Unlock Tx Pkt Buf State Mismatch\n");
 		return -1;
 	} else {
@@ -2316,7 +2322,7 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* counts_
 		}
 
 		// Set the association TX parameters
-		memcpy(&(station->tx), &default_unicast_data_tx_params, sizeof(tx_params));
+		memcpy(&(station->tx), &default_unicast_data_tx_params, sizeof(tx_params_t));
 
 		// Set up the AID for the association
 		if(requested_AID == ADD_ASSOCIATION_ANY_AID){
@@ -2766,13 +2772,13 @@ void wlan_mac_high_update_tx_counts(tx_frame_info* tx_mpdu, station_info* statio
  * @param  None
  * @return None
  */
-int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, bss_info* bss_info_ptr, tx_params* tx_params_ptr, u8 flags) {
+int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, bss_info* bss_info_ptr, tx_params_t* tx_params_ptr, u8 flags) {
 	u16 tx_length;
 
 	// TODO: need to set the Tx Params independently with wlan_exp changes or any other updates
 
 	tx_frame_info*  tx_frame_info_ptr = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON);
-	if(lock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
+	if(lock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
 		xil_printf("Error: CPU_LOW had lock on Beacon packet buffer during initial configuration\n");
 		return -1;
 	}
@@ -2796,13 +2802,13 @@ int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_heade
 	// Unique_seq will be filled in by CPU_LOW
 	tx_frame_info_ptr->unique_seq = 0;
 
-	memcpy(&(tx_frame_info_ptr->params), tx_params_ptr, sizeof(tx_params));
+	memcpy(&(tx_frame_info_ptr->params), tx_params_ptr, sizeof(tx_params_t));
 
 	tx_frame_info_ptr->short_retry_count = 0;
 	tx_frame_info_ptr->long_retry_count = 0;
 
 	tx_frame_info_ptr->tx_pkt_buf_state = READY;
-	if(unlock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
+	if(unlock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
 		xil_printf("Error: Unable to unlock Beacon packet buffer during initial configuration\n");
 		return -1;
 	}

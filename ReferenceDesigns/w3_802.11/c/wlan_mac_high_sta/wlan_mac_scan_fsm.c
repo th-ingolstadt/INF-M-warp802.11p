@@ -44,7 +44,7 @@ extern mac_header_80211_common    tx_header_common;
 
 extern u8                    pause_data_queue;
 extern u32                   mac_param_chan;               ///< This is the "home" channel
-extern tx_params             default_multicast_mgmt_tx_params;
+extern tx_params_t           default_multicast_mgmt_tx_params;
 
 static u32                   num_scan_channels           = 0;
 static u32                   idle_timeout_usec           = 1000000;

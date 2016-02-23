@@ -26,6 +26,7 @@
 #include "w3_iic_eeprom.h"
 
 // WLAN includes
+#include "wlan_mac_pkt_buf_util.h"
 #include "wlan_mac_sysmon_util.h"
 #include "wlan_mac_time_util.h"
 #include "wlan_mac_userio_util.h"
@@ -78,10 +79,10 @@ extern u8                  rx_ant_mode_tracker;
 // Declared in each of the AP / STA / IBSS
 extern bss_info*           my_bss_info;
 
-extern tx_params           default_unicast_mgmt_tx_params;
-extern tx_params           default_unicast_data_tx_params;
-extern tx_params           default_multicast_mgmt_tx_params;
-extern tx_params           default_multicast_data_tx_params;
+extern tx_params_t         default_unicast_mgmt_tx_params;
+extern tx_params_t         default_unicast_data_tx_params;
+extern tx_params_t         default_multicast_mgmt_tx_params;
+extern tx_params_t         default_multicast_data_tx_params;
 
 
 /*************************** Functions Prototypes ****************************/

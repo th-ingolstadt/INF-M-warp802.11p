@@ -60,7 +60,7 @@
 
 
 extern dl_list      counts_table;
-extern tx_params    default_unicast_data_tx_params;
+extern tx_params_t  default_unicast_data_tx_params;
 extern u32          mac_param_chan;
 extern bss_info*    my_bss_info;
 extern u32          beacon_schedule_id;
@@ -626,7 +626,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                     // Log association state change
                     add_station_info_to_log(curr_station_info, STATION_INFO_ENTRY_NO_CHANGE, WLAN_EXP_STREAM_ASSOC_CHANGE);
 
-                    memcpy(&(curr_station_info->tx), &default_unicast_data_tx_params, sizeof(tx_params));
+                    memcpy(&(curr_station_info->tx), &default_unicast_data_tx_params, sizeof(tx_params_t));
 
                     // Update the hex display
                     ap_update_hex_display(my_bss_info->associated_stations.length);

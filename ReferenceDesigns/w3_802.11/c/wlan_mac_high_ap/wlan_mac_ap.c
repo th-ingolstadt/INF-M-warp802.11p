@@ -26,8 +26,7 @@
 #include "wlan_mac_addr_filter.h"
 #include "wlan_mac_time_util.h"
 #include "wlan_mac_userio_util.h"
-#include "wlan_mac_ipc_util.h"
-#include "wlan_mac_misc_util.h"
+#include "wlan_mac_pkt_buf_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_ltg.h"
@@ -76,10 +75,10 @@ static char default_AP_SSID[] = "WARP-AP";
 static mac_header_80211_common    tx_header_common;
 
 // Default Transmission Parameters
-tx_params default_unicast_mgmt_tx_params;
-tx_params default_unicast_data_tx_params;
-tx_params default_multicast_mgmt_tx_params;
-tx_params default_multicast_data_tx_params;
+tx_params_t default_unicast_mgmt_tx_params;
+tx_params_t default_unicast_data_tx_params;
+tx_params_t default_multicast_mgmt_tx_params;
+tx_params_t default_multicast_data_tx_params;
 
 // "my_bss_info" is a pointer to the bss_info that describes this AP.
 // Inside this structure is a dl_list of station_info. This is a list
@@ -447,7 +446,7 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 		return;
 	}
 
-	if((tx_frame_info_ptr->tx_pkt_buf_state != READY) || (lock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS)){
+	if((tx_frame_info_ptr->tx_pkt_buf_state != READY) || (lock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS)){
 		//Note: The order of operations in the above if() clause is important. If the tx_pkt_buf_state is not ready.
 		//then we should not even attempt to lock the beacon template packet buffer. This behavior is ensured if
 		//the tx_pkt_buf_state is checked on on the left-hand side of the || because the || operation is a sequence
@@ -489,7 +488,7 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 		}
 	}
 
-	if(unlock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
+	if(unlock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
 		xil_printf("Error: Unable to unlock Beacon packet buffer during update_tim_tag_all\n");
 	}
 	return;
@@ -524,7 +523,7 @@ void update_tim_tag_all(u32 sched_id){
 
 	mgmt_tag_tim_update_schedule_id = SCHEDULE_ID_RESERVED_MAX;
 
-	if((tx_frame_info_ptr->tx_pkt_buf_state != READY) || (lock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS)){
+	if((tx_frame_info_ptr->tx_pkt_buf_state != READY) || (lock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS)){
 		//Note: The order of operations in the above if() clause is important. If the tx_pkt_buf_state is not ready.
 		//then we should not even attempt to lock the beacon template packet buffer. This behavior is ensured if
 		//the tx_pkt_buf_state is checked on on the left-hand side of the || because the || operation is a sequence
@@ -627,13 +626,13 @@ void update_tim_tag_all(u32 sched_id){
 															//the multicast buffer state
 		tx_frame_info_ptr->length += (next_mgmt_tag_length - existing_mgmt_tag_length);
 	}
-	if(unlock_pkt_buf_tx(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
+	if(unlock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
 		xil_printf("Error: Unable to unlock Beacon packet buffer during update_tim_tag_all\n");
 	}
 	return;
 }
 
-void beacon_transmit_done( tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details ){
+void beacon_transmit_done( tx_frame_info* tx_mpdu, wlan_mac_low_tx_details_t* tx_low_details ){
 	u32 first_tx_time_delta;
 
 	gl_power_save_configuration.dtim_timestamp = get_system_time_usec() + gl_power_save_configuration.dtim_mcast_allow_window;
@@ -827,7 +826,7 @@ void purge_all_data_tx_queue(){
  *  - number of elements in array pointed to by previous argument
  * @return None
  */
-void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details, u16 num_tx_low_details) {
+void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details_t* tx_low_details, u16 num_tx_low_details) {
 	u32                    i;
 	station_info*          station 				   = NULL;
 	dl_entry*	           entry				   = NULL;

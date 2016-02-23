@@ -86,7 +86,7 @@ volatile static u64	         unique_seq;
 
 // NOTE: this statically allocated space should be larger than the maximum number of attempts
 //     dot11ShortRetryLimit+dot11LongRetryLimit-1
-static wlan_mac_low_tx_details low_tx_details[50]; //TODO make a #define
+static wlan_mac_low_tx_details_t  low_tx_details[50]; //TODO make a #define
 
 // Constant LUTs for MCS
 const static u8 mcs_to_n_dbps_lut[WLAN_MAC_NUM_MCS] = {N_DBPS_R6, N_DBPS_R9, N_DBPS_R12, N_DBPS_R18, N_DBPS_R24, N_DBPS_R36, N_DBPS_R48, N_DBPS_R54};
@@ -172,14 +172,18 @@ int wlan_mac_low_init(u32 type){
         return -1;
     }
 
-    wlan_lib_init();
+	// Initialize mailbox
+	init_mailbox();
+
+    // Initialize packet buffers
+	init_pkt_buf();
 
     // Create IPC message to receive into
     ipc_msg_from_high.payload_ptr = &(ipc_msg_from_high_payload[0]);
 
     // Begin by trying to lock packet buffer 0 for wireless receptions
     rx_pkt_buf = 0;
-    if(lock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+    if(lock_rx_pkt_buf(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
         wlan_printf(PL_ERROR, "Error: unable to lock pkt_buf %d\n", rx_pkt_buf);
         wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_RX_MUTEX);
         return -1;
@@ -348,12 +352,12 @@ inline void wlan_mac_low_send_exception(u32 reason){
  * @return  u32              - Status (See MAC Polling defines in wlan_mac_low.h)
  */
 inline u32 wlan_mac_low_poll_frame_rx(){
-    int            i;
-    phy_rx_details phy_details;
-    volatile u32   mac_hw_status;
-    u32            mac_hw_phy_rx_params;
+    int                 i;
+    phy_rx_details_t    phy_details;
+    volatile u32        mac_hw_status;
+    u32                 mac_hw_phy_rx_params;
 
-    u32            return_status = 0;
+    u32                 return_status = 0;
 
     // Read the MAC/PHY status
     mac_hw_status = wlan_mac_get_status();
@@ -373,7 +377,7 @@ inline u32 wlan_mac_low_poll_frame_rx(){
         if(wlan_mac_get_rx_phy_sel() == WLAN_MAC_PHY_RX_PARAMS_PHY_SEL_DSSS) {
 
             // DSSS Rx - PHY Rx length is already valid, other params unused for DSSS
-            phy_details.phy_mode = PHY_RX_DETAILS_MODE_DSSS;
+            phy_details.phy_mode = PNY_MODE_DSSS;
             phy_details.N_DBPS   = 0;                                // Invalid for DSSS
 
             // Strip off extra pre-MAC-header bytes used in DSSS frames; this adjustment allows the next
@@ -769,19 +773,19 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
     tx_frame_info          * tx_mpdu;
     mac_header_80211       * tx_80211_header;
     u16                      ACK_N_DBPS;
-    u32                      isLocked, owner;
+    u32                      is_locked, owner;
     u32                      low_tx_details_size;
     wlan_ipc_msg_t           ipc_msg_to_high;
     ltg_packet_id_t*         pkt_id;
 
     // TODO: Sanity check tx_pkt_buf so that it's within the number of tx packet bufs
 
-	if(lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+	if(lock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 		wlan_printf(PL_ERROR, "Error: unable to lock TX pkt_buf %d\n", tx_pkt_buf);
 
-		status_pkt_buf_tx(tx_pkt_buf, &isLocked, &owner);
+		get_tx_pkt_buf_status(tx_pkt_buf, &is_locked, &owner);
 
-		wlan_printf(PL_ERROR, "    TX pkt_buf %d status: isLocked = %d, owner = %d\n", tx_pkt_buf, isLocked, owner);
+		wlan_printf(PL_ERROR, "    TX pkt_buf %d status: isLocked = %d, owner = %d\n", tx_pkt_buf, is_locked, owner);
 
 	} else {
 		tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
@@ -827,7 +831,7 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 		//Record the total time this MPDU spent in the Tx state machine
 		tx_mpdu->delay_done = (u32)(get_mac_time_usec() - (tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept)));
 
-		low_tx_details_size = (tx_mpdu->num_tx_attempts)*sizeof(wlan_mac_low_tx_details);
+		low_tx_details_size = (tx_mpdu->num_tx_attempts)*sizeof(wlan_mac_low_tx_details_t);
 
 		if(status == TX_MPDU_RESULT_SUCCESS){
 			tx_mpdu->tx_result = TX_MPDU_RESULT_SUCCESS;
@@ -838,7 +842,7 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 		tx_mpdu->tx_pkt_buf_state = DONE;
 
 		//Revert the state of the packet buffer and return control to CPU High
-		if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+		if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 			wlan_printf(PL_ERROR, "Error: unable to unlock TX pkt_buf %d\n", tx_pkt_buf);
 			wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_TX_MUTEX);
 		} else {
@@ -852,7 +856,7 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 				if(low_tx_details_size < (MAILBOX_BUFFER_MAX_NUM_WORDS << 2)){
 					ipc_msg_to_high.num_payload_words = ( low_tx_details_size ) >> 2; // # of u32 words
 				} else {
-					ipc_msg_to_high.num_payload_words = (((MAILBOX_BUFFER_MAX_NUM_WORDS << 2) / sizeof(wlan_mac_low_tx_details))*sizeof(wlan_mac_low_tx_details) ) >> 2; // # of u32 words
+					ipc_msg_to_high.num_payload_words = (((MAILBOX_BUFFER_MAX_NUM_WORDS << 2) / sizeof(wlan_mac_low_tx_details_t)) * sizeof(wlan_mac_low_tx_details_t)) >> 2; // # of u32 words
 				}
 			} else {
 				ipc_msg_to_high.num_payload_words = 0;
@@ -1232,7 +1236,7 @@ inline void wlan_mac_low_lock_empty_rx_pkt_buf(){
         rx_mpdu    = (rx_frame_info*) RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
 
         if((rx_mpdu->state) == RX_MPDU_STATE_EMPTY){
-            if(lock_pkt_buf_rx(rx_pkt_buf) == PKT_BUF_MUTEX_SUCCESS){
+            if(lock_rx_pkt_buf(rx_pkt_buf) == PKT_BUF_MUTEX_SUCCESS){
 
                 // By default Rx pkt buffers are not zeroed out, to save the performance penalty of bzero'ing 2KB
                 //     However zeroing out the pkt buffer can be helpful when debugging Rx MAC/PHY behaviors

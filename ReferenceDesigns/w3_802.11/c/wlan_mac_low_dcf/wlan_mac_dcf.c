@@ -128,13 +128,13 @@ int main(){
     wlan_mac_low_set_beacon_txrx_config_callback((void*)configure_beacon_txrx);
     wlan_mac_low_set_ipc_low_param_callback((void*)process_low_param);
 
-    if(lock_pkt_buf_tx(TX_PKT_BUF_ACK_CTS) != PKT_BUF_MUTEX_SUCCESS){
+    if(lock_tx_pkt_buf(TX_PKT_BUF_ACK_CTS) != PKT_BUF_MUTEX_SUCCESS){
         wlan_printf(PL_ERROR, "Error: unable to lock ACK packet buf %d\n", TX_PKT_BUF_ACK_CTS);
         wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_TX_MUTEX);
         return -1;
     }
 
-    if(lock_pkt_buf_tx(TX_PKT_BUF_RTS) != PKT_BUF_MUTEX_SUCCESS){
+    if(lock_tx_pkt_buf(TX_PKT_BUF_RTS) != PKT_BUF_MUTEX_SUCCESS){
         wlan_printf(PL_ERROR, "Error: unable to lock ACK packet buf %d\n", TX_PKT_BUF_RTS);
         wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_TX_MUTEX);
         return -1;
@@ -242,8 +242,8 @@ inline poll_tbtt_return_t poll_tbtt(){
 inline int send_beacon(u8 tx_pkt_buf){
 	int return_status = -1;
 
-    wlan_ipc_msg_t           ipc_msg_to_high;
-    wlan_mac_low_tx_details 	low_tx_details;
+    wlan_ipc_msg_t                ipc_msg_to_high;
+    wlan_mac_low_tx_details_t     low_tx_details;
 	u32 mac_hw_status;
 	u16 n_slots;
 	int tx_gain;
@@ -268,7 +268,7 @@ inline int send_beacon(u8 tx_pkt_buf){
 
 		while( (tx_frame_info_ptr->tx_pkt_buf_state != READY) ){
 		}
-		while( (lock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) ){
+		while( (lock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) ){
 			//We will only continue with the send_beacon state when we are both assured that the
 			//tx_pkt_buf_state is READY (i.e. CPU_HIGH is not currently trying to log a beacon transmission)
 			//and we are able to clock the tx_pkt_buf. The only reason a lock should fail is that CPU_HIGH
@@ -411,7 +411,7 @@ inline int send_beacon(u8 tx_pkt_buf){
                 		// We will not sent a BEACON_DONE IPC message to CPU_HIGH, so
                 		// tx_frame_info_ptr->tx_pkt_buf_state should remain READY
                 		tx_frame_info_ptr->tx_pkt_buf_state = READY;
-                		if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+                		if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
                 			xil_printf("Error: Unable to unlock Beacon packet buffer (beacon cancel)\n");
                 		}
                 		wlan_mac_pause_backoff_tx_ctrl_A(0);
@@ -424,12 +424,12 @@ inline int send_beacon(u8 tx_pkt_buf){
 
 		return_status = 0;
 		tx_frame_info_ptr->tx_pkt_buf_state = DONE;
-		if(unlock_pkt_buf_tx(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-			xil_printf("Error: Unable to unlock Beacon packet buffer (beacon sent) %d\n", unlock_pkt_buf_tx(tx_pkt_buf));
+		if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+			xil_printf("Error: Unable to unlock Beacon packet buffer (beacon sent) %d\n", unlock_tx_pkt_buf(tx_pkt_buf));
 		}
 
 		ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TX_BEACON_DONE);
-		ipc_msg_to_high.num_payload_words = sizeof(wlan_mac_low_tx_details)/4;
+		ipc_msg_to_high.num_payload_words = sizeof(wlan_mac_low_tx_details_t)/4;
 		ipc_msg_to_high.arg0              = tx_pkt_buf;
 		ipc_msg_to_high.payload_ptr		  = (u32*)&low_tx_details;
 
@@ -462,7 +462,7 @@ inline int send_beacon(u8 tx_pkt_buf){
  * @param   phy_details      - Pointer to phy_rx_details struct containing PHY mode, MCS, and Length
  * @return  u32              - Bit mask of flags indicating various results of the reception
  */
-u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
+u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
 
     // RX_LEN_THRESH is used to manage a potential pipeline bubble that can be used during a reception
     // for processing:
@@ -976,7 +976,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
     if (report_to_mac_high) {
         // Unlock the pkt buf mutex before passing the packet up
         //     If this fails, something has gone horribly wrong
-        if (unlock_pkt_buf_rx(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) {
+        if (unlock_rx_pkt_buf(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) {
             xil_printf("Error: unable to unlock RX pkt_buf %d\n", rx_pkt_buf);
             wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_RX_MUTEX);
         } else {
@@ -1015,7 +1015,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details* phy_details) {
  * @return  int              - Transmission result
  */
 //int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_tx_details* low_tx_details) {
-int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details* low_tx_details) {
+int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
     // The pkt_buf, rate, and length arguments provided to this function specifically relate to
     // the MPDU that the WLAN MAC LOW framework wants us to send. We may opt to first send an RTS
     // to reserve the medium prior to doing this. The tx_rate, tx_length, and tx_pkt_buf relate

@@ -45,7 +45,7 @@ typedef enum {JOIN_IDLE, JOIN_SEARCHING} join_state_t;
 extern mac_header_80211_common    tx_header_common;
 extern u8                         pause_data_queue;
 extern u32                        mac_param_chan; ///< This is the "home" channel
-extern tx_params                  default_unicast_mgmt_tx_params;
+extern tx_params_t                default_unicast_mgmt_tx_params;
 
 
 // File Variables

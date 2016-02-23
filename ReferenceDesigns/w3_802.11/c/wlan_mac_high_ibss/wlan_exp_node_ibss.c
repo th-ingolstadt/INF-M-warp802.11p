@@ -396,9 +396,11 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             u32              status              = CMD_PARAM_SUCCESS;
             u32              success             = CMD_PARAM_NODE_JOIN_SUCCEEDED;
 
-            wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Joining the BSS\n");
-
             temp_bss_info_entry = (bss_info_entry *)&cmd_args_32[2];
+
+            wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Joining BSS: %02x:%02x:%02x:%02x:%02x:%02x\n",
+                temp_bss_info_entry->info.bssid[0], temp_bss_info_entry->info.bssid[1], temp_bss_info_entry->info.bssid[2],
+                temp_bss_info_entry->info.bssid[3], temp_bss_info_entry->info.bssid[4], temp_bss_info_entry->info.bssid[5]);
 
             temp_bss_info       = wlan_mac_high_create_bss_info(temp_bss_info_entry->info.bssid,
                                                                 temp_bss_info_entry->info.ssid,

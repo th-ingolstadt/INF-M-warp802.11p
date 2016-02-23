@@ -32,6 +32,7 @@
 
 // WLAN includes
 #include "wlan_mac_common.h"
+#include "wlan_mac_pkt_buf_util.h"
 #include "wlan_mac_sysmon_util.h"
 #include "wlan_mac_time_util.h"
 #include "wlan_mac_event_log.h"
@@ -202,7 +203,7 @@ void * wlan_exp_log_create_entry(u16 entry_type_id, u16 entry_size){
  *                               NOTE: This can be NULL if an entry was not allocated
  *
  *****************************************************************************/
-tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details* tx_low_details, u32 tx_low_count){
+tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details_t* tx_low_details, u32 tx_low_count){
 
     tx_low_entry*     tx_low_event_log_entry  = NULL;
     void*             mpdu;
@@ -267,7 +268,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
             tx_low_event_log_entry->unique_seq             = tx_mpdu->unique_seq; // NOTE: RTS frames don't have sequence numbers. However, for easier processing
                                                                                   //     we'll include the MPDU's unique sequence number in this RTS TX LOW entry
             // Copy:  MCS, PHY mode, Antenna mode, and Power
-            memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details->phy_params_ctrl), sizeof(phy_tx_params));
+            memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details->phy_params_ctrl), sizeof(phy_tx_params_t));
 
             tx_low_event_log_entry->transmission_count     = tx_low_count + 1;
             tx_low_event_log_entry->chan_num               = tx_low_details->chan_num;
@@ -322,7 +323,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
             tx_low_event_log_entry->unique_seq             = tx_mpdu->unique_seq;
 
             // Copy:  MCS, PHY mode, Antenna mode, and Power
-            memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details->phy_params_mpdu), sizeof(phy_tx_params));
+            memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details->phy_params_mpdu), sizeof(phy_tx_params_t));
 
             tx_low_event_log_entry->transmission_count     = tx_low_count + 1;
             tx_low_event_log_entry->chan_num               = tx_low_details->chan_num;
@@ -698,7 +699,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* frame_info){
                 tx_low_event_log_entry->unique_seq              = UNIQUE_SEQ_INVALID;
 
                 // Copy:  MCS, PHY mode, Antenna mode, and Power
-                memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(frame_info->resp_low_tx_details.phy_params_ctrl), sizeof(phy_tx_params));
+                memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(frame_info->resp_low_tx_details.phy_params_ctrl), sizeof(phy_tx_params_t));
 
                 tx_low_event_log_entry->transmission_count      = 1;
                 tx_low_event_log_entry->chan_num                = frame_info->resp_low_tx_details.chan_num;
@@ -763,7 +764,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* frame_info){
                 }
 
                 // Copy:  MCS, PHY mode, Antenna mode, and Power
-                memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(frame_info->resp_low_tx_details.phy_params_ctrl), sizeof(phy_tx_params));
+                memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(frame_info->resp_low_tx_details.phy_params_ctrl), sizeof(phy_tx_params_t));
 
                 tx_low_event_log_entry->transmission_count      = 1;
                 tx_low_event_log_entry->chan_num                = frame_info->resp_low_tx_details.chan_num;

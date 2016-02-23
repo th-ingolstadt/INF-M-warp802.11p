@@ -49,7 +49,7 @@ void uart_rx(u8 rxByte){ };
 #define MAX_NUM_CHARS                       31
 
 extern u32                                  mac_param_chan;
-extern tx_params                            default_unicast_data_tx_params;
+extern tx_params_t                          default_unicast_data_tx_params;
 
 extern bss_info*                            my_bss_info;
 extern dl_list                              counts_table;
