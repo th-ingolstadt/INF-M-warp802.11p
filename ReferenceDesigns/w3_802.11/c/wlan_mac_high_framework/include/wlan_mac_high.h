@@ -271,7 +271,6 @@
 #include "wlan_mac_queue.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_mailbox_util.h"
-#include "wlan_mac_misc_util.h"
 #include "wlan_mac_dl_list.h"
 
 
