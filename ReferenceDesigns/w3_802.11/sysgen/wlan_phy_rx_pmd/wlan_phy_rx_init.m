@@ -9,6 +9,10 @@ addpath('./util');
 addpath('./mcode_blocks');
 addpath('./blackboxes');
 
+%FIXME - only for testing with same noise vector over and over
+rng('default');
+[~] = randn(1,1e4); %advance the RNG arbitrarily
+
 %% Define an input signal for simulation
 % Skip this if running a multi-sim test with the rx_sim_test script
 if(~exist('sim_many_waveform_mode','var'))
@@ -22,25 +26,25 @@ if(~exist('sim_many_waveform_mode','var'))
     %PHY debugging with ChipScope captures of I/Q
     % ChipScope waveforms must be saved in ASCII format with (at least) ADC_I and ADC_Q signals
     %xlLoadChipScopeData('mcs7_11n_4rx_1bad_v0.prn'); cs_interp = 1; cs_start = 1; cs_end = length(ADC_I);
-    xlLoadChipScopeData('mcs7_11n_4rx_1bad_v1.prn'); cs_interp = 1; cs_start = 8300; cs_end = 1.2e4;
+    xlLoadChipScopeData('mcs0_11a_200B_bad_v0.prn'); cs_interp = 1; cs_start = 650; cs_end = length(ADC_I);
     sim_sig = 1.0*complex(ADC_I([cs_start:cs_interp:cs_end]), ADC_Q(cs_start:cs_interp:cs_end));
+    %sim_sig = sim_sig .* exp(j*2*pi*1e-4*(0:length(sim_sig)-1)).';
 
-    if 0
+    if 1
     
     %Output of PHY Tx simulation
     % .mat files from Tx PHY sim store I/Q signal in 'wlan_tx_out' variable
-    %load('rx_sigs/wlan_tx_NONHT_MCS1_52B.mat');wlan_tx_out = 1.0*wlan_tx_out;
+    load('rx_sigs/wlan_tx_NONHT_MCS7_52B.mat');wlan_tx_out = 1.0*wlan_tx_out.';
     %load('rx_sigs/wlan_tx_HTMM_MCS0_52B.mat');wlan_tx_out = 1.0*wlan_tx_out;
     %load('../wlan_phy_tx_pmd/tx_nonht_MCS7_20M_29B_2tx.mat');wlan_tx_out = 1.0*wlan_tx_out;
-    load('tx_htmf_MCS7_20M_1000B.mat');wlan_tx_out = 1.0*wlan_tx_out.';
-
-    sig_with_cfo = wlan_tx_out .* exp(j*2*pi*-1e-4*(0:length(wlan_tx_out)-1));
+    %load('wlan_tx_NONHT_MCS0_52B.mat');wlan_tx_out = 1.0*wlan_tx_out.';
     
-    wlan_tx_out = [sig_with_cfo zeros(1,200) wlan_tx_out];
+    %load('tx_NONHT_MCS0_40M_100B.mat');wlan_tx_out = 1.0*wlan_tx_out.';
     
-    % Apply CFO
-    
-    %wlan_tx_out = wlan_tx_out .* exp(j*2*pi*1e-4*(0:length(wlan_tx_out)-1));
+    wlan_tx_out = [wlan_tx_out zeros(1,200) wlan_tx_out];
+    wlan_tx_out = wlan_tx_out .* exp(j*2*pi*-1e-4*(0:length(wlan_tx_out)-1));
+    %wlan_tx_out = [sig_with_cfo zeros(1,200) wlan_tx_out];
+        
     %wlan_tx_out = wlan_tx_out + 1e-2*complex(randn(1,length(wlan_tx_out)), randn(1,length(wlan_tx_out)));
     
     %load('tx_htmf_MCS0_40M_100B.mat');
@@ -48,6 +52,7 @@ if(~exist('sim_many_waveform_mode','var'))
     sim_sig = wlan_tx_out(1:end).';
     end
 end
+
 
 %Define the simulation paramters - waveform, sample rate, sim duration, etc
 rx_sim = struct();
@@ -123,9 +128,14 @@ barker_seq20 = 0.95 * circshift(barker_seq20, [0 4]) ./ max(abs(barker_seq20));
 %Initial values for Rx PHY registers
 PHY_CONFIG_NUM_SC = 64;
 PHY_CONFIG_CP_LEN = 16;
-PHY_CONFIG_FFT_OFFSET = 4; %3=no cyclic prefix samps in FFT (for HTMF 20MSps at least)
 PHY_CONFIG_CFO_EST_OFFSET = 0;
 PHY_CONFIG_FFT_SCALING = bin2dec('000101');
+
+% FFT offset depends on PHY samp rate (and waveform format?)
+%  20: FFT_OFFSET=1 for zero cyclic prefix samps
+%  40: FFT_OFFSET=3 for zero cyclic prefix samps
+%PHY_CONFIG_FFT_OFFSET = (1+2*(rx_sim.samp_rate==40)) + 0;
+PHY_CONFIG_FFT_OFFSET = 6;
 
 PHY_CONFIG_RSSI_SUM_LEN = 8;
 
@@ -151,6 +161,14 @@ PHY_CONFIG_PKT_DET_ENERGY_THRESH_DSSS = 1;%400;%hex2dec('3FF');%(20) * 2^4; %UFi
 %PHY_CONFIG_PKT_DET_CORR_THRESH_DSSS = 1.0 * 2^6;%hex2dec('FF');%(1) * 2^7;
 %PHY_CONFIG_PKT_DET_ENERGY_THRESH_DSSS = 0;%hex2dec('3FF');%(20) * 2^4; %UFix10_0
 
+% Channel estimate smooothing
+%PHY_CONFIG_H_EST_SMOOTHING_A = 2867; %round(0.7 * 2^12);
+%PHY_CONFIG_H_EST_SMOOTHING_B = 614; %round(0.15 * 2^12);
+PHY_CONFIG_H_EST_SMOOTHING_A = 2^12-1;
+PHY_CONFIG_H_EST_SMOOTHING_B = 0;
+
+%PHY_CONFIG_H_EST_SMOOTHING_A = 2000;
+%PHY_CONFIG_H_EST_SMOOTHING_B = 0;
 
 PHY_CONFIG_PKT_DET_ENERGY_THRESH = 1;%1; %UFix14_4 thresh; set to low non-zero value %CLK2X - changed from 1
 PHY_CONFIG_PKT_DET_MIN_DURR = 4; %UFix4_0 duration
@@ -159,10 +177,10 @@ PHY_CONFIG_PKT_DET_RESET_EXT_DUR = hex2dec('3F');
 CS_CONFIG_CS_RSSI_THRESH = 300 * PHY_CONFIG_RSSI_SUM_LEN;
 CS_CONFIG_POSTRX_EXTENSION = 120; %6usec as 120 20MHz samples
 
-SOFT_DEMAP_SCALE_BPSK = 13;
-SOFT_DEMAP_SCALE_QPSK = 12;
-SOFT_DEMAP_SCALE_16QAM = 12;
-SOFT_DEMAP_SCALE_64QAM = 18;
+SOFT_DEMAP_SCALE_BPSK = 15;
+SOFT_DEMAP_SCALE_QPSK = 15;
+SOFT_DEMAP_SCALE_16QAM = 18;
+SOFT_DEMAP_SCALE_64QAM = 22;
 
 REG_RX_PktDet_AutoCorr_Config = ...
     2^0  *  (PHY_CONFIG_PKT_DET_CORR_THRESH) +...%b[7:0] UFix8_8
@@ -174,6 +192,11 @@ REG_RX_PktDet_AutoCorr_Config = ...
 REG_RX_LTS_Corr_Thresh = ...
     2^0  *  (PHY_CONFIG_LTS_CORR_THRESH_LOWSNR) +... %b[15:0]
     2^16  * (PHY_CONFIG_LTS_CORR_THRESH_HIGHSNR) +... %b[31:16]
+    0;
+
+REG_RX_Chan_Est_Smoothing = ...
+    2^0  *  (PHY_CONFIG_H_EST_SMOOTHING_A) +... %b[11:0]
+    2^12  * (PHY_CONFIG_H_EST_SMOOTHING_B) +... %b[23:12]
     0;
 
 REG_RX_LTS_Corr_Confg = ...
@@ -199,7 +222,7 @@ REG_RX_Config = ...
     2^2  * 1 + ... %Swap pkt buf byte order
     2^3  * 1 + ... %Swap order of chan est u32 writes
     2^4  * 1 + ... %Allow DSSS Rx to keep AGC locked
-    2^5  * 0 + ... %Bypass CFO est/correction
+    2^5  * 1 + ... %Bypass CFO est/correction
     2^6  * 1 + ... %Enable chan est recording to pkt buf
     2^7  * 0 + ... %Enable switching diversity
     2^8  * 1 + ... %Block DSSS Rx until AGC is settled
