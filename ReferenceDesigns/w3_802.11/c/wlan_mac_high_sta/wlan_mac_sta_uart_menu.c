@@ -194,7 +194,7 @@ void uart_rx(u8 rxByte){
                     } else {
                         sta_disassociate();
                         xil_printf("Joining BSS:  %s\n", curr_bss_info->ssid);
-                        wlan_mac_sta_scan_and_join(curr_bss_info->ssid, 10);
+                        //wlan_mac_sta_scan_and_join(curr_bss_info->ssid, 10); //FIX ME
                     }
                 } else {
                     xil_printf("Invalid selection.\n");

@@ -42,7 +42,6 @@
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_bss_info.h"
-#include "wlan_mac_scan_fsm.h"
 #include "wlan_mac_sta_join_fsm.h"
 #include "wlan_mac_entries.h"
 #include "wlan_mac_sta.h"
@@ -162,7 +161,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             } else {
                 // Stop any scan / join in progress
-                wlan_mac_sta_return_to_idle();
+                //wlan_mac_sta_return_to_idle();  //FIXME
 
                 // Disable interrupts so no packets interrupt the disassociate
                 prev_interrupt_state = wlan_mac_high_interrupt_stop();
@@ -312,7 +311,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                     if ((time_per_channel != CMD_PARAM_NODE_TIME_RSVD_VAL) && (idle_time != CMD_PARAM_NODE_TIME_RSVD_VAL)) {
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Time per channel   = %d us\n", time_per_channel);
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Idle time per loop = %d us\n", idle_time);
-                        wlan_mac_set_scan_timings(time_per_channel, idle_time);
+                        //wlan_mac_set_scan_timings(time_per_channel, idle_time); //FIXME
                     }
 
                     // Set the scan channels
@@ -325,9 +324,9 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                             channel_list[i] = Xil_Ntohl(cmd_args_32[4 + i]);
                         }
 
-                        if (wlan_mac_set_scan_channels(channel_list, length) != 0) {
-                            status = CMD_PARAM_ERROR;
-                        }
+                        //if (wlan_mac_set_scan_channels(channel_list, length) != 0) { //FIXME
+                        //    status = CMD_PARAM_ERROR;
+                        //}
 
                         if (status == CMD_PARAM_SUCCESS) {
                             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Channels = ");
@@ -385,11 +384,11 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Active scan enabled for SSID '%s'  BSSID: ", ssid);
                 wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, &mac_addr[0]); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
 
-                wlan_mac_scan_enable(&mac_addr[0], ssid);
+                //wlan_mac_scan_enable(&mac_addr[0], ssid); //FIXME
             } else {
                 // Disable active scan
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Active scan disabled.\n");
-                wlan_mac_scan_disable();
+                //wlan_mac_scan_disable(); //FIXME
             }
 
             // Send response of status
@@ -438,7 +437,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 temp_bss_info->latest_activity_timestamp = get_system_time_usec();
 
                 // Join the BSS
-                wlan_mac_sta_join(temp_bss_info, timeout);
+                //wlan_mac_sta_join(temp_bss_info, timeout); //FIXME
 
             } else {
                 status  = CMD_PARAM_ERROR;
@@ -491,7 +490,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             curr_timestamp   = get_system_time_usec();
             end_timestamp    = curr_timestamp + (timeout * 1000000);         // Convert to microseconds for the usec timer
 
-            wlan_mac_sta_scan_and_join(ssid, timeout);
+            //wlan_mac_sta_scan_and_join(ssid, timeout); //FIXME
 
             while(join_success == WLAN_EXP_STA_JOIN_RUN) {
                 if (curr_timestamp > end_timestamp) {
@@ -569,7 +568,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             wlan_exp_reset_bss_info_callback();
 
             // Stop any active scans
-            wlan_mac_scan_disable();
+            // wlan_mac_scan_disable(); //FIXME
 
             // Add the new association
             bss_info* bss_temp = wlan_mac_high_create_bss_info(mac_addr, ssid, channel);
@@ -577,7 +576,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             if(bss_temp != NULL){
                 bss_temp->state = BSS_STATE_ASSOCIATED;
                 bss_temp->capabilities = (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT);
-                wlan_mac_sta_return_to_idle();
+                //wlan_mac_sta_return_to_idle(); //FIXME
                 status = sta_set_association_state(bss_temp, aid);
             } else {
                 status = CMD_PARAM_ERROR;
@@ -641,7 +640,7 @@ int wlan_exp_node_sta_init(u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna, 
 
     xil_printf("Configuring STA ...\n");
 
-    wlan_mac_sta_set_join_success_callback((void *)wlan_exp_sta_join_success);
+    //wlan_mac_sta_set_join_success_callback((void *)wlan_exp_sta_join_success); //FIXME
 
     return XST_SUCCESS;
 }

@@ -475,6 +475,7 @@ void               wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg);
 
 void               wlan_mac_high_set_srand(u32 seed);
 void               wlan_mac_high_set_channel(u32 mac_channel);
+u32 			   wlan_mac_high_get_channel();
 void               wlan_mac_high_config_txrx_beacon(beacon_txrx_configure_t* beacon_txrx_configure);
 void               wlan_mac_high_set_rx_ant_mode(u8 ant_mode);
 void               wlan_mac_high_set_tx_ctrl_pow(s8 pow);

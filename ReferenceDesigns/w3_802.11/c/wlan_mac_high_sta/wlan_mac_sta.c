@@ -35,11 +35,11 @@
 #include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
-#include "wlan_mac_scan_fsm.h"
 #include "ascii_characters.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_bss_info.h"
+#include "wlan_mac_scan.h"
 #include "wlan_mac_sta_join_fsm.h"
 #include "wlan_mac_sta.h"
 
@@ -223,6 +223,7 @@ int main() {
     wlan_exp_set_reset_bss_info_callback(           (void *)reset_bss_info);
     //   - wlan_exp_set_tx_cmd_add_association_callback() should not be used by the STA
     wlan_exp_set_process_user_cmd_callback(         (void *) wlan_exp_process_user_cmd);
+    wlan_mac_scan_set_tx_probe_request_callback(    (void *) send_probe_req);
 
     // Get the hardware info that has been collected from CPU low
     hw_info = get_mac_hw_info();
@@ -286,11 +287,25 @@ int main() {
 	wlan_mac_high_interrupt_restore_state(INTERRUPTS_ENABLED);
 
 	// Set the default active scan channels
-	wlan_mac_set_scan_channels(channel_selections, sizeof(channel_selections)/sizeof(channel_selections[0]));
+	// wlan_mac_set_scan_channels(channel_selections, sizeof(channel_selections)/sizeof(channel_selections[0]));
+
+#if 0
+	interrupt_state_t     prev_interrupt_state;
+    prev_interrupt_state = wlan_mac_high_interrupt_stop();
+	scan_parameters_t* scan_parameters = wlan_mac_scan_get_parameters();
+	wlan_mac_high_realloc(scan_parameters->channel_vec, sizeof(channel_selections));
+	memcpy(scan_parameters->channel_vec, channel_selections, sizeof(channel_selections));
+	//Optional: Set SSID
+	wlan_mac_high_free(scan_parameters->ssid);
+	scan_parameters->ssid = strdup("WARP-AP");
+	scan_parameters->channel_vec_len = sizeof(channel_selections);
+	wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
+	wlan_mac_scan_start();
+#endif
 
 	// If there is a default SSID and the DIP switch allows it, initiate a probe request
 	if( (strlen(access_point_ssid) > 0) && ((wlan_mac_high_get_user_io_state()&GPIO_MASK_DS_3) == 0)) {
-		wlan_mac_sta_scan_and_join(access_point_ssid, 0);
+		//wlan_mac_sta_scan_and_join(access_point_ssid, 0); //FIXME
 	}
 	while(1){
 #ifdef USE_WLAN_EXP
@@ -305,7 +320,39 @@ int main() {
 	return -1;
 }
 
+void send_probe_req(){
+	u16                 tx_length;
+	tx_queue_element*	curr_tx_queue_element;
+	tx_queue_buffer* 	curr_tx_queue_buffer;
+	scan_parameters_t* 	scan_parameters = wlan_mac_scan_get_parameters();
 
+	// Send probe request
+	curr_tx_queue_element = queue_checkout();
+
+	if(curr_tx_queue_element != NULL){
+		curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+
+		// Setup the TX header
+		wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, (u8 *)bcast_addr );
+
+		// Fill in the data
+		tx_length = wlan_create_probe_req_frame((void*)(curr_tx_queue_buffer->frame),&tx_header_common, scan_parameters->ssid);
+
+		// Setup the TX frame info
+		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, 0, MANAGEMENT_QID );
+
+		// Set the information in the TX queue buffer
+		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_mgmt_tx_params);
+		curr_tx_queue_buffer->frame_info.AID         = 0;
+
+		// Put the packet in the queue
+		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
+
+	    // Poll the TX queues to possibly send the packet
+		poll_tx_queues();
+	}
+}
 
 /**
  * @brief Poll Tx queues to select next available packet to transmit
@@ -668,7 +715,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 							curr_bss_info = (bss_info*)(bss_info_entry->data);
 							if(curr_bss_info->state == BSS_STATE_AUTHENTICATED){
 								curr_bss_info->state = BSS_STATE_ASSOCIATED;
-								wlan_mac_sta_bss_attempt_poll((((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000);
+								//wlan_mac_sta_bss_attempt_poll((((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000); //FIXME
 							}
 						}
 					} else {
@@ -702,7 +749,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 											curr_bss_info = (bss_info*)(bss_info_entry->data);
 											if(curr_bss_info->state == BSS_STATE_UNAUTHENTICATED){
 												curr_bss_info->state = BSS_STATE_AUTHENTICATED;
-												wlan_mac_sta_bss_attempt_poll(0);
+												//wlan_mac_sta_bss_attempt_poll(0); //FIXME
 											}
 										}
 									}
@@ -746,7 +793,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 							curr_bss_info = my_bss_info;
 							sta_set_association_state(NULL, 0);
 
-							wlan_mac_sta_join(curr_bss_info,0); //Attempt to rejoin the AP
+							//wlan_mac_sta_join(curr_bss_info,0); //Attempt to rejoin the AP //FIXME
 
 						}
 					}
@@ -919,7 +966,7 @@ void reset_all_associations(){
     xil_printf("Reset All Associations\n");
 
     // Stop any scan / join in progress
-    wlan_mac_sta_return_to_idle();
+    //	wlan_mac_sta_return_to_idle(); //FIXME
 
     // Disable interrupts so no packets interrupt the disassociate
     prev_interrupt_state = wlan_mac_high_interrupt_stop();

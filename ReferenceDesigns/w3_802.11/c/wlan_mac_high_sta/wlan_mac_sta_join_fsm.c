@@ -1,3 +1,4 @@
+#if 0
 /** @file wlan_mac_sta_join_fsm.c
  *  @brief Join FSM
  *
@@ -339,5 +340,5 @@ void wlan_mac_sta_scan_assoc_req_transmit(){
 		}
 	}
 }
-
+#endif
 

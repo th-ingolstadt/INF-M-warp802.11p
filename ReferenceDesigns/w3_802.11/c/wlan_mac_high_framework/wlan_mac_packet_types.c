@@ -121,11 +121,6 @@ int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_h
 		mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 	}
 
-	mgmt_tag_template->header.tag_element_id = MGMT_TAG_DSSS_PARAMETER_SET;
-	mgmt_tag_template->header.tag_length = 1; //tag length... doesn't include the tag itself and the tag length
-	mgmt_tag_template->data[0] = my_bss_info->chan;
-	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
-
 	mgmt_tag_template->header.tag_element_id = MGMT_TAG_ERP;
 	mgmt_tag_template->header.tag_length = 1;
 	mgmt_tag_template->data[0] = 0; //Non ERP Present - not set, don't use protection, no barker preamble mode
@@ -139,10 +134,10 @@ int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_h
 
 
 
-int wlan_create_probe_req_frame(void* pkt_buf, mac_header_80211_common* common, u8 ssid_len, u8* ssid, u8 chan){
+int wlan_create_probe_req_frame(void* pkt_buf, mac_header_80211_common* common, char* ssid){
 	u32 packetLen_bytes;
 	u8* txBufferPtr_u8;
-	u8  real_ssid_len = min(ssid_len, SSID_LEN_MAX);
+	u8  real_ssid_len = min(strlen(ssid), SSID_LEN_MAX);
 
 	txBufferPtr_u8 = (u8*)pkt_buf;
 
@@ -181,11 +176,6 @@ int wlan_create_probe_req_frame(void* pkt_buf, mac_header_80211_common* common, 
 	txBufferPtr_u8[8] = (0x60); 				//48Mbps  (64-QAM, 2/3)
 	txBufferPtr_u8[9] = (0x6C); 				//54Mbps  (64-QAM, 3/4)
 	txBufferPtr_u8+=(8+2); //Move up to next tag
-
-	txBufferPtr_u8[0] = 3; //Tag 3: DS Parameter set
-	txBufferPtr_u8[1] = 1; //tag length... doesn't include the tag itself and the tag length
-	txBufferPtr_u8[2] = chan;
-	txBufferPtr_u8+=(1+2);
 
 	packetLen_bytes = (txBufferPtr_u8 - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
 

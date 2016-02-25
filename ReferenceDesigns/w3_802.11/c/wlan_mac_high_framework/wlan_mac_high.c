@@ -46,6 +46,7 @@
 #include "wlan_mac_bss_info.h"
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
+#include "wlan_mac_scan.h"
 
 /*********************** Global Variable Definitions *************************/
 
@@ -104,6 +105,7 @@ volatile function_ptr_t      mpdu_tx_dequeue_callback;     ///< User callback fo
 
 // Node information
 volatile u8                  dram_present;                 ///< Indication variable for whether DRAM SODIMM is present on this hardware
+volatile u32                 mac_param_chan;			   ///< Variable indicates the last channel that was written to CPU_LOW via wlan_mac_high_set_channel
 
 // Status information
 wlan_mac_hw_info_t         * hw_info;
@@ -430,6 +432,8 @@ void wlan_mac_high_init(){
 	wlan_mac_schedule_init();
 	wlan_mac_ltg_sched_init();
 	wlan_mac_addr_filter_init();
+	wlan_mac_scan_init();
+	wlan_mac_high_set_channel(1); // Set a sane default channel. The top-level project (AP/STA/IBSS/etc) is free to change this
 
 	//Create IPC message to receive into
 	ipc_msg_from_low.payload_ptr = &(ipc_msg_from_low_payload[0]);
@@ -1722,6 +1726,8 @@ void wlan_mac_high_set_channel(u32 mac_channel) {
 
 	if(wlan_verify_channel(mac_channel) == XST_SUCCESS){
 
+		mac_param_chan = mac_channel;
+
 		// Send message to CPU Low
 		ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_CHANNEL);
 		ipc_msg_to_low.num_payload_words = 1;
@@ -1731,6 +1737,10 @@ void wlan_mac_high_set_channel(u32 mac_channel) {
 	} else {
 		xil_printf("Channel %d not allowed\n", mac_channel);
 	}
+}
+
+u32 wlan_mac_high_get_channel(){
+	return mac_param_chan;
 }
 
 void wlan_mac_high_config_txrx_beacon(beacon_txrx_configure_t* beacon_txrx_configure){
