@@ -40,8 +40,9 @@ static XTmrCtr               timer_instance;
 
 volatile static u32          schedule_count;
 
-static dl_list               wlan_sched_coarse;
-static dl_list               wlan_sched_fine;
+
+static wlan_sched_state_t    wlan_sched_coarse;
+static wlan_sched_state_t    wlan_sched_fine;
 
 #if WLAN_SCHED_EXEC_MONITOR
 static u64                   last_exec_timestamp;
@@ -51,8 +52,6 @@ static u32                   monitor_threshold;
 
 
 /*************************** Function Prototypes *****************************/
-
-dl_entry *    find_schedule(u8 scheduler_sel, u32 id);
 
 void          timer_interrupt_handler(void * instancePtr);
 void          schedule_handler(void * callback_ref, u8 timer_number);
@@ -81,8 +80,10 @@ int wlan_mac_schedule_init(){
 	monitor_threshold        = WLAN_SCHED_EXEC_MONITOR_DEFAULT_THRESHOLD;
 #endif
 
-	dl_list_init(&wlan_sched_coarse);
-	dl_list_init(&wlan_sched_fine);
+	dl_list_init(&(wlan_sched_coarse.list));
+	wlan_sched_coarse.next = NULL;
+	dl_list_init(&(wlan_sched_fine.list));
+	wlan_sched_fine.next = NULL;
 
 	// Initialize the timer
 	status = XTmrCtr_Initialize(&timer_instance, TMRCTR_DEVICE_ID);
@@ -174,23 +175,23 @@ u32 wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls,
 		// ------------------------------------------------
 		case SCHEDULE_COARSE:
 			// Start timer if the list goes from 0 -> 1 event
-			if (wlan_sched_coarse.length == 0) {
+			if (wlan_sched_coarse.list.length == 0) {
 				XTmrCtr_SetResetValue(&timer_instance, TIMER_CNTR_SLOW, (SLOW_TIMER_DUR_US * TIMER_CLKS_PER_US));
 				XTmrCtr_Start(&timer_instance, TIMER_CNTR_SLOW);
 			}
 
-			dl_entry_insertEnd(&wlan_sched_coarse, entry_ptr);
+			dl_entry_insertBeginning(&(wlan_sched_coarse.list), entry_ptr);
 		break;
 
 		// ------------------------------------------------
 		case SCHEDULE_FINE:
 			// Start timer if the list goes from 0 -> 1 event
-			if(wlan_sched_fine.length == 0){
+			if(wlan_sched_fine.list.length == 0){
 				XTmrCtr_SetResetValue(&timer_instance, TIMER_CNTR_FAST, (FAST_TIMER_DUR_US * TIMER_CLKS_PER_US));
 				XTmrCtr_Start(&timer_instance, TIMER_CNTR_FAST);
 			}
 
-			dl_entry_insertEnd(&wlan_sched_fine, entry_ptr);
+			dl_entry_insertBeginning(&(wlan_sched_fine.list), entry_ptr);
 		break;
 
 		// ------------------------------------------------
@@ -222,9 +223,12 @@ void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
 	dl_entry     * curr_entry_ptr;
 	wlan_sched   * curr_sched_ptr;
 
-	curr_entry_ptr = find_schedule(scheduler_sel, id);
+
+
+	curr_entry_ptr = wlan_mac_schedule_find(scheduler_sel, id);
 
 	if (curr_entry_ptr != NULL) {
+
 		// Extract the schedule struct from dl_entry
 		curr_sched_ptr = (wlan_sched*)(curr_entry_ptr->data);
 
@@ -232,14 +236,21 @@ void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
 			// ------------------------------------------------
 			case SCHEDULE_COARSE:
 				if(curr_sched_ptr != NULL){
-					dl_entry_remove(&wlan_sched_coarse, curr_entry_ptr);
+					if(wlan_sched_coarse.next == curr_entry_ptr){
+						// The next dl_entry in the schedule_handler iteration
+						// is the schedule we are about to remove. We need to advance
+						// this pointer prior to removing so that we do not break
+						// the execution of schedule_handler.
+						wlan_sched_coarse.next = dl_entry_next(curr_entry_ptr);
+					}
+					dl_entry_remove(&(wlan_sched_coarse.list), curr_entry_ptr);
 					wlan_mac_high_free(curr_entry_ptr);
 					wlan_mac_high_free(curr_sched_ptr);
 				}
 
 				// Stop the timer if there are no more events
 				//     NOTE:  Will be restarted when new event is added
-				if (wlan_sched_coarse.length == 0) {
+				if (wlan_sched_coarse.list.length == 0) {
 					XTmrCtr_Stop(&timer_instance, TIMER_CNTR_SLOW);
 				}
 			break;
@@ -247,14 +258,21 @@ void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
 			// ------------------------------------------------
 			case SCHEDULE_FINE:
 				if(curr_sched_ptr != NULL){
-					dl_entry_remove(&wlan_sched_fine, curr_entry_ptr);
+					if(wlan_sched_fine.next == curr_entry_ptr){
+						// The next dl_entry in the schedule_handler iteration
+						// is the schedule we are about to remove. We need to advance
+						// this pointer prior to removing so that we do not break
+						// the execution of schedule_handler.
+						wlan_sched_fine.next = dl_entry_next(curr_entry_ptr);
+					}
+					dl_entry_remove(&(wlan_sched_fine.list), curr_entry_ptr);
 					wlan_mac_high_free(curr_entry_ptr);
 					wlan_mac_high_free(curr_sched_ptr);
 				}
 
 				// Stop the timer if there are no more events
 				//     NOTE:  Will be restarted when new event is added
-				if (wlan_sched_fine.length == 0){
+				if (wlan_sched_fine.list.length == 0){
 					XTmrCtr_Stop(&timer_instance, TIMER_CNTR_FAST);
 				}
 			break;
@@ -357,17 +375,17 @@ void timer_interrupt_handler(void * instance_ptr){
  *
  *****************************************************************************/
 void schedule_handler(void * callback_ref, u8 timer_number){
+	dl_entry* 			curr_entry_ptr;
+	wlan_sched*    		curr_sched_ptr;
 
-	dl_entry     * next_entry_ptr;
-	dl_entry     * curr_entry_ptr;
-	wlan_sched*    curr_sched_ptr;
-
-	u8             scheduler;
-	dl_list      * sched_list;
-	u32            sched_id;
-	function_ptr_t sched_callback;
+	u8             		scheduler;
+	volatile wlan_sched_state_t* wlan_sched_state;
+	u32            		sched_id;
+	function_ptr_t 		sched_callback;
 
 	u64            curr_system_time;
+
+	volatile static 		u8 debug_print = 0;
 
 	// Get current system time
 	curr_system_time = get_system_time_usec();
@@ -402,21 +420,27 @@ void schedule_handler(void * callback_ref, u8 timer_number){
 	// Set any timer specific variables
 	if (timer_number == TIMER_CNTR_FAST) {
 		scheduler  = SCHEDULE_FINE;
-		sched_list = &wlan_sched_fine;
+		wlan_sched_state = &(wlan_sched_fine);
 	} else {
 		// All other timers default to coarse scheduler
 		scheduler  = SCHEDULE_COARSE;
-		sched_list = &wlan_sched_coarse;
+		wlan_sched_state = &(wlan_sched_coarse);
 	}
 
 	// Get the first entry of the schedule dl_list
-	next_entry_ptr = sched_list->first;
+	wlan_sched_state->next = wlan_sched_state->list.first;
 
 	// Update the appropriate scheduler
-	while (next_entry_ptr != NULL) {
-		curr_entry_ptr = next_entry_ptr;
-		next_entry_ptr = dl_entry_next(next_entry_ptr);
+	while (wlan_sched_state->next != NULL) {
+		curr_entry_ptr = wlan_sched_state->next;
+		wlan_sched_state->next = dl_entry_next(wlan_sched_state->next);
 		curr_sched_ptr = (wlan_sched*)(curr_entry_ptr->data);
+
+		if(debug_print){
+			xil_printf("curr_sched_ptr = 0x%08x\n", curr_sched_ptr);
+			xil_printf("curr_sched_ptr->callback = 0x%08x\n", curr_sched_ptr->callback);
+			xil_printf("curr_sched_ptr->id = %d\n", curr_sched_ptr->id);
+		}
 
 		// If the target time has passed, then process the event
 		if (curr_system_time >= (curr_sched_ptr->target_us)) {
@@ -454,7 +478,7 @@ void schedule_handler(void * callback_ref, u8 timer_number){
  * @return  dl_entry*       - Pointer to the list entry that contains the schedule
  *
  *****************************************************************************/
-dl_entry* find_schedule(u8 scheduler_sel, u32 id){
+dl_entry* wlan_mac_schedule_find(u8 scheduler_sel, u32 id){
 	int            iter;
 	dl_list      * sched_list;
 
@@ -464,9 +488,9 @@ dl_entry* find_schedule(u8 scheduler_sel, u32 id){
 
 	// Set the schedule list to check based on the scheduler
 	if (scheduler_sel == SCHEDULE_FINE) {
-		sched_list = &wlan_sched_fine;
+		sched_list = &(wlan_sched_fine.list);
 	} else {
-		sched_list = &wlan_sched_coarse;
+		sched_list = &(wlan_sched_coarse.list);
 	}
 
 	// Initialize the loop variables

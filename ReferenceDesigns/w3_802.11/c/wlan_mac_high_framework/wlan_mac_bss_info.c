@@ -167,6 +167,8 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 				// Copy beacon interval into bss_info struct
 				curr_bss_info->beacon_interval = ((beacon_probe_frame*)mpdu_ptr_u8)->beacon_interval;
 
+				curr_bss_info->chan = mpdu_info->channel;
+
 				// Move the packet pointer to after the beacon/probe frame
 				mpdu_ptr_u8 += sizeof(beacon_probe_frame);
 
@@ -222,6 +224,9 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 						case TAG_DS_PARAMS:
 							// DS Parameter set (e.g. channel)
 							//
+							// Note: this overrides the the rx_frame_info channel
+							// in the case of DSSS since DSSS receptions are prone to
+							// being received off-channel
 							curr_bss_info->chan = mpdu_ptr_u8[2];
 						break;
 					}

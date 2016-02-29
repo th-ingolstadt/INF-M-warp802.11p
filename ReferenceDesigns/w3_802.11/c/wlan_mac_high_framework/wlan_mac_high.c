@@ -1723,7 +1723,6 @@ void wlan_mac_high_set_channel(u32 mac_channel) {
 	wlan_ipc_msg_t     ipc_msg_to_low;
 	u32                ipc_msg_to_low_payload = mac_channel;
 
-
 	if(wlan_verify_channel(mac_channel) == XST_SUCCESS){
 
 		mac_param_chan = mac_channel;

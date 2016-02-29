@@ -27,7 +27,8 @@ typedef struct {
 } scan_parameters_t;
 
 int wlan_mac_scan_init();
-scan_parameters_t* wlan_mac_scan_get_parameters();
+void wlan_mac_scan_set_tx_probe_request_callback(function_ptr_t callback);
+volatile scan_parameters_t* wlan_mac_scan_get_parameters();
 void wlan_mac_scan_start();
 void wlan_mac_scan_pause();
 void wlan_mac_scan_stop();

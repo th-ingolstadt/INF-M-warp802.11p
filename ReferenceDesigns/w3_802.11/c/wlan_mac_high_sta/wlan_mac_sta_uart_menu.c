@@ -31,7 +31,7 @@
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_sta.h"
-#include "wlan_mac_sta_join_fsm.h"
+#include "wlan_mac_sta_join.h"
 #include "ascii_characters.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_event_log.h"
@@ -194,7 +194,7 @@ void uart_rx(u8 rxByte){
                     } else {
                         sta_disassociate();
                         xil_printf("Joining BSS:  %s\n", curr_bss_info->ssid);
-                        //wlan_mac_sta_scan_and_join(curr_bss_info->ssid, 10); //FIX ME
+                        //wlan_mac_sta_scan_and_join(curr_bss_info->ssid, 10); //FIXME
                     }
                 } else {
                     xil_printf("Invalid selection.\n");

@@ -1,5 +1,4 @@
-#if 0
-/** @file wlan_mac_sta_join_fsm.c
+/** @file wlan_mac_sta_join.c
  *  @brief Join FSM
  *
  *  This contains code for the STA join process.
@@ -28,198 +27,205 @@
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"
-#include "wlan_mac_scan_fsm.h"
+#include "wlan_mac_scan.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_bss_info.h"
-#include "wlan_mac_sta_join_fsm.h"
+#include "wlan_mac_sta_join.h"
 #include "wlan_mac_sta.h"
 
 
-typedef enum {JOIN_IDLE, JOIN_SEARCHING, JOIN_ATTEMPTING} join_state_t;
+typedef enum {IDLE, SEARCHING, ATTEMPTING} join_state_t;
 
 //External Global Variables:
 extern mac_header_80211_common    tx_header_common;
 extern u8                         pause_data_queue;
 extern u32                        mac_param_chan; ///< This is the "home" channel
 extern tx_params_t                default_unicast_mgmt_tx_params;
+extern bss_info*				  my_bss_info;
 
 // File Variables
-static join_state_t               join_state = JOIN_IDLE;
-static function_ptr_t             join_success_callback = (function_ptr_t)wlan_null_callback;
+static join_state_t               join_state;
+static function_ptr_t             join_success_callback;
 
-//JOIN_SEARCHING Global Variables:
-static char                       search_ssid[SSID_LEN_MAX + 1];
-static u32                        search_sched_id      = SCHEDULE_FAILURE;
-static u32                        search_kill_sched_id = SCHEDULE_FAILURE;
-static u32                        search_timeout       = BSS_SEARCH_DEFAULT_TIMEOUT_SEC;
+volatile join_parameters_t		  gl_join_parameters;
 
-//JOIN_ATTEMPTING Global Variables:
 static bss_info*                  attempt_bss_info;
-static u32                        attempt_sched_id      = SCHEDULE_FAILURE;
-static u32                        attempt_kill_sched_id = SCHEDULE_FAILURE;
 
+char*							  ssid_save;
 
+static u32                        search_sched_id;
+static u32                        attempt_sched_id;
+
+void wlan_mac_sta_join_init(){
+	join_state = IDLE;
+	join_success_callback = (function_ptr_t)wlan_null_callback;
+
+	bzero((u8*)gl_join_parameters.bssid, 6);
+	gl_join_parameters.ssid = NULL;
+	gl_join_parameters.channel = 0;
+	attempt_bss_info = NULL;
+	ssid_save = NULL;
+
+	search_sched_id = SCHEDULE_ID_RESERVED_MAX;
+	attempt_sched_id = SCHEDULE_ID_RESERVED_MAX;
+}
+
+volatile join_parameters_t* wlan_mac_sta_get_join_parameters(){
+	return &gl_join_parameters;
+}
 
 void wlan_mac_sta_set_join_success_callback(function_ptr_t callback){
 	join_success_callback = callback;
 }
 
-/**
- * @brief Attempt Scan and Join to AP
- *
- * This function will scan for a particular SSID and attempt to join it. The second
- * argument to the function is a timeout for the process. This function is non-blocking.
- *
- * @param char* ssid
- *  - SSID string of AP to find and join
- * @param u32 to_usec
- * 	- Timeout (seconds) for process.
-
- */
-void wlan_mac_sta_scan_and_join(char* ssid_str, u32 to_sec){
-
-	if(strlen(ssid_str) != 0){
-		switch(join_state){
-			case JOIN_IDLE:
-				join_state = JOIN_SEARCHING;
-				strcpy(search_ssid, ssid_str);
-				search_timeout = to_sec;
-				wlan_mac_scan_enable((u8*)bcast_addr, ssid_str);
-				if(to_sec != 0){
-					search_kill_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, (to_sec*1000000), 1, (void*)wlan_mac_sta_return_to_idle);
-				}
-				search_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, BSS_SEARCH_POLL_INTERVAL_USEC, SCHEDULE_REPEAT_FOREVER, (void*)wlan_mac_sta_bss_search_poll);
-
-			break;
-			case JOIN_SEARCHING:
-			case JOIN_ATTEMPTING:
-				wlan_mac_sta_return_to_idle();
-				wlan_mac_sta_scan_and_join(ssid_str, to_sec);
-			break;
-		}
+int wlan_mac_is_joining(){
+	if( join_state == IDLE ){
+		return 0;
 	} else {
-		xil_printf("Error: SSID string must be non-null\n");
+		return 1;
 	}
 }
 
-void wlan_mac_sta_join(bss_info* bss_description, u32 to_sec){
-	switch(join_state){
-		case JOIN_IDLE:
-			join_state = JOIN_ATTEMPTING;
-			attempt_bss_info = bss_description;
-			switch(attempt_bss_info->state){
-				case BSS_STATE_UNAUTHENTICATED:
-					pause_data_queue = 1;
-					mac_param_chan = attempt_bss_info->chan;
-					wlan_mac_high_set_channel(mac_param_chan);
-					wlan_mac_sta_scan_auth_transmit();
 
-					if(to_sec != 0){
-						if(to_sec != 0){
-							attempt_kill_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, (to_sec*1000000), 1, (void*)wlan_mac_sta_return_to_idle);
-						}
-					}
-					attempt_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, BSS_ATTEMPT_POLL_INTERVAL_USEC, SCHEDULE_REPEAT_FOREVER, (void*)wlan_mac_sta_bss_attempt_poll);
-				break;
+/**
+ * @brief Join an AP
+ *
+ * This function begin an attempt to join an AP
+ * given the parameters present in the join_parameters_t
+ * struct pointed to by the return of wlan_mac_sta_get_join_parameters.
+ *
+ * A value of NULL for the SSID element in join_parameters_t indicates
+ * that the function should halt any ongoing attempts to join an AP.
+ */
+void wlan_mac_sta_join(){
+	u8								zero_addr[6] 	= {0,0,0,0,0,0};
+	volatile scan_parameters_t* 	scan_parameters = wlan_mac_scan_get_parameters();
 
-				case BSS_STATE_AUTHENTICATED:
-					pause_data_queue = 1;
-					mac_param_chan = attempt_bss_info->chan;
-					wlan_mac_high_set_channel(mac_param_chan);
-					wlan_mac_sta_scan_assoc_req_transmit();
+	//Save the existing scan parameters SSID so we can revert after the join has finished
+	ssid_save = strdup(scan_parameters->ssid);
+	wlan_mac_high_free(scan_parameters->ssid);
+	scan_parameters->ssid = strdup(gl_join_parameters.ssid);
 
-					if(to_sec != 0){
-						if(to_sec != 0){
-							attempt_kill_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, (to_sec*1000000), 1, (void*)wlan_mac_sta_return_to_idle);
-						}
-					}
-					attempt_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, BSS_ATTEMPT_POLL_INTERVAL_USEC, SCHEDULE_REPEAT_FOREVER, (void*)wlan_mac_sta_bss_attempt_poll);
-				break;
+	if(wlan_mac_is_joining()){
+		// The join state machine is already running. We should remove any ongoing
+		// scheduled events and move on because the user has already overwritten
+		// gl_join_parameters from underneath us.
+		wlan_mac_sta_return_to_idle();
+		wlan_mac_sta_join(); //Re-enter this function, this time with an idle state machine.
+		return;
+	}
 
-				case BSS_STATE_ASSOCIATED:
-					xil_printf("Error: told to join %s but already associated\n");
-				break;
+	if(gl_join_parameters.ssid == NULL){
+		wlan_mac_sta_return_to_idle();
+	} else {
 
-				default:
-					xil_printf("Error: STA join: Unknown state %d for BSS info %s\n",attempt_bss_info->state, attempt_bss_info->ssid);
-				break;
+		if( wlan_addr_eq(gl_join_parameters.bssid, zero_addr) || (gl_join_parameters.channel == 0) ){
+			//BSSID not provided. We need to start an active scan and find the AP
+			//before attempting authentication and association.
+			join_state = SEARCHING;
+
+			wlan_mac_scan_start();
+			search_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, BSS_SEARCH_POLL_INTERVAL_USEC, SCHEDULE_REPEAT_FOREVER, (void*)wlan_mac_sta_bss_search_poll);
+
+		} else {
+			//BSSID and channel are provided. We can look for / create this bss_info and skip
+			//directly to authentication.
+			join_state = ATTEMPTING;
+
+			wlan_mac_scan_stop();
+
+			if(my_bss_info != NULL){
+				if(wlan_addr_eq(gl_join_parameters.bssid, my_bss_info->bssid)){
+					//We're already associated with this BSS
+					wlan_mac_sta_return_to_idle();
+					return;
+				} else {
+					//We're associated with a different BSS. We will
+					//disassociate and then continue with the new join operation.
+					sta_disassociate();
+				}
+
 			}
 
-		break;
-		case JOIN_SEARCHING:
-		case JOIN_ATTEMPTING:
-			wlan_mac_sta_return_to_idle();
-			wlan_mac_sta_join(bss_description, to_sec);
-		break;
+
+			attempt_bss_info = wlan_mac_high_create_bss_info((u8*)gl_join_parameters.bssid,
+															 (char*)gl_join_parameters.ssid,
+															 (u8)gl_join_parameters.channel);
+			wlan_mac_sta_join_l();
+		}
 
 	}
 }
+
+
+
+
+
+
 
 //Low-Level functions
 
-void wlan_mac_sta_return_to_idle(){
-	interrupt_state_t prev_interrupt_state;
-	switch(join_state){
-		case JOIN_IDLE:
-			//Nothing to do, we are already idle.
-		break;
-		case JOIN_SEARCHING:
-			wlan_mac_scan_disable();
-			//We should kill the search_sched_id and search_kill_sched_id schedules (if they are running)
-			prev_interrupt_state = wlan_mac_high_interrupt_stop();
-			join_state = JOIN_IDLE;
-			wlan_mac_remove_schedule(SCHEDULE_COARSE, search_sched_id);
-			search_sched_id = SCHEDULE_FAILURE;
-			if(search_kill_sched_id != SCHEDULE_FAILURE){
-				wlan_mac_remove_schedule(SCHEDULE_COARSE, search_kill_sched_id);
-				search_kill_sched_id = SCHEDULE_FAILURE;
-			}
-			wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
-		break;
-		case JOIN_ATTEMPTING:
-			//We should kill the attempt_sched_id and attempt_kill_sched_id schedules (if they are running)
-			prev_interrupt_state = wlan_mac_high_interrupt_stop();
-			join_state = JOIN_IDLE;
-			wlan_mac_remove_schedule(SCHEDULE_FINE, attempt_sched_id);
-			attempt_sched_id = SCHEDULE_FAILURE;
-			if(attempt_kill_sched_id != SCHEDULE_FAILURE){
-				wlan_mac_remove_schedule(SCHEDULE_COARSE, attempt_kill_sched_id);
-				attempt_kill_sched_id = SCHEDULE_FAILURE;
-			}
-			wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
-		break;
-	}
-
-	attempt_bss_info = NULL;
-
-}
-
 void wlan_mac_sta_bss_search_poll(u32 schedule_id){
 	dl_entry* curr_dl_entry = NULL;
-	bss_info* curr_bss_info;
-
-    if (search_sched_id == SCHEDULE_FAILURE) {
-    	xil_printf("WARNING:  BSS search poll called after schedule has been removed.\n");
-    	return;
-    }
 
 	switch(join_state){
-		case JOIN_IDLE:
+		case IDLE:
 			xil_printf("JOIN FSM Error: Searching/Idle mismatch\n");
 		break;
-		case JOIN_SEARCHING:
-			curr_dl_entry = wlan_mac_high_find_bss_info_SSID(search_ssid);
+		case SEARCHING:
+			curr_dl_entry = wlan_mac_high_find_bss_info_SSID(gl_join_parameters.ssid);
 			if(curr_dl_entry != NULL){
 				wlan_mac_sta_return_to_idle();
-				curr_bss_info = (bss_info*)(curr_dl_entry->data);
-				wlan_mac_sta_join(curr_bss_info, search_timeout);
+				attempt_bss_info = (bss_info*)(curr_dl_entry->data);
+				join_state = ATTEMPTING;
+				wlan_mac_sta_join_l();
 			}
 		break;
-		case JOIN_ATTEMPTING:
-			xil_printf("JOIN FSM Error: Searching/Attempting mismatch\n");
+		case ATTEMPTING:
+			xil_printf("Join FSM Error: Searching/Attempting mismatch\n");
 		break;
 	}
+}
+
+void wlan_mac_sta_join_l(){
+	if(attempt_bss_info == NULL){
+		xil_printf("Join FSM Error: low-level join called without setting attempt_bss_info\n");
+		return;
+	}
+
+	pause_data_queue = 1;
+	mac_param_chan = attempt_bss_info->chan;
+	wlan_mac_high_set_channel(mac_param_chan);
+	wlan_mac_sta_bss_attempt_poll(0);
+	attempt_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, BSS_ATTEMPT_POLL_INTERVAL_USEC, SCHEDULE_REPEAT_FOREVER, (void*)wlan_mac_sta_bss_attempt_poll);
+}
+
+
+void wlan_mac_sta_return_to_idle(){
+
+	volatile scan_parameters_t* 	scan_parameters = wlan_mac_scan_get_parameters();
+	interrupt_state_t 				prev_interrupt_state;
+
+
+	wlan_mac_scan_stop();
+	prev_interrupt_state = wlan_mac_high_interrupt_stop();
+	join_state = IDLE;
+	if(search_sched_id != SCHEDULE_ID_RESERVED_MAX){
+		wlan_mac_remove_schedule(SCHEDULE_FINE, search_sched_id);
+		search_sched_id = SCHEDULE_ID_RESERVED_MAX;
+	}
+	if(attempt_sched_id != SCHEDULE_ID_RESERVED_MAX){
+		wlan_mac_remove_schedule(SCHEDULE_FINE, attempt_sched_id);
+		attempt_sched_id = SCHEDULE_ID_RESERVED_MAX;
+	}
+	wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
+
+	attempt_bss_info = NULL;
+	// Return the scan SSID parameter back to its previous state
+	wlan_mac_high_free(scan_parameters->ssid);
+	scan_parameters->ssid = strdup(ssid_save);
+	wlan_mac_high_free(ssid_save);
 }
 
 void wlan_mac_sta_bss_attempt_poll(u32 arg){
@@ -231,15 +237,14 @@ void wlan_mac_sta_bss_attempt_poll(u32 arg){
 	//	(2) STA will call this when it receives an association response that elevates the state to
 	//		BSS_ASSOCIATED. In this context, the argument will be the AID provided by the AP sending
 	//		the association response.
-
 	switch(join_state){
-		case JOIN_IDLE:
+		case IDLE:
 			xil_printf("JOIN FSM Error: Attempting/Idle mismatch\n");
 		break;
-		case JOIN_SEARCHING:
+		case SEARCHING:
 			xil_printf("JOIN FSM Error: Attempting/Searching mismatch\n");
 		break;
-		case JOIN_ATTEMPTING:
+		case ATTEMPTING:
 			switch(attempt_bss_info->state){
 				case BSS_STATE_UNAUTHENTICATED:
 					wlan_mac_sta_scan_auth_transmit();
@@ -273,7 +278,7 @@ void wlan_mac_sta_scan_auth_transmit(){
 	tx_queue_element*	curr_tx_queue_element;
 	tx_queue_buffer* 	curr_tx_queue_buffer;
 
-	if(join_state == JOIN_ATTEMPTING){
+	if(join_state == ATTEMPTING){
 
 		// Send authentication request
 		curr_tx_queue_element = queue_checkout();
@@ -310,7 +315,7 @@ void wlan_mac_sta_scan_assoc_req_transmit(){
 	tx_queue_element*	curr_tx_queue_element;
 	tx_queue_buffer* 	curr_tx_queue_buffer;
 
-	if(join_state == JOIN_ATTEMPTING){
+	if(join_state == ATTEMPTING){
 
 		// Send authentication request
 		curr_tx_queue_element = queue_checkout();
@@ -340,5 +345,5 @@ void wlan_mac_sta_scan_assoc_req_transmit(){
 		}
 	}
 }
-#endif
+
 
