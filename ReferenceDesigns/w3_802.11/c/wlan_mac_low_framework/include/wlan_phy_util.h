@@ -120,6 +120,7 @@
 #define WLAN_RX_PKT_DET_DSSS_CFG     XPAR_WLAN_PHY_RX_MEMMAP_PKTDET_DSSS_CONFIG
 #define WLAN_RX_PKT_BUF_MAXADDR      XPAR_WLAN_PHY_RX_MEMMAP_PKTBUF_MAX_WRITE_ADDR
 #define WLAN_RX_CFO_EST_TIME_DOMAIN  XPAR_WLAN_PHY_RX_MEMMAP_CFO_EST_TIME_DOMAIN
+#define WLAN_RX_CHAN_EST_SMOOTHING	 XPAR_WLAN_PHY_RX_MEMMAP_CHAN_EST_SMOOTHING
 
 //Tx PHY registers
 #define WLAN_TX_REG_STATUS           XPAR_WLAN_PHY_TX_MEMMAP_STATUS
@@ -362,6 +363,8 @@
     Xil_Out32(WLAN_RX_LTS_THRESH, (corr_thresh_low_snr & 0xFFFF) | ((corr_thresh_high_snr & 0xFFFF) << 16))
 
 #define wlan_phy_rx_lts_corr_config(snr_thresh, corr_timeout) Xil_Out32(WLAN_RX_LTS_CFG, (corr_timeout & 0xFF) | ((snr_thresh & 0xFFFF) << 8))
+
+#define wlan_phy_rx_chan_est_smoothing(coef_a, coef_b) Xil_Out32(WLAN_RX_CHAN_EST_SMOOTHING, (((coef_b) & 0xFFF) << 12) | ((coef_a) & 0xFFF))
 
 //Tx PHY TIMING register:
 // [ 9: 0] Tx extension (time from last sample to TX_DONE)

@@ -348,6 +348,9 @@ void wlan_phy_init() {
     //     Chan ests start at sizeof(rx_frame_info) - sizeof(chan_est)
     wlan_phy_rx_pkt_buf_h_est_offset((PHY_RX_PKT_BUF_PHY_HDR_OFFSET - (64*4)));
 
+    //Disable channel estimate smoothing
+    wlan_phy_rx_chan_est_smoothing(0xFFF, 0x0);
+
     /************ PHY Tx ************/
 
     // De-assert all starts
