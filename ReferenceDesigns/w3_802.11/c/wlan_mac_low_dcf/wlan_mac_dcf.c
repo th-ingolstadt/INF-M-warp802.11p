@@ -477,7 +477,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
 
     u32                 return_value             = 0;
     u32                 tx_length;
-    u8                  tx_phy_rate;
     u8                  tx_mcs;
     u16                 tx_N_DBPS;
     u16                 cts_duration;
@@ -585,7 +584,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         tx_length = wlan_create_ack_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK_CTS) + PHY_TX_PKT_BUF_MPDU_OFFSET), rx_header->address_2);
 
         // Write the SIGNAL field for the ACK
-        //wlan_phy_set_tx_signal(TX_PKT_BUF_ACK_CTS, tx_phy_rate, tx_length);
         write_phy_preamble(TX_PKT_BUF_ACK_CTS, PHY_MODE_NONHT, tx_mcs, tx_length);
 
         rx_finish_state = RX_FINISH_SEND_B;
@@ -661,7 +659,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
                                           cts_duration);
 
         // Write the SIGNAL field for the CTS
-        //wlan_phy_set_tx_signal(TX_PKT_BUF_ACK_CTS, tx_phy_rate, tx_length);
         write_phy_preamble(TX_PKT_BUF_ACK_CTS, PHY_MODE_NONHT, tx_mcs, tx_length);
 
         rx_finish_state = RX_FINISH_SEND_B;
