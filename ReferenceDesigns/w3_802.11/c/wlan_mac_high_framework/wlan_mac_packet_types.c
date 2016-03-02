@@ -87,7 +87,7 @@ int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_h
 	mgmt_tag_template->data[7] = (0x6C); 				//54Mbps  (64-QAM, 3/4)
 	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-	if( (my_bss_info->phy_mode) & BSS_INFO_PHY_MODE_11N ){
+	if ((my_bss_info->phy_mode) & PHY_MODE_HTMF) {
 		//Insert HT Capabilities and HT Information tags
 		mgmt_tag_template->header.tag_element_id = MGMT_TAG_HT_CAPABILITIES;
 		mgmt_tag_template->header.tag_length = 26;
@@ -317,7 +317,7 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 	mgmt_tag_template->data[3] = (0x60);					//48Mbps
 	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-	if( (attempt_bss_info->phy_mode) & BSS_INFO_PHY_MODE_11N ){
+	if ((attempt_bss_info->phy_mode) & PHY_MODE_HTMF) {
 			//Insert HT Capabilities and HT Information tags
 			mgmt_tag_template->header.tag_element_id = MGMT_TAG_HT_CAPABILITIES;
 			mgmt_tag_template->header.tag_length = 26;

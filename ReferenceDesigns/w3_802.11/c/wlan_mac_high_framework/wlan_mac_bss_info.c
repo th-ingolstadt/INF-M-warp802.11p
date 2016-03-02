@@ -145,14 +145,14 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 					dl_list_init(&(curr_bss_info->associated_stations));
 
 					// Copy BSSID into bss_info struct
-					memcpy(curr_bss_info->bssid, rx_80211_header->address_3, 6);
+					memcpy(curr_bss_info->bssid, rx_80211_header->address_3, BSSID_LEN);
 
 					// Set the state to BSS_STATE_UNAUTHENTICATED since we have not seen this BSS info before
 				    curr_bss_info->state     = BSS_STATE_UNAUTHENTICATED;
 
 				    // Default the PHY mode to 802.11g/a. This will be overwritten if a beacon/probe resp is
 				    // observed that contains HT fields
-				    curr_bss_info->phy_mode = BSS_INFO_PHY_MODE_11A;
+				    curr_bss_info->phy_mode = PHY_MODE_NONHT;
 				}
 
 				// Update the AP information
@@ -217,7 +217,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 
 						//-------------------------------------------------
 						case TAG_HT_CAPABILITIES:
-							curr_bss_info->phy_mode = BSS_INFO_PHY_MODE_11N;
+							curr_bss_info->phy_mode = PHY_MODE_HTMF;
 						break;
 						//-------------------------------------------------
 						case TAG_HT_INFORMATION: //TODO -- there is more to pull from HT information than a channel once we add HT support
@@ -452,7 +452,7 @@ bss_info* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan){
 		dl_list_init(&(curr_bss_info->associated_stations));
 
 		// Copy the BSS ID to the entry
-		memcpy(curr_bss_info->bssid,bssid,6);
+		memcpy(curr_bss_info->bssid, bssid, BSSID_LEN);
 	}
 
 	// Update the fields of the BSS Info

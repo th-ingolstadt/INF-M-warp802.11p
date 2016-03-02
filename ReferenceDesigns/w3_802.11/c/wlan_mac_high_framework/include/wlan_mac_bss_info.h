@@ -19,17 +19,18 @@
 
 #include "wlan_mac_high.h"
 
-#define BSS_INFO_TIMEOUT_USEC	                 600000000
+#define BSS_INFO_TIMEOUT_USEC                    600000000
 
-#define NUM_BASIC_RATES_MAX	                     10
+#define NUM_BASIC_RATES_MAX                      10
+#define BSSID_LEN                                6
+
 
 
 // Define common BSS info fields
 //   Note: These fields have been 32 bit aligned using padding bytes
 
-// TODO: Update Python with new phy_mode
 #define MY_BSS_INFO_COMMON_FIELDS                                                                       \
-        u8         bssid[6];                          /* BSS ID - 48 bit HW address */                  \
+        u8         bssid[BSSID_LEN];                  /* BSS ID - 48 bit HW address */                  \
         u8         chan;                              /* Channel */                                     \
         u8         flags;                             /* BSS Flags - Each flag is 1 bit */              \
         u64        latest_activity_timestamp;         /* Timestamp - Last interaction with BSS */       \
@@ -40,11 +41,10 @@
         u8         padding0;                          /* Padding byte - for 32-bit alignment */         \
         u8         num_basic_rates;                   /* Number of basic rates supported */             \
         u8         basic_rates[NUM_BASIC_RATES_MAX];  /* Supported basic rates - 10 bytes */            \
-        u8		   phy_mode;						  /* PHY Mode (Legacy, HT)	*/                      \
+        u8         phy_mode;                          /* PHY Mode (Legacy, HT) */                       \
         u8         padding1;                          /* Padding byte - for 32-bit alignment */
 
-#define BSS_INFO_PHY_MODE_11A		0x01
-#define BSS_INFO_PHY_MODE_11N	 	0x02
+
 
 /**
  * @brief Basic Service Set (BSS) Information Structure
@@ -70,10 +70,10 @@ typedef struct{
 
 
 // BSS State defines
-#define BSS_STATE_UNAUTHENTICATED	                       1
-#define BSS_STATE_AUTHENTICATED		                       2
-#define BSS_STATE_ASSOCIATED		                       4
-#define BSS_STATE_OWNED				                       5
+#define BSS_STATE_UNAUTHENTICATED                          1
+#define BSS_STATE_AUTHENTICATED                            2
+#define BSS_STATE_ASSOCIATED                               4
+#define BSS_STATE_OWNED                                    5
 
 // BSS Beacon Interval defines
 #define BSS_MICROSECONDS_IN_A_TU                           1024
