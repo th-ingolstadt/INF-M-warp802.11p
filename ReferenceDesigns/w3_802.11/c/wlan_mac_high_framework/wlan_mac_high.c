@@ -2022,6 +2022,31 @@ void wlan_mac_high_request_low_state(){
 
 
 /**
+ * @brief Update CPU low's configuration
+ *
+ * Send an IPC message to CPU Low to update its configuration.  This includes
+ * all parameters in wlan_mac_low_config_t
+ *
+ * @param  config            - Pointer to wlan_mac_low_config_t
+ * @return None
+ */
+void wlan_mac_high_update_low_config(wlan_mac_low_config_t * config){
+
+	// Update CPU Low parameters based on configuration
+	wlan_mac_high_set_channel(config->channel);
+	wlan_mac_high_set_rx_ant_mode(config->rx_ant_mode);
+	wlan_mac_high_set_rx_filter_mode(config->rx_filter_mode);
+	wlan_mac_high_set_tx_ctrl_pow(config->tx_ctrl_pow);
+
+	// TODO:  Replace with single IPC message:
+	//     send_msg(IPC_MBOX_CONFIG_LOW, 0, (sizeof(wlan_mac_low_config_t) / sizeof(u32)), (u32 *)config);
+	//
+	// This will require additional set methods that do appropriate error checking on each parameter
+}
+
+
+
+/**
  * @brief Check that CPU low is initialized
  *
  * @param  None
