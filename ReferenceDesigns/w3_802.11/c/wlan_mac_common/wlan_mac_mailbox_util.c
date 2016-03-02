@@ -232,6 +232,37 @@ int write_mailbox_msg(wlan_ipc_msg_t * msg) {
 
 
 
+/*****************************************************************************/
+/**
+ * Send IPC message
+ *
+ * This function is a wrapper method that will send an IPC message to the other
+ * CPU. This function will create a wlan_ipc_msg_t message and send it using
+ * write_mailbox_msg().  Therefore, this function is blocking.
+ *
+ * @param   msg_id           - IPC Message ID (should not contain IPC_MBOX_MSG_ID_DELIM)
+ * @param   arg              - Optional u8 argument to the IPC message
+ * @param   num_words        - Number of u32 words in the payload
+ * @param   payload          - u32 pointer to the payload
+ *
+ * @return  int              - Status:
+ *                                 IPC_MBOX_SUCCESS - Message sent successfully
+ *                                 IPC_MBOX_INVALID_MSG - Message invalid
+ *****************************************************************************/
+int send_msg(u16 msg_id, u8 arg, u8 num_words, u32 * payload) {
+    wlan_ipc_msg_t      ipc_msg;
+
+    // Set message fields
+    ipc_msg.msg_id            = IPC_MBOX_MSG_ID(msg_id);
+    ipc_msg.num_payload_words = num_words;
+    ipc_msg.arg0              = arg;
+    ipc_msg.payload_ptr       = payload;
+
+    // Send message
+    return write_mailbox_msg(&ipc_msg);
+}
+
+
 
 /*****************************************************************************/
 /**
@@ -309,3 +340,5 @@ int read_mailbox_msg(wlan_ipc_msg_t * msg) {
 
     return IPC_MBOX_SUCCESS;
 }
+
+

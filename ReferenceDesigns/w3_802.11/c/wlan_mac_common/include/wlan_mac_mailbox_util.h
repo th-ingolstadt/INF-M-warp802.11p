@@ -66,7 +66,8 @@
 #define IPC_MBOX_TX_MPDU_DONE                              3
 #define IPC_MBOX_HW_INFO                                   4
 #define IPC_MBOX_CPU_STATUS                                5
-#define IPC_MBOX_CONFIG_CHANNEL                            6
+#define IPC_MBOX_CONFIG_LOW                                6
+#define IPC_MBOX_CONFIG_CHANNEL                            7
 #define IPC_MBOX_CONFIG_PHY_RX                             8
 #define IPC_MBOX_CONFIG_PHY_TX                             9
 #define IPC_MBOX_TX_BEACON_DONE                            10
@@ -170,6 +171,6 @@ void          mailbox_int_handler(void * callback_ref);
 inline int    read_mailbox_isempty();
 int           read_mailbox_msg(wlan_ipc_msg_t * msg);
 int           write_mailbox_msg(wlan_ipc_msg_t * msg);
-
+int           send_msg(u16 msg_id, u8 arg, u8 num_words, u32 * payload);
 
 #endif /* WLAN_MAC_MAILBOX_UTIL_H_ */
