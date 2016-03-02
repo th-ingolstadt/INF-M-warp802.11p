@@ -375,7 +375,7 @@ inline u32 wlan_mac_low_poll_frame_rx(){
         if(wlan_mac_get_rx_phy_sel() == WLAN_MAC_PHY_RX_PARAMS_PHY_SEL_DSSS) {
 
             // DSSS Rx - PHY Rx length is already valid, other params unused for DSSS
-            phy_details.phy_mode = PNY_MODE_DSSS;
+            phy_details.phy_mode = PHY_MODE_DSSS;
             phy_details.N_DBPS   = 0;                                // Invalid for DSSS
 
             // Strip off extra pre-MAC-header bytes used in DSSS frames; this adjustment allows the next

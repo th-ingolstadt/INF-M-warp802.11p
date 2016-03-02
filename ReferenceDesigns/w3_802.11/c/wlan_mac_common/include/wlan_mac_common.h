@@ -84,7 +84,7 @@
 //
 #define WLAN_PHY_FCS_NBYTES                                4
 
-#define PNY_MODE_DSSS                                      0x0
+#define PHY_MODE_DSSS                                      0x0
 #define PHY_MODE_NONHT                                     0x1       // 11a OFDM
 #define PHY_MODE_HTMF                                      0x2       // 11n OFDM, HT mixed format
 
