@@ -42,8 +42,7 @@
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_bss_info.h"
-#include "wlan_mac_scan_fsm.h"
-#include "wlan_mac_ibss_join_fsm.h"
+#include "wlan_mac_scan.h"
 #include "wlan_mac_ibss.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_entries.h"
@@ -75,8 +74,6 @@ volatile u8           join_success = WLAN_EXP_IBSS_JOIN_IDLE;
 
 
 /*************************** Functions Prototypes ****************************/
-
-void wlan_exp_ibss_join_success(bss_info* bss_description);
 
 
 /******************************** Functions **********************************/
@@ -149,7 +146,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Disassociate\n");
 
-            leave_ibss();
+            //leave_ibss(); //FIXME: leave_ibss() has been replaced by configure_bss with a null BSSID
 
             // Send response
             resp_args_32[resp_index++] = Xil_Htonl(status);
@@ -252,6 +249,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
         //---------------------------------------------------------------------
         case CMDID_NODE_SCAN_PARAM: {
+#if 0
             // Set the active scan parameters
             //
             // Message format:
@@ -326,12 +324,15 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+#endif
         }
+
         break;
 
 
         //---------------------------------------------------------------------
         case CMDID_NODE_SCAN: {
+#if 0
             // Enable / Disable active scan
             //
             // Message format:
@@ -371,12 +372,14 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+#endif
         }
         break;
 
 
         //---------------------------------------------------------------------
         case CMDID_NODE_JOIN: {
+#if 0
             // Join the given BSS
             //
             // Message format:
@@ -432,12 +435,14 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+#endif
         }
         break;
 
 
         //---------------------------------------------------------------------
         case CMDID_NODE_SCAN_AND_JOIN: {
+#if 0
             // Scan for the given network and join if present
             //
             // Message format:
@@ -498,6 +503,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+#endif
         }
         break;
 
@@ -536,34 +542,8 @@ int wlan_exp_node_ibss_init(u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna,
 
     xil_printf("Configuring IBSS ...\n");
 
-    wlan_mac_ibss_set_join_success_callback((void *)wlan_exp_ibss_join_success);
-
     return XST_SUCCESS;
 }
-
-
-
-
-/*****************************************************************************/
-/**
- * Used by join_success_callback in wlan_mac_ibss_join_fsm.c
- *
- * @param   bss_description  - Pointer to BSS info of the BSS that was just joined
- *
- * @return  None
- *
- *****************************************************************************/
-void wlan_exp_ibss_join_success(bss_info* bss_description) {
-
-    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Successfully joined:  %s\n", bss_description->ssid);
-
-    // Set global variable back to idle to indicate successful join
-    join_success = WLAN_EXP_IBSS_JOIN_IDLE;
-
-}
-
-
-
 
 /*****************************************************************************/
 /**

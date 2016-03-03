@@ -57,7 +57,6 @@ typedef struct{
 	dl_list associated_stations;
 } bss_info;
 
-
 /**
  * @brief Base BSS Information Structure
  *
@@ -67,6 +66,33 @@ typedef struct{
 typedef struct{
 	MY_BSS_INFO_COMMON_FIELDS
 } bss_info_base;
+
+// BSS Configuration Bit Masks
+#define		BSS_FIELD_MASK_BSSID				0x00000001
+#define		BSS_FIELD_MASK_CHAN					0x00000002
+#define		BSS_FIELD_MASK_SSID					0x00000004
+#define		BSS_FIELD_MASK_BEACON_INTERVAL		0x00000008
+#define		BSS_FIELD_MASK_HT_CAPABLE				0x00000010
+
+typedef struct{
+    u32        update_mask;                       /* Mask of fields that were updated */
+    u8         bssid[6];                  		  /* BSS ID */
+    u16        beacon_interval;                   /* Beacon interval - In time units of 1024 us */
+    char       ssid[SSID_LEN_MAX + 1];            /* SSID of the BSS - 33 bytes */
+    u8         chan;                              /* Channel */
+    u8		   ht_capable;						  /* Support HTMF Tx/Rx	*/
+    u8         padding;                        	  /* Padding byte(s) */
+} bss_config_t;
+
+#define 	BEACON_INTERVAL_NO_BEACON_TX						0x0
+
+// configure_bss() return error flags
+#define		BSS_CONFIG_FAILURE_BSSID_INVALID					0x00000001
+#define		BSS_CONFIG_FAILURE_BSSID_INSUFFICIENT_ARGUMENTS		0x00000002
+#define		BSS_CONFIG_FAILURE_CHANNEL_INVALID					0x00000004
+#define		BSS_CONFIG_FAILURE_BEACON_INTERVAL_INVALID			0x00000008
+#define		BSS_CONFIG_FAILURE_HT_CAPABLE_INVALID				0x00000010
+
 
 
 // BSS State defines

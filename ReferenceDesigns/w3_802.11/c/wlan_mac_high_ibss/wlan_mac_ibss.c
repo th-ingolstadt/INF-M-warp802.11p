@@ -35,8 +35,7 @@
 #include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
-#include "wlan_mac_scan_fsm.h"
-#include "wlan_mac_ibss_join_fsm.h"
+#include "wlan_mac_scan.h"
 #include "ascii_characters.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_dl_list.h"
@@ -102,7 +101,7 @@ volatile u32                      mac_param_chan;
 // MAC address
 static u8 	                      wlan_mac_addr[6];
 
-static	beacon_txrx_configure_t	  gl_beacon_txrx_configure; //TODO: Need to create a setter for this struct that also pushes it via IPC to CPU_LOW
+static	beacon_txrx_configure_t	  gl_beacon_txrx_config; //TODO: Need to create a setter for this struct that also pushes it via IPC to CPU_LOW
 															//Also, bss_info as well as beacon template packet contents should be updated as well
 															//for beacon_interval changes
 
@@ -119,11 +118,9 @@ int  wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_re
 int main() {
 	u64                scan_start_timestamp;
 	u8                 locally_administered_addr[6];
-	bss_info         * temp_bss_info;
-
-	// Default Channels
-	u8                 channel_selections[14] = {1,2,3,4,5,6,7,8,9,10,11,36,44,48};
-
+	dl_entry*		   temp_dl_entry = NULL;
+	bss_info*		   temp_bss_info = NULL;
+	bss_config_t	   bss_config;
 
 	// Print initial message to UART
 	xil_printf("\f");
@@ -142,12 +139,11 @@ int main() {
 	// Set default behavior
 	pause_data_queue       = 0;
 
-	gl_beacon_txrx_configure.ts_update_mode = ALWAYS_UPDATE;
-	bzero(gl_beacon_txrx_configure.bssid_match, 6);
-	gl_beacon_txrx_configure.beacon_tx_mode = NO_BEACON_TX;
+	gl_beacon_txrx_config.ts_update_mode = ALWAYS_UPDATE;
+	bzero(gl_beacon_txrx_config.bssid_match, 6);
+	gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
 
-	// Set my_bss_info to NULL (ie IBSS is not currently on a BSS)
-	my_bss_info = NULL;
+	configure_bss(NULL);
 
 	//New associations adopt these unicast params; the per-node params can be
 	// overridden via wlan_exp calls or by custom C code
@@ -217,7 +213,6 @@ int main() {
     wlan_exp_set_process_node_cmd_callback(         (void *)wlan_exp_process_node_cmd);
     wlan_exp_set_reset_station_counts_callback(     (void *)reset_station_counts);
     wlan_exp_set_purge_all_data_tx_queue_callback(  (void *)purge_all_data_tx_queue);
-    wlan_exp_set_reset_all_associations_callback(   (void *)leave_ibss);
     wlan_exp_set_reset_bss_info_callback(           (void *)reset_bss_info);
     wlan_exp_set_tx_cmd_add_association_callback(   (void *)wlan_exp_ibss_tx_cmd_add_association);
     wlan_exp_set_process_user_cmd_callback(         (void *) wlan_exp_process_user_cmd);
@@ -278,30 +273,53 @@ int main() {
 	// Start the interrupts
 	wlan_mac_high_interrupt_restore_state(INTERRUPTS_ENABLED);
 
-	// Set the default active scan channels
-	wlan_mac_set_scan_channels(channel_selections, sizeof(channel_selections)/sizeof(channel_selections[0]));
-
-
-	// If there is a default SSID and the DIP switch allows it, initiate a probe request
+	// If there is a default SSID and the DIP switch allows it, start an active scan
 	if( (strlen(default_ssid) > 0) && ((wlan_mac_high_get_user_io_state()&GPIO_MASK_DS_3) == 0)) {
-		wlan_mac_ibss_scan_and_join(default_ssid, SCAN_TIMEOUT_SEC);
+
 		scan_start_timestamp = get_system_time_usec();
-		while((get_system_time_usec() < (scan_start_timestamp + SCAN_TIMEOUT_USEC))){
-			if(my_bss_info != NULL){
-				break;
-			}
+		wlan_mac_scan_start();
+
+		while( ((get_system_time_usec() < (scan_start_timestamp + SCAN_TIMEOUT_USEC))) &&
+				(temp_dl_entry == NULL)){
+			temp_dl_entry = wlan_mac_high_find_bss_info_SSID(default_ssid);
 		}
 
-		if(my_bss_info == NULL){
+		wlan_mac_scan_stop();
+
+		if(temp_dl_entry != NULL){
+			//We found an existing network matching the default SSID. We'll adopt
+			//that networks BSS configuration
+			xil_printf("Found existing %s network. Matching BSS settings.\n", default_ssid);
+			temp_bss_info = (bss_info*)(temp_dl_entry->data);
+
+			memcpy(bss_config.bssid, temp_bss_info->bssid, 6);
+			strcpy(bss_config.ssid, temp_bss_info->ssid);
+			bss_config.chan = temp_bss_info->chan;
+			bss_config.ht_capable = 1;
+			bss_config.beacon_interval = temp_bss_info->beacon_interval;
+			bss_config.update_mask = (BSS_FIELD_MASK_BSSID  		 |
+									  BSS_FIELD_MASK_CHAN   		 |
+									  BSS_FIELD_MASK_SSID			 |
+									  BSS_FIELD_MASK_BEACON_INTERVAL |
+									  BSS_FIELD_MASK_HT_CAPABLE);
+			configure_bss(&bss_config);
+		} else {
 			xil_printf("Unable to find '%s' IBSS. Creating new network.\n",default_ssid);
 
 			memcpy(locally_administered_addr,wlan_mac_addr,6);
 			locally_administered_addr[0] |= MAC_ADDR_MSB_MASK_LOCAL; //Raise the bit identifying this address as locally administered
-			temp_bss_info = wlan_mac_high_create_bss_info(locally_administered_addr, default_ssid, WLAN_DEFAULT_CHANNEL);
-			temp_bss_info->beacon_interval = BEACON_INTERVAL_TU;
-			temp_bss_info->state = BSS_STATE_OWNED;
-			temp_bss_info->capabilities = (CAPABILITIES_SHORT_TIMESLOT | CAPABILITIES_IBSS);
-			wlan_mac_ibss_join( temp_bss_info );
+
+			memcpy(bss_config.bssid, locally_administered_addr, 6);
+			strcpy(bss_config.ssid, default_ssid);
+			bss_config.chan = WLAN_DEFAULT_CHANNEL;
+			bss_config.ht_capable = 1;
+			bss_config.beacon_interval = BEACON_INTERVAL_TU;
+			bss_config.update_mask = (BSS_FIELD_MASK_BSSID  		 |
+									  BSS_FIELD_MASK_CHAN   		 |
+									  BSS_FIELD_MASK_SSID			 |
+									  BSS_FIELD_MASK_BEACON_INTERVAL |
+									  BSS_FIELD_MASK_HT_CAPABLE);
+			configure_bss(&bss_config);
 		}
 	}
 
@@ -320,37 +338,6 @@ int main() {
 	// Unreachable, but non-void return keeps the compiler happy
 	return -1;
 }
-
-
-
-void ibss_set_association_state( bss_info* new_bss_info ){
-	leave_ibss();
-
-	mac_param_chan = new_bss_info->chan;
-	wlan_mac_high_set_channel(mac_param_chan);
-
-	my_bss_info = new_bss_info;
-
-	xil_printf("IBSS Details: \n");
-	xil_printf("  BSSID           : %02x-%02x-%02x-%02x-%02x-%02x\n",my_bss_info->bssid[0],my_bss_info->bssid[1],my_bss_info->bssid[2],my_bss_info->bssid[3],my_bss_info->bssid[4],my_bss_info->bssid[5]);
-	xil_printf("   SSID           : %s\n", my_bss_info->ssid);
-	xil_printf("   Channel        : %d\n", my_bss_info->chan);
-	xil_printf("   Beacon Interval: %d TU (%d us)\n",my_bss_info->beacon_interval, my_bss_info->beacon_interval*1024);
-
-	// Set up beacon transmissions
-	wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, my_bss_info->bssid );
-
-	// Set up beacon transmissions
-	gl_beacon_txrx_configure.ts_update_mode = FUTURE_ONLY_UPDATE;
-	memcpy(gl_beacon_txrx_configure.bssid_match, my_bss_info->bssid, 6);
-	gl_beacon_txrx_configure.beacon_tx_mode = IBSS_BEACON_TX;
-	gl_beacon_txrx_configure.beacon_interval_tu = my_bss_info->beacon_interval;
-	gl_beacon_txrx_configure.beacon_template_pkt_buf = TX_PKT_BUF_BEACON;
-	wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, my_bss_info->bssid );
-	wlan_mac_high_configure_beacon_tx_template( &tx_header_common, my_bss_info, &default_multicast_mgmt_tx_params, TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_REQ_BO );
-	wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_configure);
-}
-
 
 /**
  * @brief Poll Tx queues to select next available packet to transmit
@@ -1115,45 +1102,193 @@ void reset_bss_info(){
 	}
 }
 
+u32	configure_bss(bss_config_t* bss_config){
+	u32					return_status 				= 0;
+	u8					zero_addr[6] 				= {0, 0, 0, 0, 0, 0};
+	u8					update_beacon_template 		= 0;
+	u8					send_beacon_config_to_low 	= 0;
+	u8					send_channel_switch_to_low	= 0;
 
-/**
- * @brief Leave the IBSS
- *
- * Removes the node from the BSS and resets all peer station_info
- *
- * @param  None
- * @return None
- */
-void leave_ibss(){
+	bss_info*			local_bss_info;
+	interrupt_state_t   curr_interrupt_state;
+	station_info* 		curr_station_info;
+	dl_entry* 			next_station_info_entry;
+	dl_entry* 			curr_station_info_entry;
+	int					iter;
 
-	int		   iter;
-	xil_printf("Resetting IBSS state (current BSS and all peer station_info structs)\n");
+	//---------------------------------------------------------
+	// 1. Check for any invalid inputs or combination of inputs
+	//		We will first verify that every requested update to the BSS
+	//		configuration before modifying anything. This will prevent
+	//		a partial update of BSS configuration with valid parameters
+	//		before discovering an invalid parameter.
 
-	if(my_bss_info != NULL){
-
-		station_info* curr_station_info;
-		dl_entry* next_station_info_entry;
-		dl_entry* curr_station_info_entry;
-
-		next_station_info_entry = my_bss_info->associated_stations.first;
-		iter = my_bss_info->associated_stations.length;
-
-		while( (next_station_info_entry != NULL) && (iter-- > 0) ){
-			curr_station_info_entry = next_station_info_entry;
-			next_station_info_entry = dl_entry_next(curr_station_info_entry);
-			curr_station_info = (station_info*)(curr_station_info_entry->data);
-            purge_queue(AID_TO_QID(curr_station_info->AID));
-			wlan_mac_high_remove_association( &my_bss_info->associated_stations, &counts_table, curr_station_info->addr );
-			ibss_update_hex_display(my_bss_info->associated_stations.length);
+	if(bss_config != NULL){
+		if( bss_config->update_mask & BSS_FIELD_MASK_BSSID ){
+			if( wlan_addr_eq(bss_config->bssid,zero_addr) == 0 ){
+				if( (bss_config->bssid[0] & MAC_ADDR_MSB_MASK_LOCAL ) == 0 ){
+					// In the IBSS implementation, the BSSID provided must be
+					// locally generated
+					return_status |= BSS_CONFIG_FAILURE_BSSID_INVALID;
+				}
+				if( ((bss_config->update_mask & BSS_FIELD_MASK_SSID) == 0) ||
+					((bss_config->update_mask & BSS_FIELD_MASK_CHAN) == 0) ||
+					((bss_config->update_mask & BSS_FIELD_MASK_BEACON_INTERVAL) == 0) ){
+					return_status |= BSS_CONFIG_FAILURE_BSSID_INSUFFICIENT_ARGUMENTS;
+				}
+			}
 		}
-
-		my_bss_info = NULL;
-		gl_beacon_txrx_configure.beacon_tx_mode = NO_BEACON_TX;
-		bzero(gl_beacon_txrx_configure.bssid_match, 6);
-		wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_configure);
+		if( bss_config->update_mask & BSS_FIELD_MASK_CHAN ){
+			if( wlan_verify_channel(bss_config->chan) != XST_SUCCESS ){
+				return_status |= BSS_CONFIG_FAILURE_CHANNEL_INVALID;
+			}
+		}
+		if( bss_config->update_mask & BSS_FIELD_MASK_BEACON_INTERVAL ){
+			if( (bss_config->beacon_interval != BEACON_INTERVAL_NO_BEACON_TX) &&
+				(bss_config->beacon_interval <  10)){
+				return_status |= BSS_CONFIG_FAILURE_BEACON_INTERVAL_INVALID;
+			}
+		}
+		if(bss_config->update_mask & BSS_FIELD_MASK_HT_CAPABLE){
+			if( (bss_config->ht_capable > 1) ){
+				return_status |= BSS_CONFIG_FAILURE_HT_CAPABLE_INVALID;
+			}
+		}
 	}
-}
 
+	if(return_status == 0){
+		//---------------------------------------------------------
+		// 2. Apply BSS configuration changes
+		//		Now that we have verified that the provided bss_config_t struct
+		//		is valid, we can apply those changes.
+
+		// We should disable interrupts around these modifications to prevent
+		// state changing out from underneath this context while the new BSS
+		// configuration parameters are only partially updated.
+		curr_interrupt_state = wlan_mac_high_interrupt_stop();
+		if( (bss_config == NULL)||(bss_config->update_mask & BSS_FIELD_MASK_BSSID) ){
+			// We are adopting a new BSSID. This could mean either
+			//    1) We are shutting the BSS down
+			// or 2) We are shutting the BSS down and then starting
+			//		 a new BSS.
+			// In either case, we must first remove any station_info structs
+			// that are members of the current my_bss_info and return to
+			// a NULL my_bss_info state.
+
+			if(my_bss_info != NULL){
+				next_station_info_entry = my_bss_info->associated_stations.first;
+				iter = my_bss_info->associated_stations.length;
+
+				while( (next_station_info_entry != NULL) && (iter-- > 0) ){
+					curr_station_info_entry = next_station_info_entry;
+					next_station_info_entry = dl_entry_next(curr_station_info_entry);
+					curr_station_info = (station_info*)(curr_station_info_entry->data);
+		            purge_queue(AID_TO_QID(curr_station_info->AID));
+					wlan_mac_high_remove_association( &my_bss_info->associated_stations, &counts_table, curr_station_info->addr );
+					ibss_update_hex_display(my_bss_info->associated_stations.length);
+				}
+
+				//Inform the MAC High Framework that we no longer own this BSS Info. This will
+				//Allow it to be overwritten in the future to make space for new BSS Infos.
+				my_bss_info->state &= ~BSS_STATE_OWNED;
+
+				my_bss_info = NULL;
+
+				//Disable beacons immediately.
+				gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
+				bzero(gl_beacon_txrx_config.bssid_match, 6);
+				wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
+			}
+
+			// We have used bss_config == NULL as a shortcut for removing the BSS state of this node. This operation
+			// was executed just above this comment. Rather that continuing to check non-NULLness of bss_config
+			// throughout the rest of this function, we can just re-enable interrupts and return early.
+
+			if(bss_config == NULL){
+				wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
+				return return_status;
+			}
+
+			// my_bss_info is guaranteed to be NULL at this point in the code
+
+			if(wlan_addr_eq(bss_config->bssid,zero_addr) == 0 ){
+				//We should create a new bss_info or overwrite an existing one with matching BSSID.
+				//Note: the wildcard SSID and 0-valued channel arguments are temporary. Because of
+				//the error checking at the top of this function, we can rely on the fact that
+				//bss_config contains a valid SSID as well as channel. These fields will be updated
+				//next.
+				local_bss_info = wlan_mac_high_create_bss_info(bss_config->bssid, "", 0);
+				if(local_bss_info != NULL){
+					local_bss_info->state |= BSS_STATE_OWNED;
+					local_bss_info->capabilities = (CAPABILITIES_SHORT_TIMESLOT | CAPABILITIES_IBSS);
+					my_bss_info = local_bss_info;
+				}
+			}
+		}
+		//---------------------------------------------------------
+		// 3. Clean up
+		//		Now that my_bss_info has been updated, we can communicate
+		//		those changes to CPU_LOW so that we tune to the correct channel,
+		//		send beacons at the correct interval, and update the beacon
+		//		template packet buffer.
+		if(my_bss_info != NULL){
+			if(bss_config->update_mask & BSS_FIELD_MASK_CHAN){
+				my_bss_info->chan = bss_config->chan;
+				send_channel_switch_to_low = 1;
+				update_beacon_template = 1;
+			}
+			if(bss_config->update_mask & BSS_FIELD_MASK_SSID){
+				strcpy(my_bss_info->ssid, bss_config->ssid);
+				update_beacon_template = 1;
+			}
+			if(bss_config->update_mask & BSS_FIELD_MASK_BEACON_INTERVAL){
+				my_bss_info->beacon_interval = bss_config->beacon_interval;
+				update_beacon_template = 1;
+				send_beacon_config_to_low = 1;
+			}
+			if(bss_config->update_mask & BSS_FIELD_MASK_HT_CAPABLE){
+				//TODO:
+				// 1) Update Beacon Template Capabilities
+				// 2) Update existing MCS selections for defaults and
+				//	  associated stations?
+			}
+			if( update_beacon_template ){
+				//We need to update the beacon template. In the event that CPU_LOW currently has it locked,
+				//we will just block for now until it unlocks. A TODO is for this is to schedule a future
+				//update of the beacon template.
+				wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, my_bss_info->bssid );
+				while( wlan_mac_high_configure_beacon_tx_template( &tx_header_common, my_bss_info, &default_multicast_mgmt_tx_params, TX_MPDU_FLAGS_FILL_TIMESTAMP | TX_MPDU_FLAGS_REQ_BO ) != 0 ){}
+			}
+			if( send_channel_switch_to_low ){
+				wlan_mac_high_set_channel(my_bss_info->chan);
+			}
+			if( send_beacon_config_to_low ){
+				gl_beacon_txrx_config.ts_update_mode = FUTURE_ONLY_UPDATE;
+				memcpy(gl_beacon_txrx_config.bssid_match, my_bss_info->bssid, 6);
+				if(my_bss_info->beacon_interval == BEACON_INTERVAL_NO_BEACON_TX){
+					gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
+				} else {
+					gl_beacon_txrx_config.beacon_tx_mode = IBSS_BEACON_TX;
+				}
+				gl_beacon_txrx_config.beacon_interval_tu = my_bss_info->beacon_interval;
+				gl_beacon_txrx_config.beacon_template_pkt_buf = TX_PKT_BUF_BEACON;
+				wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
+			}
+
+			xil_printf("IBSS Details: \n");
+			xil_printf("  BSSID           : %02x-%02x-%02x-%02x-%02x-%02x\n",my_bss_info->bssid[0],my_bss_info->bssid[1],my_bss_info->bssid[2],my_bss_info->bssid[3],my_bss_info->bssid[4],my_bss_info->bssid[5]);
+			xil_printf("   SSID           : %s\n", my_bss_info->ssid);
+			xil_printf("   Channel        : %d\n", my_bss_info->chan);
+			xil_printf("   Beacon Interval: %d TU (%d us)\n",my_bss_info->beacon_interval, my_bss_info->beacon_interval*1024);
+
+		}
+		wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
+	}
+
+
+
+	return return_status;
+}
 
 /**
  * @brief IBSS specific hex display update command

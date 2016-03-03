@@ -63,22 +63,6 @@
 #define ASSOCIATION_TIMEOUT_S                             (300)
 #define ASSOCIATION_TIMEOUT_US                            (ASSOCIATION_TIMEOUT_S * 1000000)
 
-// Number of probe requests to send per channel when active scanning
-#define NUM_PROBE_REQ                                      5
-
-// Time the active scan procedure will dwell on each channel before
-// moving to the next channel (microseconds)
-#define ACTIVE_SCAN_DWELL                                  100000
-
-// The amount of time between full active scans when looking for a particular SSID
-//
-// NOTE: This value must be larger than the maximum amount of time it takes for
-//     a single active scan. For an active scan over 11 channels, this value must
-//     be larger than (11 * ACTIVE_SCAN_DWELL).
-//
-#define ACTIVE_SCAN_UPDATE_RATE                            5000000
-
-
 //-----------------------------------------------
 // WLAN Exp defines
 #define WLAN_EXP_STREAM_ASSOC_CHANGE                       WLAN_EXP_NO_TRANSMIT
@@ -90,7 +74,8 @@
 /*************************** Function Prototypes *****************************/
 int  main();
 
-void ibss_set_association_state( bss_info* new_bss_info );
+u32	configure_bss(bss_config_t* bss_config);
+
 void association_timestamp_check();
 
 void ltg_event(u32 id, void* callback_arg);
@@ -105,7 +90,6 @@ void poll_tx_queues();
 void purge_all_data_tx_queue();
 
 void reset_bss_info();
-void leave_ibss();
 void reset_station_counts();
 
 dl_list * get_counts();
