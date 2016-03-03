@@ -26,23 +26,48 @@ if(~exist('sim_many_waveform_mode','var'))
     %PHY debugging with ChipScope captures of I/Q
     % ChipScope waveforms must be saved in ASCII format with (at least) ADC_I and ADC_Q signals
     %xlLoadChipScopeData('mcs7_11n_4rx_1bad_v0.prn'); cs_interp = 1; cs_start = 1; cs_end = length(ADC_I);
-    xlLoadChipScopeData('mcs0_11a_200B_bad_v0.prn'); cs_interp = 1; cs_start = 650; cs_end = length(ADC_I);
-    sim_sig = 1.0*complex(ADC_I([cs_start:cs_interp:cs_end]), ADC_Q(cs_start:cs_interp:cs_end));
+    %xlLoadChipScopeData('mcs0_11a_200B_bad_v0.prn'); cs_interp = 1; cs_start = 650; cs_end = length(ADC_I);
+    %sim_sig = 1.0*complex(ADC_I([cs_start:cs_interp:cs_end]), ADC_Q(cs_start:cs_interp:cs_end));
     %sim_sig = sim_sig .* exp(j*2*pi*1e-4*(0:length(sim_sig)-1)).';
 
     if 1
     
     %Output of PHY Tx simulation
     % .mat files from Tx PHY sim store I/Q signal in 'wlan_tx_out' variable
-    load('rx_sigs/wlan_tx_NONHT_MCS7_52B.mat');wlan_tx_out = 1.0*wlan_tx_out.';
-    %load('rx_sigs/wlan_tx_HTMM_MCS0_52B.mat');wlan_tx_out = 1.0*wlan_tx_out;
-    %load('../wlan_phy_tx_pmd/tx_nonht_MCS7_20M_29B_2tx.mat');wlan_tx_out = 1.0*wlan_tx_out;
-    %load('wlan_tx_NONHT_MCS0_52B.mat');wlan_tx_out = 1.0*wlan_tx_out.';
+    %load('rx_sigs/wlan_tx_NONHT_MCS7_52B.mat');wlan_tx_out = 1.0*wlan_tx_out.';
+
+    %RX_END testing
     
-    %load('tx_NONHT_MCS0_40M_100B.mat');wlan_tx_out = 1.0*wlan_tx_out.';
+    %Supported waveforms
+    load('rx_sigs/rxend_testing/wlan_tx_NONHT_MCS4_52B.mat'); wlan_tx_out = 1.0*wlan_tx_out.';     %good
+    %load('rx_sigs/rxend_testing/siggen_HTMF_MCS4_100B_BW20.mat'); wlan_tx_out = 0.2*sig;           %good
+    %load('rx_sigs/rxend_testing/siggen_HTMF_MCS5_100B_BW20.mat'); wlan_tx_out = 0.2*sig;           %good
+
+    %Unsupported waveforms
+    %load('rx_sigs/rxend_testing/siggen_HTMF_MCS11_100B_BW20_CDD200.mat'); wlan_tx_out = 0.2*sig(1,:); %good
+    %load('rx_sigs/rxend_testing/siggen_HTMF_MCS11_100B_BW20_CDD200.mat'); wlan_tx_out = 0.14*sig(1,:) + 0.14*sig(2,:); %good
     
-    wlan_tx_out = [wlan_tx_out zeros(1,200) wlan_tx_out];
-    wlan_tx_out = wlan_tx_out .* exp(j*2*pi*-1e-4*(0:length(wlan_tx_out)-1));
+    %Frequency shift and decimate BW40 signal
+    %load('rx_sigs/rxend_testing/siggen_HTMF_MCS4_100B_BW40.mat'); x = 0.2*sig(1,:); %good
+    %load('rx_sigs/rxend_testing/siggen_HTMF_MCS11_100B_BW40_CDD200.mat'); x = 0.2*sig(1,:); %good
+    %interp_filt2 = zeros(1,43);
+    %interp_filt2([1 3 5 7 9 11 13 15 17 19 21]) = [12 -32 72 -140 252 -422 682 -1086 1778 -3284 10364];
+    %interp_filt2([23 25 27 29 31 33 35 37 39 41 43]) = interp_filt2(fliplr([1 3 5 7 9 11 13 15 17 19 21]));
+    %interp_filt2(22) = 16384;
+    %interp_filt2 = interp_filt2./max(abs(interp_filt2));
+    %x_dc = x .* exp(j*2*pi*-10e6*(1/40e6)*(0:length(x)-1));
+    %x_ds = filter(interp_filt2, 1, x_dc);
+    %x_ds = x_ds(1:2:end);
+    %wlan_tx_out = x_ds;
+    
+    %Corrupt HTSIG
+    %load('rx_sigs/rxend_testing/siggen_HTMF_MCS5_100B_BW20.mat'); wlan_tx_out = 0.2*sig;
+    %htsig_ind = (160+160+80) + (1:160);
+    %wlan_tx_out(htsig_ind) = [wlan_tx_out(htsig_ind(81:160)) wlan_tx_out(htsig_ind(1:80))];
+
+    
+    %wlan_tx_out = [wlan_tx_out zeros(1,200) wlan_tx_out];
+    %wlan_tx_out = wlan_tx_out .* exp(j*2*pi*-1e-4*(0:length(wlan_tx_out)-1));
     %wlan_tx_out = [sig_with_cfo zeros(1,200) wlan_tx_out];
         
     %wlan_tx_out = wlan_tx_out + 1e-2*complex(randn(1,length(wlan_tx_out)), randn(1,length(wlan_tx_out)));
@@ -166,6 +191,8 @@ PHY_CONFIG_PKT_DET_ENERGY_THRESH_DSSS = 1;%400;%hex2dec('3FF');%(20) * 2^4; %UFi
 %PHY_CONFIG_H_EST_SMOOTHING_B = 614; %round(0.15 * 2^12);
 PHY_CONFIG_H_EST_SMOOTHING_A = 2^12-1;
 PHY_CONFIG_H_EST_SMOOTHING_B = 0;
+
+%h = [.17 .7 .17 zeros(1,61)]; %Gives 0dB gain at 38 (FFT offset 5), better than 0dB gain at 32 (FFT offset 0)
 
 %PHY_CONFIG_H_EST_SMOOTHING_A = 2000;
 %PHY_CONFIG_H_EST_SMOOTHING_B = 0;
