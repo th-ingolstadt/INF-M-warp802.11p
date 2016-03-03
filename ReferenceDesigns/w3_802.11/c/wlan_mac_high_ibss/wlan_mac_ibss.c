@@ -95,9 +95,6 @@ dl_list                           counts_table;
 static u32                        max_queue_size;
 volatile u8                       pause_data_queue;
 
-// Default channel
-volatile u32                      mac_param_chan;
-
 // MAC address
 static u8 	                      wlan_mac_addr[6];
 
@@ -237,10 +234,6 @@ int main() {
 
     // Set Header information
 	tx_header_common.address_2 = &(wlan_mac_addr[0]);
-
-	// Set up channel
-	mac_param_chan      = WLAN_DEFAULT_CHANNEL;
-	wlan_mac_high_set_channel( mac_param_chan );
 
 	// Set the other CPU low parameters
 	wlan_mac_high_set_rx_ant_mode(WLAN_DEFAULT_RX_ANTENNA);
@@ -530,7 +523,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details_t* tx_lo
 	}
 
 	// Log the TX MPDU
-	wlan_exp_log_create_tx_high_entry(tx_mpdu, mac_param_chan);
+	wlan_exp_log_create_tx_high_entry(tx_mpdu, tx_low_details[0].chan_num); //TODO: TX_HIGH shouldn't have a channel number.
 
 	// Update the counts for the node to which the packet was just transmitted
 	if(tx_mpdu->AID != 0) {
