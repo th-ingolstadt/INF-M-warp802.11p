@@ -93,15 +93,25 @@ REG_MAC_Backoff_Control = ...
 
 REG_MAC_Control = ...
     2^0  * (0) + ... %b[0] Reset
-    2^1  * (1) + ... %b[1] Block Rx pkt det on Rx FCS good
-    2^2  * (0) + ... %b[2] Clear Rx pkt det block
+    2^1  * (0) + ... %b[1] --
+    2^2  * (0) + ... %b[2] --
     2^3  * (0) + ... %b[3] Disable NAV
     2^4  * (1) + ... %b[4] Block Rx pkt det while Tx active
-    2^5  * (0) + ... %b[5] Load new timestamp values
-    2^6  * (0) + ... %b[6] Block Rx pkt det on all Rx End (incl. bad FCS)
+    2^5  * (0) + ... %b[5] Reset TU Latch
+    2^6  * (0) + ... %b[6] --
     2^7  * (0) + ... %b[7] Ignore PHY carrier sensing for CCA
     2^8  * (0) + ... %b[8] Ignore Tx PHY active for CCA
     2^9  * (0) + ... %b[9] Ignore NAV for CCA
+    2^10 * (0) + ... %b[10] Reset NAV
+    2^11 * (0) + ... %b[11] Reset TxA backoff
+    2^12 * (0) + ... %b[12] Reset TxC backoff
+    2^13 * (0) + ... %b[13] Reset TxA
+    2^14 * (0) + ... %b[14] Reset TxB
+    2^15 * (0) + ... %b[15] Reset TxC
+    2^16 * (0) + ... %b[16] Force CCA Busy
+    2^17 * (0) + ... %b[17] Pause TxA backoff
+    2^18 * (0) + ... %b[18] Reset PHY_ACTIVE latches
+    2^19 * (0) + ... %b[19] Reset RX_STARTED latch
     0;
 
 %Match 40-d8-55-04-21-4a
