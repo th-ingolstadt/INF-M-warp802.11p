@@ -42,7 +42,7 @@
         u8         num_basic_rates;                   /* Number of basic rates supported */             \
         u8         basic_rates[NUM_BASIC_RATES_MAX];  /* Supported basic rates - 10 bytes */            \
         u8         phy_mode;                          /* PHY Mode (Legacy, HT) */                       \
-        u8         padding1;                          /* Padding byte - for 32-bit alignment */
+        s8         rx_power_dBm;                      /* Last observed Rx Power (dBm) */
 
 
 

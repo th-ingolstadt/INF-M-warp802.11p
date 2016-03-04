@@ -119,7 +119,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 					curr_bss_info = (bss_info*)(curr_dl_entry->data);
 					dl_entry_remove(&bss_info_list, curr_dl_entry);
 				} else {
-					// We haven't seen this BSS ID before, so we'll attempt to grab a new dl_entry
+					// We haven't seen this BSS ID before, so we'll attempt to checkout a new dl_entry
 					// struct from the free pool
 					curr_dl_entry = bss_info_checkout();
 
@@ -167,13 +167,16 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 				// Copy beacon interval into bss_info struct
 				curr_bss_info->beacon_interval = ((beacon_probe_frame*)mpdu_ptr_u8)->beacon_interval;
 
+				// Copy the channel on which this packet was received into the bss_info struct
 				curr_bss_info->chan = mpdu_info->channel;
+
+				// Copy the Rx power with which this packet was received into the bss_info stuct
+				curr_bss_info->rx_power_dBm = mpdu_info->rx_power;
 
 				// Move the packet pointer to after the beacon/probe frame
 				mpdu_ptr_u8 += sizeof(beacon_probe_frame);
 
 				// Parse the tagged parameters
-
 				while( (((u32)mpdu_ptr_u8) - ((u32)mpdu)) < (length - WLAN_PHY_FCS_NBYTES)) {
 
 					// Parse each of the tags
