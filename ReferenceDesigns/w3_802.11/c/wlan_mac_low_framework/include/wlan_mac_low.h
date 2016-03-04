@@ -451,6 +451,7 @@ void               wlan_mac_low_frame_ipc_send();
 void               wlan_mac_low_set_frame_rx_callback(function_ptr_t callback);
 void               wlan_mac_low_set_frame_tx_callback(function_ptr_t callback);
 void 			   wlan_mac_low_set_beacon_txrx_config_callback(function_ptr_t callback);
+void 			   wlan_mac_low_set_mactime_change_callback(function_ptr_t callback);
 void               wlan_mac_low_set_ipc_low_param_callback(function_ptr_t callback);
 
 inline u64         wlan_mac_low_get_rx_start_timestamp();

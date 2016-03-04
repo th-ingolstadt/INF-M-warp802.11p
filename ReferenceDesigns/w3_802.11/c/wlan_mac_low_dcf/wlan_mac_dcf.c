@@ -124,6 +124,7 @@ int main(){
     wlan_mac_low_set_frame_rx_callback((void*)frame_receive);
     wlan_mac_low_set_frame_tx_callback((void*)frame_transmit);
     wlan_mac_low_set_beacon_txrx_config_callback((void*)configure_beacon_txrx);
+    wlan_mac_low_set_mactime_change_callback((void*)handle_mactime_change);
     wlan_mac_low_set_ipc_low_param_callback((void*)process_low_param);
 
     if(lock_tx_pkt_buf(TX_PKT_BUF_ACK_CTS) != PKT_BUF_MUTEX_SUCCESS){

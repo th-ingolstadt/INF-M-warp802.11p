@@ -76,6 +76,7 @@ static function_ptr_t        frame_rx_callback;                                 
 static function_ptr_t        frame_tx_callback;                                     ///< User callback frame transmissions
 
 static function_ptr_t		 beacon_txrx_config_callback;
+static function_ptr_t		 mactime_change_callback;
 
 static function_ptr_t        ipc_low_param_callback;                                ///< User callback for IPC_MBOX_LOW_PARAM ipc calls
 
@@ -160,6 +161,7 @@ int wlan_mac_low_init(u32 type){
     frame_tx_callback           = (function_ptr_t) wlan_null_callback;
     ipc_low_param_callback      = (function_ptr_t) wlan_null_callback;
     beacon_txrx_config_callback = (function_ptr_t) wlan_null_callback;
+    mactime_change_callback		= (function_ptr_t) wlan_null_callback;
     allow_new_mpdu_tx        = 1;
     pkt_buf_pending_tx       = -1; // -1 is an invalid pkt_buf index
 
@@ -470,6 +472,23 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
     wlan_ipc_msg_t           ipc_msg_to_high;
 
     switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
+
+    	//---------------------------------------------------------------------
+    	case IPC_MBOX_SET_MAC_TIME:
+    		switch(msg->arg0){
+				default:
+				case 0:
+					//Payload is an absolute MAC time that must be applied
+					set_mac_time_usec( *(u64*)(msg->payload_ptr) );
+					mactime_change_callback( (*(s64*)(msg->payload_ptr))-((s64)get_mac_time_usec()) );
+    			break;
+				case 1:
+					//Payload is a MAC time delta that must be applied
+					apply_mac_time_delta_usec( *(s64*)(msg->payload_ptr));
+					mactime_change_callback( *(s64*)(msg->payload_ptr));
+				break;
+    		}
+    	break;
 
     	//---------------------------------------------------------------------
     	case IPC_MBOX_TXRX_BEACON_CONFIGURE: {
@@ -889,6 +908,10 @@ inline void wlan_mac_low_set_frame_rx_callback(function_ptr_t callback){
 
 inline void wlan_mac_low_set_beacon_txrx_config_callback(function_ptr_t callback){
 	beacon_txrx_config_callback = callback;
+}
+
+inline void wlan_mac_low_set_mactime_change_callback(function_ptr_t callback){
+	mactime_change_callback = callback;
 }
 
 

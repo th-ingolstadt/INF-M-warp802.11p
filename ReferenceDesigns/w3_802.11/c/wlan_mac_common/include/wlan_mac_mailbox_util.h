@@ -71,6 +71,7 @@
 #define IPC_MBOX_CONFIG_PHY_RX                             8
 #define IPC_MBOX_CONFIG_PHY_TX                             9
 #define IPC_MBOX_TX_BEACON_DONE                            10
+#define IPC_MBOX_SET_MAC_TIME 	                           11
 #define IPC_MBOX_CONFIG_RX_ANT_MODE                        12
 #define IPC_MBOX_CONFIG_TX_CTRL_POW                        13
 #define IPC_MBOX_CONFIG_RX_FILTER                          14

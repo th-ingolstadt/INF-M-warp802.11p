@@ -21,6 +21,8 @@
 #include <xil_io.h>
 
 // WLAN include files
+#include "wlan_mac_common.h"
+#include "wlan_mac_mailbox_util.h"
 #include "wlan_mac_time_util.h"
 
 
@@ -112,6 +114,67 @@ u64 get_system_time_usec() {
 }
 
 
+#if WLAN_COMPILE_FOR_CPU_HIGH
+// CPU_HIGH implementations
+
+/*****************************************************************************/
+/**
+ * @brief Set MAC time
+ *
+ * The Reference Design includes a 64-bit counter that increments every microsecond
+ * and can be updated (ie the MAC time).  This function sets the counter value.
+ * Some 802.11 handshakes require updating the MAC time to match a partner node's
+ * MAC time value (reception of a beacon, for example)
+ *
+ * @param   new_time         - u64 number of microseconds for the new MAC time of the node
+ * @return  None
+ */
+void set_mac_time_usec(u64 new_time) {
+
+	wlan_ipc_msg_t     ipc_msg_to_low;
+	u64                ipc_msg_to_low_payload = new_time;
+
+	// Send message to CPU Low
+	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_SET_MAC_TIME);
+	ipc_msg_to_low.arg0				 = 0; //Indicates that the payload is absolute
+	ipc_msg_to_low.num_payload_words = 2;
+	ipc_msg_to_low.payload_ptr       = (u32*)(&(ipc_msg_to_low_payload));
+
+	write_mailbox_msg(&ipc_msg_to_low);
+
+}
+
+
+
+/*****************************************************************************/
+/**
+ * @brief Apply time delta to MAC time
+ *
+ * The Reference Design includes a 64-bit counter that increments every microsecond
+ * and can be updated (ie the MAC time).  This function updates the counter value
+ * by time_delta microseconds (note that the time delta is an s64 and can be positive
+ * or negative).  Some 802.11 handshakes require updating the MAC time to match a
+ * partner node's MAC time value (reception of a beacon, for example)
+ *
+ * @param   time_delta       - s64 number of microseconds to change the MAC time of the node
+ * @return  None
+ */
+void apply_mac_time_delta_usec(s64 time_delta) {
+
+	wlan_ipc_msg_t     ipc_msg_to_low;
+	s64                ipc_msg_to_low_payload = time_delta;
+
+	// Send message to CPU Low
+	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_SET_MAC_TIME);
+	ipc_msg_to_low.arg0				 = 1; //Indicates that the payload is a delta
+	ipc_msg_to_low.num_payload_words = 2;
+	ipc_msg_to_low.payload_ptr       = (u32*)(&(ipc_msg_to_low_payload));
+
+	write_mailbox_msg(&ipc_msg_to_low);
+}
+
+#else
+// CPU_LOW implementations
 
 /*****************************************************************************/
 /**
@@ -162,7 +225,7 @@ void apply_mac_time_delta_usec(s64 time_delta) {
     // Update the time in the MAC Time HW core
     set_mac_time_usec(new_mac_time);
 }
-
+#endif
 
 
 /*****************************************************************************/
