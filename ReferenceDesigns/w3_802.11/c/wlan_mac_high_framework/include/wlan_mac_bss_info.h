@@ -72,7 +72,7 @@ typedef struct{
 #define		BSS_FIELD_MASK_CHAN					0x00000002
 #define		BSS_FIELD_MASK_SSID					0x00000004
 #define		BSS_FIELD_MASK_BEACON_INTERVAL		0x00000008
-#define		BSS_FIELD_MASK_HT_CAPABLE				0x00000010
+#define		BSS_FIELD_MASK_HT_CAPABLE			0x00000010
 
 typedef struct{
     u32        update_mask;                       /* Mask of fields that were updated */
@@ -99,7 +99,9 @@ typedef struct{
 #define BSS_STATE_UNAUTHENTICATED                          1
 #define BSS_STATE_AUTHENTICATED                            2
 #define BSS_STATE_ASSOCIATED                               4
-#define BSS_STATE_OWNED                                    5
+
+// BSS Flags defines
+#define BSS_FLAGS_KEEP								   0x0001
 
 // BSS Beacon Interval defines
 #define BSS_MICROSECONDS_IN_A_TU                           1024

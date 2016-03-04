@@ -136,7 +136,7 @@ int main() {
 	// Set default behavior
 	pause_data_queue       = 0;
 
-	gl_beacon_txrx_config.ts_update_mode = ALWAYS_UPDATE;
+	gl_beacon_txrx_config.ts_update_mode = FUTURE_ONLY_UPDATE;
 	bzero(gl_beacon_txrx_config.bssid_match, 6);
 	gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
 
@@ -1181,9 +1181,9 @@ u32	configure_bss(bss_config_t* bss_config){
 					ibss_update_hex_display(my_bss_info->associated_stations.length);
 				}
 
-				//Inform the MAC High Framework that we no longer own this BSS Info. This will
+				//Inform the MAC High Framework that we no longer will keep this BSS Info. This will
 				//Allow it to be overwritten in the future to make space for new BSS Infos.
-				my_bss_info->state &= ~BSS_STATE_OWNED;
+				my_bss_info->flags &= ~BSS_FLAGS_KEEP;
 
 				my_bss_info = NULL;
 
@@ -1212,7 +1212,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				//next.
 				local_bss_info = wlan_mac_high_create_bss_info(bss_config->bssid, "", 0);
 				if(local_bss_info != NULL){
-					local_bss_info->state |= BSS_STATE_OWNED;
+					local_bss_info->flags |= BSS_FLAGS_KEEP;
 					local_bss_info->capabilities = (CAPABILITIES_SHORT_TIMESLOT | CAPABILITIES_IBSS);
 					my_bss_info = local_bss_info;
 				}
@@ -1256,7 +1256,6 @@ u32	configure_bss(bss_config_t* bss_config){
 				wlan_mac_high_set_channel(my_bss_info->chan);
 			}
 			if( send_beacon_config_to_low ){
-				gl_beacon_txrx_config.ts_update_mode = FUTURE_ONLY_UPDATE;
 				memcpy(gl_beacon_txrx_config.bssid_match, my_bss_info->bssid, 6);
 				if(my_bss_info->beacon_interval == BEACON_INTERVAL_NO_BEACON_TX){
 					gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;

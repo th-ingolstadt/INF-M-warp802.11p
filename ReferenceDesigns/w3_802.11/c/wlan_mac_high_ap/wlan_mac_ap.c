@@ -268,7 +268,7 @@ int main(){
 
 	// Set up BSS description
 	my_bss_info = wlan_mac_high_create_bss_info(wlan_mac_addr, default_AP_SSID, mac_param_chan);
-	my_bss_info->state           = BSS_STATE_OWNED;
+	my_bss_info->flags          |= BSS_FLAGS_KEEP;
 	my_bss_info->beacon_interval = WLAN_DEFAULT_BEACON_INTERVAL_TU;
 	my_bss_info->capabilities    = (CAPABILITIES_ESS | CAPABILITIES_SHORT_TIMESLOT);
 	my_bss_info->phy_mode		 = PHY_MODE_NONHT;

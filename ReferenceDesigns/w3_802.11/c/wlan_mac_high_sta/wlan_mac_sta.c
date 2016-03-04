@@ -85,6 +85,7 @@ tx_params_t                       default_multicast_mgmt_tx_params;
 tx_params_t                       default_multicast_data_tx_params;
 
 // Access point information
+u8						 		  my_aid;
 bss_info*                         my_bss_info;
 
 // List to hold Tx/Rx counts
@@ -94,13 +95,10 @@ dl_list                           counts_table;
 static u32                        max_queue_size;
 volatile u8                       pause_data_queue;
 
-// STA channel
-volatile u32                      mac_param_chan;
-
 // MAC address
 static u8 	                      wlan_mac_addr[6];
 
-static	beacon_txrx_configure_t	  gl_beacon_txrx_configure; //TODO: Need to create a setter for this struct that also pushes it via IPC to CPU_LOW
+static	beacon_txrx_configure_t	  gl_beacon_txrx_config; //TODO: Need to create a setter for this struct that also pushes it via IPC to CPU_LOW
 
 
 
@@ -141,12 +139,15 @@ int main() {
 	// Unpause the queue
 	pause_data_queue = 0;
 
-	// Set my_bss_info to NULL (ie STA is not currently on a BSS)
-	sta_set_association_state(NULL, 0);
+	// STA is not currently a member of BSS
+	configure_bss(NULL);
 
-	gl_beacon_txrx_configure.ts_update_mode = ALWAYS_UPDATE;
-	bzero(gl_beacon_txrx_configure.bssid_match, 6);
-	gl_beacon_txrx_configure.beacon_tx_mode = NO_BEACON_TX;
+	// We currently are not associated to any
+	my_aid = 0;
+
+	gl_beacon_txrx_config.ts_update_mode = ALWAYS_UPDATE;
+	bzero(gl_beacon_txrx_config.bssid_match, 6);
+	gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
 
 	//New associations adopt these unicast params; the per-node params can be
 	// overridden via wlan_exp calls or by custom C code
@@ -250,10 +251,6 @@ int main() {
     // Initialize hex display
 	sta_update_hex_display(0);
 
-	// Set up channel
-	mac_param_chan      = WLAN_DEFAULT_CHANNEL;
-	wlan_mac_high_set_channel( mac_param_chan );
-
 	// Set the other CPU low parameters
 	wlan_mac_high_set_rx_ant_mode(WLAN_DEFAULT_RX_ANTENNA);
 	wlan_mac_high_set_tx_ctrl_pow(WLAN_DEFAULT_TX_PWR);
@@ -277,7 +274,6 @@ int main() {
     xil_printf("WLAN MAC Station boot complete: \n");
     xil_printf("  Serial Number : W3-a-%05d\n", hw_info->serial_number);
     xil_printf("  Default SSID  : %s \n", access_point_ssid);
-    xil_printf("  Channel       : %d \n", mac_param_chan);
 	xil_printf("  MAC Addr      : %02x:%02x:%02x:%02x:%02x:%02x\n\n", wlan_mac_addr[0], wlan_mac_addr[1], wlan_mac_addr[2], wlan_mac_addr[3], wlan_mac_addr[4], wlan_mac_addr[5]);
 
 #ifdef WLAN_USE_UART_MENU
@@ -477,7 +473,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details_t* tx_lo
 	}
 
 	// Log the TX MPDU
-	wlan_exp_log_create_tx_high_entry(tx_mpdu, mac_param_chan);
+	wlan_exp_log_create_tx_high_entry(tx_mpdu, tx_low_details[0].chan_num); //TODO: remove channels from TX_HIGH entries
 
 	// Update the counts for the node to which the packet was just transmitted
 	if(tx_mpdu->AID != 0) {
@@ -769,8 +765,10 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 							// Log the association state change
 							add_station_info_to_log((station_info*)((my_bss_info->associated_stations.first)->data), STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
 
+
 							// Remove the association
-							wlan_mac_high_remove_association(&(my_bss_info->associated_stations), &counts_table, rx_80211_header->address_2);
+							//wlan_mac_high_remove_association(&(my_bss_info->associated_stations), &counts_table, rx_80211_header->address_2);
+							//TODO: call configure_bss(NULL)
 
 							// Purge all packets for the AP
 							purge_queue(UNICAST_QID);
@@ -781,7 +779,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 							my_bss_info->state = BSS_STATE_UNAUTHENTICATED;
 
 							curr_bss_info = my_bss_info;
-							sta_set_association_state(NULL, 0);
+							configure_bss(NULL);
 
 							join_parameters = wlan_mac_sta_get_join_parameters();
 							bzero((void*)join_parameters->bssid, 6);
@@ -1037,18 +1035,10 @@ int  sta_disassociate( void ) {
 	// If the STA is currently associated, remove the association; otherwise do nothing
 	if(my_bss_info != NULL){
 
-		my_bss_info->state = BSS_STATE_UNAUTHENTICATED; //Drop all the way back in unauthenticated
-
 		// Get the currently associated station
 		//   NOTE:  This assumes that there is only one associated station
 		associated_station_entry = my_bss_info->associated_stations.first;
 		associated_station       = (station_info*)associated_station_entry->data;
-
-#if _DEBUG_
-		u32 i;
-		xil_printf("Disassociating node: %02x", (associated_station->addr)[0]);
-		for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", (associated_station->addr)[i] ); } xil_printf("\n");
-#endif
 
 		// Log association change
 		add_station_info_to_log(associated_station, STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
@@ -1058,77 +1048,173 @@ int  sta_disassociate( void ) {
 		// NOTE: Jump to old channel before doing so. The channel is present in the my_bss_info in this context. No need to change back after.
 		//
 
-		// Remove current association
-		status = wlan_mac_high_remove_association(&(my_bss_info->associated_stations), &counts_table, associated_station->addr);
-
-		my_bss_info = NULL;
+		configure_bss(NULL);
 	}
-
-	// Update the HEX display
-	sta_update_hex_display(0);
 
 	return status;
 }
 
 
-int  sta_set_association_state( bss_info* new_bss_info, u16 aid ) {
-    int                 status = -1;
-	station_info*       associated_station = NULL;
 
-	if(new_bss_info != NULL){
-		xil_printf("Setting New Association State:\n");
-		xil_printf("SSID:  %s\n", new_bss_info->ssid);
-		xil_printf("AID:   %d\n", aid);
-		xil_printf("BSSID: %02x-%02x-%02x-%02x-%02x-%02x\n", new_bss_info->bssid[0],new_bss_info->bssid[1],new_bss_info->bssid[2],new_bss_info->bssid[3],new_bss_info->bssid[4],new_bss_info->bssid[5]);
-		xil_printf("State: %d\n", new_bss_info->state);
+u32	configure_bss(bss_config_t* bss_config){
+	u32					return_status 				= 0;
+	u8					zero_addr[6] 				= {0, 0, 0, 0, 0, 0};
+	u8					send_channel_switch_to_low	= 0;
+	u8					send_beacon_config_to_low	= 0;
 
-		// Disassociate from any currently associated APs
-		status = sta_disassociate();
+	bss_info*			local_bss_info;
+	interrupt_state_t   curr_interrupt_state;
+	station_info* 		curr_station_info;
+	dl_entry* 			curr_station_info_entry;
 
-		// The disassociate step may have changed channels to send a message to the old AP.
-		mac_param_chan = new_bss_info->chan;
-		wlan_mac_high_set_channel(mac_param_chan);
+	//---------------------------------------------------------
+	// 1. Check for any invalid inputs or combination of inputs
+	//		We will first verify that every requested update to the BSS
+	//		configuration before modifying anything. This will prevent
+	//		a partial update of BSS configuration with valid parameters
+	//		before discovering an invalid parameter.
 
-		my_bss_info = new_bss_info;
-
-		memcpy(gl_beacon_txrx_configure.bssid_match, my_bss_info->bssid, 6);
-
-		if ( new_bss_info->state == BSS_STATE_ASSOCIATED ) {
-			// Add the new association
-			associated_station = wlan_mac_high_add_association(&(my_bss_info->associated_stations), &counts_table, my_bss_info->bssid, aid);
-
-			if ( associated_station != NULL ) {
-
-				// Log association change
-				add_station_info_to_log(associated_station, STATION_INFO_ENTRY_NO_CHANGE, WLAN_EXP_STREAM_ASSOC_CHANGE);
-
-	#if _DEBUG_
-				u32 i;
-				xil_printf("Associating node: %02x", (associated_station->addr)[0]);
-				for ( i = 1; i < ETH_ADDR_LEN; i++ ) { xil_printf(":%02x", (associated_station->addr)[i] ); } xil_printf("\n");
-	#endif
-
-				// Update the HEX display
-				sta_update_hex_display(associated_station->AID);
-
-				pause_data_queue = 0;
-
-				status = 0;
-
-			} else {
-				status = -1;
+	if(bss_config != NULL){
+		if( bss_config->update_mask & BSS_FIELD_MASK_BSSID ){
+			if( wlan_addr_eq(bss_config->bssid,zero_addr) == 0 ){
+				if( (bss_config->bssid[0] & MAC_ADDR_MSB_MASK_LOCAL ) == 1 ){
+					// In the STA implementation, the BSSID provided must not
+					// be locally generated.
+					return_status |= BSS_CONFIG_FAILURE_BSSID_INVALID;
+				}
+				if( ((bss_config->update_mask & BSS_FIELD_MASK_SSID) == 0) ||
+					((bss_config->update_mask & BSS_FIELD_MASK_CHAN) == 0) ||
+					((bss_config->update_mask & BSS_FIELD_MASK_BEACON_INTERVAL) == 0) ){
+					return_status |= BSS_CONFIG_FAILURE_BSSID_INSUFFICIENT_ARGUMENTS;
+				}
 			}
 		}
-	} else {
-		xil_printf("Disconnected from BSS\n");
-		my_bss_info = NULL;
-		bzero(gl_beacon_txrx_configure.bssid_match, 6);
-		status = 0;
+		if( bss_config->update_mask & BSS_FIELD_MASK_CHAN ){
+			if( wlan_verify_channel(bss_config->chan) != XST_SUCCESS ){
+				return_status |= BSS_CONFIG_FAILURE_CHANNEL_INVALID;
+			}
+		}
+		if( bss_config->update_mask & BSS_FIELD_MASK_BEACON_INTERVAL ){
+			//There is no error condition for setting the beacon interval
+			//at the STA since a STA is incapable of sending beacons
+		}
+		if(bss_config->update_mask & BSS_FIELD_MASK_HT_CAPABLE){
+			if( (bss_config->ht_capable > 1) ){
+				return_status |= BSS_CONFIG_FAILURE_HT_CAPABLE_INVALID;
+			}
+		}
 	}
-	wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_configure);
-	return status;
-}
 
+	if(return_status == 0){
+		//---------------------------------------------------------
+		// 2. Apply BSS configuration changes
+		//		Now that we have verified that the provided bss_config_t struct
+		//		is valid, we can apply those changes.
+
+		// We should disable interrupts around these modifications to prevent
+		// state changing out from underneath this context while the new BSS
+		// configuration parameters are only partially updated.
+		curr_interrupt_state = wlan_mac_high_interrupt_stop();
+
+		if( (bss_config == NULL)||(bss_config->update_mask & BSS_FIELD_MASK_BSSID) ){
+			// We are adopting a new BSSID. This could mean either
+			//    1) We are shutting the BSS down
+			// or 2) We are shutting the BSS down and then starting
+			//		 a new BSS.
+			// In either case, we must first remove any station_info structs
+			// that are members of the current my_bss_info and return to
+			// a NULL my_bss_info state.
+
+			if(my_bss_info != NULL){
+				curr_station_info_entry = my_bss_info->associated_stations.first;
+				curr_station_info = (station_info*)(curr_station_info_entry->data);
+				purge_queue(UNICAST_QID);
+				wlan_mac_high_remove_association( &my_bss_info->associated_stations, &counts_table, curr_station_info->addr );
+				sta_update_hex_display(0);
+
+
+				//Inform the MAC High Framework that we no longer will keep this BSS Info. This will
+				//Allow it to be overwritten in the future to make space for new BSS Infos.
+				my_bss_info->flags &= ~BSS_FLAGS_KEEP;
+				my_bss_info->state = 0;
+
+				my_bss_info = NULL;
+			}
+
+			// We have used bss_config == NULL as a shortcut for removing the BSS state of this node. This operation
+			// was executed just above this comment. Rather that continuing to check non-NULLness of bss_config
+			// throughout the rest of this function, we can just re-enable interrupts and return early.
+
+			if(bss_config == NULL){
+				wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
+				return return_status;
+			}
+
+			// my_bss_info is guaranteed to be NULL at this point in the code
+
+			if(wlan_addr_eq(bss_config->bssid,zero_addr) == 0 ){
+				//We should create a new bss_info or overwrite an existing one with matching BSSID.
+				//Note: the wildcard SSID and 0-valued channel arguments are temporary. Because of
+				//the error checking at the top of this function, we can rely on the fact that
+				//bss_config contains a valid SSID as well as channel. These fields will be updated
+				//next.
+				local_bss_info = wlan_mac_high_create_bss_info(bss_config->bssid, "", 0);
+				if(local_bss_info != NULL){
+					local_bss_info->flags |= BSS_FLAGS_KEEP;
+					local_bss_info->capabilities = (CAPABILITIES_SHORT_TIMESLOT | CAPABILITIES_IBSS);
+					my_bss_info = local_bss_info;
+				}
+			}
+		}
+		//---------------------------------------------------------
+		// 3. Clean up
+		//		Now that my_bss_info has been updated, we can communicate
+		//		those changes to CPU_LOW so that we tune to the correct channel,
+		//		send beacons at the correct interval, and update the beacon
+		//		template packet buffer.
+		if(my_bss_info != NULL){
+			if(bss_config->update_mask & BSS_FIELD_MASK_CHAN){
+				my_bss_info->chan = bss_config->chan;
+				send_channel_switch_to_low = 1;
+			}
+			if(bss_config->update_mask & BSS_FIELD_MASK_SSID){
+				strcpy(my_bss_info->ssid, bss_config->ssid);
+			}
+			if(bss_config->update_mask & BSS_FIELD_MASK_BEACON_INTERVAL){
+				my_bss_info->beacon_interval = bss_config->beacon_interval;
+				send_beacon_config_to_low = 1;
+			}
+			if(bss_config->update_mask & BSS_FIELD_MASK_HT_CAPABLE){
+				//TODO:
+				// 1) Update Beacon Template Capabilities
+				// 2) Update existing MCS selections for defaults and
+				//	  associated stations?
+			}
+			if( send_channel_switch_to_low ){
+				wlan_mac_high_set_channel(my_bss_info->chan);
+			}
+			if( send_beacon_config_to_low ){
+				memcpy(gl_beacon_txrx_config.bssid_match, my_bss_info->bssid, 6);
+				gl_beacon_txrx_config.beacon_interval_tu = my_bss_info->beacon_interval;		//CPU_LOW does not need this parameter for the STA project
+				gl_beacon_txrx_config.beacon_template_pkt_buf = TX_PKT_BUF_BEACON;				//CPU_LOW does not need this parameter for the STA project
+				wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
+			}
+
+			sta_update_hex_display(my_aid);
+			xil_printf("BSS Details: \n");
+			xil_printf("  BSSID           : %02x-%02x-%02x-%02x-%02x-%02x\n",my_bss_info->bssid[0],my_bss_info->bssid[1],my_bss_info->bssid[2],my_bss_info->bssid[3],my_bss_info->bssid[4],my_bss_info->bssid[5]);
+			xil_printf("   SSID           : %s\n", my_bss_info->ssid);
+			xil_printf("   Channel        : %d\n", my_bss_info->chan);
+			xil_printf("   Beacon Interval: %d TU (%d us)\n",my_bss_info->beacon_interval, my_bss_info->beacon_interval*1024);
+
+		}
+		wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
+	}
+
+
+
+	return return_status;
+}
 
 
 /**

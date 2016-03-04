@@ -45,7 +45,7 @@ static dl_list               bss_info_list;                ///< Filled BSS info
 
 /*************************** Functions Prototypes ****************************/
 
-dl_entry* wlan_mac_high_find_bss_info_oldest_unowned();
+dl_entry* wlan_mac_high_find_bss_info_oldest();
 
 
 /******************************** Functions **********************************/
@@ -125,13 +125,13 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 
 					if (curr_dl_entry == NULL){
 						// No free dl_entry!
-						// We'll have to reallocate the oldest unowned entry in the filled list
-						curr_dl_entry = wlan_mac_high_find_bss_info_oldest_unowned();
+						// We'll have to reallocate the oldest entry in the filled list
+						curr_dl_entry = wlan_mac_high_find_bss_info_oldest();
 
 						if (curr_dl_entry != NULL) {
 							dl_entry_remove(&bss_info_list, curr_dl_entry);
 						} else {
-							xil_printf("Cannot create bss_info.  No unowned bss_info entries.\n");
+							xil_printf("Cannot create bss_info.\n");
 							return;
 						}
 					}
@@ -281,7 +281,7 @@ void print_bss_info(){
 		xil_printf("    BSSID:         %02x-%02x-%02x-%02x-%02x-%02x\n", curr_bss_info->bssid[0],curr_bss_info->bssid[1],curr_bss_info->bssid[2],curr_bss_info->bssid[3],curr_bss_info->bssid[4],curr_bss_info->bssid[5]);
 		xil_printf("    Channel:       %d\n",curr_bss_info->chan);
 
-		if(curr_bss_info->state != BSS_STATE_OWNED){
+		if((curr_bss_info->flags & BSS_FLAGS_KEEP) == 0){
 			xil_printf("    Last update:   %d msec ago\n", (u32)((get_system_time_usec() - curr_bss_info->latest_activity_timestamp)/1000));
 		}
 		xil_printf("    Capabilities:  0x%04x\n", curr_bss_info->capabilities);
@@ -391,7 +391,7 @@ dl_entry* wlan_mac_high_find_bss_info_BSSID(u8* bssid){
 }
 
 
-dl_entry* wlan_mac_high_find_bss_info_oldest_unowned(){
+dl_entry* wlan_mac_high_find_bss_info_oldest(){
 	int       iter;
 	dl_entry* curr_dl_entry;
 	bss_info* curr_bss_info;
@@ -402,7 +402,7 @@ dl_entry* wlan_mac_high_find_bss_info_oldest_unowned(){
 	while ((curr_dl_entry != NULL) && (iter-- > 0)) {
 		curr_bss_info = (bss_info*)(curr_dl_entry->data);
 
-		if (curr_bss_info->state != BSS_STATE_OWNED) {
+		if ((curr_bss_info->flags & BSS_FLAGS_KEEP) == 0) {
 			return curr_dl_entry;
 		}
 
@@ -432,13 +432,13 @@ bss_info* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan){
 
 		if (curr_dl_entry == NULL){
 			// No free dl_entry!
-			// We'll have to reallocate the oldest unowned entry in the filled list
-			curr_dl_entry = wlan_mac_high_find_bss_info_oldest_unowned();
+			// We'll have to reallocate the oldest entry in the filled list
+			curr_dl_entry = wlan_mac_high_find_bss_info_oldest();
 
 			if (curr_dl_entry != NULL) {
 				dl_entry_remove(&bss_info_list, curr_dl_entry);
 			} else {
-				xil_printf("Cannot create bss_info.  No unowned bss_info entries.\n");
+				xil_printf("Cannot create bss_info.\n");
 				return NULL;
 			}
 		}
@@ -479,8 +479,8 @@ void wlan_mac_high_clear_bss_info(bss_info * info){
 		iter                    = info->associated_stations.length;
 		next_station_info_entry = info->associated_stations.first;
 
-		if ((info->state != BSS_STATE_OWNED) && (next_station_info_entry != NULL)) {
-            xil_printf("WARNING:  BSS info was unowned but had station info entries.\n");
+		if (((info->flags & BSS_FLAGS_KEEP) == 0) && (next_station_info_entry != NULL)) {
+            xil_printf("WARNING:  BSS info not flagged to be kept but contained station_info entries.\n");
 		}
 
 		while ((next_station_info_entry != NULL) && (iter-- > 0)) {

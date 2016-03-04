@@ -526,6 +526,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
         //---------------------------------------------------------------------
         case CMDID_NODE_ASSOCIATE: {
+#if 0 //FIXME -- this is being replaced with configure_bss
             // Associate with the AP
             //
             // Message format:
@@ -601,6 +602,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+#endif
         }
         break;
 

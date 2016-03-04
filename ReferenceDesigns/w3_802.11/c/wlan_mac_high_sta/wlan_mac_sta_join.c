@@ -43,6 +43,7 @@ extern u8                         pause_data_queue;
 extern u32                        mac_param_chan; ///< This is the "home" channel
 extern tx_params_t                default_unicast_mgmt_tx_params;
 extern bss_info*				  my_bss_info;
+extern u8						  my_aid;
 
 // File Variables
 static join_state_t               join_state;
@@ -237,6 +238,8 @@ void wlan_mac_sta_bss_attempt_poll(u32 arg){
 	//	(2) STA will call this when it receives an association response that elevates the state to
 	//		BSS_ASSOCIATED. In this context, the argument will be the AID provided by the AP sending
 	//		the association response.
+	bss_config_t bss_config;
+
 	switch(join_state){
 		case IDLE:
 			xil_printf("JOIN FSM Error: Attempting/Idle mismatch\n");
@@ -255,11 +258,23 @@ void wlan_mac_sta_bss_attempt_poll(u32 arg){
 				break;
 
 				case BSS_STATE_ASSOCIATED:
-					if(sta_set_association_state(attempt_bss_info, arg) == 0){
+					my_aid = arg;
+					memcpy(bss_config.bssid, attempt_bss_info->bssid, 6);
+					strcpy(bss_config.ssid, attempt_bss_info->ssid);
+					bss_config.chan = attempt_bss_info->chan;
+					bss_config.ht_capable = 1;
+					bss_config.beacon_interval = attempt_bss_info->beacon_interval;
+					bss_config.update_mask = (BSS_FIELD_MASK_BSSID  		 |
+											  BSS_FIELD_MASK_CHAN   		 |
+											  BSS_FIELD_MASK_SSID			 |
+											  BSS_FIELD_MASK_BEACON_INTERVAL |
+											  BSS_FIELD_MASK_HT_CAPABLE);
+
+					if(configure_bss(&bss_config) == 0){
 						//Important: return_to_idle will NULL out attempt_bss_info,
 						//so it should not be called before actually setting the
 						//association state
-						join_success_callback(attempt_bss_info);
+						join_success_callback(attempt_bss_info);		//FIXME: Is this callback needed any longer? the wlan_exp join process is now non-blocking
 					}
 					wlan_mac_sta_return_to_idle();
 				break;
