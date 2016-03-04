@@ -265,7 +265,7 @@ void wlan_mac_hw_init(){
     //     BLOCK_RX_ON_VALID_RXEND will block the Rx PHY on all RX_END events following valid RX_START events
     //     This allows the wlan_exp framework to count and log bad FCS receptions
     //
-    REG_SET_BITS(WLAN_MAC_REG_CONTROL, (WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_EN | WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_TX | WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_VALID_RXEND));
+    REG_SET_BITS(WLAN_MAC_REG_CONTROL, WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_TX);
 
     // Enable the NAV counter
     REG_CLEAR_BITS(WLAN_MAC_REG_CONTROL, (WLAN_MAC_CTRL_MASK_DISABLE_NAV));
@@ -295,7 +295,7 @@ void wlan_mac_hw_init(){
     wlan_mac_reset_tu_target_latch(1);
 
     // Clear any stale Rx events
-    wlan_mac_dcf_hw_unblock_rx_phy();
+    wlan_mac_hw_clear_rx_started();
 
     for(i=0;i < NUM_RX_PKT_BUFS; i++){
         rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(i);
@@ -336,125 +336,107 @@ inline void wlan_mac_low_send_exception(u32 reason){
     cpu_error_halt(reason);
 }
 
-
-
 /*****************************************************************************/
 /**
  * @brief Poll the Receive Frame Start
  *
  * This function will poll the hardware to see if the PHY is currently receiving or
  * has finished receiving a packet.  This will then dispatch the current RX packet
- * buffer and PHY details to the frame_rx_callback().
+ * buffer and PHY details to the frame_rx_callback(). The callback is responsible for
+ * updating the current Rx packet buffer, typically required if the received packet
+ * is passed to CPU High for further processing.
  *
  * @param   None
  * @return  u32              - Status (See MAC Polling defines in wlan_mac_low.h)
  */
 inline u32 wlan_mac_low_poll_frame_rx(){
-    int                 i;
-    phy_rx_details_t    phy_details;
-    volatile u32        mac_hw_status;
-    u32                 mac_hw_phy_rx_params;
+    phy_rx_details_t phy_details;
 
-    u32                 return_status = 0;
+    volatile u32 mac_hw_status;
+    volatile u32 phy_hdr_params;
+
+    u32 return_status = 0;
 
     // Read the MAC/PHY status
     mac_hw_status = wlan_mac_get_status();
 
-    // xil_printf("mac_hw_status = 0x%08x\n", mac_hw_status);
+    // Check if PHY has started a new reception
+    if(mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_STARTED) {
 
-    // Check if PHY is currently receiving or has finished receiving
-    if(mac_hw_status & (WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED_FCS_GOOD | WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED)) {
-
-        return_status |= POLL_MAC_STATUS_RECEIVED_PKT;               // We received something in this poll
-
-        if (DBG_PRINT) { xil_printf("MAC Rx: 0x%08x\n", mac_hw_status); }
-
-        i = 0;
-
-        // Check whether this is an OFDM or DSSS Rx
-        if(wlan_mac_get_rx_phy_sel() == WLAN_MAC_PHY_RX_PARAMS_PHY_SEL_DSSS) {
-
+    	// Check whether this is an OFDM or DSSS Rx
+        if(wlan_mac_get_rx_phy_sel() == WLAN_MAC_PHY_RX_PHY_HDR_PHY_SEL_DSSS) {
             // DSSS Rx - PHY Rx length is already valid, other params unused for DSSS
             phy_details.phy_mode = PHY_MODE_DSSS;
-            phy_details.N_DBPS   = 0;                                // Invalid for DSSS
+            phy_details.N_DBPS   = 0;
 
             // Strip off extra pre-MAC-header bytes used in DSSS frames; this adjustment allows the next
             //     function to treat OFDM and DSSS payloads the same
             phy_details.length   = wlan_mac_get_rx_phy_length() - 5;
-            phy_details.mcs      = WLAN_MAC_MCS_1M;
-
-            if (DBG_PRINT) { xil_printf("DSSS Rx callback: %d / %d / %d\n", phy_details.phy_mode, phy_details.length, phy_details.mcs); }
+            phy_details.mcs      = WLAN_MAC_MCS_1M; ///FIXME: MCS should be 0 for DSSS Rx; need to trace this up to log
 
             // Call the user callback to handle this Rx, capture return value
-            return_status       |= frame_rx_callback(rx_pkt_buf, &phy_details);
-
-            if (DBG_PRINT) { xil_printf("DSSS Rx callback return: 0x%08x\n", return_status); }
+        	return_status |= POLL_MAC_STATUS_RECEIVED_PKT;
+        	return_status |= frame_rx_callback(rx_pkt_buf, &phy_details);
 
         } else {
+        	// OFDM Rx - must wait for valid PHY header
+        	// Order of operations is critical here
+			//  1) Read status first
+			//  2) Read PHY header register second
+			//  3) Check for complete PHY header - continue if complete
+			//  4) Else check for early PHY reset - quit if reset
+			do {
+				mac_hw_status = wlan_mac_get_status();
+				phy_hdr_params = wlan_mac_get_rx_phy_hdr_params();
+			} while(
+				((phy_hdr_params & WLAN_MAC_PHY_RX_PHY_HDR_READY) == 0) ||  //PHY header ready - break and evaluate
+				((mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE))      //PHY reset externally - unlikely; best option is to return quietly
+			);
 
-            // OFDM Rx - must wait for PHY_RX_PARAMS to be valid before reading mcs/length
-            while(1) {
-            	mac_hw_status = wlan_mac_get_status();
-                mac_hw_phy_rx_params = wlan_mac_get_rx_params();
+			// Decide how to handle this waveform
+            if(phy_hdr_params & WLAN_MAC_PHY_RX_PHY_HDR_READY) {
+                // Received valid PHY header - decide whether to call MAC callback
+                if(phy_hdr_params & WLAN_MAC_PHY_RX_PHY_HDR_MASK_UNSUPPORTED) {
+                    // Valid HT-SIG but unsupported waveform
+                    //  Rx PHY will hold ACTIVE until last samp but will not write payload
+        			//xil_printf("Quitting - WLAN_MAC_PHY_RX_PHY_HDR_MASK_UNSUPPORTED");
 
-                if((mac_hw_phy_rx_params & WLAN_MAC_PHY_RX_PARAMS_MASK_PARAMS_VALID)){
-                	// Parameters were valid
-                	break;
-                } else if ( (mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE) == 0){
-                	// PHY has gone inactive. Parameters will not turn valid, so we should
-                	// unblock the PHY and move on.
-					return_status = return_status & ~POLL_MAC_STATUS_RECEIVED_PKT;
-					wlan_mac_dcf_hw_unblock_rx_phy();
-                	return return_status;
+                } else if(phy_hdr_params & WLAN_MAC_PHY_RX_PHY_HDR_MASK_RX_ERROR) {
+                    // Invalid HT-SIG (CRC error, invalid RESERVED or TAIL bits, invalid LENGTH, etc)
+                    //  Rx PHY has already released ACTIVE and will not write payload
+        			//xil_printf("Quitting - WLAN_MAC_PHY_RX_PHY_HDR_MASK_RX_ERROR");
+
+                } else {
+                    //NONHT waveform or HTMF waveform with supported HT-SIG
+                    // Call lower MAC Rx callback
+                    // Callback can return anytime (before or after RX_END)
+
+                    phy_details.phy_mode = wlan_mac_get_rx_phy_mode();
+                    phy_details.length   = wlan_mac_get_rx_phy_length();
+                    phy_details.mcs      = wlan_mac_get_rx_phy_mcs();
+                    phy_details.N_DBPS   = wlan_mac_low_mcs_to_n_dbps(phy_details.mcs);
+
+                	return_status |= POLL_MAC_STATUS_RECEIVED_PKT;
+                	return_status |= frame_rx_callback(rx_pkt_buf, &phy_details);
                 }
-
-                if (DBG_PRINT) { xil_printf("MAC Rx Poll 1 (%4d): 0x%08x  0x%08x\n", i++, mac_hw_phy_rx_params, wlan_mac_get_status()); }
-            }
-
-            i = 0;
-
-            // Check if PHY is continuing Rx (11a: valid SIGNAL, 11n: valid+supported HT-SIG)
-            if((mac_hw_phy_rx_params & (WLAN_MAC_PHY_RX_PARAMS_MASK_UNSUPPORTED | WLAN_MAC_PHY_RX_PARAMS_MASK_RX_ERROR))) {
-
-                // PHY is not processing this Rx - do not call user callback
-                return_status = return_status & ~POLL_MAC_STATUS_RECEIVED_PKT;
-
-                // Wait for PHY to finish, then clear block
-                do {
-                    mac_hw_status = wlan_mac_get_status();
-
-                    if (DBG_PRINT) { xil_printf("MAC Rx Poll 2 (%4d): 0x%08x  0x%08x\n", i++, mac_hw_phy_rx_params, wlan_mac_get_status()); }
-                } while(mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE);
-
-                wlan_mac_dcf_hw_unblock_rx_phy();
-
             } else {
+            	// PHY went idle before PHY_HDR_DONE, probably due to external reset
+            	//  Do nothing and return
+            	xil_printf("ERROR (poll_frame_rx): PHY Reset before PHY_HDR_DONE!\n");
 
-                // PHY is processing this Rx - read mcs/length/phy-mode
-                phy_details.phy_mode = wlan_mac_get_rx_phy_mode();
-                phy_details.length   = wlan_mac_get_rx_phy_length();
-                phy_details.mcs      = wlan_mac_get_rx_phy_mcs();
-                phy_details.N_DBPS   = wlan_mac_low_mcs_to_n_dbps(phy_details.mcs);
+            }//END if(PHY_HDR_DONE)
+        } //END if(OFDM Rx)
 
-                if (DBG_PRINT) { xil_printf("OFDM Rx callback: %d / %d / %d\n", phy_details.phy_mode, phy_details.length, phy_details.mcs); }
+    	// Clear the MAC status register RX_STARTED bit
+    	//  By this point the framework and MAC are done with the current waveform, however it was handled,
+    	//   so the RX_STARTED bit is cleared in every case. It is important to only call clear_rx_started() after
+        //   the RX_STARTED latch has asserted. Calling it any other time creates a race that can miss Rx events
+    	wlan_mac_hw_clear_rx_started();
 
-                // Call the user callback to handle this Rx, capture return value
-                return_status       |= frame_rx_callback(rx_pkt_buf, &phy_details);
-
-                if (DBG_PRINT) { xil_printf("OFDM Rx callback return: 0x%08x\n", return_status); }
-            }
-        }
-
-        // Current frame_rx_callback() always unblocks PHY
-        //     NOTE: Uncomment this unblock_rx_phy if custom frame_rx_callback does not wait to unblock the PHY
-        //
-        // wlan_mac_dcf_hw_unblock_rx_phy();
-    }
+    } //END if(PHY_RX_STARTED)
 
     return return_status;
 }
-
-
 
 /*****************************************************************************/
 /**
@@ -1270,10 +1252,14 @@ inline void wlan_mac_low_lock_empty_rx_pkt_buf(){
  * @return  None
  */
 void wlan_mac_dcf_hw_unblock_rx_phy() {
-    // Posedge on WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET unblocks PHY (clear then set here to ensure posedge)
+	//FIXME: no longer required - delete and remove from other MAC code
+	return;
+#if 0
+	// Posedge on WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET unblocks PHY (clear then set here to ensure posedge)
     REG_CLEAR_BITS(WLAN_MAC_REG_CONTROL, WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET);
     REG_SET_BITS(WLAN_MAC_REG_CONTROL, WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET);
     REG_CLEAR_BITS(WLAN_MAC_REG_CONTROL, WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET);
+#endif
 
 /*
     // Debugging PHY unblock -> still blocked bug
@@ -1295,12 +1281,14 @@ void wlan_mac_dcf_hw_unblock_rx_phy() {
 /**
  * @brief Finish PHY Reception
  *
- * This function returns the rx start timestamp of the system
+ * This function polls the MAC status register until the Rx PHY goes idle. The
+ * return value indicates whether the just-completed reception was good
+ * (no Rx errors and matching checksum) or bad
  *
  * @param   None
  * @return  u32              - FCS status (RX_MPDU_STATE_FCS_GOOD or RX_MPDU_STATE_FCS_BAD)
  */
-inline u32 wlan_mac_dcf_hw_rx_finish(){
+inline u32 wlan_mac_hw_rx_finish() {
     u32 mac_hw_status;
 
     // Wait for the packet to finish
@@ -1308,11 +1296,14 @@ inline u32 wlan_mac_dcf_hw_rx_finish(){
         mac_hw_status = wlan_mac_get_status();
     } while(mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE);
 
-    // Check FCS
-    if(mac_hw_status & WLAN_MAC_STATUS_MASK_RX_FCS_GOOD) {
+    // Check RX_END_ERROR and FCS
+    if( (mac_hw_status & WLAN_MAC_STATUS_MASK_RX_FCS_GOOD) &&
+       ((mac_hw_status & WLAN_MAC_STATUS_MASK_RX_END_ERROR) == 0)) {
         return RX_MPDU_STATE_FCS_GOOD;
+
     } else {
         return RX_MPDU_STATE_FCS_BAD;
+
     }
 }
 
@@ -1471,3 +1462,9 @@ inline void wlan_mac_low_set_unique_seq(u64 curr_unique_seq){
 	unique_seq = curr_unique_seq;
 }
 
+inline void wlan_mac_hw_clear_rx_started() {
+	wlan_mac_reset_rx_started(1);
+	wlan_mac_reset_rx_started(0);
+
+	return;
+}

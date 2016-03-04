@@ -147,53 +147,38 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details){
 
     void              * pkt_buf_addr        = (void *) RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
     rx_frame_info     * frame_info           = (rx_frame_info *) pkt_buf_addr;
-    u32					mac_hw_status;
+    u8 rx_result;
 
-    // Fill in the MPDU info fields for the reception
+    // Fill in the MPDU info fields for the reception. These values are known at RX_START. The other fields below
+    //  must be written after RX_END
     frame_info->flags          = 0;
     frame_info->phy_details    = *phy_details;
     frame_info->channel        = wlan_mac_low_get_active_channel();
     frame_info->phy_samp_rate  = (u8)wlan_mac_low_get_phy_samp_rate();
     frame_info->timestamp      = wlan_mac_low_get_rx_start_timestamp();
     frame_info->timestamp_frac = wlan_mac_low_get_rx_start_timestamp_frac();
-    frame_info->state          = wlan_mac_dcf_hw_rx_finish();                 // Blocks until reception is complete
 
-    frame_info->ant_mode       = wlan_phy_rx_get_active_rx_ant();
-    frame_info->cfo_est		  = wlan_phy_rx_get_cfo_est();
-    frame_info->rf_gain        = wlan_phy_rx_get_agc_RFG(frame_info->ant_mode);
-    frame_info->bb_gain        = wlan_phy_rx_get_agc_BBG(frame_info->ant_mode);
-    frame_info->rx_power       = wlan_mac_low_calculate_rx_power(wlan_phy_rx_get_pkt_rssi(frame_info->ant_mode), wlan_phy_rx_get_agc_RFG(frame_info->ant_mode));
+    // Wait for the Rx PHY to finish receiving this packet
+    rx_result = (u8)wlan_mac_hw_rx_finish();
+    frame_info->state = rx_result;
 
-    // Wait until the PHY has written enough bytes so that the first address field can be processed
-     while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1){
-     	//Invalid HT-SIG hack
- 		mac_hw_status = wlan_mac_get_status();
- 		if((wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1) && ((mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE) == 0)) {
- 			//Rx PHY is idle, but we're still waiting for bytes - bad MAC/PHY status, ignore Rx and return
- 			wlan_mac_dcf_hw_rx_finish();
- 		  	wlan_mac_dcf_hw_unblock_rx_phy();
- 		  	return 0;
- 		}
-     }
-
+    // Update the rest of the frame_info fields using post-Rx information
+    frame_info->ant_mode = wlan_phy_rx_get_active_rx_ant();
+    frame_info->cfo_est	 = wlan_phy_rx_get_cfo_est();
+    frame_info->rf_gain  = wlan_phy_rx_get_agc_RFG(frame_info->ant_mode);
+    frame_info->bb_gain  = wlan_phy_rx_get_agc_BBG(frame_info->ant_mode);
+    frame_info->rx_power = wlan_mac_low_calculate_rx_power(wlan_phy_rx_get_pkt_rssi(frame_info->ant_mode), wlan_phy_rx_get_agc_RFG(frame_info->ant_mode));
 
     // Increment the LEDs based on the FCS status
-    if(frame_info->state == RX_MPDU_STATE_FCS_GOOD){
+    if(rx_result == RX_MPDU_STATE_FCS_GOOD){
         green_led_index = (green_led_index + 1) % NUM_LEDS;
         userio_write_leds_green(USERIO_BASEADDR, (1 << green_led_index));
     } else {
-        REG_SET_BITS(WLAN_RX_DEBUG_GPIO,0x01);
-
         red_led_index = (red_led_index + 1) % NUM_LEDS;
         userio_write_leds_red(USERIO_BASEADDR, (1 << red_led_index));
-
-        REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO,0x01);
-
     }
 
     // Unlock the pkt buf mutex before passing the packet up
-    //     If this fails, something has gone horribly wrong
-    //
     if (unlock_rx_pkt_buf(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) {
         xil_printf("Error: unable to unlock RX pkt_buf %d\n", rx_pkt_buf);
         wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_RX_MUTEX);
@@ -203,9 +188,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details){
         // Find a free packet buffer and begin receiving packets there (blocks until free buf is found)
         wlan_mac_low_lock_empty_rx_pkt_buf();
     }
-
-    // Unblock the PHY post-Rx (no harm calling this if the PHY isn't actually blocked)
-    wlan_mac_dcf_hw_unblock_rx_phy();
 
     return 0;
 }
@@ -233,6 +215,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
     // the MPDU that the WLAN MAC LOW framework wants to send.
 
     u32 mac_hw_status;
+    u32 mac_tx_ctrl_status;
     u8 tx_gain;
 
     tx_frame_info     * frame_info           = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
@@ -296,9 +279,10 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
 
         // Get the MAC HW status
         mac_hw_status = wlan_mac_get_status();
+        mac_tx_ctrl_status = wlan_mac_get_tx_ctrl_status();
 
         // If the MAC HW is done, fill in the remaining Tx low details and return
-        if (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_DONE) {
+        if (mac_tx_ctrl_status & WLAN_MAC_TXCTRL_STATUS_MASK_TX_A_DONE) {
             if (low_tx_details != NULL) {
                 low_tx_details[0].tx_start_timestamp_mpdu = wlan_mac_low_get_tx_start_timestamp();
                 low_tx_details[0].tx_start_timestamp_frac_mpdu = wlan_mac_low_get_tx_start_timestamp_frac();
@@ -306,8 +290,8 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
 
             // Set return value based on Tx A result
             //  This is easy for NoMAC - all transmissions are immediately successful
-            switch (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_RESULT) {
-                case WLAN_MAC_STATUS_TX_A_RESULT_NONE:
+            switch (mac_tx_ctrl_status & WLAN_MAC_TXCTRL_STATUS_MASK_TX_A_RESULT) {
+                case WLAN_MAC_TXCTRL_STATUS_TX_A_RESULT_NONE:
                 default:
                     return 0;
                 break;
@@ -315,7 +299,8 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
         }
     } while (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_PENDING);
 
-    // NoMAC Tx is always "successful"
+
+	// NoMAC Tx is always "successful"
     return TX_MPDU_RESULT_SUCCESS;
 }
 
