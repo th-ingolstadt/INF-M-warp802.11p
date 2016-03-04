@@ -317,6 +317,7 @@ typedef struct{
 
 
 // TODO:  Convert to pkt_buf_state_t
+// FIXME: these shouldn't be named "MPDU"
 #define RX_MPDU_STATE_EMPTY                                0
 #define RX_MPDU_STATE_RX_PENDING                           1
 #define RX_MPDU_STATE_FCS_GOOD                             2
