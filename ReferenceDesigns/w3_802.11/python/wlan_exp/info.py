@@ -89,7 +89,7 @@ info_field_defs = {
         ('num_basic_rates',             'B',      'uint8',   'Number of basic rates supported'),
         ('basic_rates',                 '10s',    '10uint8', 'Supported basic rates'),
         ('phy_mode',                    'B',      'uint8',   'PHY Mode (Legacy, HT)'),
-        ('padding1',                    'x',      'uint8',   '')],
+        ('rx_last_power',               'b',      'int8',    'Last observed Rx Power (dBm)')],
 
     'TXRX_COUNTS' : [
         ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of creation'),
