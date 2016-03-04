@@ -189,7 +189,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                     prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
                     // Deauthenticate all stations
-                    deauthenticate_stations();
+                    deauthenticate_all_stations();
 
                     // Re-enable interrupts
                     wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
@@ -454,7 +454,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                     ssid = (char *)&cmd_args_32[2];
 
                     // Deauthenticate all stations since we are changing the SSID
-                    deauthenticate_stations();
+                    deauthenticate_all_stations();
                     strcpy(my_bss_info->ssid, ssid);
                 break;
 

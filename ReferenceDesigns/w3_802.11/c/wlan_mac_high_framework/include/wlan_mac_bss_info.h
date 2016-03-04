@@ -125,6 +125,7 @@ dl_entry       * wlan_mac_high_find_bss_info_SSID(char* ssid);
 dl_entry       * wlan_mac_high_find_bss_info_BSSID(u8* bssid);
 
 bss_info       * wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan);
+void 			 wlan_mac_high_reset_network_list();
 void             wlan_mac_high_clear_bss_info(bss_info * info);
 
 inline dl_list * wlan_mac_high_get_bss_info_list();

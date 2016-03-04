@@ -61,7 +61,6 @@ extern u32                        mac_param_chan;
 
 extern wlan_exp_function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback;
 extern wlan_exp_function_ptr_t    wlan_exp_reset_all_associations_callback;
-extern wlan_exp_function_ptr_t    wlan_exp_reset_bss_info_callback;
 
 
 /*************************** Variable Definitions ****************************/

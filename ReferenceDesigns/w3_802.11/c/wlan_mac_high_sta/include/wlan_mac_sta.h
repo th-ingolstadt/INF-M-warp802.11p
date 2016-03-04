@@ -100,9 +100,7 @@ void send_probe_req();
 void poll_tx_queues();
 void purge_all_data_tx_queue();
 
-void reset_all_associations();
 void reset_station_counts();
-void reset_bss_info();
 dl_list * get_counts();
 
 int  sta_disassociate();

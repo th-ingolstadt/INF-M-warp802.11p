@@ -169,6 +169,9 @@ int main() {
 	// Initialize the utility library
     wlan_mac_high_init();
 
+    // IBSS is not currently a member of BSS
+    configure_bss(NULL);
+
 	// Initialize callbacks
 	wlan_mac_util_set_eth_rx_callback(       	(void*)ethernet_receive);
 	wlan_mac_high_set_mpdu_tx_done_callback( 	(void*)mpdu_transmit_done);
@@ -210,7 +213,6 @@ int main() {
     wlan_exp_set_process_node_cmd_callback(         (void *)wlan_exp_process_node_cmd);
     wlan_exp_set_reset_station_counts_callback(     (void *)reset_station_counts);
     wlan_exp_set_purge_all_data_tx_queue_callback(  (void *)purge_all_data_tx_queue);
-    wlan_exp_set_reset_bss_info_callback(           (void *)reset_bss_info);
     wlan_exp_set_tx_cmd_add_association_callback(   (void *)wlan_exp_ibss_tx_cmd_add_association);
     wlan_exp_set_process_user_cmd_callback(         (void *) wlan_exp_process_user_cmd);
 
@@ -1065,34 +1067,6 @@ void ltg_event(u32 id, void* callback_arg){
  */
 void reset_station_counts(){
 	wlan_mac_high_reset_counts(&counts_table);
-}
-
-/**
- * @brief Reset BSS Information
- *
- * Reset all BSS Info except for my_bss_info (if it exists)
- *
- * @param  None
- * @return None
- */
-void reset_bss_info(){
-	dl_list  * bss_info_list = wlan_mac_high_get_bss_info_list();
-	dl_entry * next_dl_entry = bss_info_list->first;
-	dl_entry * curr_dl_entry;
-    bss_info * curr_bss_info;
-    int		   iter = bss_info_list->length;
-
-	while( (next_dl_entry != NULL) && (iter-- > 0) ){
-		curr_dl_entry = next_dl_entry;
-		next_dl_entry = dl_entry_next(curr_dl_entry);
-		curr_bss_info = (bss_info *)(curr_dl_entry->data);
-
-		if(curr_bss_info != my_bss_info){
-			wlan_mac_high_clear_bss_info(curr_bss_info);
-			dl_entry_remove(bss_info_list, curr_dl_entry);
-			bss_info_checkin(curr_dl_entry);
-		}
-	}
 }
 
 u32	configure_bss(bss_config_t* bss_config){

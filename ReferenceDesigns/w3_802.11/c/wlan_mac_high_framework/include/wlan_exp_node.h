@@ -300,7 +300,6 @@ void wlan_exp_set_init_callback                       (void(*callback)());
 void wlan_exp_set_reset_station_counts_callback       (void(*callback)());
 void wlan_exp_set_purge_all_data_tx_queue_callback    (void(*callback)());
 void wlan_exp_set_reset_all_associations_callback     (void(*callback)());
-void wlan_exp_set_reset_bss_info_callback             (void(*callback)());
 void wlan_exp_set_tx_cmd_add_association_callback     (void(*callback)());
 void wlan_exp_set_process_user_cmd_callback           (void(*callback)());
 

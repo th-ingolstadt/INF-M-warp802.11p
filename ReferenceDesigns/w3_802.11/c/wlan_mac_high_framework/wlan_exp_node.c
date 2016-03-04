@@ -141,7 +141,6 @@ static wlan_exp_function_ptr_t    wlan_exp_process_node_cmd_callback         = (
 static wlan_exp_function_ptr_t    wlan_exp_reset_station_counts_callback     = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback  = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_reset_all_associations_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
-       wlan_exp_function_ptr_t    wlan_exp_reset_bss_info_callback           = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_tx_cmd_add_association_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_process_user_cmd_callback         = (wlan_exp_function_ptr_t) null_process_cmd_callback;
 
@@ -1558,7 +1557,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             if ((flags & CMD_PARAM_NODE_RESET_FLAG_BSS_INFO) == CMD_PARAM_NODE_RESET_FLAG_BSS_INFO) {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Resetting BSS info\n");
-                wlan_exp_reset_bss_info_callback();
+                wlan_mac_high_reset_network_list();
             }
 
             // Re-enable interrupts
@@ -3575,7 +3574,6 @@ void wlan_exp_reset_all_callbacks(){
     wlan_exp_reset_station_counts_callback     = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_purge_all_data_tx_queue_callback  = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_reset_all_associations_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
-    wlan_exp_reset_bss_info_callback           = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_tx_cmd_add_association_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_process_user_cmd_callback         = (wlan_exp_function_ptr_t) null_process_cmd_callback;
 }
@@ -3604,12 +3602,6 @@ void wlan_exp_set_purge_all_data_tx_queue_callback(void(*callback)()){
 void wlan_exp_set_reset_all_associations_callback(void(*callback)()){
     wlan_exp_reset_all_associations_callback = (wlan_exp_function_ptr_t) callback;
 }
-
-
-void wlan_exp_set_reset_bss_info_callback(void(*callback)()){
-    wlan_exp_reset_bss_info_callback = (wlan_exp_function_ptr_t) callback;
-}
-
 
 void wlan_exp_set_tx_cmd_add_association_callback(void(*callback)()){
     wlan_exp_tx_cmd_add_association_callback = (wlan_exp_function_ptr_t) callback;

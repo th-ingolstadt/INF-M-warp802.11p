@@ -111,12 +111,11 @@ void disable_associations();
 void association_timestamp_check();
 void association_timestamp_adjust(s64 timestamp_diff);
 
-void reset_all_associations();
 void reset_station_counts();
-void reset_bss_info();
 
 u32  deauthenticate_station( station_info* station );
-void deauthenticate_stations();
+void deauthenticate_all_stations();
+u32	configure_bss(bss_config_t* bss_config);
 void mpdu_dequeue(tx_queue_element* packet);
 
 dl_list * get_counts();

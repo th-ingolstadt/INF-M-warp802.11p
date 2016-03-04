@@ -112,7 +112,7 @@ void uart_rx(u8 rxByte){
                 break;
 
                 case ASCII_x:
-                    reset_bss_info();
+                	wlan_mac_high_reset_network_list();
                 break;
 
                 case ASCII_j:

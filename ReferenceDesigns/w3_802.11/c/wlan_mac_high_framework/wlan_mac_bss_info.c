@@ -466,7 +466,33 @@ bss_info* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan){
 	return curr_bss_info;
 }
 
+/**
+ * @brief Reset List of Networks
+ *
+ * Reset all BSS Info except ones flagged to be kept
+ *
+ * @param  None
+ * @return None
+ */
+void wlan_mac_high_reset_network_list(){
+	dl_list  * bss_info_list = wlan_mac_high_get_bss_info_list();
+	dl_entry * next_dl_entry = bss_info_list->first;
+	dl_entry * curr_dl_entry;
+    bss_info * curr_bss_info;
+    int		   iter = bss_info_list->length;
 
+	while( (next_dl_entry != NULL) && (iter-- > 0) ){
+		curr_dl_entry = next_dl_entry;
+		next_dl_entry = dl_entry_next(curr_dl_entry);
+		curr_bss_info = (bss_info *)(curr_dl_entry->data);
+
+		if( (curr_bss_info->flags & BSS_FLAGS_KEEP) == 0){
+			wlan_mac_high_clear_bss_info(curr_bss_info);
+			dl_entry_remove(bss_info_list, curr_dl_entry);
+			bss_info_checkin(curr_dl_entry);
+		}
+	}
+}
 
 void wlan_mac_high_clear_bss_info(bss_info * info){
 	int            iter;

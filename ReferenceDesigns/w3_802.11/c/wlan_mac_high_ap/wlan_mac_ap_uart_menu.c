@@ -110,7 +110,7 @@ void uart_rx(u8 rxByte){
 
 				case ASCII_c:
 					if(mac_param_chan > 1){
-						deauthenticate_stations();
+						deauthenticate_all_stations();
 						(mac_param_chan--);
 
 						if(my_bss_info != NULL){
@@ -128,7 +128,7 @@ void uart_rx(u8 rxByte){
 				break;
 				case ASCII_C:
 					if(mac_param_chan < 11){
-						deauthenticate_stations();
+						deauthenticate_all_stations();
 						(mac_param_chan++);
 
 						if(my_bss_info != NULL){
@@ -196,7 +196,7 @@ void uart_rx(u8 rxByte){
 				break;
 				case ASCII_s:
 					uart_mode = UART_MODE_SSID_CHANGE;
-					deauthenticate_stations();
+					deauthenticate_all_stations();
 					curr_char = 0;
 					print_ssid_menu();
 				break;
@@ -214,7 +214,7 @@ void uart_rx(u8 rxByte){
 				break;
 				case ASCII_d:
 					//Deauthenticate all stations
-					deauthenticate_stations();
+					deauthenticate_all_stations();
 				break;
 
 				case ASCII_b:
