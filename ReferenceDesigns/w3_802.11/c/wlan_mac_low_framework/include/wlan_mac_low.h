@@ -169,11 +169,11 @@ typedef struct{
 #define WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE                 0x00000080     // b[7]
 #define WLAN_MAC_STATUS_MASK_RX_PHY_STARTED                0x00000100     // b[8]
 #define WLAN_MAC_STATUS_MASK_RX_FCS_GOOD                   0x00000200     // b[9]
-#define WLAN_MAC_STATUS_MASK_RX_END_ERROR                  0x00003C00     // b[13:10]
-#define WLAN_MAC_STATUS_MASK_NAV_ADDR_MATCHED              0x00004000     // b[14]
-#define WLAN_MAC_STATUS_MASK_NAV_BUSY                      0x00008000     // b[15]
-#define WLAN_MAC_STATUS_MASK_CCA_BUSY                      0x00010000     // b[16]
-#define WLAN_MAC_STATUS_MASK_TU_LATCH                      0x00020000     // b[17]
+#define WLAN_MAC_STATUS_MASK_RX_END_ERROR                  0x00001C00     // b[12:10]
+#define WLAN_MAC_STATUS_MASK_NAV_ADDR_MATCHED              0x00002000     // b[13]
+#define WLAN_MAC_STATUS_MASK_NAV_BUSY                      0x00004000     // b[14]
+#define WLAN_MAC_STATUS_MASK_CCA_BUSY                      0x00008000     // b[15]
+#define WLAN_MAC_STATUS_MASK_TU_LATCH                      0x00010000     // b[16]
 
 #define wlan_mac_get_status() (Xil_In32(WLAN_MAC_REG_STATUS))
 
