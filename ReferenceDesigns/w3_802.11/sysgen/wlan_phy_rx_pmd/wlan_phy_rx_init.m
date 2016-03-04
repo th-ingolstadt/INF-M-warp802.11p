@@ -39,9 +39,10 @@ if(~exist('sim_many_waveform_mode','var'))
     %RX_END testing
     
     %Supported waveforms
-    load('rx_sigs/rxend_testing/wlan_tx_NONHT_MCS4_52B.mat'); wlan_tx_out = 1.0*wlan_tx_out.';     %good
-    %load('rx_sigs/rxend_testing/siggen_HTMF_MCS4_100B_BW20.mat'); wlan_tx_out = 0.2*sig;           %good
+    %load('rx_sigs/rxend_testing/wlan_tx_NONHT_MCS4_52B.mat'); wlan_tx_out = 1.0*wlan_tx_out.';     %good
+    load('rx_sigs/rxend_testing/siggen_HTMF_MCS4_100B_BW20.mat'); wlan_tx_out = 0.2*sig;           %good
     %load('rx_sigs/rxend_testing/siggen_HTMF_MCS5_100B_BW20.mat'); wlan_tx_out = 0.2*sig;           %good
+    wlan_tx_out = [wlan_tx_out zeros(1,100) wlan_tx_out zeros(1,100) wlan_tx_out];
 
     %Unsupported waveforms
     %load('rx_sigs/rxend_testing/siggen_HTMF_MCS11_100B_BW20_CDD200.mat'); wlan_tx_out = 0.2*sig(1,:); %good
@@ -62,9 +63,9 @@ if(~exist('sim_many_waveform_mode','var'))
     
     %Corrupt HTSIG
     %load('rx_sigs/rxend_testing/siggen_HTMF_MCS5_100B_BW20.mat'); wlan_tx_out = 0.2*sig;
-    %htsig_ind = (160+160+80) + (1:160);
-    %wlan_tx_out(htsig_ind) = [wlan_tx_out(htsig_ind(81:160)) wlan_tx_out(htsig_ind(1:80))];
-
+    htsig_ind = (160+160+80) + (1:160);
+    wlan_tx_out(htsig_ind) = [wlan_tx_out(htsig_ind(81:160)) wlan_tx_out(htsig_ind(1:80))];
+    %wlan_tx_out = [wlan_tx_out zeros(1,100) wlan_tx_out zeros(1,100) wlan_tx_out];
     
     %wlan_tx_out = [wlan_tx_out zeros(1,200) wlan_tx_out];
     %wlan_tx_out = wlan_tx_out .* exp(j*2*pi*-1e-4*(0:length(wlan_tx_out)-1));
