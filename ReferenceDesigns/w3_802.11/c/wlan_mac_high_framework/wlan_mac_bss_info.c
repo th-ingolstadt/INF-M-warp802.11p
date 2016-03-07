@@ -35,12 +35,14 @@
 
 /*************************** Variable Definitions ****************************/
 
-static dl_list               bss_info_free;                ///< Free BSS info
+static dl_list               bss_info_free;                			///< Free BSS info
 
 /// The bss_info_list is stored chronologically from .first being oldest
 /// and .last being newest. The "find" function search from last to first
 /// to minimize search time for new BSSes you hear from often.
-static dl_list               bss_info_list;                ///< Filled BSS info
+static dl_list               bss_info_list;               	 		///< Filled BSS info
+
+static dl_list               bss_info_matching_ssid_list;           ///< Filled BSS info that match the SSID provided to wlan_mac_high_find_bss_info_SSID
 
 
 /*************************** Functions Prototypes ****************************/
@@ -58,6 +60,7 @@ void bss_info_init(u8 dram_present){
 
 	dl_list_init(&bss_info_free);
 	dl_list_init(&bss_info_list);
+	dl_list_init(&bss_info_matching_ssid_list);
 
 	if(dram_present){
 		// Clear the memory in the dram used for bss_infos
@@ -305,8 +308,7 @@ void bss_info_timestamp_check() {
 		curr_bss_info = (bss_info*)(curr_dl_entry->data);
 
 		if((get_system_time_usec() - curr_bss_info->latest_activity_timestamp) > BSS_INFO_TIMEOUT_USEC){
-			// We won't remove this BSS info if we are associated with it or if we are trying to associate with it.
-			if(curr_bss_info->state == BSS_STATE_UNAUTHENTICATED){
+			if((curr_bss_info->flags & BSS_FLAGS_KEEP) == 0){
 				wlan_mac_high_clear_bss_info(curr_bss_info);
 				dl_entry_remove(&bss_info_list, curr_dl_entry);
 				bss_info_checkin(curr_dl_entry);
@@ -346,30 +348,45 @@ void bss_info_checkin(dl_entry* bsi){
 }
 
 
-dl_entry* wlan_mac_high_find_bss_info_SSID(char* ssid){
-	//TODO: SSIDs are not guaranteed to be unique. This function should be refactored
-	//to return a dl_list of multiple bss_info, all of which have the matching SSID string.
-	//This isn't critical, because in that scenario a user would probably not use this function.
-	//Instead, through WLAN_EXP, they would pull *all* the bss_info structs and do the search
-	//themselves prior to an explicit low-level join.
+dl_list* wlan_mac_high_find_bss_info_SSID(char* ssid){
+	//This function will return a pointer to a dl_list that contains every
+	//bss_info struct that matches the SSID argument.
 
     int       iter;
-	dl_entry* curr_dl_entry;
+	dl_entry* curr_dl_entry_primary_list;
+	dl_entry* curr_dl_entry_match_list;
 	bss_info* curr_bss_info;
 
-	iter          = bss_info_list.length;
-	curr_dl_entry = bss_info_list.last;
+	// Remove/free any members of bss_info_matching_ssid_list that exist since the last time
+	// this function was called
 
-	while ((curr_dl_entry != NULL) && (iter-- > 0)) {
-		curr_bss_info = (bss_info*)(curr_dl_entry->data);
+	iter          = bss_info_matching_ssid_list.length;
+	curr_dl_entry_match_list = bss_info_matching_ssid_list.last;
+	while ((curr_dl_entry_match_list != NULL) && (iter-- > 0)) {
+		curr_dl_entry_match_list = dl_entry_prev(curr_dl_entry_match_list);
+		wlan_mac_high_free(curr_dl_entry_match_list);
+	}
+
+	// At this point in the code, bss_info_matching_ssid_list is guaranteed to be empty.
+	// We will fill it with new dl_entry that point to existing bss_info structs that
+	// match the SSID argument to this function. Note: these bss_info structs will continue
+	// to be pointed to by the dl_entry
+
+	iter          = bss_info_list.length;
+	curr_dl_entry_primary_list = bss_info_list.last;
+	while ((curr_dl_entry_primary_list != NULL) && (iter-- > 0)) {
+		curr_bss_info = (bss_info*)(curr_dl_entry_primary_list->data);
 
 		if (strcmp(ssid,curr_bss_info->ssid) == 0) {
-			return curr_dl_entry;
+			curr_dl_entry_match_list = wlan_mac_high_malloc(sizeof(dl_entry));
+			curr_dl_entry_match_list->data = (void*)(curr_bss_info);
+			dl_entry_insertEnd(&bss_info_matching_ssid_list, curr_dl_entry_match_list);
 		}
 
-		curr_dl_entry = dl_entry_prev(curr_dl_entry);
+		curr_dl_entry_primary_list = dl_entry_prev(curr_dl_entry_primary_list);
 	}
-	return NULL;
+
+	return &bss_info_matching_ssid_list;
 }
 
 

@@ -168,6 +168,7 @@ void wlan_mac_sta_join(){
 //Low-Level functions
 
 void wlan_mac_sta_bss_search_poll(u32 schedule_id){
+	dl_list* ssid_match_list = NULL;
 	dl_entry* curr_dl_entry = NULL;
 
 	switch(join_state){
@@ -175,8 +176,9 @@ void wlan_mac_sta_bss_search_poll(u32 schedule_id){
 			xil_printf("JOIN FSM Error: Searching/Idle mismatch\n");
 		break;
 		case SEARCHING:
-			curr_dl_entry = wlan_mac_high_find_bss_info_SSID(gl_join_parameters.ssid);
-			if(curr_dl_entry != NULL){
+			ssid_match_list = wlan_mac_high_find_bss_info_SSID(gl_join_parameters.ssid);
+			if(ssid_match_list->length > 0){
+				curr_dl_entry = ssid_match_list->first;
 				wlan_mac_sta_return_to_idle();
 				attempt_bss_info = (bss_info*)(curr_dl_entry->data);
 				join_state = ATTEMPTING;

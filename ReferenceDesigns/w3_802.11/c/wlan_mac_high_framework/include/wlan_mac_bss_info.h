@@ -24,7 +24,11 @@
 #define NUM_BASIC_RATES_MAX                      10
 #define BSSID_LEN                                6
 
-
+typedef enum {
+	NEVER_ATTEMPTED = 0,
+	NO_RESPONSE		= 1,
+	REJECTED		= 2
+} last_join_attempt_result_t;
 
 // Define common BSS info fields
 //   Note: These fields have been 32 bit aligned using padding bytes
@@ -53,7 +57,8 @@
  */
 typedef struct{
 	MY_BSS_INFO_COMMON_FIELDS
-
+	last_join_attempt_result_t		last_join_attempt_result;
+	u64								last_join_attempt_timestamp;
 	dl_list associated_stations;
 } bss_info;
 
@@ -121,7 +126,7 @@ inline void      bss_info_rx_process(void* pkt_buf_addr);
 void             print_bss_info();
 void             bss_info_timestamp_check();
 
-dl_entry       * wlan_mac_high_find_bss_info_SSID(char* ssid);
+dl_list	       * wlan_mac_high_find_bss_info_SSID(char* ssid);
 dl_entry       * wlan_mac_high_find_bss_info_BSSID(u8* bssid);
 
 bss_info       * wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan);
