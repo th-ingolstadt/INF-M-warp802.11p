@@ -357,6 +357,8 @@ inline u32 wlan_mac_low_poll_frame_rx(){
     volatile u32 mac_hw_status;
     volatile u32 phy_hdr_params;
 
+    int i = 0;
+
     u32 return_status = 0;
 
     // Read the MAC/PHY status
@@ -387,31 +389,53 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 			//  2) Read PHY header register second
 			//  3) Check for complete PHY header - continue if complete
 			//  4) Else check for early PHY reset - quit if reset
-			do {
+
+        	while (1) {
 				mac_hw_status = wlan_mac_get_status();
 				phy_hdr_params = wlan_mac_get_rx_phy_hdr_params();
-			} while(
-				((phy_hdr_params & WLAN_MAC_PHY_RX_PHY_HDR_READY) == 0) ||  //PHY header ready - break and evaluate
-				((mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE))      //PHY reset externally - unlikely; best option is to return quietly
-			);
+
+				if(i++ > 1000000) {xil_printf("Stuck in OFDM Rx PHY hdr check: 0x%08x 0x%08x\n", mac_hw_status, phy_hdr_params);}
+
+				if(phy_hdr_params & WLAN_MAC_PHY_RX_PHY_HDR_READY) {
+					// Rx PHY received enough bytes to decode PHY header
+					//  Exit loop and check PHY header params
+					break;
+				}
+				if((mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE) == 0) {
+					// Rx PHY went idle before asserting RX_PHY_HDR_READY
+					//  This only happens if the PHY is reset externally, possible if MAC starts a Tx during Rx
+					//  Only option is to reset RX_STARTED and wait for next Rx
+
+					// There is a 1-cycle race in this case, where RX_END asserts 1 cycle before RX_PHY_HDR_READY in the
+					//  case of an invalid HT-SIG, because the invalid HT-SIG generates an RX_END_ERROR which causes
+					//  RX_END to assert. The simple workaround below is to re-read phy_hdr_params before deciding whether
+					//  to proceed with processing the received waveform.
+					break;
+				}
+			}
+
+        	//  Re-read phy_hdr_params to resolve 1-cycle ambiguity in case of HT-SIG error
+			phy_hdr_params = wlan_mac_get_rx_phy_hdr_params();
 
 			// Decide how to handle this waveform
-            if(phy_hdr_params & WLAN_MAC_PHY_RX_PHY_HDR_READY) {
-                // Received valid PHY header - decide whether to call MAC callback
+			if(phy_hdr_params & WLAN_MAC_PHY_RX_PHY_HDR_READY) {
+                // Received PHY header - decide whether to call MAC callback
                 if(phy_hdr_params & WLAN_MAC_PHY_RX_PHY_HDR_MASK_UNSUPPORTED) {
                     // Valid HT-SIG but unsupported waveform
                     //  Rx PHY will hold ACTIVE until last samp but will not write payload
-        			//xil_printf("Quitting - WLAN_MAC_PHY_RX_PHY_HDR_MASK_UNSUPPORTED");
+                	//  HT-SIG fields (MCS, length) can be safely read here if desired
+        			//xil_printf("Quitting - WLAN_MAC_PHY_RX_PHY_HDR_MASK_UNSUPPORTED (MCS = %d, Length = %d)", wlan_mac_get_rx_phy_mcs(), wlan_mac_get_rx_phy_length());
 
                 } else if(phy_hdr_params & WLAN_MAC_PHY_RX_PHY_HDR_MASK_RX_ERROR) {
                     // Invalid HT-SIG (CRC error, invalid RESERVED or TAIL bits, invalid LENGTH, etc)
                     //  Rx PHY has already released ACTIVE and will not write payload
+                	//  HT-SIG fields (MCS, length) should not be trusted in this case
         			//xil_printf("Quitting - WLAN_MAC_PHY_RX_PHY_HDR_MASK_RX_ERROR");
 
                 } else {
-                    //NONHT waveform or HTMF waveform with supported HT-SIG
-                    // Call lower MAC Rx callback
-                    // Callback can return anytime (before or after RX_END)
+                    // NONHT waveform or HTMF waveform with supported HT-SIG - PHY will write payload
+                    //  Call lower MAC Rx callback
+                    //  Callback can safely return anytime (before or after RX_END)
 
                     phy_details.phy_mode = wlan_mac_get_rx_phy_mode();
                     phy_details.length   = wlan_mac_get_rx_phy_length();
@@ -430,8 +454,8 @@ inline u32 wlan_mac_low_poll_frame_rx(){
         } //END if(OFDM Rx)
 
     	// Clear the MAC status register RX_STARTED bit
-    	//  By this point the framework and MAC are done with the current waveform, however it was handled,
-    	//   so the RX_STARTED bit is cleared in every case. It is important to only call clear_rx_started() after
+    	//  By this point the framework and MAC are done with the current waveform, however it was handled.
+    	//   The RX_STARTED bit is cleared in every case. It is important to only call clear_rx_started() after
         //   the RX_STARTED latch has asserted. Calling it any other time creates a race that can miss Rx events
     	wlan_mac_hw_clear_rx_started();
 
@@ -1313,10 +1337,12 @@ void wlan_mac_dcf_hw_unblock_rx_phy() {
  */
 inline u32 wlan_mac_hw_rx_finish() {
     u32 mac_hw_status;
+    int i = 0;
 
     // Wait for the packet to finish
     do{
         mac_hw_status = wlan_mac_get_status();
+        if(i++>1000000) {xil_printf("Stuck in wlan_mac_hw_rx_finish! 0x%08x\n", mac_hw_status);}
     } while(mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE);
 
     // Check RX_END_ERROR and FCS
