@@ -700,8 +700,8 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 							curr_bss_info = (bss_info*)(bss_info_entry->data);
 							if(curr_bss_info->state == BSS_STATE_AUTHENTICATED){
 								curr_bss_info->state = BSS_STATE_ASSOCIATED;
+								curr_bss_info->last_join_attempt_result = SUCCESSFUL;
 								wlan_mac_sta_bss_attempt_poll((((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000);
-								curr_bss_info->last_join_attempt_result = DENIED;
 							}
 						}
 					} else {
@@ -1018,6 +1018,7 @@ u32	configure_bss(bss_config_t* bss_config){
 	interrupt_state_t   curr_interrupt_state;
 	station_info* 		curr_station_info;
 	dl_entry* 			curr_station_info_entry;
+	station_info*       associated_station = NULL;
 
 	//---------------------------------------------------------
 	// 1. Check for any invalid inputs or combination of inputs
@@ -1115,6 +1116,12 @@ u32	configure_bss(bss_config_t* bss_config){
 					local_bss_info->flags |= BSS_FLAGS_KEEP;
 					local_bss_info->capabilities = (CAPABILITIES_SHORT_TIMESLOT | CAPABILITIES_IBSS);
 					my_bss_info = local_bss_info;
+					associated_station = wlan_mac_high_add_association(&(my_bss_info->associated_stations), &counts_table, my_bss_info->bssid, 0);
+
+					if ( associated_station != NULL ) {
+						// Log association change
+						add_station_info_to_log(associated_station, STATION_INFO_ENTRY_NO_CHANGE, WLAN_EXP_STREAM_ASSOC_CHANGE);
+					}
 				}
 			}
 		}

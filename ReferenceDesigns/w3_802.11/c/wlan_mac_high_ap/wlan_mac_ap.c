@@ -282,7 +282,11 @@ int main(){
 	memcpy(bss_config.bssid, wlan_mac_addr, 6);
 	strcpy(bss_config.ssid, default_AP_SSID);
 	bss_config.chan = WLAN_DEFAULT_CHANNEL;
-	bss_config.ht_capable = 1;
+	if(WLAN_DEFAULT_TX_PHY_MODE == PHY_MODE_HTMF){
+		bss_config.ht_capable = 1;
+	} else {
+		bss_config.ht_capable = 0;
+	}
 	bss_config.beacon_interval = WLAN_DEFAULT_BEACON_INTERVAL_TU;
 	bss_config.update_mask = (BSS_FIELD_MASK_BSSID  		 |
 							  BSS_FIELD_MASK_CHAN   		 |
@@ -2128,6 +2132,13 @@ u32	configure_bss(bss_config_t* bss_config){
 				// 1) Update Beacon Template Capabilities
 				// 2) Update existing MCS selections for defaults and
 				//	  associated stations?
+
+				if(bss_config->ht_capable){
+					my_bss_info->phy_mode = PHY_MODE_HTMF;
+				} else {
+					my_bss_info->phy_mode = PHY_MODE_NONHT;
+				}
+				update_beacon_template = 1;
 			}
 			if( update_beacon_template ){
 				//We need to update the beacon template. In the event that CPU_LOW currently has it locked,
