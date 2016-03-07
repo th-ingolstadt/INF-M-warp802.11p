@@ -176,13 +176,15 @@ void wlan_mac_sta_bss_search_poll(u32 schedule_id){
 			xil_printf("JOIN FSM Error: Searching/Idle mismatch\n");
 		break;
 		case SEARCHING:
-			ssid_match_list = wlan_mac_high_find_bss_info_SSID(gl_join_parameters.ssid);
-			if(ssid_match_list->length > 0){
-				curr_dl_entry = ssid_match_list->first;
-				wlan_mac_sta_return_to_idle();
-				attempt_bss_info = (bss_info*)(curr_dl_entry->data);
-				join_state = ATTEMPTING;
-				wlan_mac_sta_join_l();
+			if(wlan_mac_scan_get_num_scans() > 1){
+				ssid_match_list = wlan_mac_high_find_bss_info_SSID(gl_join_parameters.ssid);
+				if(ssid_match_list->length > 0){
+					curr_dl_entry = ssid_match_list->first;
+					wlan_mac_sta_return_to_idle();
+					attempt_bss_info = (bss_info*)(curr_dl_entry->data);
+					join_state = ATTEMPTING;
+					wlan_mac_sta_join_l();
+				}
 			}
 		break;
 		case ATTEMPTING:
@@ -250,6 +252,13 @@ void wlan_mac_sta_bss_attempt_poll(u32 arg){
 			xil_printf("JOIN FSM Error: Attempting/Searching mismatch\n");
 		break;
 		case ATTEMPTING:
+
+			if(attempt_bss_info->last_join_attempt_result == DENIED){
+				wlan_mac_sta_return_to_idle();
+				//TODO: call join() again to move on to the next matching SSID
+				return;
+			}
+
 			switch(attempt_bss_info->state){
 				case BSS_STATE_UNAUTHENTICATED:
 					wlan_mac_sta_scan_auth_transmit();

@@ -27,7 +27,8 @@
 typedef enum {
 	NEVER_ATTEMPTED = 0,
 	NO_RESPONSE		= 1,
-	REJECTED		= 2
+	DENIED			= 2,
+	SUCCESSFUL		= 3
 } last_join_attempt_result_t;
 
 // Define common BSS info fields

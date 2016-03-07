@@ -701,9 +701,15 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 							if(curr_bss_info->state == BSS_STATE_AUTHENTICATED){
 								curr_bss_info->state = BSS_STATE_ASSOCIATED;
 								wlan_mac_sta_bss_attempt_poll((((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000);
+								curr_bss_info->last_join_attempt_result = DENIED;
 							}
 						}
 					} else {
+						bss_info_entry = wlan_mac_high_find_bss_info_BSSID(rx_80211_header->address_3);
+						if(bss_info_entry != NULL){
+							curr_bss_info = (bss_info*)(bss_info_entry->data);
+							curr_bss_info->last_join_attempt_result = DENIED;
+						}
 						xil_printf("Association failed, reason code %d\n", ((association_response_frame*)mpdu_ptr_u8)->status_code);
 					}
 
@@ -745,6 +751,11 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 							break;
 
 							default:
+								bss_info_entry = wlan_mac_high_find_bss_info_BSSID(rx_80211_header->address_3);
+								if(bss_info_entry != NULL){
+									curr_bss_info = (bss_info*)(bss_info_entry->data);
+									curr_bss_info->last_join_attempt_result = DENIED;
+								}
 								xil_printf("Authentication failed.  AP uses authentication algorithm %d which is not support by the 802.11 reference design.\n", ((authentication_frame*)mpdu_ptr_u8)->auth_algorithm);
 							break;
 						}

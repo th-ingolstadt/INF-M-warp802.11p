@@ -91,6 +91,7 @@ static   s8                  curr_scan_chan_idx;
 static   u32                 scan_sched_id;
 static   u32                 probe_sched_id;
 static   scan_state_t        scan_state;
+static	 int				 num_full_scans;
 
 
 // Callback Function
@@ -182,6 +183,10 @@ void wlan_mac_scan_start(){
     // Only start a scan if state machine is IDLE
     if (scan_state == IDLE) {
 
+    	// Initialize a variable that tracks how many times the scanner
+    	// as looped around the channel list.
+    	num_full_scans = -1;
+
         // Save current channel
         //     - This is the channel that will be restored when scan is stopped
         channel_save = wlan_mac_high_get_channel();
@@ -225,6 +230,9 @@ void wlan_mac_scan_stop() {
             wlan_mac_remove_schedule(SCHEDULE_FINE, probe_sched_id);
             probe_sched_id = SCHEDULE_ID_RESERVED_MAX;
         }
+
+        // Reset the number of full scans to an invalid number
+        num_full_scans = -1;
 
         // Restore interrupt state
         wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
@@ -343,6 +351,11 @@ void wlan_mac_scan_state_transition(){
     curr_scan_chan_idx = (curr_scan_chan_idx + 1) % (gl_scan_parameters.channel_vec_len);
     wlan_mac_high_set_channel(gl_scan_parameters.channel_vec[(u8)curr_scan_chan_idx]);
 
+    // Update the number of full scan loops variable
+    if(curr_scan_chan_idx == 0){
+    	num_full_scans++;
+    }
+
     // Send a probe request
     //     - A probe interval of 0 results in a passive scan
     if (gl_scan_parameters.probe_tx_interval_usec > 0) {
@@ -362,4 +375,8 @@ void wlan_mac_scan_state_transition(){
     if (scan_sched_id == SCHEDULE_ID_RESERVED_MAX) {
         scan_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, gl_scan_parameters.time_per_channel_usec, SCHEDULE_REPEAT_FOREVER, (void*)wlan_mac_scan_state_transition);
     }
+}
+
+int wlan_mac_scan_get_num_scans(){
+	return num_full_scans;
 }

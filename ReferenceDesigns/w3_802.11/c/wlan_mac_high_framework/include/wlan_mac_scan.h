@@ -55,6 +55,7 @@ void wlan_mac_scan_pause();
 void wlan_mac_scan_resume();
 
 u32  wlan_mac_scan_is_scanning();
+int  wlan_mac_scan_get_num_scans();
 
 
 #endif
