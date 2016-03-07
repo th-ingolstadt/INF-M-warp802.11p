@@ -62,9 +62,13 @@ if(~exist('sim_many_waveform_mode','var'))
     %wlan_tx_out = x_ds;
     
     %Corrupt HTSIG
-    %load('rx_sigs/rxend_testing/siggen_HTMF_MCS5_100B_BW20.mat'); wlan_tx_out = 0.2*sig;
     htsig_ind = (160+160+80) + (1:160);
     wlan_tx_out(htsig_ind) = [wlan_tx_out(htsig_ind(81:160)) wlan_tx_out(htsig_ind(1:80))];
+    wlan_tx_out = [wlan_tx_out zeros(1,100) wlan_tx_out zeros(1,100) wlan_tx_out];
+
+    %Corrupt SIGNAL
+    %sig_ind = (160+160) + (1:80);
+    %wlan_tx_out(sig_ind) = randn(1,80);
     %wlan_tx_out = [wlan_tx_out zeros(1,100) wlan_tx_out zeros(1,100) wlan_tx_out];
     
     %wlan_tx_out = [wlan_tx_out zeros(1,200) wlan_tx_out];
@@ -263,7 +267,7 @@ REG_RX_Config = ...
     2^15 * 0 + ... %Manual ant sel when sel div disabled (2-bits, 00=RFA)
     2^17 * 2 + ... %Max SIGNAL.LENGTH value, in kB (UFix4_0)
     2^21 * 0 + ... %Require auto-corr and RSSI pkt det
-    2^22 * 0 + ... %Rate-Length Busy holds pkt det high
+    2^22 * 1 + ... %Rate-Length Busy holds pkt det high %%WAS 0 HERE BUT 1 IN HW!
     2^23 * 1 + ... %DSSS asserts CCA busy
     2^24 * 1 + ... %Enable 11n Rx support
     0;
