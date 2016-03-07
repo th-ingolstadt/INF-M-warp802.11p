@@ -406,10 +406,10 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 					//  This only happens if the PHY is reset externally, possible if MAC starts a Tx during Rx
 					//  Only option is to reset RX_STARTED and wait for next Rx
 
-					// There is a 1-cycle race in this case, where RX_END asserts 1 cycle before RX_PHY_HDR_READY in the
-					//  case of an invalid HT-SIG, because the invalid HT-SIG generates an RX_END_ERROR which causes
-					//  RX_END to assert. The simple workaround below is to re-read phy_hdr_params before deciding whether
-					//  to proceed with processing the received waveform.
+					// There is a 1-cycle race in this case, because RX_END asserts 1 cycle before RX_PHY_HDR_READY in the
+					//  case of an invalid HT-SIG. The invalid HT-SIG generates an RX_END_ERROR which causes
+					//  RX_END to assert. The simple workaround used below is to re-read phy_hdr_params one last time
+					//  before concluding that the Rx PHY was reset unexpectedly
 					break;
 				}
 			}
@@ -447,8 +447,13 @@ inline u32 wlan_mac_low_poll_frame_rx(){
                 }
             } else {
             	// PHY went idle before PHY_HDR_DONE, probably due to external reset
-            	//  Do nothing and return
-            	xil_printf("ERROR (poll_frame_rx): PHY Reset before PHY_HDR_DONE!\n");
+            	//  The Rx PHY can be reset from software (only used in wlan_phy_init()) or hardware.
+            	//  The hardware reset is asserted by the MAC core during Tx. Asserting Tx during Rx is
+            	//  impossible with the normal DCF code, as packet det is treated as a busy medium. With a
+            	//  custom MAC implementation that allows Tx during Rx this code block will catch the
+            	//  unexpected reset events.
+
+            	// PHY header cannot be trusted in this case - do nothing and return
 
             }//END if(PHY_HDR_DONE)
         } //END if(OFDM Rx)
