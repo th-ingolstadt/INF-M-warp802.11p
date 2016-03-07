@@ -269,6 +269,7 @@ void wlan_phy_init() {
     REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_RECORD_CHAN_EST);
 
     REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_BUSY_HOLD_PKT_DET);
+//    REG_CLEAR_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_BUSY_HOLD_PKT_DET);
 
     // Block Rx inputs during Tx
     REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_USE_TX_SIG_BLOCK);
@@ -784,6 +785,7 @@ void wlan_rx_config_ant_mode(u32 ant_mode) {
 void write_phy_preamble(u8 pkt_buf, u8 phy_mode, u8 mcs, u16 length) {
 
 	u8* htsig_ptr;
+	u16 lsig_length;
 
 	// RATE field values for SIGNAL/L-SIG in PHY preamble (IEEE 802.11-2012 18.3.4.2)
 	//  RATE field in SIGNAL/L-SIG is one of 8 4-bit values indicating modulation scheme and coding rate
@@ -806,8 +808,18 @@ void write_phy_preamble(u8 pkt_buf, u8 phy_mode, u8 mcs, u16 length) {
 		//Zero-out any stale header, also properly sets SERVICE, reserved bytes, and auto-filled bytes of HT-SIG to 0
 		bzero((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), PHY_TX_PKT_BUF_PHY_HDR_SIZE);
 
-		//FIXME: calculate appropriate length for 6Mbps Tx duration matching actual 11n Tx duration
-	    Xil_Out32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), WLAN_TX_SIGNAL_CALC(sig_rate_vals[0], 100));
+	    // L-SIG is same format as 11a SIGNAL, but with RATE always 6Mb and LENGTH
+	    //  set such that LENGTH/6Mb matches duration of HT transmission
+	    //  Using equation from IEEE 802.11-2012 9.23.4
+	    //   L-SIG.LENGTH = (3*ceil( (TXTIME - 6 - 20) / 4) - 3)
+	    //  where TXTIME is actual duration of the HT transmission
+		//   The ceil((TXTIME - 6 - 20)/4) term represents the number of OFDM symbols after the L-SIG symbol
+		//  (-6-20) are (T_EXT-T_NONHT_PREAMBLE); (-3) accounts for service/tail
+
+		// Calc (3*(num_payload_syms+num_ht_preamble_syms) = (3*(num_payload_syms+4))
+		lsig_length = 3*wlan_ofdm_calc_num_payload_syms(length, mcs, phy_mode) + 12;
+
+		Xil_Out32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), WLAN_TX_SIGNAL_CALC(sig_rate_vals[0], lsig_length));
 
 		//Assign pointer to first byte of HTSIG (PHY header base + 3 for sizeof(L-SIG))
 	    htsig_ptr = (u8*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET + 3);
@@ -861,18 +873,17 @@ inline void wlan_tx_start() {
  *     and another that uses division macros to speed up execution.
  *
  *****************************************************************************/
-inline u16 wlan_ofdm_txtime(u16 length, u16 n_DBPS, phy_samp_rate_t phy_samp_rate){
+inline u16 wlan_ofdm_calc_txtime(u16 length, u8 mcs, u8 phy_mode, phy_samp_rate_t phy_samp_rate){
 
-    #define T_SIG_EXT                                      6
-    #define WLAN_OFDM_TXTIME_FAST                          0
+    #define T_SIG_EXT             6
+    #define WLAN_OFDM_TXTIME_FAST 0
 
-    u16 txTime;
-    u16 n_sym, n_b;
+    u16 num_ht_preamble_syms, num_payload_syms;
 
-    u32 t_preamble;
-    u32 t_sig;
-    u32 t_sym;
-    u32 t_ext;
+    u16 t_preamble;
+    u16 t_sig;
+    u16 t_sym;
+    u16 t_ext;
 
     switch(phy_samp_rate){
         case PHY_40M:
@@ -898,61 +909,44 @@ inline u16 wlan_ofdm_txtime(u16 length, u16 n_DBPS, phy_samp_rate_t phy_samp_rat
         break;
     }
 
-    // Calculate num bits:
-    //     16        : SERVICE field
-    //     8 * length: actual MAC payload
-    //     6         : TAIL bits (zeros, required in all pkts to terminate FEC)
-    n_b = (16 + (8 * length) + 6);
-
-#if WLAN_OFDM_TXTIME_FAST
-    // Calculate num OFDM syms
-    //     This integer divide is effectively floor(n_b / n_DBPS)
-    //
-    // NOTE:  The following code is a faster implementation of:  n_sym = n_b / n_DBPS;
-    //     that uses macros.  To enable, change the define at the top of this function.
-    //
-    switch(n_DBPS){
-        default:
-        case N_DBPS_R6:
-            n_sym = U16DIVBY24(n_b);
-        break;
-        case N_DBPS_R9:
-            n_sym = U16DIVBY36(n_b);
-        break;
-        case N_DBPS_R12:
-            n_sym = U16DIVBY48(n_b);
-        break;
-        case N_DBPS_R18:
-            n_sym = U16DIVBY72(n_b);
-        break;
-        case N_DBPS_R24:
-            n_sym = U16DIVBY96(n_b);
-        break;
-        case N_DBPS_R36:
-            n_sym = U16DIVBY144(n_b);
-        break;
-        case N_DBPS_R48:
-            n_sym = U16DIVBY192(n_b);
-        break;
-        case N_DBPS_R54:
-            n_sym = U16DIVBY216(n_b);
-        break;
+    // Only HTMF waveforms have HT-SIG, HT-STF and HT-LTF symbols
+    if(phy_mode == PHY_MODE_HTMF) {
+    	num_ht_preamble_syms = 4;
+    } else {
+    	num_ht_preamble_syms = 0;
     }
-#else
-    // Calculate num OFDM syms
-    //     This integer divide is effectively floor(n_b / n_DBPS)
-    n_sym = n_b / n_DBPS;
-#endif
 
-    // If actual n_sym was non-integer, round up
-    //     This is effectively ceil(n_b / n_DBPS)
-    if ((n_sym * n_DBPS) < n_b) n_sym++;
+    num_payload_syms = wlan_ofdm_calc_num_payload_syms(length, mcs, phy_mode);
 
-    txTime = t_preamble + t_sig + t_sym * n_sym + t_ext;
+    // Sum each duration and return
+    return (t_preamble + t_sig + (t_sym * (num_ht_preamble_syms + num_payload_syms)) + t_ext);
 
-    return txTime;
 }
 
+
+inline u16 wlan_ofdm_calc_num_payload_syms(u16 length, u8 mcs, u8 phy_mode) {
+	u16 num_payload_syms;
+	u32 num_payload_bits;
+	u16 n_dbps;
+
+    // Payload consists of:
+    //  16-bit SERVICE field
+    //  'length' byte MAC payload
+    //  6-bit TAIL field
+    num_payload_bits = 16 + (8 * length) + 6;
+
+    // Num payload syms is ceil(num_payload_bits / N_DATA_BITS_PER_SYM)
+    n_dbps = wlan_mac_low_mcs_to_n_dbps(mcs, phy_mode);
+    num_payload_syms = num_payload_bits / n_dbps;
+
+    // Apply ceil()
+     //  Integer div above implies floor(); increment result if floor() changed result
+     if( (n_dbps * num_payload_syms) != num_payload_bits ) {
+     	num_payload_syms++;
+     }
+
+     return num_payload_syms;
+}
 
 /*****************************************************************************/
 /**

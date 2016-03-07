@@ -88,7 +88,8 @@ volatile static u64	         unique_seq;
 static wlan_mac_low_tx_details_t  low_tx_details[50]; //TODO make a #define
 
 // Constant LUTs for MCS
-const static u8 mcs_to_n_dbps_lut[WLAN_MAC_NUM_MCS] = {N_DBPS_R6, N_DBPS_R9, N_DBPS_R12, N_DBPS_R18, N_DBPS_R24, N_DBPS_R36, N_DBPS_R48, N_DBPS_R54};
+const static u16 mcs_to_n_dbps_nonht_lut[WLAN_MAC_NUM_MCS] = {24, 36, 48, 72, 96, 144, 192, 216};
+const static u16 mcs_to_n_dbps_htmf_lut[WLAN_MAC_NUM_MCS] = {26, 52, 78, 104, 156, 208, 234, 260};
 
 /******************************** Functions **********************************/
 
@@ -440,7 +441,7 @@ inline u32 wlan_mac_low_poll_frame_rx(){
                     phy_details.phy_mode = wlan_mac_get_rx_phy_mode();
                     phy_details.length   = wlan_mac_get_rx_phy_length();
                     phy_details.mcs      = wlan_mac_get_rx_phy_mcs();
-                    phy_details.N_DBPS   = wlan_mac_low_mcs_to_n_dbps(phy_details.mcs);
+                    phy_details.N_DBPS   = wlan_mac_low_mcs_to_n_dbps(phy_details.mcs, phy_details.phy_mode);
 
                 	return_status |= POLL_MAC_STATUS_RECEIVED_PKT;
                 	return_status |= frame_rx_callback(rx_pkt_buf, &phy_details);
@@ -800,7 +801,8 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
     u32                      status;
     tx_frame_info          * tx_mpdu;
     mac_header_80211       * tx_80211_header;
-    u16                      ACK_N_DBPS;
+    u8						 ack_mcs;
+    u8					     ack_phy_mode;
     u32                      is_locked, owner;
     u32                      low_tx_details_size;
     wlan_ipc_msg_t           ipc_msg_to_high;
@@ -825,7 +827,8 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 		// ACK_N_DBPS is used to calculate duration of the ACK waveform which might be received in response to this transmission
 		//  The ACK duration is used to calculate the DURATION field in the MAC header
 		//  The selection of ACK rate for a given DATA rate is specified in IEEE 802.11-2012 9.7.6.5.2
-		ACK_N_DBPS = wlan_mac_low_mcs_to_n_dbps(wlan_mac_low_mcs_to_ctrl_resp_mcs(tx_mpdu->params.phy.mcs));
+		ack_mcs = wlan_mac_low_mcs_to_ctrl_resp_mcs(tx_mpdu->params.phy.mcs);
+		ack_phy_mode = tx_mpdu->params.phy.phy_mode; //FIXME: is this the right phy_mode?
 
 		// Get pointer to start of MAC header in packet buffer
 		tx_80211_header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
@@ -833,7 +836,7 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 		if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_DURATION){
 			// Compute and fill in the duration of any time-on-air following this packet's transmission
 			//     For DATA Tx, DURATION = T_SIFS + T_ACK, where T_ACK is function of the ACK Tx rate
-			tx_80211_header->duration_id = wlan_ofdm_txtime(sizeof(mac_header_80211_ACK) + WLAN_PHY_FCS_NBYTES, ACK_N_DBPS, phy_samp_rate) + mac_timing_values.t_sifs;
+			tx_80211_header->duration_id = wlan_ofdm_calc_txtime(sizeof(mac_header_80211_ACK) + WLAN_PHY_FCS_NBYTES, ack_mcs, ack_phy_mode, phy_samp_rate) + mac_timing_values.t_sifs;
 		}
 
 		// Insert sequence number here
@@ -1467,20 +1470,17 @@ inline u32 wlan_mac_low_wlan_chan_to_rc_chan(u32 mac_channel) {
 /**
  * @brief Convert MCS to number of data bits per symbol
  */
-inline u8 wlan_mac_low_mcs_to_n_dbps(u8 mcs){
+inline u16 wlan_mac_low_mcs_to_n_dbps(u8 mcs, u8 phy_mode) {
 
-	if( (mcs >= 0) && (mcs < WLAN_MAC_NUM_MCS) ) {
-    	//Valid OFDM MCS - use the LUT
-        return mcs_to_n_dbps_lut[mcs];
-    } else if(mcs == WLAN_MAC_MCS_1M) {
-    	//DSSS rate
-    	return 1; //1Mb/s PHY is DBPSK
-    } else {
-        xil_printf("Invalid MCS index %0x%x\n", mcs);
-        return mcs_to_n_dbps_lut[0];
-    }
+	if(phy_mode == PHY_MODE_NONHT && mcs < (sizeof(mcs_to_n_dbps_nonht_lut)/sizeof(mcs_to_n_dbps_nonht_lut[0]))) {
+		return mcs_to_n_dbps_nonht_lut[mcs];
+	} else if(phy_mode == PHY_MODE_HTMF && mcs < (sizeof(mcs_to_n_dbps_htmf_lut)/sizeof(mcs_to_n_dbps_htmf_lut[0]))) {
+		return mcs_to_n_dbps_htmf_lut[mcs];
+	} else {
+		xil_printf("ERROR (wlan_mac_low_mcs_to_n_dbps): Invalid PHY_MODE (%d) or MCS (%d)\n", phy_mode, mcs);
+		return 1; // N_DBPS used as denominator, so better not return 0
+	}
 }
-
 
 
 

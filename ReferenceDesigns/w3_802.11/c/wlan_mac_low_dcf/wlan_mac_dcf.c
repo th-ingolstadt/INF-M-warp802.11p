@@ -486,7 +486,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     u32                 return_value             = 0;
     u32                 tx_length;
     u8                  tx_mcs;
-    u16                 tx_N_DBPS;
     u16                 cts_duration;
     u8                  unicast_to_me, to_multicast;
     u16                 rssi;
@@ -541,7 +540,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     //     The mapping of Rx rate to ACK rate is given in 9.7.6.5.2 of 802.11-2012
     //
     tx_mcs      = wlan_mac_low_mcs_to_ctrl_resp_mcs(phy_details->mcs);
-    tx_N_DBPS   = wlan_mac_low_mcs_to_n_dbps(tx_mcs);
 
     // Determine which antenna the ACK will be sent from
     //     The current implementation transmits ACKs from the same antenna over which the previous packet was received
@@ -656,7 +654,8 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         ctrl_tx_gain = wlan_mac_low_dbm_to_gain_target(wlan_mac_low_get_current_ctrl_tx_pow());
         wlan_mac_tx_ctrl_B_gains(ctrl_tx_gain, ctrl_tx_gain, ctrl_tx_gain, ctrl_tx_gain);
 
-        cts_duration = sat_sub(rx_header->duration_id, (mac_timing_values.t_sifs) + wlan_ofdm_txtime(sizeof(mac_header_80211_CTS) + WLAN_PHY_FCS_NBYTES, tx_N_DBPS, wlan_mac_low_get_phy_samp_rate()));
+        cts_duration = sat_sub(rx_header->duration_id, (mac_timing_values.t_sifs) +
+        			wlan_ofdm_calc_txtime(sizeof(mac_header_80211_CTS) + WLAN_PHY_FCS_NBYTES, tx_mcs, PHY_MODE_NONHT, wlan_mac_low_get_phy_samp_rate())); //FIXME: is this the right phy_mode?
 
         // Construct the ACK frame in the dedicated Tx pkt buf
         tx_length = wlan_create_cts_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK_CTS) + PHY_TX_PKT_BUF_MPDU_OFFSET),
@@ -1029,8 +1028,6 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
     u8 req_timeout;
     u8 req_backoff;
 
-    u16 MPDU_N_DBPS;
-
     u32 rx_status;
     u32 mac_hw_status;
     u32 mac_tx_ctrl_status;
@@ -1117,56 +1114,48 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                 case 0:
                 	mac_cfg_mcs         = 0;
                     cts_header_duration = TX_TIME_CTS_R6;
-                    MPDU_N_DBPS         = N_DBPS_R6;
                     low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = WLAN_MAC_MCS_6M;
                 break;
                 case 1:
                 	mac_cfg_mcs         = 0;
                     cts_header_duration = TX_TIME_CTS_R6;
-                    MPDU_N_DBPS         = N_DBPS_R9;
                     low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = WLAN_MAC_MCS_6M;
                 break;
                 case 2:
                 	mac_cfg_mcs         = 2;
                     cts_header_duration = TX_TIME_CTS_R12;
-                    MPDU_N_DBPS         = N_DBPS_R12;
                     low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = WLAN_MAC_MCS_12M;
                 break;
                 case 3:
                 	mac_cfg_mcs         = 2;
                     cts_header_duration = TX_TIME_CTS_R12;
-                    MPDU_N_DBPS         = N_DBPS_R18;
                     low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = WLAN_MAC_MCS_12M;
                 break;
                 case 4:
                 	mac_cfg_mcs         = 4;
                     cts_header_duration = TX_TIME_CTS_R24;
-                    MPDU_N_DBPS         = N_DBPS_R24;
                     low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = WLAN_MAC_MCS_24M;
                 break;
                 case 5:
                 	mac_cfg_mcs         = 4;
                     cts_header_duration = TX_TIME_CTS_R24;
-                    MPDU_N_DBPS         = N_DBPS_R36;
                     low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = WLAN_MAC_MCS_24M;
                 break;
                 case 6:
                 	mac_cfg_mcs         = 4;
                     cts_header_duration = TX_TIME_CTS_R24;
-                    MPDU_N_DBPS         = N_DBPS_R48;
                     low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = WLAN_MAC_MCS_24M;
                 break;
                 case 7:
                 	mac_cfg_mcs         = 4;
                     cts_header_duration = TX_TIME_CTS_R24;
-                    MPDU_N_DBPS         = N_DBPS_R54;
                     low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = WLAN_MAC_MCS_24M;
                 break;
             }
 
             rts_header_duration = (mac_timing_values.t_sifs) + cts_header_duration +
-                                  (mac_timing_values.t_sifs) + wlan_ofdm_txtime(length, MPDU_N_DBPS, wlan_mac_low_get_phy_samp_rate()) +
-                                  header->duration_id;
+                                  (mac_timing_values.t_sifs) + wlan_ofdm_calc_txtime(length, mac_cfg_mcs, phy_mode, wlan_mac_low_get_phy_samp_rate()) +
+                                  header->duration_id; //FIXME: is this the right phy_mode?
 
             // We let "duration" be equal to the duration field of an RTS. This value is provided explicitly to CPU_HIGH
             // in the low_tx_details struct such that CPU_HIGH has can reconstruct the RTS in its log. This isn't critical
