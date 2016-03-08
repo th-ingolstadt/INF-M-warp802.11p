@@ -655,7 +655,7 @@ class BSSInfo(InfoStruct):
                     self['capabilities'] = (self._consts.capabilities.ESS | self._consts.capabilities.SHORT_TIMESLOT)
 
                 # Convert BSSID to colon delimited string for internal storage
-                if type(bssid) is int:
+                if type(bssid) in [int, long]:
                     self['bssid']        = util.mac_addr_to_str(self['bssid'])
             else:
                 raise AttributeError("BSSID must be provided when initializing BSSInfo() fields")
@@ -745,7 +745,7 @@ class BSSConfig(InfoStruct):
                 self['bssid'] = bssid
     
                 # Convert BSSID to colon delimited string for internal storage
-                if type(bssid) is int:
+                if type(bssid) in [int, long]:
                     self['bssid']        = util.mac_addr_to_str(self['bssid'])
                     
                 # Set update mask
