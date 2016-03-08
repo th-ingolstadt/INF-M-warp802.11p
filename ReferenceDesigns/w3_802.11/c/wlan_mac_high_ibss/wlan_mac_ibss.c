@@ -151,23 +151,23 @@ int main() {
 	// New associations adopt these unicast params; the per-node params can be
 	//   overridden via wlan_exp calls or by custom C code
 	default_unicast_data_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
-	default_unicast_data_tx_params.phy.mcs            = WLAN_MAC_MCS_18M;
+	default_unicast_data_tx_params.phy.mcs            = 3;
 	default_unicast_data_tx_params.phy.phy_mode       = WLAN_DEFAULT_TX_PHY_MODE;
 	default_unicast_data_tx_params.phy.antenna_mode   = WLAN_DEFAULT_TX_ANTENNA;
 
 	default_unicast_mgmt_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
-	default_unicast_mgmt_tx_params.phy.mcs            = WLAN_MAC_MCS_6M;
+	default_unicast_mgmt_tx_params.phy.mcs            = 0;
 	default_unicast_mgmt_tx_params.phy.phy_mode       = WLAN_DEFAULT_TX_PHY_MODE;
 	default_unicast_mgmt_tx_params.phy.antenna_mode   = WLAN_DEFAULT_TX_ANTENNA;
 
 	// All multicast traffic (incl. broadcast) uses these default Tx params
 	default_multicast_data_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
-	default_multicast_data_tx_params.phy.mcs          = WLAN_MAC_MCS_6M;
+	default_multicast_data_tx_params.phy.mcs          = 0;
 	default_multicast_data_tx_params.phy.phy_mode     = WLAN_DEFAULT_TX_PHY_MODE;
 	default_multicast_data_tx_params.phy.antenna_mode = WLAN_DEFAULT_TX_ANTENNA;
 
 	default_multicast_mgmt_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
-	default_multicast_mgmt_tx_params.phy.mcs          = WLAN_MAC_MCS_6M;
+	default_multicast_mgmt_tx_params.phy.mcs          = 0;
 	default_multicast_mgmt_tx_params.phy.phy_mode     = WLAN_DEFAULT_TX_PHY_MODE;
 	default_multicast_mgmt_tx_params.phy.antenna_mode = WLAN_DEFAULT_TX_ANTENNA;
 

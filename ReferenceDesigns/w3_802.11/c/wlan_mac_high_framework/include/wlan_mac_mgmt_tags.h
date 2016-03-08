@@ -46,6 +46,19 @@ typedef struct __attribute__ ((__packed__)){
 	u32		rx_supported_mcs[4];
 } ht_information;
 
+typedef struct __attribute__ ((__packed__)){
+	u8		oui[3];
+	u8		vendor_specific_oui_type;
+	u8		wme_subtype;
+	u8		wme_version;
+	u8		wme_qos_info;
+	u8		reserved;
+	u32		aci0;
+	u32		aci1;
+	u32		aci2;
+	u32		aci3;
+} wmm_parameter_t;
+
 // Tag Element IDs from Table 8-54 in 802.11-2012
 #define MGMT_TAG_SSID									0
 #define MGMT_TAG_SUPPORTED_RATES						1

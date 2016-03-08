@@ -136,10 +136,10 @@ void uart_rx(u8 rxByte){
                 break;
 
                 case ASCII_r:
-                    if((default_unicast_data_tx_params.phy.mcs) > WLAN_MAC_MCS_6M){
+                    if((default_unicast_data_tx_params.phy.mcs) > 0){
                         (default_unicast_data_tx_params.phy.mcs)--;
                     } else {
-                        (default_unicast_data_tx_params.phy.mcs) = WLAN_MAC_MCS_6M;
+                        (default_unicast_data_tx_params.phy.mcs) = 0;
                     }
 
                     if(access_point != NULL) access_point->tx.phy.mcs = (default_unicast_data_tx_params.phy.mcs);
@@ -148,10 +148,10 @@ void uart_rx(u8 rxByte){
                 break;
 
                 case ASCII_R:
-                    if((default_unicast_data_tx_params.phy.mcs) < WLAN_MAC_MCS_54M){
+                    if((default_unicast_data_tx_params.phy.mcs) < WLAN_MAC_NUM_MCS){
                         (default_unicast_data_tx_params.phy.mcs)++;
                     } else {
-                        (default_unicast_data_tx_params.phy.mcs) = WLAN_MAC_MCS_54M;
+                        (default_unicast_data_tx_params.phy.mcs) = WLAN_MAC_NUM_MCS;
                     }
 
                     if(access_point != NULL) access_point->tx.phy.mcs = (default_unicast_data_tx_params.phy.mcs);

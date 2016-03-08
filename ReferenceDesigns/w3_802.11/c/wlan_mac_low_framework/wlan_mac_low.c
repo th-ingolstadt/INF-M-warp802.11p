@@ -377,7 +377,7 @@ inline u32 wlan_mac_low_poll_frame_rx(){
             // Strip off extra pre-MAC-header bytes used in DSSS frames; this adjustment allows the next
             //     function to treat OFDM and DSSS payloads the same
             phy_details.length   = wlan_mac_get_rx_phy_length() - 5;
-            phy_details.mcs      = WLAN_MAC_MCS_1M; ///FIXME: MCS should be 0 for DSSS Rx; need to trace this up to log
+            phy_details.mcs      = 0;
 
             // Call the user callback to handle this Rx, capture return value
         	return_status |= POLL_MAC_STATUS_RECEIVED_PKT;

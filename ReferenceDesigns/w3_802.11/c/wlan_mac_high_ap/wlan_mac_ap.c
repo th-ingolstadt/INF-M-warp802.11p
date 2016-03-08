@@ -5,8 +5,8 @@
  *
  *  @copyright Copyright 2013-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
- *              See LICENSE.txt included in the design archive or
- *              at http://mangocomm.com/802.11/license
+ *				See LICENSE.txt included in the design archive or
+ *				at http://mangocomm.com/802.11/license
  *
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
@@ -55,11 +55,11 @@
 #define  WLAN_EXP_ETH                            TRANSPORT_ETH_B
 #define  WLAN_EXP_NODE_TYPE                     (WLAN_EXP_TYPE_DESIGN_80211 + WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_AP)
 
-#define  WLAN_DEFAULT_CHANNEL                    1
-#define  WLAN_DEFAULT_TX_PWR                     15
-#define  WLAN_DEFAULT_TX_PHY_MODE                PHY_MODE_NONHT
-#define  WLAN_DEFAULT_TX_ANTENNA                 TX_ANTMODE_SISO_ANTA
-#define  WLAN_DEFAULT_RX_ANTENNA                 RX_ANTMODE_SISO_ANTA
+#define  WLAN_DEFAULT_CHANNEL      1
+#define  WLAN_DEFAULT_TX_PWR       15
+#define  WLAN_DEFAULT_TX_PHY_MODE  PHY_MODE_NONHT
+#define  WLAN_DEFAULT_TX_ANTENNA   TX_ANTMODE_SISO_ANTA
+#define  WLAN_DEFAULT_RX_ANTENNA   RX_ANTMODE_SISO_ANTA
 
 #define  WLAN_DEFAULT_BEACON_INTERVAL_TU         100
 
@@ -72,13 +72,13 @@
 static char default_AP_SSID[] = "WARP-AP";
 
 // Common TX header for 802.11 packets
-static mac_header_80211_common         tx_header_common;
+static mac_header_80211_common    tx_header_common;
 
 // Default Transmission Parameters
-tx_params_t                            default_unicast_mgmt_tx_params;
-tx_params_t                            default_unicast_data_tx_params;
-tx_params_t                            default_multicast_mgmt_tx_params;
-tx_params_t                            default_multicast_data_tx_params;
+tx_params_t default_unicast_mgmt_tx_params;
+tx_params_t default_unicast_data_tx_params;
+tx_params_t default_multicast_mgmt_tx_params;
+tx_params_t default_multicast_data_tx_params;
 
 // "my_bss_info" is a pointer to the bss_info that describes this AP.
 // Inside this structure is a dl_list of station_info. This is a list
@@ -90,25 +90,25 @@ tx_params_t                            default_multicast_data_tx_params;
 // station_info that represent stations in State 2
 // (Authenticated, Unassociated). Only members of this list will be allowed
 // to elevate to State 4 in the my_bss_info.
-bss_info*                              my_bss_info;
+bss_info*	                      my_bss_info;
 
-dl_list                                counts_table;
-dl_list                                station_info_state_2;
+dl_list		                      counts_table;
+dl_list		                      station_info_state_2;
 
 // Tx queue variables;
-static u32                             max_queue_size;
+static u32                        max_queue_size;
 
 // MAC address
-static u8                              wlan_mac_addr[6];
+static u8 	                      wlan_mac_addr[6];
 
 // Traffic Indication Map (TIM) State
-//     These global structs must be protected against externing. Any
-//     modifications of these structs should be done via an explicit
-//     setter that also updates the beacon template.
-static volatile ps_conf                gl_power_save_configuration;
-static volatile	u32                    num_dozed_stations;
-static volatile mgmt_tag_template_t*   mgmt_tag_tim_template;
-static volatile u32                    mgmt_tag_tim_update_schedule_id;
+// These global structs must be protected against externing. Any
+// modifications of these structs should be done via an explicit
+// setter that also updates the beacon template.
+static volatile ps_conf           		gl_power_save_configuration;
+static volatile	u32				  		num_dozed_stations;
+static volatile mgmt_tag_template_t*	mgmt_tag_tim_template;
+static volatile u32				  		mgmt_tag_tim_update_schedule_id;
 
 // Beacon configuration
 static beacon_txrx_configure_t         gl_beacon_txrx_config;
@@ -131,7 +131,7 @@ void reset_all_associations();
 
 int main(){
 	ps_conf           initial_power_save_configuration;
-	bss_config_t      bss_config;
+	bss_config_t	  bss_config;
 
 	u8 disallow_filter[6] = {0x00,0x00,0x00,0x00,0x00,0x00};
 	u8 disallow_mask[6]   = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
@@ -156,26 +156,26 @@ int main(){
 	configure_bss(NULL);
 
 	// New associations adopt these unicast params; the per-node params can be
-	//   overridden via wlan_exp calls or by custom C code
+	// overridden via wlan_exp calls or by custom C code
 	default_unicast_data_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
-	default_unicast_data_tx_params.phy.mcs            = WLAN_MAC_MCS_18M;
+	default_unicast_data_tx_params.phy.mcs            = 3;
 	default_unicast_data_tx_params.phy.phy_mode       = WLAN_DEFAULT_TX_PHY_MODE;
 	default_unicast_data_tx_params.phy.antenna_mode   = WLAN_DEFAULT_TX_ANTENNA;
 
 	default_unicast_mgmt_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
-	default_unicast_mgmt_tx_params.phy.mcs            = WLAN_MAC_MCS_6M;
-	default_unicast_mgmt_tx_params.phy.phy_mode       = WLAN_DEFAULT_TX_PHY_MODE;
+	default_unicast_mgmt_tx_params.phy.mcs            = 0;
+	default_unicast_mgmt_tx_params.phy.phy_mode       = PHY_MODE_NONHT;
 	default_unicast_mgmt_tx_params.phy.antenna_mode   = WLAN_DEFAULT_TX_ANTENNA;
 
 	// All multicast traffic (incl. broadcast) uses these default Tx params
 	default_multicast_data_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
-	default_multicast_data_tx_params.phy.mcs          = WLAN_MAC_MCS_6M;
-	default_multicast_data_tx_params.phy.phy_mode     = WLAN_DEFAULT_TX_PHY_MODE;
+	default_multicast_data_tx_params.phy.mcs          = 0;
+	default_multicast_data_tx_params.phy.phy_mode     = PHY_MODE_NONHT;
 	default_multicast_data_tx_params.phy.antenna_mode = WLAN_DEFAULT_TX_ANTENNA;
 
 	default_multicast_mgmt_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
-	default_multicast_mgmt_tx_params.phy.mcs          = WLAN_MAC_MCS_6M;
-	default_multicast_mgmt_tx_params.phy.phy_mode     = WLAN_DEFAULT_TX_PHY_MODE;
+	default_multicast_mgmt_tx_params.phy.mcs          = 0;
+	default_multicast_mgmt_tx_params.phy.phy_mode     = PHY_MODE_NONHT;
 	default_multicast_mgmt_tx_params.phy.antenna_mode = WLAN_DEFAULT_TX_ANTENNA;
 
 	// Setup the counts lists
@@ -200,7 +200,7 @@ int main(){
 	wlan_mac_high_set_poll_tx_queues_callback(  (void*)poll_tx_queues);
 	wlan_mac_high_set_mpdu_dequeue_callback(    (void*)mpdu_dequeue);
     wlan_mac_ltg_sched_set_callback(            (void*)ltg_event);
-    queue_set_state_change_callback(            (void*)queue_state_change);
+    queue_set_state_change_callback(			(void*)queue_state_change);
 
     // Configure the wireless-wired encapsulation mode (AP and STA behaviors are different)
     wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_AP);
@@ -280,18 +280,18 @@ int main(){
 	// Set up BSS description
 	memcpy(bss_config.bssid, wlan_mac_addr, BSSID_LEN);
 	strcpy(bss_config.ssid, default_AP_SSID);
-	bss_config.chan            = WLAN_DEFAULT_CHANNEL;
+	bss_config.chan = WLAN_DEFAULT_CHANNEL;
 	if (WLAN_DEFAULT_TX_PHY_MODE == PHY_MODE_HTMF) {
-		bss_config.ht_capable  = 1;
+		bss_config.ht_capable = 1;
 	} else {
-		bss_config.ht_capable  = 0;
+		bss_config.ht_capable = 0;
 	}
 	bss_config.beacon_interval = WLAN_DEFAULT_BEACON_INTERVAL_TU;
-	bss_config.update_mask     = (BSS_FIELD_MASK_BSSID           |
-							      BSS_FIELD_MASK_CHAN            |
-							      BSS_FIELD_MASK_SSID            |
-							      BSS_FIELD_MASK_BEACON_INTERVAL |
-							      BSS_FIELD_MASK_HT_CAPABLE);
+	bss_config.update_mask = (BSS_FIELD_MASK_BSSID  		 |
+							  BSS_FIELD_MASK_CHAN   		 |
+							  BSS_FIELD_MASK_SSID			 |
+							  BSS_FIELD_MASK_BEACON_INTERVAL |
+							  BSS_FIELD_MASK_HT_CAPABLE);
 	configure_bss(&bss_config);
 
 	// Initialize DTIM configuration (ie station power saving configuration)
@@ -1765,6 +1765,8 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 					if((my_bss_info != NULL) && wlan_addr_eq(rx_80211_header->address_3, my_bss_info->bssid)) {
 
+						//FIXME: Check and make sure the SSID string matches before we send a successful assocation response
+
 						// Check if we have authenticated this TA
 						if (wlan_mac_high_find_station_info_ADDR(&station_info_state_2, rx_80211_header->address_2) != NULL){
 
@@ -1795,7 +1797,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 								wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, my_bss_info->bssid );
 
 								// Fill in the data
-								tx_length = wlan_create_association_response_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, STATUS_SUCCESS, associated_station->AID);
+								tx_length = wlan_create_association_response_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, STATUS_SUCCESS, associated_station->AID, my_bss_info);
 
 								// Setup the TX frame info
 								wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
@@ -1805,13 +1807,12 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 																	AID_TO_QID(associated_station->AID) );
 
 								// Set the information in the TX queue buffer
-								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
-								curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)associated_station;
-								curr_tx_queue_buffer->frame_info.AID         = associated_station->AID;
+								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+								curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
+								curr_tx_queue_buffer->frame_info.AID         = 0;
 
 								// Put the packet in the queue
 								enqueue_after_tail(AID_TO_QID(associated_station->AID), curr_tx_queue_element);
-
 							}
 
 							// Finish the function
@@ -1828,7 +1829,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 								wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, my_bss_info->bssid );
 
 								// Fill in the data
-								tx_length = wlan_create_association_response_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, STATUS_REJECT_TOO_MANY_ASSOCIATIONS, 0);
+								tx_length = wlan_create_association_response_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, STATUS_REJECT_TOO_MANY_ASSOCIATIONS, 0, my_bss_info);
 
 								// Setup the TX frame info
 								wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
@@ -2073,7 +2074,7 @@ void deauthenticate_all_stations(){
 /**
  *
  *****************************************************************************/
-u32 configure_bss(bss_config_t* bss_config){
+u32	configure_bss(bss_config_t* bss_config){
 	u32					return_status 				= 0;
 	u8					update_beacon_template 		= 0;
 	u8					send_beacon_config_to_low 	= 0;
@@ -2159,7 +2160,7 @@ u32 configure_bss(bss_config_t* bss_config){
 					curr_station_info = (station_info*)(curr_station_info_entry->data);
 
 					// Purge any data for the station
-					purge_queue(AID_TO_QID(curr_station_info->AID));
+		            purge_queue(AID_TO_QID(curr_station_info->AID));
 
 					// Remove the association
 					wlan_mac_high_remove_association(&my_bss_info->associated_stations, &counts_table, curr_station_info->addr);
@@ -2214,8 +2215,8 @@ u32 configure_bss(bss_config_t* bss_config){
 		// 3. Clean up
 		//      Now that my_bss_info has been updated, CPU_HIGH can communicate
 		//      the changes to CPU_LOW so that the node is tuned to the correct channel,
-		//      send beacons at the correct interval, and update the beacon
-		//      template packet buffer.
+		//		send beacons at the correct interval, and update the beacon
+		//		template packet buffer.
 		if (my_bss_info != NULL) {
 
 			if (bss_config->update_mask & BSS_FIELD_MASK_CHAN) {
@@ -2225,7 +2226,7 @@ u32 configure_bss(bss_config_t* bss_config){
 				cpu_low_config.channel = my_bss_info->chan;
 
 				send_channel_switch_to_low = 1;
-				update_beacon_template     = 1;
+				update_beacon_template = 1;
 			}
 			if (bss_config->update_mask & BSS_FIELD_MASK_SSID) {
 				strcpy(my_bss_info->ssid, bss_config->ssid);
@@ -2233,14 +2234,14 @@ u32 configure_bss(bss_config_t* bss_config){
 			}
 			if (bss_config->update_mask & BSS_FIELD_MASK_BEACON_INTERVAL) {
 				my_bss_info->beacon_interval = bss_config->beacon_interval;
-				update_beacon_template    = 1;
+				update_beacon_template = 1;
 				send_beacon_config_to_low = 1;
 			}
 			if (bss_config->update_mask & BSS_FIELD_MASK_HT_CAPABLE) {
 				// TODO:
 				//     1) Update Beacon Template capabilities
-				//     2) Update existing MCS selections for defaults and
-				//        associated stations?
+				// 2) Update existing MCS selections for defaults and
+				//	  associated stations?
 
 				if (bss_config->ht_capable) {
 					my_bss_info->phy_mode = PHY_MODE_HTMF;
@@ -2276,7 +2277,7 @@ u32 configure_bss(bss_config_t* bss_config){
 					gl_beacon_txrx_config.beacon_tx_mode = AP_BEACON_TX;
 				}
 
-				gl_beacon_txrx_config.beacon_interval_tu      = my_bss_info->beacon_interval;
+				gl_beacon_txrx_config.beacon_interval_tu = my_bss_info->beacon_interval;
 				gl_beacon_txrx_config.beacon_template_pkt_buf = TX_PKT_BUF_BEACON;
 
 				wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);

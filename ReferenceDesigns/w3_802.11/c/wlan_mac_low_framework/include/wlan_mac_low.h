@@ -486,9 +486,8 @@ inline void             wlan_mac_low_set_unique_seq(u64 curr_unique_seq);
 inline void wlan_mac_hw_clear_rx_started();
 
 //FIXME: placeholders for actual runtime PHY mode variables
-#define TMP_A_PHY_MODE 0x1
-#define TMP_B_PHY_MODE 0x1
-#define TMP_C_PHY_MODE 0x1
+#define TMP_B_PHY_MODE PHY_MODE_NONHT
+#define TMP_C_PHY_MODE PHY_MODE_NONHT
 
 
 #endif /* WLAN_MAC_LOW_H_ */

@@ -31,8 +31,9 @@
 
 int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_header_80211_common* common, bss_info* my_bss_info) {
 
-	ht_capabilities* ht_capabilities_element;
-	ht_information* ht_information_element;
+	ht_capabilities* 	ht_capabilities_element;
+	ht_information* 	ht_information_element;
+	wmm_parameter_t*	wmm_parameter;
 
 	//void* pkt_buf,mac_header_80211_common* common, u16 beacon_interval, u16 capabilities, u8 ssid_len, u8* ssid, u8 chan
 
@@ -125,6 +126,27 @@ int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_h
 	mgmt_tag_template->header.tag_length = 1;
 	mgmt_tag_template->data[0] = 0; //Non ERP Present - not set, don't use protection, no barker preamble mode
 	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+
+	if ((my_bss_info->phy_mode) & PHY_MODE_HTMF) {
+		//Insert WMM tag
+		mgmt_tag_template->header.tag_element_id = MGMT_TAG_VENDOR_SPECIFIC;
+		mgmt_tag_template->header.tag_length = 24;
+
+		wmm_parameter = (wmm_parameter_t*)mgmt_tag_template->data;
+		wmm_parameter->oui[0] = 0x00;
+		wmm_parameter->oui[1] = 0x50;
+		wmm_parameter->oui[2] = 0xf2;
+		wmm_parameter->vendor_specific_oui_type = 2;
+		wmm_parameter->wme_subtype = 1;
+		wmm_parameter->wme_version = 1;
+		wmm_parameter->wme_qos_info = 0x08;
+		wmm_parameter->reserved = 0;
+		wmm_parameter->aci0	= Xil_Htonl(0x03a40000);
+		wmm_parameter->aci1 = Xil_Htonl(0x27a40000);
+		wmm_parameter->aci2 = Xil_Htonl(0x42435e00);
+		wmm_parameter->aci3 = Xil_Htonl(0x62322f00);
+		mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+	}
 
 	packetLen_bytes = ((u8*)mgmt_tag_template - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
 
@@ -317,39 +339,39 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 	mgmt_tag_template->data[3] = (0x60);					//48Mbps
 	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-	if ((attempt_bss_info->phy_mode) & PHY_MODE_HTMF) {
-			//Insert HT Capabilities and HT Information tags
-			mgmt_tag_template->header.tag_element_id = MGMT_TAG_HT_CAPABILITIES;
-			mgmt_tag_template->header.tag_length = 26;
+	if (0 && ((attempt_bss_info->phy_mode) & PHY_MODE_HTMF)) { //TODO: This shouldn't just be governed by whether the BSS supports HT, but also whether this STA wants to
+		//Insert HT Capabilities and HT Information tags
+		mgmt_tag_template->header.tag_element_id = MGMT_TAG_HT_CAPABILITIES;
+		mgmt_tag_template->header.tag_length = 26;
 
-			ht_capabilities_element = (ht_capabilities*)mgmt_tag_template->data;
-			ht_capabilities_element->ht_capabilities_info = 0x010c;
-			ht_capabilities_element->a_mpdu_parameters = 0x00;
-			ht_capabilities_element->rx_supported_mcs[0] = 0x000000ff;
-			ht_capabilities_element->rx_supported_mcs[1] = 0x00000000;
-			ht_capabilities_element->rx_supported_mcs[2] = 0x00000000;
-			ht_capabilities_element->rx_supported_mcs[3] = 0x00000000;
-			ht_capabilities_element->ht_extended_capabilities = 0x0000;
-			ht_capabilities_element->tx_beamforming = 0x0000;
-			ht_capabilities_element->ant_sel = 0x00;
+		ht_capabilities_element = (ht_capabilities*)mgmt_tag_template->data;
+		ht_capabilities_element->ht_capabilities_info = 0x000c;
+		ht_capabilities_element->a_mpdu_parameters = 0x00;
+		ht_capabilities_element->rx_supported_mcs[0] = 0x000000ff;
+		ht_capabilities_element->rx_supported_mcs[1] = 0x00000000;
+		ht_capabilities_element->rx_supported_mcs[2] = 0x00000000;
+		ht_capabilities_element->rx_supported_mcs[3] = 0x00000000;
+		ht_capabilities_element->ht_extended_capabilities = 0x0000;
+		ht_capabilities_element->tx_beamforming = 0x0000;
+		ht_capabilities_element->ant_sel = 0x00;
 
-			mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+		mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-			mgmt_tag_template->header.tag_element_id = MGMT_TAG_HT_OPERATION;
-			mgmt_tag_template->header.tag_length = 22;
+		mgmt_tag_template->header.tag_element_id = MGMT_TAG_HT_OPERATION;
+		mgmt_tag_template->header.tag_length = 22;
 
-			ht_information_element = (ht_information*)mgmt_tag_template->data;
-			ht_information_element->channel = attempt_bss_info->chan;
-			ht_information_element->ht_info_subset_1 = 0x00;
-			ht_information_element->ht_info_subset_2 = 0x0000;
-			ht_information_element->ht_info_subset_3 = 0x0000;
-			ht_information_element->rx_supported_mcs[0] = 0x00000000;
-			ht_information_element->rx_supported_mcs[1] = 0x00000000;
-			ht_information_element->rx_supported_mcs[2] = 0x00000000;
-			ht_information_element->rx_supported_mcs[3] = 0x00000000;
+		ht_information_element = (ht_information*)mgmt_tag_template->data;
+		ht_information_element->channel = attempt_bss_info->chan;
+		ht_information_element->ht_info_subset_1 = 0x00;
+		ht_information_element->ht_info_subset_2 = 0x0004; //One or more STAs are not greenfield compatible
+		ht_information_element->ht_info_subset_3 = 0x0000;
+		ht_information_element->rx_supported_mcs[0] = 0x00000000;
+		ht_information_element->rx_supported_mcs[1] = 0x00000000;
+		ht_information_element->rx_supported_mcs[2] = 0x00000000;
+		ht_information_element->rx_supported_mcs[3] = 0x00000000;
 
-			mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
-		}
+		mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+	}
 	packetLen_bytes = ((u8*)mgmt_tag_template - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
 
 	return packetLen_bytes;
@@ -357,9 +379,15 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 
 
 
-int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_common* common, u16 status, u16 AID) {
+int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_common* common, u16 status, u16 AID, bss_info* my_bss_info) {
 	u32 packetLen_bytes;
 	u8* txBufferPtr_u8;
+
+	ht_capabilities* ht_capabilities_element;
+	ht_information* ht_information_element;
+	wmm_parameter_t* wmm_parameter;
+
+	mgmt_tag_template_t* mgmt_tag_template;
 
 	txBufferPtr_u8 = (u8*)pkt_buf;
 
@@ -399,6 +427,60 @@ int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_commo
 	txBufferPtr_u8[8] = (0x60); 				//48Mbps  (64-QAM, 2/3)
 	txBufferPtr_u8[9] = (0x6C); 				//54Mbps  (64-QAM, 3/4)
 	txBufferPtr_u8+=(8+2); //Move up to next tag
+
+	if ((my_bss_info->phy_mode) & PHY_MODE_HTMF) {
+		//Insert HT Capabilities and HT Information tags
+		mgmt_tag_template->header.tag_element_id = MGMT_TAG_HT_CAPABILITIES;
+		mgmt_tag_template->header.tag_length = 26;
+
+		ht_capabilities_element = (ht_capabilities*)mgmt_tag_template->data;
+		ht_capabilities_element->ht_capabilities_info = 0x000c;
+		ht_capabilities_element->a_mpdu_parameters = 0x00;
+		ht_capabilities_element->rx_supported_mcs[0] = 0x000000ff;
+		ht_capabilities_element->rx_supported_mcs[1] = 0x00000000;
+		ht_capabilities_element->rx_supported_mcs[2] = 0x00000000;
+		ht_capabilities_element->rx_supported_mcs[3] = 0x00000000;
+		ht_capabilities_element->ht_extended_capabilities = 0x0000;
+		ht_capabilities_element->tx_beamforming = 0x0000;
+		ht_capabilities_element->ant_sel = 0x00;
+
+		mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+
+		mgmt_tag_template->header.tag_element_id = MGMT_TAG_HT_OPERATION;
+		mgmt_tag_template->header.tag_length = 22;
+
+		ht_information_element = (ht_information*)mgmt_tag_template->data;
+		ht_information_element->channel = my_bss_info->chan;
+		ht_information_element->ht_info_subset_1 = 0x00;
+		ht_information_element->ht_info_subset_2 = 0x0004; //One or more STAs are not greenfield compatible
+		ht_information_element->ht_info_subset_3 = 0x0000;
+		ht_information_element->rx_supported_mcs[0] = 0x00000000;
+		ht_information_element->rx_supported_mcs[1] = 0x00000000;
+		ht_information_element->rx_supported_mcs[2] = 0x00000000;
+		ht_information_element->rx_supported_mcs[3] = 0x00000000;
+
+		mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+
+		//Insert WMM tag
+		mgmt_tag_template->header.tag_element_id = MGMT_TAG_VENDOR_SPECIFIC;
+		mgmt_tag_template->header.tag_length = 24;
+
+		wmm_parameter = (wmm_parameter_t*)mgmt_tag_template->data;
+		wmm_parameter->oui[0] = 0x00;
+		wmm_parameter->oui[1] = 0x50;
+		wmm_parameter->oui[2] = 0xf2;
+		wmm_parameter->vendor_specific_oui_type = 2;
+		wmm_parameter->wme_subtype = 1;
+		wmm_parameter->wme_version = 1;
+		wmm_parameter->wme_qos_info = 0x08;
+		wmm_parameter->reserved = 0;
+		wmm_parameter->aci0	= Xil_Htonl(0x03a40000);
+		wmm_parameter->aci1 = Xil_Htonl(0x27a40000);
+		wmm_parameter->aci2 = Xil_Htonl(0x42435e00);
+		wmm_parameter->aci3 = Xil_Htonl(0x62322f00);
+
+		mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
+	}
 
 /*
 	txBufferPtr_u8[0] = 1; //Tag 1: Supported Rates

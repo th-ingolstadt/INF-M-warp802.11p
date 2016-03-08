@@ -587,7 +587,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         tx_length = wlan_create_ack_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK_CTS) + PHY_TX_PKT_BUF_MPDU_OFFSET), rx_header->address_2);
 
         // Write the SIGNAL field for the ACK
-        write_phy_preamble(TX_PKT_BUF_ACK_CTS, PHY_MODE_NONHT, tx_mcs, tx_length);
+        write_phy_preamble(TX_PKT_BUF_ACK_CTS, TMP_B_PHY_MODE, tx_mcs, tx_length);
 
         rx_finish_state = RX_FINISH_SEND_B;
 
@@ -634,7 +634,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
             // Configure the Tx power - update all antennas, even though only one will be used
             curr_tx_pow = wlan_mac_low_dbm_to_gain_target(tx_mpdu_info->params.phy.power);
             wlan_mac_tx_ctrl_A_gains(curr_tx_pow, curr_tx_pow, curr_tx_pow, curr_tx_pow);
-            wlan_mac_tx_ctrl_A_params(gl_mpdu_pkt_buf, mpdu_tx_ant_mask, 0, 1, 0, 1, TMP_A_PHY_MODE); //Use postRx timer 1 and postTx_timer2
+            wlan_mac_tx_ctrl_A_params(gl_mpdu_pkt_buf, mpdu_tx_ant_mask, 0, 1, 0, 1, tx_mpdu_info->params.phy.phy_mode); //Use postRx timer 1 and postTx_timer2
 
             rx_finish_state = RX_FINISH_SEND_A;
 
@@ -663,7 +663,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
                                           cts_duration);
 
         // Write the SIGNAL field for the CTS
-        write_phy_preamble(TX_PKT_BUF_ACK_CTS, PHY_MODE_NONHT, tx_mcs, tx_length);
+        write_phy_preamble(TX_PKT_BUF_ACK_CTS, TMP_B_PHY_MODE, tx_mcs, tx_length);
 
         rx_finish_state = RX_FINISH_SEND_B;
 
@@ -1114,42 +1114,42 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                 case 0:
                 	mac_cfg_mcs         = 0;
                     cts_header_duration = TX_TIME_CTS_R6;
-                    low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = WLAN_MAC_MCS_6M;
+                    low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = 0;
                 break;
                 case 1:
                 	mac_cfg_mcs         = 0;
                     cts_header_duration = TX_TIME_CTS_R6;
-                    low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = WLAN_MAC_MCS_6M;
+                    low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = 0;
                 break;
                 case 2:
                 	mac_cfg_mcs         = 2;
                     cts_header_duration = TX_TIME_CTS_R12;
-                    low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = WLAN_MAC_MCS_12M;
+                    low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = 2;
                 break;
                 case 3:
                 	mac_cfg_mcs         = 2;
                     cts_header_duration = TX_TIME_CTS_R12;
-                    low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = WLAN_MAC_MCS_12M;
+                    low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = 2;
                 break;
                 case 4:
                 	mac_cfg_mcs         = 4;
                     cts_header_duration = TX_TIME_CTS_R24;
-                    low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = WLAN_MAC_MCS_24M;
+                    low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = 4;
                 break;
                 case 5:
                 	mac_cfg_mcs         = 4;
                     cts_header_duration = TX_TIME_CTS_R24;
-                    low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = WLAN_MAC_MCS_24M;
+                    low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = 4;
                 break;
                 case 6:
                 	mac_cfg_mcs         = 4;
                     cts_header_duration = TX_TIME_CTS_R24;
-                    low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = WLAN_MAC_MCS_24M;
+                    low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = 4;
                 break;
                 case 7:
                 	mac_cfg_mcs         = 4;
                     cts_header_duration = TX_TIME_CTS_R24;
-                    low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = WLAN_MAC_MCS_24M;
+                    low_tx_details[(frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = 4;
                 break;
             }
 
@@ -1227,13 +1227,13 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
 
             // Configure the DCF core Tx state machine for this transmission
             // wlan_mac_tx_ctrl_A_params(pktBuf, antMask, preTx_backoff_slots, preWait_postRxTimer1, preWait_postTxTimer1, postWait_postTxTimer2)
-            wlan_mac_tx_ctrl_A_params(mac_cfg_pkt_buf, mpdu_tx_ant_mask, n_slots, 0, 0, req_timeout, TMP_A_PHY_MODE);
+            wlan_mac_tx_ctrl_A_params(mac_cfg_pkt_buf, mpdu_tx_ant_mask, n_slots, 0, 0, req_timeout, phy_mode);
 
         } else {
             // This is a retry. We will inherit whatever backoff that is currently running.
             // Configure the DCF core Tx state machine for this transmission
             // preTx_backoff_slots is 0 here, since the core will have started a post-timeout backoff automatically
-            wlan_mac_tx_ctrl_A_params(mac_cfg_pkt_buf, mpdu_tx_ant_mask, 0, 0, 0, req_timeout, TMP_A_PHY_MODE);
+            wlan_mac_tx_ctrl_A_params(mac_cfg_pkt_buf, mpdu_tx_ant_mask, 0, 0, 0, req_timeout, phy_mode);
         }
 
         // Wait for the Tx PHY to be idle

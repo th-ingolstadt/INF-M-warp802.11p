@@ -489,7 +489,6 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* frame_info){
     ltg_packet_id_t*  pkt_id;
     mac_header_80211* rx_80211_header         = (mac_header_80211*)((void *)mpdu_ptr_u8);
     u32               packet_payload_size     = frame_info->phy_details.length;
-    u8                mcs                     = frame_info->phy_details.mcs;
     u8                phy_mode                = frame_info->phy_details.phy_mode;
     u8                pkt_type;
     u32               entry_type;
@@ -540,7 +539,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* frame_info){
             // while that copy is under way, and then start the CDMA operation for the larger (which will first block on the shorter if
             // it is still going).
 
-            if (mcs == WLAN_MAC_MCS_1M) {
+            if (phy_mode == PHY_MODE_DSSS) {
                 // This is a DSSS packet that has no channel estimates
                 copy_order = PAYLOAD_FIRST;
             } else {
@@ -572,7 +571,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* frame_info){
             // Start copy based on the copy order
             switch (copy_order) {
                 case PAYLOAD_FIRST:
-                    if (mcs != WLAN_MAC_MCS_1M) {
+                    if (phy_mode != PHY_MODE_DSSS) {
                         ((rx_ofdm_entry*)rx_event_log_entry)->mac_payload_log_len = entry_payload_size;
                         wlan_mac_high_cdma_start_transfer((((rx_ofdm_entry*)rx_event_log_entry)->mac_payload), rx_80211_header, transfer_len);
 
@@ -593,7 +592,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* frame_info){
 
                 case CHAN_EST_FIRST:
     #ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
-                    if (mcs != WLAN_MAC_MCS_1M) wlan_mac_high_cdma_start_transfer(((rx_ofdm_entry*)rx_event_log_entry)->channel_est, frame_info->channel_est, sizeof(frame_info->channel_est));
+                    if (phy_mode != PHY_MODE_DSSS) wlan_mac_high_cdma_start_transfer(((rx_ofdm_entry*)rx_event_log_entry)->channel_est, frame_info->channel_est, sizeof(frame_info->channel_est));
     #endif
                 break;
             }
@@ -619,12 +618,12 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* frame_info){
             switch(copy_order){
                 case PAYLOAD_FIRST:
     #ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
-                    if(mcs != WLAN_MAC_MCS_1M) wlan_mac_high_cdma_start_transfer(((rx_ofdm_entry*)rx_event_log_entry)->channel_est, frame_info->channel_est, sizeof(frame_info->channel_est));
+                    if(phy_mode != PHY_MODE_DSSS) wlan_mac_high_cdma_start_transfer(((rx_ofdm_entry*)rx_event_log_entry)->channel_est, frame_info->channel_est, sizeof(frame_info->channel_est));
     #endif
                 break;
 
                 case CHAN_EST_FIRST:
-                    if (mcs != WLAN_MAC_MCS_1M) {
+                    if (phy_mode != PHY_MODE_DSSS) {
                         ((rx_ofdm_entry*)rx_event_log_entry)->mac_payload_log_len = entry_payload_size;
                         wlan_mac_high_cdma_start_transfer((((rx_ofdm_entry*)rx_event_log_entry)->mac_payload), rx_80211_header, transfer_len);
 
