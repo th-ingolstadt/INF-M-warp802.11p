@@ -36,7 +36,7 @@ class WlanExpNodeAp(node.WlanExpNode):
     #-------------------------------------------------------------------------
     # Override WLAN Exp Node Commands
     #-------------------------------------------------------------------------
-    def configure_bss(self, bssid=False, ssid=None, channel=None, beacon_interval=False):
+    def configure_bss(self, bssid=False, ssid=None, channel=None, beacon_interval=False, ht_capable=None):
         """Configure the BSS information of the node
         
         Each node is either a member of no BSS (colloquially "unassociated") 
@@ -50,22 +50,29 @@ class WlanExpNodeAp(node.WlanExpNode):
         This method is used to manipulate node parameters that affect BSS state
         
         Args:
+            bssid (int, str):  48-bit ID of the BSS either None or 
+                the wlan_mac_address of the node
             ssid (str):  SSID string (Must be 32 characters or less)
             channel (int): Channel number on which the BSS operates
             beacon_interval (int): Integer number of beacon Time Units in [10, 65535]
                 (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds);
                 A value of None will disable beacons;  A value of False will not 
                 update the current beacon interval.
+            ht_capable (bool):  Is the PHY mode HTMF (True) or NONHT (False)?
         
         ..note::  For the AP, the bssid is not configurable and will always be
-            the MAC address of the node.
+            the wlan_mac_address of the node.  If a bssid other than the 
+            wlan_mac_address is passed to this function, it will print a 
+            warning and change the value to the wlan_mac_address.
         """
         if bssid is not None:
             if bssid:
                 if (bssid != self.wlan_mac_address):
-                    raise AttributeError("BSSID must be either None or the wlan_mac_address of the node.")
+                    print("WARNING:  BSSID for AP must be either None or the wlan_mac_address of the node.")
+                    bssid = self.wlan_mac_address
         
-        self.send_cmd(cmds.NodeConfigBSS(bssid=bssid, ssid=ssid, channel=channel, beacon_interval=beacon_interval))
+        self.send_cmd(cmds.NodeConfigBSS(bssid=bssid, ssid=ssid, channel=channel, 
+                                         beacon_interval=beacon_interval, ht_capable=ht_capable))
         
         
     def enable_beacon_mac_time_update(self, enable):
@@ -126,14 +133,54 @@ class WlanExpNodeAp(node.WlanExpNode):
 
     def set_authentication_address_filter(self, allow):
         """Command to set the authentication address filter on the node.
+
+        This command will reset the current address filter and then set the 
+        address filter to the values in the allow list.  The filter only affects
+        over-the-air associations.  Assocaitions created by WLAN Exp will 
+        bypass the filter.
+        
+        Clients will be allowed to associate if they pass any of the filters
+        that are set.
         
         Args:
-            allow (list of tuple) List of (address, mask) tuples that will be used to filter 
-                addresses on the node.
+            allow (list of tuple):  List of (address, mask) tuples that will be 
+                used to filter addresses on the node.  A tuple can be substituted 
+                with a predefined string:  "NONE", "ALL", or "MANGO-W3"
     
-        .. note::  For the mask, bits that are 0 are treated as "any" and bits that are 1 are 
-            treated as "must equal".  For the address, locations of one bits in the mask 
-            must match the incoming addresses to pass the filter.
+        .. note::  For the mask, bits that are 0 are treated as "any" and bits 
+            that are 1 are treated as "must equal".  For the address, locations 
+            of one bits in the mask must match the incoming addresses to pass the 
+            filter.
+        
+        **Examples:**
+        
+        * **Allow a single client**:
+            To only accept a single client with a given MAC address, say '01:23:45:67:89:AB'.
+            ::        
+                n_ap.set_authentication_address_filter(allow=('01:23:45:67:89:AB', 'FF:FF:FF:FF:FF:FF'))
+                n_ap.set_authentication_address_filter(allow=(0x0123456789AB, 0xFFFFFFFFFFFF))
+
+        * **Allow a range of clients**:
+            To only accept clients with MAC address starint with '01:23:45'.
+            ::        
+                n_ap.set_authentication_address_filter(allow=('01:23:45:00:00:00', 'FF:FF:FF:00:00:00'))
+                n_ap.set_authentication_address_filter(allow=(0x012345000000, 0xFFFFFF000000))
+        
+        * **Allow multiple ranges of clients**:
+            To only accept clients with MAC address starint with '01:23:45' and '40'
+            ::        
+                n_ap.set_authentication_address_filter(allow=[('01:23:45:00:00:00', 'FF:FF:FF:00:00:00'),
+                                                              ('40:00:00:00:00:00', 'FF:00:00:00:00:00')])
+                n_ap.set_authentication_address_filter(allow=[(0x012345000000, 0xFFFFFF000000),
+                                                              (0x400000000000, 0xFF0000000000)])
+        
+        * **Pre-defined filters**:
+            Pre-defined strings can be used instead of specific ranges.
+            ::        
+                n_ap.set_authentication_address_filter(allow='NONE')     # Same as allow=(0x000000000000, 0xFFFFFFFFFFFF)
+                n_ap.set_authentication_address_filter(allow='ALL')      # Same as allow=(0x000000000000, 0x000000000000)
+                n_ap.set_authentication_address_filter(allow='MANGO-W3') # Same as allow=(0x40d855402000, 0xFFFFFFFFF000)
+
         """
         filters = []
 
@@ -141,17 +188,50 @@ class WlanExpNodeAp(node.WlanExpNode):
             allow = [allow]
         
         for value in allow:
-            if type(value[0]) in [int, long]:
-                filters.append(value)
-            elif type(value[0]) is str:
-                try:
-                    import wlan_exp.util as util                    
-                    filters.append((util.str_to_mac_addr(value[0]), value[1]))
-                    
-                except TypeError:
-                    raise TypeError("MAC address is not valid")
+            # Process pre-defined strings
+            if type(value) is str:
+                if   (value == 'NONE'):
+                    filters.append((0x000000000000, 0xFFFFFFFFFFFF))
+                elif (value == 'ALL'):
+                    filters.append((0x000000000000, 0x000000000000))
+                elif (value == 'MANGO-W3'):
+                    filters.append((0x40d855402000, 0xFFFFFFFFF000))
+                else:
+                    msg  = "\n    String '{0}' not recognized.".format(value)
+                    msg += "\n    Please use 'NONE', 'ALL', 'MANGO-W3' or a (address, mask) tuple"
+                    raise AttributeError(msg)
+            
+            elif type(value) is tuple:
+                import wlan_exp.util as util
+
+                # Process address                
+                if type(value[0]) in [int, long]:
+                    address = value[0]
+                elif type(value[0]) is str:
+                    try:
+                        address = util.str_to_mac_addr(value[0])
+                    except:
+                        raise AttributeError("Address {0} is not valid".format(value[0]))
+                else:
+                    raise AttributeError("Address type {0} is not valid".format(type(value[0])))
+
+                # Process mask
+                if type(value[1]) in [int, long]:
+                    mask = value[1]
+                elif type(value[1]) is str:
+                    try:
+                        mask = util.str_to_mac_addr(value[1])
+                    except:
+                        raise AttributeError("Mask {0} is not valid".format(value[1]))
+                else:
+                    raise AttributeError("Mask type {0} is not valid".format(type(value[1])))
+                
+                filters.append((address, mask))
+                
             else:
-                raise TypeError("MAC address is not valid")
+                msg  = "\n    Value {0} with type {1} not recognized.".format(value, type(value))
+                msg += "\n    Please use 'NONE', 'ALL', 'MANGO-W3' or a (address, mask) tuple"
+                raise AttributeError(msg)
         
         self.send_cmd(cmds.NodeAPSetAuthAddrFilter(filters))
 

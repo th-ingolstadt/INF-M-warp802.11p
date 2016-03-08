@@ -41,7 +41,10 @@ NETWORK              = '10.0.0.0'
 USE_JUMBO_ETH_FRAMES = False
 NODE_SERIAL_LIST     = ['W3-a-00001', 'W3-a-00002']
 
+# BSS parameters
+SSID                 = "WARP Xput Example"
 CHANNEL              = 1
+BEACON_INTERVAL      = 100
 
 # Set the per-trial duration (in seconds)
 TRIAL_TIME           = 10
@@ -82,16 +85,16 @@ if len(n_ap_l) == 1 and len(n_sta_l) == 1:
     node1 = n_ap_l[0]
     node2 = n_sta_l[0]
 
-    # Configure BSS if necessary
-    if (node1.get_bss_info() is None):
-        node1.configure_bss(bssid=node1.wlan_mac_address, ssid="WARP-AP", channel=CHANNEL, beacon_interval=100)
+    # Configure the AP to reject authentication requests from wireless clients
+    #    - Uncomment this line to block any wireless associations during the experiment
+    # node1.set_authentication_address_filter(allow='NONE')
 
-    # Establish the association state between nodes
+    # Configure AP BSS
+    node1.configure_bss(bssid=node1.wlan_mac_address, ssid=SSID, channel=CHANNEL, beacon_interval=BEACON_INTERVAL)
+
+    # Establish the association between nodes
+    #     - This will change the STA to the appropriate channel
     node1.add_association(node2)
-
-    # Tune both nodes to the same channel
-    node1.configure_bss(channel=CHANNEL)
-    node2.configure_bss(channel=CHANNEL)
 
 elif len(n_ibss_l) == 2:
     # Setup the two nodes
@@ -102,8 +105,8 @@ elif len(n_ibss_l) == 2:
     bssid    = util.create_locally_administered_bssid(node1.wlan_mac_address)
 
     # Add both nodes to the new IBSS
-    node1.configure_bss(bssid=bssid, ssid='WARP Xput IBSS', channel=CHANNEL, beacon_interval=100)
-    node2.configure_bss(bssid=bssid, ssid='WARP Xput IBSS', channel=CHANNEL, beacon_interval=100)
+    node1.configure_bss(bssid=bssid, ssid=SSID, channel=CHANNEL, beacon_interval=BEACON_INTERVAL)
+    node2.configure_bss(bssid=bssid, ssid=SSID, channel=CHANNEL, beacon_interval=BEACON_INTERVAL)
 
 else:
     print("ERROR: Node configurations did not match requirements of script.\n")

@@ -49,6 +49,10 @@ NODE_SERIAL_LIST     = ['W3-a-00001', 'W3-a-00002']
 # Set the per-trial duration (in seconds)
 TRIAL_TIME           = 5
 
+# BSS parameters
+SSID                 = "WARP Prog Atten Ex"
+CHANNEL              = 1
+BEACON_INTERVAL      = 100
 
 
 #-------------------------------------------------------------------------
@@ -91,6 +95,16 @@ else:
 #  Setup
 #
 print("\nExperimental Setup:")
+
+# Configure the AP to reject authentication requests from wireless clients
+#    - Uncomment this line to block any wireless associations during the experiment
+# n_ap.set_authentication_address_filter(allow='NONE')
+
+# Set association state
+#     - Configure AP BSS
+#     - Create Associatiion between AP and STA
+n_ap.configure_bss(bssid=n_ap.wlan_mac_address, ssid=SSID, channel=CHANNEL, beacon_interval=BEACON_INTERVAL)
+n_ap.add_association(n_sta)
 
 # Set the rate of both nodes to 18 Mbps (mcs = 3, phy_mode = 'NONHT')
 mcs       = 3

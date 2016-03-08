@@ -93,7 +93,7 @@ else:
 print("\nConfiguring Network\n")
 
 # Set the AP address filter to not allow anyone to join while we configure the network
-n_ap.set_authentication_address_filter((0x000000000000, 0xFFFFFFFFFFFF))
+n_ap.set_authentication_address_filter("NONE")
 
 # Configure the network of nodes
 for node in nodes:
@@ -112,8 +112,12 @@ ssid     = bss_info['ssid']
 print("AP SSID: '{0}'\n".format(ssid))
 
 # Add each whitelisted device to the AP authenticaiton address filter
+filter_list = []
+
 for device in WLAN_DEVICE_LIST:
-    n_ap.set_authentication_address_filter((device[0], 0xFFFFFFFFFFFF))
+    filter_list.append((device[0], 0xFFFFFFFFFFFF))
+
+n_ap.set_authentication_address_filter(filter_list)
 
 # Wait for devices to associate with the AP
 print("Waiting for devices to join:")

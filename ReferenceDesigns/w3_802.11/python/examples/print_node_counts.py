@@ -8,7 +8,7 @@ License:   Copyright 2014-2015, Mango Communications. All rights reserved.
 This module provides a simple WLAN Exp example.
 
 Hardware Setup:
-  - Requires 1+ WARP v3 node running 802.11 Reference Design v0.895 or later
+  - Requires 1+ WARP v3 node running 802.11 Reference Design v1.5 or later
   - PC NIC and ETH B on WARP v3 nodes connected to common Ethernet switch
 
 Required Script Changes:
@@ -30,12 +30,11 @@ import wlan_exp.util as util
 # NOTE: change these values to match your experiment / network setup
 NETWORK              = '10.0.0.0'
 USE_JUMBO_ETH_FRAMES = False
-NODE_SERIAL_LIST     = ['W3-a-00001']
+NODE_SERIAL_LIST     = ['W3-a-00006']
 
 # TOP Level script variables
 PROMISCUOUS_COUNTS   = True
 CHANNEL              = 6
-
 
 nodes = []
 
@@ -65,9 +64,15 @@ def initialize_experiment():
 
     # Set the promiscuous counts mode
     for node in nodes:
+        # Configure BSS
+        #     - The node should be configured as a passive monitor:
+        #         - No SSID
+        #         - No beacons if AP / IBSS
+        #       
+        node.configure_bss(bssid=node.wlan_mac_address, ssid="", channel=CHANNEL, beacon_interval=None)
+        
         node.counts_configure_txrx(promisc_counts=PROMISCUOUS_COUNTS)
         node.reset(txrx_counts=True)
-        node.configure_bss(channel=CHANNEL)
         node.set_low_to_high_rx_filter(mac_header='ALL_MPDU', fcs='GOOD')
 
 

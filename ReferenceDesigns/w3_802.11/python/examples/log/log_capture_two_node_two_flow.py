@@ -45,7 +45,11 @@ NODE_SERIAL_LIST     = ['W3-a-00001', 'W3-a-00002']
 
 AP_HDF5_FILENAME     = "ap_two_node_two_flow_capture.hdf5"
 STA_HDF5_FILENAME    = "sta_two_node_two_flow_capture.hdf5"
+
+# BSS parameters
+SSID                 = "WARP Log 2 Node 2 Flow Ex"
 CHANNEL              = 1
+BEACON_INTERVAL      = 100
 
 # Set the experiment duration (in seconds)
 TRIAL_TIME           = 60
@@ -109,7 +113,15 @@ if len(n_ap_l) == 1 and len(n_sta_l) == 1:
     n_ap  = n_ap_l[0]
     n_sta = n_sta_l[0]
 
+    # Configure the AP to reject authentication requests from wireless clients
+    #    - Uncomment this line to block any wireless associations during the experiment
+    # n_ap.set_authentication_address_filter(allow='NONE')
+
+    # Configure AP BSS
+    n_ap.configure_bss(bssid=n_ap.wlan_mac_address, ssid=SSID, channel=CHANNEL, beacon_interval=BEACON_INTERVAL)
+
     # Establish the association state between nodes
+    #     - This will change the STA to the appropriate channel
     n_ap.add_association(n_sta)
 else:
     print("ERROR: Node configurations did not match requirements of script.\n")

@@ -62,7 +62,7 @@ class WlanExpNodeIBSS(node.WlanExpNode):
         return super(WlanExpNodeIBSS, self).counts_get_txrx(device_list, return_zeroed_counts_if_none)
 
 
-    def configure_bss(self, bssid=False, ssid=None, channel=None, beacon_interval=False):
+    def configure_bss(self, bssid=False, ssid=None, channel=None, beacon_interval=False, ht_capable=None):
         """Configure the BSS information of the node
         
         Each node is either a member of no BSS (colloquially "unassociated") 
@@ -84,11 +84,10 @@ class WlanExpNodeIBSS(node.WlanExpNode):
                 (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds);
                 A value of None will disable beacons;  A value of False will not 
                 update the current beacon interval.
-        
-        ..note::  For the AP, the bssid is not configurable and will always be
-            the MAC address of the node.
+            ht_capable (bool):  Is the PHY mode HTMF (True) or NONHT (False)?        
         """
-        self.send_cmd(cmds.NodeConfigBSS(bssid=bssid, ssid=ssid, channel=channel, beacon_interval=beacon_interval))
+        self.send_cmd(cmds.NodeConfigBSS(bssid=bssid, ssid=ssid, channel=channel, 
+                                         beacon_interval=beacon_interval, ht_capable=ht_capable))
 
 
     def disassociate(self, device_list=None):
