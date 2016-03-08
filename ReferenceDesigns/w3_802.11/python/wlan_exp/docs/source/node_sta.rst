@@ -14,10 +14,18 @@ Class
 .. autoclass:: wlan_exp.node_sta.WlanExpNodeSta
 
 
+STA Specific Implementation of Node Commands
+............................................
+These commands have Station specific implementations.
+
+.. autoclass:: wlan_exp.node_ap.WlanExpNodeSta
+   :members: configure_bss, disassociate
+
+
 STA Commands
 ............
 These commands are specific to STA nodes.
 
 .. autoclass:: wlan_exp.node_sta.WlanExpNodeSta
-   :members: sta_configure, disassociate, scan_start, set_scan_parameters, scan_enable, scan_disable, join, scan_and_join
+   :members: set_aid, join_network, is_joining
 

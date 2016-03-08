@@ -136,7 +136,7 @@ for node in nodes:
     node.set_tx_rate_unicast(mcs, phy_mode, curr_assoc=True, new_assoc=True)
     node.log_configure(log_full_payloads=False)
     node.reset(log=True, txrx_counts=True, ltg=True, queue_data=True) # Do not reset associations/bss_info
-    node.set_channel(CHANNEL)
+    node.configure_bss(channel=CHANNEL)
 
 # Add the current time to all the nodes
 util.broadcast_cmd_write_time_to_logs(network_config)

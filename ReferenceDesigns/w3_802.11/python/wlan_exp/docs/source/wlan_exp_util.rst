@@ -35,32 +35,27 @@ Transmit / Receive Rate Definitions
 ...................................
 Supported transmit / receive rates for WlanExpNode 
 
-.. autoattribute:: wlan_exp.util.wlan_rates
-    :annotation: = Array of rate dictionaries 
+.. autoattribute:: wlan_exp.util.phy_modes
+    :annotation: = Dictionary of PHY mode constants
 
-.. autofunction:: wlan_exp.util.find_tx_rate_by_index
+.. autoattribute:: wlan_exp.util.phy_samp_rates
+    :annotation: = Dictionary of PHY sample rate constants
 
-.. autofunction:: wlan_exp.util.tx_rate_to_str
+.. autofunction:: wlan_exp.util.get_rate_info
 
-.. autofunction:: wlan_exp.util.tx_rate_index_to_str
+.. autofunction:: wlan_exp.util.rate_info_to_str
 
 
 Channel Definitions
 ...................
 Supported channels for WlanExpNode 
 
-.. autoattribute:: wlan_exp.util.wlan_channel
-    :annotation: = Array of channel dictionaries 
+.. autoattribute:: wlan_exp.util.wlan_channels
+    :annotation: = Supported channels
 
-.. autofunction:: wlan_exp.util.find_channel_by_index
+.. autofunction:: wlan_exp.util.get_channel_info
 
-.. autofunction:: wlan_exp.util.find_channel_by_channel_number
-
-.. autofunction:: wlan_exp.util.find_channel_by_freq
-
-.. autofunction:: wlan_exp.util.channel_to_str
-
-.. autofunction:: wlan_exp.util.channel_freq_to_str
+.. autofunction:: wlan_exp.util.channel_info_to_str
 
 
 Antenna Mode Definitions
@@ -129,8 +124,6 @@ Node Utility Functions
 
 Misc Utility Functions
 ......................
-
-.. autofunction:: wlan_exp.util.create_bss_info
 
 .. autofunction:: wlan_exp.util.create_locally_administered_bssid
 

@@ -196,105 +196,61 @@ def rate_info_to_str(rate_info):
 # -----------------------------------------------------------------------------
 # WLAN Exp Channel definitions
 # -----------------------------------------------------------------------------
-wlan_channel = [{'index' :   1, 'channel' :   1, 'freq': 2412, 'desc' : '2.4 GHz Band'},
-                {'index' :   2, 'channel' :   2, 'freq': 2417, 'desc' : '2.4 GHz Band'},
-                {'index' :   3, 'channel' :   3, 'freq': 2422, 'desc' : '2.4 GHz Band'},
-                {'index' :   4, 'channel' :   4, 'freq': 2427, 'desc' : '2.4 GHz Band'},
-                {'index' :   5, 'channel' :   5, 'freq': 2432, 'desc' : '2.4 GHz Band'},
-                {'index' :   6, 'channel' :   6, 'freq': 2437, 'desc' : '2.4 GHz Band'},
-                {'index' :   7, 'channel' :   7, 'freq': 2442, 'desc' : '2.4 GHz Band'},
-                {'index' :   8, 'channel' :   8, 'freq': 2447, 'desc' : '2.4 GHz Band'},
-                {'index' :   9, 'channel' :   9, 'freq': 2452, 'desc' : '2.4 GHz Band'},
-                {'index' :  10, 'channel' :  10, 'freq': 2457, 'desc' : '2.4 GHz Band'},
-                {'index' :  11, 'channel' :  11, 'freq': 2462, 'desc' : '2.4 GHz Band'},
-                {'index' :  36, 'channel' :  36, 'freq': 5180, 'desc' : '5 GHz Band'},
-                {'index' :  40, 'channel' :  40, 'freq': 5200, 'desc' : '5 GHz Band'},
-                {'index' :  44, 'channel' :  44, 'freq': 5220, 'desc' : '5 GHz Band'},
-                {'index' :  48, 'channel' :  48, 'freq': 5240, 'desc' : '5 GHz Band'}]
+# Supported channels
+wlan_channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 36, 40, 44, 48]
 
 
-def find_channel_by_index(index):
-    """Return the wlan_channel entry for the given index.
+def get_channel_info(channel):
+    """Get channel info dictionary based on channel number
 
     Args:
-        index (int):  Index into wlan_rate array.
-
-    Returns:
-        channel (dict):  Channel dictionary corresponding to the index
-    """
-    return _find_param_by_index(index, wlan_channel, 'channel')
-
-# End def
-
-
-def find_channel_by_channel_number(channel_number):
-    """Return the wlan_channel entry for the given channel number.
-
-    Args:
-        channel_number (int):  Number of 802.11 channel
+        channel (int):  Number of 802.11 channel
             (https://en.wikipedia.org/wiki/List_of_WLAN_channels)
 
     Returns:
-        channel (dict):  Channel dictionary corresponding to the channel number
+        channel_info (dict):  Channel info dictionary
     """
-    return _find_param_by_name('channel', channel_number, wlan_channel, 'channel')
+    channel_info = {
+         1 : {'channel' :   1, 'freq': 2412, 'desc' : '2.4 GHz Band'},
+         2 : {'channel' :   2, 'freq': 2417, 'desc' : '2.4 GHz Band'},
+         3 : {'channel' :   3, 'freq': 2422, 'desc' : '2.4 GHz Band'},
+         4 : {'channel' :   4, 'freq': 2427, 'desc' : '2.4 GHz Band'},
+         5 : {'channel' :   5, 'freq': 2432, 'desc' : '2.4 GHz Band'},
+         6 : {'channel' :   6, 'freq': 2437, 'desc' : '2.4 GHz Band'},
+         7 : {'channel' :   7, 'freq': 2442, 'desc' : '2.4 GHz Band'},
+         8 : {'channel' :   8, 'freq': 2447, 'desc' : '2.4 GHz Band'},
+         9 : {'channel' :   9, 'freq': 2452, 'desc' : '2.4 GHz Band'},
+        10 : {'channel' :  10, 'freq': 2457, 'desc' : '2.4 GHz Band'},
+        11 : {'channel' :  11, 'freq': 2462, 'desc' : '2.4 GHz Band'},
+        36 : {'channel' :  36, 'freq': 5180, 'desc' : '  5 GHz Band'},
+        40 : {'channel' :  40, 'freq': 5200, 'desc' : '  5 GHz Band'},
+        44 : {'channel' :  44, 'freq': 5220, 'desc' : '  5 GHz Band'},
+        48 : {'channel' :  48, 'freq': 5240, 'desc' : '  5 GHz Band'}}
+
+    # Check input arguments
+    if (channel not in wlan_channels):
+        raise AttributeError("Channel must be list of supported channels.")
+
+    return channel_info[channel]
 
 # End def
 
 
-def find_channel_by_freq(freq):
-    """Return the wlan_channel entry for the given frequency.
+def channel_info_to_str(channel_info):
+    """Convert a channel info dictionary to a string.
 
     Args:
-        freq (int):  Frequency (in MHz) of the channel
-            (https://en.wikipedia.org/wiki/List_of_WLAN_channels)
-
-    Returns:
-        channel (dict):  Channel dictionary corresponding to the frequency
-    """
-    return _find_param_by_name('freq', freq, wlan_channel, 'channel')
-
-# End def
-
-
-def channel_to_str(channel):
-    """Convert a wlan_channel entry to a string.
-
-    Args:
-        channel (dict):  Channel dictionary
+        channel_info (dict):  Channel info dictionary
 
     Returns:
         output (str):  String representation of the 'channel'
     """
     msg = ""
-
-    if type(channel) is int:
-        tmp_chan = find_channel_by_channel_number(channel)
-    elif type(channel) is dict:
-        tmp_chan = channel
+    if type(channel_info) is dict:
+        msg += "{0:4d} ({1} MHz)".format(channel_info['channel'], channel_info['freq'])
     else:
-        print("Invalid channel type.  Needed int or dict, provided {0}.".format(type(channel)))
-        return msg
-
-    msg += "{0:4d} ({1} MHz)".format(tmp_chan['channel'], tmp_chan['freq'])
-
+        print("Invalid channel info type.  Needed dict, provided {0}.".format(type(channel_info)))
     return msg
-
-# End def
-
-
-def channel_freq_to_str(freq):
-    """Convert a channel frequency to a channel string.
-
-    Args:
-        freq (int):  Frequency (in MHz) of the channel
-            (https://en.wikipedia.org/wiki/List_of_WLAN_channels)
-
-    Returns:
-        output (str):  String representation of the channel corresponding to 'freq'
-    """
-    channel = find_channel_by_freq(freq)
-    return channel_to_str(channel)
 
 # End def
 
@@ -828,37 +784,6 @@ def ver_code_to_str(ver_code):
     """Convert a WLAN Exp version code to a string."""
     import wlan_exp.version as version
     return version.wlan_exp_ver_code_to_str(ver_code)
-
-# End def
-
-
-def create_bss_info(bssid, ssid, channel, ibss_status=False, beacon_interval=100):
-    """Create a Basic Service Set (BSS) information structure.
-
-    This method will create a dictionary that contains all necessary information
-    for a BSS for the device.  This is the same structure that is used by the
-    BSS_INFO log entry.
-
-    Args:
-        ssid (str):  SSID string (Must be 32 characters or less)
-        channel (int, dict in util.wlan_channel array): Channel on which the BSS operates
-            (either the channel number as an it or an entry in the wlan_channel array)
-        bssid (int, str):  48-bit ID of the BSS either as a integer or colon delimited
-            string of the form:  XX:XX:XX:XX:XX:XX
-        ibss_status (bool, optional): Status of the
-            BSS:
-                * **True**  --> Capabilities field = 0x2 (BSS_INFO is for IBSS)
-                * **False** --> Capabilities field = 0x1 (BSS_INFO is for BSS)
-        beacon_interval (int): Integer number of beacon Time Units in [1, 65535]
-            (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds)
-
-    Returns:
-        bss_info (BSSInfo()):  A BSS Information object (defined in wlan_exp.info)
-    """
-    import wlan_exp.info as info
-
-    return info.BSSInfo(init_fields=True, bssid=bssid, ssid=ssid, channel=channel,
-                        ibss_status=ibss_status, beacon_interval=beacon_interval)
 
 # End def
 

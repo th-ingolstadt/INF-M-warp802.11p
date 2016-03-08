@@ -34,20 +34,27 @@ class WlanExpNodeSta(node.WlanExpNode):
     """
     
     #-------------------------------------------------------------------------
-    # WLAN Exp Commands for the Node
+    # Override WLAN Exp Node Commands 
     #-------------------------------------------------------------------------
-    def sta_configure(self, beacon_ts_update=None):
-        """Configure the STA behavior.
-
-        By default all attributes are set to None.  Only attributes that 
-        are given values will be updated on the node.  If an attribute is
-        not specified, then that attribute will retain the same value on
-        the node.
-
+    def configure_bss(self, bssid=False, ssid=None, channel=None):
+        """Configure the BSS information of the node
+        
+        Each node is either a member of no BSS (colloquially "unassociated") 
+        or a member of one BSS.  A node requires a minimum valid bss_info to 
+        be a member of a BSS. The minimum valid bss_info has:
+            #. BSSID: 48-bit MAC address
+            #. Channel: Logical channel for Tx/Rx by BSS members
+            #. SSID: Variable length string (ie the name of the network)
+            
+        This method is used to manipulate node parameters that affect BSS state
+        
         Args:
-            beacon_ts_update (bool): Enable timestamp updates from beacons (Default value on Node: TRUE)
+            bssid (int, str):  48-bit ID of the BSS either as a integer or 
+                colon delimited string of the form:  XX:XX:XX:XX:XX:XX
+            ssid (str):  SSID string (Must be 32 characters or less)
+            channel (int): Channel number on which the BSS operates
         """
-        self.send_cmd(cmds.NodeSTAConfigure(beacon_ts_update))
+        self.send_cmd(cmds.NodeConfigBSS(bssid=bssid, ssid=ssid, channel=channel))
 
 
     def disassociate(self, device_list):
@@ -64,146 +71,10 @@ class WlanExpNodeSta(node.WlanExpNode):
         raise NotImplementedError
 
 
-    def scan_start(self, time_per_channel=0.1, channel_list=None, ssid=None, bssid=None):
-        """Scan the channel list once for BSS networks.
-        
-        Args:
-            time_per_channel (float, int, optional):  Time (in float sec or int microseconds) to spend on each channel
-            channel_list (list of int, list of dict in util.wlan_channel array, optional): Channel 
-                to scan.  Defaults to all channels in util.py wlan_channel array.  Can provide either an 
-                entry or list of entries from wlan_channel array or a channel number or list of channel numbers        
-            ssid (str, optional):                     SSID to scan for as part of probe request.
-                A value of None means that the node will scan for all SSIDs
-            bssid (int, optional):                    BSSID to scan for as part of probe request.
-                A value of None means that the node will scan for all BSSIDs (address: 0xFFFFFFFFFFFF)
 
-        Returns:
-            bss_infos (list of dict):  BSS_INFO dictionaries are defined in wlan_exp.log.entry_types
-        """
-        import time
-        import wlan_exp.util as util
-
-        wait_time = 0
-        idle_time_per_loop = 1.0
-
-        if channel_list is None:
-            wait_time = time_per_channel * (len(util.wlan_channel) + 1)
-        else:
-            wait_time = time_per_channel * (len(channel_list) + 1)
-        
-        self.set_scan_parameters(time_per_channel, idle_time_per_loop, channel_list)
-        self.scan_enable(ssid, bssid)
-        time.sleep(wait_time)
-        self.scan_disable()
-
-        return self.get_bss_info('ASSOCIATED_BSS')        
-    
-       
-    def set_scan_parameters(self, time_per_channel=0.1, idle_time_per_loop=1.0, channel_list=None):
-        """Set the scan parameters.
-        
-        Args:
-            time_per_channel (float, int, optional):    Time (in float sec or int microseconds) to spend on each channel
-                (defaults to 0.1 sec)
-            idle_time_per_loop (float, int, optional):  Time (in float sec or int microseconds) to wait between each scan loop 
-                (defaults to 1 sec)
-            channel_list (list of int, list of dict in util.wlan_channel array, optional): Channel 
-                to scan.  Defaults to all channels in util.py wlan_channel array.  Can provide either an 
-                entry or list of entries from wlan_channel array or a channel number or list of channel numbers        
-        
-        .. note::  If the channel list is not specified, then it will not be updated on the node (ie it will use 
-            the current channel list)
-        """
-        self.send_cmd(cmds.NodeProcScanParam(cmds.CMD_PARAM_WRITE, time_per_channel, idle_time_per_loop, channel_list))
-    
-    
-    def scan_enable(self, ssid=None, bssid=None):
-        """Enables the scan utilizing the current scan parameters.
-        
-        Args:
-            ssid (str, optional):                     SSID to scan for as part of probe request.
-                A value of None means that the node will scan for all SSIDs
-            bssid (int, optional):                    BSSID to scan for as part of probe request.
-                A value of None means that the node will scan for all BSSIDs (address: 0xFFFFFFFFFFFF)
-        """
-        self.send_cmd(cmds.NodeProcScan(enable=True, ssid=ssid, bssid=bssid))
-    
-    
-    def scan_disable(self):
-        """Disables the current scan."""
-        self.send_cmd(cmds.NodeProcScan(enable=False, ssid=None, bssid=None))
-
-
-    def join(self, bss_info, timeout=5.0):
-        """Join the provided BSS.
-        
-        Args:
-            bss_info (dict):                 BSS_INFO dictionary (defined in wlan_exp.log.entry_types)
-                describing the BSS to join
-            timeout (float, int, optional):  Time (in float sec or int microseconds) to try to join the network 
-                before timing out (defaults to 5.0 sec)
-            
-        Returns:
-            status (bool):  
-                * True      -- Inidcates you successfully joined the BSS
-                * False     -- Indicates that you were not able to join the BSS
-        """
-        return self.send_cmd(cmds.NodeProcJoin(bss_info, timeout), timeout=timeout)
-    
-            
-    def scan_and_join(self, ssid, timeout=5.0):
-        """Scan for the given network and try to join.
-        
-        Args:
-            ssid (str, optional):            SSID to scan for as part of probe request.
-            timeout (float, int, optional):  Time (in float sec or int microseconds) to scan for the network 
-                before timing out; Time to try to join the network before timing out (defaults to 5.0 sec)
-
-        Returns:
-            status (bool):
-                * True      -- Inidcates you successfully joined the BSS
-                * False     -- Indicates that you were not able to find or join the BSS
-
-        .. note:: The timeout for scan and join is double for a STA.  Basically, the
-            timeout is used once for the scan process and then once for the join process.
-        """
-        return self.send_cmd(cmd=cmds.NodeProcScanAndJoin(ssid=ssid, bssid=None, timeout=timeout), timeout=(2*timeout))
-
-
-    def set_association(self, bss_info, aid):
-        """Set the association state of the STA.
-        
-        Args:
-            bss_info (dict):  BSS_INFO dictionary (defined in wlan_exp.log.entry_types)
-                describing the BSS to associate
-            aid (int):        Association ID - This is only used by WARP stations to set the 
-                value on the hex display.  The AP will manage the actual AID internally.
-            
-        Returns:
-            status (bool):  
-                * True      -- Inidcates you successfully set the association state
-                * False     -- Indicates that you were not able to set the association state
-
-        .. note:: Example for to set the association state of STA "1" to an AP with MAC 
-            address 0x0123456789AB and ssid 'My Network' on channel 6:
-                bss_info = util.create_bss_info(bssid=0x0123456789AB, ssid='My Network', channel=6)
-                sta.set_association(bss_info=bss_info, aid=1)
-        """
-        import wlan_exp.cmds as cmds
-        import wlan_exp.device as device
-
-        # Extract information from BSS Info
-        device  = device.WlanDevice(mac_address=bss_info['bssid'], name='AP')
-        channel = bss_info['chan_num']
-        ssid    = bss_info['ssid']
-
-        # Send association command to the STA        
-        if self.send_cmd(cmds.NodeSTAAddAssociation(device=device, aid=aid, channel=channel, ssid=ssid)):
-            return True
-        else:
-            return False
-
-
+    #-------------------------------------------------------------------------
+    # STA specific WLAN Exp Commands 
+    #-------------------------------------------------------------------------
     def _check_allowed_rate(self, mcs, phy_mode, verbose=False):
         """Check that rate parameters are allowed
 
@@ -218,6 +89,134 @@ class WlanExpNodeSta(node.WlanExpNode):
         #  Allow all supported rates for now
 
         return self._check_supported_rate(mcs, phy_mode, verbose)
+
+
+
+    #-------------------------------------------------------------------------
+    # STA specific WLAN Exp Commands 
+    #-------------------------------------------------------------------------
+    def set_aid(self, aid):
+        """Set the Association ID (AID) of the STA
+        
+        Args:
+            aid (int): Association ID (must be in [1, 255])
+        """
+        self.send_cmd(cmds.NodeSTASetAID(aid))
+    
+
+    def join_network(self, ssid, bssid=None, channel=None, timeout=5.0):
+        """Join the specified network (BSS).
+
+        By specifying the SSID, the STA will try to join the given network.  If
+        the bssid and channel of the network are also known, they can be 
+        provided.  Otherwise, the STA will scan for the given SSID to find the 
+        corresponding bssid and channel.  If the SSID is None, then any 
+        on-going join process will be halted.  
+        
+        If the node is currently associated with the given BSS, then the node
+        state is not changed and this method will return "success" immediately.
+        
+        By default, the join process has a timeout that will automatically
+        halt the join process once the timeout is exceeded.  Depending on the 
+        scan parameters, this timeout value may need to be adjusted to allow
+        the STA to scan all channels before the timeout period is exceeded.  
+        If the timeout is None, then the method will return immediately and
+        the methods is_joining() and get_bss_info() can be used to determine 
+        if the STA has joined the BSS.
+        
+        Args:
+            ssid (str):  SSID string (Must be 32 characters or less); a value
+                of None will stop any current join process.
+            bssid (int, str):  48-bit ID of the BSS either as a integer or 
+                colon delimited string of the form:  XX:XX:XX:XX:XX:XX
+            channel (int): Channel number on which the BSS operates
+            timeout (float):  Time to complete the join process; a value of 
+                None will cause the method to return immediately and allow 
+                the join process to continue forever until the node has joined
+                the network or the join has failed.
+                
+        
+        ..note::  This method will use the current scan parameters.
+        
+        """
+        status = True
+        
+        # Check if node is currently associated with ssid / bssid
+        #     - _check_associated_node() returns True if ssid is None
+        if self._check_associated_node(ssid, bssid):
+            # Still need to send the Join command to stop join process
+            if ssid is None:
+                self.send_cmd(cmds.NodeSTAJoin(ssid=None))
+        else:
+            # Perform the join process
+
+            # Send the join command
+            status = self.send_cmd(cmds.NodeSTAJoin(ssid=ssid, bssid=bssid, channel=channel))
+            
+            if timeout is not None:
+                import time
+                
+                # Get the start time so that the timeout can be enforced
+                start_time = time.time()
+
+                # Check when join process completes that STA has joined BSS                
+                while ((time.time() - start_time) < timeout):
+                    if self.is_joining():
+                        # Sleep for 0.1 seconds so we don't flood the node
+                        time.sleep(0.1)
+                    else:
+                        status = self._check_associated_node(ssid, bssid)
+                        break
+        
+        return status        
+
+
+    def is_joining(self):
+        """Is the node currently in the join process?
+        
+        Returns:
+            status (bool):  
+                * True      -- Inidcates node is currently in the join process
+                * False     -- Indicates node is not currently in the join process
+        """
+        return self.send_cmd(cmds.NodeSTAJoinStatus())
+
+
+
+    #-------------------------------------------------------------------------
+    # Internal STA methods
+    #-------------------------------------------------------------------------
+    def _check_associated_node(self, ssid, bssid):
+        """Check if node is currently associated to the given BSS
+        
+        This method only checks that the bss_info of the node matches the
+        provided ssid / bssid and is not a substitute for is_associated().
+        
+        This method will only check the bssid after it matches the SSID.  If
+        either argument is None, then it will not be checked.  If SSID is 
+        None, then the method will return True.
+        
+        Args:
+            ssid  (str):  SSID of the BSS
+            bssid (str):  BSSID of the BSS
+
+        Returns:
+            associated (bool): Do the SSID / BSSID matche the BSS of the node?
+        """
+        if ssid is not None:
+            bss_info = self.get_bss_info()
+        
+            if bss_info is None:
+                return False
+            
+            if (bss_info['ssid'] != ssid):
+                return False
+        
+            if bssid is not None:
+                if (bss_info['bssid'] != bssid):
+                    return False
+        
+        return True
 
 
 
@@ -248,7 +247,7 @@ class WlanExpNodeSta(node.WlanExpNode):
     def __repr__(self):
         """Return node name and description"""
         msg = super(WlanExpNodeSta, self).__repr__()
-        msg = "WLAN EXP STA " + msg
+        msg = "WLAN EXP STA  " + msg
         return msg
 
 # End Class WlanExpNodeSta

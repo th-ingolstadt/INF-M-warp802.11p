@@ -28,29 +28,32 @@ import wlan_exp.transport.transport_eth_ip_udp as transport
 
 
 __all__ = [# Log command classes
-           'LogGetEvents', 'LogConfigure', 'LogGetStatus', 'LogGetCapacity', 'LogAddExpInfoEntry',
-           'LogAddCountsTxRx',
+           'LogGetEvents', 'LogConfigure', 'LogGetStatus', 'LogGetCapacity', 
+           'LogAddExpInfoEntry', 'LogAddCountsTxRx',
            # Counts command classes
            'CountsConfigure', 'CountsGetTxRx',
            # LTG classes
            'LTGConfigure', 'LTGStart', 'LTGStop', 'LTGRemove', 'LTGStatus',
            # Node command classes
-           'NodeResetState', 'NodeConfigure', 'NodeProcWLANMACAddr', 'NodeProcTime',
-           'NodeSetLowToHighFilter', 'NodeProcChannel', 'NodeProcRandomSeed', 'NodeLowParam',
-           'NodeProcTxPower', 'NodeProcTxRate', 'NodeProcTxAntMode', 'NodeProcRxAntMode',
+           'NodeResetState', 'NodeConfigure', 'NodeProcWLANMACAddr', 
+           'NodeProcTime', 'NodeSetLowToHighFilter', 'NodeProcRandomSeed', 
+           'NodeLowParam', 'NodeProcTxPower', 'NodeProcTxRate', 
+           'NodeProcTxAntMode', 'NodeProcRxAntMode',
+           # Scan command classes
+           'NodeProcScanParam', 'NodeProcScan', 
            # Association command classes
-           'NodeGetSSID', 'NodeDisassociate', 'NodeGetStationInfo', 'NodeGetBSSInfo',
+           'NodeConfigBSS', 'NodeDisassociate', 'NodeGetStationInfo', 
+           'NodeGetBSSInfo',
            # Queue command classes
            'QueueTxDataPurgeAll',
            # AP command classes
-           'NodeAPConfigure', 'NodeAPProcDTIMPeriod', 'NodeAPAddAssociation', 'NodeAPSetSSID',
-           'NodeAPSetAuthAddrFilter',
+           'NodeAPConfigure', 'NodeAPAddAssociation', 'NodeAPSetAuthAddrFilter',
            # STA command classes
-           'NodeSTAConfigure',
+           'NodeSTASetAID', 'NodeSTAJoin', 'NodeSTAJoinStatus',
            # IBSS command classes
-           'NodeIBSSConfigure',
-           # Common command classes for STA / IBSS
-           'NodeProcScanParam', 'NodeProcScan', 'NodeProcJoin', 'NodeProcScanAndJoin'
+           # None
+           # User command classes
+           'UserSendCmd'
           ]
 
 
@@ -61,8 +64,8 @@ __all__ = [# Log command classes
 # Node commands and defined values
 CMDID_NODE_RESET_STATE                           = 0x001000
 CMDID_NODE_CONFIGURE                             = 0x001001
+CMDID_NODE_CONFIG_BSS                            = 0x001002
 CMDID_NODE_TIME                                  = 0x001010
-CMDID_NODE_CHANNEL                               = 0x001011
 CMDID_NODE_TX_POWER                              = 0x001012
 CMDID_NODE_TX_RATE                               = 0x001013
 CMDID_NODE_TX_ANT_MODE                           = 0x001014
@@ -91,11 +94,18 @@ CMD_PARAM_NODE_RESET_FLAG_LOG                    = 0x00000001
 CMD_PARAM_NODE_RESET_FLAG_TXRX_COUNTS            = 0x00000002
 CMD_PARAM_NODE_RESET_FLAG_LTG                    = 0x00000004
 CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE          = 0x00000008
-CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS           = 0x00000010
-CMD_PARAM_NODE_RESET_FLAG_BSS_INFO               = 0x00000020
+CMD_PARAM_NODE_RESET_FLAG_BSS                    = 0x00000010
+CMD_PARAM_NODE_RESET_FLAG_NETWORK_LIST           = 0x00000020
 
 CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE           = 0x00000001
+CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TIME_UPDATE    = 0x00000002
 CMD_PARAM_NODE_CONFIG_SET_WLAN_EXP_PRINT_LEVEL   = 0x80000000
+
+ERROR_CONFIG_BSS_BSSID_INVALID                   = 0x000001
+ERROR_CONFIG_BSS_BSSID_INSUFFICIENT_ARGUMENTS    = 0x000002
+ERROR_CONFIG_BSS_CHANNEL_INVALID                 = 0x000004
+ERROR_CONFIG_BSS_BEACON_INTERVAL_INVALID         = 0x000008
+ERROR_CONFIG_BSS_HT_CAPABLE_INVALID              = 0x000010
 
 CMD_PARAM_TIME_ADD_TO_LOG                        = 0x00000002
 CMD_PARAM_RSVD_TIME                              = 0xFFFFFFFF
@@ -103,9 +113,7 @@ CMD_PARAM_RSVD_TIME                              = 0xFFFFFFFF
 TIME_TYPE_FLOAT                                  = 0x00000000
 TIME_TYPE_INT                                    = 0x00000001
 
-CMD_PARAM_RSVD_CHANNEL                           = 0x00000000
-
-CMD_PARAM_RSVD_MAC_ADDR                          = 0xFFFFFFFF
+CMD_PARAM_RSVD_MAC_ADDR                          = 0x00000000
 
 CMD_PARAM_NODE_TX_POWER_LOW                      = 0x00000010
 CMD_PARAM_NODE_TX_POWER_ALL                      = 0x00000020
@@ -195,54 +203,43 @@ CMD_PARAM_COUNTS_RETURN_ZEROED_IF_NONE           = 0x80000000
 CMDID_QUEUE_TX_DATA_PURGE_ALL                    = 0x005000
 
 
-# Association commands and defined values
-CMDID_NODE_GET_SSID                              = 0x006000
-CMDID_GET_STATION_INFO                           = 0x006001
-CMDID_GET_BSS_INFO                               = 0x006002
-
-CMDID_NODE_DISASSOCIATE                          = 0x006010
-CMDID_NODE_ADD_ASSOCIATION                       = 0x006011
-
-CMD_PARAM_ADD_ASSOCIATION_ALLOW_TIMEOUT          = 0x00000001
-
-CMD_PARAM_GET_ALL_ASSOCIATED                     = 0xFFFFFFFFFFFFFFFF
-
-
-# Common commands for STA / IBSS
-CMDID_NODE_SCAN_PARAM                            = 0x007000
-CMDID_NODE_SCAN                                  = 0x007001
-CMDID_NODE_JOIN                                  = 0x007002
-CMDID_NODE_SCAN_AND_JOIN                         = 0x007003
+# Scan commands and defined values
+CMDID_NODE_SCAN_PARAM                            = 0x006000
+CMDID_NODE_SCAN                                  = 0x006001
 
 CMD_PARAM_NODE_SCAN_ENABLE                       = 0x00000001
 CMD_PARAM_NODE_SCAN_DISABLE                      = 0x00000000
 
-CMD_PARAM_NODE_JOIN_FAILED                       = 0xFFFFFFFF
+
+# Association commands and defined values
+CMDID_GET_STATION_INFO                           = 0x007001
+CMDID_GET_BSS_INFO                               = 0x007002
+
+CMDID_NODE_DISASSOCIATE                          = 0x007010
+CMDID_NODE_ADD_ASSOCIATION                       = 0x007011
+
+CMD_PARAM_ADD_ASSOCIATION_ALLOW_TIMEOUT          = 0x00000001
+
+CMD_PARAM_GET_ALL_ASSOCIATED                     = 0x0000000000000000
+
+CMD_PARAM_MAX_SSID_LEN                           = 32
+CMD_PARAM_RSVD_CHANNEL                           = 0
 
 
 # AP commands and defined values
 CMDID_NODE_AP_CONFIG                             = 0x100000
-CMDID_NODE_AP_DTIM_PERIOD                        = 0x100001
-CMDID_NODE_AP_SET_SSID                           = 0x100002
-CMDID_NODE_AP_SET_AUTHENTICATION_ADDR_FILTER     = 0x100003
-CMDID_NODE_AP_BEACON_INTERVAL                    = 0x100004
+CMDID_NODE_AP_SET_AUTHENTICATION_ADDR_FILTER     = 0x100001
 
-CMD_PARAM_NODE_AP_CONFIG_FLAG_POWER_SAVING       = 0x00000001
-
-CMD_PARAM_MAX_SSID_LEN                           = 32
+CMD_PARAM_AP_CONFIG_FLAG_DTIM_MULTICAST_BUFFER   = 0x00000001
 
 
 # STA commands and defined values
-CMDID_NODE_STA_CONFIG                            = 0x200000
+CMDID_NODE_STA_JOIN                              = 0x100000
+CMDID_NODE_STA_JOIN_STATUS                       = 0x100001
+CMDID_NODE_STA_SET_AID                           = 0x100002
 
 
-# STA commands and defined values
-CMDID_NODE_IBSS_CONFIG                           = 0x300000
-
-
-# Common command parameters between STA / IBSS
-CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TS_UPDATE      = 0x00000001
-CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TRANSMIT       = 0x00000002
+# IBSS commands and defined values
 
 
 # Developer commands and defined values
@@ -424,7 +421,6 @@ class LogAddExpInfoEntry(message.Cmd):
                 self.add_args(arg[0])
                 idx += 4
 
-
     def process_resp(self, resp):
         pass
 
@@ -481,7 +477,7 @@ class CountsConfigure(message.Cmd):
 class CountsGetTxRx(message.BufferCmd):
     """Command to get the counts from the node for a given node."""
     def __init__(self, node=None, return_zeroed_counts_if_none=False):
-        flags = 0
+        flags       = 0
 
         # Compute the argument for the BufferCmd flags
         if return_zeroed_counts_if_none:
@@ -490,11 +486,10 @@ class CountsGetTxRx(message.BufferCmd):
         # Call parent initialziation
         super(CountsGetTxRx, self).__init__(flags=flags)
         self.command = _CMD_GROUP_NODE + CMDID_COUNTS_GET_TXRX
+        mac_address  = None
 
         if node is not None:
             mac_address = node.wlan_mac_address
-        else:
-            mac_address = CMD_PARAM_GET_ALL_ASSOCIATED
 
         _add_mac_address_to_cmd(self, mac_address)
 
@@ -665,6 +660,7 @@ class LTGStatus(message.Cmd):
 # End Class
 
 
+
 #--------------------------------------------
 # Configure Node Attribute Commands
 #--------------------------------------------
@@ -676,8 +672,8 @@ class NodeResetState(message.Cmd):
                  [1] NODE_RESET_TXRX_STATS
                  [2] NODE_RESET_LTG
                  [3] NODE_RESET_TX_DATA_QUEUE
-                 [4] NODE_RESET_ASSOCIATIONS
-                 [5] NODE_RESET_BSS_INFO
+                 [4] NODE_RESET_FLAG_BSS
+                 [5] NODE_RESET_FLAG_NETWORK_LIST
     """
     def __init__(self, flags):
         super(NodeResetState, self).__init__()
@@ -694,9 +690,11 @@ class NodeConfigure(message.Cmd):
     """Command to configure flag parameters on the node
 
     Attributes:
-        dsss_enable -- Whether DSSS packets are received.
+        dsss_enable (bool) -- Whether DSSS packets are received.
+        beacon_mac_time_update (bool) -- Whether MAC time is updated from beacons
+        print_level (int) -- Controls WLAN Exp print level
     """
-    def __init__(self, dsss_enable=None, print_level=None):
+    def __init__(self, dsss_enable=None, beacon_mac_time_update=None, print_level=None):
         super(NodeConfigure, self).__init__()
         self.command = _CMD_GROUP_NODE + CMDID_NODE_CONFIGURE
 
@@ -708,6 +706,11 @@ class NodeConfigure(message.Cmd):
             mask += CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE
             if dsss_enable:
                 flags += CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE
+
+        if beacon_mac_time_update is not None:
+            mask += CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TIME_UPDATE
+            if beacon_mac_time_update:
+                flags += CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TIME_UPDATE
 
         if print_level is not None:
             level = CMD_PARAM_NODE_CONFIG_SET_WLAN_EXP_PRINT_LEVEL + print_level
@@ -749,7 +752,7 @@ class NodeProcWLANMACAddr(message.Cmd):
 
     def process_resp(self, resp):
         error_code    = CMD_PARAM_ERROR
-        error_msg     = "Could not get the WLAN MAC address on the node"
+        error_msg     = "Could not get / set the WLAN MAC address on the node"
         status_errors = { error_code : error_msg }
 
         if resp.resp_is_valid(num_args=3, status_errors=status_errors, name='from the WLAN Mac Address command'):
@@ -908,54 +911,6 @@ class NodeSetLowToHighFilter(message.Cmd):
 
     def process_resp(self, resp):
         pass
-
-# End Class
-
-
-class NodeProcChannel(message.Cmd):
-    """Command to get / set the channel of the node.
-
-    Attributes:
-        cmd       -- Sub-command to send over the command.  Valid values are:
-                       CMD_PARAM_READ
-                       CMD_PARAM_WRITE
-        channel   -- 802.11 Channel for the node.  Should be a valid channel defined
-                       in wlan_exp.util wlan_channel table.
-    """
-    channel  = None
-
-    def __init__(self, cmd, channel=None):
-        super(NodeProcChannel, self).__init__()
-        self.command = _CMD_GROUP_NODE + CMDID_NODE_CHANNEL
-
-        self.add_args(cmd)
-
-        if channel is not None:
-            self.channel = _get_channel_number(channel)
-
-        if self.channel is not None:
-            self.add_args(self.channel)
-        else:
-            self.add_args(CMD_PARAM_RSVD_CHANNEL)
-
-
-    def process_resp(self, resp):
-        import wlan_exp.util as util
-        error_code    = CMD_PARAM_ERROR
-        error_msg     = "Could not get / set the channel on the node"
-        status_errors = { error_code : error_msg }
-
-        if resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from the Channel command'):
-            args = resp.get_args()
-            if self.channel is not None:
-                if (args[1] != self.channel):
-                    msg  = "WARNING: Channel mismatch.\n"
-                    msg += "    Tried to set channel to {0}\n".format(util.channel_to_str(self.channel))
-                    msg += "    Actually set channel to {0}\n".format(util.channel_to_str(args[1]))
-                    print(msg)
-            return util.find_channel_by_channel_number(args[1])
-        else:
-            return None
 
 # End Class
 
@@ -1388,23 +1343,237 @@ class NodeProcRxAntMode(message.Cmd):
 
 
 #--------------------------------------------
-# Association Commands
+# Scan Commands
 #--------------------------------------------
-class NodeGetSSID(message.Cmd):
-    """Command to get the SSID of the node."""
-    ssid = None
+class NodeProcScanParam(message.Cmd):
+    """Command to configure the scan parameters
 
-    def __init__(self):
-        super(NodeGetSSID, self).__init__()
-        self.command = _CMD_GROUP_NODE + CMDID_NODE_GET_SSID
+    Attributes:
+        cmd                -- Command for Process Scan Param:
+                                CMD_PARAM_WRITE
+        time_per_channel   -- Time (in float sec) to spend on each channel (optional)
+        probe_tx_interval  -- Time (in float sec) to wait between each probe transmission (optional)
+        channel_list       -- Channels to scan (optional)
+                                Defaults to all channels in util.py wlan_channels array
+                                Can provide either a channel number or list of
+                                  channel numbers
+        ssid               -- SSID (optional)
+    """
+    time_factor = 6
+    time_type   = None
 
+    def __init__(self, cmd, time_per_channel=None, probe_tx_interval=None, channel_list=None, ssid=None):
+        super(NodeProcScanParam, self).__init__()
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_SCAN_PARAM
+
+        if (cmd == CMD_PARAM_WRITE):
+            self.add_args(cmd)
+
+            # Add the time_per_channel to the command
+            _add_time_to_cmd32(self, time_per_channel, self.time_factor)
+
+            # Add the probe_tx_interval to the command
+            _add_time_to_cmd32(self, probe_tx_interval, self.time_factor)
+
+            # Format the channel list
+            if channel_list is not None:
+
+                if type(channel_list) is list:
+                    self.add_args(len(channel_list))
+
+                    for channel in channel_list:
+                        self.add_channel(channel)
+                else:
+                    self.add_args(1)
+                    self.add_channel(channel_list)
+            else:
+                self.add_args(CMD_PARAM_RSVD)
+
+            # Add SSID
+            #     - SSID should be added last to the command so that the corresponding
+            #       C code does not have to compute the index of the next argument 
+            #       after the SSID
+            if ssid is not None:
+                _add_ssid_to_cmd(self, ssid)
+            else:
+                self.add_args(CMD_PARAM_RSVD)                
+                
+        else:
+            msg = "Unsupported command: {0}".format(cmd)
+            raise ValueError(msg)
+
+
+    def add_channel(self, channel):
+        """Internal method to add a channel"""
+        import wlan_exp.util as util
+        
+        if channel not in util.wlan_channels:
+            msg  = "Unknown channel:  {0}".format(channel)
+            raise ValueError(msg)
+
+        self.add_args(channel)
+        
 
     def process_resp(self, resp):
         error_code    = CMD_PARAM_ERROR
-        error_msg     = "Could not get SSID from Node."
+        error_msg     = "Could not set scan parameters."
         status_errors = { error_code : error_msg }
 
-        return _get_ssid_from_resp(resp, status_errors)
+        if (resp.resp_is_valid(num_args=1, status_errors=status_errors, name='from Scan parameter command')):
+            return True
+        else:
+            return False
+
+# End Class
+
+
+class NodeProcScan(message.Cmd):
+    """Command to enable / disable active scan
+
+    Attributes:
+        enable -- Whether we are enabling (True) or disabling (False) active scan
+    """
+    def __init__(self, enable=None):
+        super(NodeProcScan, self).__init__()
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_SCAN
+
+        if enable is None:        
+            self.add_args(CMD_PARAM_RSVD)
+        else:
+            if enable:
+                self.add_args(CMD_PARAM_NODE_SCAN_ENABLE)
+            else:
+                self.add_args(CMD_PARAM_NODE_SCAN_DISABLE)
+
+    def process_resp(self, resp):
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Scan command error."
+        status_errors = { error_code : error_msg }
+
+        if (resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from Scan command')):
+            args = resp.get_args()
+            if (args[1] == 1):
+                return True
+            else:
+                return False
+        else:
+            return False
+
+# End Class
+
+
+
+#--------------------------------------------
+# Association Commands
+#--------------------------------------------
+class NodeConfigBSS(message.Cmd):
+    """Command to configure the BSS on the node.
+
+    Command assumes all parameters are appropriately validated and processed.
+
+    Attributes:
+        bssid (int):  48-bit ID of the BSS either as a integer; A value of 
+            None will remove current BSS on the node (similar to node.reset(bss=True));
+            A value of False will not update the current bssid.
+        ssid (str):  SSID string (Must be 32 characters or less); A value of 
+            None will not update the current SSID.
+        channel (int): Channel on which the BSS operates; A value of None will
+            not update the current channel.
+        beacon_interval (int): Integer number of beacon Time Units in [1, 65535]
+            (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds);
+            A value of None will disable beacons;  A value of False will not 
+            update the current beacon interval.
+        ht_capable (bool):  TBD.  A value of None will not update the current
+            value of HT capable.
+
+    ..note::  This uses the BSSConfig() class defined in info.py to transfer 
+        the parameters to the node.
+    """
+    bssid           = None
+    ssid            = None
+    channel         = None
+    beacon_interval = None
+    ht_capable      = None
+    
+    
+    def __init__(self,  bssid=False, ssid=None, channel=None, beacon_interval=False, ht_capable=None):
+        super(NodeConfigBSS, self).__init__()
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_CONFIG_BSS
+        
+        import struct
+        import wlan_exp.info as info
+
+        # Create BSS Config         
+        bss_config = info.BSSConfig(bssid=bssid, ssid=ssid, channel=channel, 
+                                    beacon_interval=beacon_interval, 
+                                    ht_capable=ht_capable)
+
+        # Set local variables for error messages
+        self.bssid           = bssid
+        self.ssid            = ssid
+        self.channel         = channel
+        self.beacon_interval = beacon_interval
+        self.ht_capable      = ht_capable
+
+        # Convert BSSConfig() to bytes for transfer
+        data_to_send = bss_config.serialize()
+        data_len     = len(data_to_send)
+
+        self.add_args(data_len)
+
+        data_buf = bytearray(data_to_send)
+
+        # Zero pad so that the data buffer is 32-bit aligned
+        if ((len(data_buf) % 4) != 0):
+            data_buf += bytearray(4 - (len(data_buf) % 4))
+
+        idx = 0
+        while (idx < len(data_buf)):
+            arg = struct.unpack_from('!I', data_buf[idx:idx+4])
+            self.add_args(arg[0])
+            idx += 4
+            
+
+    def process_resp(self, resp):
+        # Check number of arguments
+        if (resp.resp_is_valid(num_args=1, name='from config BSS command')):
+            args    = resp.get_args()
+            status  = args[0]
+            msg     = "ERROR:  Invalid response from node:\n"
+            ret_val = True
+            
+            # Check status
+            if (status & ERROR_CONFIG_BSS_BSSID_INVALID):
+                msg    += "    BSSID {0} was invalid.\n".format(self.bssid)
+                ret_val = False
+            
+            if (status & ERROR_CONFIG_BSS_BSSID_INSUFFICIENT_ARGUMENTS):
+                msg    += "    Insufficient arguments to create BSS.\n"
+                msg    += "        BSSID           = {0}\n".format(self.bssid)
+                msg    += "        SSID            = {0}\n".format(self.ssid)
+                msg    += "        CHANNEL         = {0}\n".format(self.channel)
+                msg    += "        BEACON_INTERVAL = {0}\n".format(self.beacon_interval)
+                msg    += "        HT_CAPABLE      = {0}\n".format(self.ht_capable)
+                ret_val = False
+            
+            if (status & ERROR_CONFIG_BSS_CHANNEL_INVALID):
+                msg    += "    Channel {0} was invalid.\n".format(self.channel)
+                ret_val = False
+            
+            if (status & ERROR_CONFIG_BSS_BEACON_INTERVAL_INVALID):
+                msg    += "    Beacon interval {0} was invalid.\n".format(self.beacon_interval)
+                ret_val = False
+            
+            if (status & ERROR_CONFIG_BSS_HT_CAPABLE_INVALID):
+                msg    += "    HT capable {0} was invalid.\n".format(self.ht_capable)
+                ret_val = False
+            
+            if not ret_val:
+                print(msg)
+            
+            return ret_val
+        else:
+            return False
 
 # End Class
 
@@ -1422,7 +1591,7 @@ class NodeDisassociate(message.Cmd):
             mac_address      = device.wlan_mac_address
         else:
             self.description = "All nodes"
-            mac_address      = 0xFFFFFFFFFFFFFFFF
+            mac_address      = CMD_PARAM_GET_ALL_ASSOCIATED
 
         _add_mac_address_to_cmd(self, mac_address)
 
@@ -1517,72 +1686,25 @@ class NodeAPConfigure(message.Cmd):
     """Command to configure the AP.
 
     Attributes (default state on the node is in CAPS):
-        power_savings   -- Enable power saving mode (TRUE/False)
+        dtim_multicast_buffering   -- Enable DTIM multicast buffering (TRUE/False)
     """
-    def __init__(self, support_power_savings=None):
+    def __init__(self, dtim_multicast_buffering=None):
         super(NodeAPConfigure, self).__init__()
         self.command = _CMD_GROUP_NODE + CMDID_NODE_AP_CONFIG
 
         flags = 0
         mask  = 0
 
-        if support_power_savings is not None:
-            mask += CMD_PARAM_NODE_AP_CONFIG_FLAG_POWER_SAVING
-            if support_power_savings:
-                flags += CMD_PARAM_NODE_AP_CONFIG_FLAG_POWER_SAVING
+        if dtim_multicast_buffering is not None:
+            mask += CMD_PARAM_AP_CONFIG_FLAG_DTIM_MULTICAST_BUFFER
+            if dtim_multicast_buffering:
+                flags += CMD_PARAM_AP_CONFIG_FLAG_DTIM_MULTICAST_BUFFER
 
         self.add_args(flags)
         self.add_args(mask)
 
     def process_resp(self, resp):
         pass
-
-# End Class
-
-
-class NodeAPProcDTIMPeriod(message.Cmd):
-    """Command to get / set the number of beacon intervals between DTIM beacons
-
-    Attributes:
-        cmd         -- Sub-command to send over the command.  Valid values are:
-                         CMD_PARAM_READ
-                         CMD_PARAM_WRITE
-        num_beacons -- Number of beacon intervals between DTIM beacons (0 - 255)
-    """
-    def __init__(self, cmd, num_beacons=None):
-        super(NodeAPProcDTIMPeriod, self).__init__()
-        self.command = _CMD_GROUP_NODE + CMDID_NODE_AP_DTIM_PERIOD
-
-        if (cmd == CMD_PARAM_WRITE):
-            self.add_args(cmd)
-
-            if num_beacons is None:
-                msg = "Number of beacon intervals [0,255] must be provided for WRITE"
-                raise ValueError(msg)
-
-            if (num_beacons <   0): num_beacons = 0
-            if (num_beacons > 255): num_beacons = 255
-
-            self.add_args(num_beacons)
-
-        elif (cmd == CMD_PARAM_READ):
-            self.add_args(cmd)
-
-        else:
-            msg = "Unsupported command: {0}".format(cmd)
-            raise ValueError(msg)
-
-
-    def process_resp(self, resp):
-        error_code    = CMD_PARAM_ERROR
-        error_msg     = "Could not get / set number of beacon intervals between DTIM beacons"
-        status_errors = { error_code : error_msg }
-
-        if resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from DTIM Period command'):
-            args = resp.get_args()
-            return (args[1] & 0xFF)
-        else:
-            return CMD_PARAM_ERROR
 
 # End Class
 
@@ -1636,38 +1758,6 @@ class NodeAPAddAssociation(message.Cmd):
 # End Class
 
 
-class NodeAPSetSSID(message.Cmd):
-    """Command to set the SSID of the AP."""
-    ssid = None
-
-    def __init__(self, ssid):
-        super(NodeAPSetSSID, self).__init__()
-        self.command = _CMD_GROUP_NODE + CMDID_NODE_AP_SET_SSID
-
-        self.ssid = ssid
-        self.add_args(CMD_PARAM_WRITE)
-
-        _add_ssid_to_cmd(self, ssid)
-
-
-    def process_resp(self, resp):
-        error_code    = CMD_PARAM_ERROR
-        error_msg     = "Could not set SSID on Node."
-        status_errors = { error_code : error_msg }
-
-        ssid = _get_ssid_from_resp(resp, status_errors)
-
-        if self.ssid is not None:
-            if (self.ssid != ssid):
-                msg  = "WARNING:  SSID requested:  {0} \n".format(self.ssid)
-                msg += "    Does not equal SSID returned:  {0}".format(ssid)
-                print(msg)
-
-        return ssid
-
-# End Class
-
-
 class NodeAPSetAuthAddrFilter(message.Cmd):
     """Command to set the authentication address filter on the node.
 
@@ -1711,135 +1801,115 @@ class NodeAPSetAuthAddrFilter(message.Cmd):
 # End Class
 
 
-class NodeAPProcBeaconInterval(message.Cmd):
-    """Command to get / set the time interval between beacons
-
-    Attributes:
-        cmd       -- Sub-command to send over the command.  Valid values are:
-                       CMD_PARAM_READ
-                       CMD_PARAM_WRITE
-        interval -- Number of Time Units (TU) between beacons [1, 65535]
-    """
-    def __init__(self, cmd, interval=None):
-        super(NodeAPProcBeaconInterval, self).__init__()
-        self.command = _CMD_GROUP_NODE + CMDID_NODE_AP_BEACON_INTERVAL
-
-        if (cmd == CMD_PARAM_WRITE):
-            self.add_args(cmd)
-
-            if interval is None:
-                msg = "Interval between beacons [1,65535] must be provided for WRITE"
-                raise ValueError(msg)
-
-            if (interval <     1): interval = 1
-            if (interval > 65535): interval = 65535
-
-            self.add_args(interval)
-
-        elif (cmd == CMD_PARAM_READ):
-            self.add_args(cmd)
-
-        else:
-            msg = "Unsupported command: {0}".format(cmd)
-            raise ValueError(msg)
-
-
-    def process_resp(self, resp):
-        error_code    = CMD_PARAM_ERROR
-        error_msg     = "Could not read/write beacon interval."
-        status_errors = { error_code : error_msg }
-
-        if resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from Beacon interval command'):
-            args = resp.get_args()
-            return (args[1] & 0xFFFF)
-        else:
-            return CMD_PARAM_ERROR
-
-# End Class
-
-
 
 #--------------------------------------------
 # STA Specific Commands
 #--------------------------------------------
-class NodeSTAConfigure(message.Cmd):
-    """Command to configure the STA.
-
-    Attributes (default state on the node is in CAPS):
-        beacon_ts_update    -- Enable timestamp updates from beacons (TRUE/False)
-    """
-    def __init__(self, beacon_ts_update=None):
-        super(NodeSTAConfigure, self).__init__()
-        self.command = _CMD_GROUP_NODE + CMDID_NODE_STA_CONFIG
-
-        flags = 0
-        mask  = 0
-
-        if beacon_ts_update is not None:
-            mask += CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TS_UPDATE
-            if beacon_ts_update:
-                flags += CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TS_UPDATE
-
-        self.add_args(flags)
-        self.add_args(mask)
-
-    def process_resp(self, resp):
-        pass
-
-# End Class
-
-
-class NodeSTAAddAssociation(message.Cmd):
-    """Command to add the association to the association table on the STA.
-
-    Attributes:
-        device        -- Device to add to the association table
-        aid           -- Association ID returned by the AP from the associate command
-        channel       -- Channel of the association
-        ssid          -- SSID of the association
-
-    NOTE:  This adds an association with the default tx/rx params
-    """
-    description = None
-
-    def __init__(self, device, aid, channel, ssid):
-        super(NodeSTAAddAssociation, self).__init__()
-        self.command = _CMD_GROUP_NODE + CMDID_NODE_ADD_ASSOCIATION
-
-        flags = 0
-        mask  = 0
-
-        # Currently, there are no association flags, but adding this into the
-        # message structure for future use.
-
-        self.add_args(flags)
-        self.add_args(mask)
-
-        self.description = device.description
-        mac_address      = device.wlan_mac_address
-
-        _add_mac_address_to_cmd(self, mac_address)
-
+class NodeSTASetAID(message.Cmd):
+    """Command to get the AID of the node"""
+    def __init__(self, aid):
+        super(NodeSTASetAID, self).__init__()
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_STA_SET_AID
+        
+        if ((aid < 1) or (aid > 255)):
+            raise AttributeError("AID value must be in [1, 255].")
+        
         self.add_args(aid)
-
-        tmp_chan = _get_channel_number(channel)
-
-        if tmp_chan is not None:
-            self.add_args(tmp_chan)
-        else:
-            self.add_args(CMD_PARAM_RSVD_CHANNEL)
-
-        _add_ssid_to_cmd(self, ssid)
 
 
     def process_resp(self, resp):
         error_code    = CMD_PARAM_ERROR
-        error_msg     = "Could add STA association to {0}.".format(self.description)
+        error_msg     = "Could not set the AID of node."
         status_errors = { error_code : error_msg }
 
-        if (resp.resp_is_valid(num_args=1, status_errors=status_errors,
-                               name='from STA associate command')):
+        if (resp.resp_is_valid(num_args=1, status_errors=status_errors, name='from set AID command')):
             return True
+        else:
+            return False
+
+# End Class
+
+
+class NodeSTAJoin(message.Cmd):
+    """Command to join a given BSS
+
+    Attributes:
+        ssid     -- SSID of BSS to join.  If value is None, then this will 
+                    stop the join process
+        bssid    -- (optional) BSSID of the BSS to join
+        channel  -- (optional) Channel of BSS to join
+        
+    ..note::  If neither bssid or channel are provided node will start the 
+        scanning state machine until it finds a BSS matching the ssid.  If 
+        only one of bssid or channel is provided, raise error.
+    """
+    def __init__(self, ssid, bssid=None, channel=None):
+        super(NodeSTAJoin, self).__init__()
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_STA_JOIN
+
+        # Add BSSID
+        #     - Command assumes that this is a valid bssid
+        if bssid is None:
+            bssid = None
+        else:
+            # Check that a channel is specified
+            if channel is None:
+                raise AttributeError("Join must specify both BSSID and channel if either BSSID or channel is specified.")
+            
+        _add_mac_address_to_cmd(self, bssid)
+
+        # Add Channel
+        #     - Command assumes that this is a valid channel
+        if channel is None:
+            channel = 0
+        else:
+            # Check that a bssid is specified
+            if bssid is None:
+                raise AttributeError("Join must specify both BSSID and channel if either BSSID or channel is specified.")
+
+        self.add_args(channel)
+
+        # Add SSID
+        #     - SSID should be added last to the command so that the corresponding
+        #       C code does not have to compute the index of the next argument 
+        #       after the SSID
+        if ssid is None:
+            self.add_args(CMD_PARAM_RSVD)
+        else:
+            _add_ssid_to_cmd(self, ssid)
+
+
+    def process_resp(self, resp):
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could not join the network."
+        status_errors = { error_code : error_msg }
+
+        if (resp.resp_is_valid(num_args=1, status_errors=status_errors, name='from Join command')):
+            return True
+        else:
+            return False
+
+# End Class
+
+
+class NodeSTAJoinStatus(message.Cmd):
+    """Command to get the join status of the node"""
+    def __init__(self):
+        super(NodeSTAJoinStatus, self).__init__()
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_STA_JOIN_STATUS
+
+
+    def process_resp(self, resp):
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could not get join status of node."
+        status_errors = { error_code : error_msg }
+
+        if (resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from Join Status command')):
+            args = resp.get_args()
+            if (args[1] == 1):
+                return True
+            else:
+                return False
         else:
             return False
 
@@ -1850,282 +1920,6 @@ class NodeSTAAddAssociation(message.Cmd):
 #--------------------------------------------
 # IBSS Specific Commands
 #--------------------------------------------
-class NodeIBSSConfigure(message.Cmd):
-    """Command to configure the IBSS.
-
-    Attributes (default state on the node is in CAPS):
-        beacon_ts_update    -- Enable timestamp updates from beacons (TRUE/False)
-        beacon_transmit     -- Enable beacon transmission (TRUE/False)
-
-    NOTE:
-        Allowed values of the (beacon_ts_update, beacon_transmit) are:
-            (True, True), (True, False), (False, False)
-        (ie you must update your timestamps if you want to send beacons)
-    """
-    def __init__(self, beacon_ts_update=None, beacon_transmit=None):
-        super(NodeIBSSConfigure, self).__init__()
-        self.command = _CMD_GROUP_NODE + CMDID_NODE_IBSS_CONFIG
-
-        flags = 0
-        mask  = 0
-
-        if beacon_ts_update is not None:
-            mask += CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TS_UPDATE
-            if beacon_ts_update:
-                flags += CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TS_UPDATE
-
-        if beacon_transmit is not None:
-            mask += CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TRANSMIT
-            if beacon_transmit:
-                flags += CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TRANSMIT
-
-        legal_values = [0, CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TS_UPDATE,
-                        (CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TS_UPDATE + CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TRANSMIT)]
-
-        if ((mask & flags) not in legal_values):
-            msg  = "Allowed values of the (beacon_ts_update, beacon_transmit) are:\n"
-            msg += "    (True, True), (True, False), (False, False)\n"
-            msg += "Provided: ({0}, {1})".format(beacon_ts_update, beacon_transmit)
-            raise ValueError(msg)
-
-        self.add_args(flags)
-        self.add_args(mask)
-
-
-    def process_resp(self, resp):
-        error_code    = CMD_PARAM_ERROR
-        error_msg     = "Could not configure IBSS Node."
-        status_errors = { error_code : error_msg }
-
-        if (resp.resp_is_valid(num_args=1, status_errors=status_errors, name='from IBSS Configure command')):
-            return True
-        else:
-            return False
-
-# End Class
-
-
-
-#--------------------------------------------
-# STA / IBSS Common Commands
-#--------------------------------------------
-class NodeProcScanParam(message.Cmd):
-    """Command to configure the scan parameters
-
-    Attributes:
-        cmd                -- Command for Process Scan Param:
-                                CMD_PARAM_WRITE
-        time_per_channel   -- Time (in float sec) to spend on each channel (optional)
-        idle_time_per_loop -- Time (in float sec) to wait between each scan loop (optional)
-        channel_list       -- Channels to scan (optional)
-                                Defaults to all channels in util.py wlan_channel array
-                                Can provide either an entry or list of entries from
-                                  wlan_channel array or a channel number or list of
-                                  channel numbers
-    """
-    time_factor = 6
-    time_type   = None
-
-    def __init__(self, cmd, time_per_channel=None, idle_time_per_loop=None, channel_list=None):
-        super(NodeProcScanParam, self).__init__()
-        self.command = _CMD_GROUP_NODE + CMDID_NODE_SCAN_PARAM
-
-        if (cmd == CMD_PARAM_WRITE):
-            self.add_args(cmd)
-
-            # Add the time_per_channel to the command
-            _add_time_to_cmd32(self, time_per_channel, self.time_factor)
-
-            # Add the idle_time_per_loop to the command
-            _add_time_to_cmd32(self, idle_time_per_loop, self.time_factor)
-
-            # Format the channel list
-            if channel_list is not None:
-
-                if type(channel_list) is list:
-                    self.add_args(len(channel_list))
-
-                    for channel in channel_list:
-                        self.add_channel(channel)
-                else:
-                    self.add_args(1)
-                    self.add_channel(channel_list)
-            else:
-                self.add_args(CMD_PARAM_RSVD)
-
-        else:
-            msg = "Unsupported command: {0}".format(cmd)
-            raise ValueError(msg)
-
-
-    def add_channel(self, channel):
-        """Internal method to add a channel"""
-        chan_to_add = CMD_PARAM_RSVD_CHANNEL
-
-        try:
-            chan_to_add = channel['index']
-        except (KeyError, TypeError):
-            import wlan_exp.util as util
-
-            tmp_chan = util.find_channel_by_channel_number(channel)
-
-            if tmp_chan is not None:
-                chan_to_add = tmp_chan['index']
-            else:
-                msg  = "Unknown channel:  {0}".format(channel)
-                raise ValueError(msg)
-
-        self.add_args(chan_to_add)
-
-
-    def process_resp(self, resp):
-        error_code    = CMD_PARAM_ERROR
-        error_msg     = "Could not set scan parameters."
-        status_errors = { error_code : error_msg }
-
-        if (resp.resp_is_valid(num_args=1, status_errors=status_errors, name='from Scan parameter command')):
-            return True
-        else:
-            return False
-
-# End Class
-
-
-class NodeProcScan(message.Cmd):
-    """Command to enable / disable active scan
-
-    Attributes:
-        enable -- Whether we are enabling (True) or disabling (False) active scan
-        ssid   -- SSID to scan for as part of probe request (optional)
-                      A value of None means that the node will scan for all SSIDs
-        bssid  -- BSSID to scan for as part of probe request (optional)
-                      A value of None means that the node will scan for all BSSIDs
-    """
-    def __init__(self, enable, ssid=None, bssid=None):
-        super(NodeProcScan, self).__init__()
-        self.command = _CMD_GROUP_NODE + CMDID_NODE_SCAN
-
-        if enable:
-            self.add_args(CMD_PARAM_NODE_SCAN_ENABLE)
-        else:
-            self.add_args(CMD_PARAM_NODE_SCAN_DISABLE)
-
-        _add_mac_address_to_cmd(self, bssid)
-
-        if ssid is not None:
-            _add_ssid_to_cmd(self, ssid)
-        else:
-            _add_ssid_to_cmd(self, "")       # Default SSID to scan for "all SSIDs"
-
-
-    def process_resp(self, resp):
-        pass
-
-# End Class
-
-
-class NodeProcJoin(message.Cmd):
-    """Command to join a given BSS
-
-    Attributes:
-        bss_info -- Dictionary discribing the BSS to join
-        timeout  -- Maximum amount of time (in float seconds) to try to join the
-                    given network (optional)
-    """
-    time_factor = 6
-
-    def __init__(self, bss_info, timeout=None):
-        super(NodeProcJoin, self).__init__()
-        self.command = _CMD_GROUP_NODE + CMDID_NODE_JOIN
-
-        _add_time_to_cmd32(self, timeout, self.time_factor)
-
-        import wlan_exp.info as info
-
-        if type(bss_info) is type(info.BSSInfo()):
-            import struct
-
-            # Convert BSSInfo() to bytes for transfer
-            data_to_send = bss_info.serialize()
-            data_len     = len(data_to_send)
-
-            self.add_args(data_len)
-
-            data_buf = bytearray(data_to_send)
-
-            # Zero pad so that the data buffer is 32-bit aligned
-            if ((len(data_buf) % 4) != 0):
-                data_buf += bytearray(4 - (len(data_buf) % 4))
-
-            idx = 0
-            while (idx < len(data_buf)):
-                arg = struct.unpack_from('!I', data_buf[idx:idx+4])
-                self.add_args(arg[0])
-                idx += 4
-        else:
-            msg = "BSS info parameter must be a BSSInfo()."
-            raise TypeError(msg)
-
-
-    def process_resp(self, resp):
-        error_code    = CMD_PARAM_ERROR
-        error_msg     = "Could not join the network."
-        status_errors = { error_code : error_msg }
-
-        if (resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from Join command')):
-            args = resp.get_args()
-            if (args[1] != CMD_PARAM_NODE_JOIN_FAILED):
-                return True
-            else:
-                return False
-        else:
-            return False
-
-# End Class
-
-
-class NodeProcScanAndJoin(message.Cmd):
-    """Command to scan for the given network and join it if present
-
-    Attributes:
-        ssid   -- SSID to scan for as part of probe request
-        bssid  -- BSSID to scan for as part of probe request (optional)
-                      A value of None means that the node will scan for all BSSIDs
-        timeout  -- Maximum amount of time (in float seconds) to try to scan for the
-                    given network and depending on the type of node the maximum
-                    amount of time to try to join the given network (optional)
-    """
-    time_factor = 0                              # Need to only transfer seconds
-
-    def __init__(self, ssid, bssid=None, timeout=5.0):
-        super(NodeProcScanAndJoin, self).__init__()
-        self.command = _CMD_GROUP_NODE + CMDID_NODE_SCAN_AND_JOIN
-
-        _add_time_to_cmd32(self, timeout, self.time_factor)
-
-        _add_mac_address_to_cmd(self, bssid)
-
-        if ssid is not None:
-            _add_ssid_to_cmd(self, ssid)
-        else:
-            raise ValueError("Must provide a valid SSID for Scan and Join.")
-
-
-    def process_resp(self, resp):
-        error_code    = CMD_PARAM_ERROR
-        error_msg     = "Could not join the network."
-        status_errors = { error_code : error_msg }
-
-        if (resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from Join command')):
-            args = resp.get_args()
-            if (args[1] != CMD_PARAM_NODE_JOIN_FAILED):
-                return True
-            else:
-                return False
-        else:
-            return False
-
-# End Class
 
 
 
@@ -2211,7 +2005,7 @@ class NodeMemAccess(message.Cmd):
             else:
                 return CMD_PARAM_ERROR
 
-# End Class
+# End ClassNodeAPProcBeaconInterval
 
 
 
@@ -2336,6 +2130,10 @@ class UserSendCmd(message.Cmd):
 #--------------------------------------------
 def _add_mac_address_to_cmd(cmd, mac_address):
     if mac_address is not None:
+        if type(mac_address) is str:
+            import wlan_exp.util as util
+            mac_address = util.str_to_mac_addr(mac_address)
+            
         cmd.add_args(((mac_address >> 32) & 0xFFFF))
         cmd.add_args((mac_address & 0xFFFFFFFF))
     else:
@@ -2469,26 +2267,6 @@ def _get_ssid_from_resp(resp, status_errors):
         ssid        = ""
 
     return ssid
-
-# End def
-
-
-def _get_channel_number(channel):
-    """Internal method to get the channel number."""
-    try:
-        my_channel = channel['index']
-    except (KeyError, TypeError):
-        import wlan_exp.util as util
-
-        tmp_chan = util.find_channel_by_channel_number(channel)
-
-        if tmp_chan is not None:
-            my_channel = tmp_chan['index']
-        else:
-            msg  = "Unknown channel:  {0}".format(channel)
-            raise ValueError(msg)
-
-    return my_channel
 
 # End def
 

@@ -14,10 +14,10 @@ Class
 .. autoclass:: wlan_exp.node_ibss.WlanExpNodeIBSS
 
 
-IBSS Commands
-.............
-These commands are specific to IBSS nodes.
+IBSS Specific Implementation of Node Commands
+.............................................
+These commands have IBSS specific implementations.
 
-.. autoclass:: wlan_exp.node_ibss.WlanExpNodeIBSS
-   :members: ibss_configure, disassociate, set_channel, counts_get_txrx, scan_start, set_scan_parameters, scan_enable, scan_disable, join, scan_and_join
+.. autoclass:: wlan_exp.node_ap.WlanExpNodeIBSS
+   :members: counts_get_txrx, configure_bss, disassociate
 

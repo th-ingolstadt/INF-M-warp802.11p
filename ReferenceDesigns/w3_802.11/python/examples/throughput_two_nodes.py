@@ -63,6 +63,10 @@ nodes_config   = config.WlanExpNodesConfiguration(network_config=network_config,
 #   This command will fail if either WARP v3 node does not respond
 nodes = util.init_nodes(nodes_config, network_config)
 
+# Reset all (optional)
+# for node in nodes:
+#     node.reset_all()
+
 # Extract the different types of nodes from the list of initialized nodes
 #   NOTE:  This will work for both 'DCF' and 'NOMAC' mac_low projects
 n_ap_l   = util.filter_nodes(nodes=nodes, mac_high='AP',   serial_number=NODE_SERIAL_LIST, warn=False)
@@ -78,12 +82,16 @@ if len(n_ap_l) == 1 and len(n_sta_l) == 1:
     node1 = n_ap_l[0]
     node2 = n_sta_l[0]
 
-    # Tune both nodes to the same channel
-    node1.set_channel(CHANNEL)
-    node2.set_channel(CHANNEL)
+    # Configure BSS if necessary
+    if (node1.get_bss_info() is None):
+        node1.configure_bss(bssid=node1.wlan_mac_address, ssid="WARP-AP", channel=CHANNEL, beacon_interval=100)
 
     # Establish the association state between nodes
     node1.add_association(node2)
+
+    # Tune both nodes to the same channel
+    node1.configure_bss(channel=CHANNEL)
+    node2.configure_bss(channel=CHANNEL)
 
 elif len(n_ibss_l) == 2:
     # Setup the two nodes
@@ -92,11 +100,10 @@ elif len(n_ibss_l) == 2:
 
     # Create the BSS_INFO describing the ad-hoc network
     bssid    = util.create_locally_administered_bssid(node1.wlan_mac_address)
-    bss_info = util.create_bss_info(bssid=bssid, ssid='WARP Xput IBSS', channel=CHANNEL)
 
     # Add both nodes to the new IBSS
-    node1.join(bss_info)
-    node2.join(bss_info)
+    node1.configure_bss(bssid=bssid, ssid='WARP Xput IBSS', channel=CHANNEL, beacon_interval=100)
+    node2.configure_bss(bssid=bssid, ssid='WARP Xput IBSS', channel=CHANNEL, beacon_interval=100)
 
 else:
     print("ERROR: Node configurations did not match requirements of script.\n")
@@ -129,7 +136,7 @@ for node in [node1, node2]:
         msg += "\nNode 2: \n"
 
     msg += "    Description = {0}\n".format(node.description)
-    msg += "    Channel     = {0}\n".format(util.channel_to_str(CHANNEL))
+    msg += "    Channel     = {0}\n".format(util.channel_info_to_str(util.get_channel_info(CHANNEL)))
     msg += "    Rate        = {0}\n".format(util.rate_info_to_str(rate_info))
     print(msg)
 

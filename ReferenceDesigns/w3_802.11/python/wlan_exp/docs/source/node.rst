@@ -78,7 +78,15 @@ Node Commands
 These WlanExpNode commands are used to interact with the node and control parameters associated with the node operation.
 
 .. autoclass:: wlan_exp.node.WlanExpNode
-   :members: reset_all, reset, get_wlan_mac_address, set_name, set_mac_time, get_mac_time, get_system_time, set_low_to_high_rx_filter, set_channel, get_channel, set_tx_rate_unicast, set_tx_rate_multicast_data, set_tx_rate_multicast_mgmt, get_tx_rate_unicast, get_tx_rate_multicast_data, get_tx_rate_multicast_mgmt, set_tx_ant_mode_unicast, set_tx_ant_mode_multicast_data, set_tx_ant_mode_multicast_mgmt, get_tx_ant_mode_unicast, get_tx_ant_mode_multicast_data, get_tx_ant_mode_multicast_mgmt, set_rx_ant_mode, get_rx_ant_mode, set_tx_power_unicast, set_tx_power_multicast_data, set_tx_power_multicast_mgmt, get_tx_power_unicast, get_tx_power_multicast_data, get_tx_power_multicast_mgmt, set_tx_power_ctrl, set_tx_power, get_tx_power, set_low_param, set_dcf_rts_thresh, set_dcf_short_retry_limit, set_dcf_long_retry_limit, set_dcf_phy_cs_thresh, set_dcf_cw_exp_min, set_dcf_cw_exp_max, configure_pkt_det_min_power, set_random_seed, enable_dsss, disable_dsss, set_print_level, send_user_command 
+   :members: reset_all, reset, get_wlan_mac_address, set_mac_time, get_mac_time, get_system_time, enable_beacon_mac_time_update, set_low_to_high_rx_filter, set_tx_rate_unicast, set_tx_rate_multicast_data, set_tx_rate_multicast_mgmt, get_tx_rate_unicast, get_tx_rate_multicast_data, get_tx_rate_multicast_mgmt, set_tx_ant_mode_unicast, set_tx_ant_mode_multicast_data, set_tx_ant_mode_multicast_mgmt, get_tx_ant_mode_unicast, get_tx_ant_mode_multicast_data, get_tx_ant_mode_multicast_mgmt, set_rx_ant_mode, get_rx_ant_mode, set_tx_power_unicast, set_tx_power_multicast_data, set_tx_power_multicast_mgmt, get_tx_power_unicast, get_tx_power_multicast_data, get_tx_power_multicast_mgmt, set_tx_power_ctrl, set_tx_power, get_tx_power, set_low_param, set_dcf_rts_thresh, set_dcf_short_retry_limit, set_dcf_long_retry_limit, set_dcf_phy_cs_thresh, set_dcf_cw_exp_min, set_dcf_cw_exp_max, configure_pkt_det_min_power, set_random_seed, enable_dsss, set_print_level
+
+
+Scan Commands
+.............
+These WlanExpNode commands are used to to scan the node's environment.
+
+.. autoclass:: wlan_exp.node.WlanExpNode
+   :members: set_scan_parameters, start_scan_networks, stop_scan_networks, is_scanning
 
 
 Association Commands
@@ -86,7 +94,7 @@ Association Commands
 These WlanExpNode commands are used to modify / query the association state of the node.
 
 .. autoclass:: wlan_exp.node.WlanExpNode
-   :members: get_ssid, disassociate, disassociate_all, is_associated, get_station_info, get_bss_info
+   :members: configure_bss, disassociate, disassociate_all, is_associated, get_station_info, get_bss_info, get_network_list
 
 
 Queue Commands
@@ -95,6 +103,16 @@ These WlanExpNode commands are used to modify the node's queues.
 
 .. autoclass:: wlan_exp.node.WlanExpNode
    :members: queue_tx_data_purge_all
+
+
+User Commands
+.............
+
+This WlanExpNode command is used to add custom user commands to the WLAN Exp framework.  See documentation 
+on how-to add a WLAN Exp command:  http://warpproject.org/trac/wiki/802.11/wlan_exp/HowToAddCommand
+
+.. autoclass:: wlan_exp.node.WlanExpNode
+   :members: send_user_command 
 
 
 Other Commands

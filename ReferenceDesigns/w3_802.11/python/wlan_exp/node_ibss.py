@@ -34,64 +34,8 @@ class WlanExpNodeIBSS(node.WlanExpNode):
     """
 
     #-------------------------------------------------------------------------
-    # WLAN Exp Commands for the IBSS
+    # Override WLAN Exp Node Commands
     #-------------------------------------------------------------------------
-    def ibss_configure(self, beacon_ts_update=None, beacon_transmit=None ):
-        """Configure the IBSS behavior.
-
-        By default all attributes are set to None.  Only attributes that 
-        are given values will be updated on the node.  If an attribute is
-        not specified, then that attribute will retain the same value on
-        the node.
-
-        Allowed values of the (beacon_ts_update, beacon_transmit) are: 
-          * (True, True)
-          * (True, False)
-          * (False, False)
-        
-        (ie you must update your timestamps if you want to send beacons)
-
-        Args:
-            beacon_ts_update (bool): Enable timestamp updates from beacons (Default value on Node: TRUE)
-            beacon_transmit (bool):  Enable beacon transmission (Default value on Node: TRUE)
-        """
-        self.send_cmd(cmds.NodeIBSSConfigure(beacon_ts_update, beacon_transmit))
-
-
-    def disassociate(self, device_list=None):
-        """Remove associations of devices within the device_list from the association table
-
-        .. note:: This command is not supported by IBSS nodes.  Please use diassociate_all().
-            This function will raise a NotImplementedError.
-        
-        Attributes:
-            device_list (list of WlanExpNode / WlanDevice):  List of 802.11 devices or single 
-                802.11 device for which to disassociate
-        """
-        msg = "ERROR:  disassociate(device_list) is not supported for IBSS nodes.  Please use disassociate_all()."
-        raise NotImplementedError(msg)
-
-
-    def set_channel(self, channel):
-        """Sets the channel of the node.
-
-        .. note:: This command is not supported for IBSS nodes.  Please update the 
-            BSS info and have the IBSS node join the new BSS.  This function will
-            print a warning and return the current channel.
-        
-        Args:
-            channel (int, dict in util.wlan_channel array): Channel to set on the node
-                (either the channel number as an it or an entry in the wlan_channel array)
-        
-        Returns:
-            channel (dict):  Channel dictionary (see util.wlan_channel) that was set on the node.        
-        """
-        msg  = "WARNING:  set_channel(channel) is not supported for IBSS nodes.\n"
-        msg += "    Please update the BSS info and have the IBSS node join the new BSS."
-        print(msg)
-        return self.get_channel()
-
-
     def counts_get_txrx(self, device_list=None, return_zeroed_counts_if_none=True):
         """Get the counts from the node.
 
@@ -118,105 +62,53 @@ class WlanExpNodeIBSS(node.WlanExpNode):
         return super(WlanExpNodeIBSS, self).counts_get_txrx(device_list, return_zeroed_counts_if_none)
 
 
-    def scan_start(self, time_per_channel=0.1, channel_list=None, ssid=None, bssid=None):
-        """Scan the channel list once for BSS networks.
+    def configure_bss(self, bssid=False, ssid=None, channel=None, beacon_interval=False):
+        """Configure the BSS information of the node
         
-        Args:
-            time_per_channel (float, int, optional):  Time (in float sec or int microseconds) to spend on each channel
-            channel_list (list of int, list of dict in util.wlan_channel array, optional): Channel 
-                to scan.  Defaults to all channels in util.py wlan_channel array.  Can provide either an 
-                entry or list of entries from wlan_channel array or a channel number or list of channel numbers        
-            ssid (str, optional):                     SSID to scan for as part of probe request.
-                A value of None means that the node will scan for all SSIDs
-            bssid (int, optional):                    BSSID to scan for as part of probe request.
-                A value of None means that the node will scan for all BSSIDs (address: 0xFFFFFFFFFFFF)
-
-        Returns:
-            bss_infos (list of dict):  BSS_INFO dictionaries are defined in wlan_exp.log.entry_types
-        """
-        import time
-        import wlan_exp.util as util
-
-        wait_time = 0
-        idle_time_per_loop = 1.0
-
-        if channel_list is None:
-            wait_time = time_per_channel * (len(util.wlan_channel) + 1)
-        else:
-            wait_time = time_per_channel * (len(channel_list) + 1)
-        
-        self.set_scan_parameters(time_per_channel, idle_time_per_loop, channel_list)
-        self.scan_enable(ssid, bssid)
-        time.sleep(wait_time)
-        self.scan_disable()
-
-        return self.get_bss_info('ASSOCIATED_BSS')        
-    
-       
-    def set_scan_parameters(self, time_per_channel=0.1, idle_time_per_loop=1.0, channel_list=None):
-        """Set the scan parameters.
-        
-        Args:
-            time_per_channel (float, int, optional):    Time (in float sec or int microseconds) to spend on each channel
-                (defaults to 0.1 sec)
-            idle_time_per_loop (float, int, optional):  Time (in float sec or int microseconds) to wait between each scan loop 
-                (defaults to 1 sec)
-            channel_list (list of int, list of dict in util.wlan_channel array, optional): Channel 
-                to scan.  Defaults to all channels in util.py wlan_channel array.  Can provide either an 
-                entry or list of entries from wlan_channel array or a channel number or list of channel numbers        
-        
-        .. note::  If the channel list is not specified, then it will not be updated on the node (ie it will use 
-            the current channel list)
-        """
-        self.send_cmd(cmds.NodeProcScanParam(cmds.CMD_PARAM_WRITE, time_per_channel, idle_time_per_loop, channel_list))
-    
-    
-    def scan_enable(self, ssid=None, bssid=None):
-        """Enables the scan utilizing the current scan parameters.
-        
-        Args:
-            ssid (str, optional):                     SSID to scan for as part of probe request.
-                A value of None means that the node will scan for all SSIDs
-            bssid (int, optional):                    BSSID to scan for as part of probe request.
-                A value of None means that the node will scan for all BSSIDs (address: 0xFFFFFFFFFFFF)
-        """
-        self.send_cmd(cmds.NodeProcScan(enable=True, ssid=ssid, bssid=bssid))
-    
-    
-    def scan_disable(self):
-        """Disables the current scan."""
-        self.send_cmd(cmds.NodeProcScan(enable=False, ssid=None, bssid=None))
-
-
-    def join(self, bss_info):
-        """Join the provided BSS.
-        
-        Args:
-            bss_info (dict):  BSS_INFO dictionary (defined in wlan_exp.log.entry_types)
-                describing the BSS to join
+        Each node is either a member of no BSS (colloquially "unassociated") 
+        or a member of one BSS.  A node requires a minimum valid bss_info to 
+        be a member of a BSS. The minimum valid bss_info has:
+            #. BSSID: 48-bit MAC address
+            #. Channel: Logical channel for Tx/Rx by BSS members
+            #. SSID: Variable length string (ie the name of the network)
+            #. Beacon Interval:  Interval (in TUs) for beacons
             
-        Returns:
-            status (bool):  Always returns True.  Command just replaces "my_bss_info" so you always "join" the BSS.
-        """
-        return self.send_cmd(cmds.NodeProcJoin(bss_info))
-    
-            
-    def scan_and_join(self, ssid, timeout=5.0):
-        """Scan for the given network and try to join.
+        This method is used to manipulate node parameters that affect BSS state
         
         Args:
-            ssid (str, optional):            SSID to scan for as part of probe request.
-            timeout (float, int, optional):  Time (in float sec or int microseconds) to scan for the network 
-                before timing out (defaults to 5.0 sec)
-
-        Returns:
-            status (bool):
-                * True      -- Inidcates you successfully joined the BSS
-                * False     -- Indicates that you were not able to find the BSS
+            bssid (int, str):  48-bit ID of the BSS either as a integer or 
+                colon delimited string of the form:  XX:XX:XX:XX:XX:XX
+            ssid (str):  SSID string (Must be 32 characters or less)
+            channel (int): Channel number on which the BSS operates
+            beacon_interval (int): Integer number of beacon Time Units in [10, 65535]
+                (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds);
+                A value of None will disable beacons;  A value of False will not 
+                update the current beacon interval.
+        
+        ..note::  For the AP, the bssid is not configurable and will always be
+            the MAC address of the node.
         """
-        return self.send_cmd(cmd=cmds.NodeProcScanAndJoin(ssid=ssid, bssid=None, timeout=timeout), timeout=timeout)
+        self.send_cmd(cmds.NodeConfigBSS(bssid=bssid, ssid=ssid, channel=channel, beacon_interval=beacon_interval))
 
 
+    def disassociate(self, device_list=None):
+        """Remove associations of devices within the device_list from the association table
+
+        .. note:: This command is not supported by IBSS nodes.  Please use diassociate_all().
+            This function will raise a NotImplementedError.
+        
+        Attributes:
+            device_list (list of WlanExpNode / WlanDevice):  List of 802.11 devices or single 
+                802.11 device for which to disassociate
+        """
+        msg = "ERROR:  disassociate(device_list) is not supported for IBSS nodes.  Please use disassociate_all()."
+        raise NotImplementedError(msg)
+
+
+
+    #-------------------------------------------------------------------------
+    # Override Internal WLAN Exp Node methods
+    #-------------------------------------------------------------------------
     def _check_allowed_rate(self, mcs, phy_mode, verbose=False):
         """Check that rate parameters are allowed
 
@@ -231,6 +123,18 @@ class WlanExpNodeIBSS(node.WlanExpNode):
         #  Allow all supported rates for now
 
         return self._check_supported_rate(mcs, phy_mode, verbose)
+
+
+
+    #-------------------------------------------------------------------------
+    # IBSS specific WLAN Exp Commands 
+    #-------------------------------------------------------------------------
+
+
+
+    #-------------------------------------------------------------------------
+    # Internal IBSS methods
+    #-------------------------------------------------------------------------
 
 
 

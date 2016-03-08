@@ -14,12 +14,20 @@ Class
 .. autoclass:: wlan_exp.node_ap.WlanExpNodeAp
 
 
+AP Specific Implementation of Node Commands
+...........................................
+These commands have Access Point specific implementations.
+
+.. autoclass:: wlan_exp.node_ap.WlanExpNodeAp
+   :members: configure_bss, enable_beacon_mac_time_update
+
+
 AP Commands
 ...........
 These commands are specific to Access Points.
 
 .. autoclass:: wlan_exp.node_ap.WlanExpNodeAp
-   :members: ap_configure, set_dtim_period, get_dtim_period, set_authentication_address_filter, set_ssid, set_beacon_interval, get_beacon_interval, add_association
+   :members: enable_DTIM_multicast_buffering, set_authentication_address_filter, add_association
 
 
 

@@ -462,7 +462,7 @@ class Resp(CmdRespMessage):
         
         if num_args is not None:
             if len(self.args) != num_args:
-                msg  += "        Number of arguments in response ({0}) does not match\n".format(self.args)
+                msg  += "        Number of arguments in response ({0}) does not match\n".format(len(self.args))
                 msg  += "        number of expected arguments ({0})\n".format(num_args)
                 error = True
 

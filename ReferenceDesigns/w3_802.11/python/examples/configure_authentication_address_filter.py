@@ -98,13 +98,17 @@ n_ap.set_authentication_address_filter((0x000000000000, 0xFFFFFFFFFFFF))
 # Configure the network of nodes
 for node in nodes:
     # Set all nodes to be on the same channel
-    node.set_channel(CHANNEL)
+    node.configure_bss(channel=CHANNEL)
 
     # Remove any current association information
     node.disassociate_all()
 
 # Set the network SSID
-ssid = n_ap.set_ssid(AP_SSID)
+n_ap.configure_bss(ssid=AP_SSID)
+
+bss_info = n_ap.get_bss_info()
+ssid     = bss_info['ssid']
+
 print("AP SSID: '{0}'\n".format(ssid))
 
 # Add each whitelisted device to the AP authenticaiton address filter

@@ -78,7 +78,7 @@ n_sta_l = util.filter_nodes(nodes=nodes, mac_high='STA', serial_number=NODE_SERI
 # Check that we have a valid AP and STA
 if (((len(n_ap_l) == 1) and (len(n_sta_l) == 1))):
     # Extract the two nodes from the lists for easier referencing below
-    n_ap = n_ap_l[0]
+    n_ap  = n_ap_l[0]
     n_sta = n_sta_l[0]
 else:
     print("ERROR: Node configurations did not match requirements of script.\n")
@@ -103,10 +103,11 @@ for node in nodes:
     node.reset(log=True, txrx_counts=True, ltg=True, queue_data=True) # Do not reset associations/bss_info
 
     # Get some additional information about the experiment
-    channel  = node.get_channel()
+    bss_info = node.get_bss_info()
+    channel  = bss_info['channel']
 
     print("\n{0}:".format(node.name))
-    print("    Channel  = {0}".format(util.channel_to_str(channel)))
+    print("    Channel  = {0}".format(util.channel_info_to_str(util.get_channel_info(channel))))
     print("    Rate     = {0}".format(util.rate_info_to_str(rate_info)))
 
 print("")

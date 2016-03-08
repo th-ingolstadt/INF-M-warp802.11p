@@ -78,7 +78,7 @@ info_field_defs = {
     'BSS_INFO' : [
         ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of creation'),
         ('bssid',                       '6s',     '6uint8',  'BSS ID'),
-        ('chan_num',                    'B',      'uint8',   'Channel (center frequency) index of transmission'),
+        ('channel',                     'B',      'uint8',   'Channel (center frequency) index of transmission'),
         ('flags',                       'B',      'uint8',   'BSS flags'),
         ('latest_activity_timestamp',   'Q',      'uint64',  'Microsecond timer value at time of last Tx or Rx event to node with address mac_addr'),
         ('ssid',                        '33s',    '33uint8', 'SSID (32 chars max)'),
@@ -90,6 +90,15 @@ info_field_defs = {
         ('basic_rates',                 '10s',    '10uint8', 'Supported basic rates'),
         ('phy_mode',                    'B',      'uint8',   'PHY Mode (Legacy, HT)'),
         ('rx_last_power',               'b',      'int8',    'Last observed Rx Power (dBm)')],
+
+    'BSS_CONFIG' : [
+        ('update_mask',                 'I',      'uint32',  'Bit mask indicating which fields were updated'),    
+        ('bssid',                       '6s',     '6uint8',  'BSS ID'),
+        ('beacon_interval',             'H',      'uint16',  'Beacon interval - In time units of 1024 us'),
+        ('ssid',                        '33s',    '33uint8', 'SSID (32 chars max)'),
+        ('channel',                     'B',      'uint8',   'Channel (center frequency) index of transmission'),
+        ('ht_capable',                  'B',      'uint8',   'Support for HTMF Tx/Rx'),
+        ('padding1',                    'x',      'uint8',   '')],
 
     'TXRX_COUNTS' : [
         ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of creation'),
@@ -154,6 +163,16 @@ info_consts_defs = {
         })
     }),
 
+    'BSS_CONFIG'   : util.consts_dict({
+        'update_mask'  : util.consts_dict({
+            'BSSID'                    : 0x00000001,
+            'CHANNEL'                  : 0x00000002,
+            'SSID'                     : 0x00000004,
+            'BEACON_INTERVAL'          : 0x00000008,
+            'HT_CAPABLE'               : 0x00000010
+        })
+    }),
+    
     'TXRX_COUNTS'  : util.consts_dict()
 }
 
@@ -528,11 +547,10 @@ class BSSInfo(InfoStruct):
     """Class for Basic Service Set (BSS) Information
 
     Attributes:
-        ssid (str):   SSID string (Must be 32 characters or less)
-        channel (int, dict in util.wlan_channel array): Channel on which the BSS operates
-            (either the channel number as an it or an entry in the wlan_channel array)
         bssid (int, str):  40-bit ID of the BSS either as a integer or colon delimited
             string of the form:  XX:XX:XX:XX:XX:XX
+        ssid (str):   SSID string (Must be 32 characters or less)
+        channel (int): Channel number on which the BSS operates
         ibss_status (bool, optional): Status of the
             BSS:
                 * **True**  --> Capabilities field = 0x2 (BSS_INFO is for IBSS)
@@ -540,9 +558,27 @@ class BSSInfo(InfoStruct):
         beacon_interval (int): Integer number of beacon Time Units in [1, 65535]
             (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds)
     """
-    def __init__(self, init_fields=False, bssid=None, ssid=None, channel=None, ibss_status=False, beacon_interval=None):
+    def __init__(self, bssid=None, ssid=None, channel=None, ibss_status=None, beacon_interval=None):
         super(BSSInfo, self).__init__(field_name='BSS_INFO')
+        
+        # Only initialize the BSSInfo() if one of the fields is provided.
+        init_fields = False
+        
+        if ((bssid is not None) or (ssid is not None) or (channel is not None) or 
+            (ibss_status is not None) or (beacon_interval is not None)):
+            init_fields = True        
+        
 
+        # Default values used if initializing fields but value not provided:
+        #     bssid           - No default value - Error
+        #     ssid            - ""
+        #     channel         - No default value - Error
+        #     ibss_status     - False
+        #     beacon_interval - 100
+        #
+        # This is done so there is no issue during serialization when instantiating 
+        # a BSSInfo() with initialized fields.
+        #
         if init_fields:
             # Set default values for fields not set by this method
             self['timestamp']                  = 0
@@ -567,28 +603,21 @@ class BSSInfo(InfoStruct):
                     self['ssid']         = bytes(ssid, "UTF8")
                 except:
                     self['ssid']         = ssid
+            else:
+                self['ssid'] = bytes()
 
             # Set Channel
             if channel is not None:
-                channel_error = False
-
                 # Check Channel
-                #   - Make sure it is a valid channel; only store channel
-                if type(channel) is int:
-                    channel = util.find_channel_by_channel_number(channel)
-                    if channel is None: channel_error = True
-
-                elif type(channel) is dict:
-                    pass
-
-                else:
-                    channel_error = True
-
-                if not channel_error:
-                    self['chan_num']    = channel['channel']
-                else:
-                    msg  = "The channel must either be a valid channel number or a wlan_exp.util.wlan_channel entry."
+                #   - Make sure it is a valid channel
+                if channel not in util.wlan_channels:
+                    msg  = "The channel must be a valid channel number.  See util.py wlan_channels."
                     raise ValueError(msg)
+    
+                self['channel']    = channel
+            else:
+                raise AttributeError("Channel must be provided when initializing BSSInfo() fields")
+                
 
             # Set the beacon interval
             if beacon_interval is not None:
@@ -602,12 +631,18 @@ class BSSInfo(InfoStruct):
                     raise ValueError(msg)
 
                 self['beacon_interval'] = beacon_interval
+            else:
+                self['beacon_interval'] = 100               
+
 
             # Set the BSSID
             if bssid is not None:
-                # Check IBSS status
-                if type(ibss_status) is not bool:
-                    raise ValueError("The ibss_status must be a boolean.")
+                if ibss_status is None:
+                    ibss_status = False
+                else:
+                    # Check IBSS status value provided
+                    if type(ibss_status) is not bool:
+                        raise ValueError("The ibss_status must be a boolean.")
 
                 # Set BSSID, capabilities
                 #   - If this is an IBSS, then set local bit to '1' and mcast bit to '0'
@@ -622,6 +657,8 @@ class BSSInfo(InfoStruct):
                 # Convert BSSID to colon delimited string for internal storage
                 if type(bssid) is int:
                     self['bssid']        = util.mac_addr_to_str(self['bssid'])
+            else:
+                raise AttributeError("BSSID must be provided when initializing BSSInfo() fields")
 
 
     def serialize(self):
@@ -659,6 +696,158 @@ class BSSInfo(InfoStruct):
         self['ssid']  = ctypes.c_char_p(self['ssid']).value
         self['bssid'] = util.byte_str_to_mac_addr(self['bssid'])
         self['bssid'] = util.mac_addr_to_str(self['bssid'])
+
+
+# End Class
+
+
+
+# -----------------------------------------------------------------------------
+# BSS Info Class
+# -----------------------------------------------------------------------------
+
+class BSSConfig(InfoStruct):
+    """Class for Basic Service Set (BSS) Configuration Information
+
+    Attributes:
+        bssid (int):  48-bit ID of the BSS either as a integer; A value of 
+            None will remove current BSS on the node (similar to 
+            node.reset(bss=True)); A value of False will not update the current 
+            bssid
+        ssid (str):  SSID string (Must be 32 characters or less); A value of 
+            None will not update the current SSID
+        channel (int): Channel on which the BSS operates; A value of None will
+            not update the current channel
+        beacon_interval (int): Integer number of beacon Time Units in [1, 65535]
+            (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds);
+            A value of None will disable beacons;  A value of False will not 
+            update the current beacon interval
+        ht_capable (bool):  Does the node support HTMF Tx/Rx.  A value of None 
+            will not update the current value of HT capable.
+            
+    """
+    def __init__(self, bssid=False, ssid=None, channel=None, beacon_interval=False, ht_capable=None):                       
+        super(BSSConfig, self).__init__(field_name='BSS_CONFIG')
+
+        # Default values used if value not provided:
+        #     bssid           - 00:00:00:00:00:00
+        #     ssid            - ""
+        #     channel         - 0
+        #     beacon_interval - 0xFFFF
+        #     ht_capable      - 0xFF
+
+        # Initialize update mask
+        self['update_mask'] = 0
+
+        # Set the BSSID field
+        if bssid is not None:
+            if bssid:
+                self['bssid'] = bssid
+    
+                # Convert BSSID to colon delimited string for internal storage
+                if type(bssid) is int:
+                    self['bssid']        = util.mac_addr_to_str(self['bssid'])
+                    
+                # Set update mask
+                self['update_mask'] |= self._consts.update_mask.BSSID
+            else:
+                # Remove current BSS on the node
+                self['bssid'] = "00:00:00:00:00:00"
+        else:
+            self['bssid'] = "00:00:00:00:00:00"
+            
+            # Set update mask
+            self['update_mask'] |= self._consts.update_mask.BSSID
+        
+        # Set SSID field
+        if ssid is not None:
+            # Check SSID
+            if type(ssid) is not str:
+                raise ValueError("The SSID must be a string.")
+
+            if len(ssid) > 32:
+                ssid = ssid[:32]
+                print("WARNING:  SSID must be 32 characters or less.  Truncating to {0}".format(ssid))
+
+            try:
+                self['ssid']         = bytes(ssid, "UTF8")
+            except:
+                self['ssid']         = ssid
+            
+            # Set update mask
+            self['update_mask'] |= self._consts.update_mask.SSID
+        else:
+            self['ssid'] = bytes()
+
+        # Set Channel field
+        if channel is not None:
+            # Check Channel
+            #   - Make sure it is a valid channel; only store channel
+            if channel not in util.wlan_channels:
+                msg  = "The channel must be a valid channel number.  See util.py wlan_channels."
+                raise ValueError(msg)
+
+            self['channel']    = channel
+            
+            # Set update mask
+            self['update_mask'] |= self._consts.update_mask.CHANNEL
+        else:
+            self['channel'] = 0
+        
+        # Set the beacon interval field
+        if beacon_interval:
+            if beacon_interval is not None:
+                # Check beacon interval
+                if type(beacon_interval) is not int:
+                    beacon_interval = int(beacon_interval)
+                    print("WARNING:  Beacon interval must be an interger number of time units.  Rounding to {0}".format(beacon_interval))
+    
+                if not ((beacon_interval > 9) and (beacon_interval < 2**16)):
+                    msg  = "The beacon interval must be in [10, 65535] (ie 16-bit positive integer)."
+                    raise ValueError(msg)
+    
+                self['beacon_interval'] = beacon_interval
+            else:
+                # Disable beacons
+                self['beacon_interval'] = 0                
+            
+            # Set update mask
+            self['update_mask'] |= self._consts.update_mask.BEACON_INTERVAL
+        else:
+            self['beacon_interval'] = 0xFFFF
+
+
+        # Set the HT capable field
+        if ht_capable is not None:
+            # Check HT capable
+            if type(ht_capable) is not bool:
+                msg  = "ht_capable must be a boolean."
+                raise ValueError(msg)
+
+            self['ht_capable'] = ht_capable
+            
+            # Set update mask
+            self['update_mask'] |= self._consts.update_mask.HT_CAPABLE
+        else:
+            self['ht_capable'] = 0xFF
+        
+
+    def serialize(self):
+        # Convert bssid to byte string for transmit
+        bssid_tmp     = self['bssid']
+        self['bssid'] = util.str_to_mac_addr(self['bssid'])
+        self['bssid'] = util.mac_addr_to_byte_str(self['bssid'])
+
+        ret_val = super(BSSConfig, self).serialize()
+
+        # Revert bssid to colon delimited string
+        self['bssid'] = bssid_tmp
+
+        return ret_val
+
+
+    def deserialize(self, buf):
+        raise NotImplementedError("")
 
 
 # End Class

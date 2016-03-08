@@ -147,8 +147,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         Args:
             size (int):                   Number of bytes to read from the log
             offset (int, optional):       Starting byte to read from the log
-            max_req_size (int, optional): Max request size that the transport will fragment
-                            the request into.
+            max_req_size (int, optional): Max request size that the transport 
+                            will fragment the request into.
 
         Returns:
             buffer (transport.Buffer):  Data from the log corresponding to the input parameters
@@ -189,10 +189,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Get all "new" entries in the log.
 
         Args:
-            log_tail_pad (int, optional): Number of bytes from the current end of the "new" entries
-                that will not be read during the call.  This is to deal with the case where the node
-                is in the process of modifying the last log entry so it my contain incomplete data
-                and should not be read.
+            log_tail_pad (int, optional): Number of bytes from the current end 
+                of the "new" entries that will not be read during the call.  
+                This is to deal with the case where the node is in the process 
+                of modifying the last log entry so it my contain incomplete 
+                data and should not be read.
 
         Returns:
             buffer (transport.Buffer): Data from the log that contains all entries since the last time the log was read.
@@ -361,10 +362,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         Args:
             port (int): Port number to stream the log entries.
             ip_address (int, str, optional):  IP address to stream the entries.
-            host_id (int, optional):  Host ID to be used in the transport header for the streamed entries.
+            host_id (int, optional):  Host ID to be used in the transport 
+                header for the streamed entries.
 
-        .. note:: If ip_address or host_id is not provided, then ip_address and host_id of the
-            WLAN Exp host will be used.
+        .. note:: If ip_address or host_id is not provided, then ip_address 
+            and host_id of the WLAN Exp host will be used.
         """
 
         if (ip_address is None):
@@ -414,6 +416,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def log_write_txrx_counts(self):
         """Write the current txrx counts to the log."""
         return self.send_cmd(cmds.LogAddCountsTxRx())
+
 
 
     #--------------------------------------------
@@ -471,6 +474,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             ret_val = self.send_cmd(cmds.CountsGetTxRx())
 
         return ret_val
+
 
 
     #--------------------------------------------
@@ -598,6 +602,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             print("LTG ERROR: Could not {0} on '{1}'".format(msg, self.description))
 
 
+
     #--------------------------------------------
     # Configure Node Attribute Commands
     #--------------------------------------------
@@ -609,8 +614,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
           * Counts
           * LTG
           * Queues
-          * Association State
-          * BSS info
+          * BSS (i.e. all association state)
+          * Networks
 
         See the reset() command for a list of all portions of the node that will
         be reset.
@@ -619,15 +624,15 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                             txrx_counts=True,
                             ltg=True,
                             queue_data=True,
-                            associations=True,
-                            bss_info=True)
+                            bss=True,
+                            network_list=True)
 
         if (status == cmds.CMD_PARAM_LTG_ERROR):
             print("LTG ERROR: Could not stop all LTGs on '{0}'".format(self.description))
 
 
     def reset(self, log=False, txrx_counts=False, ltg=False, queue_data=False,
-                   associations=False, bss_info=False ):
+                    bss=False, network_list=False ):
         """Resets the state of node depending on the attributes.
 
         Args:
@@ -635,8 +640,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             txrx_counts (bool):  Reset the TX/RX Counts
             ltg (bool):          Remove all LTGs
             queue_data (bool):   Purge all TX queue data
-            associations (bool): Remove all associations
-            bss_info (bool):     Remove all BSS info
+            bss (bool):          Reset association state
+            network_list (bool): Remove all known networks on the node
         """
         flags = 0;
 
@@ -649,30 +654,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         if txrx_counts:      flags += cmds.CMD_PARAM_NODE_RESET_FLAG_TXRX_COUNTS
         if ltg:              flags += cmds.CMD_PARAM_NODE_RESET_FLAG_LTG
         if queue_data:       flags += cmds.CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE
-        if associations:     flags += cmds.CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS
-        if bss_info:         flags += cmds.CMD_PARAM_NODE_RESET_FLAG_BSS_INFO
+        if bss:              flags += cmds.CMD_PARAM_NODE_RESET_FLAG_BSS
+        if network_list:     flags += cmds.CMD_PARAM_NODE_RESET_FLAG_NETWORK_LIST
 
         # Send the reset command
         self.send_cmd(cmds.NodeResetState(flags))
-
-
-    def set_wlan_mac_address(self, mac_address=None):
-        """Set the WLAN MAC Address of the node.
-
-        This will allow a user to spoof the wireless MAC address of the node.  If
-        the mac_address is not provided, then the node will set the wirelss MAC
-        address back to the default for the node (ie the Eth A MAC address stored in
-        the EEPROM).  This will perform a "reset_all()" command on the node to
-        remove any existing state to limit any corner cases that might arise from
-        changing the wireless MAC address.
-        """
-        raise NotImplementedError
-
-        # NOTE: We have not worked out all of the reset issues with changing the
-        # underlying MAC address; leaving this not implemented for now.
-        #
-        # addr = self.send_cmd(cmds.NodeProcWLANMACAddr(cmds.CMD_PARAM_WRITE, mac_address))
-        # self.wlan_mac_address = addr
 
 
     def get_wlan_mac_address(self):
@@ -727,6 +713,16 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         return node_time[1]
 
 
+    def enable_beacon_mac_time_update(self, enable):
+        """Enable / Disable MAC time update from beacons
+        
+        Args:
+            enable (bool):  True - enable MAC time updates from beacons
+                            False - disable MAC time updates from beacons        
+        """
+        self.send_cmd(cmds.NodeConfigure(beacon_mac_time_update=enable))
+
+
     def set_low_to_high_rx_filter(self, mac_header=None, fcs=None):
         """Sets the filter on the packets that are passed from the low MAC to the high MAC.
 
@@ -748,38 +744,6 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             to decide on the response.  Default behavior like this can only be modified in the low MAC.
         """
         self.send_cmd(cmds.NodeSetLowToHighFilter(cmds.CMD_PARAM_WRITE, mac_header, fcs))
-
-
-    def set_channel(self, channel):
-        """Sets the channel of the node.
-
-        Args:
-            channel (int, dict in util.wlan_channel array): Channel to set on the node
-                (either the channel number as an it or an entry in the wlan_channel array)
-
-        Returns:
-            channel (dict):  Channel dictionary (see util.wlan_channel) that was set on the node.
-
-        .. note::  This will only change the channel of the node.  It does not notify any associated
-            clients of this channel change.  If you are using WARP nodes as part of the network, then
-            you must set the channel on all nodes to actually switch the channel of the network.  If
-            you are using non-WARP nodes, then you should implement the Beacon Channel Switch
-            Announcement (CSA) detailed in the tutorial:
-            http://warpproject.org/trac/wiki/802.11/wlan_exp/app_notes/tutorial_hop_mac/slow_hopping
-            This is not implemented in the reference design because the CSA is inherently best effort.
-            There are no guarantees that a client actually hears the announcement and follows, so it
-            is not good practice in a controlled experiment.
-        """
-        return self.send_cmd(cmds.NodeProcChannel(cmds.CMD_PARAM_WRITE, channel))
-
-
-    def get_channel(self):
-        """Gets the current channel of the node.
-
-        Returns:
-            channel (dict):  Channel dictionary (see util.wlan_channel) of the current channel on the node.
-        """
-        return self.send_cmd(cmds.NodeProcChannel(cmds.CMD_PARAM_READ))
 
 
     #------------------------
@@ -1341,14 +1305,14 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         self.send_cmd(cmds.NodeProcRandomSeed(cmds.CMD_PARAM_WRITE, high_seed, low_seed))
 
 
-    def enable_dsss(self):
-        """Enables DSSS receptions on the node."""
-        self.send_cmd(cmds.NodeConfigure(dsss_enable=True))
-
-
-    def disable_dsss(self):
-        """Disable DSSS receptions on the node."""
-        self.send_cmd(cmds.NodeConfigure(dsss_enable=False))
+    def enable_dsss(self, enable):
+        """Enable / Disable DSSS receptions on the node
+        
+        Args:
+            enable (bool):  True - enable DSSS receptions on the node
+                            False - disable DSSS receptions on the node (DEFAULT)
+        """
+        self.send_cmd(cmds.NodeConfigure(dsss_enable=enable))
 
 
     def set_print_level(self, level):
@@ -1368,7 +1332,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
 
     #--------------------------------------------
-    # Internal helper methods to configure node attributes
+    # Internal methods to view / configure node attributes
+    #     NOTE:  These methods are not safe in all cases; therefore they are not part of the public API
     #--------------------------------------------
     def _check_allowed_rate(self, mcs, phy_mode, verbose=False):
         """Check that rate parameters are allowed
@@ -1491,11 +1456,6 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         return ret_val
 
 
-    #--------------------------------------------
-    # Internal methods to view / configure node attributes
-    #     NOTE:  These methods are not safe in all cases; therefore they are not part of the public API
-    #--------------------------------------------
-
     def _set_bb_gain(self, bb_gain):
         """Sets the the baseband gain.
 
@@ -1570,24 +1530,97 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
 
     #--------------------------------------------
+    # Scan Commands
+    #--------------------------------------------
+    def set_scan_parameters(self, time_per_channel=0.1, num_probe_tx_per_chan=1, channel_list=None, ssid=None):
+        """Set the scan parameters.
+        
+        Args:
+            time_per_channel (float, int, optional): Time (in float sec or int 
+                microseconds) to spend on each channel (defaults to 0.1 sec)
+            num_probe_tx_per_chan (int, optional):   Number of probe requests 
+                transmitted while on each channel (defaults to 1)
+            channel_list (list of int optional): Channel(s) to scan
+            ssid (str, optional):  SSID to scan for (as part of probe request)
+        
+        .. note::  If the channel list is not specified, then it will not be 
+            updated on the node (ie it will use the current channel list)
+        
+        .. note::  If num_probe_tx_per_chan is zero, then the node will perform
+            a passive scan.
+            
+        .. note::  If ssid is "", that is the default SSID to scan for "all SSIDs".
+        """
+        # Convert num_probe_tx_per_chan
+        #   - The node only supports a probe_tx_interval (in microseconds).  
+        #     Therefore, this function must convert the number of probe 
+        #     transmissions to an appropriate interval based on the time_per_channel.
+        #   - In the scan implementation, if the probe tx interval is greater
+        #     than zero, a probe request will be transmitted immediately and 
+        #     subesequent probe requests will be scheduled to be sent after the
+        #     probe tx interval.
+        #   - Given the that we cannot guarantee execution order in the scheduler, 
+        #     this conversion will be "best effort".  This means that in certain 
+        #     cases the actual number of probe reqeusts will be +/- 1 of the number 
+        #     specified.  By dividing the time_per_channel by the num_probe_tx_per_chan,
+        #     there could arise a situation where the probe request transmission was 
+        #     executed before the channel switched resulting in a extra probe
+        #     request on a channel.
+        #
+        if (num_probe_tx_per_chan == 0):
+            probe_tx_interval = 0
+        else:
+            probe_tx_interval = time_per_channel / num_probe_tx_per_chan
+                
+        self.send_cmd(cmds.NodeProcScanParam(cmds.CMD_PARAM_WRITE, time_per_channel, probe_tx_interval, channel_list, ssid))
+    
+    
+    def start_scan_networks(self):
+        """Starts a network scan."""
+        self.send_cmd(cmds.NodeProcScan(enable=True))
+    
+    
+    def stop_scan_networks(self):
+        """Stops the current network scan."""
+        self.send_cmd(cmds.NodeProcScan(enable=False))
+
+
+    def is_scanning(self):
+        """Is the node currently scanning?
+        
+        Returns:
+            status (bool):  
+                * True      -- Inidcates node is currently in the scan process
+                * False     -- Indicates node is not currently in the scan process
+        """
+        return self.send_cmd(cmds.NodeProcScan())
+
+
+
+    #--------------------------------------------
     # Association Commands
     #   NOTE:  Some commands are implemented in sub-classes
     #--------------------------------------------
-    def get_ssid(self):
-        """Command to get the SSID of the node.
-
-        Returns:
-            ssid (str):  SSID of the node's current BSS.
+    def configure_bss(self):
+        """Configure the BSS information of the node
+        
+        Each node is either a member of no BSS (colloquially "unassociated") 
+        or a member of one BSS.  A node requires a minimum valid bss_info to 
+        be a member of a BSS.  Based on the node type, there is a minimum 
+        set of fields needed for a valid bss_info.  
+        
+        ..note::  This method is implemented in each of the child classes
         """
-        return self.send_cmd(cmds.NodeGetSSID())
+        raise NotImplementedError()
 
 
     def disassociate(self, device_list):
-        """Remove associations of devices within the device_list from the association table
+        """Remove associations of devices within the device_list from the 
+        association table
 
-        Attributes:
-            device_list (list of WlanExpNode / WlanDevice):  List of 802.11 devices or single
-                802.11 device for which to disassociate
+        Args:
+            device_list (list of WlanExpNode / WlanDevice):  List of 802.11 
+                devices or single 802.11 device for which to disassociate
         """
         try:
             for device in device_list:
@@ -1604,9 +1637,12 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def is_associated(self, device_list):
         """Is the node associated with the devices in the device list.
 
-        For is_associated to return True, one of the following conditions must be met:
-          #. If the device is a wlan_exp node, then both the node and the device must be associated.
-          #. If the device is a 802.11 device, then only the node must be associated with the device, since we cannot know the state of
+        For is_associated to return True, one of the following conditions must 
+        be met:
+          #. If the device is a wlan_exp node, then both the node and the 
+             device must be associated.
+          #. If the device is a 802.11 device, then only the node must be 
+             associated with the device, since we cannot know the state of 
              the 802.11 device.
 
         Returns:
@@ -1620,7 +1656,10 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         ret_list = True
         my_info  = self.get_bss_info()           # Get node's BSS info
 
-        my_bssid = my_info['bssid']
+        if my_info is None:
+            my_bssid = "00:00:00:00:00:00"
+        else:
+            my_bssid = my_info['bssid']
 
         if device_list is not None:
             # Convert device_list to a list if it is not already one; set flag to not return a list
@@ -1664,11 +1703,12 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Get the station info from the node.
 
         Args:
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices or single
-                802.11 device for which to get the station info
+            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
+                802.11 devices or single 802.11 device for which to get the 
+                station info
 
         Returns:
-            station_infos (list of dict):  STATION_INFO dictionaries are defined in wlan_exp.log.entry_types
+            station_infos (list of StationInfo()):  List of StationInfo() known to the node
 
         .. note:: If the device_list is a single device, then only a station info or
             None is returned.  If the device_list is a list of devices, then a
@@ -1698,52 +1738,29 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         return ret_val
 
 
-    def get_bss_info(self, bssid_list=None):
-        """Get the BSS info from the node.
-
-        Args:
-            bssid_list (list of int, optional):  List of BSS IDs (MAC address) or single
-                BSS ID for which to get the BSS info
+    def get_bss_info(self):
+        """Get the node's BSS info 
 
         Returns:
-            bss_infos (list of dict):  BSS_INFO dictionaries are defined in wlan_exp.log.entry_types
-
-        .. note::  If the bssid_list is a single BSS ID, then only a single BSS info or None is
-            returned.  If the bssid_list is a list of BSS IDs, then a list of BSS infos will be
-            returned in the same order as the BSS IDs in the list.  If any of the BSS infos are
-            not there, None will be inserted in the list.  If the bssid_list is not specified,
-            then "my_bss_info" on the node will be returned.  If the the bssid_list is the string
-            "ASSOCIATED_BSS", then all of the BSS infos on the node will be returned.
+            bss_info (BSSInfo()):  BSS Info of node (can be None if unassociated)
         """
-        ret_val = []
-        if not bssid_list is None:
-            if (type(bssid_list) is list):
-                # Get all BSS infos in the list
-                for bssid in bssid_list:
-                    info = self.send_cmd(cmds.NodeGetBSSInfo(bssid))
-                    if (len(info) == 1):
-                        ret_val.append(info)
-                    else:
-                        ret_val.append(None)
-            elif (type(bssid_list) is str):
-                # Get all BSS infos on the node
-                ret_val = self.send_cmd(cmds.NodeGetBSSInfo("ALL"))
-            else:
-                # Get single BSS info or return None
-                ret_val = self.send_cmd(cmds.NodeGetBSSInfo(bssid_list))
-                if (len(ret_val) == 1):
-                    ret_val = ret_val[0]
-                else:
-                    ret_val = None
+        ret_val = self.send_cmd(cmds.NodeGetBSSInfo())
+        
+        if (len(ret_val) == 1):
+            ret_val = ret_val[0]
         else:
-            # Get "my_bss_info"
-            ret_val = self.send_cmd(cmds.NodeGetBSSInfo())
-            if (len(ret_val) == 1):
-                ret_val = ret_val[0]
-            else:
-                ret_val = None
+            ret_val = None
 
         return ret_val
+
+
+    def get_network_list(self):
+        """Get a list of known networks (BSSInfo()s) on the node
+
+        Returns:
+            networks (list of BSSInfo()):  List of BSSInfo() that are known to the node 
+        """
+        return self.send_cmd(cmds.NodeGetBSSInfo("ALL"))
 
 
 
