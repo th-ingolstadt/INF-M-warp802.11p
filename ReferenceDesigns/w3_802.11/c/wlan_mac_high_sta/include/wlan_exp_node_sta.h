@@ -28,11 +28,10 @@
 // ****************************************************************************
 // Define WLAN Exp Node Station Commands
 //
-#define CMDID_NODE_STA_CONFIG                              0x200000
+#define CMDID_NODE_STA_JOIN                                0x100000
+#define CMDID_NODE_STA_JOIN_STATUS                         0x100001
+#define CMDID_NODE_STA_SET_AID                             0x100002
 
-
-
-#define CMD_PARAM_NODE_STA_BEACON_TS_UPDATE                0x00000001
 
 
 // ****************************************************************************

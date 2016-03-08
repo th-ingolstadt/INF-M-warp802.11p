@@ -47,7 +47,7 @@ void uart_rx(u8 rxByte){ };
 #define MAX_NUM_CHARS                       31
 
 
-extern u32                                  mac_param_chan;
+extern wlan_mac_low_config_t                cpu_low_config;
 extern tx_params_t                          default_unicast_data_tx_params;
 
 extern bss_info*                            my_bss_info;
@@ -109,38 +109,38 @@ void uart_rx(u8 rxByte){
 				break;
 
 				case ASCII_c:
-					if(mac_param_chan > 1){
+					if(cpu_low_config.channel > 1){
 						deauthenticate_all_stations();
-						(mac_param_chan--);
+						(cpu_low_config.channel--);
 
 						if(my_bss_info != NULL){
-							my_bss_info->chan = mac_param_chan;
+							my_bss_info->chan = cpu_low_config.channel;
 						}
 
-						//Send a message to other processor to tell it to switch channels
-						wlan_mac_high_set_channel( mac_param_chan );
+						// Send a message to other processor to tell it to switch channels
+						wlan_mac_high_set_channel(cpu_low_config.channel);
 					} else {
 
 					}
-					xil_printf("(-) Channel: %d\n", mac_param_chan);
+					xil_printf("(-) Channel: %d\n", cpu_low_config.channel);
 
 
 				break;
 				case ASCII_C:
-					if(mac_param_chan < 11){
+					if(cpu_low_config.channel < 11){
 						deauthenticate_all_stations();
-						(mac_param_chan++);
+						(cpu_low_config.channel++);
 
 						if(my_bss_info != NULL){
-							my_bss_info->chan = mac_param_chan;
+							my_bss_info->chan = cpu_low_config.channel;
 						}
 
-						//Send a message to other processor to tell it to switch channels
-						wlan_mac_high_set_channel( mac_param_chan );
+						// Send a message to other processor to tell it to switch channels
+						wlan_mac_high_set_channel(cpu_low_config.channel);
 					} else {
 
 					}
-					xil_printf("(+) Channel: %d\n", mac_param_chan);
+					xil_printf("(+) Channel: %d\n", cpu_low_config.channel);
 
 				break;
 				case ASCII_g:

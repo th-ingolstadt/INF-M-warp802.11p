@@ -5,37 +5,50 @@
  *
  *  @copyright Copyright 2014-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
- *				See LICENSE.txt included in the design archive or
- *				at http://mangocomm.com/802.11/license
+ *              See LICENSE.txt included in the design archive or
+ *              at http://mangocomm.com/802.11/license
  *
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
  *  @author Erik Welsh (welsh [at] mangocomm.com)
  */
 
+/***************************** Include Files *********************************/
 
-#ifndef WLAN_MAC_STA_JOIN_FSM_H_
-#define WLAN_MAC_STA_JOIN_FSM_H_
+
+/*************************** Constant Definitions ****************************/
+#ifndef WLAN_MAC_STA_JOIN_H_
+#define WLAN_MAC_STA_JOIN_H_
+
+// Join Timing Parameters
+//     These defines set the join timing parameters at boot.
+//
+#define BSS_SEARCH_POLL_INTERVAL_USEC                      10000
+#define BSS_ATTEMPT_POLL_INTERVAL_USEC                     50000
+
+
+/*********************** Global Structure Definitions ************************/
 
 typedef struct {
-	char*	ssid;		//Mandatory: SSID string
-	u8 		bssid[6];	//Optional: BSSID address, 00-00-00-00-00-00 interpreted as "ignore"
-	u8		channel;	//Optional: Channel number, 0 interpreted as "ignore"
+    char    * ssid;          // Mandatory: SSID string
+    u8        bssid[6];      // Optional: BSSID address, 00-00-00-00-00-00 interpreted as "ignore"
+    u8        channel;       // Optional: Channel number, 0 interpreted as "ignore"
 } join_parameters_t;
 
-#define BSS_SEARCH_POLL_INTERVAL_USEC            10000
-#define BSS_ATTEMPT_POLL_INTERVAL_USEC           50000
 
-void wlan_mac_sta_join_init();
-volatile join_parameters_t* wlan_mac_sta_get_join_parameters();
+/*************************** Function Prototypes *****************************/
+
+int  wlan_mac_sta_join_init();
+
 void wlan_mac_sta_set_join_success_callback(function_ptr_t callback);
-int  wlan_mac_is_joining();
+
+volatile join_parameters_t* wlan_mac_sta_get_join_parameters();
+
 void wlan_mac_sta_join();
-void wlan_mac_sta_join_l();
-void wlan_mac_sta_bss_search_poll(u32 schedule_id);
-void wlan_mac_sta_bss_attempt_poll(u32 arg);
-void wlan_mac_sta_scan_auth_transmit();
-void wlan_mac_sta_scan_assoc_req_transmit();
-void wlan_mac_sta_return_to_idle();
+void wlan_mac_sta_join_return_to_idle();
+
+void wlan_mac_sta_join_bss_attempt_poll(u32 aid);
+
+u32  wlan_mac_is_joining();
 
 #endif

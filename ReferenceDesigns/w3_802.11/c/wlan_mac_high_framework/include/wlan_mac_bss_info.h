@@ -4,10 +4,10 @@
  *  This contains code tracking BSS information. It also contains code for managing
  *  the active scan state machine.
  *
- *  @copyright Copyright 2014-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2014-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
- *				See LICENSE.txt included in the design archive or
- *				at http://mangocomm.com/802.11/license
+ *              See LICENSE.txt included in the design archive or
+ *              at http://mangocomm.com/802.11/license
  *
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
@@ -17,20 +17,69 @@
 #ifndef WLAN_MAC_BSS_INFO_H_
 #define WLAN_MAC_BSS_INFO_H_
 
+/***************************** Include Files *********************************/
+
 #include "wlan_mac_high.h"
 
-#define BSS_INFO_TIMEOUT_USEC                    600000000
 
-#define NUM_BASIC_RATES_MAX                      10
-#define BSSID_LEN                                6
+/*************************** Constant Definitions ****************************/
 
-typedef enum {
-	NEVER_ATTEMPTED = 0,
-	NO_RESPONSE		= 1,
-	DENIED			= 2,
-	SUCCESSFUL		= 3
-} last_join_attempt_result_t;
+//-----------------------------------------------
+// Timeout used to remove inactive BSS infos
+//     - Part of bss_info_timestamp_check()
+//
+#define BSS_INFO_TIMEOUT_USEC                              600000000
 
+
+//-----------------------------------------------
+// Field size defines
+//
+#define BSSID_LEN                                          6
+#define NUM_BASIC_RATES_MAX                                10
+
+
+//-----------------------------------------------
+// BSS Beacon Interval defines
+//
+#define BSS_MICROSECONDS_IN_A_TU                           1024
+#define BEACON_INTERVAL_NO_BEACON_TX                       0x0
+
+
+//-----------------------------------------------
+// BSS State defines
+//
+#define BSS_STATE_UNAUTHENTICATED                          1
+#define BSS_STATE_AUTHENTICATED                            2
+#define BSS_STATE_ASSOCIATED                               4
+
+
+//-----------------------------------------------
+// BSS Flags defines
+//
+#define BSS_FLAGS_KEEP                                     0x0001
+
+
+//-----------------------------------------------
+// BSS Configuration Bit Masks
+//
+#define BSS_FIELD_MASK_BSSID                               0x00000001
+#define BSS_FIELD_MASK_CHAN                                0x00000002
+#define BSS_FIELD_MASK_SSID                                0x00000004
+#define BSS_FIELD_MASK_BEACON_INTERVAL                     0x00000008
+#define BSS_FIELD_MASK_HT_CAPABLE                          0x00000010
+
+
+//-----------------------------------------------
+// configure_bss() return error flags
+//
+#define BSS_CONFIG_FAILURE_BSSID_INVALID                   0x00000001
+#define BSS_CONFIG_FAILURE_BSSID_INSUFFICIENT_ARGUMENTS    0x00000002
+#define BSS_CONFIG_FAILURE_CHANNEL_INVALID                 0x00000004
+#define BSS_CONFIG_FAILURE_BEACON_INTERVAL_INVALID         0x00000008
+#define BSS_CONFIG_FAILURE_HT_CAPABLE_INVALID              0x00000010
+
+
+//-----------------------------------------------
 // Define common BSS info fields
 //   Note: These fields have been 32 bit aligned using padding bytes
 
@@ -51,17 +100,34 @@ typedef enum {
 
 
 
+/*********************** Global Structure Definitions ************************/
+
+/**
+ * @brief Result of Join attempt
+ *
+ * This defines the values of a join attempt
+ */
+typedef enum {
+    NEVER_ATTEMPTED = 0,
+    NO_RESPONSE     = 1,
+    DENIED          = 2,
+    SUCCESSFUL      = 3
+} join_attempt_result_t;
+
+
 /**
  * @brief Basic Service Set (BSS) Information Structure
  *
  * This struct contains information about the basic service set for the node.
  */
 typedef struct{
-	MY_BSS_INFO_COMMON_FIELDS
-	last_join_attempt_result_t		last_join_attempt_result;
-	u64								last_join_attempt_timestamp;
-	dl_list associated_stations;
+    MY_BSS_INFO_COMMON_FIELDS
+    join_attempt_result_t           last_join_attempt_result;
+    u64                             last_join_attempt_timestamp;
+    dl_list associated_stations;
 } bss_info;
+
+
 
 /**
  * @brief Base BSS Information Structure
@@ -70,47 +136,25 @@ typedef struct{
  * pointers to other data.
  */
 typedef struct{
-	MY_BSS_INFO_COMMON_FIELDS
+    MY_BSS_INFO_COMMON_FIELDS
 } bss_info_base;
 
-// BSS Configuration Bit Masks
-#define		BSS_FIELD_MASK_BSSID				0x00000001
-#define		BSS_FIELD_MASK_CHAN					0x00000002
-#define		BSS_FIELD_MASK_SSID					0x00000004
-#define		BSS_FIELD_MASK_BEACON_INTERVAL		0x00000008
-#define		BSS_FIELD_MASK_HT_CAPABLE			0x00000010
 
+
+/**
+ * @brief BSS Configuration Structure
+ *
+ * This struct contains all the BSS info fields that can be modified.
+ */
 typedef struct{
     u32        update_mask;                       /* Mask of fields that were updated */
-    u8         bssid[6];                  		  /* BSS ID */
+    u8         bssid[BSSID_LEN];                  /* BSS ID */
     u16        beacon_interval;                   /* Beacon interval - In time units of 1024 us */
     char       ssid[SSID_LEN_MAX + 1];            /* SSID of the BSS - 33 bytes */
     u8         chan;                              /* Channel */
-    u8		   ht_capable;						  /* Support HTMF Tx/Rx	*/
-    u8         padding;                        	  /* Padding byte(s) */
+    u8         ht_capable;                        /* Support HTMF Tx/Rx */
+    u8         padding;                           /* Padding byte(s) */
 } bss_config_t;
-
-#define 	BEACON_INTERVAL_NO_BEACON_TX						0x0
-
-// configure_bss() return error flags
-#define		BSS_CONFIG_FAILURE_BSSID_INVALID					0x00000001
-#define		BSS_CONFIG_FAILURE_BSSID_INSUFFICIENT_ARGUMENTS		0x00000002
-#define		BSS_CONFIG_FAILURE_CHANNEL_INVALID					0x00000004
-#define		BSS_CONFIG_FAILURE_BEACON_INTERVAL_INVALID			0x00000008
-#define		BSS_CONFIG_FAILURE_HT_CAPABLE_INVALID				0x00000010
-
-
-
-// BSS State defines
-#define BSS_STATE_UNAUTHENTICATED                          1
-#define BSS_STATE_AUTHENTICATED                            2
-#define BSS_STATE_ASSOCIATED                               4
-
-// BSS Flags defines
-#define BSS_FLAGS_KEEP								   0x0001
-
-// BSS Beacon Interval defines
-#define BSS_MICROSECONDS_IN_A_TU                           1024
 
 
 
@@ -127,7 +171,7 @@ inline void      bss_info_rx_process(void* pkt_buf_addr);
 void             print_bss_info();
 void             bss_info_timestamp_check();
 
-dl_list	       * wlan_mac_high_find_bss_info_SSID(char* ssid);
+dl_list        * wlan_mac_high_find_bss_info_SSID(char* ssid);
 dl_entry       * wlan_mac_high_find_bss_info_BSSID(u8* bssid);
 
 bss_info       * wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan);

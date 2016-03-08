@@ -34,6 +34,7 @@
 #include "wlan_mac_entries.h"
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_schedule.h"
+#include "wlan_mac_scan.h"
 #include "wlan_mac_bss_info.h"
 
 // WLAN Exp includes
@@ -112,19 +113,19 @@ u32           process_buffer_cmds(int socket_index, void * from, cmd_resp * comm
                                   char * type, char * description, dl_list * source_list, u32 dest_size,
                                   u32 (*find_id)(u8 *),
                                   dl_entry * (*find_source_entry)(u8 *),
-                                  void (*copy_source_to_dest)(void *, void *, u64),
+                                  void (*copy_source_to_dest)(void *, void *, u8*, u64),
                                   void (*zero_dest)(void *));
 
 dl_entry *    find_station_info_entry(u8 * mac_addr);
 void          zero_station_info_entry(void * dest);
-void          copy_station_info_to_dest_entry(void * source, void * dest, u64 time);
+void          copy_station_info_to_dest_entry(void * source, void * dest, u8* mac_addr, u64 time);
 
 dl_entry *    find_txrx_counts_entry(u8 * mac_addr);
 void          zero_txrx_counts_entry(void * dest);
-void          copy_txrx_counts_to_dest_entry(void * source, void * dest, u64 time);
+void          copy_txrx_counts_to_dest_entry(void * source, void * dest, u8* mac_addr, u64 time);
 
 void          zero_bss_info_entry(void * dest);
-void          copy_bss_info_to_dest_entry(void * source, void * dest, u64 time);
+void          copy_bss_info_to_dest_entry(void * source, void * dest, u8* mac_addr, u64 time);
 
 // Null callback function declarations
 int           null_process_cmd_callback(u32 cmd_id, void* param);
@@ -143,6 +144,8 @@ static wlan_exp_function_ptr_t    wlan_exp_reset_station_counts_callback     = (
        wlan_exp_function_ptr_t    wlan_exp_reset_all_associations_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_tx_cmd_add_association_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_process_user_cmd_callback         = (wlan_exp_function_ptr_t) null_process_cmd_callback;
+       wlan_exp_function_ptr_t    wlan_exp_beacon_ts_update_mode_callback    = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
+       wlan_exp_function_ptr_t    wlan_exp_process_config_bss_callback       = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
 
 u32                               async_pkt_enable;
 u32                               async_eth_dev_num;
@@ -746,23 +749,14 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                         xil_printf("NODE_CONFIG_SETUP: Configured wlan_exp with node ID %d, ", node_info.node_id);
                         xil_printf("IP address %d.%d.%d.%d\n", ip_addr[0], ip_addr[1], ip_addr[2], ip_addr[3]);
 
-                        // xil_printf("Reconfiguring ETH %c \n", warp_conv_eth_dev_num(eth_dev_num));
-                        // xil_printf("  New Node ID       : %d \n", node_info.node_id);
-                        // xil_printf("  New IP Address    : %d.%d.%d.%d \n", ip_addr[0], ip_addr[1], ip_addr[2], ip_addr[3]);
-                        // xil_printf("  New Unicast Port  : %d \n", transport_info->unicast_port);
-                        // xil_printf("  New Broadcast Port: %d \n", transport_info->broadcast_port);
-                        // xil_printf("\n");
-
+                        // Set right decimal point to indicate WLAN Exp network is configured
                         set_hex_display_right_dp(1);
                     }
                 } else {
                     // Do nothing
-                    // xil_printf("NODE_CONFIG_SETUP Packet ignored.  Network already configured for node %d.\n", node_info.node_id);
-                    // xil_printf("    Use NODE_CONFIG_RESET command to reset network configuration.\n\n");
                 }
             } else {
                 // Do nothing
-                // xil_printf("NODE_CONFIG_SETUP Packet with Serial Number %d ignored.  My serial number is %d \n", Xil_Ntohl(cmd_args_32[0]), node_info.serial_number);
             }
         }
         break;
@@ -816,17 +810,16 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     transport_config_sockets(eth_dev_num, transport_info->unicast_port, transport_info->broadcast_port, 0);
                     transport_reset_max_pkt_length(eth_dev_num);
 
-                    // Update User IO
+                    // Print information
                     xil_printf("NODE_CONFIG_RESET: Reset wlan_exp network config\n");
+
+                    // Clear right decimal point to indicate WLAN Exp network is not configured
                     set_hex_display_right_dp(0);
                 } else {
                     // Do nothing
-                    // xil_printf("NODE_CONFIG_RESET Packet ignored.  Network configuration already reset on node.\n");
-                    // xil_printf("    Use NODE_CONFIG_SETUP command to set the network configuration.\n\n");
                 }
             } else {
                 // Do nothing
-                // xil_printf("NODE_CONFIG_RESET Packet with Serial Number %d ignored.  My serial number is %d \n", Xil_Ntohl(cmd_args_32[0]), node_info.serial_number);
             }
         }
         break;
@@ -873,48 +866,48 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log, "Configure flags = 0x%08x  mask = 0x%08x\n", flags, mask);
 
             // Configure the LOG based on the flag bit / mask
-            if ((mask & CMD_PARAM_LOG_CONFIG_FLAG_LOGGING) == CMD_PARAM_LOG_CONFIG_FLAG_LOGGING) {
-                if ((flags & CMD_PARAM_LOG_CONFIG_FLAG_LOGGING) == CMD_PARAM_LOG_CONFIG_FLAG_LOGGING) {
+            if (mask & CMD_PARAM_LOG_CONFIG_FLAG_LOGGING) {
+                if (flags & CMD_PARAM_LOG_CONFIG_FLAG_LOGGING) {
                     event_log_config_logging(EVENT_LOG_LOGGING_ENABLE);
                 } else {
                     event_log_config_logging(EVENT_LOG_LOGGING_DISABLE);
                 }
             }
 
-            if ((mask & CMD_PARAM_LOG_CONFIG_FLAG_WRAP) == CMD_PARAM_LOG_CONFIG_FLAG_WRAP) {
-                if ((flags & CMD_PARAM_LOG_CONFIG_FLAG_WRAP) == CMD_PARAM_LOG_CONFIG_FLAG_WRAP) {
+            if (mask & CMD_PARAM_LOG_CONFIG_FLAG_WRAP) {
+                if (flags & CMD_PARAM_LOG_CONFIG_FLAG_WRAP) {
                     event_log_config_wrap(EVENT_LOG_WRAP_ENABLE);
                 } else {
                     event_log_config_wrap(EVENT_LOG_WRAP_DISABLE);
                 }
             }
 
-            if ((mask & CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS) == CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS) {
-                if ((flags & CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS) == CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS) {
+            if (mask & CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS) {
+                if (flags & CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS) {
                     wlan_exp_log_set_mac_payload_len(MAX_MAC_PAYLOAD_LOG_LEN);
                 } else {
                     wlan_exp_log_set_mac_payload_len(MIN_MAC_PAYLOAD_LOG_LEN);
                 }
             }
 
-            if ((mask & CMD_PARAM_LOG_CONFIG_FLAG_WLAN_EXP_CMDS) == CMD_PARAM_LOG_CONFIG_FLAG_WLAN_EXP_CMDS) {
-                if ((flags & CMD_PARAM_LOG_CONFIG_FLAG_WLAN_EXP_CMDS) == CMD_PARAM_LOG_CONFIG_FLAG_WLAN_EXP_CMDS) {
+            if (mask & CMD_PARAM_LOG_CONFIG_FLAG_WLAN_EXP_CMDS) {
+                if (flags & CMD_PARAM_LOG_CONFIG_FLAG_WLAN_EXP_CMDS) {
                     wlan_exp_enable_logging = 1;
                 } else {
                     wlan_exp_enable_logging = 0;
                 }
             }
 
-            if ((mask & CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU) == CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU) {
-                if ((flags & CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU) == CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU) {
+            if (mask & CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU) {
+                if (flags & CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU) {
                     entry_mask |= ENTRY_EN_MASK_TXRX_MPDU;
                 } else {
                     entry_mask &= ~ENTRY_EN_MASK_TXRX_MPDU;
                 }
             }
 
-            if ((mask & CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL) == CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL) {
-                if ((flags & CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL) == CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL) {
+            if (mask & CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL) {
+                if (flags & CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL) {
                     entry_mask |= ENTRY_EN_MASK_TXRX_CTRL;
                 } else {
                     entry_mask &= ~ENTRY_EN_MASK_TXRX_CTRL;
@@ -1224,8 +1217,8 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_counts, "Configure flags = 0x%08x  mask = 0x%08x\n", flags, mask);
 
             // Configure the LOG based on the flag bit / mask
-            if ((mask & CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC) == CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC) {
-                if ((flags & CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC) == CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC) {
+            if (mask & CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC) {
+                if (flags & CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC) {
                     promiscuous_counts_enabled = 1;
                 } else {
                     promiscuous_counts_enabled = 0;
@@ -1311,7 +1304,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 if(id != LTG_ID_INVALID){
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Configured %d\n", id);
 
-                    if ((flags & CMD_PARAM_LTG_CONFIG_FLAG_AUTOSTART) == CMD_PARAM_LTG_CONFIG_FLAG_AUTOSTART) {
+                    if (flags & CMD_PARAM_LTG_CONFIG_FLAG_AUTOSTART) {
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Starting %d\n", id);
                         ltg_sched_start( id );
                     }
@@ -1524,18 +1517,18 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
             // Configure the LOG based on the flag bits
-            if ((flags & CMD_PARAM_NODE_RESET_FLAG_LOG) == CMD_PARAM_NODE_RESET_FLAG_LOG) {
+            if (flags & CMD_PARAM_NODE_RESET_FLAG_LOG) {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log, "Reset log\n");
                 event_log_reset();
             }
 
-            if ((flags & CMD_PARAM_NODE_RESET_FLAG_TXRX_COUNTS) == CMD_PARAM_NODE_RESET_FLAG_TXRX_COUNTS) {
+            if (flags & CMD_PARAM_NODE_RESET_FLAG_TXRX_COUNTS) {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_counts, "Reseting Counts\n");
                 wlan_exp_reset_station_counts_callback();
             }
 
-            if ((flags & CMD_PARAM_NODE_RESET_FLAG_LTG) == CMD_PARAM_NODE_RESET_FLAG_LTG) {
-                status = ltg_sched_remove( LTG_REMOVE_ALL );
+            if (flags & CMD_PARAM_NODE_RESET_FLAG_LTG) {
+                status = ltg_sched_remove(LTG_REMOVE_ALL);
 
                 if (status != 0) {
                     wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_ltg, "Failed to remove all LTGs\n");
@@ -1545,17 +1538,17 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 }
             }
 
-            if ((flags & CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE) == CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE) {
+            if (flags & CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE) {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_queue, "Purging all data transmit queues\n");
                 wlan_exp_purge_all_data_tx_queue_callback();
             }
 
-            if ((flags & CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS) == CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS) {
+            if (flags & CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS) {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Resetting associations\n");
                 wlan_exp_reset_all_associations_callback();
             }
 
-            if ((flags & CMD_PARAM_NODE_RESET_FLAG_BSS_INFO) == CMD_PARAM_NODE_RESET_FLAG_BSS_INFO) {
+            if (flags & CMD_PARAM_NODE_RESET_FLAG_BSS_INFO) {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Resetting BSS info\n");
                 wlan_mac_high_reset_network_list();
             }
@@ -1577,6 +1570,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // CMDID_NODE_CONFIGURE Packet Format:
             //   - cmd_args_32[0]  - Flags
             //                     [0] - NODE_CONFIG_FLAG_DSSS_ENABLE
+            //                     [1] - NODE_CONFIG_FLAG_
             //   - cmd_args_32[1]  - Flag mask
             //   - cmd_args_32[2]  - WLAN Exp debug level
             //                     [31]  - Set debug level
@@ -1589,19 +1583,30 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Configure flags = 0x%08x  mask = 0x%08x\n", flags, mask);
 
-            // Configure the Node based on the flag bit / mask
-            if ((mask & CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE) == CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE) {
-                if ((flags & CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE) == CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE) {
-                    wlan_mac_high_set_dsss( 0x1 );
+            // Set DSS Enable / Disable
+            if (mask & CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE) {
+                if (flags & CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE) {
+                    wlan_mac_high_set_dsss(0x1);
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Enabled DSSS\n");
                 } else {
-                    wlan_mac_high_set_dsss( 0x0 );
+                    wlan_mac_high_set_dsss(0x0);
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Disabled DSSS\n");
                 }
             }
 
+            // Set MAC time update from beacon Enable / Disable
+            if (mask & CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TIME_UPDATE) {
+                if (flags & CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TIME_UPDATE) {
+                    wlan_exp_beacon_ts_update_mode_callback(1);
+                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Enable MAC time update from beacons\n");
+                } else {
+                    wlan_exp_beacon_ts_update_mode_callback(0);
+                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Disabled MAC time update from beacons\n");
+                }
+            }
+
             // Set debug print level
-            if ((debug_level & CMD_PARAM_NODE_CONFIG_SET_WLAN_EXP_PRINT_LEVEL) == CMD_PARAM_NODE_CONFIG_SET_WLAN_EXP_PRINT_LEVEL) {
+            if (debug_level & CMD_PARAM_NODE_CONFIG_SET_WLAN_EXP_PRINT_LEVEL) {
                 wlan_exp_set_print_level(debug_level & 0xFF);
             }
 
@@ -1628,20 +1633,13 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //     resp_args_32[0]   Status
             //     resp_args_32[1:2] Current MAC Address
             //
-            u8     mac_addr[ETH_MAC_ADDR_LEN];
             u32    status         = CMD_PARAM_SUCCESS;
             u32    msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
 
             switch (msg_cmd) {
                 case CMD_PARAM_WRITE_VAL:
-                    wlan_exp_get_mac_addr(&cmd_args_32[1], &mac_addr[0]);
-
-                    // !!!! TODO !!!!
-                    // Need to set the MAC Address of the node; this will have to be
-                    // implemented for each subclass of the nodes (ie AP, STA, IBSS, etc)
-                    // Not sure if this should be a callback?
-                    wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Setting Wireless MAC Address not supported at this time\n");
-
+                    // This is dangerous and is not supported
+                    wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Setting Wireless MAC Address not supported\n");
                 break;
 
                 case CMD_PARAM_READ_VAL:
@@ -1720,9 +1718,6 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Host time = 0x%08x 0x%08x\n", temp_hi, temp_lo);
 
                     // Add a time info log entry
-                    //
-                    // NOTE:  We add an additional time info entry to capture the other information from the host.
-                    //
                     if (msg_cmd == CMD_PARAM_WRITE_VAL) {
                         add_time_info_entry(mac_timestamp, new_mac_time, system_timestamp, host_timestamp, TIME_INFO_ENTRY_WLAN_EXP_SET_TIME, id, WLAN_EXP_TRUE);
                     } else {
@@ -1803,10 +1798,6 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             resp_hdr->num_args = resp_index;
         }
         break;
-
-
-        //---------------------------------------------------------------------
-        // Case NODE_CHANNEL is implemented in the child classes
 
 
         //---------------------------------------------------------------------
@@ -1948,7 +1939,8 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                         // If necessary, add an association.  This is primarily for IBSS nodes where
                         //   the association table might not be set up at the time this is called.
                         // NOTE: A multicast mac_addr should *not* be added to the association table.
-                        if(wlan_addr_mcast(mac_addr) == 0){
+                        //     Also, an address of zero should not be added to the association table
+                        if ((wlan_addr_mcast(mac_addr) == 0) && (wlan_addr_eq(mac_addr, zero_addr) == 0)) {
                             wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
                         }
 
@@ -2118,7 +2110,8 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                         // If necessary, add an association.  This is primarily for IBSS nodes where
                         //   the association table might not be set up at the time this is called.
                         // NOTE: A multicast mac_addr should *not* be added to the association table.
-                        if (!wlan_addr_mcast(mac_addr)){
+                        //     Also, an address of zero should not be added to the association table
+                        if ((wlan_addr_mcast(mac_addr) == 0) && (wlan_addr_eq(mac_addr, zero_addr) == 0)) {
                             wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
                         }
 
@@ -2248,7 +2241,8 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                         // If necessary, add an association.  This is primarily for IBSS nodes where
                         //   the association table might not be set up at the time this is called.
                         // NOTE: A multicast mac_addr should *not* be added to the association table.
-                        if(wlan_addr_mcast(mac_addr) == 0){
+                        //     Also, an address of zero should not be added to the association table
+                        if ((wlan_addr_mcast(mac_addr) == 0) && (wlan_addr_eq(mac_addr, zero_addr) == 0)) {
                             wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
                         }
 
@@ -2398,49 +2392,194 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
 
 //-----------------------------------------------------------------------------
+// Scan Commands
+//-----------------------------------------------------------------------------
+
+
+        //---------------------------------------------------------------------
+        case CMDID_NODE_SCAN_PARAM: {
+            // Set the active scan parameters
+            //
+            // Message format:
+            //     cmd_args_32[0]    Command:
+            //                           - Write       (NODE_WRITE_VAL)
+            //     cmd_args_32[1]    Time per channel (in microseconds)
+            //                         (or CMD_PARAM_NODE_TIME_RSVD_VAL if not setting the parameter)
+            //     cmd_args_32[2]    Probe request Tx interval (in microseconds)
+            //                         (or CMD_PARAM_NODE_TIME_RSVD_VAL if not setting the parameter)
+            //     cmd_args_32[3]    Length of channel list
+            //                         (or CMD_PARAM_RSVD if not setting channel list)
+            //     cmd_args_32[4:N]  Channel
+            //     cmd_args_32[N+1]  Length of SSID
+            //                         (or CMD_PARAM_RSVD if not setting SSID)
+            //     cmd_args_32[N+2]  SSID
+            //
+            // Response format:
+            //     resp_args_32[0]   Status
+            //
+            u32                             i;
+            u32                             time_per_channel;
+            u32                             probe_tx_interval;
+            u32                             length;
+            u8                            * channel_list;
+            volatile scan_parameters_t    * scan_params;
+            u32                             is_scanning;
+            u32                             status         = CMD_PARAM_SUCCESS;
+            u32                             msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
+
+            switch (msg_cmd) {
+                case CMD_PARAM_WRITE_VAL:
+                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set Scan Parameters\n");
+
+                    // Check if node is currently in a scan
+                    is_scanning = wlan_mac_scan_is_scanning();
+
+                    // Stop the current scan to update the scan parameters
+                    //     - Because the underlying channel list can be updated, the scan is stopped
+                    //       vs being paused.  This will reduce any corner cases.
+                    if (is_scanning) {
+                        wlan_mac_scan_stop();
+                    }
+
+                    // Get current scan parameters
+                    scan_params = wlan_mac_scan_get_parameters();
+
+                    // Set the time per channel
+                    time_per_channel   = Xil_Ntohl(cmd_args_32[1]);
+
+                    if (time_per_channel != CMD_PARAM_NODE_TIME_RSVD_VAL) {
+                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Time per channel   = %d us\n", time_per_channel);
+                        scan_params->time_per_channel_usec = time_per_channel;
+                    }
+
+                    // Set Probe request interval
+                    probe_tx_interval = Xil_Ntohl(cmd_args_32[2]);
+
+                    if (probe_tx_interval != CMD_PARAM_NODE_TIME_RSVD_VAL) {
+                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Probe Req interval = %d us\n", probe_tx_interval);
+                        scan_params->probe_tx_interval_usec = probe_tx_interval;
+                    }
+
+                    // Set the scan channels
+                    length = Xil_Ntohl(cmd_args_32[3]);
+
+                    if (length != CMD_PARAM_RSVD){
+                        // Free the current channel list in the scan parameters
+                        wlan_mac_high_free(scan_params->channel_vec);
+
+                        // Update new channel list
+                        channel_list = wlan_mac_high_malloc(length);
+
+                        for (i = 0; i < length; i++) {
+                            channel_list[i] = Xil_Ntohl(cmd_args_32[4 + i]);
+                        }
+
+                        // Set scan parameters
+                        scan_params->channel_vec_len = length;
+                        scan_params->channel_vec     = channel_list;
+
+                        // Print information about the new channels
+                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Channels = ");
+                        for (i = 0; i < length; i++) {
+                            wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "%d ",channel_list[i]);
+                        }
+                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
+                    }
+
+                    // If the node was scanning, re-start the scan
+                    if (is_scanning) {
+                        wlan_mac_scan_start();
+                    }
+                break;
+
+                default:
+                    wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmd_id, msg_cmd);
+                    status = CMD_PARAM_ERROR;
+                break;
+            }
+
+            // Send response of status
+            resp_args_32[resp_index++] = Xil_Htonl(status);
+
+            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->num_args = resp_index;
+        }
+        break;
+
+
+        //---------------------------------------------------------------------
+        case CMDID_NODE_SCAN: {
+            // Enable / Disable active scan
+            //
+            //   Scans initiated by WLAN Exp will use the current scan parameters.  To
+            // update the scan parameters use the CMDID_NODE_SCAN_PARAM command.
+            //
+            // Message format:
+            //     cmd_args_32[0]   Enable / Disable scan
+            //                          - CMD_PARAM_NODE_SCAN_ENABLE  - Enable scan
+            //                          - CMD_PARAM_NODE_SCAN_DISABLE - Disable scan
+            //                          - CMD_PARAM_RSVD              - Do nothing
+            //
+            // Response format:
+            //     resp_args_32[0]  Status
+            //     resp_args_32[1]  Is Scanning?
+            //
+            u32                             status         = CMD_PARAM_SUCCESS;
+            u32                             enable         = Xil_Ntohl(cmd_args_32[0]);
+
+            switch (enable) {
+                case CMD_PARAM_NODE_SCAN_ENABLE:
+                    // Enable scan
+                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Scan enabled.\n");
+                    wlan_mac_scan_start();
+                break;
+
+                case CMD_PARAM_NODE_SCAN_DISABLE:
+                    // Disable scan
+                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Scan disabled.\n");
+                    wlan_mac_scan_stop();
+                break;
+            }
+
+            // Send response of status
+            resp_args_32[resp_index++] = Xil_Htonl(status);
+            resp_args_32[resp_index++] = Xil_Htonl(wlan_mac_scan_is_scanning());
+
+            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->num_args = resp_index;
+        }
+        break;
+
+
+//-----------------------------------------------------------------------------
 // Association Commands
 //-----------------------------------------------------------------------------
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_GET_SSID: {
-            // Get the SSID
-            //
-            // NOTE:  This method does not force any maximum length on the SSID.  However,
-            //   the rest of the framework enforces the convention that the maximum length
-            //   of the SSID is SSID_LEN_MAX.
+        case CMDID_NODE_CONFIG_BSS: {
+            // Configure the BSS
             //
             // Message format:
-            //     No arguments
+            //     cmd_args_32[0]      - Data length
+            //     cmd_args_32[1:N]    - BSS config structure
             //
             // Response format:
-            //     resp_args_32[0]       Status
-            //     resp_args_32[1]       SSID Length
-            //     resp_args_32[2:N]     SSID (packed array of ascii character values)
-            //                             NOTE: The characters are copied with a straight strcpy
-            //                               and must be correctly processed on the host side
+            //     resp_args_32[0]     - Status
             //
-            u32    ssid_len;
+            u32              status         = CMD_PARAM_SUCCESS;
+            bss_config_t   * bss_config     = (bss_config_t *)(&cmd_args_32[1]);
 
-            // Send response
-            resp_args_32[resp_index++] = Xil_Htonl(CMD_PARAM_SUCCESS);
+            // Each MAC implementation is responsible for the implementation of this command.
+            status = wlan_exp_process_config_bss_callback(bss_config);
 
-            // Return the size and current SSID
-            if (my_bss_info->ssid != NULL) {
-                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "SSID = %s\n", my_bss_info->ssid);
-
-                ssid_len = strlen(my_bss_info->ssid);
-
-                resp_args_32[resp_index++] = Xil_Htonl(ssid_len);
-
-                strcpy((char *)&resp_args_32[resp_index], my_bss_info->ssid);
-
-                resp_index += (ssid_len / sizeof(resp_args_32)) + 1;
-            } else {
-                // Return a zero length string
-                resp_args_32[resp_index++] = 0;
+            // If there was an error, add CMD_PARAM_ERROR bits on return value
+            if (status != CMD_PARAM_SUCCESS) {
+                status |= CMD_PARAM_ERROR;
             }
 
+            // Send response
+            resp_args_32[resp_index++] = Xil_Htonl(status);
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
         }
@@ -2913,7 +3052,7 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
                         char * type, char * description, dl_list * source_list, u32 dest_size,
                         u32 (*find_id)(u8 *),
                         dl_entry * (*find_source_entry)(u8 *),
-                        void (*copy_source_to_dest)(void *, void *, u64),
+                        void (*copy_source_to_dest)(void *, void *, u8*, u64),
                         void (*zero_dest)(void *)) {
 
     u32            resp_index           = 5;                // There will always be 5 return args for a buffer
@@ -2923,7 +3062,7 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
 
     u32            id;
     u64            time;
-    u8             mac_addr[6];
+    u8             mac_addr[BSSID_LEN];
 
     u32            size;
     u32            transfer_size;
@@ -2956,7 +3095,7 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
         if ((Xil_Ntohl(cmd_args_32[1]) & CMD_PARAM_COUNTS_RETURN_ZEROED_IF_NONE) == CMD_PARAM_COUNTS_RETURN_ZEROED_IF_NONE) {
 
             // Copy routine will fill in a zeroed entry if the source is NULL
-            copy_source_to_dest(NULL, &resp_args_32[resp_index], get_mac_time_usec());
+            copy_source_to_dest(NULL, &resp_args_32[resp_index], &mac_addr[0], get_system_time_usec());
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, type, "Returning zeroed %s entry for node: ", description);
             wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, &mac_addr[0]); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
@@ -2981,7 +3120,7 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
                 // Copy the info to the entry
                 //   NOTE:  This assumes that the info entry in wlan_mac_entries.h has a contiguous piece of memory
                 //          similar to the info structures in wlan_mac_high.h
-                copy_source_to_dest(curr_entry->data, &resp_args_32[resp_index], get_system_time_usec());
+                copy_source_to_dest(curr_entry->data, &resp_args_32[resp_index], &mac_addr[0], get_system_time_usec());
 
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, type, "Get %s entry for node: ", description);
                 wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, &mac_addr[0]); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
@@ -3024,7 +3163,7 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
                 bytes_remaining   = size;
                 curr_index        = 0;
                 curr_entry        = source_list->first;
-                time              = get_mac_time_usec();
+                time              = get_system_time_usec();
 
                 // Set response header arguments that do not change per packet
                 resp_hdr->num_args = 5;
@@ -3067,7 +3206,7 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
                             // Copy the info to the Ethernet packet
                             //   NOTE:  This assumes that the info entry in wlan_mac_entries.h has a contiguous piece of memory
                             //          similar to the info structures in wlan_mac_high.h
-                            copy_source_to_dest(curr_entry->data, curr_dest, time);
+                            copy_source_to_dest(curr_entry->data, curr_dest, &mac_addr[0], time);
 
                             // Increment the entry pointers
                             curr_entry = dl_entry_next(curr_entry);
@@ -3427,7 +3566,7 @@ void zero_station_info_entry(void * dest) {
 
 
 
-void copy_station_info_to_dest_entry(void * source, void * dest, u64 time) {
+void copy_station_info_to_dest_entry(void * source, void * dest, u8* mac_addr, u64 time) {
 
     station_info       * curr_source = (station_info *)(source);
     station_info_entry * curr_dest   = (station_info_entry *)(dest);
@@ -3441,6 +3580,9 @@ void copy_station_info_to_dest_entry(void * source, void * dest, u64 time) {
 
         if (curr_source != NULL) {
             bzero(curr_source, sizeof(station_info));
+
+            // Add in MAC address
+            memcpy(curr_source->addr, mac_addr, BSSID_LEN);
         }
     }
 
@@ -3480,7 +3622,7 @@ void zero_txrx_counts_entry(void * dest) {
 
 
 
-void copy_txrx_counts_to_dest_entry(void * source, void * dest, u64 time) {
+void copy_txrx_counts_to_dest_entry(void * source, void * dest, u8* mac_addr, u64 time) {
 
     counts_txrx         * curr_source   = (counts_txrx *)(source);
     txrx_counts_entry   * curr_dest     = (txrx_counts_entry *)(dest);
@@ -3495,6 +3637,9 @@ void copy_txrx_counts_to_dest_entry(void * source, void * dest, u64 time) {
 
         if (curr_source != NULL) {
             bzero(curr_source, sizeof(counts_txrx));
+
+            // Add in MAC address
+            memcpy(curr_source->addr, mac_addr, BSSID_LEN);
 
             curr_source->latest_txrx_timestamp = CMD_PARAM_NODE_TIME_RSVD_VAL_64;
         }
@@ -3525,7 +3670,7 @@ void zero_bss_info_entry(void * dest) {
 
 
 
-void copy_bss_info_to_dest_entry(void * source, void * dest, u64 time) {
+void copy_bss_info_to_dest_entry(void * source, void * dest, u8* mac_addr, u64 time) {
 
     bss_info           * curr_source = (bss_info *)(source);
     bss_info_entry     * curr_dest   = (bss_info_entry *)(dest);
@@ -3539,6 +3684,9 @@ void copy_bss_info_to_dest_entry(void * source, void * dest, u64 time) {
 
         if (curr_source != NULL) {
             bzero(curr_source, sizeof(bss_info));
+
+            // Add in MAC address
+            memcpy(curr_source->bssid, mac_addr, BSSID_LEN);
         }
     }
 
@@ -3576,6 +3724,8 @@ void wlan_exp_reset_all_callbacks(){
     wlan_exp_reset_all_associations_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_tx_cmd_add_association_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_process_user_cmd_callback         = (wlan_exp_function_ptr_t) null_process_cmd_callback;
+    wlan_exp_beacon_ts_update_mode_callback    = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
+    wlan_exp_process_config_bss_callback       = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
 }
 
 
@@ -3609,9 +3759,18 @@ void wlan_exp_set_tx_cmd_add_association_callback(void(*callback)()){
 
 
 void wlan_exp_set_process_user_cmd_callback(void(*callback)()){
-	wlan_exp_process_user_cmd_callback = (wlan_exp_function_ptr_t) callback;
+    wlan_exp_process_user_cmd_callback = (wlan_exp_function_ptr_t) callback;
 }
 
+
+void wlan_exp_set_beacon_ts_update_mode_callback(void(*callback)()){
+    wlan_exp_beacon_ts_update_mode_callback = (wlan_exp_function_ptr_t) callback;
+}
+
+
+void wlan_exp_set_process_config_bss_callback(void(*callback)()){
+    wlan_exp_process_config_bss_callback = (wlan_exp_function_ptr_t) callback;
+}
 
 
 /*****************************************************************************/
@@ -3744,11 +3903,11 @@ u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr) {
     dl_entry     * entry;
     station_info * info;
 
-    if (wlan_addr_eq(mac_addr, bcast_addr)) {
+    if (wlan_addr_eq(mac_addr, zero_addr)) {
         id = WLAN_EXP_AID_ALL;
     } else {
         if(my_bss_info != NULL){
-            if ( wlan_addr_eq(mac_addr, my_bss_info->bssid) ) {
+            if (wlan_addr_eq(mac_addr, my_bss_info->bssid)) {
                 id = WLAN_EXP_AID_ME;
             } else {
                 entry = wlan_mac_high_find_station_info_ADDR(&(my_bss_info->associated_stations), mac_addr);
@@ -3774,7 +3933,7 @@ u32  wlan_exp_get_id_in_counts(u8 * mac_addr) {
     dl_list      * counts;
     dl_entry     * entry;
 
-    if ( wlan_addr_eq(mac_addr, bcast_addr) ) {
+    if (wlan_addr_eq(mac_addr, zero_addr)) {
         id = WLAN_EXP_AID_ALL;
     } else {
         counts = get_counts();
@@ -3800,7 +3959,7 @@ u32  wlan_exp_get_id_in_bss_info(u8 * bssid) {
     u32            id;
     dl_entry*       entry;
 
-    if ( wlan_addr_eq(bssid, bcast_addr) ) {
+    if (wlan_addr_eq(bssid, zero_addr)) {
         id = WLAN_EXP_AID_ALL;
     } else {
         entry = wlan_mac_high_find_bss_info_BSSID(bssid);

@@ -54,8 +54,8 @@
 //
 #define CMDID_NODE_RESET_STATE                             0x001000
 #define CMDID_NODE_CONFIGURE                               0x001001
+#define CMDID_NODE_CONFIG_BSS                              0x001002
 #define CMDID_NODE_TIME                                    0x001010
-#define CMDID_NODE_CHANNEL                                 0x001011
 #define CMDID_NODE_TX_POWER                                0x001012
 #define CMDID_NODE_TX_RATE                                 0x001013
 #define CMDID_NODE_TX_ANT_MODE                             0x001014
@@ -88,6 +88,7 @@
 #define CMD_PARAM_NODE_RESET_FLAG_BSS_INFO                 0x00000020
 
 #define CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE             0x00000001
+#define CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TIME_UPDATE      0x00000002
 #define CMD_PARAM_NODE_CONFIG_SET_WLAN_EXP_PRINT_LEVEL     0x80000000
 
 #define CMD_PARAM_NODE_TIME_ADD_TO_LOG_VAL                 0x00000002
@@ -100,7 +101,7 @@
 #define CMD_PARAM_NODE_TX_ANT_ALL                          0x00000010
 
 #define CMD_PARAM_RSVD_CHANNEL                             0x00000000
-#define CMD_PARAM_RSVD_MAC_ADDR                            0xFFFFFFFF
+#define CMD_PARAM_RSVD_MAC_ADDR                            0x00000000
 
 #define CMD_PARAM_RANDOM_SEED_VALID                        0x00000001
 #define CMD_PARAM_RANDOM_SEED_RSVD                         0xFFFFFFFF
@@ -164,29 +165,23 @@
 
 
 //-----------------------------------------------
-// Association Commands
+// Scan Commands
 //
-#define CMDID_NODE_GET_SSID                                0x006000
-#define CMDID_NODE_GET_STATION_INFO                        0x006001
-#define CMDID_NODE_GET_BSS_INFO                            0x006002
-
-#define CMDID_NODE_DISASSOCIATE                            0x006010
-#define CMDID_NODE_ASSOCIATE                               0x006011
-
-
-//-----------------------------------------------
-// Common Commands for STA / IBSS
-//
-#define CMDID_NODE_SCAN_PARAM                              0x007000
-#define CMDID_NODE_SCAN                                    0x007001
-#define CMDID_NODE_JOIN                                    0x007002
-#define CMDID_NODE_SCAN_AND_JOIN                           0x007003
+#define CMDID_NODE_SCAN_PARAM                              0x006000
+#define CMDID_NODE_SCAN                                    0x006001
 
 #define CMD_PARAM_NODE_SCAN_ENABLE                         0x00000001
 #define CMD_PARAM_NODE_SCAN_DISABLE                        0x00000000
 
-#define CMD_PARAM_NODE_JOIN_SUCCEEDED                      0x00000000
-#define CMD_PARAM_NODE_JOIN_FAILED                         0xFFFFFFFF
+
+//-----------------------------------------------
+// Association Commands
+//
+#define CMDID_NODE_GET_STATION_INFO                        0x007001
+#define CMDID_NODE_GET_BSS_INFO                            0x007002
+
+#define CMDID_NODE_DISASSOCIATE                            0x007010
+#define CMDID_NODE_ASSOCIATE                               0x007011
 
 
 //-----------------------------------------------
@@ -302,6 +297,8 @@ void wlan_exp_set_purge_all_data_tx_queue_callback    (void(*callback)());
 void wlan_exp_set_reset_all_associations_callback     (void(*callback)());
 void wlan_exp_set_tx_cmd_add_association_callback     (void(*callback)());
 void wlan_exp_set_process_user_cmd_callback           (void(*callback)());
+void wlan_exp_set_beacon_ts_update_mode_callback      (void(*callback)());
+void wlan_exp_set_process_config_bss_callback         (void(*callback)());
 
 // WLAN Exp commands
 u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr);

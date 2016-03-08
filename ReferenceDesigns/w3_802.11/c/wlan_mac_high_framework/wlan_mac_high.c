@@ -78,10 +78,11 @@ extern tx_params_t           default_multicast_data_tx_params;
 /*************************** Variable Definitions ****************************/
 
 // Constants
-const  u8                    bcast_addr[6]        = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+const  u8                    bcast_addr[BSSID_LEN]    = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+const  u8                    zero_addr[BSSID_LEN]     = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 // Associations
-volatile static u32          max_num_associations = WLAN_MAC_HIGH_MAX_ASSOCIATONS;
+volatile static u32          max_num_associations     = WLAN_MAC_HIGH_MAX_ASSOCIATONS;
 
 // HW structures
 static XGpio                 Gpio;                         ///< General-purpose GPIO instance
@@ -2299,6 +2300,7 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* counts_
 
 		return station;
 	} else {
+
 		// First check that we have room in the association table to add the entry
 		if(assoc_tbl->length >= max_num_associations) {
 			return NULL;
@@ -2728,15 +2730,19 @@ void wlan_mac_high_reset_counts(dl_list* counts_tbl){
 	//
 	// NOTE:  Cannot use a for loop for this iteration b/c we are removing
 	//   elements from the list.
-	while( (next_counts_entry != NULL) && (iter-- > 0) ){
+	while ((next_counts_entry != NULL) && (iter-- > 0)) {
 
 		curr_counts_entry = next_counts_entry;
 		next_counts_entry = dl_entry_next(curr_counts_entry);
 
 		curr_counts = (counts_txrx*)(curr_counts_entry->data);
 
+		// Zero counts structures
 		bzero((void*)(&(curr_counts->data)), sizeof(frame_counts_txrx));
 		bzero((void*)(&(curr_counts->mgmt)), sizeof(frame_counts_txrx));
+
+		// Zero latest txrx timestamp
+		curr_counts->latest_txrx_timestamp = 0;
 
 		// Do not remove the entry if it is associated
 		if(curr_counts->is_associated == 0){

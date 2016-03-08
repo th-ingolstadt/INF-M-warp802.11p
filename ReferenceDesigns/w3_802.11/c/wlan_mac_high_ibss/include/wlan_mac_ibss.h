@@ -74,7 +74,8 @@
 /*************************** Function Prototypes *****************************/
 int  main();
 
-u32	configure_bss(bss_config_t* bss_config);
+u32  configure_bss(bss_config_t* bss_config);
+void leave_ibss();
 
 void association_timestamp_check();
 

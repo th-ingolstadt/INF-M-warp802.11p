@@ -419,8 +419,8 @@ typedef struct{
 
 /***************************** Global Constants ******************************/
 
-extern const  u8 bcast_addr[6];
-
+extern const  u8 bcast_addr[BSSID_LEN];
+extern const  u8 zero_addr[BSSID_LEN];
 
 
 /*************************** Function Prototypes *****************************/

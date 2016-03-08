@@ -36,12 +36,9 @@
 // WLAN Exp Node AP Commands
 //
 #define CMDID_NODE_AP_CONFIG                                         0x100000
-#define CMDID_NODE_AP_DTIM_PERIOD                                    0x100001
-#define CMDID_NODE_AP_SET_SSID                                       0x100002
-#define CMDID_NODE_AP_SET_AUTHENTICATION_ADDR_FILTER                 0x100003
-#define CMDID_NODE_AP_BEACON_INTERVAL                                0x100004
+#define CMDID_NODE_AP_SET_AUTHENTICATION_ADDR_FILTER                 0x100001
 
-#define CMD_PARAM_NODE_AP_CONFIG_FLAG_POWER_SAVING                   0x00000001
+#define CMD_PARAM_NODE_AP_CONFIG_FLAG_DTIM_MULTICAST_BUFFER          0x00000001
 
 #define CMD_PARAM_AP_ASSOCIATE_FLAG_ALLOW_TIMEOUT                    0x00000001
 #define CMD_PARAM_AP_ASSOCIATE_FLAG_STATION_INFO_DO_NOT_REMOVE       0x00000002

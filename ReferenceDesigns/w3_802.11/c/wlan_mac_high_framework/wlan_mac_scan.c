@@ -1,12 +1,12 @@
 /** @file wlan_mac_scan.c
- *  @brief Active Scan FSM
+ *  @brief Scan FSM
  *
  *  This contains code for the active scan finite state machine.
  *
  *  @copyright Copyright 2014-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
- *				See LICENSE.txt included in the design archive or
- *				at http://mangocomm.com/802.11/license
+ *              See LICENSE.txt included in the design archive or
+ *              at http://mangocomm.com/802.11/license
  *
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
@@ -80,7 +80,7 @@ u8 default_channel_selections[15] = {1,2,3,4,5,6,7,8,9,10,11,36,40,44,48}; // Sc
 
 // Global scan parameters
 //     This variable needs to be treated as volatile since it is expected to be
-//     modified by other contexts after a call towlan_mac_scan_get_parameters
+//     modified by other contexts after a call to wlan_mac_scan_get_parameters
 volatile scan_parameters_t   gl_scan_parameters;
 
 
@@ -91,7 +91,7 @@ static   s8                  curr_scan_chan_idx;
 static   u32                 scan_sched_id;
 static   u32                 probe_sched_id;
 static   scan_state_t        scan_state;
-static	 int				 num_full_scans;
+static   int                 num_full_scans;
 
 
 // Callback Function
@@ -183,9 +183,9 @@ void wlan_mac_scan_start(){
     // Only start a scan if state machine is IDLE
     if (scan_state == IDLE) {
 
-    	// Initialize a variable that tracks how many times the scanner
-    	// as looped around the channel list.
-    	num_full_scans = -1;
+        // Initialize a variable that tracks how many times the scanner
+        // as looped around the channel list.
+        num_full_scans = -1;
 
         // Save current channel
         //     - This is the channel that will be restored when scan is stopped
@@ -352,8 +352,8 @@ void wlan_mac_scan_state_transition(){
     wlan_mac_high_set_channel(gl_scan_parameters.channel_vec[(u8)curr_scan_chan_idx]);
 
     // Update the number of full scan loops variable
-    if(curr_scan_chan_idx == 0){
-    	num_full_scans++;
+    if (curr_scan_chan_idx == 0) {
+        num_full_scans++;
     }
 
     // Send a probe request
@@ -378,5 +378,5 @@ void wlan_mac_scan_state_transition(){
 }
 
 int wlan_mac_scan_get_num_scans(){
-	return num_full_scans;
+    return num_full_scans;
 }

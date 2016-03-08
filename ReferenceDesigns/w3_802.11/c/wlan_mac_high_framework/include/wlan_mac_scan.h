@@ -1,13 +1,12 @@
 /** @file wlan_mac_scan.h
- *  @brief Active Scan FSM
+ *  @brief Scan FSM
  *
- *  This contains code for the active scan finite state machine. This particular file
- *  is for the STA variant.
+ *  This contains code for the active scan finite state machine.
  *
  *  @copyright Copyright 2014-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
- *				See LICENSE.txt included in the design archive or
- *				at http://mangocomm.com/802.11/license
+ *              See LICENSE.txt included in the design archive or
+ *              at http://mangocomm.com/802.11/license
  *
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
@@ -23,7 +22,7 @@
 
 
 // Scan Timing Parameters
-//     These parameters set the scan timing parameters at boot.
+//     These defines set the scan timing parameters at boot.
 //
 #define DEFAULT_SCAN_PROBE_TX_INTERVAL_USEC                20000
 #define DEFAULT_SCAN_TIME_PER_CHANNEL_USEC                 150000
