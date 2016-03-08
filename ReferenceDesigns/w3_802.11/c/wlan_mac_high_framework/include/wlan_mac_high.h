@@ -413,6 +413,7 @@ typedef struct{
 
 #define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK              0x0001              ///< Mask for flag in station_info -- disable association check
 #define STATION_INFO_FLAG_DOZE                             0x0002              ///< Mask to sleeping stations (if STA supports PS)
+#define STATION_INFO_FLAG_HT_CAPABLE                       0x0004              ///< STA is capable of HT Tx and Rx
 #define STATION_INFO_DO_NOT_REMOVE                         0x80000000          ///< Mask to not remove station info from association table
 
 

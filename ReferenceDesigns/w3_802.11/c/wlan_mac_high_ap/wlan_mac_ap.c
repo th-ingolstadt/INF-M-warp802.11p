@@ -57,7 +57,7 @@
 
 #define  WLAN_DEFAULT_CHANNEL      1
 #define  WLAN_DEFAULT_TX_PWR       15
-#define  WLAN_DEFAULT_TX_PHY_MODE  PHY_MODE_NONHT
+#define  WLAN_DEFAULT_TX_PHY_MODE  PHY_MODE_HTMF
 #define  WLAN_DEFAULT_TX_ANTENNA   TX_ANTMODE_SISO_ANTA
 #define  WLAN_DEFAULT_RX_ANTENNA   RX_ANTMODE_SISO_ANTA
 
@@ -1323,7 +1323,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 	u8					pre_llc_offset			 = 0;
 
 	u8 					mcs	     = frame_info->phy_details.mcs;
-	u8 					phy_mode = frame_info->phy_details.phy_mode;
 	u16 				length   = frame_info->phy_details.length;
 
 	// Set the additional info field to NULL
@@ -1765,8 +1764,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 					if((my_bss_info != NULL) && wlan_addr_eq(rx_80211_header->address_3, my_bss_info->bssid)) {
 
-						//FIXME: Check and make sure the SSID string matches before we send a successful assocation response
-
 						// Check if we have authenticated this TA
 						if (wlan_mac_high_find_station_info_ADDR(&station_info_state_2, rx_80211_header->address_2) != NULL){
 
@@ -1783,6 +1780,43 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 						}
 
 						if(associated_station != NULL) {
+
+							associated_station->flags &= ~STATION_INFO_FLAG_HT_CAPABLE;
+
+							//Find if the association request contains HT capabilities
+							//	- We use the existence of this tag as our proxy the overall single bit HT capabilities flag
+
+							// Parse the tagged parameters
+							mpdu_ptr_u8 = mpdu_ptr_u8 + sizeof(mac_header_80211) + sizeof(association_req_frame);
+							while( (((u32)mpdu_ptr_u8) - ((u32)mpdu)) < (length - WLAN_PHY_FCS_NBYTES)) {
+								// Parse each of the tags
+								switch(mpdu_ptr_u8[0]){
+
+									//-------------------------------------------------
+									case TAG_SSID_PARAMS:
+										// SSID parameter set
+										//
+										//FIXME: Check and make sure the SSID string matches before we send a successful association response
+									break;
+
+
+									//-------------------------------------------------
+									case TAG_HT_CAPABILITIES:
+										// This station is capable of HT Tx and Rx
+										associated_station->flags |= STATION_INFO_FLAG_HT_CAPABLE;
+									break;
+								}
+
+								// Increment packet pointer to the next tag
+								mpdu_ptr_u8 += mpdu_ptr_u8[1]+2;
+							}
+
+							if((associated_station->flags & STATION_INFO_FLAG_HT_CAPABLE) == 0){
+								//If this station is not capable of HT phy_mode, then we'll adjust its tx_params.
+								//Note: If the default tx_params does not support HT, then we will not explicitly
+								//set the phy_mode to HT just because the STA is capable of it
+								associated_station->tx.phy.phy_mode = PHY_MODE_NONHT;
+							}
 
 							// Log the association state change
 							add_station_info_to_log(associated_station, STATION_INFO_ENTRY_NO_CHANGE, WLAN_EXP_STREAM_ASSOC_CHANGE);
@@ -2097,6 +2131,13 @@ u32	configure_bss(bss_config_t* bss_config){
 	if (bss_config != NULL){
 		if (bss_config->update_mask & BSS_FIELD_MASK_BSSID) {
 			if (wlan_addr_eq(bss_config->bssid, zero_addr) == 0) {
+				if ((my_bss_info != NULL) && (wlan_addr_eq(bss_config->bssid, my_bss_info->bssid) == 0)) {
+					//The caller of this function claimed that it was updating the BSSID,
+					//but the new BSSID matches the one already specified in my_bss_info.
+					//We will complete the rest of this function as if that bit in the
+					//update mask were not set
+					bss_config->update_mask &= ~BSS_FIELD_MASK_BSSID;
+				}
 				if (wlan_addr_eq(bss_config->bssid, wlan_mac_addr) == 0) {
 					// In the AP implementation, the BSSID provided must be
 					// the hardware MAC address of the node

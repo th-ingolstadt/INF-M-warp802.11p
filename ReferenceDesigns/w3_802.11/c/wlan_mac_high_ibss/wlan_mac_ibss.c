@@ -1140,6 +1140,13 @@ u32	configure_bss(bss_config_t* bss_config){
 	if (bss_config != NULL) {
 		if (bss_config->update_mask & BSS_FIELD_MASK_BSSID) {
 			if (wlan_addr_eq(bss_config->bssid, zero_addr) == 0) {
+				if ((my_bss_info != NULL) && (wlan_addr_eq(bss_config->bssid, my_bss_info->bssid) == 0)) {
+					//The caller of this function claimed that it was updating the BSSID,
+					//but the new BSSID matches the one already specified in my_bss_info.
+					//We will complete the rest of this function as if that bit in the
+					//update mask were not set
+					bss_config->update_mask &= ~BSS_FIELD_MASK_BSSID;
+				}
 				if ((bss_config->bssid[0] & MAC_ADDR_MSB_MASK_LOCAL ) == 0) {
 					// In the IBSS implementation, the BSSID provided must be locally generated
 					return_status |= BSS_CONFIG_FAILURE_BSSID_INVALID;

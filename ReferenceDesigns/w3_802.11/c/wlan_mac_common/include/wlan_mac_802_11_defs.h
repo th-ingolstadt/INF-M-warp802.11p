@@ -115,6 +115,11 @@ typedef struct{
 	u16 capabilities;
 } beacon_probe_frame;
 
+typedef struct{
+	u16 capabilities;
+	u16 listen_interval;
+} association_req_frame;
+
 ///////Capabilities
 #define CAPABILITIES_ESS					0x0001
 #define CAPABILITIES_IBSS					0x0002
