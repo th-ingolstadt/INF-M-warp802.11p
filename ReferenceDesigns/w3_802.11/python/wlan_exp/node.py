@@ -1540,11 +1540,14 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 microseconds) to spend on each channel (defaults to 0.1 sec)
             num_probe_tx_per_chan (int, optional):   Number of probe requests 
                 transmitted while on each channel (defaults to 1)
-            channel_list (list of int optional): Channel(s) to scan
-            ssid (str, optional):  SSID to scan for (as part of probe request)
+            channel_list (list of int optional): Channel(s) to scan; A value 
+                of None will not modify the current channel list.
+            ssid (str, optional):  SSID to scan for (as part of probe request);
+                A value of None will not modify the current SSID.
         
-        .. note::  If the channel list is not specified, then it will not be 
-            updated on the node (ie it will use the current channel list)
+        .. note::  If the channel list / SSID is not specified, then it will 
+            not be updated on the node (ie it will use the current channel list
+            / SSID)
         
         .. note::  If num_probe_tx_per_chan is zero, then the node will perform
             a passive scan.
