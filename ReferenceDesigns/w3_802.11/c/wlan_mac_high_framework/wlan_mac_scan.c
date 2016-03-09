@@ -62,14 +62,6 @@
 
 /*************************** Variable Definitions ****************************/
 
-// Scan FSM states
-typedef enum {
-    IDLE,
-    RUNNING,
-    PAUSED
-} scan_state_t;
-
-
 // Default Scan Channels
 //     These channels will be scanned by default at boot.  This uses the standard
 //     channel numbering scheme.
@@ -85,7 +77,6 @@ volatile scan_parameters_t   gl_scan_parameters;
 
 
 // Scan state variables
-static   u8                  channel_save;
 static   s8                  curr_scan_chan_idx;
 
 static   u32                 scan_sched_id;
@@ -97,6 +88,7 @@ static   int                 num_full_scans;
 // Callback Function
 //     Used to transmit probe requests during the scan process
 volatile function_ptr_t      tx_probe_request_callback;
+volatile function_ptr_t      scan_state_change_callback;
 
 
 
@@ -121,6 +113,7 @@ int wlan_mac_scan_init(){
 
     // Initialize probe request callback
     tx_probe_request_callback = (function_ptr_t)wlan_null_callback;
+    scan_state_change_callback = (function_ptr_t)wlan_null_callback;
 
     // Set default scan parameters
     gl_scan_parameters.channel_vec = wlan_mac_high_malloc(sizeof(default_channel_selections));
@@ -138,7 +131,7 @@ int wlan_mac_scan_init(){
     //     - Other global variables will be initialized when wlan_mac_scan_start() is called
     scan_sched_id  = SCHEDULE_ID_RESERVED_MAX;
     probe_sched_id = SCHEDULE_ID_RESERVED_MAX;
-    scan_state     = IDLE;
+    scan_state     = SCAN_IDLE;
 
     return XST_SUCCESS;
 }
@@ -152,6 +145,9 @@ int wlan_mac_scan_init(){
  *****************************************************************************/
 void wlan_mac_scan_set_tx_probe_request_callback(function_ptr_t callback){
 	tx_probe_request_callback = callback;
+}
+void wlan_mac_scan_set_state_change_callback(function_ptr_t callback){
+	scan_state_change_callback = callback;
 }
 
 
@@ -181,19 +177,16 @@ volatile scan_parameters_t* wlan_mac_scan_get_parameters(){
 void wlan_mac_scan_start(){
 
     // Only start a scan if state machine is IDLE
-    if (scan_state == IDLE) {
+    if (scan_state == SCAN_IDLE) {
 
         // Initialize a variable that tracks how many times the scanner
         // as looped around the channel list.
         num_full_scans = -1;
 
-        // Save current channel
-        //     - This is the channel that will be restored when scan is stopped
-        channel_save = wlan_mac_high_get_channel();
-
         // Initialize scan variables
         curr_scan_chan_idx = -1;
-        scan_state = RUNNING;
+        scan_state = SCAN_RUNNING;
+        scan_state_change_callback(scan_state);
 
         // Start the scan
         wlan_mac_scan_state_transition();
@@ -214,7 +207,7 @@ void wlan_mac_scan_stop() {
     interrupt_state_t   prev_interrupt_state;
 
     // Stop scan if it is running or paused
-    if ((scan_state == RUNNING) || (scan_state == PAUSED)) {
+    if ((scan_state == SCAN_RUNNING) || (scan_state == SCAN_PAUSED)) {
 
         // Stop interrupts while removing scheduled events
         prev_interrupt_state = wlan_mac_high_interrupt_stop();
@@ -237,12 +230,10 @@ void wlan_mac_scan_stop() {
         // Restore interrupt state
         wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
-        // Return to original channel (saved when wlan_mac_scan_start() called)
-        wlan_mac_high_set_channel(channel_save);
-
         // Update scan state variables
         curr_scan_chan_idx = -1;
-        scan_state = IDLE;
+        scan_state = SCAN_IDLE;
+        scan_state_change_callback(scan_state);
     }
 }
 
@@ -260,7 +251,7 @@ void wlan_mac_scan_pause(){
     interrupt_state_t   prev_interrupt_state;
 
     // Can only pause when running
-    if (scan_state == RUNNING) {
+    if (scan_state == SCAN_RUNNING) {
 
         // Stop interrupts while removing scheduled events
         prev_interrupt_state = wlan_mac_high_interrupt_stop();
@@ -281,7 +272,8 @@ void wlan_mac_scan_pause(){
         wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
         // Update scan state variables
-        scan_state = PAUSED;
+        scan_state = SCAN_PAUSED;
+        scan_state_change_callback(scan_state);
     }
 }
 
@@ -298,10 +290,11 @@ void wlan_mac_scan_pause(){
 void wlan_mac_scan_resume(){
 
     // Can only pause when running
-    if (scan_state == PAUSED) {
+    if (scan_state == SCAN_PAUSED) {
 
         // Update scan state variables
-        scan_state = RUNNING;
+        scan_state = SCAN_RUNNING;
+        scan_state_change_callback(scan_state);
 
         // Resume scan
         wlan_mac_scan_state_transition();
@@ -320,7 +313,7 @@ void wlan_mac_scan_resume(){
  *
  *****************************************************************************/
 u32 wlan_mac_scan_is_scanning(){
-    if ((scan_state == RUNNING) || (scan_state == PAUSED)) {
+    if ((scan_state == SCAN_RUNNING) || (scan_state == SCAN_PAUSED)) {
         return 1;
     } else {
         return 0;

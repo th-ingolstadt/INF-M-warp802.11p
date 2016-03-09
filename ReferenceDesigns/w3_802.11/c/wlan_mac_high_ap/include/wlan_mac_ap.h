@@ -17,6 +17,7 @@
 /***************************** Include Files *********************************/
 
 #include "wlan_mac_mgmt_tags.h"
+#include "wlan_mac_scan.h"
 
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_AP_H_
@@ -99,6 +100,7 @@ int  ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8*
 void mpdu_rx_process(void* pkt_buf_addr);
 void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details_t* tx_low_details, u16 num_tx_low_details);
 
+void process_scan_state_change(scan_state_t scan_state);
 void set_power_save_configuration(ps_conf power_save_configuration);
 volatile ps_conf * get_power_save_configuration();
 

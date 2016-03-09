@@ -40,11 +40,20 @@ typedef struct {
 } scan_parameters_t;
 
 
+// Scan FSM states
+typedef enum {
+    SCAN_IDLE,
+    SCAN_RUNNING,
+    SCAN_PAUSED
+} scan_state_t;
+
+
 /*************************** Function Prototypes *****************************/
 
 int  wlan_mac_scan_init();
 
 void wlan_mac_scan_set_tx_probe_request_callback(function_ptr_t callback);
+void wlan_mac_scan_set_state_change_callback(function_ptr_t callback);
 
 volatile scan_parameters_t* wlan_mac_scan_get_parameters();
 

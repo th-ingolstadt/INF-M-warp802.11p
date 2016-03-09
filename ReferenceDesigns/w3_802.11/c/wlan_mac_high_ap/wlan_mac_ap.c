@@ -40,6 +40,7 @@
 #include "ascii_characters.h"
 #include "wlan_mac_bss_info.h"
 #include "wlan_mac_mgmt_tags.h"
+#include "wlan_mac_scan.h"
 #include "wlan_mac_ap.h"
 
 // WLAN Experiments framework includes
@@ -97,6 +98,7 @@ dl_list		                      station_info_state_2;
 
 // Tx queue variables;
 static u32                        max_queue_size;
+volatile u8                       pause_data_queue;
 
 // MAC address
 static u8 	                      wlan_mac_addr[6];
@@ -152,6 +154,8 @@ int main(){
 	//Initialize the MAC framework
 	wlan_mac_high_init();
 
+	pause_data_queue = 0;
+
 	// AP does not currently advertise a BSS
 	configure_bss(NULL);
 
@@ -201,6 +205,7 @@ int main(){
 	wlan_mac_high_set_mpdu_dequeue_callback(    (void*)mpdu_dequeue);
     wlan_mac_ltg_sched_set_callback(            (void*)ltg_event);
     queue_set_state_change_callback(			(void*)queue_state_change);
+    wlan_mac_scan_set_state_change_callback(	(void*) process_scan_state_change);
 
     // Configure the wireless-wired encapsulation mode (AP and STA behaviors are different)
     wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_AP);
@@ -353,7 +358,34 @@ int main(){
 	return -1;
 }
 
-
+/*****************************************************************************/
+/**
+ * @brief Handle state change in the network scanner
+ *
+ * This function is part of the scan infrastructure and will be called whenever
+ * the scanner is started, stopped, paused, or resumed. This allows the STA
+ * to revert the channel to a known-good state when the scanner has stopped and
+ * also serves as notification to the project that it should stop dequeueing data
+ * frames since it might be on a different channel than its intended recipient.
+ *
+ * @param   None
+ * @return  None
+ *
+ *****************************************************************************/
+void process_scan_state_change(scan_state_t scan_state){
+	switch(scan_state){
+		case SCAN_IDLE:
+		case SCAN_PAUSED:
+			pause_data_queue = 0;
+			if(my_bss_info != NULL){
+				wlan_mac_high_set_channel(my_bss_info->chan);
+			}
+		break;
+		case SCAN_RUNNING:
+			pause_data_queue = 1;
+		break;
+	}
+}
 
 /*****************************************************************************/
 /**
@@ -767,38 +799,20 @@ void poll_tx_queues(){
 
 				case DATA_QGRP:
 					next_queue_group = MGMT_QGRP;
-					curr_station_info_entry = next_station_info_entry;
 
-					for(i = 0; i < (my_bss_info->associated_stations.length + 1); i++) {
-						// Loop through all associated stations' queues and the broadcast queue
-						if(curr_station_info_entry == NULL){
-							// Check the broadcast queue
-							next_station_info_entry = my_bss_info->associated_stations.first;
+					if(pause_data_queue == 0){
+						curr_station_info_entry = next_station_info_entry;
 
-							if( (num_dozed_stations == 0)
-									|| (get_system_time_usec() < gl_power_save_configuration.dtim_timestamp)
-									|| (gl_power_save_configuration.enable == 0) ){
-								if(dequeue_transmit_checkin(MCAST_QID)){
-									// Found a not-empty queue, transmitted a packet
-									goto poll_cleanup;
-									return;
-								}
-							}
+						for(i = 0; i < (my_bss_info->associated_stations.length + 1); i++) {
+							// Loop through all associated stations' queues and the broadcast queue
+							if(curr_station_info_entry == NULL){
+								// Check the broadcast queue
+								next_station_info_entry = my_bss_info->associated_stations.first;
 
-							curr_station_info_entry = next_station_info_entry;
-
-						} else {
-							curr_station_info = (station_info*)(curr_station_info_entry->data);
-							if( wlan_mac_high_is_valid_association(&my_bss_info->associated_stations, curr_station_info) ){
-								if(curr_station_info_entry == my_bss_info->associated_stations.last){
-									// We've reached the end of the table, so we wrap around to the beginning
-									next_station_info_entry = NULL;
-								} else {
-									next_station_info_entry = dl_entry_next(curr_station_info_entry);
-								}
-
-								if(((curr_station_info->flags & STATION_INFO_FLAG_DOZE) == 0) || (gl_power_save_configuration.enable == 0)){
-									if(dequeue_transmit_checkin(AID_TO_QID(curr_station_info->AID))){
+								if( (num_dozed_stations == 0)
+										|| (get_system_time_usec() < gl_power_save_configuration.dtim_timestamp)
+										|| (gl_power_save_configuration.enable == 0) ){
+									if(dequeue_transmit_checkin(MCAST_QID)){
 										// Found a not-empty queue, transmitted a packet
 										goto poll_cleanup;
 										return;
@@ -808,15 +822,36 @@ void poll_tx_queues(){
 								curr_station_info_entry = next_station_info_entry;
 
 							} else {
-								// This curr_station_info is invalid. Perhaps it was removed from
-								// the association table before poll_tx_queues was called. We will
-								// start the round robin checking back at broadcast.
-								next_station_info_entry = NULL;
-								goto poll_cleanup;
-								return;
-							} // END if(is_valid_association)
-						}
-					} // END for loop over association table
+								curr_station_info = (station_info*)(curr_station_info_entry->data);
+								if( wlan_mac_high_is_valid_association(&my_bss_info->associated_stations, curr_station_info) ){
+									if(curr_station_info_entry == my_bss_info->associated_stations.last){
+										// We've reached the end of the table, so we wrap around to the beginning
+										next_station_info_entry = NULL;
+									} else {
+										next_station_info_entry = dl_entry_next(curr_station_info_entry);
+									}
+
+									if(((curr_station_info->flags & STATION_INFO_FLAG_DOZE) == 0) || (gl_power_save_configuration.enable == 0)){
+										if(dequeue_transmit_checkin(AID_TO_QID(curr_station_info->AID))){
+											// Found a not-empty queue, transmitted a packet
+											goto poll_cleanup;
+											return;
+										}
+									}
+
+									curr_station_info_entry = next_station_info_entry;
+
+								} else {
+									// This curr_station_info is invalid. Perhaps it was removed from
+									// the association table before poll_tx_queues was called. We will
+									// start the round robin checking back at broadcast.
+									next_station_info_entry = NULL;
+									goto poll_cleanup;
+									return;
+								} // END if(is_valid_association)
+							}
+						} // END for loop over association table
+					}
 				break;
 			} // END switch(queue group)
 		} // END loop over queue groups

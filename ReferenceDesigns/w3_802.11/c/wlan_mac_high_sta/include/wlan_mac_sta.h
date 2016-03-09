@@ -17,6 +17,7 @@
 #include "wlan_mac_high.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_bss_info.h"
+#include "wlan_mac_scan.h"
 
 
 
@@ -97,6 +98,7 @@ void mpdu_rx_process(void* pkt_buf_addr);
 void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details_t* tx_low_details, u16 num_tx_low_details);
 void mpdu_dequeue(tx_queue_element* packet);
 void send_probe_req();
+void process_scan_state_change(scan_state_t scan_state);
 void poll_tx_queues();
 void purge_all_data_tx_queue();
 

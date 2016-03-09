@@ -400,8 +400,11 @@ void wlan_mac_sta_join_bss_search_poll(u32 schedule_id){
         break;
 
         case SEARCHING:
-            // Only try to find a match if the STA has completed at least one full scan
-            if (wlan_mac_scan_get_num_scans() > 0) {
+            if (wlan_mac_scan_get_num_scans() >= 0) {
+            	// In a future release, we may modify the join process to prioritize among
+            	// networks with matching SSIDs. In this scenario, the condition on
+            	// wlan_mac_scan_get_num_scans() may be made more strict to require at least
+            	// one full "loop" through all channels.
                 ssid_match_list = wlan_mac_high_find_bss_info_SSID(gl_join_parameters.ssid);
 
                 if (ssid_match_list->length > 0) {

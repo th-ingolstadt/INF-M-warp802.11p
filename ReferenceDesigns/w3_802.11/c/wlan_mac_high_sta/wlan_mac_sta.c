@@ -193,6 +193,7 @@ int main() {
 	wlan_mac_ltg_sched_set_callback(             (void *) ltg_event);
 	wlan_mac_high_set_pb_u_callback(             (void *) up_button);
 	wlan_mac_scan_set_tx_probe_request_callback( (void *) send_probe_req);
+	wlan_mac_scan_set_state_change_callback(	 (void *) process_scan_state_change);
 
 	// Set the Ethernet ecapsulation mode
 	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_STA);
@@ -368,6 +369,36 @@ void send_probe_req(){
 
 	    // Poll the TX queues to possibly send the packet
 		poll_tx_queues();
+	}
+}
+
+
+/*****************************************************************************/
+/**
+ * @brief Handle state change in the network scanner
+ *
+ * This function is part of the scan infrastructure and will be called whenever
+ * the scanner is started, stopped, paused, or resumed. This allows the STA
+ * to revert the channel to a known-good state when the scanner has stopped and
+ * also serves as notification to the project that it should stop dequeueing data
+ * frames since it might be on a different channel than its intended recipient.
+ *
+ * @param   None
+ * @return  None
+ *
+ *****************************************************************************/
+void process_scan_state_change(scan_state_t scan_state){
+	switch(scan_state){
+		case SCAN_IDLE:
+		case SCAN_PAUSED:
+			pause_data_queue = 0;
+			if(my_bss_info != NULL){
+				wlan_mac_high_set_channel(my_bss_info->chan);
+			}
+		break;
+		case SCAN_RUNNING:
+			pause_data_queue = 1;
+		break;
 	}
 }
 
