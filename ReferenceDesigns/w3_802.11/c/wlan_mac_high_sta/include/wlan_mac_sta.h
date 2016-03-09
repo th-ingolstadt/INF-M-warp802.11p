@@ -106,12 +106,7 @@ void reset_station_counts();
 dl_list * get_counts();
 
 int  sta_disassociate();
-u32	configure_bss(bss_config_t* bss_config);
-
-void print_menu();
-void print_ap_list();
-void print_station_status(u8 manual_call);
-void print_all_observed_counts();
+u32  configure_bss(bss_config_t* bss_config);
 
 void up_button();
 void uart_rx(u8 rxByte);

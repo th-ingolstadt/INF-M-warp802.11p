@@ -284,6 +284,9 @@ void print_bss_info(){
 		if(curr_bss_info->capabilities & CAPABILITIES_IBSS){
 			xil_printf("(I)");
 		}
+		if(curr_bss_info->flags & BSS_FLAGS_KEEP){
+			xil_printf("(my BSS)");
+		}
 		xil_printf("\n");
 
 		xil_printf("    BSSID:         %02x-%02x-%02x-%02x-%02x-%02x\n", curr_bss_info->bssid[0],curr_bss_info->bssid[1],curr_bss_info->bssid[2],curr_bss_info->bssid[3],curr_bss_info->bssid[4],curr_bss_info->bssid[5]);

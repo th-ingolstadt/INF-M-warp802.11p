@@ -130,16 +130,6 @@ void up_button();
 
 void uart_rx(u8 rxByte);
 
-void print_menu();
-void print_ssid_menu();
-void print_queue_status();
-void print_station_status();
-void start_periodic_print();
-void print_all_observed_counts();
-void stop_periodic_print();
-int  is_qwerty_row(u8 rxByte);
-int  qwerty_row_to_number(u8 rxByte);
-
 void ap_update_hex_display(u8 val);
 
 #endif /* WLAN_MAC_AP_H_ */

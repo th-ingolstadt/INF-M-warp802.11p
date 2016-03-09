@@ -3,7 +3,7 @@
  *
  *  This contains code for the 802.11 Station's UART menu.
  *
- *  @copyright Copyright 2013-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2013-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *                See LICENSE.txt included in the design archive or
  *                at http://mangocomm.com/802.11/license
@@ -12,6 +12,8 @@
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
  *  @author Erik Welsh (welsh [at] mangocomm.com)
  */
+
+/***************************** Include Files *********************************/
 
 // Xilinx SDK includes
 #include "xparameters.h"
@@ -23,6 +25,7 @@
 #include "xintc.h"
 
 // WLAN includes
+#include "WARP_ip_udp.h"
 #include "wlan_mac_time_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"
@@ -36,6 +39,14 @@
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_bss_info.h"
+#include "wlan_mac_scan.h"
+
+
+//
+// Use the UART Menu
+//     - If WLAN_USE_UART_MENU in wlan_mac_sta.h is commented out, then this function
+//       will do nothing.  This might be necessary to save code space.
+//
 
 
 #ifndef WLAN_USE_UART_MENU
@@ -44,212 +55,506 @@ void uart_rx(u8 rxByte){ };
 
 #else
 
-#define MAX_NUM_CHARS                       31
+/*************************** Constant Definitions ****************************/
 
-extern u32                                  mac_param_chan;
+
+/*********************** Global Variable Definitions *************************/
+
+extern wlan_mac_low_config_t                cpu_low_config;
 extern tx_params_t                          default_unicast_data_tx_params;
 
 extern bss_info*                            my_bss_info;
 extern dl_list                              counts_table;
 
+/*************************** Variable Definitions ****************************/
+
 static volatile u8                          uart_mode            = UART_MODE_MAIN;
-static volatile u32                         schedule_ID;
+static volatile u32                         schedule_id;
+static volatile u32                         check_join_status_id;
 static volatile u8                          print_scheduled      = 0;
 
+static char                                 text_entry[SSID_LEN_MAX + 1];
+static u8                                   curr_char            = 0;
+
+static          ltg_pyld_fixed              traffic_blast_pyld;
+static          ltg_sched_periodic_params   traffic_blast_sched;
+static volatile u32                         traffic_blast_ltg_id = LTG_ID_INVALID;
 
 
+/*************************** Functions Prototypes ****************************/
+
+void print_main_menu();
+
+void print_station_status();
+void print_all_observed_counts();
+
+void check_join_status();
+
+void start_periodic_print();
+void stop_periodic_print();
+
+
+/*************************** Variable Definitions ****************************/
+
+
+/******************************** Functions **********************************/
+
+
+/*****************************************************************************/
+/**
+ * Process each character received by the UART
+ *
+ * The following functionality is supported:
+ *    - Main Menu
+ *      - Interactive Menu (prints all station infos)
+ *      - Print all counts
+ *      - Print event log size (hidden)
+ *      - Print Network List
+ *      - Change channel
+ *      - Change default TX power
+ *      - Change TX MCS value (default unicast and all current associations)
+ *      - Print Malloc info (hidden)
+ *      - Join BSS
+ *      - Reset network list (hidden)
+ *    - Interactive Menu
+ *      - Reset counts
+ *      - Turn on/off "Traffic Blaster" (hidden)
+ *
+ * The escape key is used to return to the Main Menu.
+ *
+ *****************************************************************************/
 void uart_rx(u8 rxByte){
 
-    u32            i;
-    u32            tmp;
-    dl_entry     * curr_dl_entry;
-    bss_info     * curr_bss_info;
-    station_info * access_point  = NULL;
-    dl_list      * bss_info_list = wlan_mac_high_get_bss_info_list();
+	station_info                * access_point   = NULL;
+	void                        * ltg_state;
+	volatile join_parameters_t  * join_parameters;
+	volatile scan_parameters_t  * scan_params;
+	u32                           is_scanning;
 
-    if(my_bss_info != NULL){
-        access_point = ((station_info*)(my_bss_info->associated_stations.first->data));
-    }
 
-    if(rxByte == ASCII_ESC){
-        uart_mode = UART_MODE_MAIN;
+	if (my_bss_info != NULL){
+		access_point = ((station_info*)(my_bss_info->associated_stations.first->data));
+	}
 
-        if(print_scheduled){
-            wlan_mac_remove_schedule(SCHEDULE_COARSE, schedule_ID);
-        }
+	// ----------------------------------------------------
+	// Return to the Main Menu
+	//    - Stops any prints / LTGs
+	if (rxByte == ASCII_ESC) {
+		uart_mode = UART_MODE_MAIN;
+		stop_periodic_print();
+		print_main_menu();
+		ltg_sched_remove(LTG_REMOVE_ALL);
 
-        print_menu();
+		// Stop join process
+		if (wlan_mac_is_joining()) {
+			wlan_mac_sta_join_return_to_idle();
+		}
+		return;
+	}
 
-        ltg_sched_remove(LTG_REMOVE_ALL);
+	switch(uart_mode){
 
-        return;
-    }
+		// ------------------------------------------------
+		// Main Menu processing
+		//
+		case UART_MODE_MAIN:
+			switch(rxByte){
 
-    switch(uart_mode){
-        case UART_MODE_MAIN:
-            switch(rxByte){
-                case ASCII_1:
-                    uart_mode = UART_MODE_INTERACTIVE;
-                    print_station_status(1);
-                break;
+				// ----------------------------------------
+				// '1' - Switch to Interactive Menu
+				//
+				case ASCII_1:
+					uart_mode = UART_MODE_INTERACTIVE;
+					start_periodic_print();
+				break;
 
-                case ASCII_2:
-                    print_all_observed_counts();
-                break;
+				// ----------------------------------------
+				// '2' - Print Counts
+				//
+				case ASCII_2:
+					print_all_observed_counts();
+				break;
 
-                case ASCII_e:
-                    event_log_config_logging(EVENT_LOG_LOGGING_DISABLE);
-                    print_event_log_size();
-#ifdef _DEBUG_
-                    print_event_log(0xFFFF);
-                    print_event_log_size();
-#endif
-                    event_log_config_logging(EVENT_LOG_LOGGING_ENABLE);
-                break;
+				// ----------------------------------------
+				// 'e' - Print event log size
+				//
+				case ASCII_e:
+					event_log_config_logging(EVENT_LOG_LOGGING_DISABLE);
+					print_event_log_size();
+					event_log_config_logging(EVENT_LOG_LOGGING_ENABLE);
+				break;
 
-                case ASCII_a:
-                    print_bss_info();
-                break;
+				// ----------------------------------------
+				// 'a' - Print BSS information
+				//
+				case ASCII_a:
+					print_bss_info();
+				break;
 
-                case ASCII_x:
-                	wlan_mac_high_reset_network_list();
-                break;
+				// ----------------------------------------
+				// 'c' - Channel Down (2.4 GHz only)
+				//
+				case ASCII_c:
+					if (cpu_low_config.channel > 1) {
+						sta_disassociate();
+						(cpu_low_config.channel--);
 
-                case ASCII_j:
-                    // NOTE:  This is a option that is not advertised because there is an issue:
-                    //     Due to the way the character interrupt driven menu works, the STA must
-                    //     print the BSS info right away and then wait for the selection.  However,
-                    //     in the time it takes the user to make a selection, the BSS info list
-                    //     might have changed (ie the order of the list could have changed; or
-                    //     a BSS might have gone off-line).  Therefore, the selection might be
-                    //     out of sync with the BSS that the user is trying to join.  There is no
-                    //     obvious solution for this issue so this option will remain hidden.
-                    //
-                    uart_mode = UART_MODE_JOIN;
-                    print_bss_info();
+						if(my_bss_info != NULL){
+							my_bss_info->chan = cpu_low_config.channel;
+						}
 
-                    if (bss_info_list->length > 9) {
-                        xil_printf("\nNOTE:  Can only join BSS between 0 and 9.\n");
-                    }
+						// Send a message to other processor to tell it to switch channels
+						wlan_mac_high_set_channel(cpu_low_config.channel);
+					}
 
-                    xil_printf("\nSelect BSS to Join (0 - %d):  ", bss_info_list->length);
-                break;
+					xil_printf("(-) Channel: %d\n", cpu_low_config.channel);
+				break;
 
-                case ASCII_r:
-                    if((default_unicast_data_tx_params.phy.mcs) > 0){
-                        (default_unicast_data_tx_params.phy.mcs)--;
-                    } else {
-                        (default_unicast_data_tx_params.phy.mcs) = 0;
-                    }
+				// ----------------------------------------
+				// 'C' - Channel Up (2.4 GHz only)
+				//
+				case ASCII_C:
+					if (cpu_low_config.channel < 11) {
+						sta_disassociate();
+						(cpu_low_config.channel++);
 
-                    if(access_point != NULL) access_point->tx.phy.mcs = (default_unicast_data_tx_params.phy.mcs);
+						if(my_bss_info != NULL){
+							my_bss_info->chan = cpu_low_config.channel;
+						}
 
-                    xil_printf("(-) Default Unicast MCS Index: %d\n", default_unicast_data_tx_params.phy.mcs);
-                break;
+						// Send a message to other processor to tell it to switch channels
+						wlan_mac_high_set_channel(cpu_low_config.channel);
+					}
 
-                case ASCII_R:
-                    if((default_unicast_data_tx_params.phy.mcs) < WLAN_MAC_NUM_MCS){
-                        (default_unicast_data_tx_params.phy.mcs)++;
-                    } else {
-                        (default_unicast_data_tx_params.phy.mcs) = WLAN_MAC_NUM_MCS;
-                    }
+					xil_printf("(+) Channel: %d\n", cpu_low_config.channel);
+				break;
 
-                    if(access_point != NULL) access_point->tx.phy.mcs = (default_unicast_data_tx_params.phy.mcs);
+				// ----------------------------------------
+				// 'g' - Decrease TX power
+				//
+				case ASCII_g:
+					// Decrease the default unicast data TX parameters power
+					//     - This is for any new association
+					if ((default_unicast_data_tx_params.phy.power) > TX_POWER_MIN_DBM) {
+						(default_unicast_data_tx_params.phy.power)--;
+					} else {
+						(default_unicast_data_tx_params.phy.power) = TX_POWER_MIN_DBM;
+					}
 
-                    xil_printf("(+) Default Unicast MCS Index: %d\n", default_unicast_data_tx_params.phy.mcs);
-                break;
-            }
-        break;
+					// Decrease the TX power for AP
+					if (access_point != NULL) {
+						access_point->tx.phy.power = (default_unicast_data_tx_params.phy.power);
+					}
 
-        case UART_MODE_INTERACTIVE:
-            switch(rxByte){
-                case ASCII_r:
-                    // Reset counts
-                    reset_station_counts();
-                break;
-            }
-        break;
+					xil_printf("(-) Default Tx Power: %d dBm\n", (default_unicast_data_tx_params.phy.power));
 
-        case UART_MODE_JOIN:
-            xil_printf("%c\n", rxByte);
+				break;
 
-            if ((rxByte >= ASCII_0) && (rxByte <= ASCII_9)) {
-                i             = 0;
-                tmp           = rxByte - ASCII_0;
-                curr_dl_entry = bss_info_list->last;
-                curr_bss_info = NULL;
+				// ----------------------------------------
+				// 'G' - Increase TX power
+				//
+				case ASCII_G:
+					// Increase the default unicast data TX parameters power
+					//     - This is for any new association
+					if ((default_unicast_data_tx_params.phy.power) < TX_POWER_MAX_DBM) {
+						(default_unicast_data_tx_params.phy.power)++;
+					} else {
+						(default_unicast_data_tx_params.phy.power) = TX_POWER_MAX_DBM;
+					}
 
-                while ((curr_dl_entry != NULL) && (i <= tmp)){
-                    curr_bss_info = (bss_info*)(curr_dl_entry->data);
+					// Increase the TX power for AP
+					if (access_point != NULL) {
+						access_point->tx.phy.power = (default_unicast_data_tx_params.phy.power);
+					}
 
-                    xil_printf("[%d]:  %s\n", i, curr_bss_info->ssid);
+					xil_printf("(+) Default Tx Power: %d dBm\n", (default_unicast_data_tx_params.phy.power));
+				break;
 
-                    curr_dl_entry = dl_entry_prev(curr_dl_entry);
-                    i++;
-                }
+				// ----------------------------------------
+				// 'r' - Decrease MCS for Unicast TX traffic
+				//
+				case ASCII_r:
+					// Decrease the default unicast data TX parameters MCS
+					//     - This is for any new association
+					if ((default_unicast_data_tx_params.phy.mcs) > 0) {
+						(default_unicast_data_tx_params.phy.mcs)--;
+					} else {
+						(default_unicast_data_tx_params.phy.mcs) = 0;
+					}
 
-                if (curr_bss_info != NULL) {
-                    if(curr_bss_info->capabilities & CAPABILITIES_PRIVACY){
-                        xil_printf("Cannot join a 'private' BSS.\n");
-                    } else {
-                        sta_disassociate();
-                        xil_printf("Joining BSS:  %s\n", curr_bss_info->ssid);
-                        //wlan_mac_sta_scan_and_join(curr_bss_info->ssid, 10); //FIXME
-                    }
-                } else {
-                    xil_printf("Invalid selection.\n");
-                }
-            } else {
-                xil_printf("Invalid selection.\n");
-            }
+					// Decrease the MCS for AP
+					if (access_point != NULL) {
+						access_point->tx.phy.mcs = (default_unicast_data_tx_params.phy.mcs);
+					}
 
-            xil_printf("Returning to main menu.\n");
-            usleep(5000000);
+					xil_printf("(-) Default Unicast MCS Index: %d\n", default_unicast_data_tx_params.phy.mcs);
+				break;
 
-            uart_mode = UART_MODE_MAIN;
-            print_menu();
-        break;
+				// ----------------------------------------
+				// 'R' - Increase MCS for Unicast TX traffic
+				//
+				case ASCII_R:
+					// Increase the default unicast data TX parameters MCS
+					//     - This is for any new association
+					if ((default_unicast_data_tx_params.phy.mcs) < WLAN_MAC_NUM_MCS) {
+						(default_unicast_data_tx_params.phy.mcs)++;
+					} else {
+						(default_unicast_data_tx_params.phy.mcs) = WLAN_MAC_NUM_MCS;
+					}
 
-        default:
-            uart_mode = UART_MODE_MAIN;
-            print_menu();
-        break;
-    }
+					// Increase the MCS for AP
+					if (access_point != NULL) {
+						access_point->tx.phy.mcs = (default_unicast_data_tx_params.phy.mcs);
+					}
+
+					xil_printf("(+) Default Unicast MCS Index: %d\n", default_unicast_data_tx_params.phy.mcs);
+				break;
+
+				// ----------------------------------------
+				// 'm' - Display Heap / Malloc information
+				//
+				case ASCII_m:
+					wlan_mac_high_display_mallinfo();
+				break;
+
+				// ----------------------------------------
+				// 'x' - Reset network list
+				//
+				case ASCII_x:
+					wlan_mac_high_reset_network_list();
+				break;
+
+				// ----------------------------------------
+				// 'j' - Join
+				//
+				case ASCII_j:
+					uart_mode = UART_MODE_JOIN;
+
+					xil_printf("\f");
+					xil_printf("Scanning for networks:\n");
+
+					// Check if node is currently in a scan
+					is_scanning = wlan_mac_scan_is_scanning();
+
+					// Stop the current scan to update the scan parameters
+					if (is_scanning) {
+						wlan_mac_scan_stop();
+					}
+
+					// Get current scan parameters
+					scan_params = wlan_mac_scan_get_parameters();
+
+					// Free the current scan SSID, it will be replaced
+					if (scan_params->ssid != NULL) {
+						wlan_mac_high_free(scan_params->ssid);
+					}
+
+					// Set to passive scan
+					scan_params->ssid = strdup("");
+
+					// Start the scan
+					wlan_mac_scan_start();
+
+					// Wait for one complete scan
+					while (wlan_mac_scan_get_num_scans() > 0) { }
+
+					// Stop the scan
+					wlan_mac_scan_stop();
+
+					// Print results of the scan
+					print_bss_info();
+
+					// Print prompt
+					xil_printf("Enter SSID to join, please type a new string and press enter\n");
+					xil_printf(": ");
+				break;
+			}
+		break;
+
+
+		// ------------------------------------------------
+		// Interactive Menu processing
+		//
+		case UART_MODE_INTERACTIVE:
+			switch(rxByte){
+
+				// ----------------------------------------
+				// 'r' - Reset station counts
+				//
+				case ASCII_r:
+					reset_station_counts();
+				break;
+
+				// ----------------------------------------
+				// 'b' - Enable / Disable "Traffic Blaster"
+				//     The "Traffic Blaster" will create a backlogged LTG with a payload of
+				//     1400 bytes that will be sent to all associated nodes.
+				//
+				case ASCII_b:
+					// Check if an LTG has been created and create a new one if not
+					if ((traffic_blast_ltg_id == LTG_ID_INVALID) && (my_bss_info != NULL)) {
+						// Set up LTG payload
+						traffic_blast_pyld.hdr.type = LTG_PYLD_TYPE_FIXED;
+						traffic_blast_pyld.length   = 1400;
+						memcpy(&traffic_blast_pyld.addr_da, my_bss_info->bssid, ETH_MAC_ADDR_LEN);
+
+						// Set up LTG schedule
+						traffic_blast_sched.duration_count = LTG_DURATION_FOREVER;
+						traffic_blast_sched.interval_count = 0;
+
+						// Start the LTG
+						traffic_blast_ltg_id = ltg_sched_create(LTG_SCHED_TYPE_PERIODIC, &traffic_blast_sched, &traffic_blast_pyld, NULL);
+
+						// Check if there was an error
+						if (traffic_blast_ltg_id == LTG_ID_INVALID) {
+							xil_printf("Error in creating LTG\n");
+							break;
+						}
+					}
+
+					// Check to see if this LTG ID is currently running.
+					//     Note: Given that the "Traffic Blaster" only creates period LTGs, the code can assume
+					//         the type of the ltg_state.  In general, the second argument to ltg_sched_get_state
+					//         can be used to figure out what type to cast the ltg_state.
+					ltg_sched_get_state(traffic_blast_ltg_id, NULL, &ltg_state);
+
+					// Based on the state, start / stop the LTG
+					switch (((ltg_sched_periodic_state*)ltg_state)->hdr.enabled) {
+
+						// LTG is not running, so let's start it
+						case 0:   ltg_sched_start(traffic_blast_ltg_id);  break;
+
+						// LTG is running, so let's stop it
+						case 1:   ltg_sched_stop(traffic_blast_ltg_id);  break;
+					}
+				break;
+			}
+		break;
+
+
+		// ------------------------------------------------
+		// Get SSID to Join
+		//
+		case UART_MODE_JOIN:
+			switch(rxByte){
+
+				// ----------------------------------------
+				// Press <Enter> - process new SSID
+				//
+				case ASCII_CR:
+					// Create a '\0' as the final character so SSID is a proper string
+					text_entry[curr_char] = 0;
+
+					// Get the current join parameters
+					join_parameters = wlan_mac_sta_get_join_parameters();
+
+					// Free the current join SSID, it will be replaced
+					if (join_parameters->ssid != NULL) {
+						wlan_mac_high_free(join_parameters->ssid);
+					}
+
+					// If SSID was not "", perform the join
+					if (curr_char != 0) {
+						// Set the SSID
+						join_parameters->ssid = strdup(text_entry);
+
+						// Clear the BSSID and channel
+						bzero((void *)join_parameters->bssid, ETH_MAC_ADDR_LEN);
+						join_parameters->channel = 0;
+
+						// Call join function
+						wlan_mac_sta_join();
+
+						// Reset SSID character pointer
+						curr_char = 0;
+
+						// Start the check_join_status
+						check_join_status_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, 100000, SCHEDULE_REPEAT_FOREVER, (void*)check_join_status);
+
+						// Print info to screen
+						//     - Pause for a second since the return to the Main Menu will erase the screen
+						xil_printf("\nJoining: %s\n", text_entry);
+
+					} else {
+						uart_mode = UART_MODE_MAIN;
+
+						// Print error message
+						xil_printf("\nNo SSID entered.  Returning to Main Menu.\n");
+
+						// Wait a second before proceeding
+						usleep(2000000);
+
+						// Print the main menu
+						print_main_menu();
+					}
+				break;
+
+				// ----------------------------------------
+				// Press <Delete> - Remove last character
+				//
+				case ASCII_DEL:
+					if (curr_char > 0) {
+						curr_char--;
+						xil_printf("\b \b");
+					}
+				break;
+
+				// ----------------------------------------
+				// Process character
+				//
+				default:
+					if (((rxByte <= ASCII_z) && (rxByte >= ASCII_A)) ||
+						(rxByte == ASCII_SPACE) || (rxByte == ASCII_DASH)) {
+						if (curr_char < SSID_LEN_MAX) {
+							xil_printf("%c", rxByte);
+							text_entry[curr_char] = rxByte;
+							curr_char++;
+						}
+					}
+				break;
+			}
+		break;
+
+
+		default:
+			uart_mode = UART_MODE_MAIN;
+			print_main_menu();
+		break;
+	}
 }
 
 
 
-void print_menu(){
-    xil_printf("\f");
-    xil_printf("********************** Station Menu **********************\n");
-    xil_printf("[1]   - Interactive Station Status\n");
-    xil_printf("[2]   - Print all Observed Counts\n");
-    xil_printf("\n");
-    xil_printf("[a]   - Display BSS information\n");
-    xil_printf("[r/R] - change unicast MCS index (rate)\n");
-    xil_printf("**********************************************************\n");
+void print_main_menu(){
+	xil_printf("\f");
+	xil_printf("********************** Station Menu **********************\n");
+	xil_printf("[1]   - Interactive Station Status\n");
+	xil_printf("[2]   - Print all Observed Counts\n");
+	xil_printf("\n");
+	xil_printf("[a]   - Display Network List\n");
+	xil_printf("[c/C] - Change channel (note: changing channel will\n");
+	xil_printf("        disassociate from AP)\n");
+	xil_printf("[g/G] - Change TX power\n");
+	xil_printf("[r/R] - Change unicast MCS index (rate)\n");
+	xil_printf("[j]   - Join a network\n");
+	xil_printf("**********************************************************\n");
 }
 
 
 
-void print_station_status(u8 manual_call){
+void print_station_status(){
 
-    u64 timestamp;
-    dl_entry* access_point_entry = NULL;
+    u64            timestamp;
+    counts_txrx  * curr_counts;
+    dl_entry     * access_point_entry  = NULL;
+    station_info * access_point        = NULL;
 
     if(my_bss_info != NULL){
         access_point_entry = my_bss_info->associated_stations.first;
-    }
-
-    station_info* access_point = NULL;
-
-    if(my_bss_info != NULL){
         access_point = ((station_info*)(access_point_entry->data));
     }
-    counts_txrx* curr_counts;
 
-
-    if(uart_mode == UART_MODE_INTERACTIVE){
+    if (uart_mode == UART_MODE_INTERACTIVE) {
         timestamp = get_system_time_usec();
         xil_printf("\f");
         xil_printf("---------------------------------------------------\n");
@@ -274,13 +579,10 @@ void print_station_status(u8 manual_call){
                 xil_printf("     - # Rx Mgmt MPDUs:        %d\n", curr_counts->mgmt.rx_num_packets);
                 xil_printf("     - # Rx Mgmt Bytes:        %d\n", curr_counts->mgmt.rx_num_bytes);
             }
+
         xil_printf("---------------------------------------------------\n");
         xil_printf("\n");
         xil_printf("[r] - reset counts\n\n");
-
-        //Update display
-        schedule_ID = wlan_mac_schedule_event(SCHEDULE_COARSE, 1000000, (void*)print_station_status);
-
     }
 }
 
@@ -312,6 +614,54 @@ void print_all_observed_counts(){
         xil_printf("     - # Rx Mgmt Bytes:        %d\n", curr_counts->mgmt.rx_num_bytes);
         curr_counts_entry = dl_entry_next(curr_counts_entry);
     }
+}
+
+
+
+void check_join_status() {
+	// If node is no longer in the join process:
+	//     - Check BSS info
+	//     - Return to Main Menu
+	if (wlan_mac_is_joining() == 0) {
+		// Stop the scheduled event
+		wlan_mac_remove_schedule(SCHEDULE_COARSE, check_join_status_id);
+
+		// Return to main menu
+		uart_mode = UART_MODE_MAIN;
+
+		if (my_bss_info != NULL) {
+			// Print success message
+			xil_printf("\nSuccessfully Joined: %s\n", my_bss_info->ssid);
+		} else {
+			// Print error message
+			xil_printf("\nJoin not successful.  Returning to Main Menu.\n");
+		}
+
+		// Wait a second before proceeding
+		usleep(3000000);
+
+		// Print the main menu
+		print_main_menu();
+	}
+}
+
+
+
+
+void start_periodic_print(){
+	stop_periodic_print();
+	print_station_status();
+	print_scheduled = 1;
+	schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, 1000000, SCHEDULE_REPEAT_FOREVER, (void*)print_station_status);
+}
+
+
+
+void stop_periodic_print(){
+	if (print_scheduled) {
+		print_scheduled = 0;
+		wlan_mac_remove_schedule(SCHEDULE_COARSE, schedule_id);
+	}
 }
 
 

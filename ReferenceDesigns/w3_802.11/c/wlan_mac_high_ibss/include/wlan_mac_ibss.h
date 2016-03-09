@@ -97,11 +97,6 @@ dl_list * get_counts();
 
 void uart_rx(u8 rxByte);
 
-void print_menu();
-void print_queue_status();
-void print_station_status(u8 manual_call);
-void print_all_observed_counts();
-
 void ibss_update_hex_display(u8 val);
 
 
