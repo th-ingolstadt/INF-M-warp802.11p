@@ -139,9 +139,7 @@ static wlan_exp_tag_parameter     node_parameters[NODE_PARAM_MAX_PARAMETER];
 
 static wlan_exp_function_ptr_t    wlan_exp_init_callback                     = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
 static wlan_exp_function_ptr_t    wlan_exp_process_node_cmd_callback         = (wlan_exp_function_ptr_t) null_process_cmd_callback;
-static wlan_exp_function_ptr_t    wlan_exp_reset_station_counts_callback     = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback  = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
-       wlan_exp_function_ptr_t    wlan_exp_reset_all_associations_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_tx_cmd_add_association_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_process_user_cmd_callback         = (wlan_exp_function_ptr_t) null_process_cmd_callback;
        wlan_exp_function_ptr_t    wlan_exp_beacon_ts_update_mode_callback    = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
@@ -1499,72 +1497,8 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_RESET_STATE: {
-            // NODE_RESET_STATE Packet Format:
-            //   - cmd_args_32[0]  - Flags
-            //                     [0] - NODE_RESET_LOG
-            //                     [1] - NODE_RESET_TXRX_COUNTS
-            //                     [2] - NODE_RESET_LTG
-            //                     [3] - NODE_RESET_TX_DATA_QUEUE
-            //                     [4] - NODE_RESET_ASSOCIATIONS
-            //                     [5] - NODE_RESET_BSS_INFO
-            //
-            interrupt_state_t     prev_interrupt_state;
-            u32                   status    = CMD_PARAM_SUCCESS;
-            u32                   flags     = Xil_Ntohl(cmd_args_32[0]);
-
-            // Disable interrupts so no packets interrupt the reset
-            prev_interrupt_state = wlan_mac_high_interrupt_stop();
-
-            // Configure the LOG based on the flag bits
-            if (flags & CMD_PARAM_NODE_RESET_FLAG_LOG) {
-                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log, "Reset log\n");
-                event_log_reset();
-            }
-
-            if (flags & CMD_PARAM_NODE_RESET_FLAG_TXRX_COUNTS) {
-                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_counts, "Reseting Counts\n");
-                wlan_exp_reset_station_counts_callback();
-            }
-
-            if (flags & CMD_PARAM_NODE_RESET_FLAG_LTG) {
-                status = ltg_sched_remove(LTG_REMOVE_ALL);
-
-                if (status != 0) {
-                    wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_ltg, "Failed to remove all LTGs\n");
-                    status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
-                } else {
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Removing All LTGs\n");
-                }
-            }
-
-            if (flags & CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE) {
-                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_queue, "Purging all data transmit queues\n");
-                wlan_exp_purge_all_data_tx_queue_callback();
-            }
-
-            if (flags & CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS) {
-                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Resetting associations\n");
-                wlan_exp_reset_all_associations_callback();
-            }
-
-            if (flags & CMD_PARAM_NODE_RESET_FLAG_BSS_INFO) {
-                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Resetting BSS info\n");
-                wlan_mac_high_reset_network_list();
-            }
-
-            // Call MAC specific reset with the flags
-
-            // Re-enable interrupts
-            wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
-
-            // Send response of success
-            resp_args_32[resp_index++] = Xil_Htonl(status);
-
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
-            resp_hdr->num_args = resp_index;
-        }
-        break;
+        // CMDID_NODE_RESET_STATE implemented in child classes
+        //
 
 
         //---------------------------------------------------------------------
@@ -2420,12 +2354,14 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //     resp_args_32[0]   Status
             //
             u32                             i;
+            volatile scan_parameters_t    * scan_params;
             u32                             time_per_channel;
             u32                             probe_tx_interval;
-            u32                             length;
+            u32                             channel_list_len;
             u8                            * channel_list;
-            volatile scan_parameters_t    * scan_params;
             u32                             is_scanning;
+            u32                             ssid_len;
+            char                          * ssid;
             u32                             status         = CMD_PARAM_SUCCESS;
             u32                             msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
 
@@ -2463,29 +2399,49 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     }
 
                     // Set the scan channels
-                    length = Xil_Ntohl(cmd_args_32[3]);
+                    channel_list_len = Xil_Ntohl(cmd_args_32[3]);
 
-                    if (length != CMD_PARAM_RSVD){
+                    if (channel_list_len != CMD_PARAM_RSVD){
                         // Free the current channel list in the scan parameters
                         wlan_mac_high_free(scan_params->channel_vec);
 
                         // Update new channel list
-                        channel_list = wlan_mac_high_malloc(length);
+                        channel_list = wlan_mac_high_malloc(channel_list_len);
 
-                        for (i = 0; i < length; i++) {
+                        for (i = 0; i < channel_list_len; i++) {
                             channel_list[i] = Xil_Ntohl(cmd_args_32[4 + i]);
                         }
 
                         // Set scan parameters
-                        scan_params->channel_vec_len = length;
+                        scan_params->channel_vec_len = channel_list_len;
                         scan_params->channel_vec     = channel_list;
 
                         // Print information about the new channels
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Channels = ");
-                        for (i = 0; i < length; i++) {
+                        for (i = 0; i < channel_list_len; i++) {
                             wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "%d ",channel_list[i]);
                         }
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
+                    } else {
+                        // No channel list to process
+                        channel_list_len = 0;
+                    }
+
+                    // Set the SSID
+                    ssid_len = Xil_Ntohl(cmd_args_32[4 + channel_list_len]);
+
+                    if (ssid_len != CMD_PARAM_RSVD){
+                        // Get pointer to new SSID
+                        ssid = (char *) &cmd_args_32[5 + channel_list_len];
+
+                        // Free the current ssid in the scan parameters
+                        wlan_mac_high_free(scan_params->ssid);
+
+                        // Update new ssid
+                        scan_params->ssid = strdup(ssid);
+
+                        // Print information about the new channels
+                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  SSID = %s\n", scan_params->ssid);
                     }
 
                     // If the node was scanning, re-start the scan
@@ -3738,9 +3694,7 @@ void copy_bss_info_to_dest_entry(void * source, void * dest, u8* mac_addr, u64 t
 void wlan_exp_reset_all_callbacks(){
     wlan_exp_init_callback                     = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_process_node_cmd_callback         = (wlan_exp_function_ptr_t) null_process_cmd_callback;
-    wlan_exp_reset_station_counts_callback     = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_purge_all_data_tx_queue_callback  = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
-    wlan_exp_reset_all_associations_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_tx_cmd_add_association_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_process_user_cmd_callback         = (wlan_exp_function_ptr_t) null_process_cmd_callback;
     wlan_exp_beacon_ts_update_mode_callback    = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
@@ -3758,19 +3712,10 @@ void wlan_exp_set_process_node_cmd_callback(void(*callback)()){
 }
 
 
-void wlan_exp_set_reset_station_counts_callback(void(*callback)()){
-    wlan_exp_reset_station_counts_callback = (wlan_exp_function_ptr_t) callback;
-}
-
-
 void wlan_exp_set_purge_all_data_tx_queue_callback(void(*callback)()){
     wlan_exp_purge_all_data_tx_queue_callback = (wlan_exp_function_ptr_t) callback;
 }
 
-
-void wlan_exp_set_reset_all_associations_callback(void(*callback)()){
-    wlan_exp_reset_all_associations_callback = (wlan_exp_function_ptr_t) callback;
-}
 
 void wlan_exp_set_tx_cmd_add_association_callback(void(*callback)()){
     wlan_exp_tx_cmd_add_association_callback = (wlan_exp_function_ptr_t) callback;

@@ -217,9 +217,7 @@ int main() {
     // Set WLAN Exp callbacks
     wlan_exp_set_init_callback(                     (void *) wlan_exp_node_ibss_init);
     wlan_exp_set_process_node_cmd_callback(         (void *) wlan_exp_process_node_cmd);
-    wlan_exp_set_reset_station_counts_callback(     (void *) reset_station_counts);
     wlan_exp_set_purge_all_data_tx_queue_callback(  (void *) purge_all_data_tx_queue);
-    wlan_exp_set_reset_all_associations_callback(   (void *) leave_ibss);
     wlan_exp_set_tx_cmd_add_association_callback(   (void *) wlan_exp_ibss_tx_cmd_add_association);
     wlan_exp_set_process_user_cmd_callback(         (void *) wlan_exp_process_user_cmd);
     wlan_exp_set_beacon_ts_update_mode_callback(    (void *) ibss_set_beacon_ts_update_mode);
@@ -1373,25 +1371,6 @@ u32	configure_bss(bss_config_t* bss_config){
 	}
 
 	return return_status;
-}
-
-
-
-/*****************************************************************************/
-/**
- * @brief Leave the current IBSS
- *
- * Wrapper to provide consistent name and potentially wrap additional functionality
- * in the future.
- *
- * @param  None
- * @return None
- *****************************************************************************/
-void leave_ibss(){
-    xil_printf("Leaving IBSS\n");
-
-    // Set "my_bss_info" to NULL
-    configure_bss(NULL);
 }
 
 

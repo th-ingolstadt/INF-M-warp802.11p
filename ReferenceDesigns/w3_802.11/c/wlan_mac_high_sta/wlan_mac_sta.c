@@ -111,9 +111,8 @@ wlan_mac_low_config_t             cpu_low_config;
 int  wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len);
 #endif
 
-
-void reset_all_associations();
 void sta_set_beacon_ts_update_mode(u32 enable);
+
 
 /******************************** Functions **********************************/
 
@@ -226,9 +225,7 @@ int main() {
     // Set WLAN Exp callbacks
     wlan_exp_set_init_callback(                     (void *) wlan_exp_node_sta_init);
     wlan_exp_set_process_node_cmd_callback(         (void *) wlan_exp_process_node_cmd);
-    wlan_exp_set_reset_station_counts_callback(     (void *) reset_station_counts);
     wlan_exp_set_purge_all_data_tx_queue_callback(  (void *) purge_all_data_tx_queue);
-    wlan_exp_set_reset_all_associations_callback(   (void *) reset_all_associations);
     //   - wlan_exp_set_tx_cmd_add_association_callback() should not be used by the STA
     wlan_exp_set_process_user_cmd_callback(         (void *) wlan_exp_process_user_cmd);
     wlan_exp_set_beacon_ts_update_mode_callback(    (void *) sta_set_beacon_ts_update_mode);
@@ -1040,39 +1037,6 @@ void ltg_event(u32 id, void* callback_arg){
  *****************************************************************************/
 void reset_station_counts(){
 	wlan_mac_high_reset_counts(&counts_table);
-}
-
-
-
-/*****************************************************************************/
-/**
- * @brief Reset All Associations
- *
- * Wrapper to provide consistent name and potentially wrap additional functionality
- * in the future.
- *
- * @param  None
- * @return None
- *****************************************************************************/
-void reset_all_associations(){
-    interrupt_state_t     prev_interrupt_state;
-
-    xil_printf("Reset All Associations\n");
-
-    // Stop any scan / join in progress
-    wlan_mac_sta_join_return_to_idle();
-
-    // Disable interrupts so no packets interrupt the disassociate
-    prev_interrupt_state = wlan_mac_high_interrupt_stop();
-
-    // STA disassociate command is the same for an individual AP or ALL
-    sta_disassociate();
-
-    // Set "my_bss_info" to NULL
-    configure_bss(NULL);
-
-    // Re-enable interrupts
-    wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 }
 
 

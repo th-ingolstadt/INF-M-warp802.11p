@@ -34,6 +34,7 @@
 // WLAN includes
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_bss_info.h"
+#include "wlan_mac_ltg.h"
 #include "wlan_mac_ibss.h"
 
 
@@ -41,9 +42,11 @@
 
 
 /*********************** Global Variable Definitions *************************/
-extern dl_list        counts_table;
+extern dl_list                    counts_table;
 
-extern bss_info*      my_bss_info;
+extern bss_info*                  my_bss_info;
+
+extern wlan_exp_function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback;
 
 
 /*************************** Variable Definitions ****************************/
@@ -91,7 +94,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
     // Standard variables
     u32                 resp_sent      = NO_RESP_SENT;
 
-    // u32               * cmd_args_32    = command->args;
+    u32               * cmd_args_32    = command->args;
 
     cmd_resp_hdr      * resp_hdr       = response->header;
     u32               * resp_args_32   = response->args;
@@ -106,6 +109,76 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 //-----------------------------------------------------------------------------
 // WLAN Exp Node Commands that must be implemented in child classes
 //-----------------------------------------------------------------------------
+
+        //---------------------------------------------------------------------
+        case CMDID_NODE_RESET_STATE: {
+            // NODE_RESET_STATE Packet Format:
+            //   - cmd_args_32[0]  - Flags
+            //                     [0] - NODE_RESET_LOG
+            //                     [1] - NODE_RESET_TXRX_COUNTS
+            //                     [2] - NODE_RESET_LTG
+            //                     [3] - NODE_RESET_TX_DATA_QUEUE
+            //                     [4] - NODE_RESET_ASSOCIATIONS
+            //                     [5] - NODE_RESET_BSS_INFO
+            //
+            interrupt_state_t     prev_interrupt_state;
+            u32                   status    = CMD_PARAM_SUCCESS;
+            u32                   flags     = Xil_Ntohl(cmd_args_32[0]);
+
+            // Disable interrupts so no packets interrupt the reset
+            prev_interrupt_state = wlan_mac_high_interrupt_stop();
+
+            // Configure the LOG based on the flag bits
+            if (flags & CMD_PARAM_NODE_RESET_FLAG_LOG) {
+                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log, "Reset log\n");
+                event_log_reset();
+            }
+
+            if (flags & CMD_PARAM_NODE_RESET_FLAG_TXRX_COUNTS) {
+                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_counts, "Reseting Counts\n");
+                reset_station_counts();
+            }
+
+            if (flags & CMD_PARAM_NODE_RESET_FLAG_LTG) {
+                status = ltg_sched_remove(LTG_REMOVE_ALL);
+
+                if (status != 0) {
+                    wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_ltg, "Failed to remove all LTGs\n");
+                    status = CMD_PARAM_ERROR + CMD_PARAM_LTG_ERROR;
+                } else {
+                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Removing All LTGs\n");
+                }
+            }
+
+            if (flags & CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE) {
+                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_queue, "Purging all data transmit queues\n");
+                wlan_exp_purge_all_data_tx_queue_callback();
+            }
+
+            if (flags & CMD_PARAM_NODE_RESET_FLAG_BSS) {
+                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Resetting BSS\n");
+
+                // Set "my_bss_info" to NULL
+                configure_bss(NULL);
+            }
+
+            if (flags & CMD_PARAM_NODE_RESET_FLAG_NETWORK_LIST) {
+                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Resetting Network List\n");
+                wlan_mac_high_reset_network_list();
+            }
+
+            // Call MAC specific reset with the flags
+
+            // Re-enable interrupts
+            wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
+
+            // Send response of success
+            resp_args_32[resp_index++] = Xil_Htonl(status);
+
+            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->num_args = resp_index;
+        }
+        break;
 
 
         //---------------------------------------------------------------------
@@ -122,7 +195,8 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Disassociate\n");
 
-            leave_ibss();
+            // Set "my_bss_info" to NULL
+            configure_bss(NULL);
 
             // Send response
             resp_args_32[resp_index++] = Xil_Htonl(status);

@@ -126,8 +126,6 @@ wlan_mac_low_config_t                  cpu_low_config;
 int  wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len);
 #endif
 
-void reset_all_associations();
-
 
 /******************************** Functions **********************************/
 
@@ -232,9 +230,7 @@ int main(){
     // Set WLAN Exp callbacks
     wlan_exp_set_init_callback(                    (void *) wlan_exp_node_ap_init);
     wlan_exp_set_process_node_cmd_callback(        (void *) wlan_exp_process_node_cmd);
-    wlan_exp_set_reset_station_counts_callback(    (void *) reset_station_counts);
     wlan_exp_set_purge_all_data_tx_queue_callback( (void *) purge_all_data_tx_queue);
-    wlan_exp_set_reset_all_associations_callback(  (void *) reset_all_associations);
     //   - wlan_exp_set_tx_cmd_add_association_callback() should not be used by the AP
     wlan_exp_set_process_user_cmd_callback(        (void *) wlan_exp_process_user_cmd);
     //   - wlan_exp_set_beacon_ts_update_mode_callback()  currently not supported by the AP
@@ -2372,38 +2368,6 @@ u32	configure_bss(bss_config_t* bss_config){
 	}
 
 	return return_status;
-}
-
-
-
-/*****************************************************************************/
-/**
- * @brief Reset All Associations
- *
- * Wrapper to provide consistent name and potentially wrap additional functionality
- * in the future.
- *
- * @param  None
- * @return None
- *****************************************************************************/
-void reset_all_associations(){
-    interrupt_state_t     prev_interrupt_state;
-
-    xil_printf("Reset All Associations\n");
-
-    // Disable interrupts so no packets interrupt the disassociate
-    prev_interrupt_state = wlan_mac_high_interrupt_stop();
-
-    // Deauthenticate all stations
-    //     - This will send deauthentication packets to each Station
-    deauthenticate_all_stations();
-
-    // Set "my_bss_info" to NULL
-    configure_bss(NULL);
-
-    // Re-enable interrupts
-    wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
-
 }
 
 

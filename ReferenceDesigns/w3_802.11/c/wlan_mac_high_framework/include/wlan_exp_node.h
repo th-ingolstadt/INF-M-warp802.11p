@@ -84,8 +84,8 @@
 #define CMD_PARAM_NODE_RESET_FLAG_TXRX_COUNTS              0x00000002
 #define CMD_PARAM_NODE_RESET_FLAG_LTG                      0x00000004
 #define CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE            0x00000008
-#define CMD_PARAM_NODE_RESET_FLAG_ASSOCIATIONS             0x00000010
-#define CMD_PARAM_NODE_RESET_FLAG_BSS_INFO                 0x00000020
+#define CMD_PARAM_NODE_RESET_FLAG_BSS                      0x00000010
+#define CMD_PARAM_NODE_RESET_FLAG_NETWORK_LIST             0x00000020
 
 #define CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE             0x00000001
 #define CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TIME_UPDATE      0x00000002
@@ -292,9 +292,7 @@ int  wlan_exp_node_init           (u32 wlan_exp_type, u32 serial_number, u32 *fp
 void wlan_exp_reset_all_callbacks                     ();
 void wlan_exp_set_process_node_cmd_callback           (void(*callback)());
 void wlan_exp_set_init_callback                       (void(*callback)());
-void wlan_exp_set_reset_station_counts_callback       (void(*callback)());
 void wlan_exp_set_purge_all_data_tx_queue_callback    (void(*callback)());
-void wlan_exp_set_reset_all_associations_callback     (void(*callback)());
 void wlan_exp_set_tx_cmd_add_association_callback     (void(*callback)());
 void wlan_exp_set_process_user_cmd_callback           (void(*callback)());
 void wlan_exp_set_beacon_ts_update_mode_callback      (void(*callback)());
