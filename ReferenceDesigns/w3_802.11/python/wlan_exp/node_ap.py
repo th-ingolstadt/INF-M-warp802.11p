@@ -64,7 +64,7 @@ class WlanExpNodeAp(node.WlanExpNode):
             the wlan_mac_address of the node.
         """
         if bssid is not None:
-            if bssid:
+            if bssid is not False:
                 # User supplied a not-None BSSID argument
                 if (bssid != self.wlan_mac_address):
                     raise AttributeError("BSSID must be either None or the wlan_mac_address of the node.")
