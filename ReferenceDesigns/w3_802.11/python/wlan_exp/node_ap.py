@@ -60,16 +60,17 @@ class WlanExpNodeAp(node.WlanExpNode):
                 update the current beacon interval.
             ht_capable (bool):  Is the PHY mode HTMF (True) or NONHT (False)?
         
-        ..note::  For the AP, the bssid is not configurable and will always be
-            the wlan_mac_address of the node.  If a bssid other than the 
-            wlan_mac_address is passed to this function, it will print a 
-            warning and change the value to the wlan_mac_address.
+        ..note::  For the AP, the bssid is not configurable and should always be
+            the wlan_mac_address of the node.
         """
         if bssid is not None:
             if bssid:
+                # User supplied a not-None BSSID argument
                 if (bssid != self.wlan_mac_address):
-                    print("WARNING:  BSSID for AP must be either None or the wlan_mac_address of the node.")
-                    bssid = self.wlan_mac_address
+                    raise AttributeError("BSSID must be either None or the wlan_mac_address of the node.")
+            else:
+                # User did not provide a BSSID argument - use the AP's MAC address
+                bssid = self.wlan_mac_address
         
         self.send_cmd(cmds.NodeConfigBSS(bssid=bssid, ssid=ssid, channel=channel, 
                                          beacon_interval=beacon_interval, ht_capable=ht_capable))

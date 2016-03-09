@@ -1642,11 +1642,13 @@ class NodeGetBSSInfo(message.BufferCmd):
         self.command = _CMD_GROUP_NODE + CMDID_GET_BSS_INFO
 
         if bssid is None:
-            bssid = 0x0000000000000000
-        elif type(bssid) is str:
-            bssid = CMD_PARAM_GET_ALL_ASSOCIATED      # If BSSID is a string, then get all bss info
-
-        _add_mac_address_to_cmd(self, bssid)
+            self.add_args(CMD_PARAM_RSVD)
+            self.add_args(CMD_PARAM_RSVD)
+        else:
+            if type(bssid) is str:
+                bssid = CMD_PARAM_GET_ALL_ASSOCIATED      # If BSSID is a string, then get all bss info
+    
+            _add_mac_address_to_cmd(self, bssid)
 
 
     def process_resp(self, resp):
