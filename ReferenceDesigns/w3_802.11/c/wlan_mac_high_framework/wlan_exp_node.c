@@ -1553,6 +1553,8 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 wlan_mac_high_reset_network_list();
             }
 
+            // Call MAC specific reset with the flags
+
             // Re-enable interrupts
             wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
@@ -2627,7 +2629,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - cmd_args_32[1]   - flags
             //   - cmd_args_32[2]   - start_address of transfer
             //   - cmd_args_32[3]   - size of transfer (in bytes)
-            //   - cmd_args_32[4:5] - MAC Address (All 0xFF means all entries)
+            //   - cmd_args_32[4:5] - MAC Address (All 0x00 means all entries)
             //
             // Always returns a valid WLAN Exp Buffer (either 1 or more packets)
             //   - buffer_id       - uint32  - buffer_id
@@ -2637,27 +2639,44 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - size            - uint32  - Number of payload bytes in this packet
             //   - byte[]          - uint8[] - Array of payload bytes
             //
+            u8   process_buffer = 1;
 
             // If MAC address is all zeros, then return my_bss_info
-            if ((cmd_args_32[4] == 0x0) && (cmd_args_32[5] == 0x0)) {
+            if ((cmd_args_32[4] == CMD_PARAM_RSVD) && (cmd_args_32[5] == CMD_PARAM_RSVD)) {
                 if (my_bss_info != NULL) {
                     // Replace MAC address of command with my_bss_info BSSID
                     wlan_exp_put_mac_addr(my_bss_info->bssid, &cmd_args_32[4]);
                 } else {
-                    wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_node, "my_bss_info was NULL\n");
-                    wlan_exp_put_mac_addr(get_wlan_mac_addr(), &cmd_args_32[4]);
+                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Return NULL BSS info\n");
+
+                    // Do not use process buffer command and return Null buffer
+                    //     - This will prevent a collision with the broadcast BSSID of all 0xFFs
+                    process_buffer = 0;
+
+                    // Set return values
+                    resp_args_32[0] = cmd_args_32[0];
+                    resp_args_32[1] = cmd_args_32[1];
+                    resp_args_32[2] = 0;
+                    resp_args_32[3] = 0;
+                    resp_args_32[4] = 0;
+
+                    // Set the length and number of response args
+                    resp_hdr->length  += (5 * sizeof(resp_args_32));
+                    resp_hdr->num_args = resp_index;
                 }
             }
 
-            resp_sent = process_buffer_cmds(socket_index, from, command, response,
-                                            cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_resp_len,
-                                            print_type_node, "bss info",
-                                            wlan_mac_high_get_bss_info_list(),
-                                            sizeof(bss_info_entry),
-                                            &wlan_exp_get_id_in_bss_info,
-                                            &wlan_mac_high_find_bss_info_BSSID,
-                                            &copy_bss_info_to_dest_entry,
-                                            &zero_bss_info_entry);
+            if (process_buffer) {
+                resp_sent = process_buffer_cmds(socket_index, from, command, response,
+                                                cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_resp_len,
+                                                print_type_node, "bss info",
+                                                wlan_mac_high_get_bss_info_list(),
+                                                sizeof(bss_info_entry),
+                                                &wlan_exp_get_id_in_bss_info,
+                                                &wlan_mac_high_find_bss_info_BSSID,
+                                                &copy_bss_info_to_dest_entry,
+                                                &zero_bss_info_entry);
+            }
         }
         break;
 
