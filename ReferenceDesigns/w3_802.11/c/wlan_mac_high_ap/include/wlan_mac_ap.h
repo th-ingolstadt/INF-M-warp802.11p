@@ -36,13 +36,6 @@
 
 
 //-----------------------------------------------
-// UART Menu Modes
-#define UART_MODE_MAIN                                     0
-#define UART_MODE_INTERACTIVE                              1
-#define UART_MODE_SSID_CHANGE                              2
-
-
-//-----------------------------------------------
 // Common Defines
 #define MAX_TX_QUEUE_LEN                                   150       /// Maximum number of entries in any Tx queue
 #define MAX_NUM_ASSOC                                      10        /// Maximum number of associations the allowed

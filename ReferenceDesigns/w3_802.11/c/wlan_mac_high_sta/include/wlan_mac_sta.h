@@ -32,13 +32,6 @@
 
 
 //-----------------------------------------------
-// UART Menu Modes
-#define UART_MODE_MAIN                                     0
-#define UART_MODE_INTERACTIVE                              1
-#define UART_MODE_JOIN                                     2
-
-
-//-----------------------------------------------
 // Common Defines
 #define NUM_BASIC_RATES_MAX                                10
 

@@ -57,6 +57,12 @@ void uart_rx(u8 rxByte){ };
 
 /*************************** Constant Definitions ****************************/
 
+//-----------------------------------------------
+// UART Menu Modes
+#define UART_MODE_MAIN                                     0
+#define UART_MODE_INTERACTIVE                              1
+#define UART_MODE_JOIN                                     2
+
 
 /*********************** Global Variable Definitions *************************/
 
@@ -110,9 +116,6 @@ void stop_periodic_print();
  *      - Print all counts
  *      - Print event log size (hidden)
  *      - Print Network List
- *      - Change channel
- *      - Change default TX power
- *      - Change TX MCS value (default unicast and all current associations)
  *      - Print Malloc info (hidden)
  *      - Join BSS
  *      - Reset network list (hidden)
@@ -125,16 +128,10 @@ void stop_periodic_print();
  *****************************************************************************/
 void uart_rx(u8 rxByte){
 
-	station_info                * access_point   = NULL;
 	void                        * ltg_state;
 	volatile join_parameters_t  * join_parameters;
 	volatile scan_parameters_t  * scan_params;
 	u32                           is_scanning;
-
-
-	if (my_bss_info != NULL){
-		access_point = ((station_info*)(my_bss_info->associated_stations.first->data));
-	}
 
 	// ----------------------------------------------------
 	// Return to the Main Menu
@@ -189,125 +186,6 @@ void uart_rx(u8 rxByte){
 				//
 				case ASCII_a:
 					print_bss_info();
-				break;
-
-				// ----------------------------------------
-				// 'c' - Channel Down (2.4 GHz only)
-				//
-				case ASCII_c:
-					if (cpu_low_config.channel > 1) {
-						sta_disassociate();
-						(cpu_low_config.channel--);
-
-						if(my_bss_info != NULL){
-							my_bss_info->chan = cpu_low_config.channel;
-						}
-
-						// Send a message to other processor to tell it to switch channels
-						wlan_mac_high_set_channel(cpu_low_config.channel);
-					}
-
-					xil_printf("(-) Channel: %d\n", cpu_low_config.channel);
-				break;
-
-				// ----------------------------------------
-				// 'C' - Channel Up (2.4 GHz only)
-				//
-				case ASCII_C:
-					if (cpu_low_config.channel < 11) {
-						sta_disassociate();
-						(cpu_low_config.channel++);
-
-						if(my_bss_info != NULL){
-							my_bss_info->chan = cpu_low_config.channel;
-						}
-
-						// Send a message to other processor to tell it to switch channels
-						wlan_mac_high_set_channel(cpu_low_config.channel);
-					}
-
-					xil_printf("(+) Channel: %d\n", cpu_low_config.channel);
-				break;
-
-				// ----------------------------------------
-				// 'g' - Decrease TX power
-				//
-				case ASCII_g:
-					// Decrease the default unicast data TX parameters power
-					//     - This is for any new association
-					if ((default_unicast_data_tx_params.phy.power) > TX_POWER_MIN_DBM) {
-						(default_unicast_data_tx_params.phy.power)--;
-					} else {
-						(default_unicast_data_tx_params.phy.power) = TX_POWER_MIN_DBM;
-					}
-
-					// Decrease the TX power for AP
-					if (access_point != NULL) {
-						access_point->tx.phy.power = (default_unicast_data_tx_params.phy.power);
-					}
-
-					xil_printf("(-) Default Tx Power: %d dBm\n", (default_unicast_data_tx_params.phy.power));
-
-				break;
-
-				// ----------------------------------------
-				// 'G' - Increase TX power
-				//
-				case ASCII_G:
-					// Increase the default unicast data TX parameters power
-					//     - This is for any new association
-					if ((default_unicast_data_tx_params.phy.power) < TX_POWER_MAX_DBM) {
-						(default_unicast_data_tx_params.phy.power)++;
-					} else {
-						(default_unicast_data_tx_params.phy.power) = TX_POWER_MAX_DBM;
-					}
-
-					// Increase the TX power for AP
-					if (access_point != NULL) {
-						access_point->tx.phy.power = (default_unicast_data_tx_params.phy.power);
-					}
-
-					xil_printf("(+) Default Tx Power: %d dBm\n", (default_unicast_data_tx_params.phy.power));
-				break;
-
-				// ----------------------------------------
-				// 'r' - Decrease MCS for Unicast TX traffic
-				//
-				case ASCII_r:
-					// Decrease the default unicast data TX parameters MCS
-					//     - This is for any new association
-					if ((default_unicast_data_tx_params.phy.mcs) > 0) {
-						(default_unicast_data_tx_params.phy.mcs)--;
-					} else {
-						(default_unicast_data_tx_params.phy.mcs) = 0;
-					}
-
-					// Decrease the MCS for AP
-					if (access_point != NULL) {
-						access_point->tx.phy.mcs = (default_unicast_data_tx_params.phy.mcs);
-					}
-
-					xil_printf("(-) Default Unicast MCS Index: %d\n", default_unicast_data_tx_params.phy.mcs);
-				break;
-
-				// ----------------------------------------
-				// 'R' - Increase MCS for Unicast TX traffic
-				//
-				case ASCII_R:
-					// Increase the default unicast data TX parameters MCS
-					//     - This is for any new association
-					if ((default_unicast_data_tx_params.phy.mcs) < WLAN_MAC_NUM_MCS) {
-						(default_unicast_data_tx_params.phy.mcs)++;
-					} else {
-						(default_unicast_data_tx_params.phy.mcs) = WLAN_MAC_NUM_MCS;
-					}
-
-					// Increase the MCS for AP
-					if (access_point != NULL) {
-						access_point->tx.phy.mcs = (default_unicast_data_tx_params.phy.mcs);
-					}
-
-					xil_printf("(+) Default Unicast MCS Index: %d\n", default_unicast_data_tx_params.phy.mcs);
 				break;
 
 				// ----------------------------------------
@@ -532,10 +410,6 @@ void print_main_menu(){
 	xil_printf("[2]   - Print all Observed Counts\n");
 	xil_printf("\n");
 	xil_printf("[a]   - Display Network List\n");
-	xil_printf("[c/C] - Change channel (note: changing channel will\n");
-	xil_printf("        disassociate from AP)\n");
-	xil_printf("[g/G] - Change TX power\n");
-	xil_printf("[r/R] - Change unicast MCS index (rate)\n");
 	xil_printf("[j]   - Join a network\n");
 	xil_printf("**********************************************************\n");
 }
