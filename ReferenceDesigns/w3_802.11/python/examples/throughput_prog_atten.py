@@ -103,7 +103,7 @@ print("\nExperimental Setup:")
 # Set association state
 #     - Configure AP BSS
 #     - Create Associatiion between AP and STA
-n_ap.configure_bss(bssid=n_ap.wlan_mac_address, ssid=SSID, channel=CHANNEL, beacon_interval=BEACON_INTERVAL)
+n_ap.configure_bss(ssid=SSID, channel=CHANNEL, beacon_interval=BEACON_INTERVAL)
 n_ap.add_association(n_sta)
 
 # Set the rate of both nodes to 18 Mbps (mcs = 3, phy_mode = 'NONHT')

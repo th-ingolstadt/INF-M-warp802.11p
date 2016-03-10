@@ -90,7 +90,7 @@ if len(n_ap_l) == 1 and len(n_sta_l) == 1:
     # node1.set_authentication_address_filter(allow='NONE')
 
     # Configure AP BSS
-    node1.configure_bss(bssid=node1.wlan_mac_address, ssid=SSID, channel=CHANNEL, beacon_interval=BEACON_INTERVAL)
+    node1.configure_bss(ssid=SSID, channel=CHANNEL, beacon_interval=BEACON_INTERVAL)
 
     # Establish the association between nodes
     #     - This will change the STA to the appropriate channel
