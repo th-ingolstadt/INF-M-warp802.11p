@@ -93,7 +93,8 @@ info_field_defs = {
         ('bssid',                       '6s',     '6uint8',  'BSS ID'),
         ('beacon_interval',             'H',      'uint16',  'Beacon interval - In time units of 1024 us'),
         ('ssid',                        '33s',    '33uint8', 'SSID (32 chars max)'),
-        ('chan_spec',                   'H',      'uint16',  'Channel Specification'),
+        ('channel',                     'B',      'uint8',   'Primary channel'),
+        ('channel_type',                'B',      'uint8',   'Channel Type'),
         ('ht_capable',                  'B',      'uint8',   'Support for HTMF Tx/Rx')],
 
     'TXRX_COUNTS' : [
@@ -132,14 +133,19 @@ info_consts_defs = {
     }),
 
     'BSS_INFO'     : util.consts_dict({
-        'flags'         : util.consts_dict({
-            'KEEP'                     : 0x0001,
-            'HT_CAPABLE'               : 0x0002
+        'channel_type'  : util.consts_dict({
+            'BW20'                     : 0x0000,
+            'BW40_SEC_BELOW'           : 0x0001,
+            'BW40_SEC_ABOVE'           : 0x0002,
         }),
         'state'         : util.consts_dict({
             'UNAUTHENTICATED'          : 0x0001,
             'AUTHENTICATED'            : 0x0002,
             'ASSOCIATED'               : 0x0004,
+        }),
+        'flags'         : util.consts_dict({
+            'KEEP'                     : 0x0001,
+            'HT_CAPABLE'               : 0x0002
         }),
         'capabilities'  : util.consts_dict({
             'ESS'                      : 0x0001,
@@ -164,6 +170,11 @@ info_consts_defs = {
             'SSID'                     : 0x00000004,
             'BEACON_INTERVAL'          : 0x00000008,
             'HT_CAPABLE'               : 0x00000010
+        }),
+        'channel_type'  : util.consts_dict({
+            'BW20'                     : 0x0000,
+            'BW40_SEC_BELOW'           : 0x0001,
+            'BW40_SEC_ABOVE'           : 0x0002,
         })
     }),
     
@@ -562,7 +573,6 @@ class BSSInfo(InfoStruct):
             (ibss_status is not None) or (beacon_interval is not None)):
             init_fields = True        
         
-
         # Default values used if initializing fields but value not provided:
         #     bssid           - No default value - Error
         #     ssid            - ""
@@ -576,12 +586,10 @@ class BSSInfo(InfoStruct):
         if init_fields:
             # Set default values for fields not set by this method
             self['timestamp']                  = 0
-            self['latest_activity_timestamp']  = 0
+            self['latest_beacon_rx_time']      = 0
+            self['state']                      = self._consts.state.UNAUTHENTICATED
+            self['latest_beacon_rx_power']     = 0
             self['flags']                      = 0
-            self['state']                      = self._consts.state.OWNED
-            self['num_basic_rates']            = 0
-            self['basic_rates']                = bytes()
-            self['phy_mode']                   = 0
 
             # Set SSID
             if ssid is not None:
@@ -608,7 +616,8 @@ class BSSInfo(InfoStruct):
                     msg  = "The channel must be a valid channel number.  See util.py wlan_channels."
                     raise ValueError(msg)
     
-                self['channel']    = channel
+                self['channel']      = channel
+                self['channel_type'] = self._consts.channel_type.BW20
             else:
                 raise AttributeError("Channel must be provided when initializing BSSInfo() fields")
                 
@@ -787,6 +796,8 @@ class BSSConfig(InfoStruct):
             self['update_mask'] |= self._consts.update_mask.CHANNEL
         else:
             self['channel'] = 0
+
+        self['channel_type'] = self._consts.channel_type.BW20
         
         # Set the beacon interval field
         if beacon_interval:
