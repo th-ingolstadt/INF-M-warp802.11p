@@ -1578,12 +1578,37 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         self.send_cmd(cmds.NodeProcScanParam(cmds.CMD_PARAM_WRITE, time_per_channel, probe_tx_interval, channel_list, ssid))
     
     
-    def start_scan_networks(self):
-        """Starts a network scan."""
+    def start_network_scan(self):
+        """Starts a network scan.
+        
+        ..note::  Currently, network scans are restricted to when the BSS 
+            info of the node is None (ie the node is not currently part of 
+            a BSS).  
+            
+        **Example:**
+        
+        * **Perform a scan**:
+            To perform a scan using the current scan parameters, get the 
+            resulting network list and restore the current BSS.  (This example 
+            uses the time module to allow the code to wait)
+            ::
+                my_bss = n.get_bss_info()             # Get current BSS info
+                n.configure_bss(None)                 # Set BSS info to None
+                n.start_scan_networks()               # Start network scan
+                time.sleep(5)                         # Wait for node to scan
+                n.stop_scan_networks()                # Stop network scan
+                networks = n.get_network_list()       # Get networks seen in scan
+                
+                # Restore BSS
+                #   - Example assumes n is a STA; must add beacon_interval 
+                #     for AP / IBSS
+                n.configure_bss(bssid=my_bss['bssid'], ssid=my_bss['ssid'],
+                                channel=my_bss['channel'], ht_capable=my_bss['ht_capable'])
+        """
         self.send_cmd(cmds.NodeProcScan(enable=True))
     
     
-    def stop_scan_networks(self):
+    def stop_network_scan(self):
         """Stops the current network scan."""
         self.send_cmd(cmds.NodeProcScan(enable=False))
 

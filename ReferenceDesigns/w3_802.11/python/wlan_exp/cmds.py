@@ -1446,18 +1446,26 @@ class NodeProcScan(message.Cmd):
                 self.add_args(CMD_PARAM_NODE_SCAN_DISABLE)
 
     def process_resp(self, resp):
-        error_code    = CMD_PARAM_ERROR
-        error_msg     = "Scan command error."
-        status_errors = { error_code : error_msg }
-
-        if (resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from Scan command')):
-            args = resp.get_args()
-            if (args[1] == 1):
-                return True
+        ret_val = False
+        
+        if (resp.resp_is_valid(num_args=2, name='from Scan command')):
+            args   = resp.get_args()
+            status = args[0]
+            
+            # Check status
+            if (status & CMD_PARAM_ERROR):
+                msg  = "ERROR:  Could not start scan:\n"
+                msg += "    Node BSS must be None.  Use conifgure_bss(None) before\n"
+                msg += "    starting scan.\n"
+                print(msg)
+                ret_val = False
             else:
-                return False
-        else:
-            return False
+                if (args[1] == 1):
+                    ret_val = True
+                else:
+                    ret_val = False
+        
+        return ret_val
 
 # End Class
 
