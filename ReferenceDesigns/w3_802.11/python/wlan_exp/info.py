@@ -76,29 +76,25 @@ info_field_defs = {
         ('padding1',                    '3x',     '3uint8',  '')],
 
     'BSS_INFO' : [
-        ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of creation'),
+        ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
         ('bssid',                       '6s',     '6uint8',  'BSS ID'),
-        ('channel',                     'B',      'uint8',   'Channel (center frequency) index of transmission'),
-        ('flags',                       'B',      'uint8',   'BSS flags'),
-        ('latest_activity_timestamp',   'Q',      'uint64',  'Microsecond timer value at time of last Tx or Rx event to node with address mac_addr'),
+        ('channel',                     'B',      'uint8',   'Primary channel'),
+        ('channel_type',                'B',      'uint8',   'Channel Type'),
+        ('latest_beacon_rx_time',       'Q',      'uint64',  'Microsecond timer value at time of last Tx or Rx event to node with address mac_addr'),
         ('ssid',                        '33s',    '33uint8', 'SSID (32 chars max)'),
         ('state',                       'B',      'uint8',   'State of the BSS'),
+        ('latest_beacon_rx_power',      'b',      'int8',    'Last observed Rx Power (dBm)'),
+        ('flags',                       'B',      'uint8',   'BSS flags'),
         ('capabilities',                'H',      'uint16',  'Supported capabilities of the BSS'),
-        ('beacon_interval',             'H',      'uint16',  'Beacon interval - In time units of 1024 us'),
-        ('padding0',                    'x',      'uint8',   ''),
-        ('num_basic_rates',             'B',      'uint8',   'Number of basic rates supported'),
-        ('basic_rates',                 '10s',    '10uint8', 'Supported basic rates'),
-        ('phy_mode',                    'B',      'uint8',   'PHY Mode (Legacy, HT)'),
-        ('rx_last_power',               'b',      'int8',    'Last observed Rx Power (dBm)')],
+        ('beacon_interval',             'H',      'uint16',  'Beacon interval - In time units of 1024 us')],
 
     'BSS_CONFIG' : [
         ('update_mask',                 'I',      'uint32',  'Bit mask indicating which fields were updated'),    
         ('bssid',                       '6s',     '6uint8',  'BSS ID'),
         ('beacon_interval',             'H',      'uint16',  'Beacon interval - In time units of 1024 us'),
         ('ssid',                        '33s',    '33uint8', 'SSID (32 chars max)'),
-        ('channel',                     'B',      'uint8',   'Channel (center frequency) index of transmission'),
-        ('ht_capable',                  'B',      'uint8',   'Support for HTMF Tx/Rx'),
-        ('padding1',                    'x',      'uint8',   '')],
+        ('chan_spec',                   'H',      'uint16',  'Channel Specification'),
+        ('ht_capable',                  'B',      'uint8',   'Support for HTMF Tx/Rx')],
 
     'TXRX_COUNTS' : [
         ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of creation'),
@@ -136,12 +132,14 @@ info_consts_defs = {
     }),
 
     'BSS_INFO'     : util.consts_dict({
-        'flags'         : util.consts_dict(),
+        'flags'         : util.consts_dict({
+            'KEEP'                     : 0x0001,
+            'HT_CAPABLE'               : 0x0002
+        }),
         'state'         : util.consts_dict({
             'UNAUTHENTICATED'          : 0x0001,
             'AUTHENTICATED'            : 0x0002,
             'ASSOCIATED'               : 0x0004,
-            'OWNED'                    : 0x0005
         }),
         'capabilities'  : util.consts_dict({
             'ESS'                      : 0x0001,
@@ -156,10 +154,6 @@ info_consts_defs = {
             'DSSS_OFDM'                : 0x2000,
             'DELAYED_BLOCK_ACK'        : 0x4000,
             'IMMEDIATE_BLOCK_ACK'      : 0x8000
-        }),
-        'phy_mode'      : util.consts_dict({
-            'LEGACY'                   : 0x01,
-            'HT'                       : 0x02
         })
     }),
 
