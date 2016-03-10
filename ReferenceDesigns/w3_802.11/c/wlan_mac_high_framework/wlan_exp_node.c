@@ -2482,14 +2482,20 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //     resp_args_32[0]  Status
             //     resp_args_32[1]  Is Scanning?
             //
-            u32                             status         = CMD_PARAM_SUCCESS;
-            u32                             enable         = Xil_Ntohl(cmd_args_32[0]);
+            u32    status         = CMD_PARAM_SUCCESS;
+            u32    enable         = Xil_Ntohl(cmd_args_32[0]);
 
             switch (enable) {
                 case CMD_PARAM_NODE_SCAN_ENABLE:
                     // Enable scan
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Scan enabled.\n");
-                    wlan_mac_scan_start();
+                    if (my_bss_info == NULL) {
+                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Scan enabled.\n");
+                        wlan_mac_scan_start();
+                    } else {
+                        // "my_bss_info" must be NULL to start a scan
+                        //     - This will avoid any corner cases with scanning
+                        status = CMD_PARAM_ERROR;
+                    }
                 break;
 
                 case CMD_PARAM_NODE_SCAN_DISABLE:
