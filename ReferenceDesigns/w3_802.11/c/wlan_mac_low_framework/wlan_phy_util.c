@@ -860,54 +860,47 @@ inline void wlan_tx_start() {
 
 /*****************************************************************************/
 /**
- * Calculate OFDM transmission times
+ * Calculates duration of an OFDM waveform.
  *
- * @param   length           - Length of OFDM transmission
- * @param   n_DBPS           - Number of data bits per OFDM symbol
- * @param   phy_samp_rate	 - PHY sampling rate
+ * This function assumes every OFDM symbol is the same duration. Duration
+ * calculation for short guard interval (SHORT_GI) waveforms is not supported.
+ *
+ * @param   length         - Length of MAC payload in bytes
+ * @param   mcs            - MCS index
+ * @param   phy_mode       - PHY waveform mode - either PHY_MODE_NONHT (11a/g) or PHY_MODE_HTMF (11n)
+ * @param   phy_samp_rate  - PHY sampling rate - one of (PHY_10M, PHY_20M, PHY_40M)
  *
  * @return  u16              - Duration of transmission in microseconds
- *                             (See 18.4.3 of IEEE 802.11-2012)
- *
- * @note    There are two versions of this function.  One that uses standard division,
- *     and another that uses division macros to speed up execution.
- *
+ *                             (See IEEE 802.11-2012 18.4.3 and 20.4.3)
  *****************************************************************************/
-inline u16 wlan_ofdm_calc_txtime(u16 length, u8 mcs, u8 phy_mode, phy_samp_rate_t phy_samp_rate){
-
-    #define T_SIG_EXT             6
-    #define WLAN_OFDM_TXTIME_FAST 0
+inline u16 wlan_ofdm_calc_txtime(u16 length, u8 mcs, u8 phy_mode, phy_samp_rate_t phy_samp_rate) {
 
     u16 num_ht_preamble_syms, num_payload_syms;
 
     u16 t_preamble;
-    u16 t_sig;
     u16 t_sym;
-    u16 t_ext;
+    u16 t_ext = 6; //FIXME: this should refer to whatever constant sets the Tx/Rx PHY's actual extensions
 
-    switch(phy_samp_rate){
+    // Set OFDM symbol duration in microseconds; only depends on PHY sampling rate
+    switch(phy_samp_rate) {
         case PHY_40M:
-            t_preamble	= 8;
-            t_sig = 2;
             t_sym = 2;
-            t_ext = T_SIG_EXT;
         break;
 
         default:
         case PHY_20M:
-            t_preamble	= 16;
-            t_sig = 4;
             t_sym = 4;
-            t_ext = T_SIG_EXT;
         break;
 
         case PHY_10M:
-            t_preamble	= 32;
-            t_sig = 8;
             t_sym = 8;
-            t_ext = T_SIG_EXT;
         break;
     }
+
+    // PHY preamble common to NONHT and HTMF waveforms consists of 5 OFDM symbols
+    //  4 symbols for STF/LTF
+    //  1 symbol for SIGNAL/L-SIG
+    t_preamble = 5*t_sym;
 
     // Only HTMF waveforms have HT-SIG, HT-STF and HT-LTF symbols
     if(phy_mode == PHY_MODE_HTMF) {
@@ -919,11 +912,22 @@ inline u16 wlan_ofdm_calc_txtime(u16 length, u8 mcs, u8 phy_mode, phy_samp_rate_
     num_payload_syms = wlan_ofdm_calc_num_payload_syms(length, mcs, phy_mode);
 
     // Sum each duration and return
-    return (t_preamble + t_sig + (t_sym * (num_ht_preamble_syms + num_payload_syms)) + t_ext);
-
+    return (t_preamble + (t_sym * (num_ht_preamble_syms + num_payload_syms)) + t_ext);
 }
 
 
+/*****************************************************************************/
+/**
+ * Calculates number of payload OFDM symbols in a packet. Implements
+ *  ceil(payload_length_bits / num_bits_per_ofdm_sym)
+ *   where num_bits_per_ofdm_sym is a function of the MCS index and PHY mode
+ *
+ * @param   length         - Length of MAC payload in bytes
+ * @param   mcs            - MCS index
+ * @param   phy_mode       - PHY waveform mode - either PHY_MODE_NONHT (11a/g) or PHY_MODE_HTMF (11n)
+ *
+ * @return  u16            - Number of OFDM symbols
+ *****************************************************************************/
 inline u16 wlan_ofdm_calc_num_payload_syms(u16 length, u8 mcs, u8 phy_mode) {
 	u16 num_payload_syms;
 	u32 num_payload_bits;
@@ -935,15 +939,18 @@ inline u16 wlan_ofdm_calc_num_payload_syms(u16 length, u8 mcs, u8 phy_mode) {
     //  6-bit TAIL field
     num_payload_bits = 16 + (8 * length) + 6;
 
-    // Num payload syms is ceil(num_payload_bits / N_DATA_BITS_PER_SYM)
+    // Num payload syms is ceil(num_payload_bits / N_DATA_BITS_PER_SYM). The ceil()
+    //  operation implicitly accounts for any PAD bits in the waveform. The PHY inserts
+    //  PAD bits to fill the final OFDM symbol. A waveform always consists of an integer
+    //  number of OFDM symbols, so the actual number of PAD bits is irrelevant here
     n_dbps = wlan_mac_low_mcs_to_n_dbps(mcs, phy_mode);
     num_payload_syms = num_payload_bits / n_dbps;
 
-    // Apply ceil()
-     //  Integer div above implies floor(); increment result if floor() changed result
-     if( (n_dbps * num_payload_syms) != num_payload_bits ) {
-     	num_payload_syms++;
-     }
+	// Apply ceil()
+	//  Integer div above implies floor(); increment result if floor() changed result
+	if( (n_dbps * num_payload_syms) != num_payload_bits ) {
+		num_payload_syms++;
+	}
 
      return num_payload_syms;
 }
