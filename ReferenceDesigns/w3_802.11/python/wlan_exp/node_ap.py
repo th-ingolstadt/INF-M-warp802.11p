@@ -66,7 +66,20 @@ class WlanExpNodeAp(node.WlanExpNode):
         if bssid is not None:
             if bssid is not False:
                 # User supplied a not-None BSSID argument
-                if (bssid != self.wlan_mac_address):
+                error = False
+                
+                if type(bssid) in [int, long]:
+                    if (bssid != self.wlan_mac_address):
+                        error = True
+                elif type(bssid) is str:
+                    import wlan_exp.util as util
+                    try:
+                        if (util.str_to_mac_addr(bssid) != self.wlan_mac_address):
+                            error = True
+                    except:
+                        error = True
+            
+                if (error):
                     raise AttributeError("BSSID must be either None or the wlan_mac_address of the node.")
             else:
                 # User did not provide a BSSID argument - use the AP's MAC address
