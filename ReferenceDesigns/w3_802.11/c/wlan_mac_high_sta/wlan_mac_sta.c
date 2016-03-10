@@ -390,7 +390,8 @@ void process_scan_state_change(scan_state_t scan_state){
 		case SCAN_PAUSED:
 			pause_data_queue = 0;
 			if(my_bss_info != NULL){
-				wlan_mac_high_set_channel(my_bss_info->chan);
+				wlan_mac_high_set_radio_channel(
+						wlan_mac_high_bss_chanel_spec_to_radio_chan(my_bss_info->chan_spec));
 			}
 		break;
 		case SCAN_RUNNING:
@@ -1129,7 +1130,8 @@ u32	configure_bss(bss_config_t* bss_config){
 			}
 		}
 		if (bss_config->update_mask & BSS_FIELD_MASK_CHAN) {
-			if (wlan_verify_channel(bss_config->chan) != XST_SUCCESS) {
+			if (wlan_verify_channel(
+					wlan_mac_high_bss_chanel_spec_to_radio_chan(my_bss_info->chan_spec)) != XST_SUCCESS) {
 				return_status |= BSS_CONFIG_FAILURE_CHANNEL_INVALID;
 			}
 		}
@@ -1242,10 +1244,10 @@ u32	configure_bss(bss_config_t* bss_config){
 		if (my_bss_info != NULL) {
 
 			if (bss_config->update_mask & BSS_FIELD_MASK_CHAN) {
-				my_bss_info->chan = bss_config->chan;
+				my_bss_info->chan_spec = bss_config->chan_spec;
 
 				// Update local CPU_LOW parameters
-				cpu_low_config.channel = my_bss_info->chan;
+				cpu_low_config.channel = my_bss_info->chan_spec.chan_pri;
 
 				send_channel_switch_to_low = 1;
 			}
@@ -1265,7 +1267,8 @@ u32	configure_bss(bss_config_t* bss_config){
 
 			// Update the channel
 			if (send_channel_switch_to_low) {
-				wlan_mac_high_set_channel(my_bss_info->chan);
+				wlan_mac_high_set_radio_channel(
+						wlan_mac_high_bss_chanel_spec_to_radio_chan(my_bss_info->chan_spec));
 			}
 
 			// Update Beacon configuration
@@ -1290,7 +1293,7 @@ u32	configure_bss(bss_config_t* bss_config){
 			xil_printf("BSS Details: \n");
 			xil_printf("  BSSID           : %02x-%02x-%02x-%02x-%02x-%02x\n",my_bss_info->bssid[0],my_bss_info->bssid[1],my_bss_info->bssid[2],my_bss_info->bssid[3],my_bss_info->bssid[4],my_bss_info->bssid[5]);
 			xil_printf("   SSID           : %s\n", my_bss_info->ssid);
-			xil_printf("   Channel        : %d\n", my_bss_info->chan);
+			xil_printf("   Channel        : %d\n", my_bss_info->chan_spec.chan_pri);
 			xil_printf("   Beacon Interval: %d TU (%d us)\n",my_bss_info->beacon_interval, my_bss_info->beacon_interval*1024);
 		}
 

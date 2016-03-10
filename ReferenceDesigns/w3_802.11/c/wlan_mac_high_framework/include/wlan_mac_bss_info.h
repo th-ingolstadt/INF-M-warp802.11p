@@ -21,7 +21,6 @@
 
 #include "wlan_mac_high.h"
 
-
 /*************************** Constant Definitions ****************************/
 
 //-----------------------------------------------
@@ -57,6 +56,7 @@
 // BSS Flags defines
 //
 #define BSS_FLAGS_KEEP                                     0x0001
+#define BSS_FLAGS_HT_CAPABLE                               0x0002
 
 
 //-----------------------------------------------
@@ -83,24 +83,53 @@
 // Define common BSS info fields
 //   Note: These fields have been 32 bit aligned using padding bytes
 
-#define MY_BSS_INFO_COMMON_FIELDS                                                                       \
-        u8         bssid[BSSID_LEN];                  /* BSS ID - 48 bit HW address */                  \
-        u8         chan;                              /* Channel */                                     \
-        u8         flags;                             /* BSS Flags - Each flag is 1 bit */              \
-        u64        latest_activity_timestamp;         /* Timestamp - Last interaction with BSS */       \
-        char       ssid[SSID_LEN_MAX + 1];            /* SSID of the BSS - 33 bytes */                  \
-        u8         state;                             /* State of the BSS */                            \
-        u16        capabilities;                      /* Supported capabilities */                      \
-        u16        beacon_interval;                   /* Beacon interval - In time units of 1024 us */  \
-        u8         padding0;                          /* Padding byte - for 32-bit alignment */         \
-        u8         num_basic_rates;                   /* Number of basic rates supported */             \
-        u8         basic_rates[NUM_BASIC_RATES_MAX];  /* Supported basic rates - 10 bytes */            \
-        u8         phy_mode;                          /* PHY Mode (Legacy, HT) */                       \
-        s8         rx_power_dBm;                      /* Last observed Rx Power (dBm) */
+#define MY_BSS_INFO_COMMON_FIELDS                                                                            \
+        u8         		bssid[BSSID_LEN];                  /* BSS ID - 48 bit HW address */                  \
+        chan_spec_t     chan_spec;                         /* Channel Specification */                       \
+        u64        		latest_beacon_rx_time;	           /* Timestamp - Last interaction with BSS */       \
+        char       		ssid[SSID_LEN_MAX + 1];            /* SSID of the BSS - 33 bytes */                  \
+        u8         		state;                             /* State of the BSS */                            \
+        s8         		latest_beacon_rx_power;            /* Last observed Rx Power (dBm) */				 \
+        u8         		flags;                             /* BSS Flags - Each flag is 1 bit */              \
+        u16        		capabilities;                      /* Supported capabilities */                      \
+        u16        		beacon_interval;                   /* Beacon interval - In time units of 1024 us */
+
 
 
 
 /*********************** Global Structure Definitions ************************/
+
+/********************************************************************
+ * @brief Channel Type Enum
+ *
+ * This enum described the type of channel that is specified in the
+ * chan_spec_t struct. The size of an enum is compiler dependent. Because
+ * this enum will be used in structs whose contents must be aligned with
+ * wlan_exp in Python, we use a compile time assertion to at least create
+ * a compilation error if the size winds up being different than wlan_exp
+ * expects.
+ *
+ ********************************************************************/
+typedef enum __attribute__((__packed__)){
+	CHAN_TYPE_BW20 = 0,
+	CHAN_TYPE_BW40_SEC_BELOW = 1,
+	CHAN_TYPE_BW40_SEC_ABOVE = 2
+} chan_type_t;
+CASSERT(sizeof(chan_type_t) == 1, chan_type_t_alignment_check);
+
+
+/********************************************************************
+ * @brief Channel Specifications Struct
+ *
+ * This struct contains a primary channel number and a chan_type_t.
+ * Together, this tuple of information can be used to calculate the
+ * center frequency and bandwidth of the radio.
+ ********************************************************************/
+typedef struct __attribute__((__packed__)){
+	u8			chan_pri;
+	chan_type_t	chan_type;
+} chan_spec_t;
+CASSERT(sizeof(chan_spec_t) == 2, chan_spec_t_alignment_check);
 
 /**
  * @brief Result of Join attempt
@@ -147,13 +176,12 @@ typedef struct{
  * This struct contains all the BSS info fields that can be modified.
  */
 typedef struct{
-    u32        update_mask;                       /* Mask of fields that were updated */
-    u8         bssid[BSSID_LEN];                  /* BSS ID */
-    u16        beacon_interval;                   /* Beacon interval - In time units of 1024 us */
-    char       ssid[SSID_LEN_MAX + 1];            /* SSID of the BSS - 33 bytes */
-    u8         chan;                              /* Channel */
-    u8         ht_capable;                        /* Support HTMF Tx/Rx */
-    u8         padding;                           /* Padding byte(s) */
+    u32       		update_mask;                       /* Mask of fields that were updated */
+    u8        		bssid[BSSID_LEN];                  /* BSS ID */
+    u16        		beacon_interval;                   /* Beacon interval - In time units of 1024 us */
+    char       		ssid[SSID_LEN_MAX + 1];            /* SSID of the BSS - 33 bytes */
+    chan_spec_t     chan_spec;                         /* Channel Specification*/
+    u8         		ht_capable;                        /* Support HTMF Tx/Rx */
 } bss_config_t;
 
 

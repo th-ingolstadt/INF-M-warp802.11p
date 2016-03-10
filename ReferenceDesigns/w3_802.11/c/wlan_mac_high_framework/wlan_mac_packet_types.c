@@ -88,7 +88,7 @@ int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_h
 	mgmt_tag_template->data[7] = (0x6C); 				//54Mbps  (64-QAM, 3/4)
 	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-	if ((my_bss_info->phy_mode) & PHY_MODE_HTMF) {
+	if ((my_bss_info->flags) & BSS_FLAGS_HT_CAPABLE) {
 		//Insert HT Capabilities and HT Information tags
 		mgmt_tag_template->header.tag_element_id = MGMT_TAG_HT_CAPABILITIES;
 		mgmt_tag_template->header.tag_length = 26;
@@ -110,8 +110,8 @@ int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_h
 		mgmt_tag_template->header.tag_length = 22;
 
 		ht_information_element = (ht_information*)mgmt_tag_template->data;
-		ht_information_element->channel = my_bss_info->chan;
-		ht_information_element->ht_info_subset_1 = 0x00;
+		ht_information_element->channel = my_bss_info->chan_spec.chan_pri;
+		ht_information_element->ht_info_subset_1 = 0x00;	//only HT20 currently supported
 		ht_information_element->ht_info_subset_2 = 0x0004; //One or more STAs are not greenfield compatible
 		ht_information_element->ht_info_subset_3 = 0x0000;
 		ht_information_element->rx_supported_mcs[0] = 0x00000000;
@@ -127,7 +127,7 @@ int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_h
 	mgmt_tag_template->data[0] = 0; //Non ERP Present - not set, don't use protection, no barker preamble mode
 	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-	if ((my_bss_info->phy_mode) & PHY_MODE_HTMF) {
+	if ((my_bss_info->flags) & BSS_FLAGS_HT_CAPABLE) {
 		//Insert WMM tag
 		mgmt_tag_template->header.tag_element_id = MGMT_TAG_VENDOR_SPECIFIC;
 		mgmt_tag_template->header.tag_length = 24;
@@ -339,7 +339,7 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 	mgmt_tag_template->data[3] = (0x60);					//48Mbps
 	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-	if (0 && ((attempt_bss_info->phy_mode) & PHY_MODE_HTMF)) { //TODO: This shouldn't just be governed by whether the BSS supports HT, but also whether this STA wants to
+	if ((attempt_bss_info->flags) & BSS_FLAGS_HT_CAPABLE) { //FIXME: This shouldn't just be governed by whether the BSS supports HT, but also whether this STA wants to
 		//Insert HT Capabilities and HT Information tags
 		mgmt_tag_template->header.tag_element_id = MGMT_TAG_HT_CAPABILITIES;
 		mgmt_tag_template->header.tag_length = 26;
@@ -361,7 +361,7 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 		mgmt_tag_template->header.tag_length = 22;
 
 		ht_information_element = (ht_information*)mgmt_tag_template->data;
-		ht_information_element->channel = attempt_bss_info->chan;
+		ht_information_element->channel = attempt_bss_info->chan_spec.chan_pri;
 		ht_information_element->ht_info_subset_1 = 0x00;
 		ht_information_element->ht_info_subset_2 = 0x0004; //One or more STAs are not greenfield compatible
 		ht_information_element->ht_info_subset_3 = 0x0000;
@@ -428,7 +428,7 @@ int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_commo
 	txBufferPtr_u8[9] = (0x6C); 				//54Mbps  (64-QAM, 3/4)
 	txBufferPtr_u8+=(8+2); //Move up to next tag
 
-	if ((my_bss_info->phy_mode) & PHY_MODE_HTMF) {
+	if ((my_bss_info->flags) & BSS_FLAGS_HT_CAPABLE) {
 		//Insert HT Capabilities and HT Information tags
 		mgmt_tag_template->header.tag_element_id = MGMT_TAG_HT_CAPABILITIES;
 		mgmt_tag_template->header.tag_length = 26;
@@ -450,7 +450,7 @@ int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_commo
 		mgmt_tag_template->header.tag_length = 22;
 
 		ht_information_element = (ht_information*)mgmt_tag_template->data;
-		ht_information_element->channel = my_bss_info->chan;
+		ht_information_element->channel = my_bss_info->chan_spec.chan_pri;
 		ht_information_element->ht_info_subset_1 = 0x00;
 		ht_information_element->ht_info_subset_2 = 0x0004; //One or more STAs are not greenfield compatible
 		ht_information_element->ht_info_subset_3 = 0x0000;

@@ -18,7 +18,6 @@
 // Xilinx Includes
 #include "stdlib.h"
 #include "malloc.h"
-
 #include "xparameters.h"
 #include "xgpio.h"
 #include "xil_exception.h"
@@ -434,7 +433,7 @@ void wlan_mac_high_init(){
 	wlan_mac_ltg_sched_init();
 	wlan_mac_addr_filter_init();
 	wlan_mac_scan_init();
-	wlan_mac_high_set_channel(1); // Set a sane default channel. The top-level project (AP/STA/IBSS/etc) is free to change this
+	wlan_mac_high_set_radio_channel(1); // Set a sane default channel. The top-level project (AP/STA/IBSS/etc) is free to change this
 
 	//Create IPC message to receive into
 	ipc_msg_from_low.payload_ptr = &(ipc_msg_from_low_payload[0]);
@@ -1709,9 +1708,23 @@ void wlan_mac_high_set_srand(u32 seed) {
 }
 
 
+/**
+ * @brief Convert BSS Channel Specification to Radio Channel
+ *
+ * Converts a BSS channel specification to a radio channel
+ * for use in wlan_mac_high_set_radio_channel. When extended
+ * to support HT40, this function will grow more complex.
+ *
+ * @param  chan_spec_t* chan_spec
+ *     - Pointer to BSS Channel Specification
+ * @return None
+ */
+u8 wlan_mac_high_bss_chanel_spec_to_radio_chan(chan_spec_t chan_spec) {
+	return chan_spec.chan_pri;
+}
 
 /**
- * @brief Set MAC Channel
+ * @brief Set Radio Channel
  *
  * Send an IPC message to CPU Low to set the MAC Channel
  *
@@ -1719,13 +1732,12 @@ void wlan_mac_high_set_srand(u32 seed) {
  *     - 802.11 Channel to set
  * @return None
  */
-void wlan_mac_high_set_channel(u32 mac_channel) {
+void wlan_mac_high_set_radio_channel(u32 mac_channel) {
 
 	wlan_ipc_msg_t     ipc_msg_to_low;
 	u32                ipc_msg_to_low_payload = mac_channel;
 
 	if(wlan_verify_channel(mac_channel) == XST_SUCCESS){
-
 		mac_param_chan = mac_channel;
 
 		// Send message to CPU Low
@@ -2034,7 +2046,7 @@ void wlan_mac_high_request_low_state(){
 void wlan_mac_high_update_low_config(wlan_mac_low_config_t * config){
 
 	// Update CPU Low parameters based on configuration
-	wlan_mac_high_set_channel(config->channel);
+	wlan_mac_high_set_radio_channel(config->channel);
 	wlan_mac_high_set_rx_ant_mode(config->rx_ant_mode);
 	wlan_mac_high_set_rx_filter_mode(config->rx_filter_mode);
 	wlan_mac_high_set_tx_ctrl_pow(config->tx_ctrl_pow);

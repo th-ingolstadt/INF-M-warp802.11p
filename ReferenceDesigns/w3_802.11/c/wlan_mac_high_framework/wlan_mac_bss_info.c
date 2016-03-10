@@ -107,13 +107,16 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 	mac_header_80211*   rx_80211_header          = (mac_header_80211*)((void *)mpdu_ptr_u8);
 	dl_entry*			curr_dl_entry;
 	bss_info*			curr_bss_info;
-	u32 				i;
+	u8					update_rx_power 		 = 0;
+	u8					update_timestamp 		 = 0;
 
 	u16 				length					 = mpdu_info->phy_details.length;
 
 	if( (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD)){
 		switch(rx_80211_header->frame_control_1) {
 			case (MAC_FRAME_CTRL1_SUBTYPE_BEACON):
+				update_rx_power = 1;
+				update_timestamp = 1;
 			case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP):
 
 				curr_dl_entry = wlan_mac_high_find_bss_info_BSSID(rx_80211_header->address_3);
@@ -155,13 +158,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 					// Set the state to BSS_STATE_UNAUTHENTICATED since we have not seen this BSS info before
 				    curr_bss_info->state     = BSS_STATE_UNAUTHENTICATED;
 
-				    // Default the PHY mode to 802.11g/a. This will be overwritten if a beacon/probe resp is
-				    // observed that contains HT fields
-				    curr_bss_info->phy_mode = PHY_MODE_NONHT;
 				}
-
-				// Update the AP information
-				curr_bss_info->num_basic_rates = 0;
 
 				// Move the packet pointer to after the header
 				mpdu_ptr_u8 += sizeof(mac_header_80211);
@@ -173,10 +170,13 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 				curr_bss_info->beacon_interval = ((beacon_probe_frame*)mpdu_ptr_u8)->beacon_interval;
 
 				// Copy the channel on which this packet was received into the bss_info struct
-				curr_bss_info->chan = mpdu_info->channel;
+				//   Note: chan_spec will be overwritten later in this function if a HT
+				//   capabilities tag is discovered
+				curr_bss_info->chan_spec.chan_pri = mpdu_info->channel;
+				curr_bss_info->chan_spec.chan_type = CHAN_TYPE_BW20;
 
 				// Copy the Rx power with which this packet was received into the bss_info stuct
-				curr_bss_info->rx_power_dBm = mpdu_info->rx_power;
+				if(update_rx_power) curr_bss_info->latest_beacon_rx_power = mpdu_info->rx_power;
 
 				// Move the packet pointer to after the beacon/probe frame
 				mpdu_ptr_u8 += sizeof(beacon_probe_frame);
@@ -201,41 +201,27 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 						break;
 
 						//-------------------------------------------------
-						case TAG_SUPPORTED_RATES:
-						case TAG_EXT_SUPPORTED_RATES:
-							// Supported rates / Extended supported rates
-							//
-							for( i = 0; i < mpdu_ptr_u8[1]; i++){
-								if( (mpdu_ptr_u8[2+i] & RATE_BASIC) == RATE_BASIC ) {
-
-									// This is a basic rate. It is required by the AP in order to associate.
-									if((curr_bss_info->num_basic_rates) < NUM_BASIC_RATES_MAX){
-										if( wlan_mac_high_valid_tagged_rate(mpdu_ptr_u8[2+i]) ){
-											(curr_bss_info->basic_rates)[(curr_bss_info->num_basic_rates)] = mpdu_ptr_u8[2+i];
-											(curr_bss_info->num_basic_rates)++;
-										} else {
-											// xil_printf("Invalid Tag Parameter rate: %d\n", mpdu_ptr_u8[2+i]);
-										}
-									} else {
-										// xil_printf("Number of basic rates exceeded.\n");
-									}
+						case TAG_HT_CAPABILITIES:
+							curr_bss_info->flags |= BSS_FLAGS_HT_CAPABLE;
+						break;
+						//-------------------------------------------------
+						case TAG_HT_INFORMATION:
+							curr_bss_info->chan_spec.chan_pri = mpdu_ptr_u8[2];
+							if(mpdu_ptr_u8[2] & 0x4){
+								// Channel widths larger than 20MHz are supported by this BSS
+								if((mpdu_ptr_u8[2] & 0x3) == 0x3){
+									//Secondary Channel is below primary channel
+									curr_bss_info->chan_spec.chan_type = CHAN_TYPE_BW40_SEC_BELOW;
+								} else if((mpdu_ptr_u8[2] & 0x3) == 0x1){
+									//Secondary Channel is above primary channel
+									curr_bss_info->chan_spec.chan_type = CHAN_TYPE_BW40_SEC_ABOVE;
 								}
 							}
-						break;
 
-						//-------------------------------------------------
-						case TAG_HT_CAPABILITIES:
-							curr_bss_info->phy_mode = PHY_MODE_HTMF;
 						break;
-						//-------------------------------------------------
-						case TAG_HT_INFORMATION: //TODO -- there is more to pull from HT information than a channel once we add HT support
 						case TAG_DS_PARAMS:
 							// DS Parameter set (e.g. channel)
-							//
-							// Note: this overrides the the rx_frame_info channel
-							// in the case of DSSS since DSSS receptions are prone to
-							// being received off-channel
-							curr_bss_info->chan = mpdu_ptr_u8[2];
+							curr_bss_info->chan_spec.chan_pri = mpdu_ptr_u8[2];
 						break;
 					}
 
@@ -243,7 +229,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 					mpdu_ptr_u8 += mpdu_ptr_u8[1]+2;
 				}
 
-				curr_bss_info->latest_activity_timestamp = get_system_time_usec();
+				if(update_timestamp) curr_bss_info->latest_beacon_rx_time = get_system_time_usec();
 				dl_entry_insertEnd(&bss_info_list,curr_dl_entry);
 			break;
 
@@ -290,10 +276,10 @@ void print_bss_info(){
 		xil_printf("\n");
 
 		xil_printf("    BSSID:         %02x-%02x-%02x-%02x-%02x-%02x\n", curr_bss_info->bssid[0],curr_bss_info->bssid[1],curr_bss_info->bssid[2],curr_bss_info->bssid[3],curr_bss_info->bssid[4],curr_bss_info->bssid[5]);
-		xil_printf("    Channel:       %d\n",curr_bss_info->chan);
+		xil_printf("    Channel:       %d\n",curr_bss_info->chan_spec.chan_pri);
 
 		if((curr_bss_info->flags & BSS_FLAGS_KEEP) == 0){
-			xil_printf("    Last update:   %d msec ago\n", (u32)((get_system_time_usec() - curr_bss_info->latest_activity_timestamp)/1000));
+			xil_printf("    Last update:   %d msec ago\n", (u32)((get_system_time_usec() - curr_bss_info->latest_beacon_rx_time)/1000));
 		}
 		xil_printf("    Capabilities:  0x%04x\n", curr_bss_info->capabilities);
 		curr_dl_entry = dl_entry_prev(curr_dl_entry);
@@ -312,7 +298,7 @@ void bss_info_timestamp_check() {
 	while(curr_dl_entry != NULL){
 		curr_bss_info = (bss_info*)(curr_dl_entry->data);
 
-		if((get_system_time_usec() - curr_bss_info->latest_activity_timestamp) > BSS_INFO_TIMEOUT_USEC){
+		if((get_system_time_usec() - curr_bss_info->latest_beacon_rx_time) > BSS_INFO_TIMEOUT_USEC){
 			if((curr_bss_info->flags & BSS_FLAGS_KEEP) == 0){
 				wlan_mac_high_clear_bss_info(curr_bss_info);
 				dl_entry_remove(&bss_info_list, curr_dl_entry);
@@ -486,8 +472,9 @@ bss_info* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan){
 
 	// Update the fields of the BSS Info
 	strcpy(curr_bss_info->ssid,ssid);
-	curr_bss_info->chan                      = chan;
-	curr_bss_info->latest_activity_timestamp = get_system_time_usec();
+	curr_bss_info->chan_spec.chan_pri     = chan;
+	curr_bss_info->chan_spec.chan_type    = CHAN_TYPE_BW20;
+	curr_bss_info->latest_beacon_rx_time = get_system_time_usec();
     curr_bss_info->state                     = BSS_STATE_UNAUTHENTICATED;
 
 	dl_entry_insertEnd(&bss_info_list, curr_dl_entry);

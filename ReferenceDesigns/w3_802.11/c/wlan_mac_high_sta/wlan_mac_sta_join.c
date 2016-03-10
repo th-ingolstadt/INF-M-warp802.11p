@@ -302,7 +302,7 @@ void start_join_attempt() {
     pause_data_queue = 1;
 
     // Move the AP's channel
-    cpu_low_config.channel = attempt_bss_info->chan;
+    cpu_low_config.channel = attempt_bss_info->chan_spec.chan_pri;
     wlan_mac_high_update_low_config(&cpu_low_config);
 
     // Attempt to join the BSS
@@ -510,7 +510,7 @@ void wlan_mac_sta_join_bss_attempt_poll(u32 aid){
                     memcpy(bss_config.bssid, attempt_bss_info->bssid, BSSID_LEN);
                     strcpy(bss_config.ssid, attempt_bss_info->ssid);
 
-                    bss_config.chan            = attempt_bss_info->chan;
+                    bss_config.chan_spec       = attempt_bss_info->chan_spec;
                     bss_config.ht_capable      = 1;
                     bss_config.beacon_interval = attempt_bss_info->beacon_interval;
                     bss_config.update_mask     = (BSS_FIELD_MASK_BSSID           |

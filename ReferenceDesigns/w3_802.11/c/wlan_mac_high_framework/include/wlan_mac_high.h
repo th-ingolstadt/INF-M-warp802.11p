@@ -281,7 +281,7 @@ typedef enum {INTERRUPTS_DISABLED, INTERRUPTS_ENABLED} interrupt_state_t;
 
 
 
-/*********************** Global Structure Definitions ************************/
+/******************** Global Structure/Enum Definitions **********************/
 
 /********************************************************************
  * @brief Frame Counts Structure
@@ -475,7 +475,8 @@ void               wlan_mac_high_ipc_rx();
 void               wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg);
 
 void               wlan_mac_high_set_srand(u32 seed);
-void               wlan_mac_high_set_channel(u32 mac_channel);
+u8 				   wlan_mac_high_bss_chanel_spec_to_radio_chan(chan_spec_t chan_spec);
+void 			   wlan_mac_high_set_radio_channel(u32 mac_channel);
 u32                wlan_mac_high_get_channel();
 void               wlan_mac_high_config_txrx_beacon(beacon_txrx_configure_t* beacon_txrx_configure);
 void               wlan_mac_high_set_rx_ant_mode(u8 ant_mode);

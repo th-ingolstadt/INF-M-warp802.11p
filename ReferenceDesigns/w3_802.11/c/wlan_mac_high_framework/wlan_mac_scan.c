@@ -342,7 +342,7 @@ void wlan_mac_scan_state_transition(){
 
     // Update the channel
     curr_scan_chan_idx = (curr_scan_chan_idx + 1) % (gl_scan_parameters.channel_vec_len);
-    wlan_mac_high_set_channel(gl_scan_parameters.channel_vec[(u8)curr_scan_chan_idx]);
+    wlan_mac_high_set_radio_channel(gl_scan_parameters.channel_vec[(u8)curr_scan_chan_idx]);
 
     // Update the number of full scan loops variable
     if (curr_scan_chan_idx == 0) {

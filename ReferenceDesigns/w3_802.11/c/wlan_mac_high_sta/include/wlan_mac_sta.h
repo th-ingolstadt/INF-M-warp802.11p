@@ -33,7 +33,6 @@
 
 //-----------------------------------------------
 // Common Defines
-#define NUM_BASIC_RATES_MAX                                10
 
 #define MAX_TX_QUEUE_LEN                                   150       /// Max number of entries in any Tx queue
 #define MAX_NUM_ASSOC                                      1         /// Max number of associations the STA will attempt
