@@ -723,6 +723,37 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         self.send_cmd(cmds.NodeConfigure(beacon_mac_time_update=enable))
 
 
+    def set_radio_channel(self, channel):
+        """Set the radio channel of the node independent of the BSS
+        
+        Args:
+            channel (int):  Radio channel of the node.  Must be in util.py 
+                wlan_channels.
+        
+        ..note::  This will change the channel of the node independently of 
+            the BSS.  The BSS will be unaware of any changes from 
+            set_radio_channel().  For example, an AP will continue to advertise
+            the BSS channel in beacons even if BSS channel is not the current 
+            radio channel.  Also, this will not lock the radio channel.  If the 
+            BSS channel is changed (ie node.configure_bss(channel=X)), then the 
+            radio channel will be changed to the new channel.  To restore the 
+            radio channel to the BSS channel:
+                my_bss = node.get_bss_info()
+                if my_bss is not None:
+                    node.set_radio_channel(my_bss['channel'])
+            or
+                my_bss = node.get_bss_info()
+                if my_bss is not None:
+                    node.configure_bss(channel=my_bss['channel'])
+        """
+        import wlan_exp.util as util
+        
+        if channel in util.wlan_channels:
+            self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_RADIO_CHANNEL, param_values=channel)
+        else:
+            raise AttributeError("Channel must be in util.py wlan_channels")
+
+
     def set_low_to_high_rx_filter(self, mac_header=None, fcs=None):
         """Sets the filter on the packets that are passed from the low MAC to the high MAC.
 
