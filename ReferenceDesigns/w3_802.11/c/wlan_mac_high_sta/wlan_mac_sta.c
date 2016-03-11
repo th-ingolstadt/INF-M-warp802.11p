@@ -412,7 +412,7 @@ void process_scan_state_change(scan_state_t scan_state){
 			pause_data_queue = 0;
 			if(my_bss_info != NULL){
 				wlan_mac_high_set_radio_channel(
-						wlan_mac_high_bss_chanel_spec_to_radio_chan(my_bss_info->chan_spec));
+						wlan_mac_high_bss_channel_spec_to_radio_chan(my_bss_info->chan_spec));
 			}
 		break;
 		case SCAN_RUNNING:
@@ -1151,7 +1151,7 @@ u32	configure_bss(bss_config_t* bss_config){
 		}
 		if (bss_config->update_mask & BSS_FIELD_MASK_CHAN) {
 			if (wlan_verify_channel(
-					wlan_mac_high_bss_chanel_spec_to_radio_chan(my_bss_info->chan_spec)) != XST_SUCCESS) {
+					wlan_mac_high_bss_channel_spec_to_radio_chan(my_bss_info->chan_spec)) != XST_SUCCESS) {
 				return_status |= BSS_CONFIG_FAILURE_CHANNEL_INVALID;
 			}
 		}
@@ -1288,7 +1288,7 @@ u32	configure_bss(bss_config_t* bss_config){
 			// Update the channel
 			if (send_channel_switch_to_low) {
 				wlan_mac_high_set_radio_channel(
-						wlan_mac_high_bss_chanel_spec_to_radio_chan(my_bss_info->chan_spec));
+						wlan_mac_high_bss_channel_spec_to_radio_chan(my_bss_info->chan_spec));
 			}
 
 			// Update Beacon configuration

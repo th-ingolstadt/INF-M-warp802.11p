@@ -1719,7 +1719,7 @@ void wlan_mac_high_set_srand(u32 seed) {
  *     - Pointer to BSS Channel Specification
  * @return None
  */
-u8 wlan_mac_high_bss_chanel_spec_to_radio_chan(chan_spec_t chan_spec) {
+u8 wlan_mac_high_bss_channel_spec_to_radio_chan(chan_spec_t chan_spec) {
 	return chan_spec.chan_pri;
 }
 
