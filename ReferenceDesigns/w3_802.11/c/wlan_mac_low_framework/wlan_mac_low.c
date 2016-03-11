@@ -631,6 +631,11 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
                         }
                         break;
 
+                        case LOW_PARAM_RADIO_CHANNEL: {
+                            wlan_mac_low_set_radio_channel(ipc_msg_from_high_payload[1]);
+                        }
+                        break;
+
                         default: {
                             ipc_low_param_callback(IPC_REG_WRITE_MODE, ipc_msg_from_high_payload);
                         }
@@ -662,21 +667,7 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
 
         //---------------------------------------------------------------------
         case IPC_MBOX_CONFIG_CHANNEL: {
-            mac_param_chan = ipc_msg_from_high_payload[0];
-
-            if(wlan_verify_channel(mac_param_chan) == XST_SUCCESS){
-                if(mac_param_chan <= 14){
-                    mac_param_band = RC_24GHZ;
-                } else {
-                    mac_param_band = RC_5GHZ;
-                }
-
-                radio_controller_setCenterFrequency(RC_BASEADDR, (RC_ALL_RF), mac_param_band, wlan_mac_low_wlan_chan_to_rc_chan(mac_param_chan));
-                wlan_mac_reset_NAV_counter();
-
-            } else {
-                xil_printf("Invalid channel selection %d\n", mac_param_chan);
-            }
+            wlan_mac_low_set_radio_channel(ipc_msg_from_high_payload[0]);
         }
         break;
 
@@ -782,6 +773,37 @@ void wlan_mac_low_enable_new_mpdu_tx(){
             pkt_buf_pending_tx = -1;
         }
     }
+}
+
+
+
+/*****************************************************************************/
+/**
+ * @brief Set the radio channel
+ *
+ * This function will set the radio channel for CPU LOW
+ *
+ * @param   channel     - Radio channel
+ * @return  None
+ *
+ */
+void wlan_mac_low_set_radio_channel(u32 channel){
+
+	mac_param_chan = channel;
+
+	if (wlan_verify_channel(mac_param_chan) == XST_SUCCESS) {
+		if(mac_param_chan <= 14){
+			mac_param_band = RC_24GHZ;
+		} else {
+			mac_param_band = RC_5GHZ;
+		}
+
+		radio_controller_setCenterFrequency(RC_BASEADDR, (RC_ALL_RF), mac_param_band, wlan_mac_low_wlan_chan_to_rc_chan(mac_param_chan));
+		wlan_mac_reset_NAV_counter();
+
+	} else {
+		xil_printf("Invalid channel selection %d\n", mac_param_chan);
+	}
 }
 
 

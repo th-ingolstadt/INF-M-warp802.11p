@@ -428,6 +428,7 @@ typedef struct{
 #define LOW_PARAM_LINEARITY_UPCONV   0x00000004
 #define LOW_PARAM_AD_SCALING         0x00000005
 #define LOW_PARAM_PKT_DET_MIN_POWER  0x00000006
+#define LOW_PARAM_RADIO_CHANNEL      0x00000007
 
 
 
@@ -461,6 +462,7 @@ inline s8          wlan_mac_low_get_current_ctrl_tx_pow();
 inline u32         wlan_mac_low_get_current_rx_filter();
 
 void               wlan_mac_low_set_nav_check_addr(u8* addr);
+void               wlan_mac_low_set_radio_channel(u32 channel);
 
 int                wlan_mac_low_rx_power_to_rssi(s8 rx_pow);
 int                wlan_mac_low_set_pkt_det_min_power(s8 rx_pow);
