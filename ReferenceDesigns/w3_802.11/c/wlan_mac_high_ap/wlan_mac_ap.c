@@ -355,6 +355,8 @@ int main(){
 	return -1;
 }
 
+
+
 /*****************************************************************************/
 /**
  * @brief Handle state change in the network scanner
@@ -370,6 +372,24 @@ int main(){
  *
  *****************************************************************************/
 void process_scan_state_change(scan_state_t scan_state){
+
+	// ------------------------------------------------------------------------
+	// Note on scanning:
+	//
+	//   Currently, scanning should only be done with my_bss_info = NULL, ie the
+	// node is not currently in a BSS.  This is to avoid any corner cases.  The
+	// AP needs to do the following things to make scanning safe when my_bss_info
+	// is not NULL:
+	//
+	//     - Pause outgoing data queues
+	//     - Pause beacon transmissions in CPU_LOW
+	//     - Refuse to enqueue probe responses when a probe request is received off channel
+	//     - Pause dequeue of probe responses when off channel
+	//       - Note: Currently, this is difficult because probe responses share a
+	//             queue with probe requests which are needed for active scans
+	//
+	// ------------------------------------------------------------------------
+
 	switch(scan_state){
 		case SCAN_IDLE:
 		case SCAN_PAUSED:
@@ -2165,10 +2185,10 @@ u32	configure_bss(bss_config_t* bss_config){
 		if (bss_config->update_mask & BSS_FIELD_MASK_BSSID) {
 			if (wlan_addr_eq(bss_config->bssid, zero_addr) == 0) {
 				if ((my_bss_info != NULL) && (wlan_addr_eq(bss_config->bssid, my_bss_info->bssid) == 0)) {
-					//The caller of this function claimed that it was updating the BSSID,
-					//but the new BSSID matches the one already specified in my_bss_info.
-					//We will complete the rest of this function as if that bit in the
-					//update mask were not set
+					// The caller of this function claimed that it was updating the BSSID,
+					// but the new BSSID matches the one already specified in my_bss_info.
+					// Complete the rest of this function as if that bit in the update mask
+					// were not set
 					bss_config->update_mask &= ~BSS_FIELD_MASK_BSSID;
 				}
 				if (wlan_addr_eq(bss_config->bssid, wlan_mac_addr) == 0) {

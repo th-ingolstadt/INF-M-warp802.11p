@@ -385,6 +385,27 @@ void send_probe_req(){
  *
  *****************************************************************************/
 void process_scan_state_change(scan_state_t scan_state){
+
+	// ------------------------------------------------------------------------
+	// Note on scanning:
+	//
+	//   Currently, scanning should only be done with my_bss_info = NULL, ie the
+	// node is not currently in a BSS.  This is to avoid any corner cases.  The
+	// STA needs to do the following things to make scanning safe when my_bss_info
+	// is not NULL:
+	//
+	//     - Send a NULL data packet indicating that the station is entering a
+	//       DOZE state when the scan is started or resumed.
+	//     - Send a NULL data packet indicating that the station is entering an
+	//       AWAKE state when the scan is paused or stopped.
+	//
+	// Note: The STA doesn't need full power savings functionality to enact this
+	// behavior (e.g. listening for DTIMS at particular intervals, watching the TIM
+	// bitmap for our AID, etc).  The decision to doze or wake isn't a function of
+	// what the AP is up to, it's a function of whether the STA decides to start
+	// scanning.
+	// ------------------------------------------------------------------------
+
 	switch(scan_state){
 		case SCAN_IDLE:
 		case SCAN_PAUSED:
@@ -660,7 +681,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 	volatile join_parameters_t* 		 join_parameters;
 
 	u8 					mcs	     = frame_info->phy_details.mcs;
-	u8 					phy_mode = frame_info->phy_details.phy_mode;
 	u16 				length   = frame_info->phy_details.length;
 
 
@@ -1112,10 +1132,10 @@ u32	configure_bss(bss_config_t* bss_config){
 		if (bss_config->update_mask & BSS_FIELD_MASK_BSSID) {
 			if (wlan_addr_eq(bss_config->bssid, zero_addr) == 0) {
 				if ((my_bss_info != NULL) && (wlan_addr_eq(bss_config->bssid, my_bss_info->bssid) == 0)) {
-					//The caller of this function claimed that it was updating the BSSID,
-					//but the new BSSID matches the one already specified in my_bss_info.
-					//We will complete the rest of this function as if that bit in the
-					//update mask were not set
+					// The caller of this function claimed that it was updating the BSSID,
+					// but the new BSSID matches the one already specified in my_bss_info.
+					// Complete the rest of this function as if that bit in the update mask
+					// were not set
 					bss_config->update_mask &= ~BSS_FIELD_MASK_BSSID;
 				}
 				if ((bss_config->bssid[0] & MAC_ADDR_MSB_MASK_LOCAL) == 1) {
