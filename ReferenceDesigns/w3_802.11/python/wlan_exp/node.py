@@ -742,11 +742,13 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 my_bss = node.get_bss_info()
                 if my_bss is not None:
                     node.set_radio_channel(my_bss['channel'])
+            
             or
             ::
                 my_bss = node.get_bss_info()
                 if my_bss is not None:
                     node.configure_bss(channel=my_bss['channel'])
+            
         """
         import wlan_exp.util as util
         
