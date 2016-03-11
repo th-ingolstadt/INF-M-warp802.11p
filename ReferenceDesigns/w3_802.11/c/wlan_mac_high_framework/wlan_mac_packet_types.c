@@ -110,7 +110,7 @@ int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_h
 		mgmt_tag_template->header.tag_length = 22;
 
 		ht_information_element = (ht_information*)mgmt_tag_template->data;
-		ht_information_element->channel = my_bss_info->chan_spec.chan_pri;
+		ht_information_element->channel = wlan_mac_high_bss_channel_spec_to_radio_chan(my_bss_info->chan_spec);
 		ht_information_element->ht_info_subset_1 = 0x00;	//only HT20 currently supported
 		ht_information_element->ht_info_subset_2 = 0x0004; //One or more STAs are not greenfield compatible
 		ht_information_element->ht_info_subset_3 = 0x0000;
@@ -361,7 +361,7 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 		mgmt_tag_template->header.tag_length = 22;
 
 		ht_information_element = (ht_information*)mgmt_tag_template->data;
-		ht_information_element->channel = attempt_bss_info->chan_spec.chan_pri;
+		ht_information_element->channel = wlan_mac_high_bss_channel_spec_to_radio_chan(attempt_bss_info->chan_spec);
 		ht_information_element->ht_info_subset_1 = 0x00;
 		ht_information_element->ht_info_subset_2 = 0x0004; //One or more STAs are not greenfield compatible
 		ht_information_element->ht_info_subset_3 = 0x0000;
@@ -450,7 +450,7 @@ int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_commo
 		mgmt_tag_template->header.tag_length = 22;
 
 		ht_information_element = (ht_information*)mgmt_tag_template->data;
-		ht_information_element->channel = my_bss_info->chan_spec.chan_pri;
+		ht_information_element->channel = wlan_mac_high_bss_channel_spec_to_radio_chan(my_bss_info->chan_spec);
 		ht_information_element->ht_info_subset_1 = 0x00;
 		ht_information_element->ht_info_subset_2 = 0x0004; //One or more STAs are not greenfield compatible
 		ht_information_element->ht_info_subset_3 = 0x0000;

@@ -276,7 +276,7 @@ void print_bss_info(){
 		xil_printf("\n");
 
 		xil_printf("    BSSID:         %02x-%02x-%02x-%02x-%02x-%02x\n", curr_bss_info->bssid[0],curr_bss_info->bssid[1],curr_bss_info->bssid[2],curr_bss_info->bssid[3],curr_bss_info->bssid[4],curr_bss_info->bssid[5]);
-		xil_printf("    Channel:       %d\n",curr_bss_info->chan_spec.chan_pri);
+		xil_printf("    Channel:       %d\n", wlan_mac_high_bss_channel_spec_to_radio_chan(curr_bss_info->chan_spec));
 
 		if((curr_bss_info->flags & BSS_FLAGS_KEEP) == 0){
 			xil_printf("    Last update:   %d msec ago\n", (u32)((get_system_time_usec() - curr_bss_info->latest_beacon_rx_time)/1000));

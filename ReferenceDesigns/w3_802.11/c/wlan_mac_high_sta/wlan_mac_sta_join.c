@@ -302,7 +302,7 @@ void start_join_attempt() {
     pause_data_queue = 1;
 
     // Move the AP's channel
-    cpu_low_config.channel = attempt_bss_info->chan_spec.chan_pri;
+    cpu_low_config.channel = wlan_mac_high_bss_channel_spec_to_radio_chan(attempt_bss_info->chan_spec);
     wlan_mac_high_update_low_config(&cpu_low_config);
 
     // Attempt to join the BSS
