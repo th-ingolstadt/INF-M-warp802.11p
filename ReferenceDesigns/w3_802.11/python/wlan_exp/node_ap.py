@@ -60,7 +60,7 @@ class WlanExpNodeAp(node.WlanExpNode):
                 update the current beacon interval.
             ht_capable (bool):  Is the PHY mode HTMF (True) or NONHT (False)?
         
-        ..note::  For the AP, the bssid is not configurable and should always be
+        .. note::  For the AP, the bssid is not configurable and should always be
             the wlan_mac_address of the node.
         """
         if bssid is not None:
@@ -92,7 +92,7 @@ class WlanExpNodeAp(node.WlanExpNode):
     def enable_beacon_mac_time_update(self, enable):
         """Enable / Disable MAC time update from beacons
         
-        ..note:: Raises NotImplementedError().  Current AP implementation does 
+        .. note:: Raises NotImplementedError().  Current AP implementation does 
             not support updating MAC time from beacon receptions
             
         Args:

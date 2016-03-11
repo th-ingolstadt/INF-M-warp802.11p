@@ -1495,7 +1495,7 @@ class NodeConfigBSS(message.Cmd):
         ht_capable (bool):  TBD.  A value of None will not update the current
             value of HT capable.
 
-    ..note::  This uses the BSSConfig() class defined in info.py to transfer 
+    .. note::  This uses the BSSConfig() class defined in info.py to transfer 
         the parameters to the node.
     """
     bssid           = None
@@ -1850,7 +1850,7 @@ class NodeSTAJoin(message.Cmd):
         bssid    -- (optional) BSSID of the BSS to join
         channel  -- (optional) Channel of BSS to join
         
-    ..note::  If neither bssid or channel are provided node will start the 
+    .. note::  If neither bssid or channel are provided node will start the 
         scanning state machine until it finds a BSS matching the ssid.  If 
         only one of bssid or channel is provided, raise error.
     """

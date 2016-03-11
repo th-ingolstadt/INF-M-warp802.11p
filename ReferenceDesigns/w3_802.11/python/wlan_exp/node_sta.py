@@ -138,7 +138,7 @@ class WlanExpNodeSta(node.WlanExpNode):
                 the network or the join has failed.
                 
         
-        ..note::  This method will use the current scan parameters.
+        .. note::  This method will use the current scan parameters.
         
         """
         status = True

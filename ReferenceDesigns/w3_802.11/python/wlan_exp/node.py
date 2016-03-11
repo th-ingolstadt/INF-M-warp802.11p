@@ -730,7 +730,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             channel (int):  Radio channel of the node.  Must be in util.py 
                 wlan_channels.
         
-        ..note::  This will change the channel of the node independently of 
+        .. note::  This will change the channel of the node independently of 
             the BSS.  The BSS will be unaware of any changes from 
             set_radio_channel().  For example, an AP will continue to advertise
             the BSS channel in beacons even if BSS channel is not the current 
@@ -1612,7 +1612,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def start_network_scan(self):
         """Starts a network scan.
         
-        ..note::  Currently, network scans are restricted to when the BSS 
+        .. note::  Currently, network scans are restricted to when the BSS 
             info of the node is None (ie the node is not currently part of 
             a BSS).  
             
@@ -1668,7 +1668,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         be a member of a BSS.  Based on the node type, there is a minimum 
         set of fields needed for a valid bss_info.  
         
-        ..note::  This method is implemented in each of the child classes
+        .. note::  This method is implemented in each of the child classes
         """
         raise NotImplementedError()
 
