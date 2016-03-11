@@ -86,7 +86,7 @@ Scan Commands
 These WlanExpNode commands are used to to scan the node's environment.
 
 .. autoclass:: wlan_exp.node.WlanExpNode
-   :members: set_scan_parameters, start_scan_networks, stop_scan_networks, is_scanning
+   :members: set_scan_parameters, start_network_scan, stop_network_scan, is_scanning
 
 
 Association Commands
