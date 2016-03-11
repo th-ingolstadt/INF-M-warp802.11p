@@ -738,16 +738,16 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             BSS channel is changed (ie node.configure_bss(channel=X)), then the 
             radio channel will be changed to the new channel.  To restore the 
             radio channel to the BSS channel
-            ::
-                my_bss = node.get_bss_info()
-                if my_bss is not None:
-                    node.set_radio_channel(my_bss['channel'])
+                ::
+                    my_bss = node.get_bss_info()
+                    if my_bss is not None:
+                        node.set_radio_channel(my_bss['channel'])
             
             or
-            ::
-                my_bss = node.get_bss_info()
-                if my_bss is not None:
-                    node.configure_bss(channel=my_bss['channel'])
+                ::
+                    my_bss = node.get_bss_info()
+                    if my_bss is not None:
+                        node.configure_bss(channel=my_bss['channel'])
             
         """
         import wlan_exp.util as util
