@@ -65,7 +65,7 @@ class WlanExpNodeSta(node.WlanExpNode):
         .. note:: This command is not supported by IBSS nodes.  Please use diassociate_all().
             This function will raise a NotImplementedError.
         
-        Attributes:
+        Args:
             device_list (list of WlanExpNode / WlanDevice):  List of 802.11 devices or single 
                 802.11 device for which to disassociate
         """

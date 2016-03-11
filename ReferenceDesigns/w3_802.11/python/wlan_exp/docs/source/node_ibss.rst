@@ -18,6 +18,6 @@ IBSS Specific Implementation of Node Commands
 .............................................
 These commands have IBSS specific implementations.
 
-.. autoclass:: wlan_exp.node_ap.WlanExpNodeIBSS
+.. autoclass:: wlan_exp.node_ibss.WlanExpNodeIBSS
    :members: counts_get_txrx, configure_bss, disassociate
 

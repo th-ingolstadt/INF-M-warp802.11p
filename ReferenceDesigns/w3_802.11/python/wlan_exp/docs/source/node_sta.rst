@@ -18,7 +18,7 @@ STA Specific Implementation of Node Commands
 ............................................
 These commands have Station specific implementations.
 
-.. autoclass:: wlan_exp.node_ap.WlanExpNodeSta
+.. autoclass:: wlan_exp.node_sta.WlanExpNodeSta
    :members: configure_bss, disassociate
 
 
