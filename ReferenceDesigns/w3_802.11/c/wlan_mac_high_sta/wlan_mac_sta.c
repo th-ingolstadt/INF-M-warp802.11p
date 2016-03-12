@@ -558,7 +558,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details_t* tx_lo
 	}
 
 	// Log the TX MPDU
-	wlan_exp_log_create_tx_high_entry(tx_mpdu, tx_low_details[0].chan_num); //TODO: remove channels from TX_HIGH entries
+	wlan_exp_log_create_tx_high_entry(tx_mpdu);
 
 	// Update the counts for the node to which the packet was just transmitted
 	if (tx_mpdu->AID != 0) {

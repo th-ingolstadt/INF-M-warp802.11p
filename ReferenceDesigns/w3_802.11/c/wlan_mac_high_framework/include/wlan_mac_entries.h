@@ -368,7 +368,7 @@ typedef struct{
     u64                 unique_seq;              // Unique packet sequence number
     phy_tx_params_t     phy_params;              // Transmission parameters
     u8                  num_tx;                  // Number of Transmissions that it took to send the packet
-    u8                  chan_num;                // Channel on which the packet was sent
+    u8                  padding0;                // Padding for 32-bit alignment
     u16                 length;                  // Length of the packet
     u8                  result;                  // Result of the transmission
     u8                  pkt_type;                // Type of packet
@@ -435,7 +435,7 @@ void             * wlan_exp_log_create_entry(u16 entry_type_id, u16 entry_size);
 //-----------------------------------------------
 // Methods to create an entry
 //
-tx_high_entry    * wlan_exp_log_create_tx_high_entry(tx_frame_info* tx_mpdu, u8 channel_num);
+tx_high_entry    * wlan_exp_log_create_tx_high_entry(tx_frame_info* tx_mpdu);
 tx_low_entry     * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details_t* tx_low_details, u32 tx_low_count);
 
 rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* frame_info);

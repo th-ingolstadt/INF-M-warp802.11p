@@ -378,7 +378,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac
  *                               NOTE: This can be NULL if an entry was not allocated
  *
  *****************************************************************************/
-tx_high_entry * wlan_exp_log_create_tx_high_entry(tx_frame_info* tx_mpdu, u8 channel_num){
+tx_high_entry * wlan_exp_log_create_tx_high_entry(tx_frame_info* tx_mpdu){
 
     tx_high_entry*    tx_high_event_log_entry = NULL;
     void*             mpdu                    = (u8*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
@@ -451,7 +451,6 @@ tx_high_entry * wlan_exp_log_create_tx_high_entry(tx_frame_info* tx_mpdu, u8 cha
         tx_high_event_log_entry->phy_params.phy_mode      = tx_mpdu->params.phy.phy_mode;
         tx_high_event_log_entry->phy_params.power         = tx_mpdu->params.phy.power;
         tx_high_event_log_entry->num_tx                   = tx_mpdu->num_tx_attempts;              // TODO: Add long/short distinction to event log
-        tx_high_event_log_entry->chan_num                 = channel_num;
         tx_high_event_log_entry->length                   = tx_mpdu->length;
         tx_high_event_log_entry->result                   = tx_mpdu->tx_result;
         tx_high_event_log_entry->pkt_type                 = pkt_type;
