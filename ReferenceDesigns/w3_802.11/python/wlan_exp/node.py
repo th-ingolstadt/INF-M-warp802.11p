@@ -1,19 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 .. ------------------------------------------------------------------------------
-.. WLAN Experiment Node
+.. WLAN Experiments Framework - Node
 .. ------------------------------------------------------------------------------
 .. Authors:   Chris Hunter (chunter [at] mangocomm.com)
 ..            Patrick Murphy (murphpo [at] mangocomm.com)
 ..            Erik Welsh (welsh [at] mangocomm.com)
-.. License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+.. License:   Copyright 2014-2016, Mango Communications. All rights reserved.
 ..            Distributed under the WARP license (http://warpproject.org/license)
-.. ------------------------------------------------------------------------------
-.. MODIFICATION HISTORY:
-..
-.. Ver   Who  Date     Changes
-.. ----- ---- -------- -----------------------------------------------------
-.. 1.00a ejw  1/23/14  Initial release
 .. ------------------------------------------------------------------------------
 
 """
@@ -41,44 +35,42 @@ if sys.version[0]=="3": long=None
 # If additional hardware parameters are needed for sub-classes of WlanExpNode,
 # please make sure that the values of these hardware parameters are not reused.
 #
-NODE_WLAN_EXP_VERSION                  = 5
-NODE_WLAN_SCHEDULER_RESOLUTION         = 6
-NODE_WLAN_MAC_ADDR                     = 7
+NODE_PARAM_ID_WLAN_EXP_VERSION                  = 5
+NODE_PARAM_ID_WLAN_SCHEDULER_RESOLUTION         = 6
+NODE_PARAM_ID_WLAN_MAC_ADDR                     = 7
 
 
 class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
-    """Class for WLAN Experiment node.
+    """Class for 802.11 Reference Design Experiments Framwork node.
 
     Args:
         network_config (transport.NetworkConfiguration)    : Network configuration of the node
         mac_type (int)                                     : CPU Low MAC type
 
 
-    .. Inherited Attributes from WarpNode:
-        node_type (int)                          : Unique type of the node
-        node_id (int)                            : Unique identification for this node
-        name (str)                               : User specified name for this node (supplied by user scripts)
-        description (str)                        : String description of this node (auto-generated)
-        serial_number (int)                      : Node's serial number, read from EEPROM on hardware
-        fpga_dna (int)                           : Node's FPGA'a unique identification (on select hardware)
-        hw_ver (int)                             : WARP hardware version of this node
-        transport (transport.Transport)          : Node's transport object
+    Attributes:
+        node_type (int): Unique type of the node
+        node_id (int): Unique identification for this node
+        name (str): User specified name for this node (supplied by user scripts)
+        description (str): String description of this node (auto-generated)
+        serial_number (int): Node's serial number, read from EEPROM on hardware
+        fpga_dna (int): Node's FPGA'a unique identification (on select hardware)
+        hw_ver (int): WARP hardware version of this node
+        transport (transport.Transport): Node's transport object
         transport_broadcast (transport.Transport): Node's broadcast transport object
 
-    .. Inherited Attributes from WlanDevice:
-        device_type (int)                        : Unique type of the Wlan Device
-        wlan_mac_address (int)                   : Wireless MAC address of the node
+        device_type (int): Unique type of the WlanDevice (inherited from WlanDevice)
+        wlan_mac_address (int): Wireless MAC address of the node (inherited from WlanDevice)
 
-    .. Module Attributes:
-        wlan_scheduler_resolution (int)          : Minimum resolution (in us) of the LTG
-        log_max_size (int)                       : Maximum size of event log (in bytes)
-        log_total_bytes_read (int)               : Number of bytes read from the event log
-        log_num_wraps (int)                      : Number of times the event log has wrapped
-        log_next_read_index (int)                : Index in to event log of next read
-        wlan_exp_ver_major (int)                 : WLAN Exp Major version running on this node
-        wlan_exp_ver_minor (int)                 : WLAN Exp Minor version running on this node
-        wlan_exp_ver_revision (int)              : WLAN Exp Revision version running on this node
-        mac_type (int)                           : Value of the MAC type (see wlan_exp.defaults for values)
+        wlan_scheduler_resolution (int): Minimum resolution (in us) of the LTG
+        log_max_size (int): Maximum size of event log (in bytes)
+        log_total_bytes_read (int): Number of bytes read from the event log
+        log_num_wraps (int): Number of times the event log has wrapped
+        log_next_read_index (int): Index in to event log of next read
+        wlan_exp_ver_major (int): WLAN Exp Major version running on this node
+        wlan_exp_ver_minor (int): WLAN Exp Minor version running on this node
+        wlan_exp_ver_revision (int): WLAN Exp Revision version running on this node
+        mac_type (int): Value of the MAC type (see wlan_exp.defaults for values)
 
     """
 
@@ -490,6 +482,37 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
         Returns:
             ID (int):  Identifier for the LTG flow
+
+        The ``trafic_flow`` argument configures the behavior of the LTG, including the traffic's destination,
+        packet payloads, and packet generation timing. The reference code implements three flow configurations
+        by default:
+
+         - ``FlowConfigCBR()``: a constant bit rate (CBR) source targeted to a specifc destination address. Packet
+                                lengths and the packet creation interval are constant.
+         - ``FlowConfigAllAssocCBR()``: a CBR source that targets traffic to all associated nodes.
+         - ``FlowConfigRandomRandom()``: a source that targets traffic to a specific destination address, where each
+                                     packet has a random length and packets are created at random intervals.
+
+        Refer to the :doc:`ltg` documentation for details on these flow configs and the underlying classes that can 
+        be used to build custom flow configurations.
+
+        Examples:
+            The code below illustrates a few LTG configuration examples. ``n1`` and ``n2`` here are a wlan_exp node objects.
+            ::
+                # Configure a CBR LTG addressed to a single node
+                ltg_id = n1.ltg_configure(wlan_exp_ltg.FlowConfigCBR(dest_addr=n2.wlan_mac_address, payload_length=40, interval=0.01), auto_start=True)
+
+                # Configure a backlogged traffic source with constant packet size
+                ltg_id = n1.ltg_configure(wlan_exp_ltg.FlowConfigCBR(dest_addr=n2.wlan_mac_address, payload_length=1000, interval=0), auto_start=True)
+
+                # Configure a random traffic source
+                ltg_id = n1.ltg_configure(
+                    wlan_exp_ltg.FlowConfigRandomRandom(dest_addr=n2.wlan_mac_address,
+                                                        min_payload_length=100,
+                                                        max_payload_length=500,
+                                                        min_interval=0,
+                                                        max_interval=0.1),
+                    auto_start=True)
         """
         traffic_flow.enforce_min_resolution(self.wlan_scheduler_resolution)
         return self.send_cmd(cmds.LTGConfigure(traffic_flow, auto_start))
@@ -717,38 +740,25 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Enable / Disable MAC time update from beacons
         
         Args:
-            enable (bool):  True - enable MAC time updates from beacons
-                            False - disable MAC time updates from beacons        
+            enable (bool):  ``True`` enables and ``False`` disables MAC time updates from reeived beacons
         """
         self.send_cmd(cmds.NodeConfigure(beacon_mac_time_update=enable))
 
 
     def set_radio_channel(self, channel):
-        """Set the radio channel of the node independent of the BSS
+        """Re-tune the node's RF interfaces to a new center frequency. This method directly
+        controls the RF hardware. This can be disruptive to MAC operation if the node is
+        currently associated with other nodes in a BSS which manages its own channel state.
         
         Args:
-            channel (int):  Radio channel of the node.  Must be in util.py 
-                wlan_channels.
+            channel (int):  Channel index for new center frequency. Must be a valid channel index.
+              See ``wlan_channels`` in util.py for the list of supported channel indexes.
         
-        .. note::  This will change the channel of the node independently of 
-            the BSS.  The BSS will be unaware of any changes from 
-            set_radio_channel().  For example, an AP will continue to advertise
-            the BSS channel in beacons even if BSS channel is not the current 
-            radio channel.  Also, this will not lock the radio channel.  If the 
-            BSS channel is changed (ie node.configure_bss(channel=X)), then the 
-            radio channel will be changed to the new channel.  To restore the 
-            radio channel to the BSS channel using set_radio_channel()
-            ::
-                my_bss = node.get_bss_info()
-                if my_bss is not None:
-                    node.set_radio_channel(my_bss['channel'])
-            
-            or using configure_bss()
-            ::
-                my_bss = node.get_bss_info()
-                if my_bss is not None:
-                    node.configure_bss(channel=my_bss['channel'])
-            
+        Note:
+            This method will immediately change the center frequency of the node's RF interfaces.
+            As a result this method can only be safely used on a node which is not currently associated
+            with a BSS. To change the center frequency of nodes participating in a BSS use the 
+            ``node.configure_bss(channel=N)`` method on every node in the BSS.
         """
         import wlan_exp.util as util
         
@@ -759,24 +769,24 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
 
     def set_low_to_high_rx_filter(self, mac_header=None, fcs=None):
-        """Sets the filter on the packets that are passed from the low MAC to the high MAC.
+        """Configures the filter that controls which received packets are passed from CPU Low to CPU High.
+        The filter will always pass received packets where the destination address matches the node's MAC
+        address. The filter can be configured to drop or pass other packets. This filter effectively controls
+        which packets are written to the node's log.
 
         Args:
             mac_header (str, optional): MAC header filter.  Values can be:
-                **'MPDU_TO_ME'** -- Pass any unicast-to-me or multicast data or management packet;
-                **'ALL_MPDU'**   -- Pass any data or management packet (no address filter);
-                **'ALL'**        -- Pass any packet (no type or address filters)
-            fcs (str, optional):        FCS status filter.  Values can be
-                **'GOOD'**       -- Pass only packets with good checksum result;
-                **'ALL'**        -- Pass packets with any checksum result
+               
+               - ``'MPDU_TO_ME'`` -- Pass all unicast-to-me or multicast data or management packet
+               - ``'ALL_MPDU'``   -- Pass all data and management packets; no destination address filter
+               - ``'ALL'``        -- Pass all packets; no packet type or address filters
+            
+            fcs (str, optional): FCS status filter.  Values can be:
 
-        .. note:: The default values on the node are mac_header='ALL_MPDU' and fcs='GOOD'
+               - ``'GOOD'``       -- Pass only packets with good checksum result
+               - ``'ALL'``        -- Pass packets with any checksum result
 
-        .. note::  One thing to note is that even though all packets are passed in the 'ALL' case
-            of the mac_header filter, the high MAC does not necessarily get to decide the node's
-            response to all packets.  For example, ACKs will still be transmitted for receptions
-            by the low MAC since there is not enough time in the 802.11 protocol for the high MAC
-            to decide on the response.  Default behavior like this can only be modified in the low MAC.
+        At boot the filter defaults to ``mac_header='ALL_MPDU'`` and ``fcs='GOOD'``.
         """
         self.send_cmd(cmds.NodeSetLowToHighFilter(cmds.CMD_PARAM_WRITE, mac_header, fcs))
 
@@ -2040,7 +2050,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     #-------------------------------------------------------------------------
     def process_parameter(self, identifier, length, values):
         """Extract values from the parameters"""
-        if (identifier == NODE_WLAN_EXP_VERSION):
+        if (identifier == NODE_PARAM_ID_WLAN_EXP_VERSION):
             if (length == 1):
                 self.wlan_exp_ver_major = (values[0] & 0xFF000000) >> 24
                 self.wlan_exp_ver_minor = (values[0] & 0x00FF0000) >> 16
@@ -2051,13 +2061,13 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             else:
                 raise ex.ParameterError("NODE_DESIGN_VER", "Incorrect length")
 
-        elif   (identifier == NODE_WLAN_MAC_ADDR):
+        elif   (identifier == NODE_PARAM_ID_WLAN_MAC_ADDR):
             if (length == 2):
                 self.wlan_mac_address = ((2**32) * (values[1] & 0xFFFF) + values[0])
             else:
                 raise ex.ParameterError("NODE_WLAN_MAC_ADDR", "Incorrect length")
 
-        elif   (identifier == NODE_WLAN_SCHEDULER_RESOLUTION):
+        elif   (identifier == NODE_PARAM_ID_WLAN_SCHEDULER_RESOLUTION):
             if (length == 1):
                 self.wlan_scheduler_resolution = values[0]
             else:
