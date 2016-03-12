@@ -24,62 +24,6 @@ Node Class
 .. autoclass:: wlan_exp.node.WlanExpNode
 
 
-Log Commands
-............
-These WlanExpNode commands are used to interact with the logging framework.  The log occupies
-a large portion of DRAM which is set in C code during runtime (see `wlan_mac_high.h 
-<http://warpproject.org/trac/browser/ReferenceDesigns/w3_802.11/c/wlan_mac_high_framework/include/wlan_mac_high.h>`_ 
-for more information on the memory map; Use log_get_capacity() to see the number of bytes allocated for the log).
-
-The log has the ability to wrap to enable longer experiments.  By enabling wrapping and periodically pulling
-the logs, you can effectively log an experiment for an indefinite amount of time.  Also, the log can record the 
-entire payload of the wireless packets.  Both the log wrapping and logging of full payloads is off by default and 
-can be modified with the log_configure() command.
-
-.. automethod:: wlan_exp.node.WlanExpNode.log_configure
-.. automethod:: wlan_exp.node.WlanExpNode.log_get
-.. automethod:: wlan_exp.node.WlanExpNode.log_get_all_new
-.. automethod:: wlan_exp.node.WlanExpNode.log_get_size
-.. automethod:: wlan_exp.node.WlanExpNode.log_get_capacity
-.. automethod:: wlan_exp.node.WlanExpNode.log_get_indexes
-.. automethod:: wlan_exp.node.WlanExpNode.log_get_flags
-.. automethod:: wlan_exp.node.WlanExpNode.log_is_full
-.. automethod:: wlan_exp.node.WlanExpNode.log_write_exp_info
-.. automethod:: wlan_exp.node.WlanExpNode.log_write_time
-.. automethod:: wlan_exp.node.WlanExpNode.log_write_txrx_counts
-
-Tx/Rx Packet Counts Commands
-...................
-These WlanExpNode commands are used to to interact with the counts framework.  Counts are kept for for
-each association (the counts that are kept can be found as part of the `log entry types
-<http://warpproject.org/trac/wiki/802.11/wlan_exp/log/entry_types>`_).  If promiscuous counts are enabled, 
-then the node will keep counts for every MAC address overheard (whether the node is associated or not).  In 
-order to keep the maximum number of counts recorded on the node to a reasonable amount, there is a maximum number
-of counts implemented in the C code.  When that maximum is reached, then the oldest counts structure of an 
-unassociated node will be overwritten.
-
-.. automethod:: wlan_exp.node.WlanExpNode.counts_configure_txrx
-.. automethod:: wlan_exp.node.WlanExpNode.counts_get_txrx
-
-Local Traffic Generator (LTG) Commands
-......................................
-
-These WlanExpNode commands interact with the node's LTG framework. LTGs provides local traffic sources with configurable
-destimations, payloads, and traffic loads. These traffic sources are ideal for running experiments without external
-traffic sources connected via Ethernet. See .. _wlan_exp_ltg: for more information on LTGs.
-
-Creating an LTG consumes memory in the node's heap. LTG creation can fail if the node's heap is full. Always
-remove LTGs you no longer need using the ``ltg_remove`` or ``ltg_remove_all`` methods.
-
-.. automethod:: wlan_exp.node.WlanExpNode.ltg_configure
-.. automethod:: wlan_exp.node.WlanExpNode.ltg_get_status
-.. automethod:: wlan_exp.node.WlanExpNode.ltg_remove
-.. automethod:: wlan_exp.node.WlanExpNode.ltg_start
-.. automethod:: wlan_exp.node.WlanExpNode.ltg_stop
-.. automethod:: wlan_exp.node.WlanExpNode.ltg_remove_all
-.. automethod:: wlan_exp.node.WlanExpNode.ltg_start_all
-.. automethod:: wlan_exp.node.WlanExpNode.ltg_stop_all
-
 Node Commands
 .............
 These WlanExpNode commands are used to interact with the node and control parameters associated with the node operation.
@@ -114,23 +58,6 @@ These WlanExpNode commands are used to interact with the node and control parame
 .. automethod:: wlan_exp.node.WlanExpNode.node_ping
 
 
-Antenna Mode Commands
-.....................
-The WARP v3 hardware integrates two RF interfaces. These commands control which RF interface 
-is used for Tx and Rx of individual packet types.
-
-.. automethod:: wlan_exp.node.WlanExpNode.set_rx_ant_mode
-.. automethod:: wlan_exp.node.WlanExpNode.get_rx_ant_mode
-
-.. automethod:: wlan_exp.node.WlanExpNode.set_tx_ant_mode_unicast
-.. automethod:: wlan_exp.node.WlanExpNode.get_tx_ant_mode_unicast
-
-.. automethod:: wlan_exp.node.WlanExpNode.set_tx_ant_mode_multicast_data
-.. automethod:: wlan_exp.node.WlanExpNode.get_tx_ant_mode_multicast_data
-
-.. automethod:: wlan_exp.node.WlanExpNode.set_tx_ant_mode_multicast_mgmt
-.. automethod:: wlan_exp.node.WlanExpNode.get_tx_ant_mode_multicast_mgmt
-
 Tx Power and Rate Commands 
 ..........................
 These commands configure the transmit power and rate selections at the node. Powers and rates are
@@ -161,14 +88,23 @@ configured for specific destination addresses as well.
 .. automethod:: wlan_exp.node.WlanExpNode.get_tx_power_multicast_mgmt
 
 
-Network Scan Commands
+Antenna Mode Commands
 .....................
-These WlanExpNode commands are used to to scan the node's environment.
+The WARP v3 hardware integrates two RF interfaces. These commands control which RF interface 
+is used for Tx and Rx of individual packet types.
 
-.. automethod:: wlan_exp.node.WlanExpNode.set_scan_parameters
-.. automethod:: wlan_exp.node.WlanExpNode.start_network_scan
-.. automethod:: wlan_exp.node.WlanExpNode.stop_network_scan
-.. automethod:: wlan_exp.node.WlanExpNode.is_scanning
+.. automethod:: wlan_exp.node.WlanExpNode.set_rx_ant_mode
+.. automethod:: wlan_exp.node.WlanExpNode.get_rx_ant_mode
+
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_ant_mode_unicast
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_ant_mode_unicast
+
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_ant_mode_multicast_data
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_ant_mode_multicast_data
+
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_ant_mode_multicast_mgmt
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_ant_mode_multicast_mgmt
+
 
 Association Commands
 ....................
@@ -181,3 +117,71 @@ These WlanExpNode commands are used to modify / query the association state of t
 .. automethod:: wlan_exp.node.WlanExpNode.get_station_info
 .. automethod:: wlan_exp.node.WlanExpNode.get_bss_info
 .. automethod:: wlan_exp.node.WlanExpNode.get_network_list
+
+
+Tx/Rx Packet Counts Commands
+...................
+These WlanExpNode commands are used to to interact with the counts framework.  Counts are kept for for
+each association (the counts that are kept can be found as part of the `log entry types
+<http://warpproject.org/trac/wiki/802.11/wlan_exp/log/entry_types>`_).  If promiscuous counts are enabled, 
+then the node will keep counts for every MAC address overheard (whether the node is associated or not).  In 
+order to keep the maximum number of counts recorded on the node to a reasonable amount, there is a maximum number
+of counts implemented in the C code.  When that maximum is reached, then the oldest counts structure of an 
+unassociated node will be overwritten.
+
+.. automethod:: wlan_exp.node.WlanExpNode.counts_configure_txrx
+.. automethod:: wlan_exp.node.WlanExpNode.counts_get_txrx
+
+
+Local Traffic Generator (LTG) Commands
+......................................
+These WlanExpNode commands interact with the node's LTG framework. LTGs provides local traffic sources with configurable
+destimations, payloads, and traffic loads. These traffic sources are ideal for running experiments without external
+traffic sources connected via Ethernet. See .. _wlan_exp_ltg: for more information on LTGs.
+
+Creating an LTG consumes memory in the node's heap. LTG creation can fail if the node's heap is full. Always
+remove LTGs you no longer need using the ``ltg_remove`` or ``ltg_remove_all`` methods.
+
+.. automethod:: wlan_exp.node.WlanExpNode.ltg_configure
+.. automethod:: wlan_exp.node.WlanExpNode.ltg_get_status
+.. automethod:: wlan_exp.node.WlanExpNode.ltg_remove
+.. automethod:: wlan_exp.node.WlanExpNode.ltg_start
+.. automethod:: wlan_exp.node.WlanExpNode.ltg_stop
+.. automethod:: wlan_exp.node.WlanExpNode.ltg_remove_all
+.. automethod:: wlan_exp.node.WlanExpNode.ltg_start_all
+.. automethod:: wlan_exp.node.WlanExpNode.ltg_stop_all
+
+
+Log Commands
+............
+These WlanExpNode commands are used to interact with the logging framework.  The log occupies
+a large portion of DRAM which is set in C code during runtime (see `wlan_mac_high.h 
+<http://warpproject.org/trac/browser/ReferenceDesigns/w3_802.11/c/wlan_mac_high_framework/include/wlan_mac_high.h>`_ 
+for more information on the memory map; Use log_get_capacity() to see the number of bytes allocated for the log).
+
+The log has the ability to wrap to enable longer experiments.  By enabling wrapping and periodically pulling
+the logs, you can effectively log an experiment for an indefinite amount of time.  Also, the log can record the 
+entire payload of the wireless packets.  Both the log wrapping and logging of full payloads is off by default and 
+can be modified with the log_configure() command.
+
+.. automethod:: wlan_exp.node.WlanExpNode.log_configure
+.. automethod:: wlan_exp.node.WlanExpNode.log_get
+.. automethod:: wlan_exp.node.WlanExpNode.log_get_all_new
+.. automethod:: wlan_exp.node.WlanExpNode.log_get_size
+.. automethod:: wlan_exp.node.WlanExpNode.log_get_capacity
+.. automethod:: wlan_exp.node.WlanExpNode.log_get_indexes
+.. automethod:: wlan_exp.node.WlanExpNode.log_get_flags
+.. automethod:: wlan_exp.node.WlanExpNode.log_is_full
+.. automethod:: wlan_exp.node.WlanExpNode.log_write_exp_info
+.. automethod:: wlan_exp.node.WlanExpNode.log_write_time
+.. automethod:: wlan_exp.node.WlanExpNode.log_write_txrx_counts
+
+
+Network Scan Commands
+.....................
+These WlanExpNode commands are used to to scan the node's environment.
+
+.. automethod:: wlan_exp.node.WlanExpNode.set_scan_parameters
+.. automethod:: wlan_exp.node.WlanExpNode.start_network_scan
+.. automethod:: wlan_exp.node.WlanExpNode.stop_network_scan
+.. automethod:: wlan_exp.node.WlanExpNode.is_scanning
