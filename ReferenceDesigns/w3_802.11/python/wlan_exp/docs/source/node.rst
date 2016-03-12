@@ -19,17 +19,13 @@ particular sub-class.
     node_ibss.rst
     node_sta.rst
 
-Common Commands
-```````````````
-
-Class
+Node Class
 .....
 .. autoclass:: wlan_exp.node.WlanExpNode
 
 
 Log Commands
 ............
-
 These WlanExpNode commands are used to interact with the logging framework.  The log occupies
 a large portion of DRAM which is set in C code during runtime (see `wlan_mac_high.h 
 <http://warpproject.org/trac/browser/ReferenceDesigns/w3_802.11/c/wlan_mac_high_framework/include/wlan_mac_high.h>`_ 
@@ -52,9 +48,8 @@ can be modified with the log_configure() command.
 .. automethod:: wlan_exp.node.WlanExpNode.log_write_time
 .. automethod:: wlan_exp.node.WlanExpNode.log_write_txrx_counts
 
-Counts Commands
+Tx/Rx Packet Counts Commands
 ...................
-
 These WlanExpNode commands are used to to interact with the counts framework.  Counts are kept for for
 each association (the counts that are kept can be found as part of the `log entry types
 <http://warpproject.org/trac/wiki/802.11/wlan_exp/log/entry_types>`_).  If promiscuous counts are enabled, 
@@ -98,29 +93,7 @@ These WlanExpNode commands are used to interact with the node and control parame
 .. automethod:: wlan_exp.node.WlanExpNode.enable_beacon_mac_time_update
 .. automethod:: wlan_exp.node.WlanExpNode.set_radio_channel
 .. automethod:: wlan_exp.node.WlanExpNode.set_low_to_high_rx_filter
-.. automethod:: wlan_exp.node.WlanExpNode.set_tx_rate_unicast
-.. automethod:: wlan_exp.node.WlanExpNode.set_tx_rate_multicast_data
-.. automethod:: wlan_exp.node.WlanExpNode.set_tx_rate_multicast_mgmt
-.. automethod:: wlan_exp.node.WlanExpNode.get_tx_rate_unicast
-.. automethod:: wlan_exp.node.WlanExpNode.get_tx_rate_multicast_data
-.. automethod:: wlan_exp.node.WlanExpNode.get_tx_rate_multicast_mgmt
-.. automethod:: wlan_exp.node.WlanExpNode.set_tx_ant_mode_unicast
-.. automethod:: wlan_exp.node.WlanExpNode.set_tx_ant_mode_multicast_data
-.. automethod:: wlan_exp.node.WlanExpNode.set_tx_ant_mode_multicast_mgmt
-.. automethod:: wlan_exp.node.WlanExpNode.get_tx_ant_mode_unicast
-.. automethod:: wlan_exp.node.WlanExpNode.get_tx_ant_mode_multicast_data
-.. automethod:: wlan_exp.node.WlanExpNode.get_tx_ant_mode_multicast_mgmt
-.. automethod:: wlan_exp.node.WlanExpNode.set_rx_ant_mode
-.. automethod:: wlan_exp.node.WlanExpNode.get_rx_ant_mode
-.. automethod:: wlan_exp.node.WlanExpNode.set_tx_power_unicast
-.. automethod:: wlan_exp.node.WlanExpNode.set_tx_power_multicast_data
-.. automethod:: wlan_exp.node.WlanExpNode.set_tx_power_multicast_mgmt
-.. automethod:: wlan_exp.node.WlanExpNode.get_tx_power_unicast
-.. automethod:: wlan_exp.node.WlanExpNode.get_tx_power_multicast_data
-.. automethod:: wlan_exp.node.WlanExpNode.get_tx_power_multicast_mgmt
-.. automethod:: wlan_exp.node.WlanExpNode.set_tx_power_ctrl
-.. automethod:: wlan_exp.node.WlanExpNode.set_tx_power
-.. automethod:: wlan_exp.node.WlanExpNode.get_tx_power
+
 .. automethod:: wlan_exp.node.WlanExpNode.set_low_param
 .. automethod:: wlan_exp.node.WlanExpNode.set_dcf_rts_thresh
 .. automethod:: wlan_exp.node.WlanExpNode.set_dcf_short_retry_limit
@@ -140,8 +113,56 @@ These WlanExpNode commands are used to interact with the node and control parame
 .. automethod:: wlan_exp.node.WlanExpNode.node_identify
 .. automethod:: wlan_exp.node.WlanExpNode.node_ping
 
-Scan Commands
-.............
+
+Antenna Mode Commands
+.....................
+The WARP v3 hardware integrates two RF interfaces. These commands control which RF interface 
+is used for Tx and Rx of individual packet types.
+
+.. automethod:: wlan_exp.node.WlanExpNode.set_rx_ant_mode
+.. automethod:: wlan_exp.node.WlanExpNode.get_rx_ant_mode
+
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_ant_mode_unicast
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_ant_mode_unicast
+
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_ant_mode_multicast_data
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_ant_mode_multicast_data
+
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_ant_mode_multicast_mgmt
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_ant_mode_multicast_mgmt
+
+Tx Power and Rate Commands 
+..........................
+These commands configure the transmit power and rate selections at the node. Powers and rates are
+configured individually for various packet types. For unicast packets, Tx powers and rates can be
+configured for specific destination addresses as well.
+
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_power
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_power
+
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_power_ctrl
+
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_rate_unicast
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_rate_unicast
+
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_rate_multicast_data
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_rate_multicast_data
+
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_rate_multicast_mgmt
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_rate_multicast_mgmt
+
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_power_unicast
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_power_unicast
+
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_power_multicast_data
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_power_multicast_data
+
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_power_multicast_mgmt
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_power_multicast_mgmt
+
+
+Network Scan Commands
+.....................
 These WlanExpNode commands are used to to scan the node's environment.
 
 .. automethod:: wlan_exp.node.WlanExpNode.set_scan_parameters
