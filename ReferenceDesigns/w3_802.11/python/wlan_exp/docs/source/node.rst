@@ -40,9 +40,17 @@ the logs, you can effectively log an experiment for an indefinite amount of time
 entire payload of the wireless packets.  Both the log wrapping and logging of full payloads is off by default and 
 can be modified with the log_configure() command.
 
-.. autoclass:: wlan_exp.node.WlanExpNode
-   :members: log_configure, log_get, log_get_all_new, log_get_size, log_get_capacity, log_get_indexes, log_get_flags, log_is_full, log_write_exp_info, log_write_time, log_write_txrx_counts
-
+.. automethod:: wlan_exp.node.WlanExpNode.log_configure
+.. automethod:: wlan_exp.node.WlanExpNode.log_get
+.. automethod:: wlan_exp.node.WlanExpNode.log_get_all_new
+.. automethod:: wlan_exp.node.WlanExpNode.log_get_size
+.. automethod:: wlan_exp.node.WlanExpNode.log_get_capacity
+.. automethod:: wlan_exp.node.WlanExpNode.log_get_indexes
+.. automethod:: wlan_exp.node.WlanExpNode.log_get_flags
+.. automethod:: wlan_exp.node.WlanExpNode.log_is_full
+.. automethod:: wlan_exp.node.WlanExpNode.log_write_exp_info
+.. automethod:: wlan_exp.node.WlanExpNode.log_write_time
+.. automethod:: wlan_exp.node.WlanExpNode.log_write_txrx_counts
 
 Counts Commands
 ...................
@@ -55,70 +63,100 @@ order to keep the maximum number of counts recorded on the node to a reasonable 
 of counts implemented in the C code.  When that maximum is reached, then the oldest counts structure of an 
 unassociated node will be overwritten.
 
-.. autoclass:: wlan_exp.node.WlanExpNode
-   :members: counts_configure_txrx, counts_get_txrx
-
+.. automethod:: wlan_exp.node.WlanExpNode.counts_configure_txrx
+.. automethod:: wlan_exp.node.WlanExpNode.counts_get_txrx
 
 Local Traffic Generator (LTG) Commands
 ......................................
 
-These WlanExpNode commands are used to interact with the LTG framework.  LTGs are used to have the node locally
-generate different types of traffic for experiments.  See .. _wlan_exp_ltg: for more information on LTGs.
+These WlanExpNode commands interact with the node's LTG framework. LTGs provides local traffic sources with configurable
+destimations, payloads, and traffic loads. These traffic sources are ideal for running experiments without external
+traffic sources connected via Ethernet. See .. _wlan_exp_ltg: for more information on LTGs.
 
-.. note:: Please be careful that LTGs are removed when they are done being used.  By not removing unused LTGs, this
-    will not allow memory to be freed within the heap on the node and can lead to memory allocation failures when
-    trying to create new LTGs.
+Creating an LTG consumes memory in the node's heap. LTG creation can fail if the node's heap is full. Always
+remove LTGs you no longer need using the ``ltg_remove`` or ``ltg_remove_all`` methods.
 
-.. autoclass:: wlan_exp.node.WlanExpNode
-   :members: ltg_configure, ltg_get_status, ltg_remove, ltg_start, ltg_stop, ltg_remove_all, ltg_start_all, ltg_stop_all
-
+.. automethod:: wlan_exp.node.WlanExpNode.ltg_configure
+.. automethod:: wlan_exp.node.WlanExpNode.ltg_get_status
+.. automethod:: wlan_exp.node.WlanExpNode.ltg_remove
+.. automethod:: wlan_exp.node.WlanExpNode.ltg_start
+.. automethod:: wlan_exp.node.WlanExpNode.ltg_stop
+.. automethod:: wlan_exp.node.WlanExpNode.ltg_remove_all
+.. automethod:: wlan_exp.node.WlanExpNode.ltg_start_all
+.. automethod:: wlan_exp.node.WlanExpNode.ltg_stop_all
 
 Node Commands
 .............
 These WlanExpNode commands are used to interact with the node and control parameters associated with the node operation.
 
-.. autoclass:: wlan_exp.node.WlanExpNode
-   :members: reset_all, reset, get_wlan_mac_address, set_mac_time, get_mac_time, get_system_time, enable_beacon_mac_time_update, set_radio_channel, set_low_to_high_rx_filter, set_tx_rate_unicast, set_tx_rate_multicast_data, set_tx_rate_multicast_mgmt, get_tx_rate_unicast, get_tx_rate_multicast_data, get_tx_rate_multicast_mgmt, set_tx_ant_mode_unicast, set_tx_ant_mode_multicast_data, set_tx_ant_mode_multicast_mgmt, get_tx_ant_mode_unicast, get_tx_ant_mode_multicast_data, get_tx_ant_mode_multicast_mgmt, set_rx_ant_mode, get_rx_ant_mode, set_tx_power_unicast, set_tx_power_multicast_data, set_tx_power_multicast_mgmt, get_tx_power_unicast, get_tx_power_multicast_data, get_tx_power_multicast_mgmt, set_tx_power_ctrl, set_tx_power, get_tx_power, set_low_param, set_dcf_rts_thresh, set_dcf_short_retry_limit, set_dcf_long_retry_limit, set_dcf_phy_cs_thresh, set_dcf_cw_exp_min, set_dcf_cw_exp_max, configure_pkt_det_min_power, set_random_seed, enable_dsss, set_print_level
+.. automethod:: wlan_exp.node.WlanExpNode.reset_all
+.. automethod:: wlan_exp.node.WlanExpNode.reset
+.. automethod:: wlan_exp.node.WlanExpNode.get_wlan_mac_address
+.. automethod:: wlan_exp.node.WlanExpNode.set_mac_time
+.. automethod:: wlan_exp.node.WlanExpNode.get_mac_time
+.. automethod:: wlan_exp.node.WlanExpNode.get_system_time
+.. automethod:: wlan_exp.node.WlanExpNode.enable_beacon_mac_time_update
+.. automethod:: wlan_exp.node.WlanExpNode.set_radio_channel
+.. automethod:: wlan_exp.node.WlanExpNode.set_low_to_high_rx_filter
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_rate_unicast
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_rate_multicast_data
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_rate_multicast_mgmt
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_rate_unicast
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_rate_multicast_data
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_rate_multicast_mgmt
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_ant_mode_unicast
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_ant_mode_multicast_data
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_ant_mode_multicast_mgmt
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_ant_mode_unicast
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_ant_mode_multicast_data
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_ant_mode_multicast_mgmt
+.. automethod:: wlan_exp.node.WlanExpNode.set_rx_ant_mode
+.. automethod:: wlan_exp.node.WlanExpNode.get_rx_ant_mode
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_power_unicast
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_power_multicast_data
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_power_multicast_mgmt
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_power_unicast
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_power_multicast_data
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_power_multicast_mgmt
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_power_ctrl
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_power
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_power
+.. automethod:: wlan_exp.node.WlanExpNode.set_low_param
+.. automethod:: wlan_exp.node.WlanExpNode.set_dcf_rts_thresh
+.. automethod:: wlan_exp.node.WlanExpNode.set_dcf_short_retry_limit
+.. automethod:: wlan_exp.node.WlanExpNode.set_dcf_long_retry_limit
+.. automethod:: wlan_exp.node.WlanExpNode.set_dcf_phy_cs_thresh
+.. automethod:: wlan_exp.node.WlanExpNode.set_dcf_cw_exp_min
+.. automethod:: wlan_exp.node.WlanExpNode.set_dcf_cw_exp_max
+.. automethod:: wlan_exp.node.WlanExpNode.configure_pkt_det_min_power
+.. automethod:: wlan_exp.node.WlanExpNode.set_random_seed
+.. automethod:: wlan_exp.node.WlanExpNode.enable_dsss
+.. automethod:: wlan_exp.node.WlanExpNode.set_print_level
 
+.. automethod:: wlan_exp.node.WlanExpNode.queue_tx_data_purge_all
+
+.. automethod:: wlan_exp.node.WlanExpNode.send_user_command
+
+.. automethod:: wlan_exp.node.WlanExpNode.node_identify
+.. automethod:: wlan_exp.node.WlanExpNode.node_ping
 
 Scan Commands
 .............
 These WlanExpNode commands are used to to scan the node's environment.
 
-.. autoclass:: wlan_exp.node.WlanExpNode
-   :members: set_scan_parameters, start_network_scan, stop_network_scan, is_scanning
-
+.. automethod:: wlan_exp.node.WlanExpNode.set_scan_parameters
+.. automethod:: wlan_exp.node.WlanExpNode.start_network_scan
+.. automethod:: wlan_exp.node.WlanExpNode.stop_network_scan
+.. automethod:: wlan_exp.node.WlanExpNode.is_scanning
 
 Association Commands
 ....................
 These WlanExpNode commands are used to modify / query the association state of the node.
 
-.. autoclass:: wlan_exp.node.WlanExpNode
-   :members: configure_bss, disassociate, disassociate_all, is_associated, get_station_info, get_bss_info, get_network_list
-
-
-Queue Commands
-..............
-These WlanExpNode commands are used to modify the node's queues.
-
-.. autoclass:: wlan_exp.node.WlanExpNode
-   :members: queue_tx_data_purge_all
-
-
-User Commands
-.............
-
-This WlanExpNode command is used to add custom user commands to the WLAN Exp framework.  See documentation 
-on how-to add a WLAN Exp command:  http://warpproject.org/trac/wiki/802.11/wlan_exp/HowToAddCommand
-
-.. autoclass:: wlan_exp.node.WlanExpNode
-   :members: send_user_command 
-
-
-Other Commands
-..............
-These are miscellaneous commands for the node.
-
-.. autoclass:: wlan_exp.node.WlanExpNode
-   :members: node_identify, node_ping
-
+.. automethod:: wlan_exp.node.WlanExpNode.configure_bss
+.. automethod:: wlan_exp.node.WlanExpNode.disassociate
+.. automethod:: wlan_exp.node.WlanExpNode.disassociate_all
+.. automethod:: wlan_exp.node.WlanExpNode.is_associated
+.. automethod:: wlan_exp.node.WlanExpNode.get_station_info
+.. automethod:: wlan_exp.node.WlanExpNode.get_bss_info
+.. automethod:: wlan_exp.node.WlanExpNode.get_network_list
