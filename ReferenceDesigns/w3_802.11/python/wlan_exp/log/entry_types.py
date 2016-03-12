@@ -870,7 +870,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('ant_mode',               'B',      'uint8',   'PHY antenna mode in [0x10, 0x20, 0x30, 0x40]'),
         ('tx_power',               'b',      'int8',    'Tx power in dBm'),
         ('num_tx',                 'B',      'uint8',   'Number of actual PHY Tx events which were used to transmit the MPDU (first Tx + all re-Tx)'),
-        ('channel',                'B',      'uint8',   'Channel (center frequency) index of transmission'),
+        ('padding0',               'B',      'uint8',   'Padding'),
         ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
         ('result',                 'B',      'uint8',   'Tx result; 0 = ACK received or not required'),
         ('pkt_type',               'B',      'uint8',   'Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS'),
