@@ -1578,7 +1578,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     # Scan Commands
     #--------------------------------------------
     def set_scan_parameters(self, time_per_channel=0.1, num_probe_tx_per_chan=1, channel_list=None, ssid=None):
-        """Set the scan parameters.
+        """Set the paramters of the wireless network scan state machine.
         
         Args:
             time_per_channel (float, int, optional): Time (in float sec or int 
@@ -1590,14 +1590,19 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             ssid (str, optional):  SSID to scan for (as part of probe request);
                 A value of None will not modify the current SSID.
         
-        .. note::  If the channel list / SSID is not specified, then it will 
-            not be updated on the node (ie it will use the current channel list
-            / SSID)
-        
-        .. note::  If num_probe_tx_per_chan is zero, then the node will perform
-            a passive scan.
-            
-        .. note::  If ssid is "", that is the default SSID to scan for "all SSIDs".
+        Setting ``num_probe_tx_per_chan`` to a non-zero value will enable active scanning. The node
+        will transmit broadcast Probe Request packets on every channel and will gather network information
+        from received Probe Response and Beacon packets. Set ``num_probe_tx_per_chan=0`` to enable
+        passive scanning. In this mode the node will not transmit any Probe Request packets and network
+        information will be gathered only from received Beacon packets.
+
+        The blank SSID (``ssid=""``) is interpretted as a wildcard and will solicit Probe Response packets
+        from networks with any SSID. "Closed" networks do not respond to the wildcard SSID. These networks
+        will still be discovered via Beacon receptions.
+
+        If the channel list / SSID is not specified, then it will 
+        not be updated on the node (ie it will use the current channel list / SSID)
+
         """
         # Convert num_probe_tx_per_chan
         #   - The node only supports a probe_tx_interval (in microseconds).  
