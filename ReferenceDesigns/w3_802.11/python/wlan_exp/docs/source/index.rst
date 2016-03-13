@@ -8,13 +8,16 @@
 Mango WLAN Experiments Framework Documentation
 ==============================================
 
-The 802.11 Reference Design implements a framework for running experiments with multiple nodes. This 
-framework enables low-level visibility and control of MAC and PHY behaviors in real-time. The experiment 
-framework is called wlan_exp.  
+The Mango 802.11 Reference Design implements a framework for running experiments with multiple nodes. This 
+framework enables low-level visibility and control of MAC and PHY behaviors in real time. The experiment 
+framework is implemented as a Python packaged named wlan_exp.
 
-Please refer to http://warpproject.org/trac/wiki/802.11/wlan_exp for more information.
+This documentation is generated from the Python code and describes the various classes and methods
+in wlan_exp. Additional details on how the experiments framework integrates with the reference C code
+are in the reference design user guide: https://warpproject.org/trac/wiki/802.11/wlan_exp.
 
-Distributed under the Mango Reference Design License (http://mangocomm.com/802.11/license).
+The wlan_exp code is Copyright (c)2016 Mango Communications, Inc. and is distributed under
+the Mango Reference Design License (http://mangocomm.com/802.11/license).
 
 Contents:
 

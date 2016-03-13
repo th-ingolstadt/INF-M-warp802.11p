@@ -2,22 +2,14 @@
 
 .. include:: globals.rst
 
-WLAN Exp Node - IBSS (Ad hoc)
------------------------------
-Sub-class of WlanExpNode that adds 802.11 IBSS (Ad hoc) functionality.  
+Ad hoc (IBSS) Node
+------------------
+Subclass of WlanExpNode that interfaces to an 802.11 Reference Design node running the
+Access Point (AP) application in CPU High. An AP node supports all the :doc:`common node<node>`
+methods plus the AP-specific methods described below.
 
-For more information please refer to the `IBSS documentation <http://warpproject.org/trac/wiki/802.11/MAC/Upper/IBSS>`_.
+IBSS Node Methods
+.................
 
-
-Class
-.....
-.. autoclass:: wlan_exp.node_ibss.WlanExpNodeIBSS
-
-
-IBSS Specific Implementation of Node Commands
-.............................................
-These commands have IBSS specific implementations.
-
-.. autoclass:: wlan_exp.node_ibss.WlanExpNodeIBSS
-   :members: counts_get_txrx, configure_bss, disassociate
-
+.. automethod:: wlan_exp.node_ibss.WlanExpNodeIBSS.configure_bss
+.. automethod:: wlan_exp.node_ibss.WlanExpNodeIBSS.counts_get_txrx

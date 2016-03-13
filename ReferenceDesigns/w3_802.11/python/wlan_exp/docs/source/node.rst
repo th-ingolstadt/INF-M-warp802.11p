@@ -2,25 +2,16 @@
 
 .. include:: globals.rst
 
-WLAN Exp Node
--------------
+wlan_exp Node Classes
+---------------------
 
-The WlanExpNode represents one node in a network of nodes running the 802.11 Reference Design. This class
+The WlanExpNode class represents one node in a network of nodes running the 802.11 Reference Design. This class
 is the primary interface for interacting with nodes by providing methods to send commands and read status 
 of the node. This is the base class for all node types and provides the common functionality for all nodes.
 
-The AP, STA and IBSS node types implement additional commands. These commands are documented in the sub-class
-pages for each node type.
 
-.. toctree::
-    :maxdepth: 1
-
-    node_ap.rst
-    node_ibss.rst
-    node_sta.rst
-
-Node Object
-...........
+Base Node Class
+...............
 The WlanExpNode class implements the interface to an 802.11 Reference Design node. The WlanExpNode class should
 **not** be instantiated directly. Refer to the wlan_exp examples for the recommend node initialization flow which
 returns a properly initialized WlanExpNode instance.
@@ -33,9 +24,21 @@ normal operation of wlan_exp tools.
 .. autoclass:: wlan_exp.node.WlanExpNode
 
 
-Commands
-........
-The list below documents each node command implemented by the WlanExpNode class. 
+AP, STA & IBSS Node Classes
+...........................
+
+The AP, STA and IBSS node types are represented by dedicated subclasses of WlanExpNode. The node objects in wlan_exp
+scripts will be instances of these subclasses. Each subclass implements methods that are specific to a given node type.
+
+ * :doc:`node_ap`
+ * :doc:`node_sta`
+ * :doc:`node_ibss`
+
+
+Common Node Methods
+...................
+The list below documents each node method implemented by the WlanExpNode class. These methods can be used with any
+wlan_exp node type (AP, STA, IBSS).
 
 Node
 ````

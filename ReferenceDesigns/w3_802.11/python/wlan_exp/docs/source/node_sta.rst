@@ -2,30 +2,19 @@
 
 .. include:: globals.rst
 
-WLAN Exp Node - Station (STA)
------------------------------
-Sub-class of WlanExpNode that adds 802.11 Station (STA) functionality.  
 
-For more information please refer to the `STA documentation <http://warpproject.org/trac/wiki/802.11/MAC/Upper/STA>`_.
+STA (STA) Node
+--------------
+Subclass of WlanExpNode that interfaces to an 802.11 Reference Design node running the
+Access Point (AP) application in CPU High. An AP node supports all the :doc:`common node<node>`
+methods plus the AP-specific methods described below.
 
+STA Node Methods
+................
 
-Class
-.....
-.. autoclass:: wlan_exp.node_sta.WlanExpNodeSta
-
-
-STA Specific Implementation of Node Commands
-............................................
-These commands have Station specific implementations.
-
-.. autoclass:: wlan_exp.node_sta.WlanExpNodeSta
-   :members: configure_bss, disassociate
-
-
-STA Commands
-............
-These commands are specific to STA nodes.
-
-.. autoclass:: wlan_exp.node_sta.WlanExpNodeSta
-   :members: set_aid, join_network, is_joining
+.. automethod:: wlan_exp.node_sta.WlanExpNodeSta.configure_bss
+.. automethod:: wlan_exp.node_sta.WlanExpNodeSta.disassociate
+.. automethod:: wlan_exp.node_sta.WlanExpNodeSta.set_aid
+.. automethod:: wlan_exp.node_sta.WlanExpNodeSta.join_network
+.. automethod:: wlan_exp.node_sta.WlanExpNodeSta.is_joining
 
