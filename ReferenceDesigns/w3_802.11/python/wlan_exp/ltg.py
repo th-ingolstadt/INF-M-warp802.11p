@@ -9,12 +9,6 @@
 .. License:   Copyright 2014-2015, Mango Communications. All rights reserved.
 ..            Distributed under the WARP license (http://warpproject.org/license)
 .. ------------------------------------------------------------------------------
-.. MODIFICATION HISTORY:
-..
-.. Ver   Who  Date     Changes
-.. ----- ---- -------- -----------------------------------------------------
-.. 1.00a ejw  1/23/14  Initial release
-.. ------------------------------------------------------------------------------
 
 This module provides definitions for Local Traffic Generation (LTG) on
 WLAN Exp nodes.
@@ -44,14 +38,12 @@ __all__ = ['Schedule', 'SchedulePeriodic', 'ScheduleUniformRandom',
 
 
 
-# LTG Schedules
-#   NOTE:  The C counterparts are found in *_ltg.h
+# LTG Schedule IDs - must match corresponding values in wlan_mac_ltg.h
 LTG_SCHED_TYPE_PERIODIC                = 1
 LTG_SCHED_TYPE_UNIFORM_RAND            = 2
 
 
-# LTG Payloads
-#   NOTE:  The C counterparts are found in *_ltg.h
+# LTG Payload IDs - must match corresponding values in wlan_mac_ltg.h
 LTG_PYLD_TYPE_FIXED                    = 1
 LTG_PYLD_TYPE_UNIFORM_RAND             = 2
 LTG_PYLD_TYPE_ALL_ASSOC_FIXED          = 3
@@ -71,12 +63,10 @@ LTG_PYLD_MIN                           = 20
 LTG_PYLD_MAX                           = 1500
 
 
-# LTG Constants
-#   NOTE:  The C counterparts are found in *_ltg.h
+# LTG action constants - must match corresponding values in wlan_mac_ltg.h
 LTG_REMOVE_ALL                         = 0xFFFFFFFF
 LTG_START_ALL                          = 0xFFFFFFFF
 LTG_STOP_ALL                           = 0xFFFFFFFF
-
 
 #-----------------------------------------------------------------------------
 # LTG Schedules
