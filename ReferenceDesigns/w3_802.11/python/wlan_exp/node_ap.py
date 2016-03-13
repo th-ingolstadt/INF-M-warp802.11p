@@ -221,7 +221,7 @@ class WlanExpNodeAp(node.WlanExpNode):
             ::        
                 n_ap.set_authentication_address_filter(allow='NONE')     # Same as allow=(0x000000000000, 0xFFFFFFFFFFFF)
                 n_ap.set_authentication_address_filter(allow='ALL')      # Same as allow=(0x000000000000, 0x000000000000)
-                n_ap.set_authentication_address_filter(allow='MANGO-W3') # Same as allow=(0x40d855402000, 0xFFFFFFFFF000)
+                n_ap.set_authentication_address_filter(allow='MANGO-W3') # Same as allow=(0x40d855042000, 0xFFFFFFFFF000)
 
         """
         filters = []
@@ -237,7 +237,7 @@ class WlanExpNodeAp(node.WlanExpNode):
                 elif (value == 'ALL'):
                     filters.append((0x000000000000, 0x000000000000))
                 elif (value == 'MANGO-W3'):
-                    filters.append((0x40d855402000, 0xFFFFFFFFF000))
+                    filters.append((0x40d855042000, 0xFFFFFFFFF000))
                 else:
                     msg  = "\n    String '{0}' not recognized.".format(value)
                     msg += "\n    Please use 'NONE', 'ALL', 'MANGO-W3' or a (address, mask) tuple"
