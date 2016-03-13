@@ -3,11 +3,11 @@
 .. include:: globals.rst
 
 
-STA (STA) Node
+Station (STA) Node
 --------------
 Subclass of WlanExpNode that interfaces to an 802.11 Reference Design node running the
-Access Point (AP) application in CPU High. An AP node supports all the :doc:`common node<node>`
-methods plus the AP-specific methods described below.
+station (STA) application in CPU High. A STA node supports all the :doc:`common node<node>`
+methods plus the STA-specific methods described below.
 
 STA Node Methods
 ................

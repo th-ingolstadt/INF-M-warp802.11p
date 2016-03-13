@@ -92,8 +92,15 @@ class WlanExpNodeSta(node.WlanExpNode):
     # STA specific WLAN Exp Commands 
     #-------------------------------------------------------------------------
     def set_aid(self, aid):
-        """Set the Association ID (AID) of the STA
-        
+        """Set the Association ID (AID) of the STA.
+
+        Normally the AID is assigned by the AP during the probe/authentication/association
+        handshake. However if the BSS configuration of the STA is set via the
+        configure_bss() method there is no AP-assigned AID. Thankfully this is only a
+        cosmetic problem. The reference code does not use the AID for any MAC processing.
+        By default the AID is only used to set the hex display at the STA node. This
+        method will have the same affect.
+
         Args:
             aid (int): Association ID (must be in [1, 255])
         """
@@ -120,6 +127,9 @@ class WlanExpNodeSta(node.WlanExpNode):
         the methods is_joining() and get_bss_info() can be used to determine 
         if the STA has joined the BSS.
         
+        If this method starts an active scan, the scan will use the parameters
+        previously configured with node.set_scan_parameters().
+
         Args:
             ssid (str):  SSID string (Must be 32 characters or less); a value
                 of None will stop any current join process.
@@ -131,9 +141,6 @@ class WlanExpNodeSta(node.WlanExpNode):
                 the join process to continue forever until the node has joined
                 the network or the join has failed.
                 
-        
-        .. note::  This method will use the current scan parameters.
-        
         """
         status = True
         
@@ -168,10 +175,15 @@ class WlanExpNodeSta(node.WlanExpNode):
 
 
     def is_joining(self):
-        """Is the node currently in the join process?
+        """Queries if the STA is currently attempting to join a network. The join
+        state machine runs until the target network is successfully joined or
+        the joing process is terminated by the user. This method tests whether
+        the join process is still running. To check success or failure of the
+        join process, use node.get_bss_info().
         
         Returns:
-            status (bool):  
+            status (bool):
+
                 * True      -- Inidcates node is currently in the join process
                 * False     -- Indicates node is not currently in the join process
         """
