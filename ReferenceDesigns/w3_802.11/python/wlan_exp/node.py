@@ -1686,27 +1686,6 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """
         raise NotImplementedError()
 
-
-    def disassociate(self, device_list):
-        """Remove associations of devices within the device_list from the 
-        association table
-
-        Args:
-            device_list (list of WlanExpNode / WlanDevice):  List of 802.11 
-                devices or single 802.11 device for which to disassociate
-        """
-        try:
-            for device in device_list:
-                self.send_cmd(cmds.NodeDisassociate(device))
-        except TypeError:
-            self.send_cmd(cmds.NodeDisassociate(device_list))
-
-
-    def disassociate_all(self):
-        """Remove all associations from the association table"""
-        self.send_cmd(cmds.NodeDisassociate())
-
-
     def is_associated(self, device_list):
         """Is the node associated with the devices in the device list.
 

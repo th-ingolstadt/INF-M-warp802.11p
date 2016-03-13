@@ -90,21 +90,6 @@ class WlanExpNodeIBSS(node.WlanExpNode):
                                          beacon_interval=beacon_interval, ht_capable=ht_capable))
 
 
-    def disassociate(self, device_list=None):
-        """Remove associations of devices within the device_list from the association table
-
-        .. note:: This command is not supported by IBSS nodes.  Please use diassociate_all().
-            This function will raise a NotImplementedError.
-        
-        Args:
-            device_list (list of WlanExpNode / WlanDevice):  List of 802.11 devices or single 
-                802.11 device for which to disassociate
-        """
-        msg = "ERROR:  disassociate(device_list) is not supported for IBSS nodes.  Please use disassociate_all()."
-        raise NotImplementedError(msg)
-
-
-
     #-------------------------------------------------------------------------
     # Override Internal WLAN Exp Node methods
     #-------------------------------------------------------------------------

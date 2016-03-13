@@ -128,6 +128,34 @@ class WlanExpNodeAp(node.WlanExpNode):
     #-------------------------------------------------------------------------
     # AP specific WLAN Exp Commands 
     #-------------------------------------------------------------------------
+    def disassociate(self, device_list):
+        """De-authenticate specific devices and remove the devices from the AP's
+        association tables. This method triggers transmission of a de-authenticaion
+        packet to the targeted STA nodes. The STA nodes are then removed from the AP 
+        association table.
+
+        Args:
+            device_list (list of WlanExpNode / WlanDevice):  List of 802.11 
+                devices or single 802.11 device for which to disassociate
+        """
+        try:
+            for device in device_list:
+                self.send_cmd(cmds.NodeDisassociate(device))
+        except TypeError:
+            self.send_cmd(cmds.NodeDisassociate(device_list))
+
+    def disassociate_all(self, device_list):
+        """De-authenticates all devices and removes all devices from the AP's
+        association tables. This method triggers transmission of a de-authenticaion
+        packet to every associated STA node. The STA nodes are then removed from the AP 
+        association table.
+
+        Args:
+            device_list (list of WlanExpNode / WlanDevice):  List of 802.11 
+                devices or single 802.11 device for which to disassociate
+        """
+        self.send_cmd(cmds.NodeDisassociate())
+
     def enable_DTIM_multicast_buffering(self, enable):
         """Enable / Disable DTIM buffering of multicast data
 
