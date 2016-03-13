@@ -1624,47 +1624,51 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     
     
     def start_network_scan(self):
-        """Starts a network scan.
-        
-        .. note::  Currently, network scans are restricted to when the BSS 
-            info of the node is None (ie the node is not currently part of 
-            a BSS).  
+        """Starts the wireless network scan state machine at the node. During a scan the node
+        cycles through a set of channels and transmits periodic Probe Request frames on each channel.
+        Information about available wireless networks is extracted from received Probe Response and
+        Beacon frames. The network scan results can be queried any time using the node.get_network_list()
+        method.
+
+        Network scans can only be run by unassociated nodes. An associated node must first reset its BSS state
+        before starting a scan.
+
+        The network scan state machine can be stopped with n.stop_network_scan(). The state machine will also
+        be stopped automatically if the node is configured with a new non-null BSS state.
             
-        **Example:**
-        
-        * **Perform a scan**:
-            To perform a scan using the current scan parameters, get the 
-            resulting network list and restore the current BSS.  (This example 
-            uses the time module to allow the code to wait)
-            ::
-                my_bss = n.get_bss_info()             # Get current BSS info
-                n.configure_bss(None)                 # Set BSS info to None
-                n.start_scan_networks()               # Start network scan
-                time.sleep(5)                         # Wait for node to scan
-                n.stop_scan_networks()                # Stop network scan
-                networks = n.get_network_list()       # Get networks seen in scan
-                
-                # Restore BSS
-                #   - Example assumes n is a STA; must add beacon_interval 
-                #     for AP / IBSS
-                n.configure_bss(bssid=my_bss['bssid'], ssid=my_bss['ssid'],
-                                channel=my_bss['channel'], ht_capable=my_bss['ht_capable'])
+        Example:
+        ::
+            # Ensure node has null BSS state
+            n.configure_bss(None)
+
+            # Start the scan state machine; scan will use default scan params
+            #  Use n.set_scan_parameters() to customize scan behavior
+            n.start_network_scan()
+
+            # Wait 5 seconds, retrieve the list of discovered networks
+            time.sleep(5)
+            networks = n.get_network_list()
+
+            # Stop the scan state machine
+            n.stop_network_scan()
+
         """
         self.send_cmd(cmds.NodeProcScan(enable=True))
     
     
     def stop_network_scan(self):
-        """Stops the current network scan."""
+        """Stops the wireless network scan state machine."""
         self.send_cmd(cmds.NodeProcScan(enable=False))
 
 
     def is_scanning(self):
-        """Is the node currently scanning?
+        """Queries if the node's wireless network scanning state machine is currently running.
         
         Returns:
-            status (bool):  
-                * True      -- Inidcates node is currently in the scan process
-                * False     -- Indicates node is not currently in the scan process
+            status (bool):
+
+                * True      -- Scan state machine is running
+                * False     -- Scan state machine is not running
         """
         return self.send_cmd(cmds.NodeProcScan())
 

@@ -2238,7 +2238,7 @@ def _add_time_to_cmd32(cmd, time, time_factor):
 
         if (time_to_send > 0xFFFFFFFF):
             time_to_send = 0xFFFFFFFF
-            print("WARNING:  Time value (in microseconds) exceeds 32-bits.  Truncating.\n")
+            print("WARNING:  Time value (in microseconds) exceeds 32-bits. Saturating to 0xFFFFFFFF.\n")
 
         cmd.add_args((time_to_send & 0xFFFFFFFF))
     else:
