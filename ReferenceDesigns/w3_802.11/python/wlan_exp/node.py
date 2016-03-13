@@ -269,7 +269,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
 
     def log_get_size(self):
-        """Get the size of the log (in bytes).
+        """Get the size of the node's current log (in bytes).
 
         Returns:
             num_bytes (int): Number of bytes in the log
@@ -291,7 +291,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
 
     def log_get_capacity(self):
-        """Get the capacity of the log (in bytes).
+        """Get the total capacity of the node's log memory allocation (in bytes).
 
         Returns:
             capacity (int): Number of byte allocated for the log.
@@ -418,17 +418,16 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Configure counts collection on the node.
 
         Args:
-            promisc_counts (bool, optional): Enable promiscuous counts collection (TRUE/False)
-
-        .. note:: By default all attributes are set to None.  Only attributes that
-            are given values will be updated on the node.  If an attribute is
-            not specified, then that attribute will retain the same value on the node.
+            promisc_counts (bool, optional): Enable promiscuous counts collection. When 
+            promiscuous counts are enbaled the node will create a counts data structure
+            for every unique MAC address it observes in all Tx and Rx packets, independent
+            of the association state of the node or the transmitting device.
         """
         self.send_cmd(cmds.CountsConfigure(promisc_counts))
 
 
     def counts_get_txrx(self, device_list=None, return_zeroed_counts_if_none=False):
-        """Get the counts from the node.
+        """Get the Tx/Rx counts data structurs from the node.
 
         Args:
             device_list (list of WlanExpNode, WlanExpNode, WlanDevice, optional): List of devices
@@ -440,12 +439,50 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         Returns:
             counts_dictionary (list of dictionaries, dictionary): Counts for the device(s) specified.
 
-        .. note:: If the device_list is a single device, then a single dictionary or
-            None is returned.  If the device_list is a list of devices, then a
-            list of dictionaries will be returned in the same order as the
-            devices in the list.  If any of the staistics are not there,
-            None will be inserted in the list.  If the device_list is not
-            specified, then all the counts on the node will be returned.
+
+        The dictionaries returned by this method have the following fields:
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | Field                       | Description                                                                                        |
+            +=============================+====================================================================================================+
+            | mac_addr                    |  MAC address of remote node whose statics are recorded here                                        |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | associated                  |  Boolean indicating whether remote node is currently associated with this node                     |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | data_num_rx_bytes           |  Total number of bytes received in DATA packets from remote node                                   |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | data_num_tx_bytes_success   |  Total number of bytes successfully transmitted in DATA packets to remote node                     |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | data_num_tx_bytes_total     |  Total number of bytes transmitted (successfully or not) in DATA packets to remote node            |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | data_num_rx_packets         |  Total number of DATA packets received from remote node                                            |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | data_num_tx_packets_success |  Total number of DATA packets successfully transmitted to remote node                              |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | data_num_tx_packets_total   |  Total number of DATA packets transmitted (successfully or not) to remote node                     |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | data_num_tx_packets_low     |  Total number of PHY transmissions of DATA packets to remote node (includes re-transmissions)      |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | mgmt_num_rx_bytes           |  Total number of bytes received in management packets from remote node                             |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | mgmt_num_tx_bytes_success   |  Total number of bytes successfully transmitted in management packets to remote node               |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | mgmt_num_tx_bytes_total     |  Total number of bytes transmitted (successfully or not) in management packets to remote node      |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | mgmt_num_rx_packets         |  Total number of management packets received from remote node                                      |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | mgmt_num_tx_packets_success |  Total number of management packets successfully transmitted to remote node                        |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | mgmt_num_tx_packets_total   |  Total number of management packets transmitted (successfully or not) to remote node               |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | mgmt_num_tx_packets_low     |  Total number of PHY transmissions of management packets to remote node (includes re-transmissions)|
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | latest_txrx_timestamp       |  System Time value of last transmission / reception                                                |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+
+
+        If the device_list is a single device, then a single dictionary or None is returned.  If the device_list is a list of devices, then a
+        list of dictionaries will be returned in the same order as the devices in the list.  If any of the staistics are not there, None 
+        will be inserted in the list.  If the device_list is not specified, then all the counts on the node will be returned.
         """
         ret_val = []
         if not device_list is None:
@@ -1771,7 +1808,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         Returns:
             station_infos (list of StationInfo()):  List of StationInfo() known to the node
 
-        .. note:: If the device_list is a single device, then only a station info or
+        If the device_list is a single device, then only a station info or
             None is returned.  If the device_list is a list of devices, then a
             list of station infos will be returned in the same order as the
             devices in the list.  If any of the station info are not there,
