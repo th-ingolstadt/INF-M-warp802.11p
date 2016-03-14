@@ -1350,20 +1350,17 @@ class NodeProcScanParam(message.Cmd):
     """Command to configure the scan parameters
 
     Attributes:
-        cmd                -- Command for Process Scan Param:
-                                CMD_PARAM_WRITE
-        time_per_channel   -- Time (in float sec) to spend on each channel (optional)
-        probe_tx_interval  -- Time (in float sec) to wait between each probe transmission (optional)
-        channel_list       -- Channels to scan (optional)
-                                Defaults to all channels in util.py wlan_channels array
-                                Can provide either a channel number or list of
-                                  channel numbers
-        ssid               -- SSID (optional)
+        cmd                      -- Command for Process Scan Param:
+                                        CMD_PARAM_WRITE
+        time_per_channel         -- Time (in float sec) to spend on each channel (optional)
+        num_probe_tx_per_channel -- Time (in float sec) to wait between each probe transmission (optional)
+        channel_list             -- List of channels to scan (optional)
+        ssid                     -- SSID (optional)
     """
     time_factor = 6
     time_type   = None
 
-    def __init__(self, cmd, time_per_channel=None, probe_tx_interval=None, channel_list=None, ssid=None):
+    def __init__(self, cmd, time_per_channel=None, num_probe_tx_per_channel=None, channel_list=None, ssid=None):
         super(NodeProcScanParam, self).__init__()
         self.command = _CMD_GROUP_NODE + CMDID_NODE_SCAN_PARAM
 
@@ -1373,20 +1370,18 @@ class NodeProcScanParam(message.Cmd):
             # Add the time_per_channel to the command
             _add_time_to_cmd32(self, time_per_channel, self.time_factor)
 
-            # Add the probe_tx_interval to the command
-            _add_time_to_cmd32(self, probe_tx_interval, self.time_factor)
+            # Add num_probe_tx_per_channel to the command
+            if num_probe_tx_per_channel is not None:
+                self.add_args(num_probe_tx_per_channel)
+            else:
+                self.add_args(CMD_PARAM_RSVD)
 
             # Format the channel list
             if channel_list is not None:
+                self.add_args(len(channel_list))
 
-                if type(channel_list) is list:
-                    self.add_args(len(channel_list))
-
-                    for channel in channel_list:
-                        self.add_channel(channel)
-                else:
-                    self.add_args(1)
-                    self.add_channel(channel_list)
+                for channel in channel_list:
+                    self.add_channel(channel)
             else:
                 self.add_args(CMD_PARAM_RSVD)
 

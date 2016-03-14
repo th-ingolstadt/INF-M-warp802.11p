@@ -1614,14 +1614,16 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     #--------------------------------------------
     # Scan Commands
     #--------------------------------------------
-    def set_scan_parameters(self, time_per_channel=0.1, num_probe_tx_per_chan=1, channel_list=None, ssid=None):
+    def set_scan_parameters(self, time_per_channel=None, num_probe_tx_per_channel=None, channel_list=None, ssid=None):
         """Set the paramters of the wireless network scan state machine.
         
         Args:
-            time_per_channel (float, int, optional): Time (in float sec or int 
-                microseconds) to spend on each channel (defaults to 0.1 sec)
-            num_probe_tx_per_chan (int, optional):   Number of probe requests 
-                transmitted while on each channel (defaults to 1)
+            time_per_channel (float, optional): Time (in float sec) to spend 
+                on each channel.  A value of None will not modify the current
+                time per channel
+            num_probe_tx_per_channel (int, optional):   Number of probe requests 
+                transmitted while on each channel.  A value of None will not 
+                modify the current number of probe requests per channel.
             channel_list (list of int optional): Channel(s) to scan; A value 
                 of None will not modify the current channel list.
             ssid (str, optional):  SSID to scan for (as part of probe request);
@@ -1641,28 +1643,54 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         not be updated on the node (ie it will use the current channel list / SSID)
 
         """
-        # Convert num_probe_tx_per_chan
-        #   - The node only supports a probe_tx_interval (in microseconds).  
-        #     Therefore, this function must convert the number of probe 
-        #     transmissions to an appropriate interval based on the time_per_channel.
-        #   - In the scan implementation, if the probe tx interval is greater
-        #     than zero, a probe request will be transmitted immediately and 
-        #     subesequent probe requests will be scheduled to be sent after the
-        #     probe tx interval.
-        #   - Given the that we cannot guarantee execution order in the scheduler, 
-        #     this conversion will be "best effort".  This means that in certain 
-        #     cases the actual number of probe reqeusts will be +/- 1 of the number 
-        #     specified.  By dividing the time_per_channel by the num_probe_tx_per_chan,
-        #     there could arise a situation where the probe request transmission was 
-        #     executed before the channel switched resulting in a extra probe
-        #     request on a channel.
-        #
-        if (num_probe_tx_per_chan == 0):
-            probe_tx_interval = 0
-        else:
-            probe_tx_interval = time_per_channel / num_probe_tx_per_chan
+        # Check time_per_channel
+        if time_per_channel is not None:
+            try:
+                time_per_channel = float(time_per_channel)
+            except:
+                raise AttributeError("time_per_channel must be expressable as a float.")
                 
-        self.send_cmd(cmds.NodeProcScanParam(cmds.CMD_PARAM_WRITE, time_per_channel, probe_tx_interval, channel_list, ssid))
+        # Check channel_list
+        if channel_list is not None:
+            tmp_chan_list = []
+            
+            if type(channel_list) is str:
+                # Process pre-defined strings
+                import wlan_exp.util as util
+
+                if   (channel_list == 'ALL'):
+                    tmp_chan_list = util.wlan_channels
+                elif (channel_list == 'ALL_2.4GHZ'):
+                    tmp_chan_list = [x for x in util.wlan_channels if (x <= 14)]
+                elif (channel_list == 'ALL_5GHZ'):
+                    tmp_chan_list = [x for x in util.wlan_channels if (x > 14)]
+                else:
+                    msg  = "\n    String '{0}' not recognized.".format(channel_list)
+                    msg += "\n    Please use 'ALL', 'ALL_2.4GHZ', 'ALL_5GHZ' or either an int or list of channels"
+                    raise AttributeError(msg)
+
+            elif type(channel_list) is int:
+                # Proess scalar integer
+                tmp_chan_list.append(channel_list)
+                
+            else:
+                # Proess interables
+                try:
+                    for channel in channel_list:
+                        tmp_chan_list.append(channel)
+                except:
+                    msg  = "\n    Unable to process channel_list."
+                    msg += "\n    Please use 'ALL', 'ALL_2.4GHZ', 'ALL_5GHZ' or either an int or list of channels"
+                    raise AttributeError(msg)
+
+            if tmp_chan_list:
+                channel_list = tmp_chan_list
+            else:
+                msg  = "\n    channel_list is empty."
+                msg += "\n    Please use 'ALL', 'ALL_2.4GHZ', 'ALL_5GHZ' or either an int or list of channels"
+                raise AttributeError(msg)
+                
+        self.send_cmd(cmds.NodeProcScanParam(cmds.CMD_PARAM_WRITE, time_per_channel, num_probe_tx_per_channel, channel_list, ssid))
     
     
     def start_network_scan(self):
