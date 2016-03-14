@@ -2257,7 +2257,7 @@ u32	configure_bss(bss_config_t* bss_config){
 					curr_station_info = (station_info*)(curr_station_info_entry->data);
 
 					// Purge any data for the station
-		            purge_queue(AID_TO_QID(curr_station_info->AID));
+					purge_queue(AID_TO_QID(curr_station_info->AID));
 
 					// Remove the association
 					wlan_mac_high_remove_association(&my_bss_info->associated_stations, &counts_table, curr_station_info->addr);
@@ -2291,8 +2291,16 @@ u32	configure_bss(bss_config_t* bss_config){
 			}
 
 			// my_bss_info is guaranteed to be NULL at this point in the code
+			// bss_config is guaranteed to be non-NULL at this point in the code
 
+			// Update BSS
+			//     - BSSID must not be zero_addr (reserved address)
 			if (wlan_addr_eq(bss_config->bssid, zero_addr) == 0) {
+				// Stop the scan state machine if it is running
+				if (wlan_mac_scan_is_scanning()) {
+					wlan_mac_scan_stop();
+				}
+
 				// Create a new bss_info or overwrite an existing one with matching BSSID.
 				//     Note:  The wildcard SSID and 0-valued channel arguments are temporary. Because
 				//         of the error checking at the top of this function, the bss_config will
