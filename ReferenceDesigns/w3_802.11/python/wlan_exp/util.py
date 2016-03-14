@@ -9,12 +9,6 @@
 .. License:   Copyright 2014-2015, Mango Communications. All rights reserved.
 ..            Distributed under the WARP license (http://warpproject.org/license)
 .. ------------------------------------------------------------------------------
-.. MODIFICATION HISTORY:
-..
-.. Ver   Who  Date     Changes
-.. ----- ---- -------- -----------------------------------------------------
-.. 1.00a ejw  1/23/14  Initial release
-.. ------------------------------------------------------------------------------
 
 """
 
@@ -88,24 +82,30 @@ WLAN_EXP_PRINT_DEBUG              = 4
 # WLAN Exp Rate definitions
 # -----------------------------------------------------------------------------
 
-# Supported PHY Mode constants
+#: PHY Modes - DSSS (Rx only), NONHT OFDM (11a/g) and HTMF (11n).
+#: Use this dictionary to interpret ``phy_mode`` values encoded in Tx/Rx log entries
 phy_modes = consts_dict({
        'DSSS'      :  0,
        'NONHT'     :  1,
-       'HTMF'      :  2,
-       'VHT'       :  4})
+       'HTMF'      :  2})
 
 
-# Supported PHY Sample Rate constants
+#: PHY sampling rates, in MSps.
+#: Use this dictionary to interpret ``phy_samp_rate`` values encoded in Tx/Rx log entries
 phy_samp_rates = consts_dict({
-       'PHY_5M'    :  5,
        'PHY_10M'   :  10,
        'PHY_20M'   :  20,
        'PHY_40M'   :  40})
 
 
 def get_rate_info(mcs, phy_mode, phy_samp_rate=20, short_GI=False):
-    """Get Rate info dictionary based on rate parameters
+    """Generate dictionary with details about a PHY rate. The returned dictionary
+    has fields:
+      * ``mcs``: the MCS index passed in the ``mcs`` argument, integer in 0 to 7
+      * ``phy_mode``: the PHY mode passed in the ``phy_mode`` argument, either ``'NONHT'`` or ``'HTMF'``
+      * ``desc``: string describing the rate
+      * ``NDBPS``: integer number of data bits per OFDM symbol for the rate
+      * ``phy_rate``: float data rate in Mbps
 
     Args:
         mcs (int):                 Modulation and coding scheme (MCS) index
@@ -119,7 +119,7 @@ def get_rate_info(mcs, phy_mode, phy_samp_rate=20, short_GI=False):
     ret_val = dict()
 
     # 802.11 a/g rates - IEEE 802.11-2012 Table 18-4
-    #     Chapter 18 doesn't use the term "MCS", but it's a convenient
+    #     Clause 18 doesn't use the term "MCS", but it's a convenient
     #     way to refer to these rates.
     mod_orders_nonht        = ['BPSK', 'BPSK', 'QPSK', 'QPSK', '16-QAM', '16-QAM', '64-QAM', '64-QAM']
     code_rates_nonht        = [ '1/2',  '3/4',  '1/2',  '3/4',    '1/2',    '3/4',    '2/3',    '3/4']
@@ -174,13 +174,20 @@ def get_rate_info(mcs, phy_mode, phy_samp_rate=20, short_GI=False):
 
 
 def rate_info_to_str(rate_info):
-    """Convert a Rate info dictionary to a string.
+    """Convert dictionary returned by ``get_rate_info()`` into a printable string.
 
     Args:
-        rate_info (dict):  Rate info dictionary
+        rate_info (dict):  Dictionary returned by ``get_rate_info()``
 
     Returns:
-        output (str):  String representation of the 'rate'
+        output (str):  String representation of the rate
+
+    Example:
+    ::
+        >>> import wlan_exp.util as util
+        >>> r = util.get_rate_info(mcs=3, phy_mode='HTMF')
+        >>> print(util.rate_info_to_str(r))
+        26.0 Mbps (HTMF 16-QAM 1/2)
     """
     msg = ""
     if type(rate_info) is dict:
@@ -196,7 +203,10 @@ def rate_info_to_str(rate_info):
 # -----------------------------------------------------------------------------
 # WLAN Exp Channel definitions
 # -----------------------------------------------------------------------------
-# Supported channels
+
+#: List of supported channels. Each value represents a 20MHz channel in the 2.4GHz
+#: or 5GHz bands. Use the ``get_channel_info`` method to lookup the actual center
+#: frequency for a given channel index.
 wlan_channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 36, 40, 44, 48]
 
 
@@ -209,23 +219,35 @@ def get_channel_info(channel):
 
     Returns:
         channel_info (dict):  Channel info dictionary
+
+    The returned dictionary has fields:
+
+     * ``channel``: Integer channel index
+     * ``freq``: Integer channel center frequency, in MHz
+
+     Example:
+     ::
+        >>> import wlan_exp.util as util
+        >>> util.get_channel_info(5)
+        {'freq': 2432, 'channel': 5}
+
     """
     channel_info = {
-         1 : {'channel' :   1, 'freq': 2412, 'desc' : '2.4 GHz Band'},
-         2 : {'channel' :   2, 'freq': 2417, 'desc' : '2.4 GHz Band'},
-         3 : {'channel' :   3, 'freq': 2422, 'desc' : '2.4 GHz Band'},
-         4 : {'channel' :   4, 'freq': 2427, 'desc' : '2.4 GHz Band'},
-         5 : {'channel' :   5, 'freq': 2432, 'desc' : '2.4 GHz Band'},
-         6 : {'channel' :   6, 'freq': 2437, 'desc' : '2.4 GHz Band'},
-         7 : {'channel' :   7, 'freq': 2442, 'desc' : '2.4 GHz Band'},
-         8 : {'channel' :   8, 'freq': 2447, 'desc' : '2.4 GHz Band'},
-         9 : {'channel' :   9, 'freq': 2452, 'desc' : '2.4 GHz Band'},
-        10 : {'channel' :  10, 'freq': 2457, 'desc' : '2.4 GHz Band'},
-        11 : {'channel' :  11, 'freq': 2462, 'desc' : '2.4 GHz Band'},
-        36 : {'channel' :  36, 'freq': 5180, 'desc' : '  5 GHz Band'},
-        40 : {'channel' :  40, 'freq': 5200, 'desc' : '  5 GHz Band'},
-        44 : {'channel' :  44, 'freq': 5220, 'desc' : '  5 GHz Band'},
-        48 : {'channel' :  48, 'freq': 5240, 'desc' : '  5 GHz Band'}}
+         1 : {'channel' :   1, 'freq': 2412},
+         2 : {'channel' :   2, 'freq': 2417},
+         3 : {'channel' :   3, 'freq': 2422},
+         4 : {'channel' :   4, 'freq': 2427},
+         5 : {'channel' :   5, 'freq': 2432},
+         6 : {'channel' :   6, 'freq': 2437},
+         7 : {'channel' :   7, 'freq': 2442},
+         8 : {'channel' :   8, 'freq': 2447},
+         9 : {'channel' :   9, 'freq': 2452},
+        10 : {'channel' :  10, 'freq': 2457},
+        11 : {'channel' :  11, 'freq': 2462},
+        36 : {'channel' :  36, 'freq': 5180},
+        40 : {'channel' :  40, 'freq': 5200},
+        44 : {'channel' :  44, 'freq': 5220},
+        48 : {'channel' :  48, 'freq': 5240}}
 
     # Check input arguments
     if (channel not in wlan_channels):
@@ -240,7 +262,7 @@ def channel_info_to_str(channel_info):
     """Convert a channel info dictionary to a string.
 
     Args:
-        channel_info (dict):  Channel info dictionary
+        channel_info (dict):  Dictionary returned by ``get_channel_info()``
 
     Returns:
         output (str):  String representation of the 'channel'
