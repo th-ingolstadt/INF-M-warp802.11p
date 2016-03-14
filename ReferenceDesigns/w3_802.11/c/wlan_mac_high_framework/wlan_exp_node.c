@@ -2341,8 +2341,8 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //                           - Write       (NODE_WRITE_VAL)
             //     cmd_args_32[1]    Time per channel (in microseconds)
             //                         (or CMD_PARAM_NODE_TIME_RSVD_VAL if not setting the parameter)
-            //     cmd_args_32[2]    Probe request Tx interval (in microseconds)
-            //                         (or CMD_PARAM_NODE_TIME_RSVD_VAL if not setting the parameter)
+            //     cmd_args_32[2]    Number of probe request Tx per channel
+            //                         (or CMD_PARAM_RSVD if not setting the parameter)
             //     cmd_args_32[3]    Length of channel list
             //                         (or CMD_PARAM_RSVD if not setting channel list)
             //     cmd_args_32[4:N]  Channel
@@ -2356,12 +2356,14 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             u32                             i;
             volatile scan_parameters_t    * scan_params;
             u32                             time_per_channel;
-            u32                             probe_tx_interval;
+            u32                             num_probe_tx;
             u32                             channel_list_len;
             u8                            * channel_list;
             u32                             is_scanning;
             u32                             ssid_len;
             char                          * ssid;
+            u32                             update_probe_interval    = 0;
+            u32                             curr_num_probe_tx        = 0;
             u32                             status         = CMD_PARAM_SUCCESS;
             u32                             msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
 
@@ -2386,17 +2388,37 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     time_per_channel   = Xil_Ntohl(cmd_args_32[1]);
 
                     if (time_per_channel != CMD_PARAM_NODE_TIME_RSVD_VAL) {
+                        // Compute current num_probe_tx
+                        if (scan_params->probe_tx_interval_usec == 0) {
+                            curr_num_probe_tx = 0;
+                        } else {
+                            curr_num_probe_tx = scan_params->time_per_channel_usec / scan_params->probe_tx_interval_usec;
+                        }
+
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Time per channel   = %d us\n", time_per_channel);
                         scan_params->time_per_channel_usec = time_per_channel;
+                        update_probe_interval = 1;
                     }
 
                     // Set Probe request interval
-                    probe_tx_interval = Xil_Ntohl(cmd_args_32[2]);
+                    num_probe_tx = Xil_Ntohl(cmd_args_32[2]);
 
-                    if (probe_tx_interval != CMD_PARAM_NODE_TIME_RSVD_VAL) {
-                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Probe Req interval = %d us\n", probe_tx_interval);
-                        scan_params->probe_tx_interval_usec = probe_tx_interval;
+                    if (num_probe_tx != CMD_PARAM_RSVD) {
+                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Num Probe Req      = %d \n", num_probe_tx);
+                        curr_num_probe_tx = num_probe_tx;
+                        update_probe_interval = 1;
                     }
+
+                    // Set the probe_tx_interval
+                    if (update_probe_interval) {
+                        if (curr_num_probe_tx == 0) {
+                            scan_params->probe_tx_interval_usec = 0;
+                        } else {
+                            scan_params->probe_tx_interval_usec = scan_params->time_per_channel_usec / curr_num_probe_tx;
+                        }
+                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Probe Req interval = %d us\n", scan_params->probe_tx_interval_usec);
+                    }
+
 
                     // Set the scan channels
                     channel_list_len = Xil_Ntohl(cmd_args_32[3]);
