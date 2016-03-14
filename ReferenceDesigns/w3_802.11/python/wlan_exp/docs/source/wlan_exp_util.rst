@@ -35,11 +35,9 @@ Transmit / Receive Rate Definitions
 ...................................
 Supported transmit / receive rates for WlanExpNode 
 
-.. autoattribute:: wlan_exp.util.phy_modes
-    :annotation: = Dictionary of PHY mode constants
+.. autodata:: wlan_exp.util.phy_modes
 
-.. autoattribute:: wlan_exp.util.phy_samp_rates
-    :annotation: = Dictionary of PHY sample rate constants
+.. autodata:: wlan_exp.util.phy_samp_rates
 
 .. autofunction:: wlan_exp.util.get_rate_info
 
@@ -50,8 +48,7 @@ Channel Definitions
 ...................
 Supported channels for WlanExpNode 
 
-.. autoattribute:: wlan_exp.util.wlan_channels
-    :annotation: = Supported channels
+.. autodata:: wlan_exp.util.wlan_channels
 
 .. autofunction:: wlan_exp.util.get_channel_info
 
