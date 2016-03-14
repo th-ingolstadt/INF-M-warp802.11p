@@ -25,7 +25,8 @@ if(~exist('sim_many_waveform_mode','var'))
     
     %PHY debugging with ChipScope captures of I/Q
     % ChipScope waveforms must be saved in ASCII format with (at least) ADC_I and ADC_Q signals
-    %xlLoadChipScopeData('mcs7_11n_4rx_1bad_v0.prn'); cs_interp = 1; cs_start = 1; cs_end = length(ADC_I);
+    %xlLoadChipScopeData('mcs7_11n_badFCS_v0.prn'); cs_interp = 1; cs_start = 1; cs_end = 3800;%length(ADC_I);
+    %xlLoadChipScopeData('mcs7_11n_badFCS_v1.prn'); cs_interp = 1; cs_start = 1; cs_end = 3800;%length(ADC_I);
     %xlLoadChipScopeData('mcs0_11a_200B_bad_v0.prn'); cs_interp = 1; cs_start = 650; cs_end = length(ADC_I);
     %sim_sig = 1.0*complex(ADC_I([cs_start:cs_interp:cs_end]), ADC_Q(cs_start:cs_interp:cs_end));
     %sim_sig = sim_sig .* exp(j*2*pi*1e-4*(0:length(sim_sig)-1)).';
@@ -34,16 +35,17 @@ if(~exist('sim_many_waveform_mode','var'))
     
     %Output of PHY Tx simulation
     % .mat files from Tx PHY sim store I/Q signal in 'wlan_tx_out' variable
-    %load('rx_sigs/wlan_tx_NONHT_MCS7_52B.mat');wlan_tx_out = 1.0*wlan_tx_out.';
+    load('rx_sigs/wlan_tx_NONHT_MCS4_52B.mat');wlan_tx_out = 1.0*wlan_tx_out.';
 
     %RX_END testing
     
     %Supported waveforms
     %load('rx_sigs/rxend_testing/wlan_tx_NONHT_MCS4_52B.mat'); wlan_tx_out = 1.0*wlan_tx_out.';     %good
-    load('rx_sigs/rxend_testing/siggen_HTMF_MCS4_100B_BW20.mat'); wlan_tx_out = 0.2*sig;           %good
+    %load('rx_sigs/tx_HTMF_MCS7_20M_1420B.mat'); wlan_tx_out = 1.0 * wlan_tx_out.';           %good
     %load('rx_sigs/rxend_testing/siggen_HTMF_MCS5_100B_BW20.mat'); wlan_tx_out = 0.2*sig;           %good
-    wlan_tx_out = [wlan_tx_out zeros(1,100) wlan_tx_out zeros(1,100) wlan_tx_out];
+    %wlan_tx_out = [wlan_tx_out zeros(1,100) wlan_tx_out zeros(1,100) wlan_tx_out];
 
+    
     %Unsupported waveforms
     %load('rx_sigs/rxend_testing/siggen_HTMF_MCS11_100B_BW20_CDD200.mat'); wlan_tx_out = 0.2*sig(1,:); %good
     %load('rx_sigs/rxend_testing/siggen_HTMF_MCS11_100B_BW20_CDD200.mat'); wlan_tx_out = 0.14*sig(1,:) + 0.14*sig(2,:); %good
@@ -62,19 +64,23 @@ if(~exist('sim_many_waveform_mode','var'))
     %wlan_tx_out = x_ds;
     
     %Corrupt HTSIG
-    htsig_ind = (160+160+80) + (1:160);
-    wlan_tx_out(htsig_ind) = [wlan_tx_out(htsig_ind(81:160)) wlan_tx_out(htsig_ind(1:80))];
-    wlan_tx_out = [wlan_tx_out zeros(1,100) wlan_tx_out zeros(1,100) wlan_tx_out];
+    %htsig_ind = (160+160+80) + (1:160);
+    %wlan_tx_out(htsig_ind) = [wlan_tx_out(htsig_ind(81:160)) wlan_tx_out(htsig_ind(1:80))];
+    %wlan_tx_out = [wlan_tx_out zeros(1,100) wlan_tx_out zeros(1,100) wlan_tx_out];
 
     %Corrupt SIGNAL
     %sig_ind = (160+160) + (1:80);
     %wlan_tx_out(sig_ind) = randn(1,80);
     %wlan_tx_out = [wlan_tx_out zeros(1,100) wlan_tx_out zeros(1,100) wlan_tx_out];
     
-    %wlan_tx_out = [wlan_tx_out zeros(1,200) wlan_tx_out];
+    %TxDCO
+    %wlan_tx_out = wlan_tx_out + complex(0.15, 0.15);
+
+    %CFO
     %wlan_tx_out = wlan_tx_out .* exp(j*2*pi*-1e-4*(0:length(wlan_tx_out)-1));
-    %wlan_tx_out = [sig_with_cfo zeros(1,200) wlan_tx_out];
+    %wlan_tx_out = wlan_tx_out .* exp(-j*pi/4);
         
+    %AWGN
     %wlan_tx_out = wlan_tx_out + 1e-2*complex(randn(1,length(wlan_tx_out)), randn(1,length(wlan_tx_out)));
     
     %load('tx_htmf_MCS0_40M_100B.mat');
@@ -254,7 +260,7 @@ REG_RX_Config = ...
     2^2  * 1 + ... %Swap pkt buf byte order
     2^3  * 1 + ... %Swap order of chan est u32 writes
     2^4  * 1 + ... %Allow DSSS Rx to keep AGC locked
-    2^5  * 1 + ... %Bypass CFO est/correction
+    2^5  * 0 + ... %Bypass CFO est/correction
     2^6  * 1 + ... %Enable chan est recording to pkt buf
     2^7  * 0 + ... %Enable switching diversity
     2^8  * 1 + ... %Block DSSS Rx until AGC is settled
