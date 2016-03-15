@@ -97,6 +97,8 @@ Node Utility Functions
 
 .. autofunction:: wlan_exp.util.filter_nodes
 
+.. autofunction:: wlan_exp.util.check_bss_membership
+
 
 Misc Utility Functions
 ......................

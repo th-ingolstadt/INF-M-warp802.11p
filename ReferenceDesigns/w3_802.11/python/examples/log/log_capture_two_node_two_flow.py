@@ -128,12 +128,12 @@ else:
     print("    Ensure two nodes are ready, one using the AP design, one using the STA design\n")
     sys.exit(0)
 
-# Check that the nodes are associated.  Otherwise, the LTGs below will fail.
-if not n_ap.is_associated(n_sta):
-    print("\nERROR: Nodes are not associated.")
-    print("    Ensure that the AP and the STA are associated.")
+# Check that the nodes are part of the same BSS.  Otherwise, the LTGs below will fail.
+if not util.check_bss_membership([n_ap, n_sta]):
+    print("\nERROR: Nodes are not part of the same BSS.")
+    util.check_bss_membership([n_ap, n_sta], verbose=True)
+    print("Ensure that both nodes are part of the same BSS.")
     sys.exit(0)
-
 
 
 print("\nExperimental Setup:")

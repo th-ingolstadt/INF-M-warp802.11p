@@ -101,6 +101,7 @@ phy_samp_rates = consts_dict({
 def get_rate_info(mcs, phy_mode, phy_samp_rate=20, short_GI=False):
     """Generate dictionary with details about a PHY rate. The returned dictionary
     has fields:
+    
       * ``mcs``: the MCS index passed in the ``mcs`` argument, integer in 0 to 7
       * ``phy_mode``: the PHY mode passed in the ``phy_mode`` argument, either ``'NONHT'`` or ``'HTMF'``
       * ``desc``: string describing the rate
@@ -230,7 +231,7 @@ def get_channel_info(channel):
         >>> import wlan_exp.util as util
         >>> util.get_channel_info(5)
         {'freq': 2432, 'channel': 5}
-
+    
     """
     channel_info = {
          1 : {'channel' :   1, 'freq': 2412},
@@ -469,15 +470,19 @@ def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=Tr
         mac_high (str, int, optional):  Filter for CPU High functionality.  This value must be either
             an integer corresponding to a node type (see wlan_exp/defaults.py for node types)
             or the following strings:
+            
                 * **'AP'**   (equivalent to WLAN_EXP_HIGH_AP);
                 * **'STA'**  (equivalent to WLAN_EXP_HIGH_STA);
                 * **'IBSS'** (equivalent to WLAN_EXP_HIGH_IBSS).
+                
             A value of None means that no filtering will occur for CPU High Functionality
         mac_low (str, int, optional): Filter for CPU Low functionality.  This value must be either
             an integer corresponding to a node type (see wlan_exp/defaults.py for node types)
             or the following strings:
+            
                 * **'DCF'**   (equivalent to WLAN_EXP_LOW_DCF);
                 * **'NOMAC'** (equivalent to WLAN_EXP_LOW_NOMAC).
+                
             A value of None means that no filtering will occur for CPU Low Functionality
         serial_number (str, optional):  Filters nodes by WARPv3 serial number.  This value must be of
             the form:  'W3-a-XXXXX' where XXXXX is the five digit serial number of the board.
@@ -574,6 +579,157 @@ def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=Tr
     return ret_nodes
 
 # End def
+
+
+def check_bss_membership(nodes, verbose=False):
+    """Check that each of the nodes in the input list are members of the same 
+    BSS.  For a BSS to match, the 'bssid', 'ssid' and 'channel' must match.
+    
+    There are two acceptable patterns for the nodes argument
+    
+        #. 1 AP and 1+ STA and 0  IBSS
+        #. 0 AP and 0  STA and 1+ IBSS
+    
+    In the case that nodes is 1 AP and 1+ STA and 0 IBSS, then the following
+    conditions must be met in order to return True
+    
+        #. AP BSS must be non-null
+        #. AP must have each STA in its station_info list
+        #. Each STA BSS must match AP BSS
+        #. Each STA must have AP as its only station_info
+    
+    In the case that nodes is 0 AP and 0 STA and 1+ IBSS, then the following
+    conditions must be met in order to return True
+    
+        #. BSS must match at all nodes and be non-null
+    
+    Args:
+        nodes (list of WlanExpNode):  List of WlanExpNode / sub-classes of 
+            WlanExpNode
+        verbose (bool):  Print debug information 
+    
+    Returns:
+        members (bool):  Boolean indicating whether the nodes were members of the same BSS
+    """
+    import wlan_exp.node_ap   as node_ap
+    import wlan_exp.node_sta  as node_sta
+    import wlan_exp.node_ibss as node_ibss
+
+    # Define filter methods
+    is_ap   = lambda x: type(x) is node_ap.WlanExpNodeAp
+    is_sta  = lambda x: type(x) is node_sta.WlanExpNodeSta
+    is_ibss = lambda x: type(x) is node_ibss.WlanExpNodeIBSS
+
+    # Define BSS info fields used by this method
+    bss_info_fields = ['bssid', 'ssid', 'channel']
+
+    # Define BSS info equality check based on bss_info_fields
+    bss_info_eq = lambda x,y: all([x[f] == y[f] for f in bss_info_fields])
+
+    # Define BSS info print method that only prints bss_info_fields    
+    def print_bss_info(bss_info):
+        msg = "BSS Info\n"
+        for f in bss_info_fields:
+            msg += "    {0:10s} = {1}\n".format(f, bss_info[f])
+        return msg
+
+    # Convert argument to list if it is not
+    if type(nodes) is not list:
+        nodes = [nodes]
+
+    # Filter nodes by type
+    ap    = filter(is_ap, nodes)
+    stas  = filter(is_sta, nodes)
+    ibsss = filter(is_ibss, nodes)
+
+    # Check provided nodes argument
+    #   (1) 1 AP and 1+ STA and 0  IBSS
+    #   (2) 0 AP and 0  STA and 1+ IBSS
+    if ((len(ap) == 0) and (len(stas) == 0) and (len(ibsss) == 0)):
+        raise AttributeError('No wlan_exp nodes in list')
+
+    if ((len(ibsss) > 0) and ((len(ap) > 0) or (len(stas) > 0))):
+        raise AttributeError('List cannot contain mix of IBSS and other node types')
+
+    if (len(ap) > 1):
+        raise AttributeError('{0} AP nodes in list - only 0 or 1 AP supported'.format(len(ap)))
+
+    if ((len(ap) == 1) and (len(stas) == 0)):
+        raise AttributeError('Lists with 1 AP must include at least 1 STA')
+
+    msg = ''
+    network_good = True
+
+    ###################################
+    # 1 AP and 1+ STA and 0  IBSS
+    if (len(ap) == 1):
+        # Check AP BSS info
+        ap     = ap[0]
+        ap_bss = ap.get_bss_info()
+        
+        if (ap_bss is None):
+            msg += 'AP BSS is None - No BSS membership possible\n'
+            network_good = False
+        
+        # Check AP station_infos
+        if (network_good):
+            for s in stas:
+                if (not ap.is_associated(s)):
+                    msg += '"{0}" not in AP association table\n'.format(repr(s))
+                    network_good = False
+
+        # Check STA BSS info
+        if (network_good):
+            for s in stas:
+                sta_bss = s.get_bss_info()
+
+                if (sta_bss is None):
+                    msg += '"{0}" BSS is None - No BSS membership possible\n'.format(repr(s))
+                    network_good = False
+                else:
+                    if (not bss_info_eq(ap_bss, sta_bss)):
+                        msg += 'Mismatch between BSS Info:\n\n'
+                        msg += '"{0}":\n{1}\n\n'.format(repr(ap), print_bss_info(ap_bss))
+                        msg += '"{0}":\n{1}\n'.format(repr(s), print_bss_info(sta_bss))
+                        network_good = False
+        
+        # Check STA station_infos
+        if (network_good):
+            for s in stas:
+                if (not s.is_associated(ap)):
+                    msg += 'AP not in association table of "{0}"\n'.format(repr(s))
+                    network_good = False
+    
+    ###################################
+    # 0 AP and 0  STA and 1+ IBSS
+    if (len(ibsss) > 0):
+        # Check that all BSS infos match and are non-null
+        #     - Use first node as arbitrary 'golden' config
+        golden_bss = ibsss[0].get_bss_info()
+
+        if (golden_bss is None):
+            msg += '"{0}" BSS is None - No BSS membership possible\n'.format(repr(ibsss[0]))
+            network_good = False
+            
+        if (network_good):
+            for n in ibsss[1:]:
+                n_bss = n.get_bss_info()
+
+                if (n_bss is None):
+                    msg += '"{0}" BSS is None - No BSS membership possible\n'.format(repr(n))
+                    network_good = False
+                else:
+                    if (not bss_info_eq(golden_bss, n_bss)):
+                        msg += 'Mismatch between BSS Info:\n\n'
+                        msg += '"{0}":\n{1}\n\n'.format(repr(ibsss[0]), print_bss_info(golden_bss))
+                        msg += '"{0}":\n{1}\n'.format(repr(n), print_bss_info(n_bss))
+                        network_good = False
+
+    # Print message
+    if verbose and msg:
+        print(msg)
+
+    return network_good
 
 
 

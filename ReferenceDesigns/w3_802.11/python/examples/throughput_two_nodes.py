@@ -95,7 +95,7 @@ if len(n_ap_l) == 1 and len(n_sta_l) == 1:
     # Establish the association between nodes
     #     - This will change the STA to the appropriate channel
     node1.add_association(node2)
-
+    
 elif len(n_ibss_l) == 2:
     # Setup the two nodes
     node1 = n_ibss_l[0]
@@ -118,7 +118,6 @@ else:
 #-------------------------------------------------------------------------
 #  Setup
 #
-#sys.exit(0)
 
 print("\nExperimental Setup:")
 
@@ -131,6 +130,7 @@ rate_info = util.get_rate_info(mcs, phy_mode)
 for node in [node1, node2]:
     node.set_tx_rate_unicast(mcs, phy_mode, curr_assoc=True, new_assoc=True)
     node.reset(log=True, txrx_counts=True, ltg=True, queue_data=True) # Do not reset associations/bss_info
+    bss_info = node.get_bss_info()
 
     msg = ""
     if (node == node1):
@@ -139,16 +139,17 @@ for node in [node1, node2]:
         msg += "\nNode 2: \n"
 
     msg += "    Description = {0}\n".format(node.description)
-    msg += "    Channel     = {0}\n".format(util.channel_info_to_str(util.get_channel_info(CHANNEL)))
+    msg += "    Channel     = {0}\n".format(util.channel_info_to_str(util.get_channel_info(bss_info['channel'])))
     msg += "    Rate        = {0}\n".format(util.rate_info_to_str(rate_info))
     print(msg)
 
 print("")
 
-# Check that the nodes are associated.  Otherwise, the LTGs below will fail.
-if not node1.is_associated(node2):
-    print("\nERROR: Nodes are not associated.")
-    print("    Ensure that both nodes are associated.")
+# Check that the nodes are part of the same BSS.  Otherwise, the LTGs below will fail.
+if not util.check_bss_membership([node1, node2]):
+    print("\nERROR: Nodes are not part of the same BSS.")
+    util.check_bss_membership([node1, node2], verbose=True)
+    print("Ensure that both nodes are part of the same BSS.")
     sys.exit(0)
 
 #-------------------------------------------------------------------------
