@@ -273,7 +273,6 @@ CASSERT(sizeof(tx_frame_info) == 48, tx_frame_info_alignment_check);
 #define TX_MPDU_FLAGS_REQ_TO                               0x01
 #define TX_MPDU_FLAGS_FILL_TIMESTAMP                       0x02
 #define TX_MPDU_FLAGS_FILL_DURATION                        0x04
-#define TX_MPDU_FLAGS_REQ_BO                               0x08
 #define TX_MPDU_FLAGS_FILL_UNIQ_SEQ                        0x20
 
 

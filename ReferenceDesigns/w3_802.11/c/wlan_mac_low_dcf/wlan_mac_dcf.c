@@ -247,6 +247,7 @@ inline int send_beacon(u8 tx_pkt_buf){
 	u32 mac_hw_status;
 	u32 mac_tx_ctrl_status;
 	u16 n_slots;
+	u16 n_slots_readback;
 	int tx_gain;
 	u8 mpdu_tx_ant_mask;
 	//Note: This needs to be a volatile to allow the tx_pkt_buf_state to be re-read in the initial while loop below
@@ -305,28 +306,46 @@ inline int send_beacon(u8 tx_pkt_buf){
             default:                    mpdu_tx_ant_mask  = 0x1;  break; // Default to RF_A
         }
 
-        //FIXME: TMP_C_PHY_MODE should be current management Tx phy_mode - set in tx_frame_info?
-        if(((tx_frame_info_ptr->flags) & TX_MPDU_FLAGS_REQ_BO) == 0){
-        	n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
-        	//wlan_mac_tx_ctrl_C_params(pktBuf, antMask, req_backoff, phy_mode, num_slots)
-			wlan_mac_tx_ctrl_C_params(tx_pkt_buf, mpdu_tx_ant_mask, 0, TMP_C_PHY_MODE, n_slots);
-        } else {
-        	n_slots = rand_num_slots(RAND_SLOT_REASON_IBSS_BEACON);
-        	//wlan_mac_tx_ctrl_C_params(pktBuf, antMask, req_backoff, phy_mode, num_slots)
-        	wlan_mac_tx_ctrl_C_params(tx_pkt_buf, mpdu_tx_ant_mask, 1, TMP_C_PHY_MODE, n_slots);
+        //wlan_mac_tx_ctrl_C_params(pktBuf, antMask, req_backoff, phy_mode, num_slots)
+        switch(gl_beacon_txrx_configure.beacon_tx_mode){
+        	case AP_BEACON_TX:
+            	n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
+    			wlan_mac_tx_ctrl_C_params(tx_pkt_buf, mpdu_tx_ant_mask, 0, tx_frame_info_ptr->params.phy.phy_mode, n_slots);
+        	break;
+        	case IBSS_BEACON_TX:
+            	n_slots = rand_num_slots(RAND_SLOT_REASON_IBSS_BEACON);
+            	wlan_mac_tx_ctrl_C_params(tx_pkt_buf, mpdu_tx_ant_mask, 1, tx_frame_info_ptr->params.phy.phy_mode, n_slots);
+			break;
+        	case NO_BEACON_TX:
+        		return -1;
+			break;
         }
 
         tx_gain = wlan_mac_low_dbm_to_gain_target(tx_frame_info_ptr->params.phy.power);
         wlan_mac_tx_ctrl_C_gains(tx_gain, tx_gain, tx_gain, tx_gain);
 
-        //FIXME: TMP_C_PHY_MODE should be current management Tx phy_mode - set in tx_frame_info?
         write_phy_preamble(tx_pkt_buf,
-        		           TMP_C_PHY_MODE,
+        				   tx_frame_info_ptr->params.phy.phy_mode,
         				   tx_frame_info_ptr->params.phy.mcs,
         				   tx_frame_info_ptr->length);
 
 		wlan_mac_tx_ctrl_C_start(1);
 		wlan_mac_tx_ctrl_C_start(0);
+
+        // Immediately re-read the current slot count.
+        n_slots_readback = wlan_mac_get_backoff_count_C();
+
+        if((n_slots != n_slots_readback)){
+        	// For the first transmission (non-retry) of an MPDU, the number of
+        	// slots used by the backoff process is ambiguous. The n_slots we provided
+        	// to wlan_mac_tx_ctrl_A_params is only a suggestion. If the medium has been
+        	// idle for a DIFS, then there will not be a backoff. Or, if another backoff is
+        	// currently running, the MAC Config Core A will inherit that backoff. By
+        	// immediately reading back the slot count after starting the core, we can
+        	// overwrite the number of slots that we will fill into low_tx_details with
+        	// the correct value
+			n_slots = n_slots_readback;
+        }
 
 		tx_frame_info_ptr->short_retry_count = 0;
 		tx_frame_info_ptr->long_retry_count  = 0;
@@ -1026,7 +1045,6 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
     u16 cts_header_duration;
 
     u8 req_timeout;
-    u8 req_backoff;
 
     u32 rx_status;
     u32 mac_hw_status;
@@ -1040,6 +1058,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
     tx_mode_t           tx_mode;
 
     u16                 n_slots             = 0;
+    u16                 n_slots_readback    = 0;
     u8                  mpdu_tx_ant_mask    = 0;
     tx_frame_info     * frame_info           = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
     mac_header_80211  * header              = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
@@ -1075,9 +1094,8 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
     while(1) {
         (frame_info->num_tx_attempts)++;
 
-        // Check if the higher-layer MAC requires this transmission have a pre-Tx backoff or post-Tx timeout
+        // Check if the higher-layer MAC requires this transmission have a post-Tx timeout
         req_timeout = ((frame_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
-        req_backoff = ((frame_info->flags) & TX_MPDU_FLAGS_REQ_BO) != 0;
 
         // Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
         // This is the SIGNAL field for the MPDU we will eventually transmit. It's possible
@@ -1207,23 +1225,9 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
             // (re)transmissions, an explicit backoff will have been started at the end of
             // the previous iteration of this loop.
             //
-            if (req_backoff == 0) {
-                // Normal packets don't require pre-Tx backoff; the pre-Tx backoff will only occur
-                // if the medium is busy at Tx time
-                n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
+			n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
 
-            } else {
-                // IBSS beacon transmissions always require a pre-Tx backoff to dither Tx attempts
-                // by multiple IBSS peers
-                n_slots = rand_num_slots(RAND_SLOT_REASON_IBSS_BEACON);
 
-                // Force-reset the DCF core, to clear any previously-running backoffs
-                wlan_mac_set_A_backoff_reset(1);
-                wlan_mac_set_A_backoff_reset(0);
-
-                // Start the backoff
-                wlan_mac_dcf_hw_start_backoff(n_slots);
-            }
 
             // Configure the DCF core Tx state machine for this transmission
             // wlan_mac_tx_ctrl_A_params(pktBuf, antMask, preTx_backoff_slots, preWait_postRxTimer1, preWait_postTxTimer1, postWait_postTxTimer2)
@@ -1247,10 +1251,27 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
         wlan_mac_tx_ctrl_A_start(1);
         wlan_mac_tx_ctrl_A_start(0);
 
+        // Immediately re-read the current slot count.
+        n_slots_readback = wlan_mac_get_backoff_count_A();
+
         // While waiting, fill in the metadata about this transmission attempt, to be used by CPU High in creating TX_LOW log entries
         // The phy_params (as opposed to phy_params2) element is used for the MPDU itself. If we are waiting for a CTS and we do not
         // receive one, CPU_HIGH will know to ignore this element of low_tx_details (since the MPDU will not be transmitted).
         low_tx_details_num = (frame_info->num_tx_attempts) - 1;
+
+        if((low_tx_details_num == 0) && (n_slots != n_slots_readback)){
+        	// For the first transmission (non-retry) of an MPDU, the number of
+        	// slots used by the backoff process is ambiguous. The n_slots we provided
+        	// to wlan_mac_tx_ctrl_A_params is only a suggestion. If the medium has been
+        	// idle for a DIFS, then there will not be a backoff. Or, if another backoff is
+        	// currently running, the MAC Config Core A will inherit that backoff. By
+        	// immediately reading back the slot count after starting the core, we can
+        	// overwrite the number of slots that we will fill into low_tx_details with
+        	// the correct value
+			n_slots = n_slots_readback;
+        }
+
+
 
         low_tx_details[low_tx_details_num].phy_params_mpdu.mcs          = frame_info->params.phy.mcs;
         low_tx_details[low_tx_details_num].phy_params_mpdu.phy_mode     = frame_info->params.phy.phy_mode;

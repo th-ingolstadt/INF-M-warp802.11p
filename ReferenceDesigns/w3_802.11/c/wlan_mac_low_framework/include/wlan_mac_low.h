@@ -375,7 +375,8 @@ typedef struct{
 // BACKOFF_COUNTER
 //     b[15:0]: A Backoff count
 //     b[31:16]: C Backoff count
-#define wlan_mac_get_backoff_count() (Xil_In32(WLAN_MAC_REG_BACKOFF_COUNTER) & 0xFFFF)
+#define wlan_mac_get_backoff_count_A() (Xil_In32(WLAN_MAC_REG_BACKOFF_COUNTERS) & 0x000000FF)
+#define wlan_mac_get_backoff_count_C() ((Xil_In32(WLAN_MAC_REG_BACKOFF_COUNTERS) & 0x0000FF00) >> 16)
 
 // RX_PHY_PARAMS Register:
 //     b[15:0] : Length
@@ -489,7 +490,6 @@ inline void wlan_mac_hw_clear_rx_started();
 
 //FIXME: placeholders for actual runtime PHY mode variables
 #define TMP_B_PHY_MODE PHY_MODE_NONHT
-#define TMP_C_PHY_MODE PHY_MODE_NONHT
 
 
 #endif /* WLAN_MAC_LOW_H_ */
