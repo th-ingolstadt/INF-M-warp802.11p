@@ -1522,13 +1522,13 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
         if curr_assoc:
             self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_UNICAST, param))
-
-        if (device_list is not None):
-            try:
-                for device in device_list:
-                    self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_UNICAST, param, device))
-            except TypeError:
-                self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_UNICAST, param, device_list))
+        else:
+            if (device_list is not None):
+                try:
+                    for device in device_list:
+                        self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_UNICAST, param, device))
+                except TypeError:
+                    self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_UNICAST, param, device_list))
 
 
     def _node_get_tx_param_unicast(self, cmd, param_name, param=None, device_list=None, new_assoc=False):
