@@ -221,6 +221,10 @@ int wlan_exp_node_init(u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna, u32 
 
     node_info.wlan_scheduler_resolution     = FAST_TIMER_DUR_US;
 
+    // Set the max/min transmit power
+    node_info.wlan_max_tx_power_dbm         = (u32) TX_POWER_MAX_DBM;
+    node_info.wlan_min_tx_power_dbm         = (u32) TX_POWER_MIN_DBM;
+
     // Initialize Ethernet device to NULL; Will be set during transport init
     node_info.eth_dev                       = NULL;
 

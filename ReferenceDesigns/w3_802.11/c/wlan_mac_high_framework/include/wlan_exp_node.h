@@ -217,6 +217,8 @@
 #define NODE_PARAM_WLAN_EXP_VERSION                        5
 #define NODE_PARAM_WLAN_SCHEDULER_RESOLUTION               6
 #define NODE_PARAM_WLAN_MAC_ADDR                           7
+#define NODE_PARAM_WLAN_MAX_TX_POWER_DBM                   8
+#define NODE_PARAM_WLAN_MIN_TX_POWER_DBM                   9
 
 //
 // ADD NEW TAG PARAMETERS HERE
@@ -229,7 +231,7 @@
 //     NOTE:  Make sure that NODE_PARAM_MAX_PARAMETER is adjusted accordingly
 //
 
-#define NODE_PARAM_MAX_PARAMETER                           8
+#define NODE_PARAM_MAX_PARAMETER                           10
 
 
 // ****************************************************************************
@@ -240,7 +242,7 @@
 //         to the Tag Parameters, then the NODE_PARAM_FIELD_LENGTHS array must be updated
 //         to represent the appropriate length of each new field.
 //
-#define NODE_PARAM_FIELD_LENGTHS                           {1, 1, 1, 1, 2, 1, 1, 2}
+#define NODE_PARAM_FIELD_LENGTHS                           {1, 1, 1, 1, 2, 1, 1, 2, 1, 1}
 
 
 
@@ -264,6 +266,9 @@ typedef struct {
     u32                      wlan_exp_version;             // WLAN Exp Version
     u32                      wlan_scheduler_resolution;    // WLAN Exp - Minimum Scheduler resolution
     u32                      wlan_hw_addr[2];              // WLAN Exp - Wireless MAC address (ie ETH A MAC address)
+
+    u32                      wlan_max_tx_power_dbm;        // WLAN maximum transmit power
+    u32                      wlan_min_tx_power_dbm;        // WLAN minimum transmit power
 
     //
     // ADD NEW TAG PARAMETERS HERE
