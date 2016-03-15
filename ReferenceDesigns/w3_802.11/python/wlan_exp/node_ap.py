@@ -101,9 +101,50 @@ class WlanExpNodeAp(node.WlanExpNode):
         
         """
         raise NotImplementedError("Current AP implementation does not support updating MAC time from beacon receptions")
-        
 
+
+    def is_associated(self, device_list):
+        """Are the devices in the device_list in the AP association table?
+
+        Args:
+            device_list (WlanDevice):  List of WLAN device (or sub-class of 
+                WLAN device)
+
+        Returns:
+            associated (list of bool):  List of booleans describing whether each given device is associated with the AP
+
+        .. note:: If the device_list is a single device, then only a boolean is
+            returned.  If the device_list is a list of devices, then a list of
+            booleans will be returned in the same order as the devices in the list.
+        """
+        ret_val  = []
+        ret_list = True
         
+        if device_list is not None:
+            # Convert device_list to a list if it is not already one; set flag to not return a list
+            if type(device_list) is not list:
+                device_list = [device_list]
+                ret_list    = False
+
+            for device in device_list:
+                # Check the station info to see if device is there
+                my_station_info = self.get_station_info(device)
+
+                if my_station_info is not None:
+                    ret_val.append(True)
+                else:
+                    ret_val.append(False)
+        else:
+            ret_val = False
+
+        # Need to return a single value and not a list
+        if not ret_list:
+            ret_val = ret_val[0]
+
+        return ret_val
+
+
+
     #-------------------------------------------------------------------------
     # Override Internal WLAN Exp Node methods
     #-------------------------------------------------------------------------

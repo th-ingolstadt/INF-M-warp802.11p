@@ -68,6 +68,28 @@ class WlanExpNodeSta(node.WlanExpNode):
         self.send_cmd(cmds.NodeDisassociate())
 
 
+    def is_associated(self, ap):
+        """Is the AP in the STA's association table?
+
+        Args:
+            ap (WlanDevice):  WLAN Device
+
+        Returns:
+            associated (bool):  Boolean describing whether the STA is associated with the AP
+
+        """
+        ret_val  = False
+
+        if ap is not None:
+            my_station_info = self.get_station_info(ap)
+
+            if my_station_info is not None:
+                ret_val = True
+
+        return ret_val
+
+
+
     #-------------------------------------------------------------------------
     # STA specific WLAN Exp Commands 
     #-------------------------------------------------------------------------
