@@ -134,6 +134,8 @@ typedef struct{
     u32                 wlan_exp_version;                  // WLAN Exp Version
     u32                 wlan_scheduler_resolution;         // Minimum Scheduler resolution (microseconds)
     u32                 wlan_mac_addr[2];                  // WLAN MAC Address
+    int                 wlan_max_tx_power_dbm;             // WLAN maximum transmit power (in dBm)
+    int                 wlan_min_tx_power_dbm;             // WLAN minimum transmit power (in dBm)
 } node_info_entry;
 
 
