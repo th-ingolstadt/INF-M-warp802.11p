@@ -149,6 +149,7 @@ int main() {
 	gl_beacon_txrx_config.ts_update_mode = ALWAYS_UPDATE;
 	bzero(gl_beacon_txrx_config.bssid_match, BSSID_LEN);
 	gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
+	gl_beacon_txrx_config.beacon_interval_tu = 0;
 
 	// New associations adopt these unicast params; the per-node params can be
 	//   overridden via wlan_exp calls or by custom C code
@@ -230,6 +231,7 @@ int main() {
     wlan_exp_set_process_user_cmd_callback(         (void *) wlan_exp_process_user_cmd);
     wlan_exp_set_beacon_ts_update_mode_callback(    (void *) sta_set_beacon_ts_update_mode);
     wlan_exp_set_process_config_bss_callback(       (void *) configure_bss);
+    //   - wlan_exp_set_beacon_tx_param_update_callback() should not be used by the STA
 
     // Get the hardware info that has been collected from CPU low
     hw_info = get_mac_hw_info();
@@ -1113,7 +1115,6 @@ int  sta_disassociate( void ) {
 u32	configure_bss(bss_config_t* bss_config){
 	u32                 return_status               = 0;
 	u8                  send_channel_switch_to_low  = 0;
-	u8                  send_beacon_config_to_low   = 0;
 
 	bss_info*           local_bss_info;
 	interrupt_state_t   curr_interrupt_state;
@@ -1290,8 +1291,8 @@ u32	configure_bss(bss_config_t* bss_config){
 				strcpy(my_bss_info->ssid, bss_config->ssid);
 			}
 			if (bss_config->update_mask & BSS_FIELD_MASK_BEACON_INTERVAL) {
-				my_bss_info->beacon_interval = bss_config->beacon_interval;
-				send_beacon_config_to_low = 1;
+				// There is no error condition for setting the beacon interval
+				// at the STA since a STA is incapable of sending beacons
 			}
 			if (bss_config->update_mask & BSS_FIELD_MASK_HT_CAPABLE) {
 				//TODO:
@@ -1304,16 +1305,6 @@ u32	configure_bss(bss_config_t* bss_config){
 			if (send_channel_switch_to_low) {
 				wlan_mac_high_set_radio_channel(
 						wlan_mac_high_bss_channel_spec_to_radio_chan(my_bss_info->chan_spec));
-			}
-
-			// Update Beacon configuration
-			if (send_beacon_config_to_low) {
-				memcpy(gl_beacon_txrx_config.bssid_match, my_bss_info->bssid, BSSID_LEN);
-
-				gl_beacon_txrx_config.beacon_interval_tu = my_bss_info->beacon_interval;        // CPU_LOW does not need this parameter for the STA project
-				gl_beacon_txrx_config.beacon_template_pkt_buf = TX_PKT_BUF_BEACON;              // CPU_LOW does not need this parameter for the STA project
-
-				wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
 			}
 
 			// Unpause the queue, if paused
