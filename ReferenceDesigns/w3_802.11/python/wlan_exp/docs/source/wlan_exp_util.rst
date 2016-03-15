@@ -59,24 +59,12 @@ Antenna Mode Definitions
 ........................
 Supported antenna modes for WlanExpNode 
 
-.. autoattribute:: wlan_exp.util.wlan_rx_ant_mode
-    :annotation: = Array of receive antenna mode dictionaries 
-
-.. autofunction:: wlan_exp.util.find_rx_ant_mode_by_index
-
-.. autofunction:: wlan_exp.util.rx_ant_mode_to_str
-
-.. autofunction:: wlan_exp.util.rx_ant_mode_index_to_str
+.. autoattribute:: wlan_exp.util.wlan_rx_ant_modes
+    :annotation: = Dictionary of receive antenna modes
 
 
-.. autoattribute:: wlan_exp.util.wlan_tx_ant_mode
-    :annotation: = Array of transmit antenna mode dictionaries 
-
-.. autofunction:: wlan_exp.util.find_tx_ant_mode_by_index
-
-.. autofunction:: wlan_exp.util.tx_ant_mode_to_str
-
-.. autofunction:: wlan_exp.util.tx_ant_mode_index_to_str
+.. autoattribute:: wlan_exp.util.wlan_tx_ant_modes
+    :annotation: = Dictionary of transmit antenna modes
 
 
 MAC Address Definitions

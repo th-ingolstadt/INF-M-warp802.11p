@@ -743,24 +743,22 @@ class BSSConfig(InfoStruct):
         self['update_mask'] = 0
 
         # Set the BSSID field
-        if bssid is not None:
-            if bssid:
+        if bssid is not False:
+            if bssid is not None:
                 self['bssid'] = bssid
     
                 # Convert BSSID to colon delimited string for internal storage
                 if type(bssid) in [int, long]:
                     self['bssid']        = util.mac_addr_to_str(self['bssid'])
                     
-                # Set update mask
-                self['update_mask'] |= self._consts.update_mask.BSSID
             else:
-                # Remove current BSS on the node
                 self['bssid'] = "00:00:00:00:00:00"
-        else:
-            self['bssid'] = "00:00:00:00:00:00"
-            
+                
             # Set update mask
             self['update_mask'] |= self._consts.update_mask.BSSID
+        else:
+            # Remove current BSS on the node
+            self['bssid'] = "00:00:00:00:00:00"
         
         # Set SSID field
         if ssid is not None:
@@ -800,7 +798,7 @@ class BSSConfig(InfoStruct):
         self['channel_type'] = self._consts.channel_type.BW20
         
         # Set the beacon interval field
-        if beacon_interval:
+        if beacon_interval is not False:
             if beacon_interval is not None:
                 # Check beacon interval
                 if type(beacon_interval) is not int:

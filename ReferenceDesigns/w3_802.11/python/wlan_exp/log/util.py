@@ -123,6 +123,12 @@ def gen_raw_log_index(log_data):
     log_index      = dict()
     use_byte_array = 0
 
+
+
+# FIX - handle case where log_len is zero
+
+
+
     # Need to determine if we are using byte arrays or strings for the
     # log_bytes b/c we need to handle the data differently
     try:

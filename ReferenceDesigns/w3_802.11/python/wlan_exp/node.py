@@ -941,8 +941,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         new_assoc, this method will set both the default unicast data and unicast management packet tx antenna mode.
 
         Args:
-            ant_mode (dict from util.wlan_tx_ant_mode):  Antenna dictionary
-                (Dictionary from the wlan_tx_ant_mode list in wlan_exp.util)
+            ant_mode (str):  Antenna mode (Key of wlan_tx_ant_modes in wlan_exp.util)
             device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices
                 or single 802.11 device for which to set the unicast packet Tx antenna mode to 'ant_mode'
             curr_assoc (bool):  All current assocations will have the unicast packet Tx antenna mode set to 'ant_mode'
@@ -962,6 +961,9 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             control packet to be generated (ie an ack for a reception will go out on the same antenna
             on which the reception occurred).
         """
+        if ant_mode is None:
+            raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))
+            
         self._node_set_tx_param_unicast(cmds.NodeProcTxAntMode, ant_mode, 'antenna mode',  device_list, curr_assoc, new_assoc)
 
 
@@ -969,9 +971,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Sets the multicast data packet transmit antenna mode.
 
         Args:
-            ant_mode (dict from util.wlan_tx_ant_mode):  Antenna dictionary
-                (Dictionary from the wlan_tx_ant_mode list in wlan_exp.util)
+            ant_mode (str):  Antenna mode (Key of wlan_tx_ant_modes in wlan_exp.util)
         """
+        if ant_mode is None:
+            raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))
+            
         self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_DATA, ant_mode))
 
 
@@ -979,9 +983,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Sets the multicast management packet transmit antenna mode.
 
         Args:
-            ant_mode (dict from util.wlan_tx_ant_mode):  Antenna dictionary
-                (Dictionary from the wlan_tx_ant_mode list in wlan_exp.util)
+            ant_mode (str):  Antenna mode (Key of wlan_tx_ant_modes in wlan_exp.util)
         """
+        if ant_mode is None:
+            raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))
+            
         self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_MGMT, ant_mode))
 
 
@@ -996,7 +1002,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             new_assoc  (bool):  Get the unicast packet Tx antenna mode for all new associations
 
         Returns:
-            ant_modes (List of dict - Entries from the wlan_tx_ant_mode in wlan_exp.util):  List of unicast packet Tx antenna mode for the given devices.
+            ant_modes (List of str):  List of unicast packet Tx antenna mode for the given devices (Keys of wlan_tx_ant_modes in wlan_exp.util)
 
         .. note:: If both new_assoc and device_list are specified, the return list will always have
             the unicast packet Tx antenna mode for all new associations as the first item in the list.
@@ -1008,7 +1014,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Gets the current multicast data packet transmit antenna mode for a node.
 
         Returns:
-            ant_mode (Dict - Entry from the wlan_tx_ant_mode in wlan_exp.util):  Multicast data packet transmit antenna mode for the node
+            ant_mode (str):  Multicast data packet transmit antenna mode for the node (Key of wlan_tx_ant_modes in wlan_exp.util)
         """
         return self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_DATA))
 
@@ -1017,7 +1023,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Gets the current multicast management packet transmit antenna mode for a node.
 
         Returns:
-            ant_mode (Dict - Entry from the wlan_tx_ant_mode in wlan_exp.util):  Multicast management packet transmit antenna mode for the node
+            ant_mode (str):  Multicast management packet transmit antenna mode for the node
+                (Key of wlan_tx_ant_modes in wlan_exp.util)
         """
         return self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_MGMT))
 
@@ -1034,9 +1041,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         It will also update the transmit antenna mode of all current associations on the node.
 
         Args:
-            ant_mode (dict from util.wlan_tx_ant_mode):  Antenna dictionary
-                (Dictionary from the wlan_tx_ant_mode list in wlan_exp.util)
+            ant_mode (str):  Antenna mode (Key of wlan_tx_ant_modes in wlan_exp.util)
         """
+        if ant_mode is None:
+            raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))
+            
         self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_NODE_TX_ANT_ALL, ant_mode))
 
 
@@ -1044,7 +1053,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Gets the current default unicast data transmit antenna mode of the node for new associations.
 
         Returns:
-            ant_modes (Entries from the wlan_tx_ant_mode in wlan_exp.util):  Current unicast packet Tx antenna mode.
+            ant_modes (str):  Current unicast packet Tx antenna mode (Key of wlan_tx_ant_modes in wlan_exp.util)
         """
         return self.get_tx_ant_mode_unicast(new_assoc=True)[0]
 
@@ -1059,6 +1068,9 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             ant_mode (dict from util.wlan_rx_ant_mode):          Antenna dictionary
                 (Dictionary from the wlan_rx_ant_mode list in wlan_exp.util)
         """
+        if ant_mode is None:
+            raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))
+            
         self.send_cmd(cmds.NodeProcRxAntMode(cmds.CMD_PARAM_WRITE, ant_mode))
 
 

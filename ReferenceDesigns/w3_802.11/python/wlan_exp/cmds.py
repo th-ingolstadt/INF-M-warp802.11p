@@ -1272,10 +1272,13 @@ class NodeProcTxAntMode(message.Cmd):
 
     def check_ant_mode(self, ant_mode):
         """Check the antenna mode to see if it is valid."""
+        import wlan_exp.util as util
         try:
-            return ant_mode['index']
+            return util.wlan_tx_ant_modes[ant_mode]
         except KeyError:
-            msg  = "The antenna mode must be an entry from the wlan_tx_ant_mode list in wlan_exp.util\n"
+            msg  = "The antenna mode must be one of:  "
+            for k in sorted(util.wlan_tx_ant_modes.keys()):
+                msg += "'{0}' ".format(k)
             raise ValueError(msg)
 
 
@@ -1288,7 +1291,14 @@ class NodeProcTxAntMode(message.Cmd):
 
         if resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from Tx antenna mode command'):
             args = resp.get_args()
-            return util.find_tx_ant_mode_by_index(args[1])
+            
+            ant_mode = [k for k, v in util.wlan_tx_ant_modes.iteritems() if v == args[1]]
+
+            if ant_mode:
+                return ant_mode[0]
+            else:
+                msg  = "Invalid antenna mode returned by node: {0}\n".format(args[1])
+                raise ValueError(msg)
         else:
             return CMD_PARAM_ERROR
 
@@ -1319,11 +1329,13 @@ class NodeProcRxAntMode(message.Cmd):
 
     def check_ant_mode(self, ant_mode):
         """Check the antenna mode to see if it is valid."""
+        import wlan_exp.util as util
         try:
-            return ant_mode['index']
+            return util.wlan_rx_ant_modes[ant_mode]
         except KeyError:
-            msg  = "The antenna mode must be an entry from the wlan_rx_ant_mode\n"
-            msg += "    list in wlan_exp.util\n"
+            msg  = "The antenna mode must be one of:  "
+            for k in sorted(util.wlan_rx_ant_modes.keys()):
+                msg += "'{0}' ".format(k)
             raise ValueError(msg)
 
     def process_resp(self, resp):
@@ -1335,7 +1347,14 @@ class NodeProcRxAntMode(message.Cmd):
 
         if resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from Rx antenna mode command'):
             args = resp.get_args()
-            return util.find_rx_ant_mode_by_index(args[1])
+            
+            ant_mode = [k for k, v in util.wlan_rx_ant_modes.iteritems() if v == args[1]]
+
+            if ant_mode:
+                return ant_mode[0]
+            else:
+                msg  = "Invalid antenna mode returned by node: {0}\n".format(args[1])
+                raise ValueError(msg)            
         else:
             return CMD_PARAM_ERROR
 

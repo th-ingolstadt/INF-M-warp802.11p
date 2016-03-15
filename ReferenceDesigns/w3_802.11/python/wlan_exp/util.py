@@ -281,110 +281,19 @@ def channel_info_to_str(channel_info):
 # -----------------------------------------------------------------------------
 # WLAN Exp Antenna Mode definitions
 # -----------------------------------------------------------------------------
-wlan_rx_ant_mode = [{'index' :  0x00, 'desc' : 'Rx SISO Antenna A'},
-                    {'index' :  0x01, 'desc' : 'Rx SISO Antenna B'},
-                    {'index' :  0x02, 'desc' : 'Rx SISO Antenna C'},
-                    {'index' :  0x03, 'desc' : 'Rx SISO Antenna D'},
-                    {'index' :  0x04, 'desc' : 'Rx SISO Selection Diversity 2 Antennas'}]
 
-wlan_tx_ant_mode = [{'index' :  0x10, 'desc' : 'Tx SISO Antenna A'},
-                    {'index' :  0x20, 'desc' : 'Tx SISO Antenna B'}]
-
-
-def find_rx_ant_mode_by_index(index):
-    """Return the wlan_rx_ant_mode entry for the given index.
-
-    Args:
-        index (int):  Index into wlan_rx_ant_mode array.
-
-    Returns:
-        ant_mode (dict):  Antenna mode dictionary corresponding to the index
-    """
-    return _find_param_by_index(index, wlan_rx_ant_mode, 'rx antenna mode')
-
-# End def
-
-
-def rx_ant_mode_to_str(ant_mode):
-    """Convert a wlan_rx_ant_mode entry to a string.
-
-    Args:
-        ant_mode (dict):  Antenna Mode dictionary
-
-    Returns:
-        output (str):  String representation of the 'ant_mode'
-    """
-    msg = ""
-    if type(ant_mode) is dict:
-        msg += "{0}".format(ant_mode['desc'])
-    else:
-        print("Invalid Rx antenna mode type.  Needed dict, provided {0}.".format(type(ant_mode)))
-    return msg
-
-# End def
-
-
-def rx_ant_mode_index_to_str(index):
-    """Convert a wlan_rx_ant_mode entry index to a string.
-
-    Args:
-        index (int):  Index into wlan_rx_ant_mode array.
-
-    Returns:
-        output (str):  String representation of the antenna mode corresponding to 'index'
-    """
-    ant_mode = find_rx_ant_mode_by_index(index)
-    return rx_ant_mode_to_str(ant_mode)
-
-# End def
-
-
-def find_tx_ant_mode_by_index(index):
-    """Return the wlan_tx_ant_mode entry for the given index.
-
-    Args:
-        index (int):  Index into wlan_tx_ant_mode array.
-
-    Returns:
-        ant_mode (dict):  Antenna mode dictionary corresponding to the index
-    """
-    return _find_param_by_index(index, wlan_tx_ant_mode, 'tx antenna mode')
-
-# End def
-
-
-def tx_ant_mode_to_str(ant_mode):
-    """Convert a wlan_tx_ant_mode entry to a string.
-
-    Args:
-        ant_mode (dict):  Antenna Mode dictionary
-
-    Returns:
-        output (str):  String representation of the 'ant_mode'
-    """
-    msg = ""
-    if type(ant_mode) is dict:
-        msg += "{0}".format(ant_mode['desc'])
-    else:
-        print("Invalid Tx antenna mode type.  Needed dict, provided {0}.".format(type(ant_mode)))
-    return msg
-
-# End def
-
-
-def tx_ant_mode_index_to_str(index):
-    """Convert a wlan_tx_ant_mode entry index to a string.
-
-    Args:
-        index (int):  Index into wlan_tx_ant_mode array.
-
-    Returns:
-        output (str):  String representation of the antenna mode corresponding to 'index'
-    """
-    ant_mode = find_tx_ant_mode_by_index(index)
-    return tx_ant_mode_to_str(ant_mode)
-
-# End def
+#: Dictionary of supported receive interfaces.
+wlan_rx_ant_modes = consts_dict({
+       'RF_A'           : 0x0,
+       'RF_B'           : 0x1,
+       'RF_C'           : 0x2,
+       'RF_D'           : 0x3,
+       'RF_SELDIV_AB'   : 0x4})
+       
+#: Dictionary of supported transmit interfaces.
+wlan_tx_ant_modes = consts_dict({
+       'RF_A'           : 0x0,
+       'RF_B'           : 0x1})
 
 
 
