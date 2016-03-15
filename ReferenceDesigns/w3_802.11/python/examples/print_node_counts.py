@@ -30,7 +30,7 @@ import wlan_exp.util as util
 # NOTE: change these values to match your experiment / network setup
 NETWORK              = '10.0.0.0'
 USE_JUMBO_ETH_FRAMES = False
-NODE_SERIAL_LIST     = ['W3-a-00006']
+NODE_SERIAL_LIST     = ['W3-a-00001']
 
 # TOP Level script variables
 PROMISCUOUS_COUNTS   = True
@@ -64,13 +64,7 @@ def initialize_experiment():
 
     # Set the promiscuous counts mode
     for node in nodes:
-        # Configure BSS
-        #     - The node should be configured as a passive monitor:
-        #         - No SSID
-        #         - No beacons if AP / IBSS
-        #       
-        node.configure_bss(bssid=node.wlan_mac_address, ssid="", channel=CHANNEL, beacon_interval=None)
-        
+        node.set_radio_channel(CHANNEL)
         node.counts_configure_txrx(promisc_counts=PROMISCUOUS_COUNTS)
         node.reset(txrx_counts=True)
         node.set_low_to_high_rx_filter(mac_header='ALL_MPDU', fcs='GOOD')
