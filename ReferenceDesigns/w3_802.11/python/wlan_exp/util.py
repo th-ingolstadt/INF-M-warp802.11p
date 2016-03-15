@@ -693,13 +693,6 @@ def check_bss_membership(nodes, verbose=False):
                         msg += '"{0}":\n{1}\n'.format(repr(s), print_bss_info(sta_bss))
                         network_good = False
         
-        # Check STA station_infos
-        if (network_good):
-            for s in stas:
-                if (not s.is_associated(ap)):
-                    msg += 'AP not in association table of "{0}"\n'.format(repr(s))
-                    network_good = False
-    
     ###################################
     # 0 AP and 0  STA and 1+ IBSS
     if (len(ibsss) > 0):
