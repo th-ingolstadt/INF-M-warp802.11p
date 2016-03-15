@@ -263,7 +263,8 @@ typedef struct {
 
     u32                      wlan_exp_version;             // WLAN Exp Version
     u32                      wlan_scheduler_resolution;    // WLAN Exp - Minimum Scheduler resolution
-    u32                      wlan_hw_addr[2];              // WLAN Exp - Wireless MAC address (ie ETH A MAC address)
+    u32                      wlan_hw_addr[2];              // WLAN Exp - Wireless MAC address (ie ETH A MAC address)
+
     //
     // ADD NEW TAG PARAMETERS HERE
     //
@@ -297,6 +298,7 @@ void wlan_exp_set_tx_cmd_add_association_callback     (void(*callback)());
 void wlan_exp_set_process_user_cmd_callback           (void(*callback)());
 void wlan_exp_set_beacon_ts_update_mode_callback      (void(*callback)());
 void wlan_exp_set_process_config_bss_callback         (void(*callback)());
+void wlan_exp_set_beacon_tx_param_update_callback     (void(*callback)());
 
 // WLAN Exp commands
 u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr);

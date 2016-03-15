@@ -144,6 +144,7 @@ static wlan_exp_function_ptr_t    wlan_exp_process_node_cmd_callback         = (
        wlan_exp_function_ptr_t    wlan_exp_process_user_cmd_callback         = (wlan_exp_function_ptr_t) null_process_cmd_callback;
        wlan_exp_function_ptr_t    wlan_exp_beacon_ts_update_mode_callback    = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_process_config_bss_callback       = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
+       wlan_exp_function_ptr_t    wlan_exp_beacon_tx_param_update_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
 
 u32                               async_pkt_enable;
 u32                               async_eth_dev_num;
@@ -1929,6 +1930,9 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                         // Set the default multicast management parameter
                         default_multicast_mgmt_tx_params.phy.power = power;
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default multicast mgmt TX power = %d dBm\n", power);
+
+                        // Update beacon tx params
+                        wlan_exp_beacon_tx_param_update_callback(&default_multicast_mgmt_tx_params);
                     break;
 
                     case CMD_PARAM_READ_VAL:
@@ -1985,6 +1989,9 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
                 // Update the Tx power in each current association
                 status = process_tx_power(CMD_PARAM_WRITE_VAL, WLAN_EXP_AID_ALL, power);
+
+                // Update beacon tx params
+                wlan_exp_beacon_tx_param_update_callback(&default_multicast_mgmt_tx_params);
             } else {
                 wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown type for CMDID_NODE_TX_POWER: %d\n", type);
                 status = CMD_PARAM_ERROR;
@@ -2119,6 +2126,9 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                                         "Set default multicast mgmt Tx rate to MCS %d, PHY mode %d\n", mcs, phy_mode);
+
+                        // Update beacon tx params
+                        wlan_exp_beacon_tx_param_update_callback(&default_multicast_mgmt_tx_params);
                     break;
 
                     case CMD_PARAM_READ_VAL:
@@ -2167,6 +2177,17 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // NOTE:  This method assumes that the Antenna mode received is valid.
             // The checking will be done on either the host, in CPU Low or both.
 
+            // Need to convert antenna mode from:   Python       C
+            //     - TX_ANTMODE_SISO_ANTA:            0x0   to  0x10
+            //     - TX_ANTMODE_SISO_ANTB:            0x1   to  0x20
+            //     - TX_ANTMODE_SISO_ANTC:            0x2   to  0x30
+            //     - TX_ANTMODE_SISO_ANTD:            0x3   to  0x40
+            //
+            // Formula:  y = (x + 1) << 4;
+            //
+            ant_mode = (ant_mode + 1) << 4;
+
+            // Process command
             if (type == CMD_PARAM_UNICAST_VAL) {
                 switch (msg_cmd) {
                     case CMD_PARAM_WRITE_VAL:
@@ -2235,6 +2256,9 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                         // Set the default multicast management parameter
                         default_multicast_mgmt_tx_params.phy.antenna_mode = ant_mode;
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default multicast mgmt TX antenna mode = %d\n", ant_mode);
+
+                        // Update beacon tx params
+                        wlan_exp_beacon_tx_param_update_callback(&default_multicast_mgmt_tx_params);
                     break;
 
                     case CMD_PARAM_READ_VAL:
@@ -2271,10 +2295,23 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 if (ant_mode == CMD_PARAM_ERROR) {
                     status = CMD_PARAM_ERROR;
                 }
+
+                // Update beacon tx params
+                wlan_exp_beacon_tx_param_update_callback(&default_multicast_mgmt_tx_params);
             } else {
                 wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown type for NODE_TX_ANT_MODE: %d\n", type);
                 status = CMD_PARAM_ERROR;
             }
+
+            // Need to convert antenna mode from:      C         Python
+            //     - TX_ANTMODE_SISO_ANTA:            0x10   to   0x0
+            //     - TX_ANTMODE_SISO_ANTB:            0x20   to   0x1
+            //     - TX_ANTMODE_SISO_ANTC:            0x30   to   0x2
+            //     - TX_ANTMODE_SISO_ANTD:            0x40   to   0x3
+            //
+            // Formula:  y = (x >> 4) - 1;
+            //
+            ant_mode = (ant_mode >> 4) - 1;
 
             // Send response
             resp_args_32[resp_index++] = Xil_Htonl(status);
@@ -3727,6 +3764,7 @@ void wlan_exp_reset_all_callbacks(){
     wlan_exp_process_user_cmd_callback         = (wlan_exp_function_ptr_t) null_process_cmd_callback;
     wlan_exp_beacon_ts_update_mode_callback    = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_process_config_bss_callback       = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
+    wlan_exp_beacon_tx_param_update_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
 }
 
 
@@ -3762,6 +3800,11 @@ void wlan_exp_set_beacon_ts_update_mode_callback(void(*callback)()){
 
 void wlan_exp_set_process_config_bss_callback(void(*callback)()){
     wlan_exp_process_config_bss_callback = (wlan_exp_function_ptr_t) callback;
+}
+
+
+void wlan_exp_set_beacon_tx_param_update_callback(void(*callback)()){
+    wlan_exp_beacon_tx_param_update_callback = (wlan_exp_function_ptr_t) callback;
 }
 
 

@@ -235,6 +235,7 @@ int main(){
     wlan_exp_set_process_user_cmd_callback(        (void *) wlan_exp_process_user_cmd);
     //   - wlan_exp_set_beacon_ts_update_mode_callback()  currently not supported by the AP
     wlan_exp_set_process_config_bss_callback(      (void *) configure_bss);
+    wlan_exp_set_beacon_tx_param_update_callback(  (void *) wlan_mac_high_update_beacon_tx_params);
 
     // Get the hardware info that has been collected from CPU low
     hw_info = get_mac_hw_info();

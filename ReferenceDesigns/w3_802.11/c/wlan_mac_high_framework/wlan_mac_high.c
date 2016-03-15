@@ -67,10 +67,7 @@ extern int                   __stack;                      ///< End of the stack
 
 
 // Variables implemented in child classes (ie AP, STA, etc)
-extern tx_params_t           default_unicast_mgmt_tx_params;
 extern tx_params_t           default_unicast_data_tx_params;
-extern tx_params_t           default_multicast_mgmt_tx_params;
-extern tx_params_t           default_multicast_data_tx_params;
 
 
 
@@ -2816,6 +2813,8 @@ void wlan_mac_high_update_tx_counts(tx_frame_info* tx_mpdu, station_info* statio
 	}
 }
 
+
+
 /**
  * @brief Configure Beacon Transmissions
  *
@@ -2826,8 +2825,6 @@ void wlan_mac_high_update_tx_counts(tx_frame_info* tx_mpdu, station_info* statio
  */
 int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, bss_info* bss_info_ptr, tx_params_t* tx_params_ptr, u8 flags) {
 	u16 tx_length;
-
-	// TODO: need to set the Tx Params independently with wlan_exp changes or any other updates
 
 	tx_frame_info*  tx_frame_info_ptr = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON);
 	if(lock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
@@ -2865,6 +2862,38 @@ int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_heade
 		return -1;
 	}
 
+	return 0;
+}
+
+
+
+/**
+ * @brief Update Beacon TX parameters
+ *
+ * This function will update the beacon template in the packet buffer with the
+ * new TX parameters.
+ *
+ * This function should be used inside a while loop in order to make sure that
+ * the update is successful:
+ *     while (wlan_mac_high_update_beacon_tx_params(&default_multicast_mgmt_tx_params) != 0) {}
+ *
+ * @param  tx_params_ptr     - Pointer to tx_params_t structure with new parameters
+ * @return status            - 0 - Success;   -1 Failure
+ */
+int wlan_mac_high_update_beacon_tx_params(tx_params_t* tx_params_ptr) {
+	tx_frame_info*  tx_frame_info_ptr = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON);
+
+	if (lock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS) {
+		xil_printf("Error: CPU_LOW had lock on Beacon packet buffer during initial configuration\n");
+		return -1;
+	}
+
+	memcpy(&(tx_frame_info_ptr->params), tx_params_ptr, sizeof(tx_params_t));
+
+	if (unlock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS) {
+		xil_printf("Error: Unable to unlock Beacon packet buffer during initial configuration\n");
+		return -1;
+	}
 
 	return 0;
 }
