@@ -117,8 +117,6 @@ CMD_PARAM_RSVD_MAC_ADDR                          = 0x00000000
 
 CMD_PARAM_NODE_TX_POWER_LOW                      = 0x00000010
 CMD_PARAM_NODE_TX_POWER_ALL                      = 0x00000020
-CMD_PARAM_NODE_TX_POWER_MAX_DBM                  = 21
-CMD_PARAM_NODE_TX_POWER_MIN_DBM                  = -9
 
 CMD_PARAM_NODE_TX_ANT_ALL                        = 0x00000010
 
@@ -1033,13 +1031,16 @@ class NodeProcTxPower(message.Cmd):
                        CMD_PARAM_MULTICAST_MGMT
                        CMD_PARAM_NODE_TX_POWER_LOW
                        CMD_PARAM_NODE_TX_POWER_ALL
-        power     -- Transmit power for the WARP node (in dBm).
+        power     -- Tuple:
+                       Transmit power for the WARP node (in dBm)
+                       Maximum transmit power for the WARP node (in dBm)
+                       Minimum transmit power for the WARP node (in dBm)
         device    -- 802.11 device for which the rate is being set.
     """
-    rate     = None
-    dev_name = None
+    max_tx_power = None
+    min_tx_power = None
 
-    def __init__(self, cmd, tx_type, power=None, device=None):
+    def __init__(self, cmd, tx_type, power, device=None):
         super(NodeProcTxPower, self).__init__()
         self.command = _CMD_GROUP_NODE + CMDID_NODE_TX_POWER
         mac_address  = None
@@ -1048,10 +1049,10 @@ class NodeProcTxPower(message.Cmd):
 
         self.add_args(self.check_type(tx_type))
 
-        if (cmd == CMD_PARAM_WRITE):
-            self.add_args(self.check_power(power))
-        else:
-            self.add_args(0)
+        # Get max/min power 
+        self.max_tx_power = power[1]
+        self.min_tx_power = power[2]        
+        self.add_args(self.check_power(power))
 
         if device is not None:
             mac_address = device.wlan_mac_address
@@ -1084,24 +1085,26 @@ class NodeProcTxPower(message.Cmd):
 
 
     def check_power(self, power):
-        """Check the power value is valid."""
+        """Return a valid power (in dBm) from the power tuple."""
         if power is None:
             raise ValueError("Must supply value to set Tx power.")
-
-        if (power > CMD_PARAM_NODE_TX_POWER_MAX_DBM):
+            
+        ret_val = power[0]
+            
+        if (power[0] > power[1]):
             msg  = "WARNING:  Requested power too high.\n"
-            msg += "    Adjusting transmit power from {0} to {1}".format(power, CMD_PARAM_NODE_TX_POWER_MAX_DBM)
+            msg += "    Adjusting transmit power from {0} to {1}".format(power[0], power[1])
             print(msg)
-            power = CMD_PARAM_NODE_TX_POWER_MAX_DBM
+            ret_val = power[1]
 
-        if (power < CMD_PARAM_NODE_TX_POWER_MIN_DBM):
+        if (power[0] < power[2]):
             msg  = "WARNING:  Requested power too low. \n"
-            msg += "    Adjusting transmit power from {0} to {1}".format(power, CMD_PARAM_NODE_TX_POWER_MIN_DBM)
+            msg += "    Adjusting transmit power from {0} to {1}".format(power[0], power[2])
             print(msg)
-            power = CMD_PARAM_NODE_TX_POWER_MIN_DBM
+            ret_val = power[2]
 
         # Shift the value so that there are only positive integers over the wire
-        return (power - CMD_PARAM_NODE_TX_POWER_MIN_DBM)
+        return (ret_val - power[2])
 
 
     def process_resp(self, resp):
@@ -1113,7 +1116,7 @@ class NodeProcTxPower(message.Cmd):
             args = resp.get_args()
 
             # Shift the value since only positive integers are transmitted over the wire
-            return (args[1] + CMD_PARAM_NODE_TX_POWER_MIN_DBM)
+            return (args[1] + self.min_tx_power)
         else:
             return None
 

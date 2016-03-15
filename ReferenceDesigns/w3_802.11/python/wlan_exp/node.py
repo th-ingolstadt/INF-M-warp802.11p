@@ -38,6 +38,8 @@ if sys.version[0]=="3": long=None
 NODE_PARAM_ID_WLAN_EXP_VERSION                  = 5
 NODE_PARAM_ID_WLAN_SCHEDULER_RESOLUTION         = 6
 NODE_PARAM_ID_WLAN_MAC_ADDR                     = 7
+NODE_PARAM_ID_WLAN_MAX_TX_POWER_DBM             = 8
+NODE_PARAM_ID_WLAN_MIN_TX_POWER_DBM             = 9
 
 
 class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
@@ -71,6 +73,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         wlan_exp_ver_minor (int): WLAN Exp Minor version running on this node
         wlan_exp_ver_revision (int): WLAN Exp Revision version running on this node
         mac_type (int): Value of the MAC type (see wlan_exp.defaults for values)
+        max_tx_power_dbm(int): Maximum transmit power of the node (in dBm)
+        min_tx_power_dbm(int): Minimum transmit power of the node (in dBm)
 
     """
 
@@ -86,6 +90,9 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     wlan_exp_ver_revision              = None
 
     mac_type                           = None
+    
+    max_tx_power_dbm                   = None
+    min_tx_power_dbm                   = None
 
     def __init__(self, network_config=None, mac_type=None):
         super(WlanExpNode, self).__init__(network_config)
@@ -859,7 +866,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             will be transmitted. The rate of control packets is determined by the 802.11 standard.
         """
         if self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode):
-            self._node_set_tx_param_unicast(cmds.NodeProcTxRate, (mcs, phy_mode), 'rate', device_list, curr_assoc, new_assoc)
+            self._node_set_tx_param_unicast(cmds.NodeProcTxRate, 'rate', (mcs, phy_mode), device_list, curr_assoc, new_assoc)
         else:
             self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode, verbose=True)
             raise AttributeError("Tx rate, (mcs, phy_mode) tuple, not supported by the design. See above error message.")
@@ -909,7 +916,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         .. note:: If both new_assoc and device_list are specified, the return list will always have
             the unicast packet Tx rate for all new associations as the first item in the list.
         """
-        return self._node_get_tx_param_unicast(cmds.NodeProcTxRate, 'rate', device_list, new_assoc)
+        return self._node_get_tx_param_unicast(cmds.NodeProcTxRate, 'rate', None, device_list, new_assoc)
 
 
     def get_tx_rate_multicast_data(self):
@@ -964,7 +971,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         if ant_mode is None:
             raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))
             
-        self._node_set_tx_param_unicast(cmds.NodeProcTxAntMode, ant_mode, 'antenna mode',  device_list, curr_assoc, new_assoc)
+        self._node_set_tx_param_unicast(cmds.NodeProcTxAntMode, 'antenna mode', ant_mode, device_list, curr_assoc, new_assoc)
 
 
     def set_tx_ant_mode_multicast_data(self, ant_mode):
@@ -1007,7 +1014,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         .. note:: If both new_assoc and device_list are specified, the return list will always have
             the unicast packet Tx antenna mode for all new associations as the first item in the list.
         """
-        return self._node_get_tx_param_unicast(cmds.NodeProcTxAntMode, 'antenna mode', device_list, new_assoc)
+        return self._node_get_tx_param_unicast(cmds.NodeProcTxAntMode, 'antenna mode', None, device_list, new_assoc)
 
 
     def get_tx_ant_mode_multicast_data(self):
@@ -1094,8 +1101,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         new_assoc, this method will set both the default unicast data and unicast management packet tx power.
 
         Args:
-            power (int):  Transmit power in dBm (a value between util.get_node_max_tx_power() and
-                util.get_node_min_tx_power())
+            power (int):  Transmit power in dBm (a value between node.max_tx_power_dbm and
+                node.min_tx_power_dbm)
             device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices
                 or single 802.11 device for which to set the unicast packet Tx power to 'power'
             curr_assoc (bool):  All current assocations will have the unicast packet Tx power set to 'power'
@@ -1113,27 +1120,31 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         .. note:: This will not affect the transmit power for control frames like ACKs that
             will be transmitted. To adjust this power, use the set_tx_power_ctrl command
         """
-        self._node_set_tx_param_unicast(cmds.NodeProcTxPower, power, 'power', device_list, curr_assoc, new_assoc)
+        self._node_set_tx_param_unicast(cmds.NodeProcTxPower, 'tx power', 
+                                        (power, self.max_tx_power_dbm, self.min_tx_power_dbm), 
+                                        device_list, curr_assoc, new_assoc)
 
 
     def set_tx_power_multicast_data(self, power):
         """Sets the multicast data packet transmit power.
 
         Args:
-            power (int):  Transmit power in dBm (a value between util.get_node_max_tx_power() and
-                util.get_node_min_tx_power())
+            power (int):  Transmit power in dBm (a value between node.max_tx_power_dbm and
+                node.min_tx_power_dbm)
         """
-        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_DATA, power))
+        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_DATA, 
+                                           (power, self.max_tx_power_dbm, self.min_tx_power_dbm)))
 
 
     def set_tx_power_multicast_mgmt(self, power):
         """Sets the multicast management packet transmit power.
 
         Args:
-            power (int):  Transmit power in dBm (a value between util.get_node_max_tx_power() and
-                util.get_node_min_tx_power())
+            power (int):  Transmit power in dBm (a value between node.max_tx_power_dbm and
+                node.min_tx_power_dbm)
         """
-        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_MGMT, power))
+        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_MGMT, 
+                                           (power, self.max_tx_power_dbm, self.min_tx_power_dbm)))
 
 
     def get_tx_power_unicast(self, device_list=None, new_assoc=False):
@@ -1152,7 +1163,9 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         .. note:: If both new_assoc and device_list are specified, the return list will always have
             the unicast packet Tx power for all new associations as the first item in the list.
         """
-        return self._node_get_tx_param_unicast(cmds.NodeProcTxPower, 'antenna mode', device_list, new_assoc)
+        return self._node_get_tx_param_unicast(cmds.NodeProcTxPower, 'tx power', 
+                                               (0, self.max_tx_power_dbm, self.min_tx_power_dbm), 
+                                               device_list, new_assoc)
 
 
     def get_tx_power_multicast_data(self):
@@ -1161,7 +1174,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         Returns:
             tx_power (int):  Multicast data packet transmit power for the node in dBm
         """
-        return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_DATA))
+        return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_DATA,
+                                                  (0, self.max_tx_power_dbm, self.min_tx_power_dbm)))
 
 
     def get_tx_power_multicast_mgmt(self):
@@ -1170,7 +1184,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         Returns:
             tx_power (int):  Multicast management packet transmit power for the node in dBm
         """
-        return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_MGMT))
+        return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_MGMT, 
+                                                  (0, self.max_tx_power_dbm, self.min_tx_power_dbm)))
 
 
     def set_tx_power_ctrl(self, power):
@@ -1182,10 +1197,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             ack for a reception will go out on the same antenna on which the reception occurred).
 
         Args:
-            power (int):  Transmit power in dBm (a value between util.get_node_max_tx_power() and
-                util.get_node_min_tx_power())
+            power (int):  Transmit power in dBm (a value between node.max_tx_power_dbm and
+                node.min_tx_power_dbm)
         """
-        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_NODE_TX_POWER_LOW, power))
+        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_NODE_TX_POWER_LOW, 
+                                           (power, self.max_tx_power_dbm, self.min_tx_power_dbm)))
 
 
     def set_tx_power(self, power):
@@ -1201,10 +1217,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         It will also update the transmit power of all current associations on the node.
 
         Args:
-            power (int):  Transmit power in dBm (a value between util.get_node_max_tx_power() and
-                util.get_node_min_tx_power())
+            power (int):  Transmit power in dBm (a value between node.max_tx_power_dbm and
+                node.min_tx_power_dbm)
         """
-        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_NODE_TX_POWER_ALL, power))
+        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_NODE_TX_POWER_ALL, 
+                                           (power, self.max_tx_power_dbm, self.min_tx_power_dbm)))
 
 
     def get_tx_power(self):
@@ -1473,14 +1490,14 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         return rate_ok
 
 
-    def _node_set_tx_param_unicast(self, cmd, param, param_name,
+    def _node_set_tx_param_unicast(self, cmd, param_name, param,
                                          device_list=None, curr_assoc=False, new_assoc=False):
         """Sets the unicast transmit param of the node.
 
         Args:
             cmd (Cmd):          Command to be used to set param
-            param (int):        Parameter to be set
             param_name (str):   Name of parameter for error messages
+            param (int):        Parameter to be set
             device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices
                 or single 802.11 device for which to set the Tx unicast param
             curr_assoc (bool):  All current assocations will have Tx unicast param set
@@ -1510,12 +1527,13 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_UNICAST, param, device_list))
 
 
-    def _node_get_tx_param_unicast(self, cmd, param_name, device_list=None, new_assoc=False):
+    def _node_get_tx_param_unicast(self, cmd, param_name, param=None, device_list=None, new_assoc=False):
         """Gets the unicast transmit param of the node.
 
         Args:
             cmd (Cmd):          Command to be used to set param
             param_name (str):   Name of parameter for error messages
+            param (int):        Optional parameter to pass information to cmd
             device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices
                 or single 802.11 device for which to get the Tx unicast param
             new_assoc  (bool):  Get the Tx unicast param for all new associations
@@ -1535,16 +1553,16 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             raise ValueError(msg)
 
         if new_assoc:
-            val = self.send_cmd(cmd(cmds.CMD_PARAM_READ_DEFAULT, cmds.CMD_PARAM_UNICAST))
+            val = self.send_cmd(cmd(cmds.CMD_PARAM_READ_DEFAULT, cmds.CMD_PARAM_UNICAST, param))
             ret_val.append(val)
 
         if (device_list is not None):
             try:
                 for device in device_list:
-                    val = self.send_cmd(cmd(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_UNICAST, device=device))
+                    val = self.send_cmd(cmd(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_UNICAST, param, device=device))
                     ret_val.append(val)
             except TypeError:
-                val = self.send_cmd(cmd(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_UNICAST, device=device_list))
+                val = self.send_cmd(cmd(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_UNICAST, param, device=device_list))
                 ret_val.append(val)
 
         return ret_val
@@ -2137,6 +2155,26 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 self.wlan_scheduler_resolution = values[0]
             else:
                 raise ex.ParameterError("NODE_LTG_RESOLUTION", "Incorrect length")
+
+        elif   (identifier == NODE_PARAM_ID_WLAN_MAX_TX_POWER_DBM):
+            if (length == 1):
+                # Power is an int transmited as a uint
+                if (values[0] & 0x80000000):
+                    self.max_tx_power_dbm = values[0] - 2**32
+                else:
+                    self.max_tx_power_dbm = values[0]
+            else:
+                raise ex.ParameterError("MAX_TX_POWER_DBM", "Incorrect length")
+
+        elif   (identifier == NODE_PARAM_ID_WLAN_MIN_TX_POWER_DBM):
+            if (length == 1):
+                # Power is an int transmited as a uint
+                if (values[0] & 0x80000000):
+                    self.min_tx_power_dbm = values[0] - 2**32
+                else:
+                    self.min_tx_power_dbm = values[0]
+            else:
+                raise ex.ParameterError("MIN_TX_POWER_DBM", "Incorrect length")
 
         else:
             super(WlanExpNode, self).process_parameter(identifier, length, values)
