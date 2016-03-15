@@ -948,25 +948,29 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         new_assoc, this method will set both the default unicast data and unicast management packet tx antenna mode.
 
         Args:
-            ant_mode (str):  Antenna mode (Key of wlan_tx_ant_modes in wlan_exp.util)
+            ant_mode (str):  Antenna mode; must be one of:
+
+                * ``'RF_A'``: transmit on RF A interface
+                * ``'RF_B'``: transmit on RF B interface
+
             device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices
                 or single 802.11 device for which to set the unicast packet Tx antenna mode to 'ant_mode'
             curr_assoc (bool):  All current assocations will have the unicast packet Tx antenna mode set to 'ant_mode'
             new_assoc  (bool):  All new associations will have the unicast packet Tx antenna mode set to 'ant_mode'
 
-        .. note:: One of device_list, curr_assoc or new_assoc must be set.  The device_list
-            and curr_assoc are mutually exclusive with curr_assoc having precedence
-            (ie if curr_assoc is True, then device_list will be ignored).
+        One of ``device_list``, ``curr_assoc`` or ``new_assoc`` must be set.  The ``device_list``
+        and ``curr_assoc`` are mutually exclusive with ``curr_assoc`` having precedence. If
+        ``curr_assoc`` is provided ``device_list`` will be ignored.
 
-        .. note:: WLAN Exp does not differentiate between unicast management tx parameters
-            and unicast data tx parameters since unicast management packets only occur when
-            they will not materially affect an experiment (ie they are only sent during
-            deauthentication)
+        WLAN Exp does not differentiate between unicast management tx parameters
+        and unicast data tx parameters since unicast management packets only occur when
+        they will not materially affect an experiment (ie they are only sent during
+        deauthentication)
 
-        .. note:: This will not affect the transmit antenna mode for control frames like ACKs that
-            will be transmitted. Control packets will be sent on whatever antenna that cause the
-            control packet to be generated (ie an ack for a reception will go out on the same antenna
-            on which the reception occurred).
+        This will not affect the transmit antenna mode for control frames like ACKs that
+        will be transmitted. Control packets will be sent on whatever antenna that cause the
+        control packet to be generated (ie an ack for a reception will go out on the same antenna
+        on which the reception occurred).
         """
         if ant_mode is None:
             raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))
