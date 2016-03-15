@@ -1570,6 +1570,9 @@ class NodeConfigBSS(message.Cmd):
             
             # Check status
             if (status & ERROR_CONFIG_BSS_BSSID_INVALID):
+                if type(self.bssid) in [int, long]:
+                    import wlan_exp.util as util
+                    self.bssid = util.mac_addr_to_str(self.bssid)
                 msg    += "    BSSID {0} was invalid.\n".format(self.bssid)
                 ret_val = False
             
