@@ -950,7 +950,9 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('fpga_dna',                   'Q',  'uint64',  'DNA value of node FPGA'),
         ('version',                    'I',  'uint32',  'wlan_exp version, as packed values [(u8)major (u8)minor (u16)rev]'),
         ('wlan_scheduler_resolution',  'I',  'uint32',  'Minimum interval in microseconds of the WLAN scheduler'),
-        ('wlan_mac_addr',              'Q',  'uint64',  'Node MAC address, 6 bytes in lower 48-bits of u64')])
+        ('wlan_mac_addr',              'Q',  'uint64',  'Node MAC address, 6 bytes in lower 48-bits of u64'),
+        ('wlan_max_tx_power_dbm',      'i',  'int32',   'Maximum transmit power'),
+        ('wlan_min_tx_power_dbm',      'i',  'int32',   'Minimum transmit power')])
 
 
     ###########################################################################
