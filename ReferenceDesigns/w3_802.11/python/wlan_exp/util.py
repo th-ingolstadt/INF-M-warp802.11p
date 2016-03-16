@@ -587,8 +587,8 @@ def check_bss_membership(nodes, verbose=False):
     
     There are two acceptable patterns for the nodes argument
     
-        #. 1 AP and 1+ STA and 0  IBSS ("infrastruture" network)
-        #. 0 AP and 0  STA and 1+ IBSS ("ad hoc" network)
+        #. 1 AP and 1+ STA and 0  IBSS ("infrastructure" network)
+        #. 0 AP and 0  STA and 2+ IBSS ("ad hoc" network)
     
     In the case that nodes is 1 AP and 1+ STA and 0 IBSS, then the following
     conditions must be met in order to return True
@@ -600,7 +600,7 @@ def check_bss_membership(nodes, verbose=False):
            implementation this condition is guaranteed if the STA BSS matches
            the AP BSS (previous condition)
     
-    In the case that nodes is 0 AP and 0 STA and 1+ IBSS, then the following
+    In the case that nodes is 0 AP and 0 STA and 2+ IBSS, then the following
     conditions must be met in order to return True
     
         #. BSS must match at all nodes and be non-null
@@ -646,18 +646,24 @@ def check_bss_membership(nodes, verbose=False):
 
     # Check provided nodes argument
     #   (1) 1 AP and 1+ STA and 0  IBSS
-    #   (2) 0 AP and 0  STA and 1+ IBSS
+    #   (2) 0 AP and 0  STA and 2+ IBSS
     if ((len(ap) == 0) and (len(stas) == 0) and (len(ibsss) == 0)):
         raise AttributeError('No wlan_exp nodes in list')
 
     if ((len(ibsss) > 0) and ((len(ap) > 0) or (len(stas) > 0))):
-        raise AttributeError('List cannot contain mix of IBSS and other node types')
+        raise AttributeError('Network cannot contain mix of IBSS and other node types')
 
     if (len(ap) > 1):
         raise AttributeError('{0} AP nodes in list - only 0 or 1 AP supported'.format(len(ap)))
 
     if ((len(ap) == 1) and (len(stas) == 0)):
-        raise AttributeError('Lists with 1 AP must include at least 1 STA')
+        raise AttributeError('Network with 1 AP must include at least 1 STA')
+
+    if (len(ibsss) == 1):
+        raise AttributeError('Network with IBSS nodes must have 2 or more nodes')
+
+    if ((len(ap) == 0) and (len(sta) == 1)):
+        raise AttributeError('Network with STA must include 1 AP')
 
     msg = ''
     network_good = True
@@ -696,8 +702,8 @@ def check_bss_membership(nodes, verbose=False):
                         network_good = False
         
     ###################################
-    # Ad hoc network (0 AP and 0 STA and 1+ IBSS)
-    elif (len(ibsss) > 0):
+    # Ad hoc network (0 AP and 0 STA and 2+ IBSS)
+    elif (len(ibsss) > 1):
         # Check that all BSS infos match and are non-null
         #     - Use first node as arbitrary 'golden' config
         golden_bss = ibsss[0].get_bss_info()
