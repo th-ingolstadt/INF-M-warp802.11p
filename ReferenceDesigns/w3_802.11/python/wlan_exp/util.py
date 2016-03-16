@@ -587,8 +587,8 @@ def check_bss_membership(nodes, verbose=False):
     
     There are two acceptable patterns for the nodes argument
     
-        #. 1 AP and 1+ STA and 0  IBSS
-        #. 0 AP and 0  STA and 1+ IBSS
+        #. 1 AP and 1+ STA and 0  IBSS ("infrastruture" network)
+        #. 0 AP and 0  STA and 1+ IBSS ("ad hoc" network)
     
     In the case that nodes is 1 AP and 1+ STA and 0 IBSS, then the following
     conditions must be met in order to return True
@@ -596,7 +596,9 @@ def check_bss_membership(nodes, verbose=False):
         #. AP BSS must be non-null
         #. AP must have each STA in its station_info list
         #. Each STA BSS must match AP BSS
-        #. Each STA must have AP as its only station_info
+        #. Each STA must have AP as its only station_info. In the current STA
+           implementation this condition is guaranteed if the STA BSS matches
+           the AP BSS (previous condition)
     
     In the case that nodes is 0 AP and 0 STA and 1+ IBSS, then the following
     conditions must be met in order to return True
@@ -606,7 +608,7 @@ def check_bss_membership(nodes, verbose=False):
     Args:
         nodes (list of WlanExpNode):  List of WlanExpNode / sub-classes of 
             WlanExpNode
-        verbose (bool):  Print debug information 
+        verbose (bool):  Print details on which nodes fail BSS membership checks
     
     Returns:
         members (bool):  Boolean indicating whether the nodes were members of the same BSS
@@ -624,7 +626,7 @@ def check_bss_membership(nodes, verbose=False):
     bss_info_fields = ['bssid', 'ssid', 'channel']
 
     # Define BSS info equality check based on bss_info_fields
-    bss_info_eq = lambda x,y: all([x[f] == y[f] for f in bss_info_fields])
+    bss_cfg_eq = lambda x,y: all([x[f] == y[f] for f in bss_info_fields])
 
     # Define BSS info print method that only prints bss_info_fields    
     def print_bss_info(bss_info):
@@ -687,7 +689,7 @@ def check_bss_membership(nodes, verbose=False):
                     msg += '"{0}" BSS is None - No BSS membership possible\n'.format(repr(s))
                     network_good = False
                 else:
-                    if (not bss_info_eq(ap_bss, sta_bss)):
+                    if (not bss_cfg_eq(ap_bss, sta_bss)):
                         msg += 'Mismatch between BSS Info:\n\n'
                         msg += '"{0}":\n{1}\n\n'.format(repr(ap), print_bss_info(ap_bss))
                         msg += '"{0}":\n{1}\n'.format(repr(s), print_bss_info(sta_bss))
@@ -712,7 +714,7 @@ def check_bss_membership(nodes, verbose=False):
                     msg += '"{0}" BSS is None - No BSS membership possible\n'.format(repr(n))
                     network_good = False
                 else:
-                    if (not bss_info_eq(golden_bss, n_bss)):
+                    if (not bss_cfg_eq(golden_bss, n_bss)):
                         msg += 'Mismatch between BSS Info:\n\n'
                         msg += '"{0}":\n{1}\n\n'.format(repr(ibsss[0]), print_bss_info(golden_bss))
                         msg += '"{0}":\n{1}\n'.format(repr(n), print_bss_info(n_bss))
