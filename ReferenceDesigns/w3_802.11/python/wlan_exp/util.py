@@ -663,7 +663,7 @@ def check_bss_membership(nodes, verbose=False):
     network_good = True
 
     ###################################
-    # 1 AP and 1+ STA and 0  IBSS
+    # Infrastructure network (1 AP and 1+ STA and 0 IBSS)
     if (len(ap) == 1):
         # Check AP BSS info
         ap     = ap[0]
@@ -696,8 +696,8 @@ def check_bss_membership(nodes, verbose=False):
                         network_good = False
         
     ###################################
-    # 0 AP and 0  STA and 1+ IBSS
-    if (len(ibsss) > 0):
+    # Ad hoc network (0 AP and 0 STA and 1+ IBSS)
+    elif (len(ibsss) > 0):
         # Check that all BSS infos match and are non-null
         #     - Use first node as arbitrary 'golden' config
         golden_bss = ibsss[0].get_bss_info()
@@ -719,6 +719,12 @@ def check_bss_membership(nodes, verbose=False):
                         msg += '"{0}":\n{1}\n\n'.format(repr(ibsss[0]), print_bss_info(golden_bss))
                         msg += '"{0}":\n{1}\n'.format(repr(n), print_bss_info(n_bss))
                         network_good = False
+    else:
+        # Other combination of nodes that somehow passed the nodes type checking above
+        # This should be impossible with the reference AP/STA/IBSS node implementations
+        #  but will catch the case of a new WlanExpNode subclass that we forget to add
+        #  to the nodes type checking
+        raise AttributeError('Unreognized or invalid combination of node types')
 
     # Print message
     if verbose and msg:
