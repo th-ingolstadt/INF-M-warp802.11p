@@ -185,17 +185,16 @@ class WlanExpNodeAp(node.WlanExpNode):
         except TypeError:
             self.send_cmd(cmds.NodeDisassociate(device_list))
 
-    def disassociate_all(self, device_list):
+
+    def disassociate_all(self):
         """De-authenticates all devices and removes all devices from the AP's
         association tables. This method triggers transmission of a de-authenticaion
         packet to every associated STA node. The STA nodes are then removed from the AP 
         association table.
 
-        Args:
-            device_list (list of WlanExpNode / WlanDevice):  List of 802.11 
-                devices or single 802.11 device for which to disassociate
         """
         self.send_cmd(cmds.NodeDisassociate())
+
 
     def enable_DTIM_multicast_buffering(self, enable):
         """Enable / Disable DTIM buffering of multicast data
@@ -435,4 +434,4 @@ class WlanExpNodeAp(node.WlanExpNode):
         msg = "WLAN EXP AP   " + msg
         return msg
 
-# End Class WlanExpNodeAp
+# End class 
