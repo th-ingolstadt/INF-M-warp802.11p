@@ -305,7 +305,7 @@ int main() {
 		bzero((void*)join_parameters->bssid, BSSID_LEN);
 
 		wlan_mac_high_free(join_parameters->ssid);
-		join_parameters->ssid = strdup(access_point_ssid);
+		join_parameters->ssid = strndup(access_point_ssid, SSID_LEN_MAX);
 
 		// Join the default SSID
 		wlan_mac_sta_join();
@@ -790,7 +790,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 						xil_printf("Association failed, reason code %d\n", ((association_response_frame*)mpdu_ptr_u8)->status_code);
 					}
-
 				break;
 
 
@@ -863,6 +862,9 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 							// Log the association state change
 							add_station_info_to_log((station_info*)((my_bss_info->associated_stations.first)->data), STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
 
+							// Stop any on-going join
+							if (wlan_mac_is_joining()) { wlan_mac_sta_join_return_to_idle(); }
+
 							// Purge all packets for the AP
 							purge_queue(UNICAST_QID);
 
@@ -880,7 +882,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 							join_parameters = wlan_mac_sta_get_join_parameters();
 							bzero((void*)join_parameters->bssid, 6);
 							wlan_mac_high_free(join_parameters->ssid);
-							join_parameters->ssid = strdup(curr_bss_info->ssid);
+							join_parameters->ssid = strndup(curr_bss_info->ssid, SSID_LEN_MAX);
 							wlan_mac_sta_join();
 						}
 					}
@@ -1019,11 +1021,8 @@ void ltg_event(u32 id, void* callback_arg){
 
 				// Submit the new packet to the appropriate queue
 				enqueue_after_tail(UNICAST_QID, curr_tx_queue_element);
-
-
 			}
 		}
-
 	}
 }
 
@@ -1061,25 +1060,61 @@ void reset_station_counts(){
  *****************************************************************************/
 int  sta_disassociate( void ) {
 	int                 status = 0;
-	station_info*       associated_station = NULL;
-	dl_entry*	        associated_station_entry;
+	station_info*       ap_station_info          = NULL;
+	dl_entry*           ap_station_info_entry;
+	tx_queue_element*   curr_tx_queue_element;
+	tx_queue_buffer*    curr_tx_queue_buffer;
+	u32                 tx_length;
 
 	// If the STA is currently associated, remove the association; otherwise do nothing
 	if(my_bss_info != NULL){
 
-		// Get the currently associated station
-		//   NOTE:  This assumes that there is only one associated station
-		associated_station_entry = my_bss_info->associated_stations.first;
-		associated_station       = (station_info*)associated_station_entry->data;
+		// Get the AP station info
+		ap_station_info_entry = my_bss_info->associated_stations.first;
+		ap_station_info       = (station_info*)ap_station_info_entry->data;
 
 		// Log association change
-		add_station_info_to_log(associated_station, STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
+		add_station_info_to_log(ap_station_info, STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
 
-		//
-		// TODO:  Send Disassociation Message
-		// NOTE: Jump to old channel before doing so. The channel is present in the my_bss_info in this context. No need to change back after.
-		//
+		// ---------------------------------------------------------------
+		// Send de-authentication message to tell AP that the STA is leaving
 
+		// Jump to BSS channel before sending.  No need to change back.
+		cpu_low_config.channel = wlan_mac_high_bss_channel_spec_to_radio_chan(my_bss_info->chan_spec);
+		wlan_mac_high_set_radio_channel(cpu_low_config.channel);
+
+		// Send disassociation packet
+		curr_tx_queue_element = queue_checkout();
+
+		if(curr_tx_queue_element != NULL){
+			curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+
+			// Setup the TX header
+			wlan_mac_high_setup_tx_header(&tx_header_common, ap_station_info->addr, wlan_mac_addr );
+
+			// Fill in the data
+			tx_length = wlan_create_disassoc_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, DISASSOC_REASON_STA_IS_LEAVING);
+
+			// Setup the TX frame info
+			wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
+												curr_tx_queue_element,
+												tx_length,
+												(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO ),
+												MANAGEMENT_QID );
+
+			// Set the information in the TX queue buffer
+			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+			curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
+			curr_tx_queue_buffer->frame_info.AID         = 0;
+
+			// Put the packet in the queue
+			enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
+
+			// Purge any data for the AP
+			purge_queue(UNICAST_QID);
+		}
+
+		// Set BSS to NULL
 		configure_bss(NULL);
 	}
 
@@ -1269,7 +1304,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				send_channel_switch_to_low = 1;
 			}
 			if (bss_config->update_mask & BSS_FIELD_MASK_SSID) {
-				strcpy(my_bss_info->ssid, bss_config->ssid);
+				strncpy(my_bss_info->ssid, bss_config->ssid, SSID_LEN_MAX);
 			}
 			if (bss_config->update_mask & BSS_FIELD_MASK_BEACON_INTERVAL) {
 				my_bss_info->beacon_interval = bss_config->beacon_interval;

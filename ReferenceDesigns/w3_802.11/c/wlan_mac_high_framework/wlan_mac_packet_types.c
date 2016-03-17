@@ -241,7 +241,7 @@ int wlan_create_auth_frame(void* pkt_buf, mac_header_80211_common* common, u16 a
 
 
 
-int wlan_create_deauth_frame(void* pkt_buf, mac_header_80211_common* common, u16 reason_code){
+int wlan_create_deauth_disassoc_frame(void* pkt_buf, u8 frame_control_1, mac_header_80211_common* common, u16 reason_code){
 	u32 packetLen_bytes;
 	u8* txBufferPtr_u8;
 
@@ -250,7 +250,7 @@ int wlan_create_deauth_frame(void* pkt_buf, mac_header_80211_common* common, u16
 	mac_header_80211* deauth_80211_header;
 	deauth_80211_header = (mac_header_80211*)(txBufferPtr_u8);
 
-	deauth_80211_header->frame_control_1 = MAC_FRAME_CTRL1_SUBTYPE_DEAUTH;
+	deauth_80211_header->frame_control_1 = frame_control_1;
 	deauth_80211_header->frame_control_2 = 0;
 
 	//duration can be filled in by CPU_LOW
@@ -265,7 +265,7 @@ int wlan_create_deauth_frame(void* pkt_buf, mac_header_80211_common* common, u16
 	deauth_mgmt_header = (deauthentication_frame*)(pkt_buf + sizeof(mac_header_80211));
 	deauth_mgmt_header->reason_code = reason_code;
 
-	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211) + sizeof(authentication_frame));
+	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211) + sizeof(deauthentication_frame));
 
 	packetLen_bytes = (txBufferPtr_u8 - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
 

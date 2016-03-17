@@ -340,8 +340,8 @@ void bss_info_checkin(dl_entry* bsi){
 
 
 dl_list* wlan_mac_high_find_bss_info_SSID(char* ssid){
-	//This function will return a pointer to a dl_list that contains every
-	//bss_info struct that matches the SSID argument.
+	// This function will return a pointer to a dl_list that contains every
+	// bss_info struct that matches the SSID argument.
 
     int       iter;
 	dl_entry* curr_dl_entry_primary_list;
@@ -352,10 +352,12 @@ dl_list* wlan_mac_high_find_bss_info_SSID(char* ssid){
 	// Remove/free any members of bss_info_matching_ssid_list that exist since the last time
 	// this function was called
 
-	iter          = bss_info_matching_ssid_list.length;
+	iter                     = bss_info_matching_ssid_list.length;
 	curr_dl_entry_match_list = bss_info_matching_ssid_list.first;
+
 	while ((curr_dl_entry_match_list != NULL) && (iter-- > 0)) {
 		next_dl_entry_match_list = dl_entry_next(curr_dl_entry_match_list);
+		dl_entry_remove(&bss_info_matching_ssid_list, curr_dl_entry_match_list);
 		wlan_mac_high_free(curr_dl_entry_match_list);
 		curr_dl_entry_match_list = next_dl_entry_match_list;
 	}
@@ -365,12 +367,13 @@ dl_list* wlan_mac_high_find_bss_info_SSID(char* ssid){
 	// match the SSID argument to this function. Note: these bss_info structs will continue
 	// to be pointed to by the dl_entry
 
-	iter          = bss_info_list.length;
+	iter                       = bss_info_list.length;
 	curr_dl_entry_primary_list = bss_info_list.last;
+
 	while ((curr_dl_entry_primary_list != NULL) && (iter-- > 0)) {
 		curr_bss_info = (bss_info*)(curr_dl_entry_primary_list->data);
 
-		if (strcmp(ssid,curr_bss_info->ssid) == 0) {
+		if (strcmp(ssid, curr_bss_info->ssid) == 0) {
 			curr_dl_entry_match_list = wlan_mac_high_malloc(sizeof(dl_entry));
 			curr_dl_entry_match_list->data = (void*)(curr_bss_info);
 			dl_entry_insertEnd(&bss_info_matching_ssid_list, curr_dl_entry_match_list);
@@ -471,11 +474,11 @@ bss_info* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan){
 	}
 
 	// Update the fields of the BSS Info
-	strcpy(curr_bss_info->ssid,ssid);
-	curr_bss_info->chan_spec.chan_pri     = chan;
-	curr_bss_info->chan_spec.chan_type    = CHAN_TYPE_BW20;
-	curr_bss_info->latest_beacon_rx_time = get_system_time_usec();
-    curr_bss_info->state                     = BSS_STATE_UNAUTHENTICATED;
+	strncpy(curr_bss_info->ssid, ssid, SSID_LEN_MAX);
+	curr_bss_info->chan_spec.chan_pri       = chan;
+	curr_bss_info->chan_spec.chan_type      = CHAN_TYPE_BW20;
+	curr_bss_info->latest_beacon_rx_time    = get_system_time_usec();
+    curr_bss_info->state                    = BSS_STATE_UNAUTHENTICATED;
 
 	dl_entry_insertEnd(&bss_info_list, curr_dl_entry);
 

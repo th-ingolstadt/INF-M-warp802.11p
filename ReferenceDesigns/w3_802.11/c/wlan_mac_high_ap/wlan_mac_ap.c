@@ -281,7 +281,7 @@ int main(){
 
 	// Set up BSS description
 	memcpy(bss_config.bssid, wlan_mac_addr, BSSID_LEN);
-	strcpy(bss_config.ssid, default_AP_SSID);
+	strncpy(bss_config.ssid, default_AP_SSID, SSID_LEN_MAX);
 	bss_config.chan_spec.chan_pri = WLAN_DEFAULT_CHANNEL;
 	bss_config.chan_spec.chan_type = CHAN_TYPE_BW20;
 	if (WLAN_DEFAULT_TX_PHY_MODE == PHY_MODE_HTMF) {
@@ -2303,7 +2303,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				update_beacon_template = 1;
 			}
 			if (bss_config->update_mask & BSS_FIELD_MASK_SSID) {
-				strcpy(my_bss_info->ssid, bss_config->ssid);
+				strncpy(my_bss_info->ssid, bss_config->ssid, SSID_LEN_MAX);
 				update_beacon_template = 1;
 			}
 			if (bss_config->update_mask & BSS_FIELD_MASK_BEACON_INTERVAL) {

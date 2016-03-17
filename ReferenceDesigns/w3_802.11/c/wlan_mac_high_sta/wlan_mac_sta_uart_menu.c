@@ -228,7 +228,7 @@ void uart_rx(u8 rxByte){
 					}
 
 					// Set to passive scan
-					scan_params->ssid = strdup("");
+					scan_params->ssid = strndup("", SSID_LEN_MAX);
 
 					// Start the scan
 					wlan_mac_scan_start();
@@ -334,7 +334,7 @@ void uart_rx(u8 rxByte){
 					// If SSID was not "", perform the join
 					if (curr_char != 0) {
 						// Set the SSID
-						join_parameters->ssid = strdup(text_entry);
+						join_parameters->ssid = strndup(text_entry, SSID_LEN_MAX);
 
 						// Clear the BSSID and channel
 						bzero((void *)join_parameters->bssid, ETH_MAC_ADDR_LEN);

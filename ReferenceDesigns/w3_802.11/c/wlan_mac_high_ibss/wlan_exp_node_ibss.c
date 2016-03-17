@@ -181,32 +181,6 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
         break;
 
 
-        //---------------------------------------------------------------------
-        case CMDID_NODE_DISASSOCIATE: {
-            // Disassociate from the IBSS
-            //
-            // Message format:
-            //     cmd_args_32[0:1]      MAC Address (All 0xFF means all station info)
-            //
-            // Response format:
-            //     resp_args_32[0]       Status
-            //
-            u32    status         = CMD_PARAM_SUCCESS;
-
-            wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Disassociate\n");
-
-            // Set "my_bss_info" to NULL
-            configure_bss(NULL);
-
-            // Send response
-            resp_args_32[resp_index++] = Xil_Htonl(status);
-
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
-            resp_hdr->num_args = resp_index;
-        }
-        break;
-
-
 //-----------------------------------------------------------------------------
 // IBSS Specific Commands
 //-----------------------------------------------------------------------------

@@ -125,7 +125,7 @@ int wlan_mac_scan_init(){
 
     gl_scan_parameters.probe_tx_interval_usec   = DEFAULT_SCAN_PROBE_TX_INTERVAL_USEC;
     gl_scan_parameters.time_per_channel_usec    = DEFAULT_SCAN_TIME_PER_CHANNEL_USEC;
-    gl_scan_parameters.ssid                     = strdup("");
+    gl_scan_parameters.ssid                     = strndup("", SSID_LEN_MAX);
 
     // Set global scan parameters
     //     - Other global variables will be initialized when wlan_mac_scan_start() is called

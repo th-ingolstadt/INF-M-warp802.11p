@@ -232,12 +232,12 @@ void wlan_mac_sta_join(){
 
             // Set the scan SSID
             //     - Save the current scan parameters SSID so to revert after the join has finished
-            //     - strdup automatically mallocs memory for strings, but previous strings need to
+            //     - strndup automatically mallocs memory for strings, but previous strings need to
             //       be freed manually
             //
-            scan_ssid_save = strdup(scan_parameters->ssid);
+            scan_ssid_save = strndup(scan_parameters->ssid, SSID_LEN_MAX);
             wlan_mac_high_free(scan_parameters->ssid);
-            scan_parameters->ssid = strdup(gl_join_parameters.ssid);
+            scan_parameters->ssid = strndup(gl_join_parameters.ssid, SSID_LEN_MAX);
 
             // Start the scan
             wlan_mac_scan_start();
@@ -303,7 +303,7 @@ void start_join_attempt() {
 
     // Move the AP's channel
     cpu_low_config.channel = wlan_mac_high_bss_channel_spec_to_radio_chan(attempt_bss_info->chan_spec);
-    wlan_mac_high_update_low_config(&cpu_low_config);
+    wlan_mac_high_set_radio_channel(cpu_low_config.channel);
 
     // Attempt to join the BSS
     wlan_mac_sta_join_bss_attempt_poll(0);
@@ -368,7 +368,7 @@ void wlan_mac_sta_join_return_to_idle(){
         // Restore the SSID in the scan parameters with the value stored when
         // wlan_mac_sta_join() was called
         wlan_mac_high_free(scan_parameters->ssid);
-        scan_parameters->ssid = strdup(scan_ssid_save);
+        scan_parameters->ssid = strndup(scan_ssid_save, SSID_LEN_MAX);
         wlan_mac_high_free(scan_ssid_save);
 
         // Set the saved SSID to NULL
@@ -473,6 +473,11 @@ void wlan_mac_sta_join_bss_search_poll(u32 schedule_id){
 void wlan_mac_sta_join_bss_attempt_poll(u32 aid){
     bss_config_t   bss_config;
 
+    if (attempt_bss_info == NULL) {
+        wlan_mac_sta_join_return_to_idle();
+        return;
+    }
+
     switch(join_state){
         case IDLE:
              xil_printf("JOIN FSM Error: Attempting/Idle mismatch\n");
@@ -508,7 +513,7 @@ void wlan_mac_sta_join_bss_attempt_poll(u32 aid){
 
                     // Create BSS config from attempt_bss_info
                     memcpy(bss_config.bssid, attempt_bss_info->bssid, BSSID_LEN);
-                    strcpy(bss_config.ssid, attempt_bss_info->ssid);
+                    strncpy(bss_config.ssid, attempt_bss_info->ssid, SSID_LEN_MAX);
 
                     bss_config.chan_spec       = attempt_bss_info->chan_spec;
                     bss_config.ht_capable      = 1;

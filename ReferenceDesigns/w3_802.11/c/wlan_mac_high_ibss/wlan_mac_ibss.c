@@ -315,7 +315,7 @@ int main() {
 			temp_bss_info = (bss_info*)(temp_dl_entry->data);
 
 			memcpy(bss_config.bssid, temp_bss_info->bssid, BSSID_LEN);
-			strcpy(bss_config.ssid, temp_bss_info->ssid);
+			strncpy(bss_config.ssid, temp_bss_info->ssid, SSID_LEN_MAX);
 			bss_config.chan_spec       = temp_bss_info->chan_spec;
 			bss_config.beacon_interval = temp_bss_info->beacon_interval;
 
@@ -329,7 +329,7 @@ int main() {
 			locally_administered_addr[0] |= MAC_ADDR_MSB_MASK_LOCAL;
 
 			memcpy(bss_config.bssid, locally_administered_addr, BSSID_LEN);
-			strcpy(bss_config.ssid, default_ssid);
+			strncpy(bss_config.ssid, default_ssid, SSID_LEN_MAX);
 			bss_config.chan_spec.chan_pri = WLAN_DEFAULT_CHANNEL;
 			bss_config.chan_spec.chan_type = CHAN_TYPE_BW20;
 			bss_config.beacon_interval = BEACON_INTERVAL_TU;
@@ -1326,7 +1326,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				update_beacon_template = 1;
 			}
 			if (bss_config->update_mask & BSS_FIELD_MASK_SSID) {
-				strcpy(my_bss_info->ssid, bss_config->ssid);
+				strncpy(my_bss_info->ssid, bss_config->ssid, SSID_LEN_MAX);
 				update_beacon_template = 1;
 			}
 			if (bss_config->update_mask & BSS_FIELD_MASK_BEACON_INTERVAL) {

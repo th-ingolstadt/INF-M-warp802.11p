@@ -203,54 +203,44 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
         case CMDID_NODE_DISASSOCIATE: {
             // Disassociate from the AP
             //
+            // The MAC address argument is ignored and the STA will always disassociate
+            // from the AP when this command is used.
+            //
             // Message format:
             //     cmd_args_32[0:1]      MAC Address (All 0xFF means all station info)
             //
             // Response format:
             //     resp_args_32[0]       Status
             //
-            u32                   aid;
-            u8                    mac_addr[6];
             interrupt_state_t     prev_interrupt_state;
             u32                   status         = CMD_PARAM_SUCCESS;
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Disassociate\n");
 
-            // Get MAC Address
-            wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[0], &mac_addr[0]);
-            aid = wlan_exp_get_id_in_associated_stations(&mac_addr[0]);
+            // Stop the join state machine if it is running
+            if (wlan_mac_is_joining()) { wlan_mac_sta_join_return_to_idle(); }
 
-            if (aid == WLAN_EXP_AID_NONE) {
-                // If we cannot find the MAC address, print a warning and return status error
-                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Could not find specified node: ");
-                wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, &mac_addr[0]); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
+            // Stop the scan state machine if it is running
+            if (wlan_mac_scan_is_scanning()) { wlan_mac_scan_stop(); }
 
-                status = CMD_PARAM_ERROR;
+            // Disable interrupts so no packets interrupt the disassociate
+            prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
+            // Disassociate STA
+            status = sta_disassociate();
+
+            // Re-enable interrupts
+            wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
+
+            // Set return parameters and print info to console
+            if (status == 0) {
+                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Disassociated from AP\n");
+                status = CMD_PARAM_SUCCESS;
             } else {
-                // Stop any scan / join in progress
-                //wlan_mac_sta_return_to_idle();  //FIXME
-
-                // Disable interrupts so no packets interrupt the disassociate
-                prev_interrupt_state = wlan_mac_high_interrupt_stop();
-
-                // STA disassociate command is the same for an individual AP or ALL
-                status = sta_disassociate();
-
-                // Re-enable interrupts
-                wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
-
-                // Set return parameters and print info to console
-                if (status == 0) {
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Disassociated node: ");
-                    status = CMD_PARAM_SUCCESS;
-                } else {
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Could not disassociate node: ");
-                    status = CMD_PARAM_ERROR;
-                }
-
-                wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, &mac_addr[0]); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
+                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Could not disassociate from AP\n");
+                status = CMD_PARAM_ERROR;
             }
+
 
             // Send response
             resp_args_32[resp_index++] = Xil_Htonl(status);
@@ -302,7 +292,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             //     cmd_args_32[2]   Channel
             //     cmd_args_32[3]   SSID Length
             //     cmd_args_32[4:N] SSID (packed array of ascii character values)
-            //                          NOTE: The characters are copied with a straight strcpy
+            //                          NOTE: The characters are copied using str functions
             //                              and must be correctly processed on the host side
             //
             // Response format:
@@ -334,7 +324,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 join_parameters->ssid = NULL;
             } else {
                 // Set the SSID
-                join_parameters->ssid = strdup(ssid);
+                join_parameters->ssid = strndup(ssid, SSID_LEN_MAX);
 
                 // Set the BSSID (reserved value is all zeros)
                 //     - Do not need to check if the value is all zero since that will be done

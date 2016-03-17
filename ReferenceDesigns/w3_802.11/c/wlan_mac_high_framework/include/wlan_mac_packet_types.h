@@ -98,9 +98,11 @@ typedef struct{
 #define AUTH_SEQ_REQ 0x01
 #define AUTH_SEQ_RESP 0x02
 
-//Class 3 frame received from nonassociated STA
-#define DEAUTH_REASON_INACTIVITY		4
-#define DEAUTH_REASON_NONASSOCIATED_STA	7
+// Reason Codes as per IEEE 802.11-2012 standard.(table 8.36)
+#define DEAUTH_REASON_STA_IS_LEAVING                       3
+#define DEAUTH_REASON_INACTIVITY                           4
+#define DEAUTH_REASON_NONASSOCIATED_STA                    7
+#define DISASSOC_REASON_STA_IS_LEAVING                     8
 
 // Status Codes: Table 7-23 in 802.11-2007
 #define STATUS_SUCCESS 0
@@ -115,7 +117,11 @@ typedef struct{
 int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_header_80211_common* common, bss_info* my_bss_info);
 int wlan_create_probe_req_frame(void* pkt_buf, mac_header_80211_common* common, char* ssid);
 int wlan_create_auth_frame(void* pkt_buf, mac_header_80211_common* common, u16 auth_algorithm,  u16 auth_seq, u16 status_code);
-int wlan_create_deauth_frame(void* pkt_buf, mac_header_80211_common* common, u16 reason_code);
+
+#define wlan_create_deauth_frame(pkt_buf, common, attempt_bss_info)   wlan_create_deauth_disassoc_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_DEAUTH,   common, attempt_bss_info)
+#define wlan_create_disassoc_frame(pkt_buf, common, attempt_bss_info) wlan_create_deauth_disassoc_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_DISASSOC, common, attempt_bss_info)
+
+int wlan_create_deauth_disassoc_frame(void* pkt_buf, u8 frame_control_1, mac_header_80211_common* common, u16 reason_code);
 int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_common* common, u16 status, u16 AID, bss_info* my_bss_info);
 
 #define wlan_create_association_req_frame(pkt_buf, common, attempt_bss_info) wlan_create_reassoc_assoc_req_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_ASSOC_REQ, common, attempt_bss_info)

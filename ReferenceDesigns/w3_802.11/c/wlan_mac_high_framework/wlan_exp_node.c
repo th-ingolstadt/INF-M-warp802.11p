@@ -2501,7 +2501,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                         wlan_mac_high_free(scan_params->ssid);
 
                         // Update new ssid
-                        scan_params->ssid = strdup(ssid);
+                        scan_params->ssid = strndup(ssid, SSID_LEN_MAX);
 
                         // Print information about the new channels
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  SSID = %s\n", scan_params->ssid);
