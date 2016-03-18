@@ -60,7 +60,7 @@
 
 #define  WLAN_DEFAULT_CHANNEL                     1
 #define  WLAN_DEFAULT_TX_PWR                      15
-#define  WLAN_DEFAULT_TX_PHY_MODE                 PHY_MODE_NONHT
+#define  WLAN_DEFAULT_TX_PHY_MODE                 PHY_MODE_HTMF
 #define  WLAN_DEFAULT_TX_ANTENNA                  TX_ANTMODE_SISO_ANTA
 #define  WLAN_DEFAULT_RX_ANTENNA                  RX_ANTMODE_SISO_ANTA
 
@@ -160,18 +160,18 @@ int main() {
 
 	default_unicast_mgmt_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
 	default_unicast_mgmt_tx_params.phy.mcs            = 0;
-	default_unicast_mgmt_tx_params.phy.phy_mode       = WLAN_DEFAULT_TX_PHY_MODE;
+	default_unicast_mgmt_tx_params.phy.phy_mode       = PHY_MODE_NONHT;
 	default_unicast_mgmt_tx_params.phy.antenna_mode   = WLAN_DEFAULT_TX_ANTENNA;
 
 	// All multicast traffic (incl. broadcast) uses these default Tx params
 	default_multicast_data_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
 	default_multicast_data_tx_params.phy.mcs          = 0;
-	default_multicast_data_tx_params.phy.phy_mode     = WLAN_DEFAULT_TX_PHY_MODE;
+	default_multicast_data_tx_params.phy.phy_mode     = PHY_MODE_NONHT;
 	default_multicast_data_tx_params.phy.antenna_mode = WLAN_DEFAULT_TX_ANTENNA;
 
 	default_multicast_mgmt_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
 	default_multicast_mgmt_tx_params.phy.mcs          = 0;
-	default_multicast_mgmt_tx_params.phy.phy_mode     = WLAN_DEFAULT_TX_PHY_MODE;
+	default_multicast_mgmt_tx_params.phy.phy_mode     = PHY_MODE_NONHT;
 	default_multicast_mgmt_tx_params.phy.antenna_mode = WLAN_DEFAULT_TX_ANTENNA;
 
 	// Initialize the utility library
@@ -1284,8 +1284,25 @@ u32	configure_bss(bss_config_t* bss_config){
 					// Add AP to association table
 					associated_station = wlan_mac_high_add_association(&(my_bss_info->associated_stations), &counts_table, my_bss_info->bssid, 0);
 
-					if (associated_station != NULL) {
-						// Log association change
+					if(associated_station != NULL) {
+
+						//Start off with a copy of the default unicast data Tx parameters.
+						associated_station->tx = default_unicast_data_tx_params;
+
+						if(my_bss_info->flags & BSS_FLAGS_HT_CAPABLE){
+							associated_station->flags |= STATION_INFO_FLAG_HT_CAPABLE;
+						} else {
+							associated_station->flags &= ~STATION_INFO_FLAG_HT_CAPABLE;
+						}
+
+						if((associated_station->flags & STATION_INFO_FLAG_HT_CAPABLE) == 0){
+							//If this station is not capable of HT phy_mode, then we'll adjust its tx_params.
+							//Note: If the default tx_params does not support HT, then we will not explicitly
+							//set the phy_mode to HT just because the STA is capable of it
+							associated_station->tx.phy.phy_mode = PHY_MODE_NONHT;
+						}
+
+						// Log the association state change
 						add_station_info_to_log(associated_station, STATION_INFO_ENTRY_NO_CHANGE, WLAN_EXP_STREAM_ASSOC_CHANGE);
 					}
 				}

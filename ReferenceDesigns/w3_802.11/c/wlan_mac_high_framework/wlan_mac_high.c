@@ -66,10 +66,6 @@ extern int                   _stack_end;                   ///< Start of the sta
 extern int                   __stack;                      ///< End of the stack
 
 
-// Variables implemented in child classes (ie AP, STA, etc)
-extern tx_params_t           default_unicast_data_tx_params;
-
-
 
 /*************************** Variable Definitions ****************************/
 
@@ -2367,7 +2363,10 @@ station_info* wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* counts_
 		}
 
 		// Set the association TX parameters
-		memcpy(&(station->tx), &default_unicast_data_tx_params, sizeof(tx_params_t));
+		station->tx.phy.power          = 15;
+		station->tx.phy.mcs            = 0;
+		station->tx.phy.phy_mode       = PHY_MODE_NONHT;
+		station->tx.phy.antenna_mode   = TX_ANTMODE_SISO_ANTA;
 
 		// Set up the AID for the association
 		if(requested_AID == ADD_ASSOCIATION_ANY_AID){

@@ -638,6 +638,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 
 	tx_queue_buffer* 	curr_tx_queue_buffer;
 	station_info*       associated_station;
+	dl_entry*			station_info_entry;
 	u32                 queue_sel;
 
 	if(my_bss_info != NULL){
@@ -662,9 +663,16 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 				curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_data_tx_params);
 				curr_tx_queue_buffer->frame_info.AID         = 0;
 		} else {
-			associated_station = wlan_mac_high_add_association(&my_bss_info->associated_stations, &counts_table, eth_dest, ADD_ASSOCIATION_ANY_AID);
-			ibss_update_hex_display(my_bss_info->associated_stations.length);
-			//Note: the above function will not create a new station_info if it already exists for this address in the associated_stations list
+
+			station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, eth_dest);
+
+			if(station_info_entry != NULL){
+				associated_station = (station_info*)station_info_entry->data;
+			} else {
+				associated_station = wlan_mac_high_add_association(&my_bss_info->associated_stations, &counts_table, eth_dest, ADD_ASSOCIATION_ANY_AID);
+				ibss_update_hex_display(my_bss_info->associated_stations.length);
+				if(associated_station != NULL) associated_station->tx = default_unicast_data_tx_params;
+			}
 
 			if(associated_station == NULL){
 				//If we don't have a station_info for this frame, we'll stick it in the multicast queue as a catch all
@@ -725,6 +733,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 	u16                 rx_seq;
 	rx_common_entry*    rx_event_log_entry       = NULL;
 
+	dl_entry*			station_info_entry		 = NULL;
 	station_info*       associated_station       = NULL;
 	counts_txrx*        station_counts           = NULL;
 
@@ -759,14 +768,22 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 		// Update the association information
 		if(my_bss_info != NULL){
 			if(wlan_addr_eq(rx_80211_header->address_3, my_bss_info->bssid)){
-				associated_station = wlan_mac_high_add_association(&my_bss_info->associated_stations, &counts_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
-				ibss_update_hex_display(my_bss_info->associated_stations.length);
+				station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, rx_80211_header->address_2);
+
+				if(station_info_entry != NULL){
+					associated_station = (station_info*)station_info_entry->data;
+				} else {
+					associated_station = wlan_mac_high_add_association(&my_bss_info->associated_stations, &counts_table, rx_80211_header->address_2, ADD_ASSOCIATION_ANY_AID);
+					ibss_update_hex_display(my_bss_info->associated_stations.length);
+					if(associated_station != NULL) associated_station->tx = default_unicast_data_tx_params;
+				}
 			}
 		} else {
 			associated_station = NULL;
 		}
 
 		if(associated_station != NULL) {
+
 
 			// Update station information
 			associated_station->latest_activity_timestamp = get_system_time_usec();
@@ -1058,9 +1075,13 @@ void ltg_event(u32 id, void* callback_arg){
 		}
 
 		if(is_multicast == 0){
-			wlan_mac_high_add_association(&my_bss_info->associated_stations, &counts_table, addr_da, ADD_ASSOCIATION_ANY_AID);
-			//Note: the above function will not create a new station_info if it already exists for this address in the associated_stations list
-			ibss_update_hex_display(my_bss_info->associated_stations.length);
+			station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, addr_da);
+
+			if(station_info_entry == NULL){
+				station = wlan_mac_high_add_association(&my_bss_info->associated_stations, &counts_table, addr_da, ADD_ASSOCIATION_ANY_AID);
+				ibss_update_hex_display(my_bss_info->associated_stations.length);
+				if(station != NULL) station->tx = default_unicast_data_tx_params;
+			}
 		}
 
 

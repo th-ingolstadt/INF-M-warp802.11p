@@ -120,6 +120,8 @@ wlan_mac_low_config_t                  cpu_low_config;
 
 
 
+
+
 /*************************** Functions Prototypes ****************************/
 
 #ifdef USE_WLAN_EXP
@@ -1802,6 +1804,9 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 						}
 
 						if(associated_station != NULL) {
+
+							//Start off with a copy of the default unicast data Tx parameters.
+							associated_station->tx = default_unicast_data_tx_params;
 
 							associated_station->flags &= ~STATION_INFO_FLAG_HT_CAPABLE;
 

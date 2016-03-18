@@ -339,7 +339,11 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 	mgmt_tag_template->data[3] = (0x60);					//48Mbps
 	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-	if ((attempt_bss_info->flags) & BSS_FLAGS_HT_CAPABLE) { //FIXME: This shouldn't just be governed by whether the BSS supports HT, but also whether this STA wants to
+	if ((attempt_bss_info->flags) & BSS_FLAGS_HT_CAPABLE) {
+		//Note: This is the only place in the code where a STA decides whether or not to advertise that it is
+		// capable of HT rates. If it is joining a non-HT capable AP, it will omit these tags and pretend that
+		// it is only capable of transmitting and receiving the non-HT rates.
+
 		//Insert HT Capabilities and HT Information tags
 		mgmt_tag_template->header.tag_element_id = MGMT_TAG_HT_CAPABILITIES;
 		mgmt_tag_template->header.tag_length = 26;
