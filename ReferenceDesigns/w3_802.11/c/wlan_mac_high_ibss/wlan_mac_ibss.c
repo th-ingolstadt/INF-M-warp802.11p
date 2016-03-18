@@ -56,11 +56,12 @@
 #define  WLAN_EXP_ETH                            TRANSPORT_ETH_B
 #define  WLAN_EXP_NODE_TYPE                     (WLAN_EXP_TYPE_DESIGN_80211 + WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_IBSS)
 
+
+#define  WLAN_DEFAULT_USE_HT					 1
 #define  WLAN_DEFAULT_CHANNEL                    1
 #define  WLAN_DEFAULT_TX_PWR                     15
 #define  WLAN_DEFAULT_TX_ANTENNA                 TX_ANTMODE_SISO_ANTA
 #define  WLAN_DEFAULT_RX_ANTENNA                 RX_ANTMODE_SISO_ANTA
-#define  WLAN_DEFAULT_TX_PHY_MODE                PHY_MODE_NONHT
 
 #define  WLAN_DEFAULT_SCAN_TIMEOUT_USEC          5000000
 
@@ -152,23 +153,27 @@ int main() {
 	//   overridden via wlan_exp calls or by custom C code
 	default_unicast_data_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
 	default_unicast_data_tx_params.phy.mcs            = 3;
-	default_unicast_data_tx_params.phy.phy_mode       = WLAN_DEFAULT_TX_PHY_MODE;
+#if WLAN_DEFAULT_USE_HT
+	default_unicast_data_tx_params.phy.phy_mode       = PHY_MODE_HTMF;
+#else
+	default_unicast_data_tx_params.phy.phy_mode       = PHY_MODE_NONHT;
+#endif
 	default_unicast_data_tx_params.phy.antenna_mode   = WLAN_DEFAULT_TX_ANTENNA;
 
 	default_unicast_mgmt_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
 	default_unicast_mgmt_tx_params.phy.mcs            = 0;
-	default_unicast_mgmt_tx_params.phy.phy_mode       = WLAN_DEFAULT_TX_PHY_MODE;
+	default_unicast_mgmt_tx_params.phy.phy_mode       = PHY_MODE_NONHT;
 	default_unicast_mgmt_tx_params.phy.antenna_mode   = WLAN_DEFAULT_TX_ANTENNA;
 
 	// All multicast traffic (incl. broadcast) uses these default Tx params
 	default_multicast_data_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
 	default_multicast_data_tx_params.phy.mcs          = 0;
-	default_multicast_data_tx_params.phy.phy_mode     = WLAN_DEFAULT_TX_PHY_MODE;
+	default_multicast_data_tx_params.phy.phy_mode     = PHY_MODE_NONHT;
 	default_multicast_data_tx_params.phy.antenna_mode = WLAN_DEFAULT_TX_ANTENNA;
 
 	default_multicast_mgmt_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
 	default_multicast_mgmt_tx_params.phy.mcs          = 0;
-	default_multicast_mgmt_tx_params.phy.phy_mode     = WLAN_DEFAULT_TX_PHY_MODE;
+	default_multicast_mgmt_tx_params.phy.phy_mode     = PHY_MODE_NONHT;
 	default_multicast_mgmt_tx_params.phy.antenna_mode = WLAN_DEFAULT_TX_ANTENNA;
 
 	// Initialize the utility library
@@ -319,6 +324,12 @@ int main() {
 			bss_config.chan_spec       = temp_bss_info->chan_spec;
 			bss_config.beacon_interval = temp_bss_info->beacon_interval;
 
+			if(temp_bss_info->flags & BSS_FLAGS_HT_CAPABLE){
+				bss_config.ht_capable  = 1;
+			} else {
+				bss_config.ht_capable  = 0;
+			}
+
 		} else {
 			// Did not find an existing network matching the default SSID.  Create default BSS configuration
 			xil_printf("Unable to find '%s' IBSS. Creating new network.\n", default_ssid);
@@ -334,14 +345,11 @@ int main() {
 			bss_config.chan_spec.chan_type = CHAN_TYPE_BW20;
 			bss_config.beacon_interval = BEACON_INTERVAL_TU;
 
+			bss_config.ht_capable  = WLAN_DEFAULT_USE_HT;
+
 		}
 
 		// Set the rest of the bss_config fields
-		if (WLAN_DEFAULT_TX_PHY_MODE == PHY_MODE_HTMF) {
-			bss_config.ht_capable  = 1;
-		} else {
-			bss_config.ht_capable  = 0;
-		}
 		bss_config.update_mask     = (BSS_FIELD_MASK_BSSID           |
 									  BSS_FIELD_MASK_CHAN            |
 									  BSS_FIELD_MASK_SSID            |

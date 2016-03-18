@@ -58,9 +58,10 @@
 #define  WLAN_EXP_ETH                            TRANSPORT_ETH_B
 #define  WLAN_EXP_NODE_TYPE                      (WLAN_EXP_TYPE_DESIGN_80211 + WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_STA)
 
+
+#define  WLAN_DEFAULT_USE_HT					  0
 #define  WLAN_DEFAULT_CHANNEL                     1
 #define  WLAN_DEFAULT_TX_PWR                      15
-#define  WLAN_DEFAULT_TX_PHY_MODE                 PHY_MODE_HTMF
 #define  WLAN_DEFAULT_TX_ANTENNA                  TX_ANTMODE_SISO_ANTA
 #define  WLAN_DEFAULT_RX_ANTENNA                  RX_ANTMODE_SISO_ANTA
 
@@ -155,7 +156,11 @@ int main() {
 	//   overridden via wlan_exp calls or by custom C code
 	default_unicast_data_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
 	default_unicast_data_tx_params.phy.mcs            = 3;
-	default_unicast_data_tx_params.phy.phy_mode       = WLAN_DEFAULT_TX_PHY_MODE;
+#if WLAN_DEFAULT_USE_HT
+	default_unicast_data_tx_params.phy.phy_mode       = PHY_MODE_HTMF;
+#else
+	default_unicast_data_tx_params.phy.phy_mode       = PHY_MODE_NONHT;
+#endif
 	default_unicast_data_tx_params.phy.antenna_mode   = WLAN_DEFAULT_TX_ANTENNA;
 
 	default_unicast_mgmt_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
