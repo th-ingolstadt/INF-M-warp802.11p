@@ -660,7 +660,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 	dl_entry*			bss_info_entry;
 	bss_info*			curr_bss_info;
 	u8					pre_llc_offset			 = 0;
-	volatile join_parameters_t* 		 join_parameters;
 
 	u8 					mcs	     = frame_info->phy_details.mcs;
 	u16 				length   = frame_info->phy_details.length;
@@ -878,12 +877,18 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 							curr_bss_info = my_bss_info;
 							configure_bss(NULL);
 
+							//
+							// Note:  This is the place in the code where it would be easy to add new
+							//     "just de-authenticated" behaviors, such as an auto-re-join protocol.
+							//     The comments below show a simple "re-join the same AP" protocol using
+							//     the curr_bss_info variable assigned above.
+							//
 							// Try to re-join the AP
-							join_parameters = wlan_mac_sta_get_join_parameters();
-							bzero((void*)join_parameters->bssid, 6);
-							wlan_mac_high_free(join_parameters->ssid);
-							join_parameters->ssid = strndup(curr_bss_info->ssid, SSID_LEN_MAX);
-							wlan_mac_sta_join();
+							// volatile join_parameters_t*  join_parameters = wlan_mac_sta_get_join_parameters();
+							// bzero((void*)join_parameters->bssid, 6);
+							// wlan_mac_high_free(join_parameters->ssid);
+							// join_parameters->ssid = strndup(curr_bss_info->ssid, SSID_LEN_MAX);
+							// wlan_mac_sta_join();
 						}
 					}
 				break;
