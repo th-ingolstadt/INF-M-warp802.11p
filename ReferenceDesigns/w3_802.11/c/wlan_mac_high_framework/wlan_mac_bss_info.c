@@ -515,9 +515,9 @@ void wlan_mac_high_reset_network_list(){
 
 void wlan_mac_high_clear_bss_info(bss_info * info){
 	int            iter;
-	station_info * curr_station_info;
-	dl_entry     * next_station_info_entry;
-	dl_entry     * curr_station_info_entry;
+	station_info_t * curr_station_info;
+	dl_entry       * next_station_info_entry;
+	dl_entry       * curr_station_info_entry;
 
 	if (info != NULL){
         // Remove any station infos
@@ -531,8 +531,8 @@ void wlan_mac_high_clear_bss_info(bss_info * info){
 		while ((next_station_info_entry != NULL) && (iter-- > 0)) {
 			curr_station_info_entry = next_station_info_entry;
 			next_station_info_entry = dl_entry_next(curr_station_info_entry);
-			curr_station_info       = (station_info*)(curr_station_info_entry->data);
-			wlan_mac_high_remove_association(&info->associated_stations, get_counts(), curr_station_info->addr);
+			curr_station_info       = (station_info_t*)(curr_station_info_entry->data);
+			wlan_mac_high_remove_station_info(&info->associated_stations, get_counts(), curr_station_info->addr);
 		}
 
 		// Clear the bss_info

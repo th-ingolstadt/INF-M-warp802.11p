@@ -1331,14 +1331,14 @@ u32 add_all_txrx_counts_to_log(u8 transmit){
  *                                 XST_FAILURE - There was an error in the command
  *
  *****************************************************************************/
-u32 add_station_info_to_log(station_info * info, u8 zero_aid, u8 transmit){
+u32 add_station_info_to_log(station_info_t * station_info, u8 zero_aid, u8 transmit){
 
     station_info_entry * entry;
     u32                  entry_size        = sizeof(station_info_entry);
-    u32                  station_info_size = sizeof(station_info_base);
+    u32                  station_info_size = sizeof(station_info_base_t);
 
     // Check to see if we have valid station_info
-    if (info == NULL) { return XST_FAILURE; }
+    if (station_info == NULL) { return XST_FAILURE; }
 
     entry = (station_info_entry *)wlan_exp_log_create_entry(ENTRY_TYPE_STATION_INFO, entry_size);
 
@@ -1348,12 +1348,12 @@ u32 add_station_info_to_log(station_info * info, u8 zero_aid, u8 transmit){
         // Copy the station info to the log entry
         //   NOTE:  This assumes that the station info entry in wlan_mac_entries.h has a contiguous piece of memory
         //          similar to the station info and tx params structures in wlan_mac_high.h
-        memcpy((void *)(&entry->info), (void *)(info), station_info_size);
+        memcpy((void *)(&entry->info), (void *)(station_info), station_info_size);
 
-        // Zero the AID
+        // Zero the ID
         //   - Used when a station disassociates
         if (zero_aid == STATION_INFO_ENTRY_ZERO_AID) {
-            entry->info.AID = 0;
+            entry->info.ID = 0;
         }
 
 #ifdef USE_WLAN_EXP
@@ -1370,16 +1370,16 @@ u32 add_station_info_to_log(station_info * info, u8 zero_aid, u8 transmit){
 }
 
 
-u32 add_station_info_w_counts_to_log(station_info * info, u8 zero_aid, u8 transmit) {
+u32 add_station_info_w_counts_to_log(station_info_t * station_info, u8 zero_aid, u8 transmit) {
 
     u32 status;
 
-    if (info == NULL){ return XST_FAILURE; }
+    if (station_info == NULL){ return XST_FAILURE; }
 
-    status = add_station_info_to_log(info, zero_aid, transmit);
+    status = add_station_info_to_log(station_info, zero_aid, transmit);
 
     if (status == XST_SUCCESS) {
-        status = add_txrx_counts_to_log(info->counts, transmit);
+        status = add_txrx_counts_to_log(station_info->counts, transmit);
     }
 
     return status;
@@ -1411,7 +1411,7 @@ u32 add_all_station_info_to_log(u8 counts, u8 zero_aid, u8 transmit){
     u32                num_counts;
     dl_list          * list = get_station_info_list();
     dl_entry         * curr_station_info_entry;
-    station_info     * curr_info;
+    station_info_t   * station_info;
 
     // Check to see if we have valid station infos
     if (list == NULL) { return 0; }
@@ -1422,12 +1422,12 @@ u32 add_all_station_info_to_log(u8 counts, u8 zero_aid, u8 transmit){
 
     while ((curr_station_info_entry != NULL) && (iter-- > 0)) {
 
-        curr_info = (station_info*)(curr_station_info_entry->data);
+    	station_info = (station_info_t*)(curr_station_info_entry->data);
 
         if (counts == EVENT_LOG_COUNTS) {
-            status = add_station_info_w_counts_to_log(curr_info, zero_aid, transmit);
+            status = add_station_info_w_counts_to_log(station_info, zero_aid, transmit);
         } else {
-            status = add_station_info_to_log(curr_info, zero_aid, transmit);
+            status = add_station_info_to_log(station_info, zero_aid, transmit);
         }
 
         if (status == XST_SUCCESS) {

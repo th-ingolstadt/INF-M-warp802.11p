@@ -419,13 +419,13 @@ void print_main_menu(){
 void print_station_status(){
 
     u64            timestamp;
-    counts_txrx  * curr_counts;
-    dl_entry     * access_point_entry  = NULL;
-    station_info * access_point        = NULL;
+    counts_txrx  	* curr_counts;
+    dl_entry     	* access_point_entry  = NULL;
+    station_info_t  * access_point        = NULL;
 
     if(my_bss_info != NULL){
         access_point_entry = my_bss_info->associated_stations.first;
-        access_point = ((station_info*)(access_point_entry->data));
+        access_point = ((station_info_t*)(access_point_entry->data));
     }
 
     if (uart_mode == UART_MODE_INTERACTIVE) {
@@ -434,7 +434,7 @@ void print_station_status(){
         xil_printf("---------------------------------------------------\n");
 
             if(my_bss_info != NULL){
-                xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", access_point->AID,
+                xil_printf(" MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n",
                             access_point->addr[0],access_point->addr[1],access_point->addr[2],access_point->addr[3],access_point->addr[4],access_point->addr[5]);
 
                 curr_counts = access_point->counts;

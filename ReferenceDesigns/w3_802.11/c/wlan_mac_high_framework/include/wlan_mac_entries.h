@@ -170,8 +170,8 @@ typedef struct{
 //     (station_info_entry *) wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry))
 //
 typedef struct{
-    u64                 timestamp;               // Timestamp of the log entry
-    station_info_base   info;                    // Framework's station_info struct
+    u64                 	timestamp;               // Timestamp of the log entry
+    station_info_base_t   	info;                    // Framework's station_info struct
 } station_info_entry;
 
 CASSERT(sizeof(station_info_entry) == 60, station_info_entry_alignment_check);
@@ -460,8 +460,8 @@ void      add_time_info_entry(u64 timestamp, u64 mac_time, u64 system_time, u64 
 u32       add_txrx_counts_to_log(counts_txrx * counts, u8 transmit);
 u32       add_all_txrx_counts_to_log(u8 transmit);
 
-u32       add_station_info_to_log(station_info * info, u8 zero_aid, u8 transmit);
-u32       add_station_info_w_counts_to_log(station_info * info, u8 zero_aid, u8 transmit);
+u32       add_station_info_to_log(station_info_t * station_info, u8 zero_aid, u8 transmit);
+u32       add_station_info_w_counts_to_log(station_info_t * station_info, u8 zero_aid, u8 transmit);
 u32       add_all_station_info_to_log(u8 counts, u8 zero_aid, u8 transmit);
 
 u32       add_temperature_to_log(u8 transmit);

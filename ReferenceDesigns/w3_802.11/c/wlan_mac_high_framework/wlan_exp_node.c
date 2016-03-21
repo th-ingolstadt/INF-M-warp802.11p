@@ -3605,14 +3605,14 @@ void zero_station_info_entry(void * dest) {
 
     station_info_entry * curr_entry = (station_info_entry *)(dest);
 
-    bzero((void *)(&curr_entry->info), sizeof(station_info_base));
+    bzero((void *)(&curr_entry->info), sizeof(station_info_base_t));
 }
 
 
 
 void copy_station_info_to_dest_entry(void * source, void * dest, u8* mac_addr, u64 time) {
 
-    station_info       * curr_source = (station_info *)(source);
+    station_info_t     * curr_source = (station_info_t *)(source);
     station_info_entry * curr_dest   = (station_info_entry *)(dest);
 
     // Set the timestamp for the station_info entry
@@ -3620,10 +3620,10 @@ void copy_station_info_to_dest_entry(void * source, void * dest, u8* mac_addr, u
 
     // Fill in zeroed entry if source is NULL
     if (source == NULL) {
-        curr_source = wlan_mac_high_malloc(sizeof(station_info));
+        curr_source = wlan_mac_high_malloc(sizeof(station_info_t));
 
         if (curr_source != NULL) {
-            bzero(curr_source, sizeof(station_info));
+            bzero(curr_source, sizeof(station_info_t));
 
             // Add in MAC address
             memcpy(curr_source->addr, mac_addr, BSSID_LEN);
@@ -3634,7 +3634,7 @@ void copy_station_info_to_dest_entry(void * source, void * dest, u8* mac_addr, u
     //   NOTE:  This assumes that the destination log entry in wlan_mac_entries.h has a contiguous piece of memory
     //          similar to the source information structure in wlan_mac_high.h
     if (curr_source != NULL) {
-        memcpy( (void *)(&curr_dest->info), (void *)(curr_source), sizeof(station_info_base) );
+        memcpy( (void *)(&curr_dest->info), (void *)(curr_source), sizeof(station_info_base_t) );
     } else {
         wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_node, "Could not copy station_info to entry\n");
     }
@@ -3938,9 +3938,9 @@ void ltg_cleanup(u32 id, void* callback_arg){
  *
  *****************************************************************************/
 u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr) {
-    u32            id;
-    dl_entry     * entry;
-    station_info * info;
+    u32            		id;
+    dl_entry     	* 	entry;
+    station_info_t  * 	station_info;
 
     if (wlan_addr_eq(mac_addr, zero_addr)) {
         id = WLAN_EXP_AID_ALL;
@@ -3952,8 +3952,8 @@ u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr) {
                 entry = wlan_mac_high_find_station_info_ADDR(&(my_bss_info->associated_stations), mac_addr);
 
                 if (entry != NULL) {
-                    info = (station_info*)(entry->data);
-                    id = info->AID;
+                	station_info = (station_info_t*)(entry->data);
+                    id = station_info->ID;
                 } else {
                     id = WLAN_EXP_AID_NONE;
                 }
@@ -4128,9 +4128,9 @@ int process_tx_power(u32 cmd, u32 aid, int tx_power) {
 
     int           iter;
     int           power;
-    dl_list     * curr_list;
-    dl_entry    * curr_entry;
-    station_info* curr_station_info;
+    dl_list     	* curr_list;
+    dl_entry    	* curr_entry;
+    station_info_t	* curr_station_info;
 
     power = CMD_PARAM_ERROR;
 
@@ -4145,17 +4145,17 @@ int process_tx_power(u32 cmd, u32 aid, int tx_power) {
             curr_entry = curr_list->first;
 
             while ((curr_entry != NULL) && (iter-- > 0)) {
-                curr_station_info = (station_info*)(curr_entry->data);
+                curr_station_info = (station_info_t*)(curr_entry->data);
 
                 if (aid == WLAN_EXP_AID_ALL) {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
-                                    "Set TX power on AID %d = %d dBm\n", curr_station_info->AID, tx_power);
+                                    "Set TX power on ID %d = %d dBm\n", curr_station_info->ID, tx_power);
                     curr_station_info->tx.phy.power = tx_power;
                     power                           = tx_power;
 
-                } else if (aid == curr_station_info->AID) {
+                } else if (aid == curr_station_info->ID) {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
-                                    "Set TX power on AID %d = %d dBm\n", aid, tx_power);
+                                    "Set TX power on ID %d = %d dBm\n", aid, tx_power);
                     curr_station_info->tx.phy.power = tx_power;
                     power                           = tx_power;
                     break;
@@ -4180,8 +4180,8 @@ int process_tx_power(u32 cmd, u32 aid, int tx_power) {
                 curr_entry = curr_list->first;
 
                 while ((curr_entry != NULL) && (iter-- > 0)) {
-                    curr_station_info = (station_info*)(curr_entry->data);
-                    if (aid == curr_station_info->AID) {
+                    curr_station_info = (station_info_t*)(curr_entry->data);
+                    if (aid == curr_station_info->ID) {
                         power = curr_station_info->tx.phy.power;
                         break;
                     }
@@ -4216,11 +4216,11 @@ int process_tx_power(u32 cmd, u32 aid, int tx_power) {
  *****************************************************************************/
 u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 * ret_phy_mode) {
 
-    int           iter;
-    dl_list     * curr_list;
-    dl_entry    * curr_entry;
-    station_info* curr_station_info;
-    u32           status               = CMD_PARAM_ERROR;
+    int             iter;
+    dl_list       * curr_list;
+    dl_entry      * curr_entry;
+    station_info_t* curr_station_info;
+    u32             status               = CMD_PARAM_ERROR;
 
     // For Writes
     if (cmd == CMD_PARAM_WRITE_VAL) {
@@ -4233,20 +4233,20 @@ u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 
             curr_entry = curr_list->first;
 
             while ((curr_entry != NULL) && (iter-- > 0)) {
-                curr_station_info = (station_info*)(curr_entry->data);
+                curr_station_info = (station_info_t*)(curr_entry->data);
 
                 if (aid == WLAN_EXP_AID_ALL) {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
-                            "Set Tx rate on AID %d to MCS %d , PHY Mode %d\n", curr_station_info->AID, mcs, phy_mode);
+                            "Set Tx rate on AID %d to MCS %d , PHY Mode %d\n", curr_station_info->ID, mcs, phy_mode);
 
                     curr_station_info->tx.phy.mcs      = mcs;
                     curr_station_info->tx.phy.phy_mode = phy_mode;
 
                     status = CMD_PARAM_SUCCESS;
 
-                } else if (aid == curr_station_info->AID) {
+                } else if (aid == curr_station_info->ID) {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
-                            "Set Tx rate on AID %d to MCS %d , PHY Mode %d\n", curr_station_info->AID, mcs, phy_mode);
+                            "Set Tx rate on AID %d to MCS %d , PHY Mode %d\n", curr_station_info->ID, mcs, phy_mode);
 
                     curr_station_info->tx.phy.mcs      = mcs;
                     curr_station_info->tx.phy.phy_mode = phy_mode;
@@ -4280,8 +4280,8 @@ u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 
                 curr_entry = curr_list->first;
 
                 while ((curr_entry != NULL) && (iter-- > 0)) {
-                    curr_station_info = (station_info*)(curr_entry->data);
-                    if (aid == curr_station_info->AID) {
+                    curr_station_info = (station_info_t*)(curr_entry->data);
+                    if (aid == curr_station_info->ID) {
                         *ret_mcs      = (curr_station_info->tx.phy.mcs      & 0xFF);
                         *ret_phy_mode = (curr_station_info->tx.phy.phy_mode & 0xFF);
                         status       = CMD_PARAM_SUCCESS;
@@ -4314,11 +4314,11 @@ u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 
  *****************************************************************************/
 u32 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 
-    int           iter;
-    u32           mode;
-    dl_list     * curr_list;
-    dl_entry    * curr_entry;
-    station_info* curr_station_info;
+    int             iter;
+    u32             mode;
+    dl_list       * curr_list;
+    dl_entry      * curr_entry;
+    station_info_t* curr_station_info;
 
     mode = CMD_PARAM_ERROR;
 
@@ -4333,17 +4333,17 @@ u32 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
             curr_entry = curr_list->first;
 
             while ((curr_entry != NULL) && (iter-- > 0)) {
-                curr_station_info = (station_info*)(curr_entry->data);
+                curr_station_info = (station_info_t*)(curr_entry->data);
 
                 if (aid == WLAN_EXP_AID_ALL) {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
-                                    "Set TX ant mode on AID %d = %d \n", curr_station_info->AID, ant_mode);
+                                    "Set TX ant mode on AID %d = %d \n", curr_station_info->ID, ant_mode);
                     curr_station_info->tx.phy.antenna_mode = ant_mode;
                     mode                                   = ant_mode;
 
-                } else if (aid == curr_station_info->AID) {
+                } else if (aid == curr_station_info->ID) {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
-                                    "Set TX ant mode on AID %d = %d \n", curr_station_info->AID, ant_mode);
+                                    "Set TX ant mode on AID %d = %d \n", curr_station_info->ID, ant_mode);
                     curr_station_info->tx.phy.antenna_mode = ant_mode;
                     mode                                   = ant_mode;
                     break;
@@ -4368,8 +4368,8 @@ u32 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
                 curr_entry = curr_list->first;
 
                 while ((curr_entry != NULL) && (iter-- > 0)) {
-                    curr_station_info = (station_info*)(curr_entry->data);
-                    if (aid == curr_station_info->AID) {
+                    curr_station_info = (station_info_t*)(curr_entry->data);
+                    if (aid == curr_station_info->ID) {
                         mode = curr_station_info->tx.phy.antenna_mode;
                         break;
                     }

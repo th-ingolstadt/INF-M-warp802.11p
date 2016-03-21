@@ -251,10 +251,10 @@
 #define PKT_TYPE_CONTROL_RTS                               22                                 ///< RTS Control Type
 #define PKT_TYPE_CONTROL_CTS                               23                                 ///< CTS Control Type
 
-#define ADD_ASSOCIATION_ANY_AID                            0                                  ///< Special argument to function that adds associations
+#define ADD_STATION_INFO_ANY_ID                            0                                  ///< Special argument to function that adds station_info structs
 
 #define WLAN_MAC_HIGH_MAX_PROMISC_COUNTS                   50                                 ///< Maximum number of promiscuous counts
-#define WLAN_MAC_HIGH_MAX_ASSOCIATONS                      20                                 ///< Maximum number of associations
+#define WLAN_MAC_HIGH_MAX_STATION_INFOS                    20                                 ///< Maximum number of station_info structs in any given list
 
 #define SSID_LEN_MAX                                       32                                 ///< Maximum SSID length
 
@@ -353,7 +353,7 @@ typedef struct{
  ********************************************************************/
 typedef struct{
     u16 rate_selection_scheme;
-} rate_selection_info;
+} rate_selection_info_t;
 
 #define RATE_SELECTION_SCHEME_STATIC                       0
 
@@ -373,13 +373,13 @@ typedef struct{
  ********************************************************************/
 #define STATION_INFO_HOSTNAME_MAXLEN                       19
 
-#define WLAN_STATION_INFO_COMMON_FIELDS                                                                  \
-        u8          addr[6];                                    /* HW Address */                         \
-        u16         AID;                                        /* Association ID */                     \
-        char        hostname[STATION_INFO_HOSTNAME_MAXLEN+1];   /* Hostname from DHCP requests */        \
-        u32         flags;                                      /* 1-bit flags */                        \
-        u64         latest_activity_timestamp;                  /* Timestamp of most recent activity */  \
-        rx_info     rx;                                         /* Reception Information Structure */    \
+#define WLAN_STATION_INFO_COMMON_FIELDS                                                                  		\
+        u8          addr[6];                                    /* HW Address */                         		\
+        u16         ID;                                         /* Identification Index for this station */     \
+        char        hostname[STATION_INFO_HOSTNAME_MAXLEN+1];   /* Hostname from DHCP requests */        		\
+        u32         flags;                                      /* 1-bit flags */                        		\
+        u64         latest_activity_timestamp;                  /* Timestamp of most recent activity */  		\
+        rx_info     rx;                                         /* Reception Information Structure */    		\
         tx_params_t tx;                                         /* Transmission Parameters Structure */
 
 
@@ -391,9 +391,9 @@ typedef struct{
                                                                 ///< @note This is a pointer to the counts structure
                                                                 ///< because counts can survive outside of the context
                                                                 ///< of associated station_info structs.
-    rate_selection_info rate_info;
+    rate_selection_info_t rate_info;
 
-} station_info;
+} station_info_t;
 
 
 
@@ -408,7 +408,7 @@ typedef struct{
 
     WLAN_STATION_INFO_COMMON_FIELDS
 
-} station_info_base;
+} station_info_base_t;
 
 
 #define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK              0x0001              ///< Mask for flag in station_info -- disable association check
@@ -435,7 +435,7 @@ inline interrupt_state_t     wlan_mac_high_interrupt_stop();
 void               wlan_mac_high_uart_rx_handler(void *CallBackRef, unsigned int EventData);
 void               wlan_mac_high_gpio_handler(void *InstancePtr);
 
-dl_entry*          wlan_mac_high_find_station_info_AID(dl_list* list, u32 aid);
+dl_entry* 		   wlan_mac_high_find_station_info_ID(dl_list* list, u32 id);
 dl_entry*          wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr);
 dl_entry*          wlan_mac_high_find_counts_ADDR(dl_list* list, u8* addr);
 
@@ -499,15 +499,17 @@ u8                 wlan_mac_high_pkt_type(void* mpdu, u16 length);
 inline void        wlan_mac_high_set_debug_gpio(u8 val);
 inline void        wlan_mac_high_clear_debug_gpio(u8 val);
 
-station_info *     wlan_mac_high_add_association(dl_list* assoc_tbl, dl_list* counts_tbl, u8* addr, u16 requested_AID);
-int                wlan_mac_high_remove_association(dl_list* assoc_tbl, dl_list* counts_tbl, u8* addr);
-u8                 wlan_mac_high_is_valid_association(dl_list* assoc_tbl, station_info* station);
+station_info_t*    wlan_mac_high_add_station_info(dl_list* station_info_list, dl_list* counts_tbl, u8* addr, u16 requested_ID);
+int                wlan_mac_high_remove_station_info(dl_list* station_info_list, dl_list* counts_tbl, u8* addr);
+
+//FIXME: more renames of associations
+u8                 wlan_mac_high_is_valid_association(dl_list* station_info_list, station_info_t* station_info);
 u32                wlan_mac_high_set_max_associations(u32 num_associations);
 u32                wlan_mac_high_get_max_associations();
 
-counts_txrx *      wlan_mac_high_add_counts(dl_list* counts_tbl, station_info* station, u8* addr);
+counts_txrx*       wlan_mac_high_add_counts(dl_list* counts_tbl, station_info_t* station_info, u8* addr);
 void               wlan_mac_high_reset_counts(dl_list* counts_tbl);
-void               wlan_mac_high_update_tx_counts(tx_frame_info* tx_mpdu, station_info* station);
+void               wlan_mac_high_update_tx_counts(tx_frame_info* tx_mpdu, station_info_t* station_info);
 int                wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, bss_info* bss_info_ptr, tx_params_t* tx_params_ptr, u8 flags);
 int                wlan_mac_high_update_beacon_tx_params(tx_params_t* tx_params_ptr);
 
@@ -515,8 +517,8 @@ void               wlan_mac_high_print_associations(dl_list* assoc_tbl);
 
 
 // Common functions that must be implemented by users of the framework
-dl_list *          get_counts();
-dl_list *          get_station_info_list();
-u8      *          get_wlan_mac_addr();
+dl_list*          get_counts();
+dl_list*          get_station_info_list();
+u8*          	  get_wlan_mac_addr();
 
 #endif /* WLAN_MAC_HIGH_H_ */

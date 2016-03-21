@@ -70,7 +70,7 @@ int  main();
 
 u32  configure_bss(bss_config_t* bss_config);
 
-void association_timestamp_check();
+void remove_inactive_station_infos();
 
 void ltg_event(u32 id, void* callback_arg);
 void association_timestamp_adjust(s64 timestamp_diff);

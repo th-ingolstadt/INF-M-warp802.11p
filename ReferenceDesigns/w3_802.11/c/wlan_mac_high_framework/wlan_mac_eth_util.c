@@ -1080,10 +1080,10 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
 
                                                     // Zero out the hostname field of the station_info
                                                     //     NOTE: This will effectively Null-terminate the string
-                                                    bzero(((station_info*)(frame_info->additional_info))->hostname, STATION_INFO_HOSTNAME_MAXLEN+1);
+                                                    bzero(((station_info_t*)(frame_info->additional_info))->hostname, STATION_INFO_HOSTNAME_MAXLEN+1);
 
                                                     // Copy the string from the DHCP payload into the hostname field
-                                                    memcpy(((station_info*)(frame_info->additional_info))->hostname,
+                                                    memcpy(((station_info_t*)(frame_info->additional_info))->hostname,
                                                             &(eth_mid_ptr[2]),
                                                             min(STATION_INFO_HOSTNAME_MAXLEN, eth_mid_ptr[1]));
                                                 }

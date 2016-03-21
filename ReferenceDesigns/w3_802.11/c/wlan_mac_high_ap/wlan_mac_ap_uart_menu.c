@@ -281,8 +281,8 @@ void print_main_menu(){
 
 void print_station_status(){
 
-	station_info* curr_station_info;
-	dl_entry*	  curr_entry;
+	station_info_t* curr_station_info;
+	dl_entry*	  	curr_entry;
 
 	u64 timestamp;
 
@@ -293,17 +293,17 @@ void print_station_status(){
 		curr_entry = my_bss_info->associated_stations.first;
 
 		while(curr_entry != NULL){
-			curr_station_info = (station_info*)(curr_entry->data);
+			curr_station_info = (station_info_t*)(curr_entry->data);
 			xil_printf("---------------------------------------------------\n");
 			if(curr_station_info->hostname[0] != 0){
 				xil_printf(" Hostname: %s\n", curr_station_info->hostname);
 			}
-			xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", curr_station_info->AID,
+			xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", curr_station_info->ID,
 					curr_station_info->addr[0],curr_station_info->addr[1],curr_station_info->addr[2],curr_station_info->addr[3],curr_station_info->addr[4],curr_station_info->addr[5]);
 
 			xil_printf("     - Last heard from         %d ms ago\n",((u32)(timestamp - (curr_station_info->latest_activity_timestamp)))/1000);
 			xil_printf("     - Last Rx Power:          %d dBm\n",curr_station_info->rx.last_power);
-			xil_printf("     - # of queued MPDUs:      %d\n", queue_num_queued(AID_TO_QID(curr_station_info->AID)));
+			xil_printf("     - # of queued MPDUs:      %d\n", queue_num_queued(AID_TO_QID(curr_station_info->ID)));
 			xil_printf("     - # Tx High Data MPDUs:   %d (%d successful)\n", curr_station_info->counts->data.tx_num_packets_total,
 			                                                                  curr_station_info->counts->data.tx_num_packets_success);
 			xil_printf("     - # Tx High Data bytes:   %d (%d successful)\n", (u32)(curr_station_info->counts->data.tx_num_bytes_total),
@@ -333,14 +333,14 @@ void print_station_status(){
 
 void print_queue_status(){
 	dl_entry* curr_entry;
-	station_info* curr_station_info;
+	station_info_t* curr_station_info;
 	xil_printf("\nQueue Status:\n");
 	xil_printf(" FREE || MCAST|");
 
 	curr_entry = my_bss_info->associated_stations.first;
 	while(curr_entry != NULL){
-		curr_station_info = (station_info*)(curr_entry->data);
-		xil_printf("%6d|", curr_station_info->AID);
+		curr_station_info = (station_info_t*)(curr_entry->data);
+		xil_printf("%6d|", curr_station_info->ID);
 		curr_entry = dl_entry_next(curr_entry);
 	}
 	xil_printf("\n");
@@ -349,8 +349,8 @@ void print_queue_status(){
 
 	curr_entry = my_bss_info->associated_stations.first;
 	while(curr_entry != NULL){
-		curr_station_info = (station_info*)(curr_entry->data);
-		xil_printf("%6d|", queue_num_queued(AID_TO_QID(curr_station_info->AID)));
+		curr_station_info = (station_info_t*)(curr_entry->data);
+		xil_printf("%6d|", queue_num_queued(AID_TO_QID(curr_station_info->ID)));
 		curr_entry = dl_entry_next(curr_entry);
 	}
 	xil_printf("\n");

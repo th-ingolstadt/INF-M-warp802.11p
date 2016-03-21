@@ -215,7 +215,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             u32                   id;
             u8                    mac_addr[6];
             dl_entry            * curr_entry;
-            station_info        * curr_station_info;
+            station_info_t      * curr_station_info;
             interrupt_state_t     prev_interrupt_state;
             u32                   status         = CMD_PARAM_SUCCESS;
 
@@ -239,7 +239,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                     curr_entry = wlan_mac_high_find_station_info_ADDR( get_station_info_list(), &mac_addr[0]);
 
                     if (curr_entry != NULL) {
-                        curr_station_info = (station_info*)(curr_entry->data);
+                        curr_station_info = (station_info_t*)(curr_entry->data);
 
                         // Disable interrupts so no packets interrupt the disassociate
                         prev_interrupt_state = wlan_mac_high_interrupt_stop();
@@ -426,7 +426,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             u8                    mac_addr[6];
             interrupt_state_t     prev_interrupt_state;
             u32                   status              = CMD_PARAM_SUCCESS;
-            station_info        * curr_station_info   = NULL;;
+            station_info_t      * curr_station_info   = NULL;
             u32                   station_flags       = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "AP: Associate\n");
@@ -463,7 +463,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
                 // Add association
-                curr_station_info = wlan_mac_high_add_association(&my_bss_info->associated_stations, &counts_table, &mac_addr[0], ADD_ASSOCIATION_ANY_AID);
+                curr_station_info = wlan_mac_high_add_station_info(&my_bss_info->associated_stations, &counts_table, &mac_addr[0], ADD_STATION_INFO_ANY_ID);
 
                 // Set the flags
                 curr_station_info->flags = station_flags;
@@ -497,7 +497,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             resp_args_32[resp_index++] = Xil_Htonl(status);
 
             if (curr_station_info != NULL) {
-                resp_args_32[resp_index++] = Xil_Htonl(curr_station_info->AID);
+                resp_args_32[resp_index++] = Xil_Htonl(curr_station_info->ID);
             } else {
                 resp_args_32[resp_index++] = Xil_Htonl(0);
             }
