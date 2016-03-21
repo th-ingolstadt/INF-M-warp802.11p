@@ -29,7 +29,7 @@ import wlan_exp.transport.transport_eth_ip_udp as transport
 
 __all__ = [# Log command classes
            'LogGetEvents', 'LogConfigure', 'LogGetStatus', 'LogGetCapacity', 
-           'LogAddExpInfoEntry', 'LogAddCountsTxRx',
+           'LogAddExpInfoEntry',
            # Counts command classes
            'CountsConfigure', 'CountsGetTxRx',
            # LTG classes
@@ -174,7 +174,7 @@ CMDID_LOG_GET_STATUS                             = 0x003001
 CMDID_LOG_GET_CAPACITY                           = 0x003002
 CMDID_LOG_GET_ENTRIES                            = 0x003003
 CMDID_LOG_ADD_EXP_INFO_ENTRY                     = 0x003004
-CMDID_LOG_ADD_COUNTS_TXRX                        = 0x003005
+
 CMDID_LOG_ENABLE_ENTRY                           = 0x003006
 CMDID_LOG_STREAM_ENTRIES                         = 0x003007
 
@@ -424,23 +424,6 @@ class LogAddExpInfoEntry(message.Cmd):
         pass
 
 # End Class
-
-
-class LogAddCountsTxRx(message.Cmd):
-    """Command to add the current counts to the Event log"""
-    def __init__(self):
-        super(LogAddCountsTxRx, self).__init__()
-        self.command = _CMD_GROUP_NODE + CMDID_LOG_ADD_COUNTS_TXRX
-
-    def process_resp(self, resp):
-        if resp.resp_is_valid(num_args=1):
-            args = resp.get_args()
-            return args[0]
-        else:
-            return 0
-
-# End Class
-
 
 
 #--------------------------------------------

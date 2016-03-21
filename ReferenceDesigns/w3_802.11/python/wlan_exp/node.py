@@ -412,11 +412,6 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         return self.send_cmd(cmds.NodeProcTime(cmds.CMD_PARAM_TIME_ADD_TO_LOG, cmds.CMD_PARAM_RSVD_TIME, time_id))
 
 
-    def log_write_txrx_counts(self):
-        """Write the current txrx counts to the log."""
-        return self.send_cmd(cmds.LogAddCountsTxRx())
-
-
 
     #--------------------------------------------
     # Counts Commands

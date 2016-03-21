@@ -1,4 +1,4 @@
-== WLAN Exp v1.4.5   Log Entry Types ==
+== WLAN Exp v1.5.0   Log Entry Types ==
 
 ----
 
@@ -17,6 +17,8 @@ Entry type ID: 1
 || version ||  uint32  || wlan_exp version, as packed values [(u8)major (u8)minor (u16)rev] ||
 || wlan_scheduler_resolution ||  uint32  || Minimum interval in microseconds of the WLAN scheduler ||
 || wlan_mac_addr ||  uint64  || Node MAC address, 6 bytes in lower 48-bits of u64 ||
+|| wlan_max_tx_power_dbm ||  int32  || Maximum transmit power ||
+|| wlan_min_tx_power_dbm ||  int32  || Minimum transmit power ||
 
 
 ----
@@ -31,31 +33,6 @@ Entry type ID: 2
 || info_type ||  uint16  || Exp info type (arbitrary value supplied by application ||
 || info_len ||  uint16  || Exp info length (describes arbitrary payload supplied by application ||
 || info_payload ||  uint32  || Exp info payload ||
-
-
-----
-
-=== Entry Type STATION_INFO ===
-Information about an 802.11 association. At the AP one STATION_INFO is created for each associated STA and is logged whenever the STA association state changes. At the STA one STATION_INFO is logged whenever the STA associaiton state changes.
-
-Entry type ID: 3
-
-||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| timestamp ||  uint64  || Microsecond timer value at time of creation ||
-|| mac_addr ||  6uint8  || MAC address of associated device ||
-|| aid ||  uint16  || Association ID (AID) of device ||
-|| host_name ||  20uint8  || String hostname (19 chars max), taken from DHCP DISCOVER packets ||
-|| flags ||  uint32  || Association state flags: ??? ||
-|| latest_activity_timestamp ||  uint64  || Microsecond timer value at time of last successful Rx from device ||
-|| rx_last_seq ||  uint16  || Sequence number of last packet received from device ||
-|| rx_last_power ||  int8  || Rx power in dBm of last packet received from device ||
-|| padding0 ||  uint8  ||  ||
-|| tx_phy_mcs ||  uint8  || Current PHY MCS index in ![0:7] for new transmissions to device ||
-|| tx_phy_mode ||  uint8  || Current PHY mode for new transmissions to deivce ||
-|| tx_phy_antenna_mode ||  uint8  || Current PHY antenna mode in ![1:4] for new transmissions to device ||
-|| tx_phy_power ||  int8  || Current Tx power in dBm for new transmissions to device ||
-|| tx_mac_flags ||  uint8  || Flags for Tx MAC config for new transmissions to device ||
-|| padding1 ||  3uint8  ||  ||
 
 
 ----
@@ -76,21 +53,6 @@ Entry type ID: 4
 
 ----
 
-=== Entry Type CMD_INFO ===
-Record of a command received by the node. The full command payload is logged, including any (possibly personal-info-carrying) parameters like MAC addresses.
-
-Entry type ID: 5
-
-||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| timestamp ||  uint64  || Microsecond timer value at time of log entry creation ||
-|| command ||  uint32  || Command ID ||
-|| src_id ||  uint16  || Node ID of device sending command ||
-|| num_args ||  uint16  || Number of arguments supplied in command ||
-|| args ||  10uint32  || Command arguments ||
-
-
-----
-
 === Entry Type TIME_INFO ===
 Record of a time base event at the node. This log entry is used to enable parsing of log data recorded before and after changes to the node's microsecond MAC timer. This entry also allows a wlan_exp controler to write the current host time to the node log without affecting the node's timer value. This enables adjustment of log entry timestamps to real timestamps in post-proessing.
 
@@ -103,30 +65,6 @@ Entry type ID: 6
 || mac_timestamp ||  uint64  || New value of microsecond MAC timer value ||
 || system_timestamp ||  uint64  || Value of microsecond System timer value ||
 || host_timestamp ||  uint64  || Host time in microseconds-since-epoch; 0xFFFFFFFFFFFFFFFF if unknown ||
-
-
-----
-
-=== Entry Type BSS_INFO ===
-Information about an 802.11 basic service set (BSS). 
-
-Entry type ID: 7
-
-||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| timestamp ||  uint64  || Microsecond timer value at time of creation ||
-|| bssid ||  6uint8  || BSS ID ||
-|| chan_num ||  uint8  || Channel (center frequency) index of transmission ||
-|| flags ||  uint8  || BSS flags ||
-|| latest_activity_timestamp ||  uint64  || Microsecond timer value at time of last Tx or Rx event to node with address mac_addr ||
-|| ssid ||  33uint8  || SSID (32 chars max) ||
-|| state ||  uint8  || State of the BSS ||
-|| capabilities ||  uint16  || Supported capabilities of the BSS ||
-|| beacon_interval ||  uint16  || Beacon interval - In time units of 1024 us ||
-|| padding0 ||  uint8  ||  ||
-|| num_basic_rates ||  uint8  || Number of basic rates supported ||
-|| basic_rates ||  10uint8  || Supported basic rates ||
-|| phy_mode ||  uint8  || PHY Mode (Legacy, HT) ||
-|| padding1 ||  uint8  ||  ||
 
 
 ----
@@ -148,7 +86,7 @@ Entry type ID: 10
 || power ||  int8  || Rx power in dBm ||
 || fcs_result ||  uint8  || Checksum status, 0 = no errors ||
 || pkt_type ||  uint8  || Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS ||
-|| chan_num ||  uint8  || Channel (center frequency) index ||
+|| channel ||  uint8  || Channel (center frequency) index ||
 || padding ||  uint8  ||  ||
 || rf_gain ||  uint8  || AGC RF gain setting: ![1,2,3] for ![0,15,30]dB gain ||
 || bb_gain ||  uint8  || AGC BB gain setting: ![0:31] for approx ![0:63]dB gain ||
@@ -186,7 +124,7 @@ Entry type ID: 11
 || power ||  int8  || Rx power in dBm ||
 || fcs_result ||  uint8  || Checksum status, 0 = no errors ||
 || pkt_type ||  uint8  || Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS ||
-|| chan_num ||  uint8  || Channel (center frequency) index ||
+|| channel ||  uint8  || Channel (center frequency) index ||
 || padding ||  uint8  ||  ||
 || rf_gain ||  uint8  || AGC RF gain setting: ![1,2,3] for ![0,15,30]dB gain ||
 || bb_gain ||  uint8  || AGC BB gain setting: ![0:31] for approx ![0:63]dB gain ||
@@ -226,7 +164,7 @@ Entry type ID: 15
 || power ||  int8  || Rx power in dBm ||
 || fcs_result ||  uint8  || Checksum status, 0 = no errors ||
 || pkt_type ||  uint8  || Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS ||
-|| chan_num ||  uint8  || Channel (center frequency) index ||
+|| channel ||  uint8  || Channel (center frequency) index ||
 || padding ||  uint8  ||  ||
 || rf_gain ||  uint8  || AGC RF gain setting: ![1,2,3] for ![0,15,30]dB gain ||
 || bb_gain ||  uint8  || AGC BB gain setting: ![0:31] for approx ![0:63]dB gain ||
@@ -261,7 +199,7 @@ Entry type ID: 20
 || ant_mode ||  uint8  || PHY antenna mode in [0x10, 0x20, 0x30, 0x40] ||
 || tx_power ||  int8  || Tx power in dBm ||
 || num_tx ||  uint8  || Number of actual PHY Tx events which were used to transmit the MPDU (first Tx + all re-Tx) ||
-|| chan_num ||  uint8  || Channel (center frequency) index of transmission ||
+|| padding0 ||  uint8  || Padding ||
 || length ||  uint16  || Length in bytes of MPDU; includes MAC header, payload and FCS ||
 || result ||  uint8  || Tx result; 0 = ACK received or not required ||
 || pkt_type ||  uint8  || Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS ||
@@ -298,7 +236,7 @@ Entry type ID: 21
 || ant_mode ||  uint8  || PHY antenna mode in [0x10, 0x20, 0x30, 0x40] ||
 || tx_power ||  int8  || Tx power in dBm ||
 || num_tx ||  uint8  || Number of actual PHY Tx events which were used to transmit the MPDU (first Tx + all re-Tx) ||
-|| chan_num ||  uint8  || Channel (center frequency) index of transmission ||
+|| padding0 ||  uint8  || Padding ||
 || length ||  uint16  || Length in bytes of MPDU; includes MAC header, payload and FCS ||
 || result ||  uint8  || Tx result; 0 = ACK received or not required ||
 || pkt_type ||  uint8  || Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS ||
@@ -335,7 +273,7 @@ Entry type ID: 25
 || ant_mode ||  uint8  || PHY antenna mode in [0x10, 0x20, 0x30, 0x40] ||
 || tx_power ||  int8  || Tx power in dBm ||
 || tx_count ||  uint8  || Transmission index for this attempt; 0 = initial Tx, 1+ = subsequent re-transmissions ||
-|| chan_num ||  uint8  || Channel (center frequency) index ||
+|| channel ||  uint8  || Channel (center frequency) index ||
 || length ||  uint16  || Length in bytes of MPDU; includes MAC header, payload and FCS ||
 || num_slots ||  int16  || Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0); A value of -1 in this field means no backoff occured ||
 || cw ||  uint16  || Contention window value at time of this Tx ||
@@ -371,7 +309,7 @@ Entry type ID: 26
 || ant_mode ||  uint8  || PHY antenna mode in [0x10, 0x20, 0x30, 0x40] ||
 || tx_power ||  int8  || Tx power in dBm ||
 || tx_count ||  uint8  || Transmission index for this attempt; 0 = initial Tx, 1+ = subsequent re-transmissions ||
-|| chan_num ||  uint8  || Channel (center frequency) index ||
+|| channel ||  uint8  || Channel (center frequency) index ||
 || length ||  uint16  || Length in bytes of MPDU; includes MAC header, payload and FCS ||
 || num_slots ||  int16  || Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0); A value of -1 in this field means no backoff occured ||
 || cw ||  uint16  || Contention window value at time of this Tx ||
@@ -392,33 +330,4 @@ The following fields are populated when the log entry is part of a numpy array g
 || mac_seq ||  uint16  || MAC Header Sequence Number ||
 || ltg_uniq_seq ||  uint64  || Unique sequence number for LTG packet ||
 || ltg_flow_id ||  uint64  || LTG Flow ID, calculated as:[[BR]]  16LSB: LTG instance ID[[BR]]  48MSB: Destination MAC address ||
-
-
-----
-
-=== Entry Type TXRX_COUNTS ===
-Copy of the Tx/Rx counts struct maintained by CPU High. If promiscuous counts mode is enabled, Tx/Rx counts structs will be maintained for every unique source MAC address, up to the max_counts value. Otherwise counts are maintaind only associated nodes.
-
-Entry type ID: 30
-
-||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| timestamp ||  uint64  || Microsecond timer value at time of creation ||
-|| mac_addr ||  6uint8  || MAC address of remote node whose statics are recorded here ||
-|| associated ||  uint8  || Boolean indicating whether remote node is currently associated with this node ||
-|| padding ||  uint8  ||  ||
-|| data_num_rx_bytes ||  uint64  || Total number of bytes received in DATA packets from remote node ||
-|| data_num_tx_bytes_success ||  uint64  || Total number of bytes successfully transmitted in DATA packets to remote node ||
-|| data_num_tx_bytes_total ||  uint64  || Total number of bytes transmitted (successfully or not) in DATA packets to remote node ||
-|| data_num_rx_packets ||  uint32  || Total number of DATA packets received from remote node ||
-|| data_num_tx_packets_success ||  uint32  || Total number of DATA packets successfully transmitted to remote node ||
-|| data_num_tx_packets_total ||  uint32  || Total number of DATA packets transmitted (successfully or not) to remote node ||
-|| data_num_tx_packets_low ||  uint32  || Total number of PHY transmissions of DATA packets to remote node (includes re-transmissions) ||
-|| mgmt_num_rx_bytes ||  uint64  || Total number of bytes received in management packets from remote node ||
-|| mgmt_num_tx_bytes_success ||  uint64  || Total number of bytes successfully transmitted in management packets to remote node ||
-|| mgmt_num_tx_bytes_total ||  uint64  || Total number of bytes transmitted (successfully or not) in management packets to remote node ||
-|| mgmt_num_rx_packets ||  uint32  || Total number of management packets received from remote node ||
-|| mgmt_num_tx_packets_success ||  uint32  || Total number of management packets successfully transmitted to remote node ||
-|| mgmt_num_tx_packets_total ||  uint32  || Total number of management packets transmitted (successfully or not) to remote node ||
-|| mgmt_num_tx_packets_low ||  uint32  || Total number of PHY transmissions of management packets to remote node (includes re-transmissions) ||
-|| latest_txrx_timestamp ||  uint64  || Microsecond timer value (system time) of last transmission / reception ||
 

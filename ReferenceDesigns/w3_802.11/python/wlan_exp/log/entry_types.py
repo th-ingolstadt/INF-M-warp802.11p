@@ -59,7 +59,6 @@
 """
 import sys, os
 from struct import pack, unpack, calcsize, error
-import wlan_exp.info as info
 import wlan_exp.util as util
 
 # Fix to support Python 2.x and 3.x
@@ -76,11 +75,10 @@ WLAN_EXP_LOG_DELIM = 0xACED
 ENTRY_TYPE_NULL                   = 0
 ENTRY_TYPE_NODE_INFO              = 1
 ENTRY_TYPE_EXP_INFO               = 2
-ENTRY_TYPE_STATION_INFO           = 3
+
 ENTRY_TYPE_NODE_TEMPERATURE       = 4
-ENTRY_TYPE_CMD_INFO               = 5
+
 ENTRY_TYPE_TIME_INFO              = 6
-ENTRY_TYPE_BSS_INFO               = 7
 
 ENTRY_TYPE_RX_OFDM                = 10
 ENTRY_TYPE_RX_OFDM_LTG            = 11
@@ -92,8 +90,6 @@ ENTRY_TYPE_TX_HIGH_LTG            = 21
 
 ENTRY_TYPE_TX_LOW                 = 25
 ENTRY_TYPE_TX_LOW_LTG             = 26
-
-ENTRY_TYPE_TXRX_COUNTS            = 30
 
 # -----------------------------------------------------------------------------
 # Log Entry Type Container
@@ -975,52 +971,6 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
 
 
     ###########################################################################
-    # Station Info
-    #
-    entry_station_info = WlanExpLogEntryType(name='STATION_INFO', entry_type_id=ENTRY_TYPE_STATION_INFO)
-
-    entry_station_info.description  = 'Information about an 802.11 association. At the AP one STATION_INFO is created '
-    entry_station_info.description += 'for each associated STA and is logged whenever the STA association state changes. '
-    entry_station_info.description += 'At the STA one STATION_INFO is logged whenever the STA associaiton state changes.'
-
-    tmp_station_info                = info.StationInfo()
-
-    entry_station_info.consts       = tmp_station_info.get_consts()
-
-    entry_station_info.append_field_defs(tmp_station_info.get_field_defs())
-
-
-    ###########################################################################
-    # Basic Service Set (BSS) Info
-    #
-    entry_bss_info = WlanExpLogEntryType(name='BSS_INFO', entry_type_id=ENTRY_TYPE_BSS_INFO)
-
-    entry_bss_info.description  = 'Information about an 802.11 basic service set (BSS). '
-
-    tmp_bss_info                = info.BSSInfo()
-
-    entry_bss_info.consts       = tmp_bss_info.get_consts()
-
-    entry_bss_info.append_field_defs(tmp_bss_info.get_field_defs())
-
-
-    ###########################################################################
-    # Command Info
-    #
-    entry_cmd_info = WlanExpLogEntryType(name='CMD_INFO', entry_type_id=ENTRY_TYPE_CMD_INFO)
-
-    entry_cmd_info.description  = 'Record of a command received by the node. The full command payload is logged, '
-    entry_cmd_info.description += 'including any (possibly personal-info-carrying) parameters like MAC addresses.'
-
-    entry_cmd_info.append_field_defs([
-        ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
-        ('command',                'I',      'uint32',  'Command ID'),
-        ('src_id',                 'H',      'uint16',  'Node ID of device sending command'),
-        ('num_args',               'H',      'uint16',  'Number of arguments supplied in command'),
-        ('args',                   '10I',    '10uint32','Command arguments')])
-
-
-    ###########################################################################
     # Time Info
     #
     entry_time_info = WlanExpLogEntryType(name='TIME_INFO', entry_type_id=ENTRY_TYPE_TIME_INFO)
@@ -1185,18 +1135,3 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
 
     entry_tx_low_ltg.consts = entry_tx_low_common.consts.copy()
 
-
-    ###########################################################################
-    # Tx / Rx Counts
-    #
-    entry_txrx_counts = WlanExpLogEntryType(name='TXRX_COUNTS', entry_type_id=ENTRY_TYPE_TXRX_COUNTS)
-
-    entry_txrx_counts.description  = 'Copy of the Tx/Rx counts struct maintained by CPU High. If promiscuous counts mode is enabled, Tx/Rx counts structs will '
-    entry_txrx_counts.description += 'be maintained for every unique source MAC address, up to the max_counts value. Otherwise counts are maintaind only '
-    entry_txrx_counts.description += 'associated nodes.'
-
-    tmp_txrx_counts                = info.TxRxCounts()
-
-    entry_txrx_counts.consts       = tmp_txrx_counts.get_consts()
-
-    entry_txrx_counts.append_field_defs(tmp_txrx_counts.get_field_defs())
