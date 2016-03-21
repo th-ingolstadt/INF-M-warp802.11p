@@ -233,10 +233,10 @@ void wlan_phy_init() {
 		case PHY_5M:
 		case PHY_10M:
     	case PHY_40M:
-    		wlan_phy_DSSS_rx_disable();
+    		wlan_mac_low_DSSS_rx_disable();
     	break;
     	case PHY_20M:
-    		wlan_phy_DSSS_rx_enable();
+    		wlan_mac_low_DSSS_rx_enable();
     	break;
     }
 
@@ -969,10 +969,10 @@ void process_config_phy_rx(ipc_config_phy_rx_t * config_phy_rx){
     if (config_phy_rx->enable_dsss != 0xFF) {
         if (config_phy_rx->enable_dsss == 1) {
             // xil_printf("Enabling DSSS\n");
-            wlan_phy_DSSS_rx_enable();
+            wlan_mac_low_DSSS_rx_enable();
         } else {
             // xil_printf("Disabling DSSS\n");
-            wlan_phy_DSSS_rx_disable();
+            wlan_mac_low_DSSS_rx_disable();
         }
     }
 }

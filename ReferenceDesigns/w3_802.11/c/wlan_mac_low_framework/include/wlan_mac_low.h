@@ -465,6 +465,9 @@ inline u32         wlan_mac_low_get_current_rx_filter();
 void               wlan_mac_low_set_nav_check_addr(u8* addr);
 void               wlan_mac_low_set_radio_channel(u32 channel);
 
+void               wlan_mac_low_DSSS_rx_enable();
+void               wlan_mac_low_DSSS_rx_disable();
+
 int                wlan_mac_low_rx_power_to_rssi(s8 rx_pow);
 int                wlan_mac_low_set_pkt_det_min_power(s8 rx_pow);
 inline int         wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain);

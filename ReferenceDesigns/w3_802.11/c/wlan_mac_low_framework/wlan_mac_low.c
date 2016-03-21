@@ -58,6 +58,7 @@ volatile static phy_samp_rate_t   phy_samp_rate;                                
 volatile static mac_timing        mac_timing_values;                                ///< MAC Timing Constants
 volatile static u32               mac_param_chan;                                   ///< Current channel of the lower-level MAC
 volatile static u8                mac_param_band;                                   ///< Current band of the lower-level MAC
+volatile static u8                dsss_state;                                       ///< State of DSSS RX for 2.4GHz band
 volatile static s8                mac_param_ctrl_tx_pow;                            ///< Current transmit power (dBm) for control packets
 volatile static u32               mac_param_rx_filter;                              ///< Current filter applied to packet receptions
 volatile static u8                rx_pkt_buf;                                       ///< Current receive buffer of the lower-level MAC
@@ -149,6 +150,7 @@ int wlan_mac_low_init(u32 type){
     	break;
     }
 
+    dsss_state               = 1;
     mac_param_band           = RC_24GHZ;
     mac_param_ctrl_tx_pow    = 10;
     cpu_low_status           = 0;
@@ -794,8 +796,16 @@ void wlan_mac_low_set_radio_channel(u32 channel){
 	if (wlan_verify_channel(mac_param_chan) == XST_SUCCESS) {
 		if(mac_param_chan <= 14){
 			mac_param_band = RC_24GHZ;
+
+			// Enable DSSS if state indicates it should be enabled
+			if (dsss_state) {
+				wlan_phy_DSSS_rx_enable();
+			}
 		} else {
 			mac_param_band = RC_5GHZ;
+
+			// Always disable DSSS when in the 5 GHZ band
+			wlan_phy_DSSS_rx_disable();
 		}
 
 		radio_controller_setCenterFrequency(RC_BASEADDR, (RC_ALL_RF), mac_param_band, wlan_mac_low_wlan_chan_to_rc_chan(mac_param_chan));
@@ -804,6 +814,34 @@ void wlan_mac_low_set_radio_channel(u32 channel){
 	} else {
 		xil_printf("Invalid channel selection %d\n", mac_param_chan);
 	}
+}
+
+
+
+/*****************************************************************************/
+/**
+ * @brief Enable / Disable DSSS RX
+ *
+ * DSSS RX must be disabled when in the 5 GHz band.  However, the low framework will
+ * maintain what the state should be when in the 2.4 GHz band.
+ *
+ * @param   None
+ * @return  None
+ *
+ */
+void wlan_mac_low_DSSS_rx_enable() {
+	dsss_state = 1;
+
+	// Only enable DSSS if in 2.4 GHz band
+	if (mac_param_band == RC_24GHZ) {
+		wlan_phy_DSSS_rx_enable();
+	}
+}
+
+
+void wlan_mac_low_DSSS_rx_disable() {
+	dsss_state = 0;
+	wlan_phy_DSSS_rx_disable();
 }
 
 
