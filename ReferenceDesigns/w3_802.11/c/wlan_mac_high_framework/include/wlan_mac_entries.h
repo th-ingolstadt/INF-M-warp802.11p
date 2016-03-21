@@ -58,11 +58,10 @@
 
 #define ENTRY_TYPE_NODE_INFO                               1
 #define ENTRY_TYPE_EXP_INFO                                2
-#define ENTRY_TYPE_STATION_INFO                            3
+
 #define ENTRY_TYPE_TEMPERATURE                             4
-#define ENTRY_TYPE_WLAN_EXP_CMD                            5
+
 #define ENTRY_TYPE_TIME_INFO                               6
-#define ENTRY_TYPE_BSS_INFO                                7
 
 //-----------------------------------------------
 // Receive Entries
@@ -80,11 +79,6 @@
 
 #define ENTRY_TYPE_TX_LOW                                  25
 #define ENTRY_TYPE_TX_LOW_LTG                              26
-
-//-----------------------------------------------
-// Count Entries
-
-#define ENTRY_TYPE_TXRX_COUNTS                             30
 
 
 
@@ -165,13 +159,11 @@ typedef struct{
 //-----------------------------------------------
 // Station Info Entry
 //
-// Example request for a new station info entry:
-//
-//     (station_info_entry *) wlan_exp_log_create_entry( ENTRY_TYPE_STATION_INFO, sizeof(station_info_entry))
+//     Only used to communicate with WLAN Exp Host.
 //
 typedef struct{
-    u64                 	timestamp;               // Timestamp of the log entry
-    station_info_base_t   	info;                    // Framework's station_info struct
+    u64                 timestamp;               // Timestamp of the log entry
+    station_info_base_t info;                    // Framework's station_info struct
 } station_info_entry;
 
 CASSERT(sizeof(station_info_entry) == 60, station_info_entry_alignment_check);
@@ -185,9 +177,7 @@ CASSERT(sizeof(station_info_entry) == 60, station_info_entry_alignment_check);
 //-----------------------------------------------
 // Basic Service Set (BSS) Info Entry
 //
-// Example request for a new bss info entry:
-//
-//     (bss_info_entry *) wlan_exp_log_create_entry(ENTRY_TYPE_BSS_INFO, sizeof(bss_info_entry))
+//     Only used to communicate with WLAN Exp Host.
 //
 typedef struct __attribute__((__packed__)){
     u64                 timestamp;               // Timestamp of the log entry
@@ -216,27 +206,6 @@ typedef struct{
     u32                 min_temp;                // Minimum recorded temperature of the node
     u32                 max_temp;                // Maximum recorded temperature of the node
 } temperature_entry;
-
-
-
-//-----------------------------------------------
-// WLAN Exp Command Entry
-//
-// The command entry only logs WLAN_EXP_CMD_ENTRY_NUM_ARGS arguments (ie. u32 words) from the command.
-//
-// Example request for a new command info entry:
-//
-//     (wlan_exp_cmd_entry *) wlan_exp_log_create_entry(ENTRY_TYPE_WLAN_EXP_CMD, sizeof(wlan_exp_cmd_entry))
-//
-#define WLAN_EXP_CMD_ENTRY_NUM_ARGS              10
-
-typedef struct{
-    u64                 timestamp;               // Timestamp of the log entry
-    u32                 command;                 // Command ID
-    u16                 src_id;                  // Source ID of the command
-    u16                 num_args;                // Number of arguments
-    u32                 args[WLAN_EXP_CMD_ENTRY_NUM_ARGS];      // Data from the arguments
-} wlan_exp_cmd_entry;
 
 
 
@@ -273,8 +242,7 @@ typedef struct{
 //-----------------------------------------------
 // Tx/Rx Counts Entry
 //
-//   NOTE:  To add TxRx Counts to the log, please use one of the methods provided
-//     in wlan_mac_event_log.*
+//     Only used to communicate with WLAN Exp Host.
 //
 typedef struct{
     u64                 timestamp;               // Timestamp of the log entry
@@ -456,13 +424,6 @@ void               print_entry(u32 entry_number, u32 entry_type, void * entry);
 void      add_node_info_entry(u8 transmit);
 
 void      add_time_info_entry(u64 timestamp, u64 mac_time, u64 system_time, u64 host_time, u32 reason, u32 time_id, u8 use_time_id);
-
-u32       add_txrx_counts_to_log(counts_txrx * counts, u8 transmit);
-u32       add_all_txrx_counts_to_log(u8 transmit);
-
-u32       add_station_info_to_log(station_info_t * station_info, u8 zero_aid, u8 transmit);
-u32       add_station_info_w_counts_to_log(station_info_t * station_info, u8 zero_aid, u8 transmit);
-u32       add_all_station_info_to_log(u8 counts, u8 zero_aid, u8 transmit);
 
 u32       add_temperature_to_log(u8 transmit);
 

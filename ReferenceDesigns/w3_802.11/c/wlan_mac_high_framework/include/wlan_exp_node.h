@@ -134,7 +134,7 @@
 #define CMDID_LOG_GET_CAPACITY                             0x003002
 #define CMDID_LOG_GET_ENTRIES                              0x003003
 #define CMDID_LOG_ADD_EXP_INFO_ENTRY                       0x003004
-#define CMDID_LOG_ADD_COUNTS_TXRX                          0x003005
+
 #define CMDID_LOG_ENABLE_ENTRY                             0x003006
 #define CMDID_LOG_STREAM_ENTRIES                           0x003007
 

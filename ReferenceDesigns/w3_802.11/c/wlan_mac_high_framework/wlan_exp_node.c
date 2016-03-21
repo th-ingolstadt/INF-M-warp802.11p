@@ -95,8 +95,6 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
 void ltg_cleanup(u32 id, void* callback_arg);
 
-void create_wlan_exp_cmd_log_entry(cmd_resp * command);
-
 int process_tx_power(u32 cmd, u32 aid, int tx_power);
 u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 * ret_phy_mode);
 u32 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode);
@@ -417,11 +415,6 @@ int  process_hton_msg(int socket_index, struct sockaddr * from, warp_ip_udp_buff
     cmd_hdr->cmd        = Xil_Ntohl(cmd_hdr->cmd);
     cmd_hdr->length     = Xil_Ntohs(cmd_hdr->length);
     cmd_hdr->num_args   = Xil_Ntohs(cmd_hdr->num_args);
-
-    // Create a log entry if logging is enabled
-    if (wlan_exp_enable_logging == 1) {
-        create_wlan_exp_cmd_log_entry(&command);
-    }
 
     // Send command to appropriate processing sub-system
     cmd_group           = CMD_TO_GROUP(cmd_hdr->cmd);
@@ -1058,23 +1051,6 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     memcpy((void *)(&exp_info->info_payload[0]), (void *)(&cmd_args_32[2]), size);
                 }
             }
-        }
-        break;
-
-
-        //---------------------------------------------------------------------
-        case CMDID_LOG_ADD_COUNTS_TXRX: {
-            // Add the current counts to the log
-            //     TODO:  Add parameter to command to transmit counts
-            u32    num_counts = add_all_txrx_counts_to_log(WLAN_EXP_NO_TRANSMIT);
-
-            wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log, "Added %d counts.\n", num_counts);
-
-            // Send response of the number of counts added
-            resp_args_32[resp_index++] = Xil_Htonl(num_counts);
-
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
-            resp_hdr->num_args = resp_index;
         }
         break;
 
@@ -4011,58 +3987,6 @@ u32  wlan_exp_get_id_in_bss_info(u8 * bssid) {
     }
 
     return id;
-}
-
-
-
-/*****************************************************************************/
-/**
- * Create WLAN Exp Command Log Entry
- *
- * @param   command          - Pointer to cmd_resp structure
- *
- * @return  None
- *
- * @note    This function assumes that the transport header is just before
- *     the command header in the buffer.
- *
- *****************************************************************************/
-void create_wlan_exp_cmd_log_entry(cmd_resp * command) {
-
-    // Create a new log entry for each command and copy up to the first 10 args
-    u32 i;
-    wlan_exp_cmd_entry     * entry;
-    u32                    * args       = command->args;
-    u32                      num_args   = command->header->num_args;
-    transport_header       * header     = (transport_header *)((u32)(command->header) - sizeof(transport_header));
-
-    // Create entry
-    entry = (wlan_exp_cmd_entry *) wlan_exp_log_create_entry(ENTRY_TYPE_WLAN_EXP_CMD, sizeof(wlan_exp_cmd_entry));
-
-    // Limit the number of arguments to WLAN_EXP_CMD_ENTRY_NUM_ARGS (can be modified in wlan_mac_entries.h)
-    if (num_args > WLAN_EXP_CMD_ENTRY_NUM_ARGS) {
-        num_args = WLAN_EXP_CMD_ENTRY_NUM_ARGS;
-    }
-
-    if (entry != NULL) {
-        entry->timestamp = get_mac_time_usec();
-        entry->command   = command->header->cmd;
-        entry->src_id    = header->src_id;
-        entry->num_args  = num_args;
-
-        // Add arguments to the entry
-        for (i = 0; i < num_args; i++) {
-            (entry->args)[i] = Xil_Ntohl(args[i]);
-        }
-        // Zero out any other arguments in the entry
-        for (i = num_args; i < 10; i++) {
-            (entry->args)[i] = 0;
-        }
-
-#ifdef _DEBUG_
-        print_entry(0, ENTRY_TYPE_WLAN_EXP_CMD, (void *) entry);
-#endif
-    }
 }
 
 

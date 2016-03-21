@@ -863,8 +863,9 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 					if(my_bss_info != NULL){
 						if(wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr) && (wlan_mac_high_find_station_info_ADDR(&(my_bss_info->associated_stations), rx_80211_header->address_2) != NULL)){
 
-							// Log the association state change
-							add_station_info_to_log((station_info_t*)((my_bss_info->associated_stations.first)->data), STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
+							//
+							// TODO:  (Optional) Log association state change
+							//
 
 							// Stop any on-going join
 							if (wlan_mac_is_joining()) { wlan_mac_sta_join_return_to_idle(); }
@@ -1083,8 +1084,9 @@ int  sta_disassociate( void ) {
 		ap_station_info_entry = my_bss_info->associated_stations.first;
 		ap_station_info       = (station_info_t*)ap_station_info_entry->data;
 
-		// Log association change
-		add_station_info_to_log(ap_station_info, STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
+		//
+		// TODO:  (Optional) Log association state change
+		//
 
 		// ---------------------------------------------------------------
 		// Send de-authentication message to tell AP that the STA is leaving
@@ -1307,8 +1309,9 @@ u32	configure_bss(bss_config_t* bss_config){
 							ap_station_info->tx.phy.phy_mode = PHY_MODE_NONHT;
 						}
 
-						// Log the association state change
-						add_station_info_to_log(ap_station_info, STATION_INFO_ENTRY_NO_CHANGE, WLAN_EXP_STREAM_ASSOC_CHANGE);
+						//
+						// TODO:  (Optional) Log association state change
+						//
 					}
 				}
 			}

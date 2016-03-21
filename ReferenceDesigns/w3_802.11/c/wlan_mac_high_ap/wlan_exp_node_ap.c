@@ -473,8 +473,10 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
                 // Set return parameters and print info to console
                 if (curr_station_info != NULL) {
-                    // Log association state change
-                    add_station_info_to_log(curr_station_info, STATION_INFO_ENTRY_NO_CHANGE, WLAN_EXP_STREAM_ASSOC_CHANGE);
+
+                    //
+                    // TODO:  (Optional) Log association state change
+                    //
 
                     memcpy(&(curr_station_info->tx), &default_unicast_data_tx_params, sizeof(tx_params_t));
 

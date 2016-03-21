@@ -1850,8 +1850,9 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 								associated_station->tx.phy.phy_mode = PHY_MODE_NONHT;
 							}
 
-							// Log the association state change
-							add_station_info_to_log(associated_station, STATION_INFO_ENTRY_NO_CHANGE, WLAN_EXP_STREAM_ASSOC_CHANGE);
+							//
+							// TODO:  (Optional) Log association state change
+							//
 
 							// Create a successful association response frame
 							curr_tx_queue_element = queue_checkout();
@@ -1929,8 +1930,9 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 					//
 					if(associated_station != NULL){
 						if ((associated_station->flags & STATION_INFO_DO_NOT_REMOVE) != STATION_INFO_DO_NOT_REMOVE) {
-							// Log association state change
-							add_station_info_to_log(associated_station, STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
+							//
+							// TODO:  (Optional) Log association state change
+							//
 						}
 					}
 					if(my_bss_info != NULL){
@@ -2082,8 +2084,9 @@ u32  deauthenticate_station( station_info_t* station_info ) {
 		purge_queue(STATION_ID_TO_QUEUE_ID(aid));
 	}
 
-	// Log the association state change
-	add_station_info_to_log(station_info, STATION_INFO_ENTRY_ZERO_AID, WLAN_EXP_STREAM_ASSOC_CHANGE);
+	//
+	// TODO:  (Optional) Log association state change
+	//
 
 	// Remove this STA from association list
 	xil_printf("Authenticated, Associated Stations:\n");
