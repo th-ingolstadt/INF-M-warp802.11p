@@ -478,7 +478,7 @@ void queue_state_change(u32 QID, u8 queue_len){
 		if(QID == MCAST_QID) {
 			update_tim_tag_aid(0, queue_len);
 		} else {
-			aid = AID_TO_QID(QID);
+			aid = STATION_ID_TO_QUEUE_ID(QID);
 			update_tim_tag_aid(aid, queue_len);
 		}
 	}
@@ -694,7 +694,7 @@ void update_tim_tag_all(u32 sched_id){
 		while(curr_station_entry != NULL){
 			station_info = (station_info_t*)(curr_station_entry->data);
 
-			if(queue_num_queued(AID_TO_QID(station_info->ID))){
+			if(queue_num_queued(STATION_ID_TO_QUEUE_ID(station_info->ID))){
 				tim_next_byte_idx = (station_info->ID) / 8;
 
 				if(tim_next_byte_idx > tim_byte_idx){
@@ -845,7 +845,7 @@ void poll_tx_queues(){
 									}
 
 									if(((curr_station_info->flags & STATION_INFO_FLAG_DOZE) == 0) || (gl_power_save_configuration.enable == 0)){
-										if(dequeue_transmit_checkin(AID_TO_QID(curr_station_info->ID))){
+										if(dequeue_transmit_checkin(STATION_ID_TO_QUEUE_ID(curr_station_info->ID))){
 											// Found a not-empty queue, transmitted a packet
 											goto poll_cleanup;
 											return;
@@ -904,7 +904,7 @@ void purge_all_data_tx_queue(){
 
 	while( (curr_station_info_entry != NULL) && (iter-- > 0)){
 		curr_station_info = (station_info_t*)(curr_station_info_entry->data);
-		purge_queue(AID_TO_QID(curr_station_info->ID));       		// Each unicast queue
+		purge_queue(STATION_ID_TO_QUEUE_ID(curr_station_info->ID));       		// Each unicast queue
 		curr_station_info_entry = dl_entry_next(curr_station_info_entry);
 	}
 }
@@ -1014,7 +1014,7 @@ void ltg_event(u32 id, void* callback_arg){
 					station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, addr_da);
 					if(station_info_entry != NULL){
 						station_info = (station_info_t*)(station_info_entry->data);
-						queue_sel = AID_TO_QID(station_info->ID);
+						queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
 					} else {
 						return;
 					}
@@ -1032,7 +1032,7 @@ void ltg_event(u32 id, void* callback_arg){
 					station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, addr_da);
 					if(station_info_entry != NULL){
 						station_info = (station_info_t*)(station_info_entry->data);
-						queue_sel = AID_TO_QID(station_info->ID);
+						queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
 					} else {
 						return;
 					}
@@ -1044,7 +1044,7 @@ void ltg_event(u32 id, void* callback_arg){
 					station_info_entry = my_bss_info->associated_stations.first;
 					station_info = (station_info_t*)station_info_entry->data;
 					addr_da = station_info->addr;
-					queue_sel = AID_TO_QID(station_info->ID);
+					queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
 					is_multicast = 0;
 					payload_length = ((ltg_pyld_all_assoc_fixed*)callback_arg)->length;
 				} else {
@@ -1116,7 +1116,7 @@ void ltg_event(u32 id, void* callback_arg){
 				if(station_info_entry != NULL){
 					station_info = (station_info_t*)station_info_entry->data;
 					addr_da = station_info->addr;
-					queue_sel = AID_TO_QID(station_info->ID);
+					queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
 					is_multicast = 0;
 					continue_loop = 1;
 				} else {
@@ -1202,7 +1202,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 			station_info = (station_info_t*)(entry->data);
 
 			// Send the unicast packet
-			if(queue_num_queued(AID_TO_QID(station_info->ID)) < max_queue_size){
+			if(queue_num_queued(STATION_ID_TO_QUEUE_ID(station_info->ID)) < max_queue_size){
 
 				// Send the pre-encapsulated Ethernet frame over the wireless interface
 				//     NOTE:  The queue element has already been provided, so we do not need to check if it is NULL
@@ -1219,7 +1219,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 													curr_tx_queue_element,
 													tx_length,
 													(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO),
-													AID_TO_QID(station_info->ID));
+													STATION_ID_TO_QUEUE_ID(station_info->ID));
 
 				// Set the information in the TX queue buffer
 				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
@@ -1227,7 +1227,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 				curr_tx_queue_buffer->frame_info.AID         = station_info->ID;
 
 				// Put the packet in the queue
-				enqueue_after_tail(AID_TO_QID(station_info->ID), curr_tx_queue_element);
+				enqueue_after_tail(STATION_ID_TO_QUEUE_ID(station_info->ID), curr_tx_queue_element);
 
 			} else {
 				// Packet was not successfully enqueued
@@ -1531,7 +1531,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 																			curr_tx_queue_element,
 																			length,
 																			(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO),
-																			AID_TO_QID(associated_station->ID) );
+																			STATION_ID_TO_QUEUE_ID(associated_station->ID) );
 
 
 										// Set the information in the TX queue buffer
@@ -1543,7 +1543,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 										wlan_mac_high_cdma_finish_transfer();
 
 										// Put the packet in the queue
-										enqueue_after_tail(AID_TO_QID(associated_station->ID),  curr_tx_queue_element);
+										enqueue_after_tail(STATION_ID_TO_QUEUE_ID(associated_station->ID),  curr_tx_queue_element);
 
 										// Given we sent the packet wirelessly to our stations, if we do not allow Ethernet transmissions
 										//   of wireless transmissions, then do not send over Ethernet
@@ -1870,7 +1870,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 																	curr_tx_queue_element,
 																	tx_length,
 																	(TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO ),
-																	AID_TO_QID(associated_station->ID) );
+																	STATION_ID_TO_QUEUE_ID(associated_station->ID) );
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1878,7 +1878,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 								curr_tx_queue_buffer->frame_info.AID         = 0;
 
 								// Put the packet in the queue
-								enqueue_after_tail(AID_TO_QID(associated_station->ID), curr_tx_queue_element);
+								enqueue_after_tail(STATION_ID_TO_QUEUE_ID(associated_station->ID), curr_tx_queue_element);
 							}
 
 							// Finish the function
@@ -1996,7 +1996,7 @@ void mpdu_dequeue(tx_queue_element* packet){
 				curr_station_entry = wlan_mac_high_find_station_info_ID(&(my_bss_info->associated_stations), frame_info->AID);
 				if(curr_station_entry != NULL){
 					curr_station = (station_info_t*)(curr_station_entry->data);
-					if(queue_num_queued(AID_TO_QID(curr_station->ID)) > 1){
+					if(queue_num_queued(STATION_ID_TO_QUEUE_ID(curr_station->ID)) > 1){
 						//If the is more data (in addition to this packet) queued for this station, we can let it know
 						//in the frame_control_2 field.
 						header->frame_control_2 |= MAC_FRAME_CTRL2_FLAG_MORE_DATA;
@@ -2079,7 +2079,7 @@ u32  deauthenticate_station( station_info_t* station_info ) {
 		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
 
  		// Purge any packets in the queue meant for this node
-		purge_queue(AID_TO_QID(aid));
+		purge_queue(STATION_ID_TO_QUEUE_ID(aid));
 	}
 
 	// Log the association state change
@@ -2236,7 +2236,7 @@ u32	configure_bss(bss_config_t* bss_config){
 					curr_station_info = (station_info_t*)(curr_station_info_entry->data);
 
 					// Purge any data for the station
-					purge_queue(AID_TO_QID(curr_station_info->ID));
+					purge_queue(STATION_ID_TO_QUEUE_ID(curr_station_info->ID));
 
 					// Remove the association
 					wlan_mac_high_remove_station_info(&my_bss_info->associated_stations, &counts_table, curr_station_info->addr);

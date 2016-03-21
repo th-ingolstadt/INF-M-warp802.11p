@@ -40,7 +40,7 @@
 #define MCAST_QID                                          0
 #define BEACON_QID                                         1
 #define MANAGEMENT_QID                                     2
-#define AID_TO_QID(x)                                    ((x) + 2)   ///map association ID to Tx queue ID; min AID is 1
+#define STATION_ID_TO_QUEUE_ID(x)                                    ((x) + 2)   ///map association ID to Tx queue ID; min AID is 1
 
 
 //-----------------------------------------------

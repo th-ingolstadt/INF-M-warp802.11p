@@ -504,7 +504,7 @@ void poll_tx_queues(){
 										next_station_info_entry = dl_entry_next(curr_station_info_entry);
 									}
 
-									if(dequeue_transmit_checkin(AID_TO_QID(curr_station_info->ID))){
+									if(dequeue_transmit_checkin(STATION_ID_TO_QUEUE_ID(curr_station_info->ID))){
 										// Found a not-empty queue, transmitted a packet
 										return;
 									} else {
@@ -557,7 +557,7 @@ void purge_all_data_tx_queue(){
 		curr_station_info_entry = my_bss_info->associated_stations.first;
 		while( (curr_station_info_entry != NULL) && (iter-- > 0) ){
 			curr_station_info = (station_info_t*)(curr_station_info_entry->data);
-			purge_queue(AID_TO_QID(curr_station_info->ID));       		// Each unicast queue
+			purge_queue(STATION_ID_TO_QUEUE_ID(curr_station_info->ID));       		// Each unicast queue
 			curr_station_info_entry = dl_entry_next(curr_station_info_entry);
 		}
 	}
@@ -691,7 +691,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 				curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_data_tx_params);
 				curr_tx_queue_buffer->frame_info.AID         = 0;
 			} else {
-				queue_sel = AID_TO_QID(station_info->ID);
+				queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
 				// Setup the TX frame info
 				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), queue_sel );
 				station_info->latest_activity_timestamp = get_system_time_usec();
@@ -979,7 +979,7 @@ void remove_inactive_station_infos() {
 
 			// De-authenticate the station if we have timed out and we have not disabled this check for the station
 			if((time_since_last_activity > ASSOCIATION_TIMEOUT_US) && ((curr_station_info->flags & STATION_INFO_FLAG_DISABLE_ASSOC_CHECK) == 0)){
-                purge_queue(AID_TO_QID(curr_station_info->ID));
+                purge_queue(STATION_ID_TO_QUEUE_ID(curr_station_info->ID));
 				wlan_mac_high_remove_station_info( &my_bss_info->associated_stations, &counts_table, curr_station_info->addr );
 				ibss_update_hex_display(my_bss_info->associated_stations.length);
 			}
@@ -1032,7 +1032,7 @@ void ltg_event(u32 id, void* callback_arg){
 					station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, addr_da);
 					if(station_info_entry != NULL){
 						station_info = (station_info_t*)(station_info_entry->data);
-						queue_sel = AID_TO_QID(station_info->ID);
+						queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
 					} else {
 						//Unlike the AP, this isn't necessarily a criteria for giving up on this LTG event.
 						//In the IBSS, it's possible that there simply wasn't room in the heap for a station_info,
@@ -1053,7 +1053,7 @@ void ltg_event(u32 id, void* callback_arg){
 					station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, addr_da);
 					if(station_info_entry != NULL){
 						station_info = (station_info_t*)(station_info_entry->data);
-						queue_sel = AID_TO_QID(station_info->ID);
+						queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
 					} else {
 						//Unlike the AP, this isn't necessarily a criteria for giving up on this LTG event.
 						//In the IBSS, it's possible that there simply wasn't room in the heap for a station_info,
@@ -1068,7 +1068,7 @@ void ltg_event(u32 id, void* callback_arg){
 					station_info_entry = my_bss_info->associated_stations.first;
 					station_info = (station_info_t*)station_info_entry->data;
 					addr_da = station_info->addr;
-					queue_sel = AID_TO_QID(station_info->ID);
+					queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
 					is_multicast = 0;
 					payload_length = ((ltg_pyld_all_assoc_fixed*)callback_arg)->length;
 				} else {
@@ -1149,7 +1149,7 @@ void ltg_event(u32 id, void* callback_arg){
 				if(station_info_entry != NULL){
 					station_info = (station_info_t*)station_info_entry->data;
 					addr_da = station_info->addr;
-					queue_sel = AID_TO_QID(station_info->ID);
+					queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
 					is_multicast = 0;
 					continue_loop = 1;
 				} else {
@@ -1278,7 +1278,7 @@ u32	configure_bss(bss_config_t* bss_config){
 					curr_station_info = (station_info_t*)(curr_station_info_entry->data);
 
 					// Purge any data for the station
-					purge_queue(AID_TO_QID(curr_station_info->ID));
+					purge_queue(STATION_ID_TO_QUEUE_ID(curr_station_info->ID));
 
 					// Remove the association
 					wlan_mac_high_remove_station_info(&my_bss_info->associated_stations, &counts_table, curr_station_info->addr);

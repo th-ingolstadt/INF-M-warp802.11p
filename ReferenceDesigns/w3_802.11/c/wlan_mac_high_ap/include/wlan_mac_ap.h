@@ -45,7 +45,7 @@
 // Tx queue IDs
 #define MCAST_QID                                          0
 #define MANAGEMENT_QID                                     1
-#define AID_TO_QID(x)                                    ((x) + 1)   /// Map association ID to Tx queue ID; min AID is 1
+#define STATION_ID_TO_QUEUE_ID(x)                                    ((x) + 1)   /// Map association ID to Tx queue ID; min AID is 1
 #define QID_TO_AID(x)                                    ((x) - 1)
 
 
