@@ -218,11 +218,12 @@ void wlan_mac_low_init_finish(){
 
 /*****************************************************************************/
 /**
- * @brief Initialize the DCF Hardware Core
+ * @brief Set the PHY Sampling Rate
  *
- * This function initializes the DCF hardware core.
+ * This function should be called to switch the PHY sampling rate between
+ * 10/20/40 MSps.
  *
- * @param   None
+ * @param   phy_samp_rate_t phy_samp_rate
  * @return  None
  */
 void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
