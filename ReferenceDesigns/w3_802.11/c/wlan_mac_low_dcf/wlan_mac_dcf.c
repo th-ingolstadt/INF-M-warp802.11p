@@ -1236,7 +1236,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
             }
 
             rts_header_duration = (gl_mac_timing_values.t_sifs) + cts_header_duration +
-                                  (gl_mac_timing_values.t_sifs) + wlan_ofdm_calc_txtime(length, mac_cfg_mcs, PHY_MODE_NONHT, gl_phy_samp_rate) +
+                                  (gl_mac_timing_values.t_sifs) + wlan_ofdm_calc_txtime(length, frame_info->params.phy.mcs, frame_info->params.phy.phy_mode, gl_phy_samp_rate) +
                                   header->duration_id;
 
             // We let "duration" be equal to the duration field of an RTS. This value is provided explicitly to CPU_HIGH
