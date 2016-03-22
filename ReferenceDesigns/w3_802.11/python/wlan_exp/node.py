@@ -1264,6 +1264,51 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
         self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_WRITE, param_id=param_id, param_values=values))
 
+    def set_dcf_param(self, param_name, param_val):
+        """Configures parameters of the DCF MAC in CPU Low. These parameters are write-only. These
+        parameters only affect nodes running the DCF in CPU Low. Other MAC implementations should
+        ignore these parameter updates.
+
+        Args:
+            param_name (str): Name of the param to change (see table below)
+            param_val (int): Value to set for param_name (see table below)
+
+        This method currently implements the following parameters:
+
+        .. list-table::
+            :header-rows: 1
+            :widths: 15 20 60
+
+            * - Name
+              - Valid Values
+              - Description
+
+            * - ``'rts_thresh'``
+              - [0 .. 65535]
+              - Threshold in bytes for maximum length 
+                packet which will not trigger RTS handshake
+
+            * - ``'short_retry_limit'`` and
+                ``'long_retry_limit'``
+              - [0 .. 31]
+              - DCF retry limits, controls maximum number of retransmissions for short and long packets
+                See `retransmissions <http://warpproject.org/trac/wiki/802.11/MAC/Lower/Retransmissions>`_.
+                for more details.
+
+            * - ``'phy_cs_thresh'``
+              - [0 .. 1023]
+              - Physical carrier sensing threshold, in units of digital RSSI. Set to max (1023) 
+                to effectively disable physical carrier sensing
+
+            * - ``'cw_exp_min'`` and
+                ``'cw_exp_max'``
+              - [0 .. 1023]
+              - Contention window exponent bounds. Contention window is set to random number in 2^CW, where
+                CW is bounded by [cw_exp_min, cw_exp_max]
+
+
+        """
+
 
     def set_dcf_rts_thresh(self, threshold):
         """Sets the RTS length threshold of the node.

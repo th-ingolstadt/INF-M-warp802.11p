@@ -144,7 +144,9 @@ autodoc_member_order = 'bysource'
 #html_theme = 'default'
 #html_theme = 'nature'
 #html_theme = 'classic'
+#html_theme = 'alabaster'
 html_theme = 'sphinx_rtd_theme' # Methods are clearly marked, good for our method-heavy pages
+#html_theme = 'bizstyle'
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -224,6 +226,8 @@ html_static_path = ['_static']
 # Output file base name for HTML help builder.
 htmlhelp_basename = 'wlan_exp_docs'
 
+def setup(app):
+    app.add_stylesheet("rtd_overrides.css")
 
 # -- Options for LaTeX output ---------------------------------------------
 

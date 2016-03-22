@@ -53,14 +53,8 @@ These WlanExpNode commands are used to interact with the node and control parame
 .. automethod:: wlan_exp.node.WlanExpNode.enable_beacon_mac_time_update
 .. automethod:: wlan_exp.node.WlanExpNode.set_radio_channel
 .. automethod:: wlan_exp.node.WlanExpNode.set_low_to_high_rx_filter
-
 .. automethod:: wlan_exp.node.WlanExpNode.set_low_param
-.. automethod:: wlan_exp.node.WlanExpNode.set_dcf_rts_thresh
-.. automethod:: wlan_exp.node.WlanExpNode.set_dcf_short_retry_limit
-.. automethod:: wlan_exp.node.WlanExpNode.set_dcf_long_retry_limit
-.. automethod:: wlan_exp.node.WlanExpNode.set_dcf_phy_cs_thresh
-.. automethod:: wlan_exp.node.WlanExpNode.set_dcf_cw_exp_min
-.. automethod:: wlan_exp.node.WlanExpNode.set_dcf_cw_exp_max
+.. automethod:: wlan_exp.node.WlanExpNode.set_dcf_param
 .. automethod:: wlan_exp.node.WlanExpNode.configure_pkt_det_min_power
 .. automethod:: wlan_exp.node.WlanExpNode.set_random_seed
 .. automethod:: wlan_exp.node.WlanExpNode.enable_dsss
