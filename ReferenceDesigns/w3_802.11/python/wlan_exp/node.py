@@ -1264,6 +1264,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
         self.send_cmd(cmds.NodeLowParam(cmds.CMD_PARAM_WRITE, param_id=param_id, param_values=values))
 
+
     def set_dcf_param(self, param_name, param_val):
         """Configures parameters of the DCF MAC in CPU Low. These parameters are write-only. These
         parameters only affect nodes running the DCF in CPU Low. Other MAC implementations should
@@ -1296,114 +1297,79 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 for more details.
 
             * - ``'phy_cs_thresh'``
-              - [0 .. 1023]
-              - Physical carrier sensing threshold, in units of digital RSSI. Set to max (1023) 
+              - [0 .. 1024]
+              - Physical carrier sensing threshold, in units of digital RSSI. Set to max (1024) 
                 to effectively disable physical carrier sensing
 
             * - ``'cw_exp_min'`` and
                 ``'cw_exp_max'``
-              - [0 .. 1023]
-              - Contention window exponent bounds. Contention window is set to random number in 2^CW, where
-                CW is bounded by [cw_exp_min, cw_exp_max]
+              - [1 .. 10]
+              - Contention window exponent bounds. Contention window is set to random number in [0, (2^CW - 1)], 
+                where CW is bounded by [cw_exp_min, cw_exp_max]
 
 
         """
+        if type(param_name) is not str:
+            raise AttributeError("param_name must be a str.  Provided {0}.".format(type(param_name)))
+        
+        if type(param_val) is not int:
+            raise AttributeError("param_val must be an int.  Provided {0}.".format(type(param_val)))
+        
+        # Process paramater 
+        if   (param_name == 'rts_thresh'):
+            if ((param_val < 0) or (param_val > 65535)):
+                raise AttributeError("'rts_thresh' must be in [0 .. 65535].")
+            
+            self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_param('rts_thresh')")
 
-
-    def set_dcf_rts_thresh(self, threshold):
-        """Sets the RTS length threshold of the node.
-
-        Requires CPU Low type:  WLAN_EXP_LOW_DCF
-
-        Args:
-           threshold (int):  Value between [0, (2^32)-1] for the RTS length threshold
-
-        .. note:: Parameter is write only.
-        """
-        self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_rts_thresh")
-
-        self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_RTS_THRESH, param_values=threshold)
-
-
-    def set_dcf_short_retry_limit(self, limit):
-        """Sets the Short Retry Limit of the node.
-
-        See http://warpproject.org/trac/wiki/802.11/MAC/Lower/Retransmissions for more information on
-        retransmissions
-
-        Requires CPU Low type:  WLAN_EXP_LOW_DCF
-
-        Args:
-           threshold (int):  Value between [0, (2^32)-1]
-
-        .. note:: Parameter is write only.
-        """
-        self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_short_retry_limit")
-
-        self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_DOT11SHORTRETRY, param_values=limit)
-
-
-    def set_dcf_long_retry_limit(self, limit):
-        """Sets the Long Retry Limit of the node.
-
-        See http://warpproject.org/trac/wiki/802.11/MAC/Lower/Retransmissions for more information on
-        retransmissions
-
-        Requires CPU Low type:  WLAN_EXP_LOW_DCF
-
-        Args:
-           threshold (int):  Value between [0, (2^32)-1]
-
-        .. note:: Parameter is write only.
-        """
-        self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_long_retry_limit")
-
-        self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_DOT11LONGRETRY, param_values=limit)
-
-
-    def set_dcf_phy_cs_thresh(self, threshold):
-        """Sets the physical carrier sense threshold of the node.
-
-        Requires CPU Low type:  WLAN_EXP_LOW_DCF
-
-        Args:
-           threshold (int):  Value between [0, 1023] for the physical carrier sense threshold
-
-        .. note:: Parameter is write only.
-        """
-        self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_phy_cs_thresh")
-
-        self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_PHYSICAL_CS_THRESH, param_values=threshold)
-
-
-    def set_dcf_cw_exp_min(self, cw_exp):
-        """Sets the the minimum contention window:
-
-        Requires CPU Low type:  WLAN_EXP_LOW_DCF
-
-        Args:
-            cw_exp (int):  Sets the contention window to [0, 2^(val)] (For example, 1 --> [0,1]; 10 --> [0,1023])
-
-        .. note:: Parameter is write only.
-        """
-        self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_cw_exp_min")
-
-        self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MIN, param_values=cw_exp)
-
-
-    def set_dcf_cw_exp_max(self, cw_exp):
-        """Sets the the maximum contention window.
-
-        Requires CPU Low type:  WLAN_EXP_LOW_DCF
-
-        Args:
-            cw_exp (int):  Sets the contention window to [0, 2^(val)] (For example, 1 --> [0,1]; 10 --> [0,1023])
-
-        .. note:: Parameter is write only.
-        """
-        self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_cw_exp_max")
-
-        self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MAX, param_values=cw_exp)
+            self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_RTS_THRESH, param_values=param_val)
+            
+        elif (param_name == 'short_retry_limit'):
+            if ((param_val < 0) or (param_val > 31)):
+                raise AttributeError("'short_retry_limit' must be in [0 .. 31].")
+                
+            self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_param('short_retry_limit')")
+    
+            self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_DOT11SHORTRETRY, param_values=param_val)
+            
+        elif (param_name == 'long_retry_limit'):
+            if ((param_val < 0) or (param_val > 31)):
+                raise AttributeError("'long_retry_limit' must be in [0 .. 31].")
+                
+            self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_param('long_retry_limit')")
+    
+            self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_DOT11LONGRETRY, param_values=param_val)
+            
+        elif (param_name == 'phy_cs_thresh'):
+            if ((param_val < 0) or (param_val > 1024)):
+                raise AttributeError("'phy_cs_thresh' must be in [0 .. 1024].")
+            
+            self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_param('phy_cs_thresh')")
+    
+            self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_PHYSICAL_CS_THRESH, param_values=param_val)
+            
+        elif (param_name == 'cw_exp_min'):
+            if ((param_val < 1) or (param_val > 10)):
+                raise AttributeError("'cw_exp_min' must be in [1 .. 10].")
+                
+            self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_param('cw_exp_min')")
+    
+            self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MIN, param_values=param_val)
+            
+        elif (param_name == 'cw_exp_max'):
+            if ((param_val < 1) or (param_val > 10)):
+                raise AttributeError("'cw_exp_max' must be in [1 .. 10].")
+                
+            self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_param('cw_exp_max')")
+    
+            self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MAX, param_values=param_val)
+            
+        else:
+            msg  = "param_name must be one of the following strings:\n"
+            msg += "    'rts_thresh', 'short_retry_limit', 'long_retry_limit', \n"
+            msg += "    'phy_cs_thresh', 'cw_exp_min', 'cw_exp_max' \n"
+            msg += "Provided '{0}'".format(param_name)
+            raise AttributeError(msg)
 
 
     def configure_pkt_det_min_power(self, enable, power_level=None):
@@ -2225,7 +2191,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
         if (node_low_type != low_type):
             msg  = "WARNING:  CPU Low Type mismatch:\n"
-            msg += "    Command \'{0}()\' ".format(command_name)
+            msg += "    Command \'{0}\' ".format(command_name)
 
             try:
                 msg += "expects {0}, ".format(defaults.WLAN_EXP_LOW_TYPES[low_type])
