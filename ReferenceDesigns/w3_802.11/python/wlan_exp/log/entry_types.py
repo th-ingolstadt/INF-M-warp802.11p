@@ -838,7 +838,6 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
             'BAD'            : 0x01
         }),
         'pkt_type'      : common_pkt_type,
-        'phy_samp_rate' : util.phy_samp_rates,
         'phy_mode'      : util.phy_modes,
         'flags'         : util.consts_dict({
             'DUPLICATE'      : 0x0001
@@ -913,7 +912,6 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     entry_tx_low_common.consts = util.consts_dict({
         'phy_mode'      : util.phy_modes,
         'pkt_type'      : common_pkt_type,
-        'phy_samp_rate' : util.phy_samp_rates,
         'flags'         : util.consts_dict({
             'ACKED'          : 0x01
         })

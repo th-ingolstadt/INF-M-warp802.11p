@@ -1394,6 +1394,18 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 raise ValueError(msg)
 
 
+    def set_phy_samp_rate(self, phy_samp_rate):
+        """Sets the PHY sample rate (in MSps)
+
+        Args:
+            phy_samp_rate (int):    PHY sample rate in MSps (10, 20, 40).  Default is 20 MSps.
+        """
+        if (phy_samp_rate not in [10, 20, 40]):
+            raise AttributeError("'phy_samp_rate' must be in [10, 20, 40].")
+            
+        self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_PHY_SAMPLE_RATE, param_values=phy_samp_rate)
+
+
     def set_random_seed(self, high_seed=None, low_seed=None, gen_random=False):
         """Sets the random number generator seed on the node.
 

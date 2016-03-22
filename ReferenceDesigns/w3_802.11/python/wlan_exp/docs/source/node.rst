@@ -56,6 +56,7 @@ These WlanExpNode commands are used to interact with the node and control parame
 .. automethod:: wlan_exp.node.WlanExpNode.set_low_param
 .. automethod:: wlan_exp.node.WlanExpNode.set_dcf_param
 .. automethod:: wlan_exp.node.WlanExpNode.configure_pkt_det_min_power
+.. automethod:: wlan_exp.node.WlanExpNode.set_phy_samp_rate
 .. automethod:: wlan_exp.node.WlanExpNode.set_random_seed
 .. automethod:: wlan_exp.node.WlanExpNode.enable_dsss
 .. automethod:: wlan_exp.node.WlanExpNode.set_print_level

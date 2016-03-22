@@ -37,8 +37,6 @@ Supported transmit / receive rates for WlanExpNode
 
 .. autodata:: wlan_exp.util.phy_modes
 
-.. autodata:: wlan_exp.util.phy_samp_rates
-
 .. autofunction:: wlan_exp.util.get_rate_info
 
 .. autofunction:: wlan_exp.util.rate_info_to_str

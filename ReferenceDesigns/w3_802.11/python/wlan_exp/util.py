@@ -90,14 +90,6 @@ phy_modes = consts_dict({
        'HTMF'      :  2})
 
 
-#: PHY sampling rates, in MSps.
-#: Use this dictionary to interpret ``phy_samp_rate`` values encoded in Tx/Rx log entries
-phy_samp_rates = consts_dict({
-       'PHY_10M'   :  10,
-       'PHY_20M'   :  20,
-       'PHY_40M'   :  40})
-
-
 def get_rate_info(mcs, phy_mode, phy_samp_rate=20, short_GI=False):
     """Generate dictionary with details about a PHY rate. The returned dictionary
     has fields:
@@ -109,10 +101,10 @@ def get_rate_info(mcs, phy_mode, phy_samp_rate=20, short_GI=False):
       * ``phy_rate``: float data rate in Mbps
 
     Args:
-        mcs (int):                 Modulation and coding scheme (MCS) index
-        phy_mode (str, int):       PHY mode ('NONHT', 'HTMF')
-        phy_samp_rate (str, int):  PHY sampling rate
-        short_GI (bool):           Short Guard Interval (GI) (True/False)
+        mcs (int):           Modulation and coding scheme (MCS) index
+        phy_mode (str, int): PHY mode ('NONHT', 'HTMF')
+        phy_samp_rate (int): PHY sampling rate (10, 20, 40)
+        short_GI (bool):     Short Guard Interval (GI) (True/False)
 
     Returns:
         rate_info (dict):  Rate info dictionary
@@ -143,8 +135,11 @@ def get_rate_info(mcs, phy_mode, phy_samp_rate=20, short_GI=False):
         raise AttributeError("MCS must be in [0 .. 7]")
 
     if (phy_mode not in ['NONHT', 'HTMF', phy_modes['NONHT'], phy_modes['HTMF']]):
-        raise AttributeError("PHY mode must be in ['NONHT', 'HTMF', phy_modes['NONHT'], phy_modes['HTMF']")
-
+        raise AttributeError("PHY mode must be in ['NONHT', 'HTMF', phy_modes['NONHT'], phy_modes['HTMF']]")
+    
+    if (phy_samp_rate not in [10, 20, 40]):
+        raise AttributeError("PHY sample rate must be in [10, 20, 40]")
+        
     # Set common values
     ret_val['mcs'] = mcs
 

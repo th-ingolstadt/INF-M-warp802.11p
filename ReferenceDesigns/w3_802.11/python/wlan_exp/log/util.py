@@ -671,23 +671,23 @@ def calc_tx_time(mcs, phy_mode, payload_length, phy_samp_rate):
 
     # Determine constants based on PHY sample rate    
     #     - Times in microseconds
-    if phy_samp_rate is util.phy_samp_rates.PHY_40M:
+    if phy_samp_rate is 40:
         T_PREAMBLE = 8
         T_SIG = 2
         T_SYM = 2
         T_EXT = 6         
-    elif phy_samp_rate is util.phy_samp_rates.PHY_20M:
+    elif phy_samp_rate is 20:
         T_PREAMBLE = 16
         T_SIG = 4
         T_SYM = 4
         T_EXT = 6
-    elif phy_samp_rate is util.phy_samp_rates.PHY_10M:
+    elif phy_samp_rate is 10:
         T_PREAMBLE = 32
         T_SIG = 8
         T_SYM = 8
         T_EXT = 6
     else:
-        raise AttributeError("Constants not defined for phy_samp_rate {0}".format(phy_samp_rate))
+        raise AttributeError("phy_samp_rate {0} not in [10, 20, 40]".format(phy_samp_rate))
         
     # (mcs, phy_mode) encodes number of data bits per symbol
     try:
@@ -731,14 +731,14 @@ def calc_tx_time(mcs, phy_mode, payload_length, phy_samp_rate):
     #  HT-SIG1, HT-SIG2, HT-STF, HT-LTF
     num_ht_preamble_syms = 4 * (phy_mode == util.phy_mode['HTMF'])
 
-    T_TOT = T_PREAMBLE + T_SIG + (T_SYM * num_ht_preamble_syms) + (T_SYM * num_syms) + T_EXT
+    T_TOT = T_PREAMBLE + T_SIG + (T_SYM * num_ht_preamble_syms) + (T_SYM * num_data_syms) + T_EXT
 
     return T_TOT
 
 # End def
 
 
-def find_overlapping_tx_low(src_tx_low, int_tx_low, phy_samp_rate=20):
+def find_overlapping_tx_low(src_tx_low, int_tx_low):
     """Finds TX_LOW entries in the source that are overlapped by the TX_LOW entries in other flow.
 
     Args:
@@ -757,8 +757,8 @@ def find_overlapping_tx_low(src_tx_low, int_tx_low, phy_samp_rate=20):
     src_ts = src_tx_low['timestamp']
     int_ts = int_tx_low['timestamp']
 
-    src_dur = np.uint64(calc_tx_time(src_tx_low['mcs'], src_tx_low['phy_mode'], src_tx_low['length'], phy_samp_rate))
-    int_dur = np.uint64(calc_tx_time(int_tx_low['mcs'], int_tx_low['phy_mode'], int_tx_low['length'], phy_samp_rate))
+    src_dur = np.uint64(calc_tx_time(src_tx_low['mcs'], src_tx_low['phy_mode'], src_tx_low['length'], src_tx_low['phy_samp_rate']))
+    int_dur = np.uint64(calc_tx_time(int_tx_low['mcs'], int_tx_low['phy_mode'], int_tx_low['length'], int_tx_low['phy_samp_rate']))
 
     src_idx = []
     int_idx = []
