@@ -892,6 +892,35 @@ def create_locally_administered_bssid(mac_address):
 # End def
 
 
+def is_locally_administered_bssid(bssid):
+    """Is the BSSID a locally administered BSSID?
+
+    Is "locally administered" bit to '1' and "multicast" bit to '0' of the BSSID?
+
+    Args:
+        bssid (int, str):  BSSID either as a 48-bit integer or a colon 
+            delimited string of the form: XX:XX:XX:XX:XX:XX
+
+    Returns:
+        status (bool):
+
+            * True      -- BSSID is locally administered BSSID
+            * False     -- BSSID is not locally administered BSSID
+    """
+    if type(bssid) is str:
+        tmp_bssid = str_to_mac_addr(bssid)
+    else:
+        tmp_bssid = bssid
+
+    if (((tmp_bssid & mac_addr_local_mask) == mac_addr_local_mask) and 
+        ((tmp_bssid & mac_addr_mcast_mask) == 0)):
+        return True
+    else:
+        return False
+
+# End def
+
+
 def sn_to_str(hw_generation, serial_number):
     """Convert serial number to a string for a given hardware generation.
 
@@ -1160,45 +1189,5 @@ def _broadcast_cmd_to_nodes_helper(cmd, network_config):
     transport_broadcast.transport_close()
 
 # End def
-
-
-
-def _find_param_by_index(index, param_list, param_name):
-    """Return the entry for the given index."""
-    ret_val = None
-
-    if type(index) is int:
-        for param in param_list:
-            if (param['index'] == index):
-                ret_val = param
-                break
-
-    if ret_val is None:
-        print("Unknown {0} index: {1}".format(param_name, index))
-        raise Exception
-
-    return ret_val
-
-# End def
-
-
-def _find_param_by_name(name, value, param_list, param_name):
-    """Return the entry for the given name."""
-    ret_val = None
-
-    for param in param_list:
-        if (param[name] == value):
-            ret_val = param
-            break
-
-    if ret_val is None:
-        print("Unknown {0} '{1}': {2}".format(param_name, name, value))
-
-    return ret_val
-
-# End def
-
-
-
 
 

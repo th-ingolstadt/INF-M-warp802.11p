@@ -36,7 +36,7 @@ class WlanExpNodeSta(node.WlanExpNode):
     #-------------------------------------------------------------------------
     # Override WLAN Exp Node Commands 
     #-------------------------------------------------------------------------
-    def configure_bss(self, bssid=False, ssid=None, channel=None, ht_capable=None):
+    def configure_bss(self, bssid=False, ssid=None, channel=None, beacon_interval=False, ht_capable=None):
         """Configure the BSS information of the node
         
         Each node is either a member of no BSS (colloquially "unassociated") 
@@ -53,10 +53,14 @@ class WlanExpNodeSta(node.WlanExpNode):
                 colon delimited string of the form:  XX:XX:XX:XX:XX:XX
             ssid (str):  SSID string (Must be 32 characters or less)
             channel (int): Channel number on which the BSS operates
+            beacon_interval (int): Integer number of beacon Time Units in [10, 65535]
+                (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds);
+                A value of None will disable beacons;  A value of False will not 
+                update the current beacon interval.
             ht_capable (bool):  Is the PHY mode HTMF (True) or NONHT (False)?
         """
         self.send_cmd(cmds.NodeConfigBSS(bssid=bssid, ssid=ssid, channel=channel,
-                                         ht_capable=ht_capable))
+                                         beacon_interval=beacon_interval, ht_capable=ht_capable))
 
 
     def disassociate(self):
@@ -280,4 +284,4 @@ class WlanExpNodeSta(node.WlanExpNode):
         msg = "WLAN EXP STA  " + msg
         return msg
 
-# End Class WlanExpNodeSta
+# End class 

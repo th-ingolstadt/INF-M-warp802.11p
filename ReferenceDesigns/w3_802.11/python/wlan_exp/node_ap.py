@@ -357,12 +357,19 @@ class WlanExpNodeAp(node.WlanExpNode):
             msg += "\n    Configure the AP's BSS using configure_bss() before calling add_association()."
             raise Exception(msg)
 
-        bssid    = bss_info['bssid']
-        channel  = bss_info['channel']
-        ssid     = bss_info['ssid']
+        bssid           = bss_info['bssid']
+        channel         = bss_info['channel']
+        ssid            = bss_info['ssid']
+        beacon_interval = bss_info['beacon_interval']
+        
+        if (beacon_interval == 0):
+            beacon_interval = None
 
         for device in device_list:
-            ret_val.append(self._add_association(device=device, bssid=bssid, channel=channel, ssid=ssid, allow_timeout=allow_timeout))
+            ret_val.append(self._add_association(device=device, bssid=bssid, 
+                                                 channel=channel, ssid=ssid, 
+                                                 beacon_interval=beacon_interval,
+                                                 allow_timeout=allow_timeout))
 
         # Need to return a single value and not a list
         if not ret_list:
@@ -375,7 +382,7 @@ class WlanExpNodeAp(node.WlanExpNode):
     #-------------------------------------------------------------------------
     # Internal AP methods
     #-------------------------------------------------------------------------
-    def _add_association(self, device, bssid, channel, ssid, allow_timeout):
+    def _add_association(self, device, bssid, channel, ssid, beacon_interval, allow_timeout):
         """Internal command to add an association."""
         ret_val = False
 
@@ -391,7 +398,7 @@ class WlanExpNodeAp(node.WlanExpNode):
             import wlan_exp.node_sta as node_sta
 
             if isinstance(device, node_sta.WlanExpNodeSta):
-                device.configure_bss(bssid=bssid, ssid=ssid, channel=channel)
+                device.configure_bss(bssid=bssid, ssid=ssid, channel=channel, beacon_interval=beacon_interval)
                 device.set_aid(aid=aid)
                 ret_val = True
             else:

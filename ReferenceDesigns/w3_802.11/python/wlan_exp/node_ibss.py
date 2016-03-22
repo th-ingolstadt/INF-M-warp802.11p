@@ -86,6 +86,16 @@ class WlanExpNodeIBSS(node.WlanExpNode):
                 update the current beacon interval.
             ht_capable (bool):  Is the PHY mode HTMF (True) or NONHT (False)?        
         """
+        import wlan_exp.util as util
+        
+        if bssid is not False:
+            if bssid is not None:
+                if not util.is_locally_administered_bssid(bssid):
+                    msg  = "IBSS BSSIDs must be 'locally administered'.  Use \n"
+                    msg += "    util.create_locally_administered_bssid() to \n"
+                    msg += "    create a 'locally adminstered' BSSID."
+                    raise AttributeError(msg)
+        
         self.send_cmd(cmds.NodeConfigBSS(bssid=bssid, ssid=ssid, channel=channel, 
                                          beacon_interval=beacon_interval, ht_capable=ht_capable))
 
@@ -152,4 +162,4 @@ class WlanExpNodeIBSS(node.WlanExpNode):
         msg = "WLAN EXP IBSS " + msg
         return msg
 
-# End Class WlanExpNodeAp
+# End class 
