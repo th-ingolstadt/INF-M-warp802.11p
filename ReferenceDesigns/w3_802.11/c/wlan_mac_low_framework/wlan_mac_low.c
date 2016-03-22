@@ -638,6 +638,11 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
                         }
                         break;
 
+                        case LOW_PARAM_PHY_SAMPLE_RATE: {
+                            xil_printf("Set PHY Sample rate:  %d\n", ipc_msg_from_high_payload[1]);
+                        }
+                        break;
+
                         default: {
                             ipc_low_param_callback(IPC_REG_WRITE_MODE, ipc_msg_from_high_payload);
                         }
