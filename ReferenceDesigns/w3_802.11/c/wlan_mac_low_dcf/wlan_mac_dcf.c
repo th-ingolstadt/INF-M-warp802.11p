@@ -169,8 +169,6 @@ void handle_sample_rate_change(phy_samp_rate_t phy_samp_rate){
 
 	gl_phy_samp_rate = phy_samp_rate;
 
-	// FIXME: hold MAC state in reset while these changes are being applied
-
     switch(phy_samp_rate){
     	default:
     	case PHY_40M:

@@ -163,9 +163,11 @@ int wlan_mac_low_init(u32 type){
     wlan_phy_rx_pkt_buf_phy_hdr_offset(PHY_RX_PKT_BUF_PHY_HDR_OFFSET);
     wlan_phy_tx_pkt_buf_phy_hdr_offset(PHY_TX_PKT_BUF_PHY_HDR_OFFSET);
 
+    wlan_mac_reset(1);
     wlan_radio_init();
     wlan_phy_init();
     wlan_mac_hw_init();
+    wlan_mac_reset(0);
 
     // Initialize the HW info structure
     init_mac_hw_info(type);
@@ -229,14 +231,19 @@ void wlan_mac_low_init_finish(){
 void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
 	gl_phy_samp_rate = phy_samp_rate;
 
+    // Assert PHY Tx/Rx and MAC Resets
+    REG_SET_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);
+    REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_RESET);
+    wlan_mac_reset(1);
+
     // DSSS Rx only supported at 20Msps
     switch(phy_samp_rate){
 		case PHY_10M:
     	case PHY_40M:
-    		wlan_mac_low_DSSS_rx_disable();
+    		wlan_phy_DSSS_rx_disable();
     	break;
     	case PHY_20M:
-    		wlan_mac_low_DSSS_rx_enable();
+    		if(dsss_state) wlan_phy_DSSS_rx_enable();
     	break;
     }
 
@@ -362,6 +369,11 @@ void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
 
     // Call user callback so it can deal with any changes that need to happen due to a change in sampling rate
 	sample_rate_change_callback(gl_phy_samp_rate);
+
+    // Deassert PHY Tx/Rx and MAC Resets
+    REG_CLEAR_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);
+    REG_CLEAR_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_RESET);
+    wlan_mac_reset(0);
 }
 
 
@@ -387,15 +399,15 @@ void wlan_mac_hw_init(){
     // Enable the NAV counter
     REG_CLEAR_BITS(WLAN_MAC_REG_CONTROL, (WLAN_MAC_CTRL_MASK_DISABLE_NAV));
 
-    // Set default MAC Timing Values. These macros/functions should be used by
-    // specific low-level applications if they need these features.
-    wlan_mac_set_slot(0);
-    wlan_mac_set_DIFS(0);
-    wlan_mac_set_TxDIFS(0);
-    wlan_mac_postTx_timer1_en(0);
-    wlan_mac_postRx_timer2_en(0);
-    wlan_mac_set_NAV_adj(0);
-    wlan_mac_set_EIFS(0);
+    // Set sane defaults for MAC timing values. These will be overwritten by
+    // low-level applications that need to specify these times (e.g. the DCF)
+    wlan_mac_set_slot(9*10);
+	wlan_mac_set_DIFS(28*10);
+	wlan_mac_set_TxDIFS((28*10) - (TX_PHY_DLY_100NSEC));
+	wlan_mac_postTx_timer1_en(0);
+	wlan_mac_postRx_timer2_en(0);
+	wlan_mac_set_NAV_adj(0*10);
+	wlan_mac_set_EIFS(88*10);
 
     // Set the TU target to 2^32-1 (max value) and hold TU_LATCH in reset
     //  MAC Low application should re-enabled if needed
