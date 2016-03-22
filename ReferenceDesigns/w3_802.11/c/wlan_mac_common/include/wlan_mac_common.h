@@ -181,7 +181,6 @@ typedef int (*function_ptr_t)();
 // PHY Bandwidth Configuration
 //
 typedef enum {
-    PHY_5M    =  5, 
     PHY_10M   = 10, 
     PHY_20M   = 20, 
     PHY_40M   = 40

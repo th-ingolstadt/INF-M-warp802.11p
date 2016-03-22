@@ -54,8 +54,7 @@
 
 
 /*************************** Variable Definitions ****************************/
-volatile static phy_samp_rate_t   phy_samp_rate;                                    ///< Current bandwidth selection
-volatile static mac_timing        mac_timing_values;                                ///< MAC Timing Constants
+volatile static phy_samp_rate_t   gl_phy_samp_rate;                                 ///< Current PHY sampling rate
 volatile static u32               mac_param_chan;                                   ///< Current channel of the lower-level MAC
 volatile static u8                mac_param_band;                                   ///< Current band of the lower-level MAC
 volatile static u8                dsss_state;                                       ///< State of DSSS RX for 2.4GHz band
@@ -78,6 +77,7 @@ static function_ptr_t        frame_tx_callback;                                 
 
 static function_ptr_t		 beacon_txrx_config_callback;
 static function_ptr_t		 mactime_change_callback;
+static function_ptr_t		 sample_rate_change_callback;
 
 static function_ptr_t        ipc_low_param_callback;                                ///< User callback for IPC_MBOX_LOW_PARAM ipc calls
 
@@ -109,46 +109,6 @@ int wlan_mac_low_init(u32 type){
     u32 status;
     rx_frame_info* rx_mpdu;
     wlan_ipc_msg_t ipc_msg_to_high;
-    u8 dipsw;
-
-    dipsw = userio_read_inputs(USERIO_BASEADDR) & W3_USERIO_DIPSW;
-
-    if(dipsw & 2){
-    	phy_samp_rate = PHY_40M;
-    	xil_printf("PHY Sampling Rate: 40 MHz\n");
-    } else {
-    	phy_samp_rate = PHY_20M;
-    	xil_printf("PHY Sampling Rate: 20 MHz\n");
-    }
-
-    switch(phy_samp_rate){
-    	default:
-    	case PHY_40M:
-    	case PHY_20M:
-    		mac_timing_values.t_slot = 9;
-    		mac_timing_values.t_sifs = 10;
-    		mac_timing_values.t_difs = mac_timing_values.t_sifs + (2*mac_timing_values.t_slot);
-    		mac_timing_values.t_eifs = 88;
-    		mac_timing_values.t_phy_rx_start_dly = 25; //TODO: This is BW dependent. 20/25 is waveform time. This should scale with BW. 10:MHz 45
-    		mac_timing_values.t_timeout = mac_timing_values.t_sifs + mac_timing_values.t_slot + mac_timing_values.t_phy_rx_start_dly;
-    	break;
-    	case PHY_10M:
-    		mac_timing_values.t_slot = 9;
-    		mac_timing_values.t_sifs = 10;
-    		mac_timing_values.t_difs = mac_timing_values.t_sifs + (2*mac_timing_values.t_slot);
-    		mac_timing_values.t_eifs = 88;
-    		mac_timing_values.t_phy_rx_start_dly = 45;
-    		mac_timing_values.t_timeout = mac_timing_values.t_sifs + mac_timing_values.t_slot + mac_timing_values.t_phy_rx_start_dly;
-    	break;
-    	case PHY_5M:
-    		mac_timing_values.t_slot = 9;
-    		mac_timing_values.t_sifs = 10;
-    		mac_timing_values.t_difs = mac_timing_values.t_sifs + (2*mac_timing_values.t_slot);
-    		mac_timing_values.t_eifs = 88;
-    		mac_timing_values.t_phy_rx_start_dly = 85;
-    		mac_timing_values.t_timeout = mac_timing_values.t_sifs + mac_timing_values.t_slot + mac_timing_values.t_phy_rx_start_dly;
-    	break;
-    }
 
     dsss_state               = 1;
     mac_param_band           = RC_24GHZ;
@@ -165,6 +125,7 @@ int wlan_mac_low_init(u32 type){
     ipc_low_param_callback      = (function_ptr_t) wlan_null_callback;
     beacon_txrx_config_callback = (function_ptr_t) wlan_null_callback;
     mactime_change_callback		= (function_ptr_t) wlan_null_callback;
+    sample_rate_change_callback = (function_ptr_t) wlan_null_callback;
     allow_new_mpdu_tx        = 1;
     pkt_buf_pending_tx       = -1; // -1 is an invalid pkt_buf index
 
@@ -239,6 +200,9 @@ void wlan_mac_low_init_finish(){
     wlan_ipc_msg_t ipc_msg_to_high;
     u32            ipc_msg_to_high_payload[1];
 
+    //Set the default PHY sample rate to 20 MSps
+	set_phy_samp_rate(PHY_20M);
+
     // Update the CPU Low status
     cpu_low_status |= CPU_STATUS_INITIALIZED;
 
@@ -251,6 +215,153 @@ void wlan_mac_low_init_finish(){
     write_mailbox_msg(&ipc_msg_to_high);
 }
 
+
+/*****************************************************************************/
+/**
+ * @brief Initialize the DCF Hardware Core
+ *
+ * This function initializes the DCF hardware core.
+ *
+ * @param   None
+ * @return  None
+ */
+void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
+	gl_phy_samp_rate = phy_samp_rate;
+
+    // DSSS Rx only supported at 20Msps
+    switch(phy_samp_rate){
+		case PHY_10M:
+    	case PHY_40M:
+    		wlan_mac_low_DSSS_rx_disable();
+    	break;
+    	case PHY_20M:
+    		wlan_mac_low_DSSS_rx_enable();
+    	break;
+    }
+
+    // Configure auto-correlation packet detection
+    //  wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(corr_thresh, energy_thresh, min_dur, post_wait)
+     switch(phy_samp_rate){
+     	case PHY_40M:
+     		//TODO: The 2 value is suspiciously low
+     		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 2, 15, 0x3F);
+		break;
+     	case PHY_10M:
+     	case PHY_20M:
+     		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 9, 4, 0x3F);
+     	break;
+     }
+
+     // Set post Rx extension
+     //  Number of sample periods post-Rx the PHY waits before asserting Rx END - must be long enough for worst-case
+     //   decoding latency and should result in RX_END asserting 6 usec after the last sample was received
+     switch(phy_samp_rate){
+     	case PHY_40M:
+     		// 6us Extension
+     		wlan_phy_rx_set_extension(6*40);
+ 		break;
+     	case PHY_20M:
+     		// 6us Extension
+     		wlan_phy_rx_set_extension(6*20);
+     	break;
+     	case PHY_10M:
+     		// 6us Extension
+     		wlan_phy_rx_set_extension(6*10);
+     	break;
+     }
+
+     // Set Tx duration extension, in units of sample periods
+	 switch(phy_samp_rate){
+		case PHY_40M:
+			// 364 20MHz sample periods.
+			// The extra 3 usec properly delays the assertion of TX END to match the assertion of RX END at the receiving node.
+			wlan_phy_tx_set_extension(364);
+
+			// Set extension from last samp output to RF Tx -> Rx transition
+			//     This delay allows the Tx pipeline to finish driving samples into DACs
+			//     and for DAC->RF frontend to finish output Tx waveform
+			wlan_phy_tx_set_txen_extension(100);
+
+			// Set extension from RF Rx -> Tx to un-blocking Rx samples
+			wlan_phy_tx_set_rx_invalid_extension(300);
+		break;
+		case PHY_20M:
+			// 182 20MHz sample periods.
+			// The extra 3 usec properly delays the assertion of TX END to match the assertion of RX END at the receiving node.
+			wlan_phy_tx_set_extension(182);
+
+			// Set extension from last samp output to RF Tx -> Rx transition
+			//     This delay allows the Tx pipeline to finish driving samples into DACs
+			//     and for DAC->RF frontend to finish output Tx waveform
+			wlan_phy_tx_set_txen_extension(50);
+
+			// Set extension from RF Rx -> Tx to un-blocking Rx samples
+			wlan_phy_tx_set_rx_invalid_extension(150);
+		break;
+		case PHY_10M:
+			wlan_phy_tx_set_extension(91);
+
+			// Set extension from last samp output to RF Tx -> Rx transition
+			//     This delay allows the Tx pipeline to finish driving samples into DACs
+			//     and for DAC->RF frontend to finish output Tx waveform
+			wlan_phy_tx_set_txen_extension(25);
+
+			// Set extension from RF Rx -> Tx to un-blocking Rx samples
+			wlan_phy_tx_set_rx_invalid_extension(75);
+		break;
+	 }
+
+	// Set RF Parameters based on sample rate selection
+	switch(phy_samp_rate){
+		case PHY_40M:
+			// Setup clocking and filtering (20MSps, 2x interp/decimate in AD9963)
+			clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
+			ad_config_filters(AD_BASEADDR, AD_ALL_RF, 1, 1);
+			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x2F);
+			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
+		break;
+		case PHY_20M:
+			// Setup clocking and filtering (20MSps, 2x interp/decimate in AD9963)
+			clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
+			ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
+			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x27);
+			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
+		break;
+		case PHY_10M:
+			//10MHz bandwidth: 20MHz clock to AD9963, use 2x interpolation/decimation
+			clk_config_dividers(CLK_BASEADDR, 4, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
+			ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
+			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x27);
+			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
+		break;
+	}
+
+    switch(phy_samp_rate){
+    	case PHY_40M:
+    	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 3);
+    	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 3);
+		break;
+    	case PHY_10M:
+    	case PHY_20M:
+    	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 1);
+    	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 1);
+    	break;
+    }
+
+    // AGC timing: capt_rssi_1, capt_rssi_2, capt_v_db, agc_done
+    switch(phy_samp_rate){
+    	case PHY_40M:
+    		wlan_agc_set_AGC_timing(10, 30, 90, 96);
+		break;
+    	case PHY_10M:
+    	case PHY_20M:
+    		wlan_agc_set_AGC_timing(1, 30, 90, 96);
+    	break;
+    }
+
+    // Call user callback so it can deal with any changes that need to happen due to a change in sampling rate
+	sample_rate_change_callback(gl_phy_samp_rate);
+}
 
 
 /*****************************************************************************/
@@ -275,24 +386,15 @@ void wlan_mac_hw_init(){
     // Enable the NAV counter
     REG_CLEAR_BITS(WLAN_MAC_REG_CONTROL, (WLAN_MAC_CTRL_MASK_DISABLE_NAV));
 
-    // MAC timing parameters are in terms of units of 100 nanoseconds
-    wlan_mac_set_slot(mac_timing_values.t_slot*10);
-
-    wlan_mac_set_DIFS((mac_timing_values.t_difs)*10);
-    wlan_mac_set_TxDIFS(((mac_timing_values.t_difs)*10) - (TX_PHY_DLY_100NSEC));
-
-    // Use postTx timer 2 for ACK timeout
-    wlan_mac_set_postTx_timer2(mac_timing_values.t_timeout * 10);
-    wlan_mac_postTx_timer2_en(1);
-
-    // Use postRx timer 1 for SIFS
-    wlan_mac_set_postRx_timer1((mac_timing_values.t_sifs*10)-(TX_PHY_DLY_100NSEC));
-    wlan_mac_postRx_timer1_en(1);
-
-    // TODO: NAV adjust needs verification
-    //     NAV adjust time - signed char (Fix8_0) value
-    wlan_mac_set_NAV_adj(0*10);
-    wlan_mac_set_EIFS(mac_timing_values.t_eifs*10);
+    // Set default MAC Timing Values. These macros/functions should be used by
+    // specific low-level applications if they need these features.
+    wlan_mac_set_slot(0);
+    wlan_mac_set_DIFS(0);
+    wlan_mac_set_TxDIFS(0);
+    wlan_mac_postTx_timer1_en(0);
+    wlan_mac_postRx_timer2_en(0);
+    wlan_mac_set_NAV_adj(0);
+    wlan_mac_set_EIFS(0);
 
     // Set the TU target to 2^32-1 (max value) and hold TU_LATCH in reset
     //  MAC Low application should re-enabled if needed
@@ -866,8 +968,6 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
     u32                      status;
     tx_frame_info          * tx_mpdu;
     mac_header_80211       * tx_80211_header;
-    u8						 ack_mcs;
-    u8					     ack_phy_mode;
     u32                      is_locked, owner;
     u32                      low_tx_details_size;
     wlan_ipc_msg_t           ipc_msg_to_high;
@@ -889,20 +989,8 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 
 		tx_mpdu->delay_accept = (u32)(get_mac_time_usec() - tx_mpdu->timestamp_create);
 
-		// ACK_N_DBPS is used to calculate duration of the ACK waveform which might be received in response to this transmission
-		//  The ACK duration is used to calculate the DURATION field in the MAC header
-		//  The selection of ACK rate for a given DATA rate is specified in IEEE 802.11-2012 9.7.6.5.2
-		ack_mcs = wlan_mac_low_mcs_to_ctrl_resp_mcs(tx_mpdu->params.phy.mcs);
-		ack_phy_mode = tx_mpdu->params.phy.phy_mode; //FIXME: is this the right phy_mode?
-
 		// Get pointer to start of MAC header in packet buffer
 		tx_80211_header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
-
-		if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_DURATION){
-			// Compute and fill in the duration of any time-on-air following this packet's transmission
-			//     For DATA Tx, DURATION = T_SIFS + T_ACK, where T_ACK is function of the ACK Tx rate
-			tx_80211_header->duration_id = wlan_ofdm_calc_txtime(sizeof(mac_header_80211_ACK) + WLAN_PHY_FCS_NBYTES, ack_mcs, ack_phy_mode, phy_samp_rate) + mac_timing_values.t_sifs;
-		}
 
 		// Insert sequence number here
 		tx_80211_header->sequence_control = ((tx_80211_header->sequence_control) & 0xF) | ( (unique_seq&0xFFF)<<4 );
@@ -1001,6 +1089,10 @@ void wlan_mac_low_frame_ipc_send(){
  */
 inline void wlan_mac_low_set_frame_rx_callback(function_ptr_t callback){
     frame_rx_callback = callback;
+}
+
+inline void wlan_mac_low_set_sample_rate_change_callback(function_ptr_t callback){
+	sample_rate_change_callback = callback;
 }
 
 inline void wlan_mac_low_set_beacon_txrx_config_callback(function_ptr_t callback){
@@ -1553,24 +1645,37 @@ inline u16 wlan_mac_low_mcs_to_n_dbps(u8 mcs, u8 phy_mode) {
 /**
  * @brief Convert MCS to Control Response MCS
  */
-inline u8 wlan_mac_low_mcs_to_ctrl_resp_mcs(u8 mcs){
-    // Returns the fastest half-rate MCS lower than the provided MCS and no larger that 24Mbps.
+inline u8 wlan_mac_low_mcs_to_ctrl_resp_mcs(u8 mcs, u8 phy_mode){
+    // Returns the fastest NON-HT half-rate MCS lower than the provided MCS and no larger that 24Mbps.
 	//  Valid return values are [0, 2, 4]
+    u8 return_value = 0;
 
-    u8 return_value = mcs;
-
-    if(return_value > 4){ return_value = 4; }
-    if(return_value % 2){ return_value--;   }
-
+    if(phy_mode == PHY_MODE_NONHT){
+    	return_value = mcs;
+		if(return_value > 4){ return_value = 4; }
+		if(return_value % 2){ return_value--;   }
+    } else if(phy_mode == PHY_MODE_HTMF) {
+    	switch(mcs){
+    		default:
+    		case 0:
+    			return_value = 0;
+			break;
+    		case 1:
+    			return_value = 2;
+			break;
+    		case 2:
+    			return_value = 2;
+			break;
+    		case 3:
+    		case 4:
+    		case 5:
+    		case 6:
+    		case 7:
+    			return_value = 4;
+			break;
+    	}
+    }
     return return_value;
-}
-
-inline phy_samp_rate_t	wlan_mac_low_get_phy_samp_rate(){
-	return phy_samp_rate;
-}
-
-inline mac_timing wlan_mac_low_get_mac_timing_values(){
-	return mac_timing_values;
 }
 
 inline u64 wlan_mac_low_get_unique_seq(){

@@ -26,17 +26,6 @@
 #define MAC_HW_LASTBYTE_ADDR1 (13)
 
 //-----------------------------------------------
-// MAC Timing Structure
-typedef struct{
-	u16 t_slot;
-	u16 t_sifs;
-	u16 t_difs;
-	u16	t_eifs;
-	u16 t_phy_rx_start_dly;
-	u16 t_timeout;
-} mac_timing;
-
-//-----------------------------------------------
 // Power defines
 //
 #define PKT_DET_MIN_POWER_MIN -90
@@ -437,6 +426,7 @@ typedef struct{
 /*************************** Function Prototypes *****************************/
 int                wlan_mac_low_init(u32 type);
 void               wlan_mac_low_init_finish();
+void 			   set_phy_samp_rate(phy_samp_rate_t phy_samp_rate);
 void               wlan_mac_hw_init();
 void               wlan_mac_low_init_hw_info(u32 type);
 
@@ -455,6 +445,7 @@ void               wlan_mac_low_set_frame_rx_callback(function_ptr_t callback);
 void               wlan_mac_low_set_frame_tx_callback(function_ptr_t callback);
 void 			   wlan_mac_low_set_beacon_txrx_config_callback(function_ptr_t callback);
 void 			   wlan_mac_low_set_mactime_change_callback(function_ptr_t callback);
+void 			   wlan_mac_low_set_sample_rate_change_callback(function_ptr_t callback);
 void               wlan_mac_low_set_ipc_low_param_callback(function_ptr_t callback);
 
 inline u64         wlan_mac_low_get_rx_start_timestamp();
@@ -483,11 +474,8 @@ inline void        wlan_mac_reset_NAV_counter();
 inline u8          wlan_mac_low_dbm_to_gain_target(s8 power);
 inline u32         wlan_mac_low_wlan_chan_to_rc_chan(u32 mac_channel);
 inline u16         wlan_mac_low_mcs_to_n_dbps(u8 mcs, u8 phy_mode);
-inline u8          wlan_mac_low_mcs_to_phy_rate(u8 mcs);
-inline u8          wlan_mac_low_mcs_to_ctrl_resp_mcs(u8 mcs);
+inline u8 		   wlan_mac_low_mcs_to_ctrl_resp_mcs(u8 mcs, u8 phy_mode);
 
-inline phy_samp_rate_t  wlan_mac_low_get_phy_samp_rate();
-inline mac_timing       wlan_mac_low_get_mac_timing_values();
 inline u64              wlan_mac_low_get_unique_seq();
 inline void             wlan_mac_low_set_unique_seq(u64 curr_unique_seq);
 inline void wlan_mac_hw_clear_rx_started();

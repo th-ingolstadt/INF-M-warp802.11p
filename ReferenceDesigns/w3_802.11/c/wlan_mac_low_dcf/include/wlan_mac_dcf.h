@@ -22,6 +22,17 @@
 
 
 //-----------------------------------------------
+// MAC Timing Structure
+typedef struct{
+	u16 t_slot;
+	u16 t_sifs;
+	u16 t_difs;
+	u16	t_eifs;
+	u16 t_phy_rx_start_dly;
+	u16 t_timeout;
+} mac_timing;
+
+//-----------------------------------------------
 // CW Update Reasons
 #define DCF_CW_UPDATE_MPDU_TX_ERR                          0
 #define DCF_CW_UPDATE_MPDU_RX_ACK                          1
@@ -99,6 +110,7 @@ typedef enum {
 int                main();
 
 u32                frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details);
+void 			   handle_sample_rate_change(phy_samp_rate_t phy_samp_rate);
 void 			   handle_mactime_change(s64 time_delta_usec);
 void 			   configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure);
 int 			   frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details);

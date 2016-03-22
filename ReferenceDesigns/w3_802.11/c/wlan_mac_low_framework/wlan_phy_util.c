@@ -220,25 +220,11 @@ int w3_node_init() {
  *****************************************************************************/
 void wlan_phy_init() {
 
-	phy_samp_rate_t phy_samp_rate = wlan_mac_low_get_phy_samp_rate();
-
     // Assert Tx and Rx resets
     REG_SET_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);
     REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_RESET);
 
     /************ PHY Rx ************/
-
-    // DSSS Rx only supported at 20Msps
-    switch(phy_samp_rate){
-		case PHY_5M:
-		case PHY_10M:
-    	case PHY_40M:
-    		wlan_mac_low_DSSS_rx_disable();
-    	break;
-    	case PHY_20M:
-    		wlan_mac_low_DSSS_rx_enable();
-    	break;
-    }
 
     // Set the max Tx/Rx packet sizes to 2KB (sane default for standard 802.11a/g links)
     wlan_phy_rx_set_max_pkt_len_kB(2);
@@ -298,20 +284,6 @@ void wlan_phy_init() {
     //     The summing logic realizes a sum of the length specified + 1
      wlan_phy_rx_pktDet_RSSI_cfg( (PHY_RX_RSSI_SUM_LEN-1), ( PHY_RX_RSSI_SUM_LEN * 1023), 1);
 
-    // Configure auto-correlation packet detection
-    //  wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(corr_thresh, energy_thresh, min_dur, post_wait)
-     switch(phy_samp_rate){
-     	case PHY_40M:
-     		//TODO: The 2 value is suspiciously low
-     		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 2, 15, 0x3F);
-		break;
-     	case PHY_5M:
-     	case PHY_10M:
-     	case PHY_20M:
-     		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 9, 4, 0x3F);
-     	break;
-     }
-
     // Configure the default antenna selections as SISO Tx/Rx on RF A
     wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
 
@@ -321,29 +293,6 @@ void wlan_phy_init() {
     // Set pre-quantizer scaling for decoder inputs
     //  These values were found empirically by vs PER by sweeping scaling and attenuation
     wlan_phy_rx_set_fec_scaling(15, 15, 18, 22);
-
-    // Set post Rx extension
-    //  Number of sample periods post-Rx the PHY waits before asserting Rx END - must be long enough for worst-case
-    //   decoding latency and should result in RX_END asserting 6 usec after the last sample was received
-    switch(phy_samp_rate){
-    	case PHY_40M:
-    		// 6us Extension
-    		wlan_phy_rx_set_extension(6*40);
-		break;
-    	case PHY_20M:
-    		// 6us Extension
-    		wlan_phy_rx_set_extension(6*20);
-    	break;
-    	case PHY_10M:
-    		// 6us Extension
-    		wlan_phy_rx_set_extension(6*10);
-    	break;
-    	case PHY_5M:
-    		// 6us Extension
-    		wlan_phy_rx_set_extension(6*10);
-    	break;
-    }
-
 
     // Configure channel estimate capture (64 subcarriers, 4 bytes each)
     //     Chan ests start at sizeof(rx_frame_info) - sizeof(chan_est)
@@ -356,58 +305,6 @@ void wlan_phy_init() {
 
     // De-assert all starts
     REG_CLEAR_BITS(WLAN_TX_REG_START, 0xFFFFFFFF);
-
-    // Set Tx duration extension, in units of sample periods
-    switch(phy_samp_rate){
-    	case PHY_40M:
-    		// 364 20MHz sample periods.
-    		// The extra 3 usec properly delays the assertion of TX END to match the assertion of RX END at the receiving node.
-    		wlan_phy_tx_set_extension(364);
-
-    	    // Set extension from last samp output to RF Tx -> Rx transition
-    	    //     This delay allows the Tx pipeline to finish driving samples into DACs
-    	    //     and for DAC->RF frontend to finish output Tx waveform
-    	    wlan_phy_tx_set_txen_extension(100);
-
-    	    // Set extension from RF Rx -> Tx to un-blocking Rx samples
-    	    wlan_phy_tx_set_rx_invalid_extension(300);
-		break;
-    	case PHY_20M:
-    		// 182 20MHz sample periods.
-    		// The extra 3 usec properly delays the assertion of TX END to match the assertion of RX END at the receiving node.
-    		wlan_phy_tx_set_extension(182);
-
-    	    // Set extension from last samp output to RF Tx -> Rx transition
-    	    //     This delay allows the Tx pipeline to finish driving samples into DACs
-    	    //     and for DAC->RF frontend to finish output Tx waveform
-    	    wlan_phy_tx_set_txen_extension(50);
-
-    	    // Set extension from RF Rx -> Tx to un-blocking Rx samples
-    	    wlan_phy_tx_set_rx_invalid_extension(150);
-    	break;
-    	case PHY_10M:
-    		wlan_phy_tx_set_extension(91);
-
-    	    // Set extension from last samp output to RF Tx -> Rx transition
-    	    //     This delay allows the Tx pipeline to finish driving samples into DACs
-    	    //     and for DAC->RF frontend to finish output Tx waveform
-    	    wlan_phy_tx_set_txen_extension(25);
-
-    	    // Set extension from RF Rx -> Tx to un-blocking Rx samples
-    	    wlan_phy_tx_set_rx_invalid_extension(75);
-    	break;
-    	case PHY_5M:
-    		wlan_phy_tx_set_extension(91);
-
-    	    // Set extension from last samp output to RF Tx -> Rx transition
-    	    //     This delay allows the Tx pipeline to finish driving samples into DACs
-    	    //     and for DAC->RF frontend to finish output Tx waveform
-    	    wlan_phy_tx_set_txen_extension(25);
-
-    	    // Set extension from RF Rx -> Tx to un-blocking Rx samples
-    	    wlan_phy_tx_set_rx_invalid_extension(75);
-    	break;
-    }
 
     // Set digital scaling of preamble/payload signals before DACs (UFix12_0)
     wlan_phy_tx_set_scaling(0x2000, 0x2000); // Scaling of 2.0
@@ -455,59 +352,14 @@ void wlan_phy_init() {
  *****************************************************************************/
 void wlan_radio_init() {
 
-	phy_samp_rate_t phy_samp_rate = wlan_mac_low_get_phy_samp_rate();
-
 #if 1
 
+	// Setup clocking and filtering (20MSps, 2x interp/decimate in AD9963)
+	clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
+	ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
+	ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x27);
+	ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
 
-    switch(phy_samp_rate){
-    	case PHY_40M:
-    	    // Setup clocking and filtering (20MSps, 2x interp/decimate in AD9963)
-    	    clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
-    		ad_config_filters(AD_BASEADDR, AD_ALL_RF, 1, 1);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x2F);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
-		break;
-    	case PHY_20M:
-    	    // Setup clocking and filtering (20MSps, 2x interp/decimate in AD9963)
-    	    clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
-    		ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x27);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
-    	break;
-    	case PHY_10M:
-    		//10MHz bandwidth: 20MHz clock to AD9963, use 2x interpolation/decimation
-    		clk_config_dividers(CLK_BASEADDR, 4, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
-    		ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x27);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
-    	break;
-    	case PHY_5M:
-    		/*
-    		//5MHz bandwidth: 10MHz clock to AD9963, use 2x interpolation/decimation
-    		clk_config_dividers(CLK_BASEADDR, 8, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
-    		ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x27);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
-			*/
-
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x27);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
-    		//AD ref clock = 40MHz
-    		clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
-
-    		//DAC Clock = 40MHz, ADC Clock = 10MHz
-    		ad_config_clocks(AD_BASEADDR, AD_ALL_RF, AD_DACCLKSRC_EXT, AD_ADCCLKSRC_EXT, AD_ADCCLKDIV_4, AD_DCS_OFF);
-
-    		//Tx interpolation = 8 (IQ @ 5MHz, DAC @ 40MHz)
-    		//Rx decimation = 2 (IQ @ 5MHz, ADC @ 10MHz)
-    		ad_config_filters(AD_BASEADDR, AD_ALL_RF, 8, 2);
-
-    		//Minimum Tx/Rx LPF bandwidths (Rx corner = 7.5MHz, Tx corner = 12MHz)
-    		radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 0);
-    		radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 1);
-    	break;
-    }
 #else
     // Setup clocking and filtering:
     //     80MHz ref clk to AD9963
@@ -536,19 +388,6 @@ void wlan_radio_init() {
 
     // Filter bandwidths
     radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXHPF_HIGH_CUTOFF_EN, 1);
-
-    switch(phy_samp_rate){
-    	case PHY_40M:
-    	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 3);
-    	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 3);
-		break;
-    	case PHY_5M:
-    	case PHY_10M:
-    	case PHY_20M:
-    	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 1);
-    	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 1);
-    	break;
-    }
 
 #if 0
     // To set the gains manually for all radios:
@@ -622,8 +461,6 @@ void wlan_agc_config(u32 ant_mode) {
     // response than on-board RF interfaces. Testing so far indicates the settings below
     // work fine for all RF interfaces
 
-	phy_samp_rate_t phy_samp_rate = wlan_mac_low_get_phy_samp_rate();
-
     // Post Rx_done reset delays for [rxhp, g_rf, g_bb]
     wlan_agc_set_reset_timing(4, 250, 250);
 
@@ -633,18 +470,6 @@ void wlan_agc_config(u32 ant_mode) {
 
     // AGC RSSI->Rx power offsets
     wlan_agc_set_RSSI_pwr_calib(100, 85, 70);
-
-    // AGC timing: capt_rssi_1, capt_rssi_2, capt_v_db, agc_done
-    switch(phy_samp_rate){
-    	case PHY_40M:
-    		wlan_agc_set_AGC_timing(10, 30, 90, 96);
-		break;
-    	case PHY_5M:
-    	case PHY_10M:
-    	case PHY_20M:
-    		wlan_agc_set_AGC_timing(1, 30, 90, 96);
-    	break;
-    }
 
     // AGC timing: start_dco, en_iir_filt
     wlan_agc_set_DCO_timing(100, (100 + 34));
