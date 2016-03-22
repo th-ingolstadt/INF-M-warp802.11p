@@ -1291,19 +1291,19 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
             * - ``'short_retry_limit'`` and
                 ``'long_retry_limit'``
-              - [0 .. 31]
+              - [0 .. 10]
               - DCF retry limits, controls maximum number of retransmissions for short and long packets
                 See `retransmissions <http://warpproject.org/trac/wiki/802.11/MAC/Lower/Retransmissions>`_.
                 for more details.
 
             * - ``'phy_cs_thresh'``
-              - [0 .. 1024]
-              - Physical carrier sensing threshold, in units of digital RSSI. Set to max (1024) 
+              - [0 .. 1023]
+              - Physical carrier sensing threshold, in units of digital RSSI. Set to max (1023) 
                 to effectively disable physical carrier sensing
 
             * - ``'cw_exp_min'`` and
                 ``'cw_exp_max'``
-              - [1 .. 10]
+              - [1 .. 16]
               - Contention window exponent bounds. Contention window is set to random number in [0, (2^CW - 1)], 
                 where CW is bounded by [cw_exp_min, cw_exp_max]
 
@@ -1325,40 +1325,40 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_RTS_THRESH, param_values=param_val)
             
         elif (param_name == 'short_retry_limit'):
-            if ((param_val < 0) or (param_val > 31)):
-                raise AttributeError("'short_retry_limit' must be in [0 .. 31].")
+            if ((param_val < 0) or (param_val > 10)):
+                raise AttributeError("'short_retry_limit' must be in [0 .. 10].")
                 
             self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_param('short_retry_limit')")
     
             self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_DOT11SHORTRETRY, param_values=param_val)
             
         elif (param_name == 'long_retry_limit'):
-            if ((param_val < 0) or (param_val > 31)):
-                raise AttributeError("'long_retry_limit' must be in [0 .. 31].")
+            if ((param_val < 0) or (param_val > 10)):
+                raise AttributeError("'long_retry_limit' must be in [0 .. 10].")
                 
             self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_param('long_retry_limit')")
     
             self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_DOT11LONGRETRY, param_values=param_val)
             
         elif (param_name == 'phy_cs_thresh'):
-            if ((param_val < 0) or (param_val > 1024)):
-                raise AttributeError("'phy_cs_thresh' must be in [0 .. 1024].")
+            if ((param_val < 0) or (param_val > 1023)):
+                raise AttributeError("'phy_cs_thresh' must be in [0 .. 1023].")
             
             self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_param('phy_cs_thresh')")
     
             self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_PHYSICAL_CS_THRESH, param_values=param_val)
             
         elif (param_name == 'cw_exp_min'):
-            if ((param_val < 1) or (param_val > 10)):
-                raise AttributeError("'cw_exp_min' must be in [1 .. 10].")
+            if ((param_val < 1) or (param_val > 16)):
+                raise AttributeError("'cw_exp_min' must be in [1 .. 16].")
                 
             self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_param('cw_exp_min')")
     
             self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MIN, param_values=param_val)
             
         elif (param_name == 'cw_exp_max'):
-            if ((param_val < 1) or (param_val > 10)):
-                raise AttributeError("'cw_exp_max' must be in [1 .. 10].")
+            if ((param_val < 1) or (param_val > 16)):
+                raise AttributeError("'cw_exp_max' must be in [1 .. 16].")
                 
             self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_param('cw_exp_max')")
     
