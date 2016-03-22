@@ -56,13 +56,13 @@
 #define  WLAN_EXP_ETH                            TRANSPORT_ETH_B
 #define  WLAN_EXP_NODE_TYPE                     (WLAN_EXP_TYPE_DESIGN_80211 + WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_AP)
 
-#define  WLAN_DEFAULT_USE_HT					1
-#define  WLAN_DEFAULT_CHANNEL      				1
-#define  WLAN_DEFAULT_TX_PWR       				15
-#define  WLAN_DEFAULT_TX_ANTENNA   				TX_ANTMODE_SISO_ANTA
-#define  WLAN_DEFAULT_RX_ANTENNA   				RX_ANTMODE_SISO_ANTA
-
+#define  WLAN_DEFAULT_USE_HT                     1
+#define  WLAN_DEFAULT_CHANNEL                    1
+#define  WLAN_DEFAULT_TX_PWR                     15
+#define  WLAN_DEFAULT_TX_ANTENNA                 TX_ANTMODE_SISO_ANTA
+#define  WLAN_DEFAULT_RX_ANTENNA                 RX_ANTMODE_SISO_ANTA
 #define  WLAN_DEFAULT_BEACON_INTERVAL_TU         100
+
 
 /*********************** Global Variable Definitions *************************/
 
@@ -133,10 +133,7 @@ int  wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_re
 
 int main(){
 	ps_conf           initial_power_save_configuration;
-	bss_config_t	  bss_config;
-
-	u8 disallow_filter[6] = {0x00,0x00,0x00,0x00,0x00,0x00};
-	u8 disallow_mask[6]   = {0xFF,0xFF,0xFF,0xFF,0xFF,0xFF};
+	bss_config_t      bss_config;
 
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
@@ -158,6 +155,9 @@ int main(){
 
 	// AP does not currently advertise a BSS
 	configure_bss(NULL);
+
+	// Initialize hex display to "No BSS"
+	ap_update_hex_display(0xFF);
 
 	// New associations adopt these unicast params; the per-node params can be
 	// overridden via wlan_exp calls or by custom C code
@@ -210,8 +210,8 @@ int main(){
 	wlan_mac_high_set_poll_tx_queues_callback(  (void*)poll_tx_queues);
 	wlan_mac_high_set_mpdu_dequeue_callback(    (void*)mpdu_dequeue);
     wlan_mac_ltg_sched_set_callback(            (void*)ltg_event);
-    queue_set_state_change_callback(			(void*)queue_state_change);
-    wlan_mac_scan_set_state_change_callback(	(void*) process_scan_state_change);
+    queue_set_state_change_callback(            (void*)queue_state_change);
+    wlan_mac_scan_set_state_change_callback(    (void*) process_scan_state_change);
 
     // Configure the wireless-wired encapsulation mode (AP and STA behaviors are different)
     wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_AP);
@@ -267,9 +267,6 @@ int main(){
     // Set Header information
 	tx_header_common.address_2 = &(wlan_mac_addr[0]);
 
-    // Initialize hex display
-	ap_update_hex_display(0);
-
 	// Set CPU Low configuration (radio / PHY parameters)
 	//     - rx_filter_mode:
 	//         - Default is "promiscuous" mode - pass all data and management packets
@@ -286,22 +283,6 @@ int main(){
 
 	// Initialize interrupts
 	wlan_mac_high_interrupt_init();
-
-	// Set up BSS description
-	memcpy(bss_config.bssid, wlan_mac_addr, BSSID_LEN);
-	strncpy(bss_config.ssid, default_AP_SSID, SSID_LEN_MAX);
-	bss_config.chan_spec.chan_pri = WLAN_DEFAULT_CHANNEL;
-	bss_config.chan_spec.chan_type = CHAN_TYPE_BW20;
-
-	bss_config.ht_capable = WLAN_DEFAULT_USE_HT;
-
-	bss_config.beacon_interval = WLAN_DEFAULT_BEACON_INTERVAL_TU;
-	bss_config.update_mask = (BSS_FIELD_MASK_BSSID  		 |
-							  BSS_FIELD_MASK_CHAN   		 |
-							  BSS_FIELD_MASK_SSID			 |
-							  BSS_FIELD_MASK_BEACON_INTERVAL |
-							  BSS_FIELD_MASK_HT_CAPABLE);
-	configure_bss(&bss_config);
 
 	// Initialize DTIM configuration (ie station power saving configuration)
 	initial_power_save_configuration.enable      = 1;
@@ -328,11 +309,22 @@ int main(){
 	// Reset the event log
 	event_log_reset();
 
-	// Set address filter
-	if((wlan_mac_high_get_user_io_state()&GPIO_MASK_DS_3)){
-		xil_printf("Disallowing Associations\n");
-		wlan_mac_addr_filter_reset();
-		wlan_mac_addr_filter_add(disallow_mask, disallow_filter);
+	// If the DIP switch allows it, set up BSS description
+	if ((wlan_mac_high_get_user_io_state() & GPIO_MASK_DS_3) == 0) {
+		memcpy(bss_config.bssid, wlan_mac_addr, BSSID_LEN);
+		strncpy(bss_config.ssid, default_AP_SSID, SSID_LEN_MAX);
+
+		bss_config.chan_spec.chan_pri  = WLAN_DEFAULT_CHANNEL;
+		bss_config.chan_spec.chan_type = CHAN_TYPE_BW20;
+		bss_config.ht_capable          = WLAN_DEFAULT_USE_HT;
+		bss_config.beacon_interval     = WLAN_DEFAULT_BEACON_INTERVAL_TU;
+
+		bss_config.update_mask = (BSS_FIELD_MASK_BSSID  		 |
+								  BSS_FIELD_MASK_CHAN   		 |
+								  BSS_FIELD_MASK_SSID			 |
+								  BSS_FIELD_MASK_BEACON_INTERVAL |
+								  BSS_FIELD_MASK_HT_CAPABLE);
+		configure_bss(&bss_config);
 	}
 
     // Print AP information to the terminal
@@ -2261,6 +2253,9 @@ u32	configure_bss(bss_config_t* bss_config){
 				gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
 				bzero(gl_beacon_txrx_config.bssid_match, BSSID_LEN);
 				wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
+
+				// Set hex display to "No BSS"
+				ap_update_hex_display(0xFF);
 			}
 
 			// (bss_config == NULL) is one way to remove the BSS state of the node. This operation
@@ -2295,6 +2290,9 @@ u32	configure_bss(bss_config_t* bss_config){
 					local_bss_info->capabilities = (CAPABILITIES_SHORT_TIMESLOT | CAPABILITIES_ESS);
 					my_bss_info = local_bss_info;
 				}
+
+				// Set hex display
+				ap_update_hex_display(my_bss_info->associated_stations.length);
 			}
 		}
 

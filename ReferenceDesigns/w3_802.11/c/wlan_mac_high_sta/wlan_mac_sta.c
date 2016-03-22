@@ -59,7 +59,7 @@
 #define  WLAN_EXP_NODE_TYPE                      (WLAN_EXP_TYPE_DESIGN_80211 + WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_STA)
 
 
-#define  WLAN_DEFAULT_USE_HT					  0
+#define  WLAN_DEFAULT_USE_HT                      0
 #define  WLAN_DEFAULT_CHANNEL                     1
 #define  WLAN_DEFAULT_TX_PWR                      15
 #define  WLAN_DEFAULT_TX_ANTENNA                  TX_ANTMODE_SISO_ANTA
@@ -185,6 +185,9 @@ int main() {
 	// STA is not currently a member of a BSS
 	configure_bss(NULL);
 
+	// Initialize hex display to "No BSS"
+	sta_update_hex_display(0xFF);
+
 	// Initialize the join state machine
 	wlan_mac_sta_join_init();
 
@@ -259,9 +262,6 @@ int main() {
     // Set Header information
 	tx_header_common.address_2 = &(wlan_mac_addr[0]);
 
-    // Initialize hex display
-	sta_update_hex_display(my_aid);
-
 	// Set CPU Low configuration (radio / PHY parameters)
 	//     - rx_filter_mode:
 	//         - Default is "promiscuous" mode - pass all data and management packets
@@ -300,7 +300,7 @@ int main() {
 	wlan_mac_high_interrupt_restore_state(INTERRUPTS_ENABLED);
 
 	// If there is a default SSID and the DIP switch allows it, initiate a probe request
-	if ((strlen(access_point_ssid) > 0) && ((wlan_mac_high_get_user_io_state()&GPIO_MASK_DS_3) == 0)) {
+	if ((strlen(access_point_ssid) > 0) && ((wlan_mac_high_get_user_io_state() & GPIO_MASK_DS_3) == 0)) {
 		// Get current join parameters
 		join_parameters = wlan_mac_sta_get_join_parameters();
 
@@ -1243,6 +1243,9 @@ u32	configure_bss(bss_config_t* bss_config){
 				// Disable beacon processing immediately
 				bzero(gl_beacon_txrx_config.bssid_match, BSSID_LEN);
 				wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
+
+				// Set hex display to "No BSS"
+				sta_update_hex_display(0xFF);
 			}
 
 			// Pause the data queue, if un-paused
@@ -1314,6 +1317,9 @@ u32	configure_bss(bss_config_t* bss_config){
 						//
 					}
 				}
+
+				// Set hex display
+				sta_update_hex_display(my_aid);
 			}
 		}
 

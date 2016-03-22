@@ -142,7 +142,10 @@ void set_hex_pwm_min_max(u16 min, u16 max) {
  * The display is right justified; WLAN Exp will indicate its connection state
  * using the right decimal point.
  *
- * @param   val              - Value to be displayed (between 0 and 99)
+ * @param   val              - Value to be displayed
+ *                                 0 -  99: Displayed normally
+ *                                99 - 254: "00" displayed
+ *                                     255: "--" displayed
  * @return  None
  */
 void write_hex_display(u8 val) {
@@ -155,12 +158,22 @@ void write_hex_display(u8 val) {
 
     userio_write_control(USERIO_BASEADDR, (userio_read_control(USERIO_BASEADDR) & (~(W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE))));
 
-    if ( val < 10 ) {
+    if (val < 10) {
         left_val  = 0;
         right_val = hex_to_seven_segment(val);
     } else {
-        left_val  = hex_to_seven_segment(((val / 10) % 10));
-        right_val = hex_to_seven_segment((val % 10));
+        if (val < 100) {
+            left_val  = hex_to_seven_segment(((val / 10) % 10));
+            right_val = hex_to_seven_segment((val % 10));
+        } else {
+            if (val != 255) {
+                left_val  = hex_to_seven_segment(0x00);
+                right_val = hex_to_seven_segment(0x00);
+            } else {
+                left_val  = 0x40;
+                right_val = 0x40;
+            }
+        }
     }
 
     userio_write_hexdisp_left(USERIO_BASEADDR, left_val);
@@ -177,7 +190,10 @@ void write_hex_display(u8 val) {
  * The display is right justified and will pulse using the pwms; WLAN Exp will
  * indicate its connection state using the right decimal point.
  *
- * @param   val              - Value to be displayed (between 0 and 99)
+ * @param   val              - Value to be displayed
+ *                                 0 -  99: Displayed normally
+ *                                99 - 254: "00" displayed
+ *                                     255: "--" displayed
  * @return  None
  */
 void write_hex_display_with_pwm(u8 val) {
@@ -191,12 +207,22 @@ void write_hex_display_with_pwm(u8 val) {
     // Need to retain the value of the right decimal point
     right_dp = userio_read_hexdisp_right(USERIO_BASEADDR) & W3_USERIO_HEXDISP_DP;
 
-    if ( val < 10 ) {
+    if (val < 10) {
         left_val  = 0;
         right_val = hex_to_seven_segment(val);
     } else {
-        left_val  = hex_to_seven_segment(((val/10)%10));
-        right_val = hex_to_seven_segment((val%10));
+        if (val < 100) {
+            left_val  = hex_to_seven_segment(((val / 10) % 10));
+            right_val = hex_to_seven_segment((val % 10));
+        } else {
+            if (val != 255) {
+                left_val  = hex_to_seven_segment(0x00);
+                right_val = hex_to_seven_segment(0x00);
+            } else {
+                left_val  = 0x40;
+                right_val = 0x40;
+            }
+        }
     }
 
     // Store the original value of what is under HW control
@@ -237,7 +263,7 @@ void set_hex_display_error_status(u8 status) {
     u32 right_dp;
 
     // Need to retain the value of the right decimal point
-    right_dp = userio_read_hexdisp_right( USERIO_BASEADDR ) & W3_USERIO_HEXDISP_DP;
+    right_dp = userio_read_hexdisp_right(USERIO_BASEADDR) & W3_USERIO_HEXDISP_DP;
 
     userio_write_control(USERIO_BASEADDR, (userio_read_control(USERIO_BASEADDR) & (~(W3_USERIO_HEXDISP_L_MAPMODE | W3_USERIO_HEXDISP_R_MAPMODE))));
 
@@ -338,9 +364,6 @@ void set_hex_display_left_dp(u8 val) {
         userio_write_hexdisp_left(USERIO_BASEADDR, (userio_read_hexdisp_left(USERIO_BASEADDR) & ~W3_USERIO_HEXDISP_DP));
     }
 }
-
-
-
 
 
 

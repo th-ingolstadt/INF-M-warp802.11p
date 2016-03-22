@@ -46,9 +46,6 @@
 //-----------------------------------------------
 // Timing parameters
 
-// Time between beacon transmissions
-#define BEACON_INTERVAL_TU                                (100)
-
 // Period for checking association table for stale associations
 #define ASSOCIATION_CHECK_INTERVAL_MS                     (1000)
 #define ASSOCIATION_CHECK_INTERVAL_US                     (ASSOCIATION_CHECK_INTERVAL_MS * 1000)

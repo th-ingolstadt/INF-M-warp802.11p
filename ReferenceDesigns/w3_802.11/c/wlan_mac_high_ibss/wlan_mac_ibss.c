@@ -57,11 +57,12 @@
 #define  WLAN_EXP_NODE_TYPE                     (WLAN_EXP_TYPE_DESIGN_80211 + WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_IBSS)
 
 
-#define  WLAN_DEFAULT_USE_HT					 1
+#define  WLAN_DEFAULT_USE_HT                     1
 #define  WLAN_DEFAULT_CHANNEL                    1
 #define  WLAN_DEFAULT_TX_PWR                     15
 #define  WLAN_DEFAULT_TX_ANTENNA                 TX_ANTMODE_SISO_ANTA
 #define  WLAN_DEFAULT_RX_ANTENNA                 RX_ANTMODE_SISO_ANTA
+#define  WLAN_DEFAULT_BEACON_INTERVAL_TU         100
 
 #define  WLAN_DEFAULT_SCAN_TIMEOUT_USEC          5000000
 
@@ -182,6 +183,9 @@ int main() {
     // IBSS is not currently a member of BSS
     configure_bss(NULL);
 
+	// Initialize hex display to "No BSS"
+	ibss_update_hex_display(0xFF);
+
 	// Initialize callbacks
 	wlan_mac_util_set_eth_rx_callback(          (void *) ethernet_receive);
 	wlan_mac_high_set_mpdu_tx_done_callback(    (void *) mpdu_transmit_done);
@@ -268,9 +272,6 @@ int main() {
 	// Initialize interrupts
 	wlan_mac_high_interrupt_init();
 
-	// Set the hex display initial value
-	ibss_update_hex_display(0);
-
 	// Reset the event log
 	event_log_reset();
 
@@ -321,6 +322,7 @@ int main() {
 
 			memcpy(bss_config.bssid, temp_bss_info->bssid, BSSID_LEN);
 			strncpy(bss_config.ssid, temp_bss_info->ssid, SSID_LEN_MAX);
+
 			bss_config.chan_spec       = temp_bss_info->chan_spec;
 			bss_config.beacon_interval = temp_bss_info->beacon_interval;
 
@@ -341,12 +343,11 @@ int main() {
 
 			memcpy(bss_config.bssid, locally_administered_addr, BSSID_LEN);
 			strncpy(bss_config.ssid, default_ssid, SSID_LEN_MAX);
-			bss_config.chan_spec.chan_pri = WLAN_DEFAULT_CHANNEL;
+
+			bss_config.chan_spec.chan_pri  = WLAN_DEFAULT_CHANNEL;
 			bss_config.chan_spec.chan_type = CHAN_TYPE_BW20;
-			bss_config.beacon_interval = BEACON_INTERVAL_TU;
-
-			bss_config.ht_capable  = WLAN_DEFAULT_USE_HT;
-
+			bss_config.beacon_interval     = WLAN_DEFAULT_BEACON_INTERVAL_TU;
+			bss_config.ht_capable          = WLAN_DEFAULT_USE_HT;
 		}
 
 		// Set the rest of the bss_config fields
@@ -1300,6 +1301,9 @@ u32	configure_bss(bss_config_t* bss_config){
 				gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
 				bzero(gl_beacon_txrx_config.bssid_match, BSSID_LEN);
 				wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
+
+				// Set hex display to "No BSS"
+				ibss_update_hex_display(0xFF);
 			}
 
 			// (bss_config == NULL) is one way to remove the BSS state of the node. This operation
@@ -1334,6 +1338,9 @@ u32	configure_bss(bss_config_t* bss_config){
 					local_bss_info->capabilities = (CAPABILITIES_SHORT_TIMESLOT | CAPABILITIES_IBSS);
 					my_bss_info = local_bss_info;
 				}
+
+				// Set hex display
+				ibss_update_hex_display(my_bss_info->associated_stations.length);
 			}
 		}
 
