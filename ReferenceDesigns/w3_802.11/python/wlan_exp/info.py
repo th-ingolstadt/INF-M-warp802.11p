@@ -560,7 +560,7 @@ class BSSInfo(InfoStruct):
             BSS:
                 * **True**  --> Capabilities field = 0x2 (BSS_INFO is for IBSS)
                 * **False** --> Capabilities field = 0x1 (BSS_INFO is for BSS)
-        beacon_interval (int): Integer number of beacon Time Units in [1, 65535]
+        beacon_interval (int): Integer number of beacon Time Units in [1, 65534]
             (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds)
     """
     def __init__(self, bssid=None, ssid=None, channel=None, ibss_status=None, beacon_interval=None):
@@ -629,8 +629,8 @@ class BSSInfo(InfoStruct):
                     beacon_interval = int(beacon_interval)
                     print("WARNING:  Beacon interval must be an interger number of time units.  Rounding to {0}".format(beacon_interval))
 
-                if not ((beacon_interval > 0) and (beacon_interval < 2**16)):
-                    msg  = "The beacon interval must be in [1, 65535] (ie 16-bit positive integer)."
+                if not ((beacon_interval > 0) and (beacon_interval < (2**16 - 1))):
+                    msg  = "The beacon interval must be in [1, 65534] (ie 16-bit positive integer)."
                     raise ValueError(msg)
 
                 self['beacon_interval'] = beacon_interval
@@ -721,7 +721,7 @@ class BSSConfig(InfoStruct):
             None will not update the current SSID
         channel (int): Channel on which the BSS operates; A value of None will
             not update the current channel
-        beacon_interval (int): Integer number of beacon Time Units in [1, 65535]
+        beacon_interval (int): Integer number of beacon Time Units in [10, 65534]
             (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds);
             A value of None will disable beacons;  A value of False will not 
             update the current beacon interval
@@ -805,8 +805,8 @@ class BSSConfig(InfoStruct):
                     beacon_interval = int(beacon_interval)
                     print("WARNING:  Beacon interval must be an interger number of time units.  Rounding to {0}".format(beacon_interval))
     
-                if not ((beacon_interval > 9) and (beacon_interval < 2**16)):
-                    msg  = "The beacon interval must be in [10, 65535] (ie 16-bit positive integer)."
+                if not ((beacon_interval > 9) and (beacon_interval < (2**16 - 1))):
+                    msg  = "The beacon interval must be in [10, 65534] (ie 16-bit positive integer)."
                     raise ValueError(msg)
     
                 self['beacon_interval'] = beacon_interval

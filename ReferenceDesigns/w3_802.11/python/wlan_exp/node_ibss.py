@@ -80,7 +80,7 @@ class WlanExpNodeIBSS(node.WlanExpNode):
                 colon delimited string of the form:  XX:XX:XX:XX:XX:XX
             ssid (str):  SSID string (Must be 32 characters or less)
             channel (int): Channel number on which the BSS operates
-            beacon_interval (int): Integer number of beacon Time Units in [10, 65535]
+            beacon_interval (int): Integer number of beacon Time Units in [10, 65534]
                 (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds);
                 A value of None will disable beacons;  A value of False will not 
                 update the current beacon interval.
