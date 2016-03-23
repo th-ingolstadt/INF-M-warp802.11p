@@ -502,10 +502,10 @@ inline void        wlan_mac_high_clear_debug_gpio(u8 val);
 station_info_t*    wlan_mac_high_add_station_info(dl_list* station_info_list, dl_list* counts_tbl, u8* addr, u16 requested_ID);
 int                wlan_mac_high_remove_station_info(dl_list* station_info_list, dl_list* counts_tbl, u8* addr);
 
-//FIXME: more renames of associations
-u8                 wlan_mac_high_is_valid_association(dl_list* station_info_list, station_info_t* station_info);
-u32                wlan_mac_high_set_max_associations(u32 num_associations);
-u32                wlan_mac_high_get_max_associations();
+
+u8                 wlan_mac_high_is_station_info_list_member(dl_list* station_info_list, station_info_t* station_info);
+u32                wlan_mac_high_set_max_num_station_infos(u32 num_station_infos);
+u32                wlan_mac_high_get_max_num_station_infos();
 
 counts_txrx*       wlan_mac_high_add_counts(dl_list* counts_tbl, station_info_t* station_info, u8* addr);
 void               wlan_mac_high_reset_counts(dl_list* counts_tbl);
@@ -513,7 +513,7 @@ void               wlan_mac_high_update_tx_counts(tx_frame_info* tx_mpdu, statio
 int                wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, bss_info* bss_info_ptr, tx_params_t* tx_params_ptr, u8 flags);
 int                wlan_mac_high_update_beacon_tx_params(tx_params_t* tx_params_ptr);
 
-void               wlan_mac_high_print_associations(dl_list* assoc_tbl);
+void               wlan_mac_high_print_station_infos(dl_list* assoc_tbl);
 
 
 // Common functions that must be implemented by users of the framework

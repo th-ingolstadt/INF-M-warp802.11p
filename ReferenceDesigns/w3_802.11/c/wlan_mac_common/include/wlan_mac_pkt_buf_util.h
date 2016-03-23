@@ -243,7 +243,7 @@ typedef struct{
     u8                       padding0;                     ///< Used for alignment of fields (can be appropriated for any future use)
 
     u16                      length;                       ///< Number of bytes in MAC packet, including MAC header and FCS
-    u16                      AID;                          ///< Association ID of the node to which this packet is addressed
+    u16                      ID;                           ///< Station ID of the node to which this packet is addressed
     //----- 8-byte boundary ------
 
     //

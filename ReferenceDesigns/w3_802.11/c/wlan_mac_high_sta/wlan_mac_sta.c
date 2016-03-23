@@ -209,9 +209,6 @@ int main() {
 	// Initialize the association and counts tables
 	dl_list_init(&counts_table);
 
-	// Set the maximum associations
-	wlan_mac_high_set_max_associations(MAX_NUM_ASSOC);
-
 	// Ask CPU Low for its status
 	//     The response to this request will be handled asynchronously
 	wlan_mac_high_request_low_state();
@@ -366,7 +363,7 @@ void send_probe_req(){
 		// Set the information in the TX queue buffer
 		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
 		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_mgmt_tx_params);
-		curr_tx_queue_buffer->frame_info.AID         = 0;
+		curr_tx_queue_buffer->frame_info.ID         = 0;
 
 		// Put the packet in the queue
 		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
@@ -548,7 +545,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details_t* tx_lo
 	wlan_exp_log_create_tx_high_entry(tx_mpdu);
 
 	// Update the counts for the node to which the packet was just transmitted
-	if (tx_mpdu->AID != 0) {
+	if (tx_mpdu->ID != 0) {
 		wlan_mac_high_update_tx_counts(tx_mpdu, station_info);
 	}
 
@@ -610,7 +607,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 			// Set the information in the TX queue buffer
 			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
 			curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)ap_station_info;
-			curr_tx_queue_buffer->frame_info.AID         = 0;
+			curr_tx_queue_buffer->frame_info.ID         = 0;
 
 			// Put the packet in the queue
 			enqueue_after_tail(UNICAST_QID, curr_tx_queue_element);
@@ -1028,7 +1025,7 @@ void ltg_event(u32 id, void* callback_arg){
 				// Update the queue entry metadata to reflect the new new queue entry contents
 				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
 				curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)ap_station_info;
-				curr_tx_queue_buffer->frame_info.AID         = 0;
+				curr_tx_queue_buffer->frame_info.ID         = 0;
 
 				// Submit the new packet to the appropriate queue
 				enqueue_after_tail(UNICAST_QID, curr_tx_queue_element);
@@ -1117,7 +1114,7 @@ int  sta_disassociate( void ) {
 			// Set the information in the TX queue buffer
 			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
 			curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-			curr_tx_queue_buffer->frame_info.AID         = 0;
+			curr_tx_queue_buffer->frame_info.ID         = 0;
 
 			// Put the packet in the queue
 			enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);

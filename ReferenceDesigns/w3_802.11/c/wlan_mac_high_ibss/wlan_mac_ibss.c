@@ -202,8 +202,8 @@ int main() {
 	// Initialize the association and counts tables
 	dl_list_init(&counts_table);
 
-	// Set the maximum associations
-	wlan_mac_high_set_max_associations(MAX_NUM_ASSOC);
+	// Set the maximum number of addressable peers
+	wlan_mac_high_set_max_num_station_infos(MAX_NUM_PEERS);
 
 	// Ask CPU Low for its status
 	//     The response to this request will be handled asynchronously
@@ -497,7 +497,7 @@ void poll_tx_queues(){
 								}
 							} else {
 								curr_station_info = (station_info_t*)(curr_station_info_entry->data);
-								if( wlan_mac_high_is_valid_association(&my_bss_info->associated_stations, curr_station_info) ){
+								if( wlan_mac_high_is_station_info_list_member(&my_bss_info->associated_stations, curr_station_info) ){
 									if(curr_station_info_entry == my_bss_info->associated_stations.last){
 										// We've reached the end of the table, so we wrap around to the beginning
 										next_station_info_entry = NULL;
@@ -591,8 +591,8 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details_t* tx_lo
 	station_info_t*        station_info 		   = NULL;
 
 	if(my_bss_info != NULL){
-		if(tx_mpdu->AID != 0){
-			entry = wlan_mac_high_find_station_info_ID(&(my_bss_info->associated_stations), tx_mpdu->AID);
+		if(tx_mpdu->ID != 0){
+			entry = wlan_mac_high_find_station_info_ID(&(my_bss_info->associated_stations), tx_mpdu->ID);
 			if(entry != NULL){
 				station_info = (station_info_t*)(entry->data);
 			}
@@ -610,7 +610,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details_t* tx_lo
 	wlan_exp_log_create_tx_high_entry(tx_mpdu);
 
 	// Update the counts for the node to which the packet was just transmitted
-	if(tx_mpdu->AID != 0) {
+	if(tx_mpdu->ID != 0) {
 		wlan_mac_high_update_tx_counts(tx_mpdu, station_info);
 	}
 
@@ -670,7 +670,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 				// Set the information in the TX queue buffer
 				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
 				curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_data_tx_params);
-				curr_tx_queue_buffer->frame_info.AID         = 0;
+				curr_tx_queue_buffer->frame_info.ID         = 0;
 		} else {
 
 			station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, eth_dest);
@@ -690,7 +690,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), queue_sel );
 				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
 				curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_data_tx_params);
-				curr_tx_queue_buffer->frame_info.AID         = 0;
+				curr_tx_queue_buffer->frame_info.ID         = 0;
 			} else {
 				queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
 				// Setup the TX frame info
@@ -698,7 +698,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 				station_info->latest_activity_timestamp = get_system_time_usec();
 				curr_tx_queue_buffer->metadata.metadata_type  = QUEUE_METADATA_TYPE_STATION_INFO;
 				curr_tx_queue_buffer->metadata.metadata_ptr   = (u32)station_info;
-				curr_tx_queue_buffer->frame_info.AID          = station_info->ID;
+				curr_tx_queue_buffer->frame_info.ID          = station_info->ID;
 			}
 		}
 
@@ -725,8 +725,6 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
  * @brief Process received MPDUs
  *
  * This callback function will process all the received MPDUs.
- *
- * This function must implement the state machine that will allow associaton with other IBSS nodes in the same BSS.
  *
  * @param  void * pkt_buf_addr
  *     - Packet buffer address;  Contains the contents of the MPDU as well as other packet information from CPU low
@@ -907,7 +905,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 									// Set the information in the TX queue buffer
 									curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
 									curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-									curr_tx_queue_buffer->frame_info.AID         = 0;
+									curr_tx_queue_buffer->frame_info.ID         = 0;
 
 									// Put the packet in the queue
 									enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
@@ -1121,16 +1119,16 @@ void ltg_event(u32 id, void* callback_arg){
 					if (is_multicast) {
 						curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
 						curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)&default_multicast_data_tx_params;
-						curr_tx_queue_buffer->frame_info.AID     = 0;
+						curr_tx_queue_buffer->frame_info.ID     = 0;
 					} else if(station_info == NULL){
 						curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
 						curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)&default_unicast_data_tx_params;
-						curr_tx_queue_buffer->frame_info.AID     = 0;
+						curr_tx_queue_buffer->frame_info.ID     = 0;
 					} else {
 
 					    curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
 					    curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)station_info;
-						curr_tx_queue_buffer->frame_info.AID         = station_info->ID;
+						curr_tx_queue_buffer->frame_info.ID         = station_info->ID;
 					}
 
 					// Submit the new packet to the appropriate queue

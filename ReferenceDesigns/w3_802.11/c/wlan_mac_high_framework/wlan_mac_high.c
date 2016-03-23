@@ -72,9 +72,7 @@ extern int                   __stack;                      ///< End of the stack
 // Constants
 const  u8                    bcast_addr[BSSID_LEN]    = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 const  u8                    zero_addr[BSSID_LEN]     = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-
-// Associations
-volatile static u32          max_num_station_infos    = WLAN_MAC_HIGH_MAX_STATION_INFOS;
+volatile static u32          max_num_station_infos;
 
 // HW structures
 static XGpio                 Gpio;                         ///< General-purpose GPIO instance
@@ -329,6 +327,8 @@ void wlan_mac_high_init(){
 	set_mailbox_rx_callback((function_ptr_t)wlan_mac_high_ipc_rx);
 
 	interrupt_state = INTERRUPTS_DISABLED;
+
+	max_num_station_infos    = WLAN_MAC_HIGH_MAX_STATION_INFOS;
 
 	num_malloc  = 0;
 	num_realloc = 0;
@@ -598,10 +598,10 @@ void wlan_mac_high_uart_rx_handler(void* CallBackRef, unsigned int EventData){
 
 
 /**
- * @brief Find Station Information within a doubly-linked list from an AID
+ * @brief Find Station Information within a doubly-linked list from a station ID
  *
  * Given a doubly-linked list of station_info structures, this function will return
- * the pointer to a particular entry whose association ID field matches the argument
+ * the pointer to a particular entry whose station ID field matches the argument
  * to this function.
  *
  * @param dl_list* list
@@ -2246,21 +2246,21 @@ inline void wlan_mac_high_clear_debug_gpio(u8 val){
 
 
 /**
- * @brief Add association
+ * @brief Add Station Info
  *
- * Function will add an association to the association table for the given address using the
- * requested AID
+ * Function will add a station_info to the provided dl_list for the given address using the
+ * requested station ID
  *
  * @param  dl_list* station_info_list
  *     - Station Info list pointer
  * @param  dl_list* counts_tbl
  *     - Counts table pointer
  * @param  u8* addr
- *     - Address of association to add to the association table
+ *     - Address of station to add to the dl_list
  * @param  u16 requested_ID
- *     - Requested ID for the new association.  A value of 'ADD_ASSOCIATION_ANY_AID' will use the next available AID.
+ *     - Requested ID for the new station.  A value of 'ADD_STATION_INFO_ANY_ID' will use the next available AID.
  * @return station_info *
- *     - Pointer to the station info in the association table
+ *     - Pointer to the station_info in the dl_list
  *     - NULL
  *
  * @note   This function will not perform any filtering on the addr field
@@ -2289,8 +2289,8 @@ station_info_t *     wlan_mac_high_add_station_info(dl_list* station_info_list, 
 				// We already have this exact station_info, so we'll just return a pointer to it.
 				return station_info;
 			} else {
-				// The requested AID is already in use and it is used by a different
-				// address. We cannot add this association.
+				// The requested ID is already in use and it is used by a different
+				// address. We cannot add this station_info.
 				return NULL;
 			}
 		}
@@ -2300,7 +2300,7 @@ station_info_t *     wlan_mac_high_add_station_info(dl_list* station_info_list, 
 
 	if(entry != NULL){
 		station_info = (station_info_t*)(entry->data);
-		// This addr is already tied to an association table entry. We'll just pass this call
+		// This addr is already tied to an list entry. We'll just pass this call
 		// the pointer to that entry back to the calling function without creating a new entry
 
 		return station_info;
@@ -2362,13 +2362,13 @@ station_info_t *     wlan_mac_high_add_station_info(dl_list* station_info_list, 
 			station_info->flags |= STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
 		}
 
-		// Set the association TX parameters
+		// Set the TX parameters
 		station_info->tx.phy.power          = 15;
 		station_info->tx.phy.mcs            = 0;
 		station_info->tx.phy.phy_mode       = PHY_MODE_NONHT;
 		station_info->tx.phy.antenna_mode   = TX_ANTMODE_SISO_ANTA;
 
-		// Set up the AID for the association
+		// Set up the station ID
 		if(requested_ID == ADD_STATION_INFO_ANY_ID){
 			// Find the minimum AID that can be issued to this station.
 			curr_station_info_entry = station_info_list->first;
@@ -2379,10 +2379,10 @@ station_info_t *     wlan_mac_high_add_station_info(dl_list* station_info_list, 
 				station_info_temp = (station_info_t*)(curr_station_info_entry->data);
 
 				if( (station_info_temp->ID - curr_ID) > 1 ){
-					// There is a hole in the association table and we can re-issue a previously issued AID.
+					// There is a hole in the list and we can re-issue a previously issued station ID.
 					station_info->ID = station_info_temp->ID - 1;
 
-					// Add this station into the association table just before the curr_station_info
+					// Add this station into the list just before the curr_station_info
 					dl_entry_insertBefore(station_info_list, curr_station_info_entry, entry);
 
 					break;
@@ -2394,10 +2394,10 @@ station_info_t *     wlan_mac_high_add_station_info(dl_list* station_info_list, 
 			}
 
 			if(station_info->ID == 0){
-				// There was no hole in the association table, so we just issue a new AID larger than the last AID in the table.
+				// There was no hole in the list, so we just issue a new AID larger than the last AID in the table.
 
 				if(station_info_list->length == 0){
-					// This is the first entry in the association table;
+					// This is the first entry in the list;
 					station_info->ID = 1;
 				} else {
 					curr_station_info_entry = station_info_list->last;
@@ -2405,7 +2405,7 @@ station_info_t *     wlan_mac_high_add_station_info(dl_list* station_info_list, 
 					station_info->ID = (station_info_temp->ID)+1;
 				}
 
-				// Add this station into the association table at the end
+				// Add this station into the list at the end
 				dl_entry_insertEnd(station_info_list, entry);
 			}
 		} else {
@@ -2419,7 +2419,7 @@ station_info_t *     wlan_mac_high_add_station_info(dl_list* station_info_list, 
 
 				if(station_info_temp->ID > requested_ID){
 					station_info->ID = requested_ID;
-					// Add this station into the association table just before the curr_station_info
+					// Add this station into the list just before the curr_station_info
 					dl_entry_insertBefore(station_info_list, curr_station_info_entry, entry);
 				}
 
@@ -2427,16 +2427,16 @@ station_info_t *     wlan_mac_high_add_station_info(dl_list* station_info_list, 
 			}
 
 			if(station_info->ID == 0){
-				// There was no hole in the association table, so we insert it at the end
+				// There was no hole in the list, so we insert it at the end
 				station_info->ID = requested_ID;
 
-				// Add this station into the association table at the end
+				// Add this station into the list at the end
 				dl_entry_insertEnd(station_info_list, entry);
 			}
 		}
 
 		// Print our station_infos on the UART
-		wlan_mac_high_print_associations(station_info_list);
+		wlan_mac_high_print_station_infos(station_info_list);
 		return station_info;
 	}
 }
@@ -2444,19 +2444,19 @@ station_info_t *     wlan_mac_high_add_station_info(dl_list* station_info_list, 
 
 
 /**
- * @brief Remove association
+ * @brief Remove Station Info
  *
- * Function will remove the association from the association table for the given address
+ * Function will remove the station_info from the provided list for the given address
  *
  * @param  dl_list* station_info_list
  *     - Pointer to list of Station Info structs
  * @param  dl_list* counts_tbl
  *     - Counts table pointer
  * @param  u8* addr
- *     - Address of association to remove from the association table
+ *     - Address of station to remove from the provided list
  * @return int
- *     -  0  - Successfully removed the association
- *     - -1  - Failed to remove association
+ *     -  0  - Successfully removed the station
+ *     - -1  - Failed to remove station
  */
 int wlan_mac_high_remove_station_info(dl_list* station_info_list, dl_list* counts_tbl, u8* addr){
 	u32            	i;
@@ -2467,7 +2467,7 @@ int wlan_mac_high_remove_station_info(dl_list* station_info_list, dl_list* count
 	entry = wlan_mac_high_find_station_info_ADDR(station_info_list, addr);
 
 	if(entry == NULL){
-		// This addr doesn't refer to any station currently in the association table,
+		// This addr doesn't refer to any station currently in the list,
 		// so there is nothing to remove. We'll return an error to let the calling
 		// function know that something is wrong.
 		return -1;
@@ -2475,7 +2475,7 @@ int wlan_mac_high_remove_station_info(dl_list* station_info_list, dl_list* count
 		station_info = (station_info_t*)(entry->data);
 
 		if ((station_info->flags & STATION_INFO_DO_NOT_REMOVE) != STATION_INFO_DO_NOT_REMOVE) {
-			// Remove station from the association table;
+			// Remove station from the list;
 			dl_entry_remove(station_info_list, entry);
 
 			if (promiscuous_counts_enabled) {
@@ -2490,7 +2490,7 @@ int wlan_mac_high_remove_station_info(dl_list* station_info_list, dl_list* count
 
 			wlan_mac_high_free(entry);
 			wlan_mac_high_free(station_info);
-			wlan_mac_high_print_associations(station_info_list);
+			wlan_mac_high_print_station_infos(station_info_list);
 		} else {
 			xil_printf("Station not removed due to flags: %02x", addr[0]);
 			for ( i = 1; i < ETH_MAC_ADDR_LEN; i++ ) { xil_printf(":%02x", addr[i] ); } xil_printf("\n");
@@ -2502,19 +2502,19 @@ int wlan_mac_high_remove_station_info(dl_list* station_info_list, dl_list* count
 
 
 /**
- * @brief Is the provided station a valid association
+ * @brief Is the provided station a valid member of the provided list
  *
- * Function will check that the provided station is part of the association table
+ * Function will check that the provided station is part of the dl_list provided as the first argument
  *
  * @param  dl_list* station_info_list
  *     - Pointer to list of Station Info structs
  * @param  station_info * station
  *     - Station info pointer to check
  * @return u8
- *     - 0  - Station is not in the association table
- *     - 1  - Station is in the association table
+ *     - 0  - Station is not a member of the provided list
+ *     - 1  - Station is a member of the provided list
  */
-u8 wlan_mac_high_is_valid_association(dl_list* station_info_list, station_info_t* station_info){
+u8 wlan_mac_high_is_station_info_list_member(dl_list* station_info_list, station_info_t* station_info){
 	dl_entry*	  	curr_station_info_entry;
 	station_info_t* station_info_temp;
 	int			  	iter = station_info_list->length;
@@ -2539,19 +2539,19 @@ u8 wlan_mac_high_is_valid_association(dl_list* station_info_list, station_info_t
 
 
 /**
- * @brief Set the maximum number of associations
+ * @brief Set the maximum number of station_infos that can be a member of any list
  *
- * Function will set the maximum number of associations allowed on the node.
+ * Function will set the maximum number of station_infos that can be a part of any dl_list.
  *
- * @param  u32 num_associations
- *     - Number of associations (must be less than WLAN_MAC_HIGH_MAX_ASSOCIATONS)
+ * @param  u32 num_station_infos
+ *     - Number of station_info structs (must be less than WLAN_MAC_HIGH_MAX_STATION_INFOS)
  * @return u32
- *     - Maximum number of associations
+ *     - Maximum number of station_info structs
  */
-u32 wlan_mac_high_set_max_associations(u32 num_associations) {
+u32 wlan_mac_high_set_max_num_station_infos(u32 num_station_infos) {
 
-	if (num_associations < WLAN_MAC_HIGH_MAX_STATION_INFOS) {
-		max_num_station_infos = num_associations;
+	if (num_station_infos < WLAN_MAC_HIGH_MAX_STATION_INFOS) {
+		max_num_station_infos = num_station_infos;
 	} else {
 		max_num_station_infos = WLAN_MAC_HIGH_MAX_STATION_INFOS;
 	}
@@ -2562,38 +2562,38 @@ u32 wlan_mac_high_set_max_associations(u32 num_associations) {
 
 
 /**
- * @brief Get the maximum number of associations
+ * @brief Get the maximum number of station_infos that can be a member of any list
  *
- * Function will get the maximum number of associations allowed on the node.
+ * Function will get the maximum number of station_infos that can be a part of any dl_list
  *
  * @return u32
- *     - Maximum number of associations
+ *     - Maximum number of station_infos
  */
-u32 wlan_mac_high_get_max_associations() {
+u32 wlan_mac_high_get_max_num_station_infos() {
     return max_num_station_infos;
 }
 
 
 
 /**
- * @brief Print associations
+ * @brief Print Station Info Structs
  *
- * Function will print the associations in the association table to the UART
+ * Function will print the station_info structs in the provided table
  *
- * @param  dl_list* assoc_tbl
- *     - Association table pointer
+ * @param  dl_list* station_info_list
+ *     - Pointer to the station_info dl_list
  * @return None
  */
-void wlan_mac_high_print_associations(dl_list* assoc_tbl){
+void wlan_mac_high_print_station_infos(dl_list* station_info_list){
 	dl_entry* 		curr_station_info_entry;
 	station_info_t* station_info;
 	u64            	timestamp           = get_mac_time_usec();
-	int			   	iter = assoc_tbl->length;
+	int			   	iter = station_info_list->length;
 
 	xil_printf("\n(MAC time = %d usec)\n",timestamp);
 	xil_printf("|-ID-|----- MAC ADDR ----|\n");
 
-	curr_station_info_entry = assoc_tbl->first;
+	curr_station_info_entry = station_info_list->first;
 
 	while( (curr_station_info_entry != NULL) && (iter-- > 0) ){
 

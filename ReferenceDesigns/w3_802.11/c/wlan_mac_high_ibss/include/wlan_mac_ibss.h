@@ -32,7 +32,7 @@
 #define NUM_BASIC_RATES_MAX                                10
 
 #define MAX_TX_QUEUE_LEN                                   150       /// Maximum number of entries in any Tx queue
-#define MAX_NUM_ASSOC                                      15        /// Maximum number of associations allowed
+#define MAX_NUM_PEERS                                      15        /// Maximum number of peers allowed
 
 
 //-----------------------------------------------
