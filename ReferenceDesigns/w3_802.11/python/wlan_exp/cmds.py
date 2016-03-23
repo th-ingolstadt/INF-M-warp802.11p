@@ -766,17 +766,25 @@ class NodeProcTime(message.Cmd):
         node_time -- Time as either an integer number of microseconds or
                        a floating point number in seconds.
         time_id   -- ID to use identify the time command in the log.
+        time_type -- Type of the time value (float seconds or int microseconds).
+                     Valid values are:
+                         TIME_TYPE_FLOAT
+                         TIME_TYPE_INT
     """
     time_factor = 6
     time_type   = None
 
-    def __init__(self, cmd, node_time, time_id=None):
+    def __init__(self, cmd, node_time, time_id=None, time_type=None):
         super(NodeProcTime, self).__init__()
         self.command  = _CMD_GROUP_NODE + CMDID_NODE_TIME
 
+        if time_type is not None:
+            self.time_type = time_type
+
         # Read the time as a float
         if (cmd == CMD_PARAM_READ):
-            self.time_type = TIME_TYPE_FLOAT
+            if self.time_type is None:
+                self.time_type = TIME_TYPE_INT
             self.add_args(CMD_PARAM_READ)
             self.add_args(CMD_PARAM_RSVD_TIME)             # Reads do not need a time_id
             self.add_args(CMD_PARAM_RSVD_TIME)
@@ -803,7 +811,10 @@ class NodeProcTime(message.Cmd):
             now = int(round(time.time(), self.time_factor) * (10**self.time_factor))
 
             self.add_args(int(time_id))
-            self.time_type = _add_time_to_cmd64(self, node_time, self.time_factor)
+            if self.time_type is None:
+                self.time_type = _add_time_to_cmd64(self, node_time, self.time_factor)
+            else:
+                _add_time_to_cmd64(self, node_time, self.time_factor)
             self.add_args((now & 0xFFFFFFFF))
             self.add_args(((now >> 32) & 0xFFFFFFFF))
 
@@ -1489,7 +1500,7 @@ class NodeConfigBSS(message.Cmd):
             None will not update the current SSID.
         channel (int): Channel on which the BSS operates; A value of None will
             not update the current channel.
-        beacon_interval (int): Integer number of beacon Time Units in [1, 65535]
+        beacon_interval (int): Integer number of beacon Time Units in [1, 65534]
             (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds);
             A value of None will disable beacons;  A value of False will not 
             update the current beacon interval.
@@ -2204,7 +2215,7 @@ def _add_time_to_cmd64(cmd, time, time_factor):
         if   (type(time) is float):
             time_to_send   = int(round(time, time_factor) * (10**time_factor))
             ret_val        = TIME_TYPE_FLOAT
-        elif (type(time) is int):
+        elif (type(time) in [int, long]):
             time_to_send   = time
             ret_val        = TIME_TYPE_INT
         else:

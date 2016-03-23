@@ -399,11 +399,15 @@ def broadcast_cmd_set_mac_time(time, network_config, time_id=None):
     Args:
         network_config (NetworkConfiguration): One or more NetworkConfiguration objects
            that define the networks on which the set_time command will be broadcast
-        time (float, int):       Time to which the node's MAC timestamp will be set (either float in sec or int in us)
+        time (int):              Time to which the node's MAC timestamp will be set (int microseconds)
         time_id (int, optional): Identifier used as part of the TIME_INFO log entry created by this command.
             If not specified, then a random number will be used.
     """
     import wlan_exp.cmds as cmds
+    
+    if type(time) not in [int, long]:
+        raise AttributeError("Time must be expressed in int microseconds")
+    
     _broadcast_time_to_nodes(time_cmd=cmds.CMD_PARAM_WRITE, network_config=network_config, time=time, time_id=time_id)
 
 # End def
@@ -1130,7 +1134,7 @@ def _broadcast_time_to_nodes(time_cmd, network_config, time=0.0, time_id=None):
     # Need to convert time input to float so that it can be added to _time()
     if   (type(time) is float):
         node_time   = time
-    elif (type(time) is int):
+    elif (type(time) in [int, long]):
         node_time   = float(time / (10**time_factor))   # Convert to float
     else:
         raise TypeError("Time must be either a float or int")
@@ -1158,7 +1162,7 @@ def _broadcast_time_to_nodes(time_cmd, network_config, time=0.0, time_id=None):
         msg = ""
         if (time_cmd == cmds.CMD_PARAM_WRITE):
             msg += "Initializing the time of all nodes on network "
-            msg += "{0} to: {1}".format(network_addr, node_time)
+            msg += "{0} to: {1}".format(network_addr, int(node_time * (10**time_factor)))
         elif (time_cmd == cmds.CMD_PARAM_TIME_ADD_TO_LOG):
             msg += "Adding current time to log for nodes on network {0}".format(network_addr)
         print(msg)

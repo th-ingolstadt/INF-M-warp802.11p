@@ -100,7 +100,7 @@ nodes_config   = config.WlanExpNodesConfiguration(network_config=network_config,
 nodes = util.init_nodes(nodes_config, network_config)
 
 # Set the time of all the nodes to zero
-util.broadcast_cmd_set_mac_time(0.0, network_config)
+util.broadcast_cmd_set_mac_time(0, network_config)
 
 # Extract the different types of nodes from the list of initialized nodes
 #   NOTE:  This will work for both 'DCF' and 'NOMAC' mac_low projects

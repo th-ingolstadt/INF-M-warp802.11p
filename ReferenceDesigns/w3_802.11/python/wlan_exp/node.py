@@ -746,10 +746,13 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Sets the MAC time on the node.
 
         Args:
-            time (float, int):       Time to which the node's timestamp will be set (either float in sec or int in us)
+            time (int):              Time to which the node's timestamp will be set (int in microseconds)
             time_id (int, optional): Identifier used as part of the TIME_INFO log entry created by this command.
                 If not specified, then a random number will be used.
         """
+        if type(time) not in [int, long]:
+            raise AttributeError("Time must be expressed in int microseconds")
+        
         self.send_cmd(cmds.NodeProcTime(cmds.CMD_PARAM_WRITE, time, time_id))
 
 
@@ -757,7 +760,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Gets the MAC time from the node.
 
         Returns:
-            Time (int):  MAC timestamp of the node in float seconds
+            Time (int):  MAC timestamp of the node in int microseconds
         """
         node_time = self.send_cmd(cmds.NodeProcTime(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_RSVD_TIME))
 
@@ -768,7 +771,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Gets the system time from the node.
 
         Returns:
-            Time (int):  System timestamp of the node in float seconds
+            Time (int):  System timestamp of the node in int microseconds
         """
         node_time = self.send_cmd(cmds.NodeProcTime(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_RSVD_TIME))
 
