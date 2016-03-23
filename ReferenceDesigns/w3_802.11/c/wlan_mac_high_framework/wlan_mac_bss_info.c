@@ -537,6 +537,9 @@ void wlan_mac_high_clear_bss_info(bss_info * info){
 
 		// Clear the bss_info
         bzero(info, sizeof(bss_info));
+
+        // Set beacon_interval to "unknown"
+        info->beacon_interval = BEACON_INTERVAL_UNKNOWN;
 	}
 }
 

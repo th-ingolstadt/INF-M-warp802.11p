@@ -42,6 +42,7 @@
 //
 #define BSS_MICROSECONDS_IN_A_TU                           1024
 #define BEACON_INTERVAL_NO_BEACON_TX                       0x0
+#define BEACON_INTERVAL_UNKNOWN                            0xFFFF
 
 
 //-----------------------------------------------

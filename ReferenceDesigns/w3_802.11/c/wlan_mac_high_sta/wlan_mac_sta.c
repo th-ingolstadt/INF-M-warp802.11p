@@ -1176,6 +1176,11 @@ u32	configure_bss(bss_config_t* bss_config){
 					}
 				}
 			}
+		} else {
+			if (my_bss_info == NULL) {
+				// Cannot update BSS without specifying BSSID
+				return_status |= BSS_CONFIG_FAILURE_BSSID_INSUFFICIENT_ARGUMENTS;
+			}
 		}
 		if (bss_config->update_mask & BSS_FIELD_MASK_CHAN) {
 			if (wlan_verify_channel(
@@ -1384,7 +1389,13 @@ u32	configure_bss(bss_config_t* bss_config){
 			xil_printf("  BSSID           : %02x-%02x-%02x-%02x-%02x-%02x\n",my_bss_info->bssid[0],my_bss_info->bssid[1],my_bss_info->bssid[2],my_bss_info->bssid[3],my_bss_info->bssid[4],my_bss_info->bssid[5]);
 			xil_printf("   SSID           : %s\n", my_bss_info->ssid);
 			xil_printf("   Channel        : %d\n", wlan_mac_high_bss_channel_spec_to_radio_chan(my_bss_info->chan_spec));
-			xil_printf("   Beacon Interval: %d TU (%d us)\n",my_bss_info->beacon_interval, my_bss_info->beacon_interval*1024);
+			if (my_bss_info->beacon_interval == BEACON_INTERVAL_NO_BEACON_TX) {
+				xil_printf("   Beacon Interval: No Beacon Tx\n");
+			} else if (my_bss_info->beacon_interval == BEACON_INTERVAL_UNKNOWN) {
+				xil_printf("   Beacon Interval: Unknown\n");
+			} else {
+				xil_printf("   Beacon Interval: %d TU (%d us)\n", my_bss_info->beacon_interval, my_bss_info->beacon_interval*1024);
+			}
 		}
 
 		// Restore interrupts after all BSS changes
