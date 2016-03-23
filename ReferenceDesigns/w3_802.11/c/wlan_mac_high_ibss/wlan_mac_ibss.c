@@ -938,14 +938,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 	// Finish any processing for the RX MPDU process
 	mpdu_rx_process_end:
 
-	// Currently, asynchronous transmission of log entries is not supported
-	//
-//#ifdef USE_WLAN_EXP
-//	if ((rx_event_log_entry != NULL)) {
-//        wlan_exp_transmit_log_entry((void *)rx_event_log_entry);
-//	}
-//#endif
-
     return;
 }
 

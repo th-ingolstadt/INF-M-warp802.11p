@@ -144,9 +144,6 @@ static wlan_exp_function_ptr_t    wlan_exp_process_node_cmd_callback         = (
        wlan_exp_function_ptr_t    wlan_exp_process_config_bss_callback       = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_beacon_tx_param_update_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
 
-u32                               async_pkt_enable;
-u32                               async_eth_dev_num;
-
 static u32                        wlan_exp_enable_logging = 0;
 
 // Allocate Ethernet Header buffer
@@ -1059,117 +1056,6 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
         case CMDID_LOG_ENABLE_ENTRY: {
             wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_event_log, "Enable Event not supported\n");
             // TODO:  THIS FUNCTION IS NOT COMPLETE
-        }
-        break;
-
-
-        //---------------------------------------------------------------------
-        case CMDID_LOG_STREAM_ENTRIES: {
-            // Stream entries from the log
-            //
-            // Message format:
-            //     cmd_args_32[0]   Enable = WLAN_EXP_ENABLE / Disable = WLAN_EXP_DISABLE
-            //     cmd_args_32[1]   IP Address (32 bits)
-            //     cmd_args_32[2]   Host ID (upper 16 bits); Port (lower 16 bits)
-            //
-            int                   status;
-            struct sockaddr_in  * async_sockaddr;
-            warp_ip_udp_buffer  * tmp_buffer;
-            transport_header    * tmp_header;
-            cmd_resp_hdr        * tmp_cmd_header;
-            cmd_resp            * async_cmd_resp;
-            u32                   enable              =   Xil_Ntohl(cmd_args_32[0]);
-            u32                   ip_address          =   Xil_Ntohl(cmd_args_32[1]);
-            u32                   host_id             = ((Xil_Ntohl(cmd_args_32[2]) >> 16) & 0xFFFF);
-            u32                   port                =  (Xil_Ntohl(cmd_args_32[2]) & 0xFFFF);
-
-            // Check the enable
-            if (enable == WLAN_EXP_DISABLE) {
-                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log,
-                                "Disable streaming to %08x (%d)\n", ip_address, port);
-                async_pkt_enable = enable;
-            } else {
-                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log,
-                                "Enable streaming to %08x (%d)\n", ip_address, port);
-
-                // Initialize global async packet variables
-                async_pkt_enable  = enable;
-                async_eth_dev_num = eth_dev_num;
-
-                // Configure the Asynchronous send socket
-                status = transport_config_socket(eth_dev_num, &(node_info.eth_dev->socket_async), port);
-
-                if (status == XST_FAILURE) {
-                    wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_event_log, "Failed to configure async socket.\n");
-                }
-
-                // Populate the socket address structure for the async socket
-                async_sockaddr = (struct sockaddr_in *) &(node_info.eth_dev->async_sockaddr);
-
-                async_sockaddr->sin_port              = port;        // Port
-                async_sockaddr->sin_addr.s_addr       = ip_address;  // IP Address
-
-                // Get buffer from transport library
-                tmp_buffer = socket_alloc_send_buffer();
-
-                // Add transport header to the buffer
-                tmp_header = (transport_header *)(tmp_buffer->offset);
-
-                // Increment the tracking variables in the buffer
-                tmp_buffer->offset                   += sizeof(transport_header);
-                tmp_buffer->length                   += sizeof(transport_header);
-                tmp_buffer->size                     += sizeof(transport_header);
-
-                // Populate the values for the transport header
-                tmp_header->dest_id                   = host_id;
-                tmp_header->src_id                    = node_info.node_id;
-                tmp_header->reserved                  = 0;
-                tmp_header->pkt_type                  = PKT_TPYE_NTOH_MSG_ASYNC;
-                tmp_header->length                    = 0;                          // Will be updated on send
-                tmp_header->seq_num                   = 0;
-                tmp_header->flags                     = 0;
-
-                // Add command header to the send buffer
-                tmp_cmd_header = (cmd_resp_hdr *)(tmp_buffer->offset);
-
-                // Increment the tracking variables in the buffer
-                tmp_buffer->offset                   += sizeof(cmd_resp_hdr);
-                tmp_buffer->length                   += sizeof(cmd_resp_hdr);
-                tmp_buffer->size                     += sizeof(cmd_resp_hdr);
-
-                // Populate the values for the command header
-                tmp_cmd_header->cmd                   = Xil_Ntohl(CMDID_LOG_STREAM_ENTRIES);
-                tmp_cmd_header->length                = 0;
-                tmp_cmd_header->num_args              = 0;
-
-                // Create the Command / Response structure for the async socket
-                async_cmd_resp = &(node_info.eth_dev->async_cmd_resp);
-
-                async_cmd_resp->buffer                = (void *) tmp_buffer;
-                async_cmd_resp->header                = tmp_cmd_header;
-                async_cmd_resp->args                  = (u32 *) (tmp_buffer->offset);
-
-                //
-                // NOTE:  At this point, the buffer is ready to have payload information added to
-                //     it for the CMDID_LOG_STREAM_ENTRIES command.  The fields that must be updated
-                //     in the cmd_resp structure before this command can be sent are:
-                //         - header->length      - Final size of the command (use Xil_Ntohl() to byte swap for transfer)
-                //         - buffer->length      - Final size of the buffer
-                //         - buffer->size        - Final size of the buffer
-                //
-                //     The transport header length will be updated by the transport_send command.  However,
-                //     we need to make sure to increment the sequence number after the command has been sent.
-                //
-                //     These steps are handled in the transport_send_async() function.
-                //
-
-                // Transmit the Node Info
-                add_node_info_entry(WLAN_EXP_TRANSMIT);
-            }
-
-            // Send response
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
-            resp_hdr->num_args = resp_index;
         }
         break;
 
@@ -3987,51 +3873,6 @@ u32  wlan_exp_get_id_in_bss_info(u8 * bssid) {
     }
 
     return id;
-}
-
-
-
-/*****************************************************************************/
-/**
- * Transmit a given log entry over the WLAN Exp framework
- *
- * @param   entry            - Pointer to a log entry
- *
- * @return  None
- *
- *****************************************************************************/
-void wlan_exp_transmit_log_entry(void * entry) {
-
-    u32               entry_hdr_size;
-    u32               length;
-    entry_header    * entry_hdr;
-    interrupt_state_t prev_interrupt_state;
-
-    // Send the log entry if
-    if (async_pkt_enable) {
-
-        // Save the interrupt state
-        prev_interrupt_state = wlan_mac_high_interrupt_stop();
-
-        entry_hdr_size = sizeof(entry_header);
-
-        // We have an entry, so we need to jump back to find the entry header
-        entry_hdr = (entry_header*)((u32)(entry) - entry_hdr_size);
-
-#ifdef _DEBUG_
-        xil_printf(" Entry - addr = 0x%8x;  size = 0x%4x  hdr size = 0x%4x \n", entry_hdr, entry_hdr->entry_length, entry_hdr_size );
-        print_entry( (0x0000FFFF & entry_hdr->entry_id), entry_hdr->entry_type, entry );
-#endif
-
-        // Set the entry length
-        length = entry_hdr->entry_length + entry_hdr_size;
-
-        // Use the transport method to send the entry
-        transport_send_async(async_eth_dev_num, (u8 *)entry_hdr, length);
-
-        // Restore the interrupt state
-        wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
-    }
 }
 
 

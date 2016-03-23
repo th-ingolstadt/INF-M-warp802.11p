@@ -68,11 +68,6 @@
 #define ANIMATION_RATE_US                                 (100000)
 
 
-//-----------------------------------------------
-// WLAN Exp defines
-#define WLAN_EXP_STREAM_ASSOC_CHANGE                       WLAN_EXP_NO_TRANSMIT
-
-
 /*********************** Global Structure Definitions ************************/
 
 typedef struct{

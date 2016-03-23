@@ -1077,17 +1077,15 @@ void print_entry(u32 entry_number, u32 entry_type, void * entry){
 /**
  * Add a node info entry
  *
- * @param   transmit         - Asynchronously transmit the entry?
- *                                 - WLAN_EXP_TRANSMIT
- *                                 - WLAN_EXP_NO_TRANSMIT
+ * @param   None
  *
  * @return  None
  *
- * @note    We can only add a node info entry to the log if the WLAN EXP
+ * @note    Can only add a node info entry to the log if the WLAN EXP
  *          framework is enabled.
  *
  *****************************************************************************/
-void add_node_info_entry(u8 transmit){
+void add_node_info_entry() {
 
 #ifdef USE_WLAN_EXP
 
@@ -1120,11 +1118,6 @@ void add_node_info_entry(u8 transmit){
 #ifdef _DEBUG_
         print_entry(0, ENTRY_TYPE_NODE_INFO, entry);
 #endif
-
-        // Transmit the entry if requested
-        if (transmit == WLAN_EXP_TRANSMIT) {
-            wlan_exp_transmit_log_entry((void *)(entry));
-        }
     }
 #endif
 }
@@ -1179,16 +1172,17 @@ void add_time_info_entry(u64 timestamp, u64 mac_time, u64 system_time, u64 host_
 /**
  * Add the temperature to the log
  *
- * @param   transmit         - Asynchronously transmit the entry?
- *                                 - WLAN_EXP_TRANSMIT
- *                                 - WLAN_EXP_NO_TRANSMIT
+ * @param   None
  *
  * @return  u32              - Status of the command:
  *                                 XST_SUCCESS - Command completed successfully
  *                                 XST_FAILURE - There was an error in the command
  *
+ * @note    Can only add a node info entry to the log if the WLAN EXP
+ *          framework is enabled.
+ *
  *****************************************************************************/
-u32 add_temperature_to_log(u8 transmit){
+u32 add_temperature_to_log() {
 
 #ifdef USE_WLAN_EXP
     temperature_entry  * entry;
@@ -1208,11 +1202,6 @@ u32 add_temperature_to_log(u8 transmit){
         xil_printf("[%d] Node %d (W3-a-%05d)= (%d %d %d)\n", (u32)entry->timestamp, entry->id, entry->serial_number,
                                                              entry->curr_temp, entry->min_temp, entry->max_temp);
 #endif
-
-        // Transmit the entry if requested
-        if (transmit == WLAN_EXP_TRANSMIT) {
-            wlan_exp_transmit_log_entry((void *)(entry));
-        }
 
         return XST_SUCCESS;
     }

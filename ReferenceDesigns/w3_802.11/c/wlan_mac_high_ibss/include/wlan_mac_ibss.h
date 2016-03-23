@@ -54,10 +54,6 @@
 #define ASSOCIATION_TIMEOUT_S                             (300)
 #define ASSOCIATION_TIMEOUT_US                            (ASSOCIATION_TIMEOUT_S * 1000000)
 
-//-----------------------------------------------
-// WLAN Exp defines
-#define WLAN_EXP_STREAM_ASSOC_CHANGE                       WLAN_EXP_NO_TRANSMIT
-
 
 /*********************** Global Structure Definitions ************************/
 

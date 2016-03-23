@@ -421,10 +421,10 @@ void               print_entry(u32 entry_number, u32 entry_type, void * entry);
 //-----------------------------------------------
 // Methods to add entries to the log
 //
-void      add_node_info_entry(u8 transmit);
+void      add_node_info_entry();
 
 void      add_time_info_entry(u64 timestamp, u64 mac_time, u64 system_time, u64 host_time, u32 reason, u32 time_id, u8 use_time_id);
 
-u32       add_temperature_to_log(u8 transmit);
+u32       add_temperature_to_log();
 
 #endif /* WLAN_MAC_ENTRIES_H_ */

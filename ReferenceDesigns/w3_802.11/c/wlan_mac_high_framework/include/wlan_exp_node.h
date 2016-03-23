@@ -136,7 +136,6 @@
 #define CMDID_LOG_ADD_EXP_INFO_ENTRY                       0x003004
 
 #define CMDID_LOG_ENABLE_ENTRY                             0x003006
-#define CMDID_LOG_STREAM_ENTRIES                           0x003007
 
 #define CMD_PARAM_LOG_GET_ALL_ENTRIES                      0xFFFFFFFF
 
@@ -309,8 +308,6 @@ void wlan_exp_set_beacon_tx_param_update_callback     (void(*callback)());
 u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr);
 u32  wlan_exp_get_id_in_counts(u8 * mac_addr);
 u32  wlan_exp_get_id_in_bss_info(u8 * bssid);
-
-void wlan_exp_transmit_log_entry(void * entry);
 
 // Node commands
 int  node_get_parameters(u32 * buffer, u32 max_resp_len, u8 transmit);

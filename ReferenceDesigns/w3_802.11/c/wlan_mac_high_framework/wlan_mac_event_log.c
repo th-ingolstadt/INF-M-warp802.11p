@@ -220,7 +220,7 @@ void event_log_reset(){
     //
     // NOTE:  A node_info_entry is guaranteed to be present as the first entry in the log
     //
-    add_node_info_entry(WLAN_EXP_NO_TRANSMIT);
+    add_node_info_entry();
 }
 
 
