@@ -355,40 +355,6 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             return False
 
 
-    def log_enable_stream(self, port, ip_address=None, host_id=None):
-        """Configure the node to stream log entries to the given port.
-
-        Args:
-            port (int): Port number to stream the log entries.
-            ip_address (int, str, optional):  IP address to stream the entries.
-            host_id (int, optional):  Host ID to be used in the transport 
-                header for the streamed entries.
-
-        .. note:: If ip_address or host_id is not provided, then ip_address 
-            and host_id of the WLAN Exp host will be used.
-        """
-
-        if (ip_address is None):
-            import wlan_exp.transport.util as util
-            ip_address = util._get_host_ip_addr_for_network(self.network_config)
-
-        if (host_id is None):
-            host_id = self.network_config.get_param('host_id')
-
-        self.send_cmd(cmds.LogStreamEntries(1, host_id, ip_address, port))
-        msg  = "{0}:".format(self.description)
-        msg += "Streaming Log Entries to {0} ({1}) with host ID {2}".format(ip_address, port, host_id)
-        print(msg)
-
-
-    def log_disable_stream(self):
-        """Configure the node to disable log entries stream."""
-        self.send_cmd(cmds.LogStreamEntries(0, 0, 0, 0))
-        msg  = "{0}:".format(self.description)
-        msg += "Disable log entry stream."
-        print(msg)
-
-
     def log_write_exp_info(self, info_type, message=None):
         """Write the experiment information provided to the log.
 

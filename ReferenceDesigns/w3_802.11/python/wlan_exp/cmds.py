@@ -177,8 +177,6 @@ CMDID_LOG_GET_ENTRIES                            = 0x003003
 CMDID_LOG_ADD_EXP_INFO_ENTRY                     = 0x003004
 
 CMDID_LOG_ENABLE_ENTRY                           = 0x003006
-CMDID_LOG_STREAM_ENTRIES                         = 0x003007
-
 
 CMD_PARAM_LOG_GET_ALL_ENTRIES                    = 0xFFFFFFFF
 
@@ -364,31 +362,6 @@ class LogGetCapacity(message.Cmd):
             return (args[0], args[1])
         else:
             return (0,0)
-
-# End Class
-
-
-class LogStreamEntries(message.Cmd):
-    """Command to configure the node log streaming."""
-    def __init__(self, enable, host_id, ip_address, port):
-        super(LogStreamEntries, self).__init__()
-        self.command = _CMD_GROUP_NODE + CMDID_LOG_STREAM_ENTRIES
-
-        if (type(ip_address) is str):
-            addr = transport.ip_to_int(ip_address)
-        elif (type(ip_address) is int):
-            addr = ip_address
-        else:
-            raise TypeError("IP Address must be either a str or int")
-
-        arg = (2**16 * int(host_id)) + (int(port) & 0xFFFF)
-
-        self.add_args(enable)
-        self.add_args(addr)
-        self.add_args(arg)
-
-    def process_resp(self, resp):
-        pass
 
 # End Class
 
