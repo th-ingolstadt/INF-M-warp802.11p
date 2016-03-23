@@ -82,7 +82,7 @@ info_field_defs = {
         ('channel_type',                'B',      'uint8',   'Channel Type'),
         ('latest_beacon_rx_time',       'Q',      'uint64',  'Microsecond timer value at time of last Tx or Rx event to node with address mac_addr'),
         ('ssid',                        '33s',    '33uint8', 'SSID (32 chars max)'),
-        ('state',                       'B',      'uint8',   'State of the BSS'),
+        ('padding0',                    'x',      'uint8',   ''),
         ('latest_beacon_rx_power',      'b',      'int8',    'Last observed Rx Power (dBm)'),
         ('flags',                       'B',      'uint8',   'BSS flags'),
         ('capabilities',                'H',      'uint16',  'Supported capabilities of the BSS'),
@@ -137,11 +137,6 @@ info_consts_defs = {
             'BW20'                     : 0x0000,
             'BW40_SEC_BELOW'           : 0x0001,
             'BW40_SEC_ABOVE'           : 0x0002,
-        }),
-        'state'         : util.consts_dict({
-            'UNAUTHENTICATED'          : 0x0001,
-            'AUTHENTICATED'            : 0x0002,
-            'ASSOCIATED'               : 0x0004,
         }),
         'flags'         : util.consts_dict({
             'KEEP'                     : 0x0001,
