@@ -143,7 +143,7 @@ void uart_rx(u8 rxByte){
 		ltg_sched_remove(LTG_REMOVE_ALL);
 
 		// Stop join process
-		if (wlan_mac_is_joining()) {
+		if (wlan_mac_sta_is_joining()) {
 			wlan_mac_sta_join_return_to_idle();
 		}
 		return;
@@ -424,7 +424,7 @@ void print_station_status(){
     station_info_t  * access_point        = NULL;
 
     if(my_bss_info != NULL){
-        access_point_entry = my_bss_info->associated_stations.first;
+        access_point_entry = my_bss_info->station_info_list.first;
         access_point = ((station_info_t*)(access_point_entry->data));
     }
 
@@ -496,7 +496,7 @@ void check_join_status() {
 	// If node is no longer in the join process:
 	//     - Check BSS info
 	//     - Return to Main Menu
-	if (wlan_mac_is_joining() == 0) {
+	if (wlan_mac_sta_is_joining() == 0) {
 		// Stop the scheduled event
 		wlan_mac_remove_schedule(SCHEDULE_COARSE, check_join_status_id);
 

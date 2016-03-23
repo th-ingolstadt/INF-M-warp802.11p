@@ -30,6 +30,9 @@
 
 /*********************** Global Variable Definitions *************************/
 
+//TODO: This is too strict. It has hard-coded the use of the address filter
+//as something that must be used for authentications. Plus: the framework
+//shouldn't extern globals from the top-level projects.
 extern bss_info            * my_bss_info;
 
 
@@ -188,7 +191,7 @@ u8    wlan_mac_addr_filter_is_allowed(u8* addr){
     //    If you are 're-joining' you should be allowed
     //
     if(my_bss_info != NULL){
-        if (wlan_mac_high_find_station_info_ADDR(&(my_bss_info->associated_stations), addr) != NULL) { return 1; }
+        if (wlan_mac_high_find_station_info_ADDR(&(my_bss_info->station_info_list), addr) != NULL) { return 1; }
     }
 
 

@@ -218,7 +218,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Disassociate\n");
 
             // Stop the join state machine if it is running
-            if (wlan_mac_is_joining()) { wlan_mac_sta_join_return_to_idle(); }
+            if (wlan_mac_sta_is_joining()) { wlan_mac_sta_join_return_to_idle(); }
 
             // Stop the scan state machine if it is running
             if (wlan_mac_scan_is_scanning()) { wlan_mac_scan_stop(); }
@@ -361,7 +361,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             //                      Failure (CMD_PARAM_NODE_JOIN_FAILED)
             //
             u32    status         = CMD_PARAM_SUCCESS;
-            u32    is_joining     = wlan_mac_is_joining();
+            u32    is_joining     = wlan_mac_sta_is_joining();
 
             // Send response of status
             resp_args_32[resp_index++] = Xil_Htonl(status);

@@ -43,12 +43,15 @@ int  wlan_mac_sta_join_init();
 void wlan_mac_sta_set_join_success_callback(function_ptr_t callback);
 
 volatile join_parameters_t* wlan_mac_sta_get_join_parameters();
+volatile bss_info* wlan_mac_sta_get_attempt_bss_info();
 
 void wlan_mac_sta_join();
 void wlan_mac_sta_join_return_to_idle();
 
 void wlan_mac_sta_join_bss_attempt_poll(u32 aid);
 
-u32  wlan_mac_is_joining();
+u32  wlan_mac_sta_is_joining();
+void wlan_mac_sta_successfully_authenticated(u8* bssid);
+void wlan_mac_sta_successfully_associated(u8* bssid, u16 AID);
 
 #endif

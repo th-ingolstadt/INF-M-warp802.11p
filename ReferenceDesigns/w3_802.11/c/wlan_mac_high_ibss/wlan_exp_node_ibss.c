@@ -237,7 +237,7 @@ void wlan_exp_ibss_tx_cmd_add_association(u8* mac_addr) {
     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Adding association for:  ");
     wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, mac_addr); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
 
-    wlan_mac_high_add_station_info(&my_bss_info->associated_stations, &counts_table, mac_addr, ADD_STATION_INFO_ANY_ID);
+    wlan_mac_high_add_station_info(&my_bss_info->station_info_list, &counts_table, mac_addr, ADD_STATION_INFO_ANY_ID);
 }
 
 

@@ -3811,7 +3811,7 @@ u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr) {
             if (wlan_addr_eq(mac_addr, my_bss_info->bssid)) {
                 id = WLAN_EXP_AID_ME;
             } else {
-                entry = wlan_mac_high_find_station_info_ADDR(&(my_bss_info->associated_stations), mac_addr);
+                entry = wlan_mac_high_find_station_info_ADDR(&(my_bss_info->station_info_list), mac_addr);
 
                 if (entry != NULL) {
                 	station_info = (station_info_t*)(entry->data);

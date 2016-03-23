@@ -484,11 +484,11 @@ void poll_tx_queues(){
 					curr_station_info_entry = next_station_info_entry;
 
 					if(my_bss_info != NULL){
-						for(i = 0; i < (my_bss_info->associated_stations.length + 1); i++) {
+						for(i = 0; i < (my_bss_info->station_info_list.length + 1); i++) {
 							// Loop through all associated stations' queues and the broadcast queue
 							if(curr_station_info_entry == NULL){
 								// Check the broadcast queue
-								next_station_info_entry = my_bss_info->associated_stations.first;
+								next_station_info_entry = my_bss_info->station_info_list.first;
 								if(dequeue_transmit_checkin(MCAST_QID)){
 									// Found a not-empty queue, transmitted a packet
 									return;
@@ -497,8 +497,8 @@ void poll_tx_queues(){
 								}
 							} else {
 								curr_station_info = (station_info_t*)(curr_station_info_entry->data);
-								if( wlan_mac_high_is_station_info_list_member(&my_bss_info->associated_stations, curr_station_info) ){
-									if(curr_station_info_entry == my_bss_info->associated_stations.last){
+								if( wlan_mac_high_is_station_info_list_member(&my_bss_info->station_info_list, curr_station_info) ){
+									if(curr_station_info_entry == my_bss_info->station_info_list.last){
 										// We've reached the end of the table, so we wrap around to the beginning
 										next_station_info_entry = NULL;
 									} else {
@@ -549,13 +549,13 @@ void poll_tx_queues(){
 void purge_all_data_tx_queue(){
 	dl_entry*	    curr_station_info_entry;
 	station_info_t* curr_station_info;
-	int			  iter = my_bss_info->associated_stations.length;
+	int			  iter = my_bss_info->station_info_list.length;
 
 	// Purge all data transmit queues
 	purge_queue(MCAST_QID);                                    		// Broadcast Queue
 
 	if(my_bss_info != NULL){
-		curr_station_info_entry = my_bss_info->associated_stations.first;
+		curr_station_info_entry = my_bss_info->station_info_list.first;
 		while( (curr_station_info_entry != NULL) && (iter-- > 0) ){
 			curr_station_info = (station_info_t*)(curr_station_info_entry->data);
 			purge_queue(STATION_ID_TO_QUEUE_ID(curr_station_info->ID));       		// Each unicast queue
@@ -592,7 +592,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details_t* tx_lo
 
 	if(my_bss_info != NULL){
 		if(tx_mpdu->ID != 0){
-			entry = wlan_mac_high_find_station_info_ID(&(my_bss_info->associated_stations), tx_mpdu->ID);
+			entry = wlan_mac_high_find_station_info_ID(&(my_bss_info->station_info_list), tx_mpdu->ID);
 			if(entry != NULL){
 				station_info = (station_info_t*)(entry->data);
 			}
@@ -673,13 +673,13 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 				curr_tx_queue_buffer->frame_info.ID         = 0;
 		} else {
 
-			station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, eth_dest);
+			station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->station_info_list, eth_dest);
 
 			if(station_info_entry != NULL){
 				station_info = (station_info_t*)station_info_entry->data;
 			} else {
-				station_info = wlan_mac_high_add_station_info(&my_bss_info->associated_stations, &counts_table, eth_dest, ADD_STATION_INFO_ANY_ID);
-				ibss_update_hex_display(my_bss_info->associated_stations.length);
+				station_info = wlan_mac_high_add_station_info(&my_bss_info->station_info_list, &counts_table, eth_dest, ADD_STATION_INFO_ANY_ID);
+				ibss_update_hex_display(my_bss_info->station_info_list.length);
 				if(station_info != NULL) station_info->tx = default_unicast_data_tx_params;
 			}
 
@@ -775,13 +775,13 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 		// Update the association information
 		if(my_bss_info != NULL){
 			if(wlan_addr_eq(rx_80211_header->address_3, my_bss_info->bssid)){
-				station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, rx_80211_header->address_2);
+				station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->station_info_list, rx_80211_header->address_2);
 
 				if(station_info_entry != NULL){
 					station_info = (station_info_t*)station_info_entry->data;
 				} else {
-					station_info = wlan_mac_high_add_station_info(&my_bss_info->associated_stations, &counts_table, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID);
-					ibss_update_hex_display(my_bss_info->associated_stations.length);
+					station_info = wlan_mac_high_add_station_info(&my_bss_info->station_info_list, &counts_table, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID);
+					ibss_update_hex_display(my_bss_info->station_info_list.length);
 					if(station_info != NULL) station_info->tx = default_unicast_data_tx_params;
 				}
 			}
@@ -959,7 +959,7 @@ void remove_inactive_station_infos() {
 	dl_entry*           next_station_info_entry;
 
 	if(my_bss_info != NULL){
-		next_station_info_entry = my_bss_info->associated_stations.first;
+		next_station_info_entry = my_bss_info->station_info_list.first;
 
 		while(next_station_info_entry != NULL) {
 			curr_station_info_entry = next_station_info_entry;
@@ -971,8 +971,8 @@ void remove_inactive_station_infos() {
 			// De-authenticate the station if we have timed out and we have not disabled this check for the station
 			if((time_since_last_activity > ASSOCIATION_TIMEOUT_US) && ((curr_station_info->flags & STATION_INFO_FLAG_DISABLE_ASSOC_CHECK) == 0)){
                 purge_queue(STATION_ID_TO_QUEUE_ID(curr_station_info->ID));
-				wlan_mac_high_remove_station_info( &my_bss_info->associated_stations, &counts_table, curr_station_info->addr );
-				ibss_update_hex_display(my_bss_info->associated_stations.length);
+				wlan_mac_high_remove_station_info( &my_bss_info->station_info_list, &counts_table, curr_station_info->addr );
+				ibss_update_hex_display(my_bss_info->station_info_list.length);
 			}
 		}
 	}
@@ -1020,7 +1020,7 @@ void ltg_event(u32 id, void* callback_arg){
 				if(is_multicast){
 					queue_sel = MCAST_QID;
 				} else {
-					station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, addr_da);
+					station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->station_info_list, addr_da);
 					if(station_info_entry != NULL){
 						station_info = (station_info_t*)(station_info_entry->data);
 						queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
@@ -1041,7 +1041,7 @@ void ltg_event(u32 id, void* callback_arg){
 				if(is_multicast){
 					queue_sel = MCAST_QID;
 				} else {
-					station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, addr_da);
+					station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->station_info_list, addr_da);
 					if(station_info_entry != NULL){
 						station_info = (station_info_t*)(station_info_entry->data);
 						queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
@@ -1055,8 +1055,8 @@ void ltg_event(u32 id, void* callback_arg){
 			break;
 
 			case LTG_PYLD_TYPE_ALL_ASSOC_FIXED:
-				if(my_bss_info->associated_stations.length > 0){
-					station_info_entry = my_bss_info->associated_stations.first;
+				if(my_bss_info->station_info_list.length > 0){
+					station_info_entry = my_bss_info->station_info_list.first;
 					station_info = (station_info_t*)station_info_entry->data;
 					addr_da = station_info->addr;
 					queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
@@ -1074,11 +1074,11 @@ void ltg_event(u32 id, void* callback_arg){
 		}
 
 		if(is_multicast == 0){
-			station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->associated_stations, addr_da);
+			station_info_entry = wlan_mac_high_find_station_info_ADDR(&my_bss_info->station_info_list, addr_da);
 
 			if(station_info_entry == NULL){
-				station_info = wlan_mac_high_add_station_info(&my_bss_info->associated_stations, &counts_table, addr_da, ADD_STATION_INFO_ANY_ID);
-				ibss_update_hex_display(my_bss_info->associated_stations.length);
+				station_info = wlan_mac_high_add_station_info(&my_bss_info->station_info_list, &counts_table, addr_da, ADD_STATION_INFO_ANY_ID);
+				ibss_update_hex_display(my_bss_info->station_info_list.length);
 				if(station_info != NULL) station_info->tx = default_unicast_data_tx_params;
 			}
 		}
@@ -1264,8 +1264,8 @@ u32	configure_bss(bss_config_t* bss_config){
 
 			if (my_bss_info != NULL) {
 				// Remove all associations
-				next_station_info_entry = my_bss_info->associated_stations.first;
-				iter = my_bss_info->associated_stations.length;
+				next_station_info_entry = my_bss_info->station_info_list.first;
+				iter = my_bss_info->station_info_list.length;
 
 				while ((next_station_info_entry != NULL) && (iter-- > 0)) {
 					curr_station_info_entry = next_station_info_entry;
@@ -1277,16 +1277,15 @@ u32	configure_bss(bss_config_t* bss_config){
 					purge_queue(STATION_ID_TO_QUEUE_ID(curr_station_info->ID));
 
 					// Remove the association
-					wlan_mac_high_remove_station_info(&my_bss_info->associated_stations, &counts_table, curr_station_info->addr);
+					wlan_mac_high_remove_station_info(&my_bss_info->station_info_list, &counts_table, curr_station_info->addr);
 
 					// Update the hex display to show station was removed
-					ibss_update_hex_display(my_bss_info->associated_stations.length);
+					ibss_update_hex_display(my_bss_info->station_info_list.length);
 				}
 
 				// Inform the MAC High Framework to no longer will keep this BSS Info. This will
 				// allow it to be overwritten in the future to make space for new BSS Infos.
 				my_bss_info->flags &= ~BSS_FLAGS_KEEP;
-				my_bss_info->state  = BSS_STATE_UNAUTHENTICATED;   // !!! FIXME !!! - I think this should be here - EJW
 
 				// Set "my_bss_info" to NULL
 				//     - All functions must be able to handle my_bss_info = NULL
@@ -1335,7 +1334,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				}
 
 				// Set hex display
-				ibss_update_hex_display(my_bss_info->associated_stations.length);
+				ibss_update_hex_display(my_bss_info->station_info_list.length);
 			}
 		}
 
@@ -1468,7 +1467,7 @@ void ibss_set_beacon_ts_update_mode(u32 enable){
  *****************************************************************************/
 dl_list * get_station_info_list(){
 	if(my_bss_info != NULL){
-		return &(my_bss_info->associated_stations);
+		return &(my_bss_info->station_info_list);
 	} else {
 		return NULL;
 	}

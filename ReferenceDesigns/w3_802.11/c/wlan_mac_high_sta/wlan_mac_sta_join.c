@@ -55,13 +55,9 @@
 /*********************** Global Variable Definitions *************************/
 
 extern mac_header_80211_common    tx_header_common;
-
 extern u8                         pause_data_queue;
-
 extern wlan_mac_low_config_t      cpu_low_config;
-
 extern tx_params_t                default_unicast_mgmt_tx_params;
-
 extern u8                         my_aid;
 extern bss_info                 * my_bss_info;
 
@@ -74,6 +70,11 @@ typedef enum {
     ATTEMPTING
 } join_state_t;
 
+typedef enum {
+	UNAUTHENTICATED,
+	AUTHENTICATED,
+	ASSOCIATED
+} authentication_state_t;
 
 // Global join parameters
 //     This variable needs to be treated as volatile since it is expected to be
@@ -83,6 +84,7 @@ volatile join_parameters_t        gl_join_parameters;
 
 // Scan state variables
 static join_state_t               join_state;
+static authentication_state_t	  authentication_state;
 static bss_info*                  attempt_bss_info;
 char*                             scan_ssid_save;
 
@@ -127,7 +129,8 @@ int wlan_mac_sta_join_init(){
     gl_join_parameters.channel = 0;
 
     // Set global join state variables
-    join_state       = IDLE;
+    join_state       	 = IDLE;
+    authentication_state = UNAUTHENTICATED;
 
     attempt_bss_info = NULL;
     scan_ssid_save   = NULL;
@@ -164,6 +167,20 @@ volatile join_parameters_t* wlan_mac_sta_get_join_parameters(){
 	return &gl_join_parameters;
 }
 
+/*****************************************************************************/
+/**
+ * Get global bss_info pointer that STA is attempting to join
+ *
+ * @return  volatile bss_info*     - Pointer to bss_info
+ *
+ *****************************************************************************/
+volatile bss_info* wlan_mac_sta_get_attempt_bss_info(){
+	if(wlan_mac_sta_is_joining()){
+		return attempt_bss_info;
+	} else {
+		return NULL;
+	}
+}
 
 
 /*****************************************************************************/
@@ -175,7 +192,7 @@ volatile join_parameters_t* wlan_mac_sta_get_join_parameters(){
  *                                 0 - Not joining
  *
  *****************************************************************************/
-u32 wlan_mac_is_joining(){
+u32 wlan_mac_sta_is_joining(){
     if (join_state == IDLE) {
         return 0;
     } else {
@@ -183,7 +200,23 @@ u32 wlan_mac_is_joining(){
     }
 }
 
+void wlan_mac_sta_successfully_authenticated(u8* bssid){
+	if(attempt_bss_info && wlan_addr_eq(bssid, attempt_bss_info->bssid)){
+		if(authentication_state == UNAUTHENTICATED){
+			authentication_state = AUTHENTICATED;
+			wlan_mac_sta_join_bss_attempt_poll(0);
+		}
+	}
+}
 
+void wlan_mac_sta_successfully_associated(u8* bssid, u16 AID){
+	if(attempt_bss_info && wlan_addr_eq(bssid, attempt_bss_info->bssid)){
+		if(authentication_state == AUTHENTICATED){
+			authentication_state = ASSOCIATED;
+			wlan_mac_sta_join_bss_attempt_poll(AID);
+		}
+	}
+}
 
 /*****************************************************************************/
 /**
@@ -216,7 +249,7 @@ void wlan_mac_sta_join(){
         // Currently, the join state machine is out of sync with the gl_join_parameters
         // since they have already been changed by a user.
         //
-        if (wlan_mac_is_joining()) {
+        if (wlan_mac_sta_is_joining()) {
             wlan_mac_sta_join_return_to_idle();
             wlan_mac_sta_join();
             return;
@@ -336,6 +369,7 @@ void wlan_mac_sta_join_return_to_idle(){
 
     // Set the join state
     join_state = IDLE;
+    authentication_state = UNAUTHENTICATED;
 
     // Remove any scheduled search polls
     if(search_sched_id != SCHEDULE_ID_RESERVED_MAX){
@@ -445,7 +479,7 @@ void wlan_mac_sta_join_bss_search_poll(u32 schedule_id){
  * is designed to be called multiple times during each join attempt and will
  * perform a different action based on the state of the BSS.  This function will
  * attempt to move the BSS from:
- *       BSS_STATE_UNAUTHENTICATED --> BSS_STATE_AUTHENTICATED --> BSS_STATE_AUTHENTICATED
+ *       UNAUTHENTICATED --> AUTHENTICATED --> ASSOCIATED
  *
  * This function can be called by the STA directly as part of the mpdu_rx_process()
  * function when receiving responses from the AP or it will be called periodically
@@ -488,23 +522,16 @@ void wlan_mac_sta_join_bss_attempt_poll(u32 aid){
         break;
 
         case ATTEMPTING:
-            // If current attempt was denied, then stop the join process
-            if (attempt_bss_info->last_join_attempt_result == DENIED) {
-                wlan_mac_sta_join_return_to_idle();
-                // TODO: call join() again to move on to the next matching SSID
-                return;
-            }
-
-            switch(attempt_bss_info->state){
-                case BSS_STATE_UNAUTHENTICATED:
+            switch(authentication_state){
+                case UNAUTHENTICATED:
                     transmit_join_auth_req();
                 break;
 
-                case BSS_STATE_AUTHENTICATED:
+                case AUTHENTICATED:
                     transmit_join_assoc_req();
                 break;
 
-                case BSS_STATE_ASSOCIATED:
+                case ASSOCIATED:
                     // Important: wlan_mac_sta_join_return_to_idle() will NULL out attempt_bss_info,
                     //     so it should not be called before actually setting the association state
 
@@ -537,7 +564,7 @@ void wlan_mac_sta_join_bss_attempt_poll(u32 aid){
                 break;
 
                 default:
-                    xil_printf("Error: STA attempt poll: Unknown state %d for BSS info %s\n", attempt_bss_info->state, attempt_bss_info->ssid);
+                    xil_printf("Error: STA attempt poll: Unknown state %d for BSS info %s\n", authentication_state, attempt_bss_info->ssid);
                 break;
             }
         break;

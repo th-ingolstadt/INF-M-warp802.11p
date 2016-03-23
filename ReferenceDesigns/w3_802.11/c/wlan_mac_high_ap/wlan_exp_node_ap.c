@@ -431,7 +431,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "AP: Associate\n");
 
-            if (my_bss_info->associated_stations.length < wlan_mac_high_get_max_num_station_infos()) {
+            if (my_bss_info->station_info_list.length < wlan_mac_high_get_max_num_station_infos()) {
 
                 // Get MAC Address
                 wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[2], &mac_addr[0]);
@@ -463,7 +463,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
                 // Add association
-                curr_station_info = wlan_mac_high_add_station_info(&my_bss_info->associated_stations, &counts_table, &mac_addr[0], ADD_STATION_INFO_ANY_ID);
+                curr_station_info = wlan_mac_high_add_station_info(&my_bss_info->station_info_list, &counts_table, &mac_addr[0], ADD_STATION_INFO_ANY_ID);
 
                 // Set the flags
                 curr_station_info->flags = station_flags;
@@ -481,7 +481,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                     memcpy(&(curr_station_info->tx), &default_unicast_data_tx_params, sizeof(tx_params_t));
 
                     // Update the hex display
-                    ap_update_hex_display(my_bss_info->associated_stations.length);
+                    ap_update_hex_display(my_bss_info->station_info_list.length);
 
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Associated with node: ");
                 } else {

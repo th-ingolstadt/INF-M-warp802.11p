@@ -282,7 +282,7 @@ void print_station_status() {
 		xil_printf("\f");
 
 		if(my_bss_info != NULL){
-			curr_entry = my_bss_info->associated_stations.first;
+			curr_entry = my_bss_info->station_info_list.first;
 
 			while(curr_entry != NULL){
 				curr_station_info = (station_info_t*)(curr_entry->data);
@@ -330,7 +330,7 @@ void print_queue_status(){
 	xil_printf(" FREE || MCAST|");
 
 	if(my_bss_info != NULL){
-		curr_entry = my_bss_info->associated_stations.first;
+		curr_entry = my_bss_info->station_info_list.first;
 		while(curr_entry != NULL){
 			curr_station_info = (station_info_t*)(curr_entry->data);
 			xil_printf("%6d|", curr_station_info->ID);
@@ -342,7 +342,7 @@ void print_queue_status(){
 	xil_printf("%6d||%6d|",queue_num_free(),queue_num_queued(MCAST_QID));
 
 	if(my_bss_info != NULL){
-		curr_entry = my_bss_info->associated_stations.first;
+		curr_entry = my_bss_info->station_info_list.first;
 		while(curr_entry != NULL){
 			curr_station_info = (station_info_t*)(curr_entry->data);
 			xil_printf("%6d|", queue_num_queued(STATION_ID_TO_QUEUE_ID(curr_station_info->ID)));

@@ -528,7 +528,7 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details_t* tx_lo
 	station_info_t*          station_info 				   = NULL;
 
 
-	if(my_bss_info != NULL) station_info = (station_info_t*)(my_bss_info->associated_stations.first->data);
+	if(my_bss_info != NULL) station_info = (station_info_t*)(my_bss_info->station_info_list.first->data);
 
 	// Additional variables (Future Use)
 	// void*                  mpdu                    = (u8*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
@@ -586,7 +586,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 	// Check associations
 	//     Is there an AP to send the packet to?
 	if(my_bss_info != NULL){
-		ap_station_info = (station_info_t*)((my_bss_info->associated_stations.first)->data);
+		ap_station_info = (station_info_t*)((my_bss_info->station_info_list.first)->data);
 
 		// Send the packet to the AP
 		if(queue_num_queued(UNICAST_QID) < max_queue_size){
@@ -661,6 +661,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 	u8                  is_associated            = 0;
 	dl_entry*			bss_info_entry;
 	bss_info*			curr_bss_info;
+	volatile bss_info*	attempt_bss_info;
 	u8					pre_llc_offset			 = 0;
 
 	u8 					mcs	     = frame_info->phy_details.mcs;
@@ -685,7 +686,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 		// Update the association information
 		if(my_bss_info != NULL){
-			associated_station_entry = wlan_mac_high_find_station_info_ADDR(&(my_bss_info->associated_stations), (rx_80211_header->address_2));
+			associated_station_entry = wlan_mac_high_find_station_info_ADDR(&(my_bss_info->station_info_list), (rx_80211_header->address_2));
 		} else {
 			associated_station_entry = NULL;
 		}
@@ -768,11 +769,9 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 						if(bss_info_entry != NULL){
 							curr_bss_info = (bss_info*)(bss_info_entry->data);
-							if(curr_bss_info->state == BSS_STATE_AUTHENTICATED){
-								curr_bss_info->state = BSS_STATE_ASSOCIATED;
-								curr_bss_info->last_join_attempt_result = SUCCESSFUL;
-								wlan_mac_sta_join_bss_attempt_poll((((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000);
-							}
+							wlan_mac_sta_successfully_associated(curr_bss_info->bssid,
+																(((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000);
+
 						}
 					} else {
 						// AP is rejecting association request
@@ -780,12 +779,9 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 						bss_info_entry = wlan_mac_high_find_bss_info_BSSID(rx_80211_header->address_3);
 
 						if (bss_info_entry != NULL) {
-							// Set the last_join_attempt_result to "DENIED"
-							//     - In wlan_mac_sta_join_bss_attempt_poll(), this will stop the current join
-							//       and take appropriate action.
 							curr_bss_info = (bss_info*)(bss_info_entry->data);
-							curr_bss_info->last_join_attempt_result = DENIED;
-
+							attempt_bss_info = wlan_mac_sta_get_attempt_bss_info();
+							if(wlan_addr_eq(attempt_bss_info && curr_bss_info->bssid, attempt_bss_info->bssid)) wlan_mac_sta_join_return_to_idle();
 							xil_printf("Join process association failed for BSS %s\n", ((bss_info*)(bss_info_entry->data))->ssid);
 						}
 
@@ -813,14 +809,9 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 									if(((authentication_frame*)mpdu_ptr_u8)->status_code == STATUS_SUCCESS){
 										// AP is authenticating us. Update BSS_info.
 										bss_info_entry = wlan_mac_high_find_bss_info_BSSID(rx_80211_header->address_3);
-
 										if(bss_info_entry != NULL){
 											curr_bss_info = (bss_info*)(bss_info_entry->data);
-											if(curr_bss_info->state == BSS_STATE_UNAUTHENTICATED){
-												curr_bss_info->state = BSS_STATE_AUTHENTICATED;
-												curr_bss_info->last_join_attempt_result = SUCCESSFUL;
-												wlan_mac_sta_join_bss_attempt_poll(0);
-											}
+											wlan_mac_sta_successfully_authenticated(curr_bss_info->bssid);
 										}
 									}
 
@@ -835,11 +826,9 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 								bss_info_entry = wlan_mac_high_find_bss_info_BSSID(rx_80211_header->address_3);
 
 								if (bss_info_entry != NULL) {
-									// Set the last_join_attempt_result to "DENIED"
-									//     - In wlan_mac_sta_join_bss_attempt_poll(), this will stop the current join
-									//       and take appropriate action.
 									curr_bss_info = (bss_info*)(bss_info_entry->data);
-									curr_bss_info->last_join_attempt_result = DENIED;
+									attempt_bss_info = wlan_mac_sta_get_attempt_bss_info();
+									if(attempt_bss_info && wlan_addr_eq(curr_bss_info->bssid, attempt_bss_info->bssid)) wlan_mac_sta_join_return_to_idle();
 
 									xil_printf("Join process authentication failed for BSS %s\n", ((bss_info*)(bss_info_entry->data))->ssid);
 								}
@@ -858,23 +847,20 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 					//   - Start and active scan to find the AP if an SSID is defined
 					//
 					if(my_bss_info != NULL){
-						if(wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr) && (wlan_mac_high_find_station_info_ADDR(&(my_bss_info->associated_stations), rx_80211_header->address_2) != NULL)){
+						if(wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr) && (wlan_mac_high_find_station_info_ADDR(&(my_bss_info->station_info_list), rx_80211_header->address_2) != NULL)){
 
 							//
 							// TODO:  (Optional) Log association state change
 							//
 
 							// Stop any on-going join
-							if (wlan_mac_is_joining()) { wlan_mac_sta_join_return_to_idle(); }
+							if (wlan_mac_sta_is_joining()) { wlan_mac_sta_join_return_to_idle(); }
 
 							// Purge all packets for the AP
 							purge_queue(UNICAST_QID);
 
 							// Update the hex display to show that we are no longer associated
 							sta_update_hex_display(0);
-
-							// Set BSS state
-							my_bss_info->state = BSS_STATE_UNAUTHENTICATED;
 
 							// Remove the association
 							curr_bss_info = my_bss_info;
@@ -995,7 +981,7 @@ void ltg_event(u32 id, void* callback_arg){
 			break;
 		}
 
-		ap_station_info = (station_info_t*)((my_bss_info->associated_stations.first)->data);
+		ap_station_info = (station_info_t*)((my_bss_info->station_info_list.first)->data);
 
 		// Send a Data packet to AP
 		if(queue_num_queued(UNICAST_QID) < max_queue_size){
@@ -1070,7 +1056,7 @@ int  sta_disassociate( void ) {
 	if(my_bss_info != NULL){
 
 		// Get the AP station info
-		ap_station_info_entry = my_bss_info->associated_stations.first;
+		ap_station_info_entry = my_bss_info->station_info_list.first;
 		ap_station_info       = (station_info_t*)ap_station_info_entry->data;
 
 		//
@@ -1213,14 +1199,14 @@ u32	configure_bss(bss_config_t* bss_config){
 			// This will not result in any OTA transmissions to the stations.
 
 			if (my_bss_info != NULL) {
-				curr_station_info_entry = my_bss_info->associated_stations.first;
+				curr_station_info_entry = my_bss_info->station_info_list.first;
 				curr_station_info = (station_info_t*)(curr_station_info_entry->data);
 
 				// Purge any data for the AP
 				purge_queue(UNICAST_QID);
 
 				// Remove the association
-				wlan_mac_high_remove_station_info( &my_bss_info->associated_stations, &counts_table, curr_station_info->addr );
+				wlan_mac_high_remove_station_info( &my_bss_info->station_info_list, &counts_table, curr_station_info->addr );
 
 				// Update the hex display to show STA is not currently associated
 				sta_update_hex_display(0);
@@ -1228,7 +1214,6 @@ u32	configure_bss(bss_config_t* bss_config){
 				// Inform the MAC High Framework to no longer will keep this BSS Info. This will
 				// allow it to be overwritten in the future to make space for new BSS Infos.
 				my_bss_info->flags &= ~BSS_FLAGS_KEEP;
-				my_bss_info->state  = BSS_STATE_UNAUTHENTICATED;
 
 				// Set "my_bss_info" to NULL
 				//     - All functions must be able to handle my_bss_info = NULL
@@ -1264,7 +1249,7 @@ u32	configure_bss(bss_config_t* bss_config){
 			//     - BSSID must not be zero_addr (reserved address)
 			if (wlan_addr_eq(bss_config->bssid, zero_addr) == 0) {
 				// Stop the join state machine if it is running
-				if (wlan_mac_is_joining()) {
+				if (wlan_mac_sta_is_joining()) {
 					wlan_mac_sta_join_return_to_idle();
 				}
 
@@ -1286,7 +1271,7 @@ u32	configure_bss(bss_config_t* bss_config){
 					my_bss_info = local_bss_info;
 
 					// Add AP to association table
-					ap_station_info = wlan_mac_high_add_station_info(&(my_bss_info->associated_stations), &counts_table, my_bss_info->bssid, 0);
+					ap_station_info = wlan_mac_high_add_station_info(&(my_bss_info->station_info_list), &counts_table, my_bss_info->bssid, 0);
 
 					if(ap_station_info != NULL) {
 
@@ -1446,7 +1431,7 @@ void up_button(){
  *****************************************************************************/
 dl_list * get_station_info_list(){
 	if(my_bss_info != NULL){
-		return &(my_bss_info->associated_stations);
+		return &(my_bss_info->station_info_list);
 	} else {
 		return NULL;
 	}

@@ -44,15 +44,6 @@
 #define BEACON_INTERVAL_NO_BEACON_TX                       0x0
 #define BEACON_INTERVAL_UNKNOWN                            0xFFFF
 
-
-//-----------------------------------------------
-// BSS State defines
-//
-#define BSS_STATE_UNAUTHENTICATED                          1
-#define BSS_STATE_AUTHENTICATED                            2
-#define BSS_STATE_ASSOCIATED                               4
-
-
 //-----------------------------------------------
 // BSS Flags defines
 //
@@ -89,7 +80,7 @@
         chan_spec_t     chan_spec;                         /* Channel Specification */                       \
         u64        		latest_beacon_rx_time;	           /* Timestamp - Last interaction with BSS */       \
         char       		ssid[SSID_LEN_MAX + 1];            /* SSID of the BSS - 33 bytes */                  \
-        u8         		state;                             /* State of the BSS */                            \
+        u8         		padding0;																			 \
         s8         		latest_beacon_rx_power;            /* Last observed Rx Power (dBm) */				 \
         u8         		flags;                             /* BSS Flags - Each flag is 1 bit */              \
         u16        		capabilities;                      /* Supported capabilities */                      \
@@ -133,31 +124,14 @@ typedef struct __attribute__((__packed__)){
 CASSERT(sizeof(chan_spec_t) == 2, chan_spec_t_alignment_check);
 
 /**
- * @brief Result of Join attempt
- *
- * This defines the values of a join attempt
- */
-typedef enum {
-    NEVER_ATTEMPTED = 0,
-    NO_RESPONSE     = 1,
-    DENIED          = 2,
-    SUCCESSFUL      = 3
-} join_attempt_result_t;
-
-
-/**
  * @brief Basic Service Set (BSS) Information Structure
  *
  * This struct contains information about the basic service set for the node.
  */
 typedef struct{
     MY_BSS_INFO_COMMON_FIELDS
-    join_attempt_result_t           last_join_attempt_result;
-    u64                             last_join_attempt_timestamp;
-    dl_list associated_stations;
+    dl_list station_info_list;
 } bss_info;
-
-
 
 /**
  * @brief Base BSS Information Structure
@@ -168,8 +142,6 @@ typedef struct{
 typedef struct{
     MY_BSS_INFO_COMMON_FIELDS
 } bss_info_base;
-
-
 
 /**
  * @brief BSS Configuration Structure
