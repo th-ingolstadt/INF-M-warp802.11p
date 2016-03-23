@@ -46,6 +46,7 @@
 
 /*********************** Global Variable Definitions *************************/
 
+volatile static phy_samp_rate_t		   gl_phy_samp_rate;
 
 /*************************** Variable Definitions ****************************/
 static u8                              eeprom_addr[6];
@@ -56,7 +57,8 @@ volatile u8                            green_led_index;
 
 /*************************** Functions Prototypes ****************************/
 
-int process_low_param(u8 mode, u32* payload);
+int  process_low_param(u8 mode, u32* payload);
+void handle_sample_rate_change(phy_samp_rate_t phy_samp_rate);
 
 
 /******************************** Functions **********************************/
@@ -91,9 +93,10 @@ int main(){
     memcpy(eeprom_addr, hw_info->hw_addr_wlan, 6);
 
     // Set up the TX / RX callbacks
-    wlan_mac_low_set_frame_rx_callback(      (void *) frame_receive);
-    wlan_mac_low_set_frame_tx_callback(      (void *) frame_transmit);
-    wlan_mac_low_set_ipc_low_param_callback( (void *) process_low_param);
+    wlan_mac_low_set_frame_rx_callback(      	  (void*)frame_receive );
+    wlan_mac_low_set_frame_tx_callback(      	  (void*)frame_transmit );
+    wlan_mac_low_set_ipc_low_param_callback( 	  (void*)process_low_param );
+    wlan_mac_low_set_sample_rate_change_callback( (void*)handle_sample_rate_change );
 
     // Finish Low Framework initialization
     wlan_mac_low_init_finish();
@@ -154,7 +157,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details){
     frame_info->flags          = 0;
     frame_info->phy_details    = *phy_details;
     frame_info->channel        = wlan_mac_low_get_active_channel();
-    frame_info->phy_samp_rate  = (u8)wlan_mac_low_get_phy_samp_rate();
+    frame_info->phy_samp_rate  = (u8)gl_phy_samp_rate;
     frame_info->timestamp      = wlan_mac_low_get_rx_start_timestamp();
     frame_info->timestamp_frac = wlan_mac_low_get_rx_start_timestamp_frac();
 
@@ -244,7 +247,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
     frame_info->num_tx_attempts  = 1;
 
     // Update tx_frame_info with current PHY sampling rate
-    frame_info->phy_samp_rate	= (u8)wlan_mac_low_get_phy_samp_rate();
+    frame_info->phy_samp_rate	= (u8)gl_phy_samp_rate;
 
     // Convert the requested Tx power (dBm) to a Tx gain setting for the radio
     tx_gain = wlan_mac_low_dbm_to_gain_target(frame_info->params.phy.power);
@@ -304,7 +307,9 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
     return TX_MPDU_RESULT_SUCCESS;
 }
 
-
+void handle_sample_rate_change(phy_samp_rate_t phy_samp_rate){
+	gl_phy_samp_rate = phy_samp_rate;
+}
 
 /*****************************************************************************/
 /**
