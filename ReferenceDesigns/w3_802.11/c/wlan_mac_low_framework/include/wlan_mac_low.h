@@ -453,6 +453,7 @@ inline u64         wlan_mac_low_get_tx_start_timestamp();
 inline u32         wlan_mac_low_get_active_channel();
 inline s8          wlan_mac_low_get_current_ctrl_tx_pow();
 inline u32         wlan_mac_low_get_current_rx_filter();
+inline phy_samp_rate_t  wlan_mac_low_get_phy_samp_rate();
 
 void               wlan_mac_low_set_nav_check_addr(u8* addr);
 void               wlan_mac_low_set_radio_channel(u32 channel);

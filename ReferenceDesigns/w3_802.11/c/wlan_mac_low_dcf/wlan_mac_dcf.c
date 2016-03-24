@@ -49,8 +49,7 @@
 
 
 /*********************** Global Variable Definitions *************************/
-volatile static mac_timing       	   gl_mac_timing_values;
-volatile static phy_samp_rate_t		   gl_phy_samp_rate;
+volatile static mac_timing             gl_mac_timing_values;
 volatile static u32                    gl_stationShortRetryCount;
 volatile static u32                    gl_stationLongRetryCount;
 volatile static u32                    gl_cw_exp;
@@ -167,8 +166,6 @@ int main(){
 void handle_sample_rate_change(phy_samp_rate_t phy_samp_rate){
 	// TODO: Add an argument to specify the phy_mode in case that changes MAC timings
 
-	gl_phy_samp_rate = phy_samp_rate;
-
     switch(phy_samp_rate){
     	default:
     	case PHY_40M:
@@ -208,9 +205,7 @@ void handle_sample_rate_change(phy_samp_rate_t phy_samp_rate){
 	wlan_mac_set_NAV_adj(0*10);
 	wlan_mac_set_EIFS(gl_mac_timing_values.t_eifs*10);
 
-	xil_printf("PHY Sampling Rate set to %d\n", gl_phy_samp_rate);
-
-
+	// xil_printf("PHY Sampling Rate set to %d\n", wlan_mac_low_get_phy_samp_rate());
 }
 
 void handle_mactime_change(s64 time_delta_usec){
@@ -402,7 +397,7 @@ inline int send_beacon(u8 tx_pkt_buf){
 		tx_frame_info_ptr->short_retry_count = 0;
 		tx_frame_info_ptr->long_retry_count  = 0;
 		tx_frame_info_ptr->num_tx_attempts   = 1;
-	    tx_frame_info_ptr->phy_samp_rate	 = gl_phy_samp_rate;
+	    tx_frame_info_ptr->phy_samp_rate	 = wlan_mac_low_get_phy_samp_rate();
 
 	    // Here, we are overloading the "create" timestamp to mean something subtly different
 	    //  than when it is used for data MPDUs since beacons are not created and enqueued in
@@ -723,7 +718,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         wlan_mac_tx_ctrl_B_gains(ctrl_tx_gain, ctrl_tx_gain, ctrl_tx_gain, ctrl_tx_gain);
 
         cts_duration = sat_sub(rx_header->duration_id, (gl_mac_timing_values.t_sifs) +
-        			wlan_ofdm_calc_txtime(sizeof(mac_header_80211_CTS) + WLAN_PHY_FCS_NBYTES, tx_mcs, PHY_MODE_NONHT, gl_phy_samp_rate));
+        			wlan_ofdm_calc_txtime(sizeof(mac_header_80211_CTS) + WLAN_PHY_FCS_NBYTES, tx_mcs, PHY_MODE_NONHT, wlan_mac_low_get_phy_samp_rate()));
 
         // Construct the ACK frame in the dedicated Tx pkt buf
         tx_length = wlan_create_cts_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK_CTS) + PHY_TX_PKT_BUF_MPDU_OFFSET),
@@ -800,7 +795,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
 
     // Record information about the reception in the RX packet metadata
     mpdu_info->channel        = wlan_mac_low_get_active_channel();
-    mpdu_info->phy_samp_rate  = (u8)gl_phy_samp_rate;
+    mpdu_info->phy_samp_rate  = (u8)wlan_mac_low_get_phy_samp_rate();
     mpdu_info->timestamp      = wlan_mac_low_get_rx_start_timestamp();
     mpdu_info->timestamp_frac = wlan_mac_low_get_rx_start_timestamp_frac();
     mpdu_info->ant_mode       = active_rx_ant;
@@ -1131,7 +1126,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
     frame_info->short_retry_count = 0;
     frame_info->long_retry_count  = 0;
     frame_info->num_tx_attempts   = 0;
-    frame_info->phy_samp_rate	  = (u8)gl_phy_samp_rate;
+    frame_info->phy_samp_rate	  = (u8)wlan_mac_low_get_phy_samp_rate();
 
     // Compare the length of this frame to the RTS Threshold
     if(length <= gl_dot11RTSThreshold) {
@@ -1150,7 +1145,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
 
 		// Compute and fill in the duration of any time-on-air following this packet's transmission
 		//     For DATA Tx, DURATION = T_SIFS + T_ACK, where T_ACK is function of the ACK Tx rate
-		header->duration_id = wlan_ofdm_calc_txtime(sizeof(mac_header_80211_ACK) + WLAN_PHY_FCS_NBYTES, ack_mcs, ack_phy_mode, gl_phy_samp_rate) + gl_mac_timing_values.t_sifs;
+		header->duration_id = wlan_ofdm_calc_txtime(sizeof(mac_header_80211_ACK) + WLAN_PHY_FCS_NBYTES, ack_mcs, ack_phy_mode, wlan_mac_low_get_phy_samp_rate()) + gl_mac_timing_values.t_sifs;
 	}
 
 
@@ -1236,7 +1231,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
             }
 
             rts_header_duration = (gl_mac_timing_values.t_sifs) + cts_header_duration +
-                                  (gl_mac_timing_values.t_sifs) + wlan_ofdm_calc_txtime(length, frame_info->params.phy.mcs, frame_info->params.phy.phy_mode, gl_phy_samp_rate) +
+                                  (gl_mac_timing_values.t_sifs) + wlan_ofdm_calc_txtime(length, frame_info->params.phy.mcs, frame_info->params.phy.phy_mode, wlan_mac_low_get_phy_samp_rate()) +
                                   header->duration_id;
 
             // We let "duration" be equal to the duration field of an RTS. This value is provided explicitly to CPU_HIGH

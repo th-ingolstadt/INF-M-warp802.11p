@@ -229,6 +229,14 @@ void wlan_mac_low_init_finish(){
  * @return  None
  */
 void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
+
+    // Check sample rate argument
+    //     - Must be in [PHY_10M, PHY_20M, PHY_40M]
+    if (!((phy_samp_rate == PHY_10M) || (phy_samp_rate == PHY_20M) || (phy_samp_rate == PHY_40M))) {
+        return;
+    }
+
+    // Set global sample rate variable
 	gl_phy_samp_rate = phy_samp_rate;
 
     // Assert PHY Tx/Rx and MAC Resets
@@ -240,46 +248,50 @@ void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
     switch(phy_samp_rate){
 		case PHY_10M:
     	case PHY_40M:
+    		// Always disable DSSS when PHY sample rate is not 20 MSps
     		wlan_phy_DSSS_rx_disable();
     	break;
     	case PHY_20M:
-    		if(dsss_state) wlan_phy_DSSS_rx_enable();
+			// Enable DSSS if state indicates it should be enabled and RF band allows it
+    		if ((dsss_state) && (mac_param_band == RC_24GHZ)) {
+    			wlan_phy_DSSS_rx_enable();
+			}
     	break;
     }
 
     // Configure auto-correlation packet detection
     //  wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(corr_thresh, energy_thresh, min_dur, post_wait)
-     switch(phy_samp_rate){
-     	case PHY_40M:
-     		//TODO: The 2 value is suspiciously low
-     		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 2, 15, 0x3F);
+    switch(phy_samp_rate){
+    	case PHY_40M:
+    		//TODO: The 2 value is suspiciously low
+    		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 2, 15, 0x3F);
 		break;
-     	case PHY_10M:
-     	case PHY_20M:
-     		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 9, 4, 0x3F);
-     	break;
-     }
+    	case PHY_10M:
+    	case PHY_20M:
+    		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 9, 4, 0x3F);
+    	break;
+    }
 
-     // Set post Rx extension
-     //  Number of sample periods post-Rx the PHY waits before asserting Rx END - must be long enough for worst-case
-     //   decoding latency and should result in RX_END asserting 6 usec after the last sample was received
-     switch(phy_samp_rate){
-     	case PHY_40M:
-     		// 6us Extension
-     		wlan_phy_rx_set_extension(6*40);
- 		break;
-     	case PHY_20M:
-     		// 6us Extension
-     		wlan_phy_rx_set_extension(6*20);
-     	break;
-     	case PHY_10M:
-     		// 6us Extension
-     		wlan_phy_rx_set_extension(6*10);
-     	break;
-     }
+    // Set post Rx extension
+    //  Number of sample periods post-Rx the PHY waits before asserting Rx END - must be long enough for worst-case
+    //   decoding latency and should result in RX_END asserting 6 usec after the last sample was received
+    switch(phy_samp_rate){
+    	case PHY_40M:
+    		// 6us Extension
+    		wlan_phy_rx_set_extension(6*40);
+		break;
+    	case PHY_20M:
+    		// 6us Extension
+    		wlan_phy_rx_set_extension(6*20);
+    	break;
+    	case PHY_10M:
+    		// 6us Extension
+    		wlan_phy_rx_set_extension(6*10);
+    	break;
+    }
 
-     // Set Tx duration extension, in units of sample periods
-	 switch(phy_samp_rate){
+    // Set Tx duration extension, in units of sample periods
+	switch(phy_samp_rate){
 		case PHY_40M:
 			// 364 20MHz sample periods.
 			// The extra 3 usec properly delays the assertion of TX END to match the assertion of RX END at the receiving node.
@@ -317,7 +329,7 @@ void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
 			// Set extension from RF Rx -> Tx to un-blocking Rx samples
 			wlan_phy_tx_set_rx_invalid_extension(75);
 		break;
-	 }
+	}
 
 	// Set RF Parameters based on sample rate selection
 	switch(phy_samp_rate){
@@ -756,7 +768,7 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
                         break;
 
                         case LOW_PARAM_PHY_SAMPLE_RATE: {
-                            xil_printf("Set PHY Sample rate:  %d\n", ipc_msg_from_high_payload[1]);
+                            set_phy_samp_rate(ipc_msg_from_high_payload[1]);
                         }
                         break;
 
@@ -919,8 +931,8 @@ void wlan_mac_low_set_radio_channel(u32 channel){
 		if(mac_param_chan <= 14){
 			mac_param_band = RC_24GHZ;
 
-			// Enable DSSS if state indicates it should be enabled
-			if (dsss_state) {
+			// Enable DSSS if state indicates it should be enabled and PHY sample rate allows it
+			if ((dsss_state) && (gl_phy_samp_rate == PHY_20M)) {
 				wlan_phy_DSSS_rx_enable();
 			}
 		} else {
@@ -944,8 +956,9 @@ void wlan_mac_low_set_radio_channel(u32 channel){
 /**
  * @brief Enable / Disable DSSS RX
  *
- * DSSS RX must be disabled when in the 5 GHz band.  However, the low framework will
- * maintain what the state should be when in the 2.4 GHz band.
+ * DSSS RX must be disabled when in the 5 GHz band or when the PHY sample rate
+ * is not 20 MSps.  However, the low framework will maintain what the state
+ * should be when in the 2.4 GHz band and the PHY sample rate is 20 MSps
  *
  * @param   None
  * @return  None
@@ -954,8 +967,8 @@ void wlan_mac_low_set_radio_channel(u32 channel){
 void wlan_mac_low_DSSS_rx_enable() {
 	dsss_state = 1;
 
-	// Only enable DSSS if in 2.4 GHz band
-	if (mac_param_band == RC_24GHZ) {
+	// Only enable DSSS if in 2.4 GHz band and phy sample rate is 20
+	if ((mac_param_band == RC_24GHZ) && (gl_phy_samp_rate == PHY_20M)) {
 		wlan_phy_DSSS_rx_enable();
 	}
 }
@@ -1172,6 +1185,11 @@ inline s8 wlan_mac_low_get_current_ctrl_tx_pow(){
 
 inline u32 wlan_mac_low_get_current_rx_filter(){
     return mac_param_rx_filter;
+}
+
+
+inline phy_samp_rate_t wlan_mac_low_get_phy_samp_rate() {
+    return gl_phy_samp_rate;
 }
 
 
