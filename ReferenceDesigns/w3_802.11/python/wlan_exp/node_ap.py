@@ -402,8 +402,9 @@ class WlanExpNodeAp(node.WlanExpNode):
                 device.set_aid(aid=aid)
                 ret_val = True
             else:
-                msg  = "\nWARNING:  Could not add association to non-STA node '{0}'\n".format(device.description)
-                msg += "    Please add the association to the AP manually on the device.\n"
+                msg  = "\nWARNING:  Device {0} is not a wlan_exp node \n".format(device.description)
+                msg += "    instance.  The device has been added to the AP's list of associated stations.\n"
+                msg += "    However, wlan_exp cannot update association state of the device.\n"
                 print(msg)
                 ret_val = True
 
