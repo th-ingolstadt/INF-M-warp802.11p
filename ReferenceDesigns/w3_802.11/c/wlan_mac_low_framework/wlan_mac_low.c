@@ -538,10 +538,12 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 			// Decide how to handle this waveform
 			if(phy_hdr_params & WLAN_MAC_PHY_RX_PHY_HDR_READY) {
                 // Received PHY header - decide whether to call MAC callback
-                if(phy_hdr_params & WLAN_MAC_PHY_RX_PHY_HDR_MASK_UNSUPPORTED) {
+                if( (phy_hdr_params & WLAN_MAC_PHY_RX_PHY_HDR_MASK_UNSUPPORTED) ||
+                	(wlan_mac_get_rx_phy_mode() > 0x2) ) {
                     // Valid HT-SIG but unsupported waveform
                     //  Rx PHY will hold ACTIVE until last samp but will not write payload
                 	//  HT-SIG fields (MCS, length) can be safely read here if desired
+                	// Or detected VHT waveform (not supported), did not attempt decoding VHT-SIG
         			//xil_printf("Quitting - WLAN_MAC_PHY_RX_PHY_HDR_MASK_UNSUPPORTED (MCS = %d, Length = %d)", wlan_mac_get_rx_phy_mcs(), wlan_mac_get_rx_phy_length());
 
                 } else if(phy_hdr_params & WLAN_MAC_PHY_RX_PHY_HDR_MASK_RX_ERROR) {
