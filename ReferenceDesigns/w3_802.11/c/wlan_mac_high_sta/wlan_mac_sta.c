@@ -201,7 +201,7 @@ int main() {
 	wlan_mac_ltg_sched_set_callback(             (void *) ltg_event);
 	wlan_mac_high_set_pb_u_callback(             (void *) up_button);
 	wlan_mac_scan_set_tx_probe_request_callback( (void *) send_probe_req);
-	wlan_mac_scan_set_state_change_callback(	 (void *) process_scan_state_change);
+	wlan_mac_scan_set_state_change_callback(     (void *) process_scan_state_change);
 
 	// Set the Ethernet ecapsulation mode
 	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_STA);
@@ -340,38 +340,40 @@ int main() {
  *
  *****************************************************************************/
 void send_probe_req(){
-	u16                 			tx_length;
-	tx_queue_element*				curr_tx_queue_element;
-	tx_queue_buffer* 				curr_tx_queue_buffer;
-	volatile scan_parameters_t* 	scan_parameters = wlan_mac_scan_get_parameters();
+	u16                             tx_length;
+	tx_queue_element*               curr_tx_queue_element;
+	tx_queue_buffer*                curr_tx_queue_buffer;
+	volatile scan_parameters_t*     scan_parameters = wlan_mac_scan_get_parameters();
 
-	// Send probe request
+	// Check out queue element for packet
 	curr_tx_queue_element = queue_checkout();
 
+	// Create probe request
 	if(curr_tx_queue_element != NULL){
 		curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
 
 		// Setup the TX header
-		wlan_mac_high_setup_tx_header( &tx_header_common, (u8 *)bcast_addr, (u8 *)bcast_addr );
+		wlan_mac_high_setup_tx_header(&tx_header_common, (u8 *)bcast_addr, (u8 *)bcast_addr);
 
 		// Fill in the data
-		tx_length = wlan_create_probe_req_frame((void*)(curr_tx_queue_buffer->frame),&tx_header_common, scan_parameters->ssid);
+		tx_length = wlan_create_probe_req_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, scan_parameters->ssid);
 
 		// Setup the TX frame info
-		wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, 0, MANAGEMENT_QID );
+		wlan_mac_high_setup_tx_frame_info(&tx_header_common, curr_tx_queue_element, tx_length, 0, MANAGEMENT_QID);
 
 		// Set the information in the TX queue buffer
 		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
 		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_mgmt_tx_params);
-		curr_tx_queue_buffer->frame_info.ID         = 0;
+		curr_tx_queue_buffer->frame_info.ID          = 0;
 
 		// Put the packet in the queue
 		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
 
-	    // Poll the TX queues to possibly send the packet
+		// Poll the TX queues to possibly send the packet
 		poll_tx_queues();
 	}
 }
+
 
 
 /*****************************************************************************/

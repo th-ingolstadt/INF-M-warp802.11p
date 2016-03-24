@@ -128,6 +128,8 @@ wlan_mac_low_config_t                  cpu_low_config;
 int  wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len);
 #endif
 
+void send_probe_req();
+
 
 /******************************** Functions **********************************/
 
@@ -209,18 +211,19 @@ int main(){
 	wlan_mac_high_set_uart_rx_callback(         (void*)uart_rx);
 	wlan_mac_high_set_poll_tx_queues_callback(  (void*)poll_tx_queues);
 	wlan_mac_high_set_mpdu_dequeue_callback(    (void*)mpdu_dequeue);
-    wlan_mac_ltg_sched_set_callback(            (void*)ltg_event);
-    queue_set_state_change_callback(            (void*)queue_state_change);
-    wlan_mac_scan_set_state_change_callback(    (void*) process_scan_state_change);
+	wlan_mac_ltg_sched_set_callback(            (void*)ltg_event);
+	queue_set_state_change_callback(            (void*)queue_state_change);
+	wlan_mac_scan_set_tx_probe_request_callback((void*)send_probe_req);
+	wlan_mac_scan_set_state_change_callback(    (void*)process_scan_state_change);
 
-    // Configure the wireless-wired encapsulation mode (AP and STA behaviors are different)
-    wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_AP);
+	// Configure the wireless-wired encapsulation mode (AP and STA behaviors are different)
+	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_AP);
 
-    // Ask CPU Low for its status
-    // The response to this request will be handled asynchronously
-    wlan_mac_high_request_low_state();
+	// Ask CPU Low for its status
+	// The response to this request will be handled asynchronously
+	wlan_mac_high_request_low_state();
 
-    // Wait for CPU Low to initialize
+	// Wait for CPU Low to initialize
 	while( wlan_mac_high_is_cpu_low_initialized() == 0 ){
 		xil_printf("waiting on CPU_LOW to boot\n");
 	}
@@ -352,6 +355,59 @@ int main(){
 
 	// Unreachable, but non-void return keeps the compiler happy
 	return -1;
+}
+
+
+
+/*****************************************************************************/
+/**
+ * @brief Send probe requet
+ *
+ * This function is part of the scan infrastructure and will be called whenever
+ * the node needs to send a probe request.
+ *
+ * Note:  Normally, APs will never send probe requests.  However as part of the
+ * WLAN Exp infrastructure, an active scan can be run on any node as long as
+ * my_bss_info is NULL.  Therefore, this function needs to exist in the AP
+ * codebase.
+ *
+ * @param   None
+ * @return  None
+ *
+ *****************************************************************************/
+void send_probe_req(){
+	u16                             tx_length;
+	tx_queue_element*               curr_tx_queue_element;
+	tx_queue_buffer*                curr_tx_queue_buffer;
+	volatile scan_parameters_t*     scan_parameters = wlan_mac_scan_get_parameters();
+
+	// Check out queue element for packet
+	curr_tx_queue_element = queue_checkout();
+
+	// Create probe request
+	if(curr_tx_queue_element != NULL){
+		curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+
+		// Setup the TX header
+		wlan_mac_high_setup_tx_header(&tx_header_common, (u8 *)bcast_addr, (u8 *)bcast_addr);
+
+		// Fill in the data
+		tx_length = wlan_create_probe_req_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, scan_parameters->ssid);
+
+		// Setup the TX frame info
+		wlan_mac_high_setup_tx_frame_info(&tx_header_common, curr_tx_queue_element, tx_length, 0, MANAGEMENT_QID);
+
+		// Set the information in the TX queue buffer
+		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
+		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_mgmt_tx_params);
+		curr_tx_queue_buffer->frame_info.ID          = 0;
+
+		// Put the packet in the queue
+		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
+
+		// Poll the TX queues to possibly send the packet
+		poll_tx_queues();
+	}
 }
 
 
@@ -2362,7 +2418,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				memcpy(gl_beacon_txrx_config.bssid_match, my_bss_info->bssid, BSSID_LEN);
 
 				if ((my_bss_info->beacon_interval == BEACON_INTERVAL_NO_BEACON_TX) ||
-					(my_bss_info->beacon_interval == BEACON_INTERVAL_NO_BEACON_TX)) {
+					(my_bss_info->beacon_interval == BEACON_INTERVAL_UNKNOWN)) {
 					gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
 				} else {
 					gl_beacon_txrx_config.beacon_tx_mode = AP_BEACON_TX;
