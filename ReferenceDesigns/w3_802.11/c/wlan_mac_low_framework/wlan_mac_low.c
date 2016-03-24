@@ -57,7 +57,7 @@
 volatile static phy_samp_rate_t   gl_phy_samp_rate;                                 ///< Current PHY sampling rate
 volatile static u32               mac_param_chan;                                   ///< Current channel of the lower-level MAC
 volatile static u8                mac_param_band;                                   ///< Current band of the lower-level MAC
-volatile static u8                dsss_state;                                       ///< State of DSSS RX for 2.4GHz band
+volatile static u8                mac_param_dsss_en;                                ///< Enable / Disable DSSS when possible
 volatile static s8                mac_param_ctrl_tx_pow;                            ///< Current transmit power (dBm) for control packets
 volatile static u32               mac_param_rx_filter;                              ///< Current filter applied to packet receptions
 volatile static u8                rx_pkt_buf;                                       ///< Current receive buffer of the lower-level MAC
@@ -110,7 +110,7 @@ int wlan_mac_low_init(u32 type){
     rx_frame_info* rx_mpdu;
     wlan_ipc_msg_t ipc_msg_to_high;
 
-    dsss_state               = 1;
+    mac_param_dsss_en        = 1;
     mac_param_band           = RC_24GHZ;
     mac_param_ctrl_tx_pow    = 10;
     cpu_low_status           = 0;
@@ -252,8 +252,8 @@ void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
     		wlan_phy_DSSS_rx_disable();
     	break;
     	case PHY_20M:
-			// Enable DSSS if state indicates it should be enabled and RF band allows it
-    		if ((dsss_state) && (mac_param_band == RC_24GHZ)) {
+			// Enable DSSS if global variable indicates it should be enabled and RF band allows it
+    		if ((mac_param_dsss_en) && (mac_param_band == RC_24GHZ)) {
     			wlan_phy_DSSS_rx_enable();
 			}
     	break;
@@ -386,6 +386,10 @@ void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
     REG_CLEAR_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);
     REG_CLEAR_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_RESET);
     wlan_mac_reset(0);
+
+    // Let PHY Tx take control of radio TXEN/RXEN
+    REG_CLEAR_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_SET_RC_RXEN);
+    REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_SET_RC_RXEN);
 }
 
 
@@ -931,8 +935,8 @@ void wlan_mac_low_set_radio_channel(u32 channel){
 		if(mac_param_chan <= 14){
 			mac_param_band = RC_24GHZ;
 
-			// Enable DSSS if state indicates it should be enabled and PHY sample rate allows it
-			if ((dsss_state) && (gl_phy_samp_rate == PHY_20M)) {
+			// Enable DSSS if global variable indicates it should be enabled and PHY sample rate allows it
+			if ((mac_param_dsss_en) && (gl_phy_samp_rate == PHY_20M)) {
 				wlan_phy_DSSS_rx_enable();
 			}
 		} else {
@@ -965,7 +969,7 @@ void wlan_mac_low_set_radio_channel(u32 channel){
  *
  */
 void wlan_mac_low_DSSS_rx_enable() {
-	dsss_state = 1;
+	mac_param_dsss_en = 1;
 
 	// Only enable DSSS if in 2.4 GHz band and phy sample rate is 20
 	if ((mac_param_band == RC_24GHZ) && (gl_phy_samp_rate == PHY_20M)) {
@@ -975,7 +979,7 @@ void wlan_mac_low_DSSS_rx_enable() {
 
 
 void wlan_mac_low_DSSS_rx_disable() {
-	dsss_state = 0;
+	mac_param_dsss_en = 0;
 	wlan_phy_DSSS_rx_disable();
 }
 
