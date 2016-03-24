@@ -59,12 +59,12 @@ __all__ = ['StationInfo', 'BSSInfo', 'TxRxCounts']
 #-------------------------------------------------------------------------
 info_field_defs = {
     'STATION_INFO' : [
-        ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of creation'),
+        ('timestamp',                   'Q',      'uint64',  'Value of MAC Time in microseconds when log entry created'),
         ('mac_addr',                    '6s',     '6uint8',  'MAC address of associated device'),
         ('aid',                         'H',      'uint16',  'Association ID (AID) of device'),
         ('host_name',                   '20s',    '20uint8', 'String hostname (19 chars max), taken from DHCP DISCOVER packets'),
         ('flags',                       'I',      'uint32',  'Association state flags: ???'),
-        ('latest_activity_timestamp',   'Q',      'uint64',  'Microsecond timer value at time of last successful Rx from device'),
+        ('latest_activity_timestamp',   'Q',      'uint64',  'Value of System Time in microseconds of last successful Rx from device'),
         ('rx_last_seq',                 'H',      'uint16',  'Sequence number of last packet received from device'),
         ('rx_last_power',               'b',      'int8',    'Rx power in dBm of last packet received from device'),
         ('padding0',                    'x',      'uint8',   ''),
@@ -76,11 +76,11 @@ info_field_defs = {
         ('padding1',                    '3x',     '3uint8',  '')],
 
     'BSS_INFO' : [
-        ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
+        ('timestamp',                   'Q',      'uint64',  'Value of MAC Time in microseconds when log entry created'),
         ('bssid',                       '6s',     '6uint8',  'BSS ID'),
         ('channel',                     'B',      'uint8',   'Primary channel'),
         ('channel_type',                'B',      'uint8',   'Channel Type'),
-        ('latest_beacon_rx_time',       'Q',      'uint64',  'Microsecond timer value at time of last Tx or Rx event to node with address mac_addr'),
+        ('latest_beacon_rx_time',       'Q',      'uint64',  'Value of System Time in microseconds of last beacon Rx'),
         ('ssid',                        '33s',    '33uint8', 'SSID (32 chars max)'),
         ('padding0',                    'x',      'uint8',   ''),
         ('latest_beacon_rx_power',      'b',      'int8',    'Last observed Rx Power (dBm)'),
@@ -98,7 +98,7 @@ info_field_defs = {
         ('ht_capable',                  'B',      'uint8',   'Support for HTMF Tx/Rx')],
 
     'TXRX_COUNTS' : [
-        ('timestamp',                   'Q',      'uint64',  'Microsecond timer value at time of creation'),
+        ('timestamp',                   'Q',      'uint64',  'Value of MAC Time in microseconds when log entry created'),
         ('mac_addr',                    '6s',     '6uint8',  'MAC address of remote node whose statics are recorded here'),
         ('associated',                  'B',      'uint8',   'Boolean indicating whether remote node is currently associated with this node'),
         ('padding',                     'x',      'uint8',   ''),
@@ -116,7 +116,7 @@ info_field_defs = {
         ('mgmt_num_tx_packets_success', 'I',      'uint32',  'Total number of management packets successfully transmitted to remote node'),
         ('mgmt_num_tx_packets_total',   'I',      'uint32',  'Total number of management packets transmitted (successfully or not) to remote node'),
         ('mgmt_num_tx_packets_low',     'I',      'uint32',  'Total number of PHY transmissions of management packets to remote node (includes re-transmissions)'),
-        ('latest_txrx_timestamp',       'Q',      'uint64',  'Microsecond timer value (system time) of last transmission / reception')]
+        ('latest_txrx_timestamp',       'Q',      'uint64',  'Value of Sytem Time in microseconds of last transmission / reception')]
 
 }
 

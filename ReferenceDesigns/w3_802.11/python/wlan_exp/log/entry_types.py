@@ -815,7 +815,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     entry_rx_common.description += 'MAC filter is configured to pass all receptions up to CPU High.'
 
     entry_rx_common.append_field_defs([
-        ('timestamp',              'Q',      'uint64',  'Microsecond timer value at PHY Rx start'),
+        ('timestamp',              'Q',      'uint64',  'Value of MAC Time in microseconds at PHY RX_START'),
         ('timestamp_frac',         'B',      'uint8',   'Fractional timestamp (units of 6.25ns)'),
         ('phy_samp_rate',          'B',      'uint8',   'PHY Sampling Rate Mode'),
         ('length',                 'H',      'uint16',  'Length of payload in bytes'),
@@ -856,7 +856,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     entry_tx_common.description += '(time_to_accept+time_to_done).'
 
     entry_tx_common.append_field_defs([
-        ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time packet was created, immediately before it was enqueued'),
+        ('timestamp',              'Q',      'uint64',  'Value of MAC Time in microseconds when packet was created, immediately before it was enqueued'),
         ('time_to_accept',         'I',      'uint32',  'Time duration in microseconds between packet creation and packet acceptance by CPU Low'),
         ('time_to_done',           'I',      'uint32',  'Time duration in microseconds between packet acceptance by CPU Low and Tx completion in CPU Low'),
         ('uniq_seq',               'Q',      'uint64',  'Unique sequence number for Tx packet; 12 LSB of this used for 802.11 MAC header sequence number'),
@@ -893,7 +893,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     entry_tx_low_common.description += 'between TX and TX_LOW entries to find records common to the same MPUD.'
 
     entry_tx_low_common.append_field_defs([
-        ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time packet transmission actually started (PHY TX_START time)'),
+        ('timestamp',              'Q',      'uint64',  'Value of MAC Time in microseconds when packet transmission actually started (PHY TX_START time)'),
         ('uniq_seq',               'Q',      'uint64',  'Unique sequence number of original MPDU'),
         ('mcs',                    'B',      'uint8',   'MCS index in [0:7]'),
         ('phy_mode',               'B',      'uint8',   'PHY mode'),
@@ -936,7 +936,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     _node_info_node_type += ' b3: CPU Low application: 0x1 = DCF, 0x2 = NOMAC'
 
     entry_node_info.append_field_defs([
-        ('timestamp',                  'Q',  'uint64',  'Microsecond timer value at time of log entry creation'),
+        ('timestamp',                  'Q',  'uint64',  'Value of MAC Time in microseconds when log entry created'),
         ('node_type',                  'I',  'uint32',  _node_info_node_type),
         ('node_id',                    'I',  'uint32',  'Node ID, as set during wlan_exp init'),
         ('hw_generation',              'I',  'uint32',  'WARP hardware generation: 3 for WARP v3'),
@@ -962,7 +962,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     entry_exp_info_hdr.description += 'code must access the payload in the binary log data directly.'
 
     entry_exp_info_hdr.append_field_defs([
-        ('timestamp',              'Q',      'uint64',  'Microsecond timer value at time of log entry creation'),
+        ('timestamp',              'Q',      'uint64',  'Value of MAC Time in microseconds when log entry created'),
         ('info_type',              'H',      'uint16',  'Exp info type (arbitrary value supplied by application'),
         ('info_len',               'H',      'uint16',  'Exp info length (describes arbitrary payload supplied by application'),
         ('info_payload',           'I',      'uint32',  'Exp info payload')])
@@ -975,15 +975,15 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
 
     entry_time_info.description  = 'Record of a time base event at the node. This log entry is used to enable parsing of log data '
     entry_time_info.description += 'recorded before and after changes to the node\'s microsecond MAC timer. This entry also allows a wlan_exp controler to '
-    entry_time_info.description += 'write the current host time to the node log without affecting the node\'s timer value. This enables adjustment '
+    entry_time_info.description += 'write the current host time to the node log without affecting the node\'s MAC timer value. This enables adjustment '
     entry_time_info.description += 'of log entry timestamps to real timestamps in post-proessing.'
 
     entry_time_info.append_field_defs([
-        ('timestamp',              'Q',      'uint64', 'Microsecond MAC timer value at time of log entry creation before any time change is applied'),
+        ('timestamp',              'Q',      'uint64', 'Value of MAC Time in microseconds when log entry created (before any time change is applied)'),
         ('time_id',                'I',      'uint32', 'Random ID value included in wlan_exp TIME_INFO command; used to find common entries across nodes'),
         ('reason',                 'I',      'uint32', 'Reason code for TIME_INFO log entry creation'),
-        ('mac_timestamp',          'Q',      'uint64', 'New value of microsecond MAC timer value'),
-        ('system_timestamp',       'Q',      'uint64', 'Value of microsecond System timer value'),
+        ('mac_timestamp',          'Q',      'uint64', 'New value of MAC Time in microseconds '),
+        ('system_timestamp',       'Q',      'uint64', 'Value of System Time in microseconds'),
         ('host_timestamp',         'Q',      'uint64', 'Host time in microseconds-since-epoch; 0xFFFFFFFFFFFFFFFF if unknown')])
 
     entry_time_info.consts = util.consts_dict({
@@ -1005,7 +1005,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     entry_node_temperature.description += '(((float)temp_u32)/(65536.0*0.00198421639)) - 273.15'
 
     entry_node_temperature.append_field_defs([
-        ('timestamp',              'Q',      'uint64', 'Microsecond timer value at time of log entry creation'),
+        ('timestamp',              'Q',      'uint64', 'Value of MAC Time in microseconds when log entry created'),
         ('node_id',                'I',      'uint32', 'wlan_exp node ID'),
         ('serial_num',             'I',      'uint32', 'Node serial number'),
         ('temp_current',           'I',      'uint32', 'Current FPGA die temperature'),

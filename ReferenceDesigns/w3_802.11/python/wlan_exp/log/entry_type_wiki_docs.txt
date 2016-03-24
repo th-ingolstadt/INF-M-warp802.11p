@@ -8,7 +8,7 @@ Details about the node hardware and its configuration. Node info values are stat
 Entry type ID: 1
 
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| timestamp ||  uint64  || Microsecond timer value at time of log entry creation ||
+|| timestamp ||  uint64  || Value of MAC Time in microseconds when log entry created ||
 || node_type ||  uint32  || Node type as 4 byte value: [b0 b1 b2 b3]:[[BR]] b0: Always 0x00 for 802.11 ref design nodes[[BR]] b1: Always 0x01 for 802.11 ref design nodes[[BR]] b2: CPU High application: 0x1 = AP, 0x2 = STA, 0x3 = IBSS[[BR]] b3: CPU Low application: 0x1 = DCF, 0x2 = NOMAC ||
 || node_id ||  uint32  || Node ID, as set during wlan_exp init ||
 || hw_generation ||  uint32  || WARP hardware generation: 3 for WARP v3 ||
@@ -29,7 +29,7 @@ Header for generic experiment info entries created by the user application. The 
 Entry type ID: 2
 
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| timestamp ||  uint64  || Microsecond timer value at time of log entry creation ||
+|| timestamp ||  uint64  || Value of MAC Time in microseconds when log entry created ||
 || info_type ||  uint16  || Exp info type (arbitrary value supplied by application ||
 || info_len ||  uint16  || Exp info length (describes arbitrary payload supplied by application ||
 || info_payload ||  uint32  || Exp info payload ||
@@ -43,7 +43,7 @@ Record of the FPGA system monitor die temperature. This entry is only created wh
 Entry type ID: 4
 
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| timestamp ||  uint64  || Microsecond timer value at time of log entry creation ||
+|| timestamp ||  uint64  || Value of MAC Time in microseconds when log entry created ||
 || node_id ||  uint32  || wlan_exp node ID ||
 || serial_num ||  uint32  || Node serial number ||
 || temp_current ||  uint32  || Current FPGA die temperature ||
@@ -54,16 +54,16 @@ Entry type ID: 4
 ----
 
 === Entry Type TIME_INFO ===
-Record of a time base event at the node. This log entry is used to enable parsing of log data recorded before and after changes to the node's microsecond MAC timer. This entry also allows a wlan_exp controler to write the current host time to the node log without affecting the node's timer value. This enables adjustment of log entry timestamps to real timestamps in post-proessing.
+Record of a time base event at the node. This log entry is used to enable parsing of log data recorded before and after changes to the node's microsecond MAC timer. This entry also allows a wlan_exp controler to write the current host time to the node log without affecting the node's MAC timer value. This enables adjustment of log entry timestamps to real timestamps in post-proessing.
 
 Entry type ID: 6
 
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| timestamp ||  uint64  || Microsecond MAC timer value at time of log entry creation before any time change is applied ||
+|| timestamp ||  uint64  || Value of MAC Time in microseconds when log entry created (before any time change is applied) ||
 || time_id ||  uint32  || Random ID value included in wlan_exp TIME_INFO command; used to find common entries across nodes ||
 || reason ||  uint32  || Reason code for TIME_INFO log entry creation ||
-|| mac_timestamp ||  uint64  || New value of microsecond MAC timer value ||
-|| system_timestamp ||  uint64  || Value of microsecond System timer value ||
+|| mac_timestamp ||  uint64  || New value of MAC Time in microseconds  ||
+|| system_timestamp ||  uint64  || Value of System Time in microseconds ||
 || host_timestamp ||  uint64  || Host time in microseconds-since-epoch; 0xFFFFFFFFFFFFFFFF if unknown ||
 
 
@@ -75,7 +75,7 @@ Rx events from OFDM PHY. These log entries will only be created for packets that
 Entry type ID: 10
 
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| timestamp ||  uint64  || Microsecond timer value at PHY Rx start ||
+|| timestamp ||  uint64  || Value of MAC Time in microseconds at PHY RX_START ||
 || timestamp_frac ||  uint8  || Fractional timestamp (units of 6.25ns) ||
 || phy_samp_rate ||  uint8  || PHY Sampling Rate Mode ||
 || length ||  uint16  || Length of payload in bytes ||
@@ -113,7 +113,7 @@ LTG Rx events from OFDM PHY. These log entries will only be created for packets 
 Entry type ID: 11
 
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| timestamp ||  uint64  || Microsecond timer value at PHY Rx start ||
+|| timestamp ||  uint64  || Value of MAC Time in microseconds at PHY RX_START ||
 || timestamp_frac ||  uint8  || Fractional timestamp (units of 6.25ns) ||
 || phy_samp_rate ||  uint8  || PHY Sampling Rate Mode ||
 || length ||  uint16  || Length of payload in bytes ||
@@ -153,7 +153,7 @@ Rx events from DSSS PHY. These log entries will only be created for packets that
 Entry type ID: 15
 
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| timestamp ||  uint64  || Microsecond timer value at PHY Rx start ||
+|| timestamp ||  uint64  || Value of MAC Time in microseconds at PHY RX_START ||
 || timestamp_frac ||  uint8  || Fractional timestamp (units of 6.25ns) ||
 || phy_samp_rate ||  uint8  || PHY Sampling Rate Mode ||
 || length ||  uint16  || Length of payload in bytes ||
@@ -190,7 +190,7 @@ Tx events in CPU High, logged for each MPDU frame created and enqueued in CPU Hi
 Entry type ID: 20
 
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| timestamp ||  uint64  || Microsecond timer value at time packet was created, immediately before it was enqueued ||
+|| timestamp ||  uint64  || Value of MAC Time in microseconds when packet was created, immediately before it was enqueued ||
 || time_to_accept ||  uint32  || Time duration in microseconds between packet creation and packet acceptance by CPU Low ||
 || time_to_done ||  uint32  || Time duration in microseconds between packet acceptance by CPU Low and Tx completion in CPU Low ||
 || uniq_seq ||  uint64  || Unique sequence number for Tx packet; 12 LSB of this used for 802.11 MAC header sequence number ||
@@ -227,7 +227,7 @@ Tx events in CPU High, logged for each MPDU frame created and enqueued in CPU Hi
 Entry type ID: 21
 
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| timestamp ||  uint64  || Microsecond timer value at time packet was created, immediately before it was enqueued ||
+|| timestamp ||  uint64  || Value of MAC Time in microseconds when packet was created, immediately before it was enqueued ||
 || time_to_accept ||  uint32  || Time duration in microseconds between packet creation and packet acceptance by CPU Low ||
 || time_to_done ||  uint32  || Time duration in microseconds between packet acceptance by CPU Low and Tx completion in CPU Low ||
 || uniq_seq ||  uint64  || Unique sequence number for Tx packet; 12 LSB of this used for 802.11 MAC header sequence number ||
@@ -266,7 +266,7 @@ Record of actual PHY transmission. At least one TX_LOW will be logged for every 
 Entry type ID: 25
 
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| timestamp ||  uint64  || Microsecond timer value at time packet transmission actually started (PHY TX_START time) ||
+|| timestamp ||  uint64  || Value of MAC Time in microseconds when packet transmission actually started (PHY TX_START time) ||
 || uniq_seq ||  uint64  || Unique sequence number of original MPDU ||
 || mcs ||  uint8  || MCS index in ![0:7] ||
 || phy_mode ||  uint8  || PHY mode ||
@@ -302,7 +302,7 @@ Record of actual PHY transmission. At least one TX_LOW will be logged for every 
 Entry type ID: 26
 
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| timestamp ||  uint64  || Microsecond timer value at time packet transmission actually started (PHY TX_START time) ||
+|| timestamp ||  uint64  || Value of MAC Time in microseconds when packet transmission actually started (PHY TX_START time) ||
 || uniq_seq ||  uint64  || Unique sequence number of original MPDU ||
 || mcs ||  uint8  || MCS index in ![0:7] ||
 || phy_mode ||  uint8  || PHY mode ||
