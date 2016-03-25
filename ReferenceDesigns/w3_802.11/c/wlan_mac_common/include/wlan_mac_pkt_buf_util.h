@@ -58,20 +58,18 @@
 
 
 // Tx packet buffer assignments
-//     There are 8 Tx packet buffers that are shared between CPU High
-//     and CPU Low.  CPU Low "owns" the BEACON, RTS, and ACK_CTS
-//     buffers while CPU High "owns" all other packet buffers.
-//
 //     The definitions for the MPDU packet buffers are not directly
 //     used. Instead, the actual packet buffer values are used to
 //     make iteration easier.
 //
+// Packet Buffers owned by CPU_HIGH at boot
 #define TX_PKT_BUF_MPDU_1                                  0
 #define TX_PKT_BUF_MPDU_2                                  1
 #define TX_PKT_BUF_MPDU_3                                  2
 // #define TX_PKT_BUF_                                        3
 // #define TX_PKT_BUF_                                        4
 #define TX_PKT_BUF_BEACON                                  5
+// Packet Buffers owned by CPU_LOW at boot
 #define TX_PKT_BUF_RTS                                     6
 #define TX_PKT_BUF_ACK_CTS                                 7
 
@@ -330,12 +328,14 @@ int init_pkt_buf();
 
 // TX packet buffer functions
 int lock_tx_pkt_buf(u8 pkt_buf_ind);
+int force_lock_tx_pkt_buf(u8 pkt_buf_ind);
 int unlock_tx_pkt_buf(u8 pkt_buf_ind);
 int get_tx_pkt_buf_status(u8 pkt_buf_ind, u32* locked, u32 *owner);
 
 
 // RX packet buffer functions
 int lock_rx_pkt_buf(u8 pkt_buf_ind);
+int force_lock_rx_pkt_buf(u8 pkt_buf_ind);
 int unlock_rx_pkt_buf(u8 pkt_buf_ind);
 int get_rx_pkt_buf_status(u8 pkt_buf_ind, u32* locked, u32 *owner);
 

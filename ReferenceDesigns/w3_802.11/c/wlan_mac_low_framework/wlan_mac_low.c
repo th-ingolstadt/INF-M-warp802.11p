@@ -106,9 +106,11 @@ const static u16 mcs_to_n_dbps_htmf_lut[WLAN_MAC_NUM_MCS] = {26, 52, 78, 104, 15
  * @return  int              - Initialization status (0 = success)
  */
 int wlan_mac_low_init(u32 type){
-    u32 status;
+    u32 		   status;
     rx_frame_info* rx_mpdu;
+	tx_frame_info* tx_mpdu;
     wlan_ipc_msg_t ipc_msg_to_high;
+    u32			   i;
 
     mac_param_dsss_en        = 1;
     mac_param_band           = RC_24GHZ;
@@ -141,6 +143,52 @@ int wlan_mac_low_init(u32 type){
 
     // Initialize packet buffers
 	init_pkt_buf();
+
+	// ***************************************************
+	// Initialize Transmit Packet Buffers
+	// ***************************************************
+	for(i = 0; i < NUM_TX_PKT_BUFS; i++){
+		tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(i);
+		switch(i){
+			case TX_PKT_BUF_MPDU_1:
+			case TX_PKT_BUF_MPDU_2:
+			case TX_PKT_BUF_MPDU_3:
+				switch(tx_mpdu->tx_pkt_buf_state){
+					case UNINITIALIZED:
+					case EMPTY:
+						// CPU High will initialize
+						break;
+					break;
+					case READY:
+					case DONE:
+			            // CPU Low rebooted after finishing old Tx
+			            // No way to know if CPU Low sent TX_DONE(p) message - must reset p.state here
+			            //  Two potential races:
+			            //   -CPU High just rebooted and will also attempt setting p.state=EMPTY
+			            //      No problem if both CPUs set state to EMPTY
+			            //   -CPU High did not reboot and will attempt tx_done_handler(p)
+			            //      If p.state=EMPTY when tx_done_handler(p) runs, CPU High will fail gracefully
+			            //      If p.state set to EMPTY during tx_done_handler(p), CPU High will succeed normally
+					case CURRENT:
+			            // CPU Low rebooted after CPU High submitted packet for Tx
+			            //  Release lock and reset state
+			            //  CPU High will find this EMPTY buffer in next ping/pong update
+						tx_mpdu->tx_pkt_buf_state = EMPTY;
+						unlock_tx_pkt_buf(i);
+					break;
+				}
+			break;
+			case TX_PKT_BUF_BEACON:
+				unlock_tx_pkt_buf(i);
+			break;
+			case TX_PKT_BUF_RTS:
+			case TX_PKT_BUF_ACK_CTS:
+				force_lock_tx_pkt_buf(i);
+				tx_mpdu->tx_pkt_buf_state = EMPTY;
+			default:
+			break;
+		}
+	}
 
     // Create IPC message to receive into
     ipc_msg_from_high.payload_ptr = &(ipc_msg_from_high_payload[0]);
@@ -1005,82 +1053,103 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
     wlan_ipc_msg_t           ipc_msg_to_high;
     ltg_packet_id_t*         pkt_id;
 
-    // TODO: Sanity check tx_pkt_buf so that it's within the number of tx packet bufs
+    if(tx_pkt_buf >= NUM_TX_PKT_BUFS){
+    	xil_printf("Error: Tx Pkt Buf index exceeds NUM_TX_PKT_BUFS\n");
+    	return;
+    }
 
-	if(lock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-		wlan_printf(PL_ERROR, "Error: unable to lock TX pkt_buf %d\n", tx_pkt_buf);
+	tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 
-		get_tx_pkt_buf_status(tx_pkt_buf, &is_locked, &owner);
+	switch(tx_mpdu->tx_pkt_buf_state){
+		// ---- Normal Tx process - buffer contains packet ready for Tx ----
+		case READY:
+			if(lock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+				wlan_printf(PL_ERROR, "Error: unable to lock TX pkt_buf %d\n", tx_pkt_buf);
 
-		wlan_printf(PL_ERROR, "    TX pkt_buf %d status: isLocked = %d, owner = %d\n", tx_pkt_buf, is_locked, owner);
+				get_tx_pkt_buf_status(tx_pkt_buf, &is_locked, &owner);
 
-	} else {
-		tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+				wlan_printf(PL_ERROR, "    TX pkt_buf %d status: isLocked = %d, owner = %d\n", tx_pkt_buf, is_locked, owner);
 
-		tx_mpdu->tx_pkt_buf_state = CURRENT;
-
-		tx_mpdu->delay_accept = (u32)(get_mac_time_usec() - tx_mpdu->timestamp_create);
-
-		// Get pointer to start of MAC header in packet buffer
-		tx_80211_header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
-
-		// Insert sequence number here
-		tx_80211_header->sequence_control = ((tx_80211_header->sequence_control) & 0xF) | ( (unique_seq&0xFFF)<<4 );
-
-		if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_UNIQ_SEQ){
-			// Fill unique sequence number into LTG payload
-			pkt_id             = (ltg_packet_id_t*)((u8*)tx_80211_header + sizeof(mac_header_80211));
-			pkt_id->unique_seq = unique_seq;
-		}
-
-		//Increment the global unique sequence number
-		unique_seq++;
-
-		// Submit the MPDU for transmission - this callback will return only when the MPDU Tx is
-		//     complete (after all re-transmissions, ACK Rx, timeouts, etc.)
-		//
-		// If a frame_tx_callback is not provided, the wlan_null_callback will always
-		// return 0 (ie TX_MPDU_RESULT_SUCCESS).
-		//
-		status = frame_tx_callback(tx_pkt_buf, low_tx_details);
-
-		//Record the total time this MPDU spent in the Tx state machine
-		tx_mpdu->delay_done = (u32)(get_mac_time_usec() - (tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept)));
-
-		low_tx_details_size = (tx_mpdu->num_tx_attempts)*sizeof(wlan_mac_low_tx_details_t);
-
-		if(status == TX_MPDU_RESULT_SUCCESS){
-			tx_mpdu->tx_result = TX_MPDU_RESULT_SUCCESS;
-		} else {
-			tx_mpdu->tx_result = TX_MPDU_RESULT_FAILURE;
-		}
-
-		tx_mpdu->tx_pkt_buf_state = DONE;
-
-		//Revert the state of the packet buffer and return control to CPU High
-		if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-			wlan_printf(PL_ERROR, "Error: unable to unlock TX pkt_buf %d\n", tx_pkt_buf);
-			wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_TX_MUTEX);
-		} else {
-			ipc_msg_to_high.msg_id =  IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_DONE);
-
-			//Add the per-Tx-event details to the IPC message so CPU High can add them to the log as TX_LOW entries
-			if(low_tx_details != NULL){
-				ipc_msg_to_high.payload_ptr = (u32*)low_tx_details;
-
-				//Make sure we don't overfill the IPC mailbox with TX_LOW data; truncate the Tx details if necessary
-				if(low_tx_details_size < (MAILBOX_BUFFER_MAX_NUM_WORDS << 2)){
-					ipc_msg_to_high.num_payload_words = ( low_tx_details_size ) >> 2; // # of u32 words
-				} else {
-					ipc_msg_to_high.num_payload_words = (((MAILBOX_BUFFER_MAX_NUM_WORDS << 2) / sizeof(wlan_mac_low_tx_details_t)) * sizeof(wlan_mac_low_tx_details_t)) >> 2; // # of u32 words
-				}
 			} else {
-				ipc_msg_to_high.num_payload_words = 0;
-				ipc_msg_to_high.payload_ptr = NULL;
+
+				tx_mpdu->tx_pkt_buf_state = CURRENT;
+
+				tx_mpdu->delay_accept = (u32)(get_mac_time_usec() - tx_mpdu->timestamp_create);
+
+				// Get pointer to start of MAC header in packet buffer
+				tx_80211_header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
+
+				// Insert sequence number here
+				tx_80211_header->sequence_control = ((tx_80211_header->sequence_control) & 0xF) | ( (unique_seq&0xFFF)<<4 );
+
+				if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_UNIQ_SEQ){
+					// Fill unique sequence number into LTG payload
+					pkt_id             = (ltg_packet_id_t*)((u8*)tx_80211_header + sizeof(mac_header_80211));
+					pkt_id->unique_seq = unique_seq;
+				}
+
+				//Increment the global unique sequence number
+				unique_seq++;
+
+				// Submit the MPDU for transmission - this callback will return only when the MPDU Tx is
+				//     complete (after all re-transmissions, ACK Rx, timeouts, etc.)
+				//
+				// If a frame_tx_callback is not provided, the wlan_null_callback will always
+				// return 0 (ie TX_MPDU_RESULT_SUCCESS).
+				//
+				status = frame_tx_callback(tx_pkt_buf, low_tx_details);
+
+				//Record the total time this MPDU spent in the Tx state machine
+				tx_mpdu->delay_done = (u32)(get_mac_time_usec() - (tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept)));
+
+				low_tx_details_size = (tx_mpdu->num_tx_attempts)*sizeof(wlan_mac_low_tx_details_t);
+
+				if(status == TX_MPDU_RESULT_SUCCESS){
+					tx_mpdu->tx_result = TX_MPDU_RESULT_SUCCESS;
+				} else {
+					tx_mpdu->tx_result = TX_MPDU_RESULT_FAILURE;
+				}
+
+				tx_mpdu->tx_pkt_buf_state = DONE;
+
+				//Revert the state of the packet buffer and return control to CPU High
+				if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+					wlan_printf(PL_ERROR, "Error: unable to unlock TX pkt_buf %d\n", tx_pkt_buf);
+					wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_TX_MUTEX);
+				} else {
+					ipc_msg_to_high.msg_id =  IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_DONE);
+
+					//Add the per-Tx-event details to the IPC message so CPU High can add them to the log as TX_LOW entries
+					if(low_tx_details != NULL){
+						ipc_msg_to_high.payload_ptr = (u32*)low_tx_details;
+
+						//Make sure we don't overfill the IPC mailbox with TX_LOW data; truncate the Tx details if necessary
+						if(low_tx_details_size < (MAILBOX_BUFFER_MAX_NUM_WORDS << 2)){
+							ipc_msg_to_high.num_payload_words = ( low_tx_details_size ) >> 2; // # of u32 words
+						} else {
+							ipc_msg_to_high.num_payload_words = (((MAILBOX_BUFFER_MAX_NUM_WORDS << 2) / sizeof(wlan_mac_low_tx_details_t)) * sizeof(wlan_mac_low_tx_details_t)) >> 2; // # of u32 words
+						}
+					} else {
+						ipc_msg_to_high.num_payload_words = 0;
+						ipc_msg_to_high.payload_ptr = NULL;
+					}
+					ipc_msg_to_high.arg0 = tx_pkt_buf;
+					write_mailbox_msg(&ipc_msg_to_high);
+				}
 			}
-			ipc_msg_to_high.arg0 = tx_pkt_buf;
-			write_mailbox_msg(&ipc_msg_to_high);
-		}
+		break;
+		// ---- Something went wrong - TX_READY message didn't match state of pkt buf ----
+		case CURRENT:
+            // CPU Low responsible for any CURRENT buffers
+            //  Don't transmit - just clean up and return
+			tx_mpdu->tx_pkt_buf_state = EMPTY;
+		case UNINITIALIZED:
+		case DONE:
+		case EMPTY:
+            //  CPU High will handle it eventually
+            //  Ensure CPU Low doesn't own lock then return
+            unlock_tx_pkt_buf(tx_pkt_buf);
+		break;
 	}
 }
 

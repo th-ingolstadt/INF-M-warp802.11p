@@ -372,6 +372,10 @@ tx_queue_element* queue_checkout(){
 		// framework does not guarantee a Tx Queue entry is all zero on checkout
 		((tx_queue_buffer*)(tqe->data))->metadata.metadata_type = QUEUE_METADATA_TYPE_IGNORE;
 
+		// Set the Tx Packet Buffer state to uninitialized. This will be set to READY
+		// after dequeue and CDMA into the actual Tx packet buffer
+		((tx_queue_buffer*)(tqe->data))->frame_info.tx_pkt_buf_state = UNINITIALIZED;
+
 		return tqe;
 	} else {
 		return NULL;
@@ -522,8 +526,7 @@ inline int dequeue_transmit_checkin(u16 queue_sel){
 	int                 tx_pkt_buf               = -1;
 	tx_queue_element  * curr_tx_queue_element;
 
-	// Try to lock a Tx packet buffer
-	tx_pkt_buf = wlan_mac_high_lock_new_tx_packet_buffer();
+	tx_pkt_buf = wlan_mac_high_get_empty_tx_packet_buffer();
 
 	if (tx_pkt_buf != -1) {
 		// Get the Tx queue element to transmit
@@ -549,7 +552,7 @@ inline int dequeue_transmit_checkin(u16 queue_sel){
 			return_value = 1;
 		} else {
 			// Release the packet buffer because there is no Tx queue element to transmit
-			wlan_mac_high_release_tx_packet_buffer(tx_pkt_buf);
+			((tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf))->tx_pkt_buf_state = EMPTY;
 		}
 	}
 

@@ -266,6 +266,7 @@ void wlan_mac_high_cpu_ddr_linker_data_init(u8 dram_present) {
 void wlan_mac_high_init(){
 	int            Status;
     u32            i;
+	tx_frame_info* tx_mpdu;
 	u64            timestamp;
 	u32            log_size;
 	XAxiCdma_Config *cdma_cfg_ptr;
@@ -275,12 +276,6 @@ void wlan_mac_high_init(){
 	//   Issue with -Os in Xilinx SDK 14.7
 	if (wlan_mac_high_right_shift_test() != 0) {
 		cpu_error_halt(WLAN_ERROR_CODE_RIGHT_SHIFT);
-	}
-
-	// Force the MPDU packet buffers owned by CPU_HIGH into the empty state
-	//
-	for( i = 0; i < 3; i++ ){
-		((tx_frame_info*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state = EMPTY;
 	}
 
 	// Sanity check memory map of aux. BRAM and DRAM
@@ -342,8 +337,38 @@ void wlan_mac_high_init(){
 	// ***************************************************
 	// Initialize Transmit Packet Buffers
 	// ***************************************************
-	for(i=0;i < NUM_TX_PKT_BUFS; i++){
-		unlock_tx_pkt_buf(i);
+	for(i = 0; i < NUM_TX_PKT_BUFS; i++){
+		tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(i);
+		switch(i){
+			case TX_PKT_BUF_MPDU_1:
+			case TX_PKT_BUF_MPDU_2:
+			case TX_PKT_BUF_MPDU_3:
+				switch(tx_mpdu->tx_pkt_buf_state){
+					case UNINITIALIZED:
+					case EMPTY:
+						// Buffer already clean on boot or reboot
+					case DONE:
+						// CPU High rebooted while CPU Low finished old Tx
+						//  Ignore the packet buffer contents and clean up
+						force_lock_tx_pkt_buf(i);
+						tx_mpdu->tx_pkt_buf_state = EMPTY;
+					break;
+					case READY:
+					case CURRENT:
+						// CPU High rebooted after submitting packet for transmission
+						//  Will be handled by CPU Low, either because CPU Low is about
+						//  to transmit p or just rebooted and will clean up
+					break;
+				}
+			break;
+			case TX_PKT_BUF_BEACON:
+				tx_mpdu->tx_pkt_buf_state = EMPTY;
+			case TX_PKT_BUF_RTS:
+			case TX_PKT_BUF_ACK_CTS:
+				unlock_tx_pkt_buf(i);
+			default:
+			break;
+		}
 	}
 
 
@@ -1314,12 +1339,6 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
 
 	tx_mpdu   = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 
-    // Check that packet buffer is locked
-    if (tx_mpdu->tx_pkt_buf_state != READY) {
-        xil_printf("WARNING: Packet buffer %d not locked\n", tx_pkt_buf);
-        tx_mpdu->tx_pkt_buf_state = READY;
-    }
-    
     // Call user code to notify it of dequeue
 	mpdu_tx_dequeue_callback(packet);
 
@@ -1364,6 +1383,9 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_READY);
 	ipc_msg_to_low.arg0              = tx_pkt_buf;
 	ipc_msg_to_low.num_payload_words = 0;
+
+	// Set the packet buffer state to READY
+	tx_mpdu->tx_pkt_buf_state = READY;
 
 	if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 		wlan_printf(PL_ERROR, "Error: unable to unlock tx pkt_buf %d\n",tx_pkt_buf);
@@ -1595,22 +1617,45 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 			// CPU Low has finished the Tx process for the previously submitted-accepted frame
 			//     CPU High should do any necessary post-processing, then recycle the packet buffer
             //
+			tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(msg->arg0);
+			switch(tx_mpdu->tx_pkt_buf_state){
+				case DONE:
+					// Expected state after CPU Low finishes Tx
+					//  Run normal post-tx processing
+					// Lock this packet buffer
+					if(lock_tx_pkt_buf(msg->arg0) != PKT_BUF_MUTEX_SUCCESS){
+						xil_printf("Error: DONE Lock Tx Pkt Buf State Mismatch\n");
+						return;
+					}
 
-			// Lock this packet buffer
-			if(lock_tx_pkt_buf(msg->arg0) != PKT_BUF_MUTEX_SUCCESS){
-				xil_printf("Error: DONE Lock Tx Pkt Buf State Mismatch\n");
-				return;
+					//We can now attempt to dequeue any pending transmissions before we fully process
+					//this done message.
+					tx_poll_callback();
+
+					tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(msg->arg0);
+					temp_1  = (4*(msg->num_payload_words)) / sizeof(wlan_mac_low_tx_details_t);
+					mpdu_tx_done_callback(tx_mpdu, (wlan_mac_low_tx_details_t*)(msg->payload_ptr), temp_1);
+					tx_mpdu->tx_pkt_buf_state = EMPTY;
+				break;
+				// Something has gone wrong - TX_DONE message disagrees
+				//  with state of Tx pkt buf
+				case UNINITIALIZED:
+				case EMPTY:
+		            // CPU High probably rebooted, initialized Tx pkt buffers
+		            //  then got TX_DONE message from pre-reboot
+		            // Ignore the contents, force-lock the buffer, and
+		            //  leave it EMPTY, will be used by future ping-pong rotation
+		            force_lock_tx_pkt_buf(msg->arg0);
+		            tx_mpdu->tx_pkt_buf_state = EMPTY;
+				case READY:
+				case CURRENT:
+					//CPU Low will clean up
+					// Unlikely CPU High holds lock, but unlock just in case
+					unlock_tx_pkt_buf(msg->arg0);
+				break;
 			}
 
-			//We can now attempt to dequeue any pending transmissions before we fully process
-			//this done message.
-			tx_poll_callback();
 
-			tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(msg->arg0);
-			temp_1  = (4*(msg->num_payload_words)) / sizeof(wlan_mac_low_tx_details_t);
-			mpdu_tx_done_callback(tx_mpdu, (wlan_mac_low_tx_details_t*)(msg->payload_ptr), temp_1);
-
-			wlan_mac_high_release_tx_packet_buffer(msg->arg0);
 		break;
 
 
@@ -2094,14 +2139,13 @@ inline int wlan_mac_high_is_dequeue_allowed(){
 
 /**
  * @brief Return the index of the next free transmit packet buffer
- * and lock it.
  *
  * @param  None
  * @return int
  *     - packet buffer index of free, now-locked packet buffer
  *     - -1 if there are no free Tx packet buffers
  */
-int wlan_mac_high_lock_new_tx_packet_buffer(){
+int wlan_mac_high_get_empty_tx_packet_buffer(){
 
 	//TODO: Debate: This function assumes that it is currently safe to take control
 	// of an empty Tx packet buffer. In other words, it is the responsibility of the
@@ -2115,42 +2159,11 @@ int wlan_mac_high_lock_new_tx_packet_buffer(){
 	for( i = 0; i < 3; i++ ){
 		if( ((tx_frame_info*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state == EMPTY ){
 			pkt_buf_sel = i;
-			((tx_frame_info*)TX_PKT_BUF_TO_ADDR(pkt_buf_sel))->tx_pkt_buf_state = READY;
 			break;
 		}
 	}
-
-	if(pkt_buf_sel != -1){
-		if(lock_tx_pkt_buf(pkt_buf_sel) != PKT_BUF_MUTEX_SUCCESS){
-			xil_printf("Error: Unlock Tx Pkt Buf State Mismatch\n");
-			return -1;
-		}
-	}
-
 	return pkt_buf_sel;
 }
-
-/**
- * @brief Release the current Tx packet buffer
- *
- * @param  None
- * @return int
- * 	   - 0 if success
- *     - -1 if error
- */
-int wlan_mac_high_release_tx_packet_buffer(int pkt_buf){
-
-	((tx_frame_info*)TX_PKT_BUF_TO_ADDR(pkt_buf))->tx_pkt_buf_state = EMPTY;
-
-	if(unlock_tx_pkt_buf(pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-		xil_printf("Error: Unlock Tx Pkt Buf State Mismatch\n");
-		return -1;
-	} else {
-		return 0;
-	}
-}
-
-
 
 /**
  * @brief Determine the MPDU packet type

@@ -129,17 +129,12 @@ int main(){
     wlan_mac_low_set_ipc_low_param_callback((void*)process_low_param);
     wlan_mac_low_set_sample_rate_change_callback((void*)handle_sample_rate_change);
 
-    if(lock_tx_pkt_buf(TX_PKT_BUF_ACK_CTS) != PKT_BUF_MUTEX_SUCCESS){
-        wlan_printf(PL_ERROR, "Error: unable to lock ACK packet buf %d\n", TX_PKT_BUF_ACK_CTS);
-        wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_TX_MUTEX);
-        return -1;
-    }
 
-    if(lock_tx_pkt_buf(TX_PKT_BUF_RTS) != PKT_BUF_MUTEX_SUCCESS){
-        wlan_printf(PL_ERROR, "Error: unable to lock ACK packet buf %d\n", TX_PKT_BUF_RTS);
-        wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_TX_MUTEX);
-        return -1;
-    }
+    // wlan_mac_low_init() has placed a mutex lock on TX_PKT_BUF_ACK_CTS and
+    // TX_PKT_BUF_RTS already. We should set their packet buffer states to
+    // CURRENT.
+    ((tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK_CTS))->tx_pkt_buf_state = CURRENT;
+    ((tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_RTS))->tx_pkt_buf_state = CURRENT;
 
     wlan_mac_low_init_finish();
 
@@ -307,206 +302,227 @@ inline int send_beacon(u8 tx_pkt_buf){
 	// Attempt to pause the backoff counter in Tx controller A
 	wlan_mac_pause_backoff_tx_ctrl_A(1);
 
-	mac_tx_ctrl_status = wlan_mac_get_tx_ctrl_status();
+	switch(tx_frame_info_ptr->tx_pkt_buf_state){
+		case READY:
+			mac_tx_ctrl_status = wlan_mac_get_tx_ctrl_status();
 
-	// Check if Tx controller A is deferring (now with a paused backoff) or idle (no Tx pending)
-	if(((mac_tx_ctrl_status & WLAN_MAC_TXCTRL_STATUS_MASK_TX_A_STATE) == WLAN_MAC_TXCTRL_STATUS_TX_A_STATE_DEFER) ||
-	   ((mac_tx_ctrl_status & WLAN_MAC_TXCTRL_STATUS_MASK_TX_A_STATE) == WLAN_MAC_TXCTRL_STATUS_TX_A_STATE_IDLE)) {
+			// Check if Tx controller A is deferring (now with a paused backoff) or idle (no Tx pending)
+			if(((mac_tx_ctrl_status & WLAN_MAC_TXCTRL_STATUS_MASK_TX_A_STATE) == WLAN_MAC_TXCTRL_STATUS_TX_A_STATE_DEFER) ||
+			   ((mac_tx_ctrl_status & WLAN_MAC_TXCTRL_STATUS_MASK_TX_A_STATE) == WLAN_MAC_TXCTRL_STATUS_TX_A_STATE_IDLE)) {
 
-		while( (tx_frame_info_ptr->tx_pkt_buf_state != READY) ) {
-			if(i > 1000000) {xil_printf("ERROR (send_beacon): stuck waiting for CPU High to release Tx pkt buf\n");}
-			else {i++;}
-		}
-
-		i = 0;
-		while( (lock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) ){
-			// We will only continue with the send_beacon state when we are both assured that the
-			//  tx_pkt_buf_state is READY (i.e. CPU_HIGH is not currently trying to log a beacon transmission)
-			//  and we are able to lock the tx_pkt_buf. The only reason a lock should fail is that CPU_HIGH
-			//  is actively modifying the contents of the beacon packet buffer. This is a short duration
-			//  operation so we should just wait.
-			if(i > 1000000) {xil_printf("ERROR (send_beacon): stuck waiting for CPU High to unlock Tx pkt buf\n");}
-			else {i++;}
-		}
-
-	    // Compare the length of this frame to the RTS Threshold
-	    if(tx_frame_info_ptr->length <= gl_dot11RTSThreshold) {
-	        tx_mode = TX_MODE_SHORT;
-	    } else {
-	        tx_mode = TX_MODE_LONG;
-	    }
-
-	    // Update the beacon's seq num (in the MAC header) and uniq_seq (in the tx_frame_info)
-		unique_seq = wlan_mac_low_get_unique_seq();
-		wlan_mac_low_set_unique_seq(unique_seq+1);
-		tx_frame_info_ptr->unique_seq = unique_seq;
-		header->sequence_control = ((header->sequence_control) & 0xF) | ( (unique_seq&0xFFF)<<4 );
-
-        // Configure the Tx antenna selection
-        mpdu_tx_ant_mask = 0;
-
-        switch(tx_frame_info_ptr->params.phy.antenna_mode) {
-            case TX_ANTMODE_SISO_ANTA:  mpdu_tx_ant_mask |= 0x1;  break;
-            case TX_ANTMODE_SISO_ANTB:  mpdu_tx_ant_mask |= 0x2;  break;
-            case TX_ANTMODE_SISO_ANTC:  mpdu_tx_ant_mask |= 0x4;  break;
-            case TX_ANTMODE_SISO_ANTD:  mpdu_tx_ant_mask |= 0x8;  break;
-            default:                    mpdu_tx_ant_mask  = 0x1;  break; // Default to RF_A
-        }
-
-        //wlan_mac_tx_ctrl_C_params(pktBuf, antMask, req_backoff, phy_mode, num_slots)
-        switch(gl_beacon_txrx_configure.beacon_tx_mode){
-        	case AP_BEACON_TX:
-            	n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
-    			wlan_mac_tx_ctrl_C_params(tx_pkt_buf, mpdu_tx_ant_mask, 0, tx_frame_info_ptr->params.phy.phy_mode, n_slots);
-        	break;
-        	case IBSS_BEACON_TX:
-            	n_slots = rand_num_slots(RAND_SLOT_REASON_IBSS_BEACON);
-            	wlan_mac_tx_ctrl_C_params(tx_pkt_buf, mpdu_tx_ant_mask, 1, tx_frame_info_ptr->params.phy.phy_mode, n_slots);
-			break;
-        	case NO_BEACON_TX:
-        		return -1;
-			break;
-        }
-
-        tx_gain = wlan_mac_low_dbm_to_gain_target(tx_frame_info_ptr->params.phy.power);
-        wlan_mac_tx_ctrl_C_gains(tx_gain, tx_gain, tx_gain, tx_gain);
-
-        write_phy_preamble(tx_pkt_buf,
-        				   tx_frame_info_ptr->params.phy.phy_mode,
-        				   tx_frame_info_ptr->params.phy.mcs,
-        				   tx_frame_info_ptr->length);
-
-		wlan_mac_tx_ctrl_C_start(1);
-		wlan_mac_tx_ctrl_C_start(0);
-
-        // Immediately re-read the current slot count.
-        n_slots_readback = wlan_mac_get_backoff_count_C();
-
-        if((n_slots != n_slots_readback)){
-        	// For the first transmission (non-retry) of an MPDU, the number of
-        	// slots used by the backoff process is ambiguous. The n_slots we provided
-        	// to wlan_mac_tx_ctrl_A_params is only a suggestion. If the medium has been
-        	// idle for a DIFS, then there will not be a backoff. Or, if another backoff is
-        	// currently running, the MAC Config Core A will inherit that backoff. By
-        	// immediately reading back the slot count after starting the core, we can
-        	// overwrite the number of slots that we will fill into low_tx_details with
-        	// the correct value
-			n_slots = n_slots_readback;
-        }
-
-		tx_frame_info_ptr->short_retry_count = 0;
-		tx_frame_info_ptr->long_retry_count  = 0;
-		tx_frame_info_ptr->num_tx_attempts   = 1;
-	    tx_frame_info_ptr->phy_samp_rate	 = wlan_mac_low_get_phy_samp_rate();
-
-	    // Here, we are overloading the "create" timestamp to mean something subtly different
-	    //  than when it is used for data MPDUs since beacons are not created and enqueued in
-	    //  CPU_HIGH. By explicitly filling the current MAC time into the create timestamp,
-	    //  we allow CPU_HIGH to determine whether or not a backoff occurred before the beacon transmission
-	    //  when it is creating the TX_LOW log entry for the beacon.
-	    tx_frame_info_ptr->timestamp_create  = get_mac_time_usec();
-	    tx_frame_info_ptr->delay_accept		 = 0;
-
-        low_tx_details.tx_details_type  = TX_DETAILS_MPDU;
-        low_tx_details.phy_params_mpdu.mcs          = tx_frame_info_ptr->params.phy.mcs;
-        low_tx_details.phy_params_mpdu.phy_mode     = tx_frame_info_ptr->params.phy.phy_mode;
-        low_tx_details.phy_params_mpdu.power        = tx_frame_info_ptr->params.phy.power;
-        low_tx_details.phy_params_mpdu.antenna_mode = tx_frame_info_ptr->params.phy.antenna_mode;
-
-        low_tx_details.chan_num    = wlan_mac_low_get_active_channel();
-        low_tx_details.cw          = (1 << gl_cw_exp)-1; //(2^(gl_cw_exp) - 1)
-        low_tx_details.ssrc        = gl_stationShortRetryCount;
-        low_tx_details.slrc        = gl_stationLongRetryCount;
-        low_tx_details.src         = tx_frame_info_ptr->short_retry_count;
-        low_tx_details.lrc         = tx_frame_info_ptr->long_retry_count;
-
-        // The pre-Tx backoff may not occur for the initial transmission attempt. If the medium has been idle for >DIFS when
-        //  the first Tx occurs the DCF state machine will not start a backoff. The upper-level MAC should compare the num_slots value
-        //  to the time delta between the accept and start times of the first transmission to determine whether the pre-Tx backoff
-        //  actually occurred.
-        low_tx_details.num_slots   = n_slots;
-
-		 // Wait for the MPDU Tx to finish
-		do { // while(tx_status & WLAN_MAC_STATUS_MASK_TX_C_PENDING)
-
-			// Poll the DCF core status register
-			mac_hw_status = wlan_mac_get_status();
-
-			if((tx_frame_info_ptr->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
-				if( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE ){
-					// Insert the TX START timestamp
-					*((u32*)((u8*)header + 24)) =  Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_LSB);
-					*((u32*)((u8*)header + 28)) =  Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_MSB);
-
-					// The below u64 approach also works, but takes 100ns longer than just dealing with the LSB and MSB separately.
-					//*((u64*)((TX_PKT_BUF_TO_ADDR(mpdu_pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET + 24))) = (u64)wlan_mac_low_get_tx_start_timestamp();
+				i = 0;
+				while( (lock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) ){
+					// We will only continue with the send_beacon state when we are both assured that the
+					//  tx_pkt_buf_state is READY (i.e. CPU_HIGH is not currently trying to log a beacon transmission)
+					//  and we are able to lock the tx_pkt_buf. The only reason a lock should fail is that CPU_HIGH
+					//  is actively modifying the contents of the beacon packet buffer. This is a short duration
+					//  operation so we should just wait.
+					if(i > 1000000) {xil_printf("ERROR (send_beacon): stuck waiting for CPU High to unlock Tx pkt buf\n");}
+					else {i++;}
 				}
+
+				// We've locked the beacon template packet buffer. We should set its state to CURRENT
+				// so CPU_HIGH can know that we are just about to transmit it.
+				tx_frame_info_ptr->tx_pkt_buf_state = CURRENT;
+
+				// Compare the length of this frame to the RTS Threshold
+				if(tx_frame_info_ptr->length <= gl_dot11RTSThreshold) {
+					tx_mode = TX_MODE_SHORT;
+				} else {
+					tx_mode = TX_MODE_LONG;
+				}
+
+				// Update the beacon's seq num (in the MAC header) and uniq_seq (in the tx_frame_info)
+				unique_seq = wlan_mac_low_get_unique_seq();
+				wlan_mac_low_set_unique_seq(unique_seq+1);
+				tx_frame_info_ptr->unique_seq = unique_seq;
+				header->sequence_control = ((header->sequence_control) & 0xF) | ( (unique_seq&0xFFF)<<4 );
+
+				// Configure the Tx antenna selection
+				mpdu_tx_ant_mask = 0;
+
+				switch(tx_frame_info_ptr->params.phy.antenna_mode) {
+					case TX_ANTMODE_SISO_ANTA:  mpdu_tx_ant_mask |= 0x1;  break;
+					case TX_ANTMODE_SISO_ANTB:  mpdu_tx_ant_mask |= 0x2;  break;
+					case TX_ANTMODE_SISO_ANTC:  mpdu_tx_ant_mask |= 0x4;  break;
+					case TX_ANTMODE_SISO_ANTD:  mpdu_tx_ant_mask |= 0x8;  break;
+					default:                    mpdu_tx_ant_mask  = 0x1;  break; // Default to RF_A
+				}
+
+				//wlan_mac_tx_ctrl_C_params(pktBuf, antMask, req_backoff, phy_mode, num_slots)
+				switch(gl_beacon_txrx_configure.beacon_tx_mode){
+					case AP_BEACON_TX:
+						n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
+						wlan_mac_tx_ctrl_C_params(tx_pkt_buf, mpdu_tx_ant_mask, 0, tx_frame_info_ptr->params.phy.phy_mode, n_slots);
+					break;
+					case IBSS_BEACON_TX:
+						n_slots = rand_num_slots(RAND_SLOT_REASON_IBSS_BEACON);
+						wlan_mac_tx_ctrl_C_params(tx_pkt_buf, mpdu_tx_ant_mask, 1, tx_frame_info_ptr->params.phy.phy_mode, n_slots);
+					break;
+					case NO_BEACON_TX:
+						return -1;
+					break;
+				}
+
+				tx_gain = wlan_mac_low_dbm_to_gain_target(tx_frame_info_ptr->params.phy.power);
+				wlan_mac_tx_ctrl_C_gains(tx_gain, tx_gain, tx_gain, tx_gain);
+
+				write_phy_preamble(tx_pkt_buf,
+								   tx_frame_info_ptr->params.phy.phy_mode,
+								   tx_frame_info_ptr->params.phy.mcs,
+								   tx_frame_info_ptr->length);
+
+				wlan_mac_tx_ctrl_C_start(1);
+				wlan_mac_tx_ctrl_C_start(0);
+
+				// Immediately re-read the current slot count.
+				n_slots_readback = wlan_mac_get_backoff_count_C();
+
+				if((n_slots != n_slots_readback)){
+					// For the first transmission (non-retry) of an MPDU, the number of
+					// slots used by the backoff process is ambiguous. The n_slots we provided
+					// to wlan_mac_tx_ctrl_A_params is only a suggestion. If the medium has been
+					// idle for a DIFS, then there will not be a backoff. Or, if another backoff is
+					// currently running, the MAC Config Core A will inherit that backoff. By
+					// immediately reading back the slot count after starting the core, we can
+					// overwrite the number of slots that we will fill into low_tx_details with
+					// the correct value
+					n_slots = n_slots_readback;
+				}
+
+				tx_frame_info_ptr->short_retry_count = 0;
+				tx_frame_info_ptr->long_retry_count  = 0;
+				tx_frame_info_ptr->num_tx_attempts   = 1;
+				tx_frame_info_ptr->phy_samp_rate	 = wlan_mac_low_get_phy_samp_rate();
+
+				// Here, we are overloading the "create" timestamp to mean something subtly different
+				//  than when it is used for data MPDUs since beacons are not created and enqueued in
+				//  CPU_HIGH. By explicitly filling the current MAC time into the create timestamp,
+				//  we allow CPU_HIGH to determine whether or not a backoff occurred before the beacon transmission
+				//  when it is creating the TX_LOW log entry for the beacon.
+				tx_frame_info_ptr->timestamp_create  = get_mac_time_usec();
+				tx_frame_info_ptr->delay_accept		 = 0;
+
+				low_tx_details.tx_details_type  = TX_DETAILS_MPDU;
+				low_tx_details.phy_params_mpdu.mcs          = tx_frame_info_ptr->params.phy.mcs;
+				low_tx_details.phy_params_mpdu.phy_mode     = tx_frame_info_ptr->params.phy.phy_mode;
+				low_tx_details.phy_params_mpdu.power        = tx_frame_info_ptr->params.phy.power;
+				low_tx_details.phy_params_mpdu.antenna_mode = tx_frame_info_ptr->params.phy.antenna_mode;
+
+				low_tx_details.chan_num    = wlan_mac_low_get_active_channel();
+				low_tx_details.cw          = (1 << gl_cw_exp)-1; //(2^(gl_cw_exp) - 1)
+				low_tx_details.ssrc        = gl_stationShortRetryCount;
+				low_tx_details.slrc        = gl_stationLongRetryCount;
+				low_tx_details.src         = tx_frame_info_ptr->short_retry_count;
+				low_tx_details.lrc         = tx_frame_info_ptr->long_retry_count;
+
+				// The pre-Tx backoff may not occur for the initial transmission attempt. If the medium has been idle for >DIFS when
+				//  the first Tx occurs the DCF state machine will not start a backoff. The upper-level MAC should compare the num_slots value
+				//  to the time delta between the accept and start times of the first transmission to determine whether the pre-Tx backoff
+				//  actually occurred.
+				low_tx_details.num_slots   = n_slots;
+
+				 // Wait for the MPDU Tx to finish
+				do { // while(tx_status & WLAN_MAC_STATUS_MASK_TX_C_PENDING)
+
+					// Poll the DCF core status register
+					mac_hw_status = wlan_mac_get_status();
+
+					if((tx_frame_info_ptr->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
+						if( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE ){
+							// Insert the TX START timestamp
+							*((u32*)((u8*)header + 24)) =  Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_LSB);
+							*((u32*)((u8*)header + 28)) =  Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_MSB);
+
+							// The below u64 approach also works, but takes 100ns longer than just dealing with the LSB and MSB separately.
+							//*((u64*)((TX_PKT_BUF_TO_ADDR(mpdu_pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET + 24))) = (u64)wlan_mac_low_get_tx_start_timestamp();
+						}
+					}
+
+					if( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_C_DONE ) {
+						// Transmission is complete
+
+						switch(tx_mode) {
+						//TODO: Resetting the SSRC and/or SLRC needs to be checked back against the standard
+							case TX_MODE_SHORT:
+								reset_ssrc();
+								reset_cw();
+							break;
+							case TX_MODE_LONG:
+								reset_slrc();
+								reset_cw();
+							break;
+						}
+
+						low_tx_details.tx_start_timestamp_mpdu = wlan_mac_low_get_tx_start_timestamp();
+						low_tx_details.tx_start_timestamp_frac_mpdu = wlan_mac_low_get_tx_start_timestamp_frac();
+
+						// Start a post-Tx backoff using the updated contention window
+						//  If MAC Tx controller A backoff has been paused this backoff request will
+						//   successfully be ignored. If Tx A is idle then this backoff
+						//   will execute and future submission to Tx A may inherit the
+						//   this backoff.
+						// TODO: We should double check whether post-Tx backoffs are appropriate
+						n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
+						wlan_mac_dcf_hw_start_backoff(n_slots);
+					} else {
+						// Poll the MAC Rx state to check if a packet was received while our Tx was deferring
+						if (mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_STARTED) {
+							rx_status = wlan_mac_low_poll_frame_rx();
+							// Check if the new reception met the conditions to cancel the already-submitted transmission
+							if (((rx_status & POLL_MAC_CANCEL_TX) != 0)) {
+								// The Rx handler killed this transmission already by resetting the MAC core
+								// Our return_status should still be considered a success -- we successfully did not
+								// transmit the beacon. This will tell the TBTT logic to move on to the next beacon interval
+								// before attempting another beacon transmission.
+								return_status = 0;
+								// We will not sent a BEACON_DONE IPC message to CPU_HIGH, so
+								// tx_frame_info_ptr->tx_pkt_buf_state should remain READY
+								tx_frame_info_ptr->tx_pkt_buf_state = READY;
+								if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+									xil_printf("Error: Unable to unlock Beacon packet buffer (beacon cancel)\n");
+								}
+								wlan_mac_pause_backoff_tx_ctrl_A(0);
+								return return_status;
+							}
+
+						}
+					} // END if(Tx A state machine done)
+				} while( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_C_PENDING );
+
+				return_status = 0;
+				tx_frame_info_ptr->tx_pkt_buf_state = DONE;
+				if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) {
+					xil_printf("Error: Unable to unlock Beacon packet buffer (beacon sent) %d\n", unlock_tx_pkt_buf(tx_pkt_buf));
+				}
+
+				ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TX_BEACON_DONE);
+				ipc_msg_to_high.num_payload_words = sizeof(wlan_mac_low_tx_details_t)/4;
+				ipc_msg_to_high.arg0              = tx_pkt_buf;
+				ipc_msg_to_high.payload_ptr		  = (u32*)&low_tx_details;
+
+				write_mailbox_msg(&ipc_msg_to_high);
 			}
-
-			if( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_C_DONE ) {
-				// Transmission is complete
-
-				switch(tx_mode) {
-				//TODO: Resetting the SSRC and/or SLRC needs to be checked back against the standard
-					case TX_MODE_SHORT:
-						reset_ssrc();
-						reset_cw();
-					break;
-					case TX_MODE_LONG:
-						reset_slrc();
-						reset_cw();
-					break;
-				}
-
-				low_tx_details.tx_start_timestamp_mpdu = wlan_mac_low_get_tx_start_timestamp();
-				low_tx_details.tx_start_timestamp_frac_mpdu = wlan_mac_low_get_tx_start_timestamp_frac();
-
-				// Start a post-Tx backoff using the updated contention window
-				//  If MAC Tx controller A backoff has been paused this backoff request will
-				//   successfully be ignored. If Tx A is idle then this backoff
-				//   will execute and future submission to Tx A may inherit the
-				//   this backoff.
-				// TODO: We should double check whether post-Tx backoffs are appropriate
-				n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
-				wlan_mac_dcf_hw_start_backoff(n_slots);
-			} else {
-				// Poll the MAC Rx state to check if a packet was received while our Tx was deferring
-				if (mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_STARTED) {
-					rx_status = wlan_mac_low_poll_frame_rx();
-                    // Check if the new reception met the conditions to cancel the already-submitted transmission
-                    if (((rx_status & POLL_MAC_CANCEL_TX) != 0)) {
-                        // The Rx handler killed this transmission already by resetting the MAC core
-                        // Our return_status should still be considered a success -- we successfully did not
-                        // transmit the beacon. This will tell the TBTT logic to move on to the next beacon interval
-                        // before attempting another beacon transmission.
-                		return_status = 0;
-                		// We will not sent a BEACON_DONE IPC message to CPU_HIGH, so
-                		// tx_frame_info_ptr->tx_pkt_buf_state should remain READY
-                		tx_frame_info_ptr->tx_pkt_buf_state = READY;
-                		if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-                			xil_printf("Error: Unable to unlock Beacon packet buffer (beacon cancel)\n");
-                		}
-                		wlan_mac_pause_backoff_tx_ctrl_A(0);
-                        return return_status;
-                    }
-
-				}
-			} // END if(Tx A state machine done)
-		} while( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_C_PENDING );
-
-		return_status = 0;
-		tx_frame_info_ptr->tx_pkt_buf_state = DONE;
-		if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) {
-			xil_printf("Error: Unable to unlock Beacon packet buffer (beacon sent) %d\n", unlock_tx_pkt_buf(tx_pkt_buf));
-		}
-
-		ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TX_BEACON_DONE);
-		ipc_msg_to_high.num_payload_words = sizeof(wlan_mac_low_tx_details_t)/4;
-		ipc_msg_to_high.arg0              = tx_pkt_buf;
-		ipc_msg_to_high.payload_ptr		  = (u32*)&low_tx_details;
-
-		write_mailbox_msg(&ipc_msg_to_high);
+		break;
+		case UNINITIALIZED:
+		case EMPTY:
+			//	The status was set to EMPTY because CPU_HIGH is in the process of stopping beacon
+			//	transmissions. If so, we should expect configure_beacon_txrx() that will prevent
+			//	future calls to this function on TBTT intervals. In this case, we will return a
+			//	"success" to the calling function. We successfully did not sent this beacon because
+			//	we were informed by CPU_HIGH that we should stop.
+			return_status = 0;
+		break;
+		case CURRENT:
+			xil_printf("ERROR (send_beacon): unexpected packet buffer status of CURRENT\n");
+		case DONE:
+			//	CPU_HIGH is lagging behind. The previous beacon we sent is still being processed
+			//  and hasn't been returned to us. We will exit this context rather than block and try
+			//  again later.
+			return_status = -1;
+		break;
 	}
+
 	wlan_mac_pause_backoff_tx_ctrl_A(0);
 
 	return return_status;

@@ -491,8 +491,7 @@ int                wlan_mac_high_write_low_param(u32 num_words, u32* payload);
 void               wlan_mac_high_request_low_state();
 int                wlan_mac_high_is_cpu_low_initialized();
 inline int         wlan_mac_high_is_dequeue_allowed();
-int                wlan_mac_high_lock_new_tx_packet_buffer();
-int                wlan_mac_high_release_tx_packet_buffer(int pkt_buf);
+int                wlan_mac_high_get_empty_tx_packet_buffer();
 u8                 wlan_mac_high_pkt_type(void* mpdu, u16 length);
 
 inline void        wlan_mac_high_set_debug_gpio(u8 val);

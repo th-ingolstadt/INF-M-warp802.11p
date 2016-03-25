@@ -94,6 +94,58 @@ int lock_rx_pkt_buf(u8 pkt_buf_ind) {
         return PKT_BUF_MUTEX_FAIL_ALREADY_LOCKED;
 }
 
+int force_lock_tx_pkt_buf(u8 pkt_buf_ind) {
+    u32 UnLockPattern;
+
+    //Check inputs
+	if(pkt_buf_ind >= NUM_TX_PKT_BUFS)
+		return PKT_BUF_MUTEX_FAIL_INVALID_BUF;
+
+    //Unlock the packet buffer
+    if(unlock_tx_pkt_buf(pkt_buf_ind) == PKT_BUF_MUTEX_FAIL_NOT_LOCK_OWNER ){
+    	//Force an unlock as the other CPU_ID
+		UnLockPattern = (((XPAR_CPU_ID+1)%2 << OWNER_SHIFT) | 0x0);
+
+		XMutex_ReadReg(pkt_buf_mutex.Config.BaseAddress, (pkt_buf_ind + PKT_BUF_MUTEX_TX_BASE),
+					XMU_MUTEX_REG_OFFSET);
+
+		XMutex_WriteReg(pkt_buf_mutex.Config.BaseAddress, (pkt_buf_ind + PKT_BUF_MUTEX_TX_BASE),
+				XMU_MUTEX_REG_OFFSET, UnLockPattern);
+
+    }
+
+    //At this point in the function, the packet buffer will be unlocked regardless of who originally
+    //owned an existing lock.
+
+    return lock_tx_pkt_buf(pkt_buf_ind);
+}
+
+int force_lock_rx_pkt_buf(u8 pkt_buf_ind) {
+    u32 UnLockPattern;
+
+    //Check inputs
+	if(pkt_buf_ind >= NUM_RX_PKT_BUFS)
+		return PKT_BUF_MUTEX_FAIL_INVALID_BUF;
+
+    //Unlock the packet buffer
+    if(unlock_rx_pkt_buf(pkt_buf_ind) == PKT_BUF_MUTEX_FAIL_NOT_LOCK_OWNER ){
+    	//Force an unlock as the other CPU_ID
+		UnLockPattern = (((XPAR_CPU_ID+1)%2 << OWNER_SHIFT) | 0x0);
+
+		XMutex_ReadReg(pkt_buf_mutex.Config.BaseAddress, (pkt_buf_ind + PKT_BUF_MUTEX_RX_BASE),
+					XMU_MUTEX_REG_OFFSET);
+
+		XMutex_WriteReg(pkt_buf_mutex.Config.BaseAddress, (pkt_buf_ind + PKT_BUF_MUTEX_RX_BASE),
+				XMU_MUTEX_REG_OFFSET, UnLockPattern);
+
+    }
+
+    //At this point in the function, the packet buffer will be unlocked regardless of who originally
+    //owned an existing lock.
+
+    return lock_rx_pkt_buf(pkt_buf_ind);
+}
+
 int unlock_tx_pkt_buf(u8 pkt_buf_ind) {
     int status;
 

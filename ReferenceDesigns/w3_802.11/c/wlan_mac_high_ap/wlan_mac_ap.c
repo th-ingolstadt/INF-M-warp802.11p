@@ -2304,6 +2304,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				my_bss_info = NULL;
 
 				// Disable beacons immediately
+				((tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON))->tx_pkt_buf_state = EMPTY;
 				gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
 				bzero(gl_beacon_txrx_config.bssid_match, BSSID_LEN);
 				wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
@@ -2413,6 +2414,7 @@ u32	configure_bss(bss_config_t* bss_config){
 
 				if ((my_bss_info->beacon_interval == BEACON_INTERVAL_NO_BEACON_TX) ||
 					(my_bss_info->beacon_interval == BEACON_INTERVAL_UNKNOWN)) {
+					((tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON))->tx_pkt_buf_state = EMPTY;
 					gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
 				} else {
 					gl_beacon_txrx_config.beacon_tx_mode = AP_BEACON_TX;
