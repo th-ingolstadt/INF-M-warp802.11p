@@ -1389,6 +1389,7 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
 
 	if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 		wlan_printf(PL_ERROR, "Error: unable to unlock tx pkt_buf %d\n",tx_pkt_buf);
+		tx_mpdu->tx_pkt_buf_state = EMPTY;
 	} else {
 		write_mailbox_msg(&ipc_msg_to_low);
 	}
@@ -1563,6 +1564,7 @@ void wlan_mac_high_ipc_rx(){
 void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 
 	u8                  rx_pkt_buf;
+	u8					tx_pkt_buf;
     u32                 temp_1;
 	rx_frame_info*      rx_mpdu;
 	tx_frame_info*      tx_mpdu;
@@ -1572,16 +1574,21 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 
 		//---------------------------------------------------------------------
 		case IPC_MBOX_TX_BEACON_DONE:
-			tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(msg->arg0);
-			if(lock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
-				xil_printf("Error: CPU_LOW had lock on Beacon packet buffer during IPC_MBOX_TX_BEACON_DONE\n");
-				return;
-			}
-			beacon_tx_done_callback( tx_mpdu, (wlan_mac_low_tx_details_t*)(msg->payload_ptr) );
-			tx_mpdu->tx_pkt_buf_state = READY;
-			if(unlock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
-				xil_printf("Error: Unable to unlock Beacon packet buffer during IPC_MBOX_TX_BEACON_DONE\n");
-				return;
+			tx_pkt_buf = msg->arg0;
+			if(tx_pkt_buf == TX_PKT_BUF_BEACON){
+				if(lock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+					xil_printf("Error: CPU_LOW had lock on Beacon packet buffer during IPC_MBOX_TX_BEACON_DONE\n");
+				} else {
+					tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+					beacon_tx_done_callback( tx_mpdu, (wlan_mac_low_tx_details_t*)(msg->payload_ptr) );
+					tx_mpdu->tx_pkt_buf_state = READY;
+					if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+						xil_printf("Error: Unable to unlock Beacon packet buffer during IPC_MBOX_TX_BEACON_DONE\n");
+						return;
+					}
+				}
+			} else {
+				xil_printf("Error: IPC_MBOX_TX_BEACON_DONE with invalid pkt buf index %d\n ", tx_pkt_buf);
 			}
 		break;
 
@@ -1590,25 +1597,28 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 			// CPU Low has received an MPDU addressed to this node or to the broadcast address
 			//
 			rx_pkt_buf = msg->arg0;
+			if(rx_pkt_buf < NUM_RX_PKT_BUFS){
+				// First attempt to lock the indicated Rx pkt buf (CPU Low must unlock it before sending this msg)
+				if(lock_rx_pkt_buf(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+					wlan_printf(PL_ERROR, "Error: unable to lock pkt_buf %d\n", rx_pkt_buf);
+				} else {
+					rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
 
-			// First attempt to lock the indicated Rx pkt buf (CPU Low must unlock it before sending this msg)
-			if(lock_rx_pkt_buf(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-				wlan_printf(PL_ERROR, "Error: unable to lock pkt_buf %d\n", rx_pkt_buf);
-			} else {
-				rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
+					//Before calling the user's callback, we'll pass this reception off to the BSS info subsystem so it can scrape for
+					bss_info_rx_process((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)));
 
-				//Before calling the user's callback, we'll pass this reception off to the BSS info subsystem so it can scrape for
-				bss_info_rx_process((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)));
+					// Call the RX callback function to process the received packet
+					mpdu_rx_callback((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)));
 
-				// Call the RX callback function to process the received packet
-				mpdu_rx_callback((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)));
+					// Free up the rx_pkt_buf
+					rx_mpdu->state = RX_MPDU_STATE_EMPTY;
 
-				// Free up the rx_pkt_buf
-				rx_mpdu->state = RX_MPDU_STATE_EMPTY;
-
-				if(unlock_rx_pkt_buf(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-					wlan_printf(PL_ERROR, "Error: unable to unlock rx pkt_buf %d\n", rx_pkt_buf);
+					if(unlock_rx_pkt_buf(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+						wlan_printf(PL_ERROR, "Error: unable to unlock rx pkt_buf %d\n", rx_pkt_buf);
+					}
 				}
+			} else {
+				xil_printf("Error: IPC_MBOX_RX_MPDU_READY with invalid pkt buf index %d\n ", rx_pkt_buf);
 			}
 		break;
 
@@ -1617,42 +1627,47 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 			// CPU Low has finished the Tx process for the previously submitted-accepted frame
 			//     CPU High should do any necessary post-processing, then recycle the packet buffer
             //
-			tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(msg->arg0);
-			switch(tx_mpdu->tx_pkt_buf_state){
-				case DONE:
-					// Expected state after CPU Low finishes Tx
-					//  Run normal post-tx processing
-					// Lock this packet buffer
-					if(lock_tx_pkt_buf(msg->arg0) != PKT_BUF_MUTEX_SUCCESS){
-						xil_printf("Error: DONE Lock Tx Pkt Buf State Mismatch\n");
-						return;
-					}
+			tx_pkt_buf = msg->arg0;
+			if(tx_pkt_buf < NUM_TX_PKT_BUFS){
+				tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+				switch(tx_mpdu->tx_pkt_buf_state){
+					case DONE:
+						// Expected state after CPU Low finishes Tx
+						//  Run normal post-tx processing
+						// Lock this packet buffer
+						if(lock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+							xil_printf("Error: DONE Lock Tx Pkt Buf State Mismatch\n");
+							tx_mpdu->tx_pkt_buf_state = EMPTY;
+							return;
+						}
 
-					//We can now attempt to dequeue any pending transmissions before we fully process
-					//this done message.
-					tx_poll_callback();
+						//We can now attempt to dequeue any pending transmissions before we fully process
+						//this done message.
+						tx_poll_callback();
 
-					tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(msg->arg0);
-					temp_1  = (4*(msg->num_payload_words)) / sizeof(wlan_mac_low_tx_details_t);
-					mpdu_tx_done_callback(tx_mpdu, (wlan_mac_low_tx_details_t*)(msg->payload_ptr), temp_1);
-					tx_mpdu->tx_pkt_buf_state = EMPTY;
-				break;
-				// Something has gone wrong - TX_DONE message disagrees
-				//  with state of Tx pkt buf
-				case UNINITIALIZED:
-				case EMPTY:
-		            // CPU High probably rebooted, initialized Tx pkt buffers
-		            //  then got TX_DONE message from pre-reboot
-		            // Ignore the contents, force-lock the buffer, and
-		            //  leave it EMPTY, will be used by future ping-pong rotation
-		            force_lock_tx_pkt_buf(msg->arg0);
-		            tx_mpdu->tx_pkt_buf_state = EMPTY;
-				case READY:
-				case CURRENT:
-					//CPU Low will clean up
-					// Unlikely CPU High holds lock, but unlock just in case
-					unlock_tx_pkt_buf(msg->arg0);
-				break;
+						temp_1  = (4*(msg->num_payload_words)) / sizeof(wlan_mac_low_tx_details_t);
+						mpdu_tx_done_callback(tx_mpdu, (wlan_mac_low_tx_details_t*)(msg->payload_ptr), temp_1);
+						tx_mpdu->tx_pkt_buf_state = EMPTY;
+					break;
+					// Something has gone wrong - TX_DONE message disagrees
+					//  with state of Tx pkt buf
+					case UNINITIALIZED:
+					case EMPTY:
+						// CPU High probably rebooted, initialized Tx pkt buffers
+						//  then got TX_DONE message from pre-reboot
+						// Ignore the contents, force-lock the buffer, and
+						//  leave it EMPTY, will be used by future ping-pong rotation
+						force_lock_tx_pkt_buf(tx_pkt_buf);
+						tx_mpdu->tx_pkt_buf_state = EMPTY;
+					case READY:
+					case CURRENT:
+						//CPU Low will clean up
+						// Unlikely CPU High holds lock, but unlock just in case
+						unlock_tx_pkt_buf(tx_pkt_buf);
+					break;
+				}
+			} else {
+				xil_printf("Error: IPC_MBOX_TX_MPDU_DONE with invalid pkt buf index %d\n ", tx_pkt_buf);
 			}
 
 
@@ -2472,7 +2487,6 @@ station_info_t *     wlan_mac_high_add_station_info(dl_list* station_info_list, 
  *     - -1  - Failed to remove station
  */
 int wlan_mac_high_remove_station_info(dl_list* station_info_list, dl_list* counts_tbl, u8* addr){
-	u32            	i;
 	dl_entry* 		entry;
 	station_info_t* station_info;
 	dl_entry* 		counts_entry;

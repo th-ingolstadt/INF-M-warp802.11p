@@ -912,12 +912,16 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
 
         //---------------------------------------------------------------------
         case IPC_MBOX_TX_MPDU_READY: {
-            // Message is an indication that a Tx Pkt Buf needs processing
-            if(allow_new_mpdu_tx){
-                wlan_mac_low_proc_pkt_buf( msg->arg0 );
-            } else {
-                pkt_buf_pending_tx = msg->arg0;
-            }
+        	u8 tx_pkt_buf;
+        	tx_pkt_buf = msg->arg0;
+        	if(tx_pkt_buf < NUM_TX_PKT_BUFS){
+				// Message is an indication that a Tx Pkt Buf needs processing
+				if(allow_new_mpdu_tx){
+					wlan_mac_low_proc_pkt_buf( tx_pkt_buf );
+				} else {
+					pkt_buf_pending_tx = tx_pkt_buf;
+				}
+        	}
         }
         break;
     }
@@ -1069,6 +1073,7 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 				get_tx_pkt_buf_status(tx_pkt_buf, &is_locked, &owner);
 
 				wlan_printf(PL_ERROR, "    TX pkt_buf %d status: isLocked = %d, owner = %d\n", tx_pkt_buf, is_locked, owner);
+				tx_mpdu->tx_pkt_buf_state = EMPTY;
 
 			} else {
 
@@ -1116,6 +1121,7 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 				if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 					wlan_printf(PL_ERROR, "Error: unable to unlock TX pkt_buf %d\n", tx_pkt_buf);
 					wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_TX_MUTEX);
+					tx_mpdu->tx_pkt_buf_state = EMPTY;
 				} else {
 					ipc_msg_to_high.msg_id =  IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_DONE);
 
