@@ -318,28 +318,19 @@ class WlanExpNodeAp(node.WlanExpNode):
         self.send_cmd(cmds.NodeAPSetAuthAddrFilter(filters))
 
 
-    def add_association(self, device_list, allow_timeout=None):
-        """Command to add an association to each device in the device list.
+    def add_association(self, device_list, disable_timeout=None):
+        """Adds each device in ``device_list`` to the list of associated stations at the AP. If a device
+        is also an 802.11 Reference Design STA, the STA is also configured with the BSS of the AP. In this
+        case the AP and STA attain the same association state as if they had associated via the standard
+        wireless handshake. This method bypasses any any authentication address filtering at the AP.
 
         Args:
             device_list (list of WlanExpNode / WlanDevice):  List of 802.11 devices
-                or single 802.11 device to add to the association table
-            allow_timeout (bool, optional):  Allow the association to timeout if inactive
-
-        .. note::  This adds an association with the default tx/rx params.  If
-            allow_timeout is not specified, the default on the node is to
-            not allow timeout of the association.
-
-        .. note::  If the device is a WlanExpNodeSta, then this method will also
-            add the association to that device.
-
-        .. note::  The add_association method will bypass any association address filtering
-            on the node.  One caveat is that if a device sends a de-authentication packet
-            to the AP, the AP will honor it and completely remove the device from the
-            association table.  If the association address filtering is such that the
-            device is not allowed to associate, then the device will not be allowed back
-            on the AP even though at the start of the experiment the association was
-            explicitly added.
+                or single 802.11 device to add to the AP's association table
+            disable_timeout (bool, optional):  Disables the AP's normal inactivity timeout for the new associations.
+            The AP periodically checks for associated stations with no recent Tx/Rx activity and removes inactive
+            nodes from its list of associated stations. Set this parameter to True to force to AP to keep the new
+            associations created by this method, even if the stations are inactive.
         """
         ret_val = []
         ret_list = True
@@ -349,7 +340,7 @@ class WlanExpNodeAp(node.WlanExpNode):
             device_list = [device_list]
             ret_list    = False
 
-        # Get the AP's current channel, SSID
+        # Get the AP's current BSS configuration
         bss_info = self.get_bss_info()
 
         if bss_info is None:
@@ -369,7 +360,7 @@ class WlanExpNodeAp(node.WlanExpNode):
             ret_val.append(self._add_association(device=device, bssid=bssid, 
                                                  channel=channel, ssid=ssid, 
                                                  beacon_interval=beacon_interval,
-                                                 allow_timeout=allow_timeout))
+                                                 disable_timeout=disable_timeout))
 
         # Need to return a single value and not a list
         if not ret_list:
@@ -382,7 +373,7 @@ class WlanExpNodeAp(node.WlanExpNode):
     #-------------------------------------------------------------------------
     # Internal AP methods
     #-------------------------------------------------------------------------
-    def _add_association(self, device, bssid, channel, ssid, beacon_interval, allow_timeout):
+    def _add_association(self, device, bssid, channel, ssid, beacon_interval, disable_timeout):
         """Internal command to add an association."""
         ret_val = False
 
@@ -392,7 +383,7 @@ class WlanExpNodeAp(node.WlanExpNode):
             print("WARNING:  Could not add association for IBSS node '{0}'".format(device.description))
             return ret_val
 
-        aid = self.send_cmd(cmds.NodeAPAddAssociation(device, allow_timeout))
+        aid = self.send_cmd(cmds.NodeAPAddAssociation(device, disable_timeout))
 
         if (aid != cmds.CMD_PARAM_ERROR):
             import wlan_exp.node_sta as node_sta

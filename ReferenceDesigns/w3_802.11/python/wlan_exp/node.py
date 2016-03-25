@@ -63,6 +63,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
         device_type (int): Unique type of the WlanDevice (inherited from WlanDevice)
         wlan_mac_address (int): Wireless MAC address of the node (inherited from WlanDevice)
+        ht_capable (bool): Indicates if device has PHY capable of HT (802.11n) rates 
 
         wlan_scheduler_resolution (int): Minimum resolution (in us) of the LTG
         log_max_size (int): Maximum size of event log (in bytes)
@@ -108,6 +109,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
         self.mac_type                       = mac_type
 
+        # As of v1.5 all 802.11 Ref Design nodes are HT capable
+        self.ht_capable = True
 
     #-------------------------------------------------------------------------
     # WLAN Exp Commands for the Node

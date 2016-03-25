@@ -40,7 +40,7 @@ class WlanDevice(object):
         device_type (int):     Unique type of the WLAN Device
         name (string):         User generated description of the WLAN device
         wlan_mac_address(int): MAC Address of WLAN Device
-
+        ht_capable (bool):     Indicates if device has PHY capable of HT (802.11n) rates 
     """
     device_type           = None
     name                  = None
@@ -48,8 +48,11 @@ class WlanDevice(object):
     
     wlan_mac_address      = None
     
-    def __init__(self, mac_address, name=None):
+    ht_capable            = None
+
+    def __init__(self, mac_address, name=None, ht_capable=False):
         self.name = name
+        self.ht_capable = ht_capable
                 
         if mac_address is not None:        
             if type(mac_address) in [int, long]:
@@ -67,6 +70,7 @@ class WlanDevice(object):
             raise TypeError("MAC address is not valid")
 
         self.description  = self.__repr__()
+
 
 
     #-------------------------------------------------------------------------

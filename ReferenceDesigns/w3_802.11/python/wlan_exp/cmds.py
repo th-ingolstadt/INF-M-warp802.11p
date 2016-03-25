@@ -6,15 +6,8 @@ WLAN Experiment Commands
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
            Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
-------------------------------------------------------------------------------
-MODIFICATION HISTORY:
-
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a ejw  1/23/14  Initial release
-
 ------------------------------------------------------------------------------
 
 This module provides class definitions for all WLAN Exp commands.
@@ -216,7 +209,8 @@ CMDID_GET_BSS_INFO                               = 0x007002
 CMDID_NODE_DISASSOCIATE                          = 0x007010
 CMDID_NODE_ADD_ASSOCIATION                       = 0x007011
 
-CMD_PARAM_ADD_ASSOCIATION_ALLOW_TIMEOUT          = 0x00000001
+CMD_PARAM_ADD_ASSOCIATION_DISABLE_INACTIVITY_TIMEOUT = 0x00000001
+CMD_PARAM_ADD_ASSOCIATION_HT_CAPABLE_STA         = 0x00000004
 
 CMD_PARAM_GET_ALL_ASSOCIATED                     = 0x0000000000000000
 
@@ -1713,25 +1707,26 @@ class NodeAPAddAssociation(message.Cmd):
 
     Attributes:
         device        -- Device to add to the association table
-        allow_timeout -- Allow the association to timeout if inactive
-
-    NOTE:  This adds an association with the default tx/rx params.  If
-        allow_timeout is not specified, the default on the node is to
-        not allow timeout of the association.
+        disable_timeout -- Disable the AP's inactivity check for this STA
     """
     description = None
 
-    def __init__(self, device, allow_timeout=None):
+    def __init__(self, device, disable_timeout=None):
         super(NodeAPAddAssociation, self).__init__()
         self.command = _CMD_GROUP_NODE + CMDID_NODE_ADD_ASSOCIATION
 
         flags = 0
         mask  = 0
 
-        if allow_timeout is not None:
-            mask += CMD_PARAM_ADD_ASSOCIATION_ALLOW_TIMEOUT
-            if allow_timeout:
-                flags += CMD_PARAM_ADD_ASSOCIATION_ALLOW_TIMEOUT
+        if disable_timeout is not None:
+            mask += CMD_PARAM_ADD_ASSOCIATION_DISABLE_INACTIVITY_TIMEOUT
+            if disable_timeout:
+                flags += CMD_PARAM_ADD_ASSOCIATION_DISABLE_INACTIVITY_TIMEOUT
+
+        # Set the station_info ht_capable flag based on the device's ht_capable attribute
+        mask += CMD_PARAM_ADD_ASSOCIATION_HT_CAPABLE_STA
+        if device.ht_capable:
+          flags += CMD_PARAM_ADD_ASSOCIATION_HT_CAPABLE_STA
 
         self.add_args(flags)
         self.add_args(mask)
