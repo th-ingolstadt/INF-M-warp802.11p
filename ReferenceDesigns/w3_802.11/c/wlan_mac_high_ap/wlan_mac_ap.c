@@ -1973,16 +1973,10 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 				//---------------------------------------------------------------------
 				case (MAC_FRAME_CTRL1_SUBTYPE_DISASSOC):
 					// Disassociation
-					//   - Log the assocation state change
-					//   - Remove the assocation and update the display
+					//   - Log the association state change
+					//   - Remove the association and update the display
 					//
-					if(associated_station != NULL){
-						if ((associated_station->flags & STATION_INFO_DO_NOT_REMOVE) != STATION_INFO_DO_NOT_REMOVE) {
-							//
-							// TODO:  (Optional) Log association state change
-							//
-						}
-					}
+
 					if(my_bss_info != NULL){
 						xil_printf("Authenticated, Associated Stations:\n");
 						wlan_mac_high_remove_station_info(&my_bss_info->station_info_list, &counts_table, rx_80211_header->address_2);

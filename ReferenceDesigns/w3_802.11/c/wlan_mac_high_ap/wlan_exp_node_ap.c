@@ -451,14 +451,6 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                     }
                 }
 
-                if (mask & CMD_PARAM_AP_ASSOCIATE_FLAG_STATION_INFO_DO_NOT_REMOVE) {
-                    if (flags & CMD_PARAM_AP_ASSOCIATE_FLAG_STATION_INFO_DO_NOT_REMOVE) {
-                        station_flags |= STATION_INFO_DO_NOT_REMOVE;
-                    } else {
-                        station_flags &= ~STATION_INFO_DO_NOT_REMOVE;
-                    }
-                }
-
                 // Disable interrupts so no packets interrupt the disassociate
                 prev_interrupt_state = wlan_mac_high_interrupt_stop();
 

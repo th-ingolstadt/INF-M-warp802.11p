@@ -2474,27 +2474,23 @@ int wlan_mac_high_remove_station_info(dl_list* station_info_list, dl_list* count
 	} else {
 		station_info = (station_info_t*)(entry->data);
 
-		if ((station_info->flags & STATION_INFO_DO_NOT_REMOVE) != STATION_INFO_DO_NOT_REMOVE) {
-			// Remove station from the list;
-			dl_entry_remove(station_info_list, entry);
+		// Remove station from the list;
+		dl_entry_remove(station_info_list, entry);
 
-			if (promiscuous_counts_enabled) {
-				station_info->counts->is_associated = 0;
-			} else {
-				//Remove station's counts from counts table
-				counts_entry = wlan_mac_high_find_counts_ADDR(counts_tbl, addr);
-				dl_entry_remove(counts_tbl, counts_entry);
-				wlan_mac_high_free(counts_entry);
-				wlan_mac_high_free(station_info->counts);
-			}
-
-			wlan_mac_high_free(entry);
-			wlan_mac_high_free(station_info);
-			wlan_mac_high_print_station_infos(station_info_list);
+		if (promiscuous_counts_enabled) {
+			station_info->counts->is_associated = 0;
 		} else {
-			xil_printf("Station not removed due to flags: %02x", addr[0]);
-			for ( i = 1; i < ETH_MAC_ADDR_LEN; i++ ) { xil_printf(":%02x", addr[i] ); } xil_printf("\n");
+			//Remove station's counts from counts table
+			counts_entry = wlan_mac_high_find_counts_ADDR(counts_tbl, addr);
+			dl_entry_remove(counts_tbl, counts_entry);
+			wlan_mac_high_free(counts_entry);
+			wlan_mac_high_free(station_info->counts);
 		}
+
+		wlan_mac_high_free(entry);
+		wlan_mac_high_free(station_info);
+		wlan_mac_high_print_station_infos(station_info_list);
+
 		return 0;
 	}
 }
