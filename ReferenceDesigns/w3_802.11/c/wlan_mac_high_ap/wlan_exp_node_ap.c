@@ -427,7 +427,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             interrupt_state_t     prev_interrupt_state;
             u32                   status              = CMD_PARAM_SUCCESS;
             station_info_t      * curr_station_info   = NULL;
-            u32                   station_flags       = STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
+            u32                   station_flags       = 0;
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "AP: Associate\n");
 
@@ -442,12 +442,22 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Associate flags = 0x%08x  mask = 0x%08x\n", flags, mask);
 
-                // Configure based on the flag bit / mask
-                if (mask & CMD_PARAM_AP_ASSOCIATE_FLAG_ALLOW_TIMEOUT) {
-                    if (flags & CMD_PARAM_AP_ASSOCIATE_FLAG_ALLOW_TIMEOUT) {
+                // Disable interrupts to avoid race conditions between wlan_exp and wireless Tx/Rx when
+                //  modifying the AP's association table
+                prev_interrupt_state = wlan_mac_high_interrupt_stop();
+
+                // Add association
+                curr_station_info = wlan_mac_high_add_station_info(&my_bss_info->station_info_list, &counts_table, &mac_addr[0], ADD_STATION_INFO_ANY_ID);
+
+                // Update the new station_info flags field
+                //  Only override the defaults set by the framework add_station_info if the wlan_exp command explicitly included a flag
+                station_flags = curr_station_info->flags;
+
+                if (mask & CMD_PARAM_AP_ASSOCIATE_FLAG_DISABLE_INACTIVITY_TIMEOUT) {
+                	if (flags & CMD_PARAM_AP_ASSOCIATE_FLAG_DISABLE_INACTIVITY_TIMEOUT) {
                         station_flags |= STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
                     } else {
-                        station_flags &= ~STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
+                    	station_flags &= ~STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
                     }
                 }
 
@@ -459,13 +469,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                     }
                 }
 
-                // Disable interrupts so no packets interrupt the disassociate
-                prev_interrupt_state = wlan_mac_high_interrupt_stop();
-
-                // Add association
-                curr_station_info = wlan_mac_high_add_station_info(&my_bss_info->station_info_list, &counts_table, &mac_addr[0], ADD_STATION_INFO_ANY_ID);
-
-                // Set the flags
+                // Update the station_info flags
                 curr_station_info->flags = station_flags;
 
                 // Re-enable interrupts

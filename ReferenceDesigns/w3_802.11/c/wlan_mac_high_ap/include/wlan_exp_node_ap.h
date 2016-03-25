@@ -40,9 +40,8 @@
 
 #define CMD_PARAM_NODE_AP_CONFIG_FLAG_DTIM_MULTICAST_BUFFER          0x00000001
 
-#define CMD_PARAM_AP_ASSOCIATE_FLAG_ALLOW_TIMEOUT                    0x00000001
-#define CMD_PARAM_AP_ASSOCIATE_FLAG_STATION_INFO_DO_NOT_REMOVE       0x00000002
-
+#define CMD_PARAM_AP_ASSOCIATE_FLAG_DISABLE_INACTIVITY_TIMEOUT       0x00000001
+#define CMD_PARAM_AP_ASSOCIATE_FLAG_HT_CAPABLE_STA                   0x00000004
 
 // ****************************************************************************
 // Define Node AP Parameters
