@@ -1,39 +1,33 @@
 # -*- coding: utf-8 -*-
 """
-.. ------------------------------------------------------------------------------
-.. WLAN Experiment Log Utility
-.. ------------------------------------------------------------------------------
-.. Authors:   Chris Hunter (chunter [at] mangocomm.com)
-..            Patrick Murphy (murphpo [at] mangocomm.com)
-..            Erik Welsh (welsh [at] mangocomm.com)
-.. License:   Copyright 2014-2015, Mango Communications. All rights reserved.
-..            Distributed under the WARP license (http://warpproject.org/license)
-.. ------------------------------------------------------------------------------
-.. MODIFICATION HISTORY:
-..
-.. Ver   Who  Date     Changes
-.. ----- ---- -------- -----------------------------------------------------
-.. 1.00a ejw  1/23/14  Initial release
-.. ------------------------------------------------------------------------------
-..
-.. This module provides utility functions for handling WLAN Exp log data.
-..
-.. Naming convention::
-..     log_data       -- The binary data from a WLAN Exp node's log.
-..
-..     raw_log_index  -- This is an index that has not been interpreted / filtered
-..                       and corresponds 1-to-1 with what is in given log_data.
-..                       The defining characteristic of a raw_log_index is that
-..                       the dictionary keys are all integers:
-..                         { <int> : [<offsets>] }
-..
-..     log_index      -- A log_index is any index that is not a raw_log_index.  In
-..                       general, this will be a interpreted / filtered version of
-..                       a raw_log_index.
-..
-..     numpy          -- A python package that allows easy and fast manipulation of
-..                       large data sets.  You can find more documentaiton on numpy at:
-..                           http://www.numpy.org/
+------------------------------------------------------------------------------
+Mango 802.11 Reference Design Experiments Framework - Log Utilities
+------------------------------------------------------------------------------
+Authors:   Chris Hunter (chunter [at] mangocomm.com)
+           Patrick Murphy (murphpo [at] mangocomm.com)
+           Erik Welsh (welsh [at] mangocomm.com)
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
+
+This module provides utility functions for handling wlan_exp log data.
+
+Naming convention::
+log_data       -- The binary data from a wlan_exp node's log.
+
+raw_log_index  -- This is an index that has not been interpreted / filtered
+and corresponds 1-to-1 with what is in given log_data.
+The defining characteristic of a raw_log_index is that
+the dictionary keys are all integers:
+{ <int> : [<offsets>] }
+
+log_index      -- A log_index is any index that is not a raw_log_index.  In
+general, this will be a interpreted / filtered version of
+a raw_log_index.
+
+numpy          -- A python package that allows easy and fast manipulation of
+large data sets.  You can find more documentaiton on numpy at:
+http://www.numpy.org/
 """
 
 __all__ = ['gen_raw_log_index',
@@ -89,10 +83,10 @@ class LogContainer(object):
 
 
 # -----------------------------------------------------------------------------
-# WLAN Exp Log Utilities
+# Log Utilities
 # -----------------------------------------------------------------------------
 def gen_raw_log_index(log_data):
-    """Parses binary WLAN Exp log data by recording the byte index of each entry.
+    """Parses binary wlan_exp log data by recording the byte index of each entry.
 
     Args:
         log_data (bytes):  Binary data from a WlanExpNode log
@@ -151,7 +145,7 @@ def gen_raw_log_index(log_data):
         #     raise Exception("ERROR: Log file didn't start with valid entry header!")
 
         # Use raw byte slicing for better performance
-        # Values below are hard coded to match current WLAN Exp log entry formats
+        # Values below are hard coded to match current wlan_exp log entry formats
         hdr_b = log_data[offset:offset+hdr_size]
 
         if (use_byte_array):
@@ -456,7 +450,7 @@ def _translate_log_index_keys(log_index):
 
 
 # -----------------------------------------------------------------------------
-# WLAN Exp Log Misc Utilities
+# Log Misc Utilities
 # -----------------------------------------------------------------------------
 def get_entry_constants(entry_type):
     """Get a copy of constants for given log entry type
@@ -871,7 +865,7 @@ def get_now_as_log_time_str():
 
 
 # -----------------------------------------------------------------------------
-# WLAN Exp Log Printing Utilities
+# Log Printing Utilities
 # -----------------------------------------------------------------------------
 def print_log_index_summary(log_index, title=None):
     """Prints a summary of the log_index.

@@ -1,61 +1,55 @@
 # -*- coding: utf-8 -*-
 """
-.. ------------------------------------------------------------------------------
-.. WLAN Experiment Log HDF5 Utilities
-.. ------------------------------------------------------------------------------
-.. Authors:   Chris Hunter (chunter [at] mangocomm.com)
-..            Patrick Murphy (murphpo [at] mangocomm.com)
-..            Erik Welsh (welsh [at] mangocomm.com)
-.. License:   Copyright 2014-2015, Mango Communications. All rights reserved.
-..            Distributed under the WARP license (http://warpproject.org/license)
-.. ------------------------------------------------------------------------------
-.. MODIFICATION HISTORY:
-..
-.. Ver   Who  Date     Changes
-.. ----- ---- -------- -----------------------------------------------------
-.. 1.00a ejw  1/23/14  Initial release
-.. ------------------------------------------------------------------------------
-..
-.. This module defines each type of log entry that may exist in the event log of
-.. an 802.11 Reference Design Node.
-..
-.. The log entry definitions in this file must match the corresponding
-.. definitions in the wlan_mac_entries.h header file in the C code
-.. running on the node.
-..
-.. This module maintains a dictionary which contains a reference to each
-.. known log entry type. This dictionary is stored in the variable
-.. ``wlan_exp_log_entry_types``. The :class:`WlanExpLogEntryType` constructor
-.. automatically adds each log entry type definition to this dictionary. Users
-.. may access the dictionary to view currently defined log entry types. But
-.. user code should not modify the dictionary contents directly.
-..
-..
-.. Custom Log Entry Types
-.. ----------------------
-.. The :mod:`log_entries` module includes definitions for the log entry types
-.. implemented in the current 802.11 Reference Design C code.
-..
-.. Log entry types defined here must match the corresponding entry definitions in
-.. the node C code.  Custom entries can be defined and added to the global
-.. dictionary by user scripts.
-..
-.. Log entry type definitions are instances of the :class:`WlanExpLogEntryType`
-.. class. The :class:`WlanExpLogEntryType` constructor requires two arguments:
-.. ``name`` and ``entry_type_id``.  Both the name and entry type ID **must** be
-.. unique relative to the existing entry types defined in :mod:`log_entries`.
-..
-.. To define a custom log entry type::
-..
-..     import wlan_exp.log.entry_types as entry_types
-..
-..     #name and entry_type_id must not collide with existing log entry type definitions
-..     my_entry_type = entry_types.WlanExpLogEntryType(name='MY_ENTRY', entry_type_id=999)
-..     my_entry_type.append_field_defs([
-..             ('timestamp',              'Q',      'uint64'),
-..             ('field_A',                'H',      'uint16'),
-..             ('field_B',                'H',      'uint16')])
-..
+------------------------------------------------------------------------------
+Mango 802.11 Reference Design Experiments Framework - Log Entry Types
+------------------------------------------------------------------------------
+Authors:   Chris Hunter (chunter [at] mangocomm.com)
+           Patrick Murphy (murphpo [at] mangocomm.com)
+           Erik Welsh (welsh [at] mangocomm.com)
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
+
+This module defines each type of log entry that may exist in the event log of
+an 802.11 Reference Design Node.
+
+The log entry definitions in this file must match the corresponding
+definitions in the wlan_mac_entries.h header file in the C code
+running on the node.
+
+This module maintains a dictionary which contains a reference to each
+known log entry type. This dictionary is stored in the variable
+``wlan_exp_log_entry_types``. The :class:`WlanExpLogEntryType` constructor
+automatically adds each log entry type definition to this dictionary. Users
+may access the dictionary to view currently defined log entry types. But
+user code should not modify the dictionary contents directly.
+
+
+Custom Log Entry Types
+----------------------
+The :mod:`log_entries` module includes definitions for the log entry types
+implemented in the current 802.11 Reference Design C code.
+
+Log entry types defined here must match the corresponding entry definitions in
+the node C code.  Custom entries can be defined and added to the global
+dictionary by user scripts.
+
+Log entry type definitions are instances of the :class:`WlanExpLogEntryType`
+class. The :class:`WlanExpLogEntryType` constructor requires two arguments:
+``name`` and ``entry_type_id``.  Both the name and entry type ID **must** be
+unique relative to the existing entry types defined in :mod:`log_entries`.
+
+To define a custom log entry type::
+
+    import wlan_exp.log.entry_types as entry_types
+
+    #name and entry_type_id must not collide with existing log entry type definitions
+    my_entry_type = entry_types.WlanExpLogEntryType(name='MY_ENTRY', entry_type_id=999)
+    my_entry_type.append_field_defs([
+            ('timestamp',              'Q',      'uint64'),
+            ('field_A',                'H',      'uint16'),
+            ('field_B',                'H',      'uint16')])
+
 """
 import sys, os
 from struct import pack, unpack, calcsize, error
@@ -65,13 +59,13 @@ import wlan_exp.util as util
 if sys.version[0]=="3": long=None
 
 
-# WLAN Exp Event Log Constants
-#   NOTE:  The C counterparts are found in wlan_mac_event_log.h
+# Event Log Constants
+#   Must match corresponding C definitions in wlan_mac_event_log.h
 WLAN_EXP_LOG_DELIM = 0xACED
 
 
-# WLAN Exp Log Entry Constants
-#   NOTE:  The C counterparts are found in wlan_mac_entries.h
+# Log Entry Type Constants
+#   Must match corresponding C definitions in wlan_mac_entries.h
 ENTRY_TYPE_NULL                   = 0
 ENTRY_TYPE_NODE_INFO              = 1
 ENTRY_TYPE_EXP_INFO               = 2

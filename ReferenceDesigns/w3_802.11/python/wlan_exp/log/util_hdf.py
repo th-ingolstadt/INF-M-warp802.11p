@@ -1,69 +1,63 @@
 # -*- coding: utf-8 -*-
 """
-.. ------------------------------------------------------------------------------
-.. WLAN Experiment Log HDF5 Utilities
-.. ------------------------------------------------------------------------------
-.. Authors:   Chris Hunter (chunter [at] mangocomm.com)
-..            Patrick Murphy (murphpo [at] mangocomm.com)
-..            Erik Welsh (welsh [at] mangocomm.com)
-.. License:   Copyright 2014-2015, Mango Communications. All rights reserved.
-..            Distributed under the WARP license (http://warpproject.org/license)
-.. ------------------------------------------------------------------------------
-.. MODIFICATION HISTORY:
-..
-.. Ver   Who  Date     Changes
-.. ----- ---- -------- -----------------------------------------------------
-.. 1.00a ejw  1/23/14  Initial release
-.. ------------------------------------------------------------------------------
-.. 
-.. This module provides utility functions for HDF to handle WLAN Exp log data.
-.. 
-.. For WLAN Exp log data manipulation, it is necessary to define a common file format
-.. so that it is easy for multiple consumers, both in python and other languages, to
-.. access the data.  To do this, we use HDF5 as the container format with a couple of
-.. additional conventions to hold the log data as well as other pieces of information.
-.. Below are the rules that we follow to create an HDF5 file that will contain WLAN
-.. Exp log data:
-.. 
-.. wlan_exp_log_data_container (equivalent to a HDF5 group):
-..    /: Root Group in HDF5 file
-..        |- Attributes:
-..        |      |- 'wlan_exp_log'         (1,)      bool
-..        |      |- 'wlan_exp_ver'         (3,)      uint32
-..        |      |- <user provided attributes in attr_dict>
-..        |- Datasets:
-..        |      |- 'log_data'             (1,)      voidN  (where N is the size of the data)
-..        |- Groups (created if gen_index==True):
-..               |- 'raw_log_index'
-..                      |- Datasets:
-..                         (dtype depends if largest offset in raw_log_index is < 2^32)
-..                             |- <int>    (N1,)     uint32/uint64
-..                             |- <int>    (N2,)     uint32/uint64
-..                             |- ...
-.. 
-.. Naming convention:
-.. 
-..   log_data       -- The binary data from a WLAN Exp node's log.
-.. 
-..   raw_log_index  -- This is an index that has not been interpreted / filtered
-..                     and corresponds 1-to-1 with what is in given log_data.
-..                     The defining characteristic of a raw_log_index is that
-..                     the dictionary keys are all integers (entry type IDs):
-..                       { <int> : [<offsets>] }
-.. 
-..   log_index      -- A log_index is any index that is not a raw_log_index.  In
-..                     general, this will be a interpreted / filtered version of
-..                     a raw_log_index.
-.. 
-..   hdf5           -- A data container format that we use to store log_data,
-..                     raw_log_index, and other user defined attributes.  You can
-..                     find more documentation on HDF / HDF5 at:
-..                         http://www.hdfgroup.org/
-..                         http://www.h5py.org/
-.. 
-..   numpy          -- A python package that allows easy and fast manipulation of
-..                     large data sets.  You can find more documentaiton on numpy at:
-..                         http://www.numpy.org/
+------------------------------------------------------------------------------
+Mango 802.11 Reference Design Experiments Framework - HDF5 Log File Utilities
+------------------------------------------------------------------------------
+Authors:   Chris Hunter (chunter [at] mangocomm.com)
+           Patrick Murphy (murphpo [at] mangocomm.com)
+           Erik Welsh (welsh [at] mangocomm.com)
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
+
+This module provides utility functions for HDF to handle wlan_exp log data.
+
+For wlan_exp log data manipulation, it is necessary to define a common file format
+so that it is easy for multiple consumers, both in python and other languages, to
+access the data.  To do this, we use HDF5 as the container format with a couple of
+additional conventions to hold the log data as well as other pieces of information.
+Below are the rules that we follow to create an HDF5 file that will contain WLAN
+Exp log data:
+
+wlan_exp_log_data_container (equivalent to a HDF5 group):
+/: Root Group in HDF5 file
+|- Attributes:
+|      |- 'wlan_exp_log'         (1,)      bool
+|      |- 'wlan_exp_ver'         (3,)      uint32
+|      |- <user provided attributes in attr_dict>
+|- Datasets:
+|      |- 'log_data'             (1,)      voidN  (where N is the size of the data)
+|- Groups (created if gen_index==True):
+|- 'raw_log_index'
+|- Datasets:
+(dtype depends if largest offset in raw_log_index is < 2^32)
+|- <int>    (N1,)     uint32/uint64
+|- <int>    (N2,)     uint32/uint64
+|- ...
+
+Naming convention:
+
+log_data       -- The binary data from a wlan_exp node's log.
+
+raw_log_index  -- This is an index that has not been interpreted / filtered
+and corresponds 1-to-1 with what is in given log_data.
+The defining characteristic of a raw_log_index is that
+the dictionary keys are all integers (entry type IDs):
+{ <int> : [<offsets>] }
+
+log_index      -- A log_index is any index that is not a raw_log_index.  In
+general, this will be a interpreted / filtered version of
+a raw_log_index.
+
+hdf5           -- A data container format that we use to store log_data,
+raw_log_index, and other user defined attributes.  You can
+find more documentation on HDF / HDF5 at:
+http://www.hdfgroup.org/
+http://www.h5py.org/
+
+numpy          -- A python package that allows easy and fast manipulation of
+large data sets.  You can find more documentaiton on numpy at:
+http://www.numpy.org/
 """
 
 __all__ = ['np_arrays_to_hdf5',
@@ -152,7 +146,7 @@ class HDF5LogContainer(log_util.LogContainer):
                     print(msg)
                 
                 if (status == version.WLAN_EXP_VERSION_OLDER):
-                    print("Please update the WLAN Exp installation to match the version on the HDF5 file.")
+                    print("Please update the wlan_exp installation to match the version on the HDF5 file.")
                             
             else:
                 msg  = "WARNING: Log container is not valid.\n"
@@ -224,7 +218,7 @@ class HDF5LogContainer(log_util.LogContainer):
         """Write the log index to the log container.
 
         Args:
-            log_index (dict):  Log index generated from WLAN Exp log data
+            log_index (dict):  Log index generated from wlan_exp log data
 
         If the log index currently exists in the HDF5 file, that log index
         will be replaced with this new log index.  If log_index is provided
@@ -513,7 +507,7 @@ class HDF5LogContainer(log_util.LogContainer):
 
 
 # -----------------------------------------------------------------------------
-# WLAN Exp Log HDF5 file Utilities
+# Log HDF5 file Utilities
 # -----------------------------------------------------------------------------
 def hdf5_open_file(filename, readonly=False, append=False, print_warnings=True):
     """Open an HDF5 file.

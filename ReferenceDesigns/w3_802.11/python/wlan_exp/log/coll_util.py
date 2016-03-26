@@ -1,20 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-WLAN Experiment Collision Utility
+Mango 802.11 Reference Design Experiments Framework - Collision Analysis
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
            Erik Welsh (welsh [at] mangocomm.com)
 License:   Copyright 2014-2015, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
-------------------------------------------------------------------------------
-MODIFICATION HISTORY:
-
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a crh  1/23/14  Initial release
-
 ------------------------------------------------------------------------------
 
 This module provides helper functions for finding packet collisions within 
