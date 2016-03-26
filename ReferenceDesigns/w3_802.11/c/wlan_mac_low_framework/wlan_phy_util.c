@@ -260,7 +260,9 @@ void wlan_phy_init() {
     // Block Rx inputs during Tx
     REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_USE_TX_SIG_BLOCK);
 
-    // Enable 11n support in the PHY Rx
+    // Enable HTMF waveform (11n waveform) detection in the PHY Rx
+    //  Disabling HTMF detection reverts the PHY to <v1.3 behavior where
+    //  every reception is handled as NONHT (11a)
     REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_ENABLE_HTMF_DET);
 
     // Keep CCA.BUSY asserted when DSSS Rx is active
