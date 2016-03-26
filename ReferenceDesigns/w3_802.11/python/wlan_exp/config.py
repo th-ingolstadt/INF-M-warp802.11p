@@ -1,39 +1,29 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-WLAN Exp Newtork / Node Configurations
+Mango 802.11 Reference Design Experiments Framework - Newtork / Node Configurations
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
            Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
-MODIFICATION HISTORY:
 
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a ejw  1/23/14  Initial release
-
-------------------------------------------------------------------------------
-
-This module provides class definitions to manage the WLAN Exp configurations.
+This module provides class definitions to manage the configuration of 
+ wlan_exp node objects and network interfaces.
 
 Functions (see below for more information):
     WlanExpNetworkConfiguration() -- Specifies Network information for setup
     WlanExpNodesConfiguration()   -- Specifies Node information for setup
-
 """
 
 import wlan_exp.transport.config as config
 
-
 __all__ = ['WlanExpNetworkConfiguration', 'WlanExpNodesConfiguration']
 
-
-
 class WlanExpNetworkConfiguration(config.NetworkConfiguration):
-    """Class for WLAN Exp Network configuration.
+    """Class for wlan_exp network configuration.
 
     This class is a child of the transport network configuration.
     """
@@ -67,7 +57,7 @@ class WlanExpNetworkConfiguration(config.NetworkConfiguration):
 
 
 class WlanExpNodesConfiguration(config.NodesConfiguration):
-    """Class for WLAN Exp Node Configuration.
+    """Class for wlan_exp node Configuration.
     
     This class is a child of the transport node configuration.
     """

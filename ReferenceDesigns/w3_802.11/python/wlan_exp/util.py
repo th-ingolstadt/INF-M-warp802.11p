@@ -1,15 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-.. ------------------------------------------------------------------------------
-.. WLAN Experiment Utilities
-.. ------------------------------------------------------------------------------
-.. Authors:   Chris Hunter (chunter [at] mangocomm.com)
-..            Patrick Murphy (murphpo [at] mangocomm.com)
-..            Erik Welsh (welsh [at] mangocomm.com)
-.. License:   Copyright 2014-2015, Mango Communications. All rights reserved.
-..            Distributed under the WARP license (http://warpproject.org/license)
-.. ------------------------------------------------------------------------------
-
+------------------------------------------------------------------------------
+Mango 802.11 Reference Design Experiments Framework - Utilities
+------------------------------------------------------------------------------
+Authors:   Chris Hunter (chunter [at] mangocomm.com)
+           Patrick Murphy (murphpo [at] mangocomm.com)
+           Erik Welsh (welsh [at] mangocomm.com)
+License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
 """
 
 import sys
@@ -66,7 +65,7 @@ class consts_dict(dict):
 
 
 # -----------------------------------------------------------------------------
-# WLAN Exp Node Print Levels
+# Node Print Levels
 # -----------------------------------------------------------------------------
 
 #   NOTE:  The C counterparts are found in wlan_exp_common.h
@@ -79,7 +78,7 @@ WLAN_EXP_PRINT_DEBUG              = 4
 
 
 # -----------------------------------------------------------------------------
-# WLAN Exp Rate definitions
+# Rate definitions
 # -----------------------------------------------------------------------------
 
 #: PHY Modes - DSSS (Rx only), NONHT OFDM (11a/g) and HTMF (11n).
@@ -197,7 +196,7 @@ def rate_info_to_str(rate_info):
 
 
 # -----------------------------------------------------------------------------
-# WLAN Exp Channel definitions
+# Channel definitions
 # -----------------------------------------------------------------------------
 
 #: List of supported channels. Each value represents a 20MHz channel in the 2.4GHz
@@ -275,7 +274,7 @@ def channel_info_to_str(channel_info):
 
 
 # -----------------------------------------------------------------------------
-# WLAN Exp Antenna Mode definitions
+# Antenna Mode definitions
 # -----------------------------------------------------------------------------
 
 #: Dictionary of supported receive interfaces.
@@ -294,7 +293,7 @@ wlan_tx_ant_modes = consts_dict({
 
 
 # -----------------------------------------------------------------------------
-# WLAN Exp MAC Address definitions
+# MAC Address definitions
 # -----------------------------------------------------------------------------
 
 # MAC Description Map
@@ -322,7 +321,7 @@ mac_addr_broadcast  = 0xFFFFFFFFFFFF
 
 
 # -----------------------------------------------------------------------------
-# WLAN Exp Node Utilities
+# Node Utilities
 # -----------------------------------------------------------------------------
 
 # Node Type Dictionary
@@ -333,7 +332,7 @@ node_type_dict = None
 
 def init_nodes(nodes_config, network_config=None, node_factory=None,
                network_reset=True, output=False):
-    """Initalize WLAN Exp nodes.
+    """Initalize wlan_exp nodes.
 
     The init_nodes function serves two purposes:  1) To initialize the node for
     participation in the experiment and 2) To retrieve all necessary information
@@ -389,7 +388,7 @@ def init_nodes(nodes_config, network_config=None, node_factory=None,
 
 
 def broadcast_cmd_set_mac_time(time, network_config, time_id=None):
-    """Initialize the MAC time on all of the WLAN Exp nodes.
+    """Initialize the MAC time on all of the wlan_exp nodes.
 
     This method will iterate through all network configurations and issue a broadcast
     packet on each network that will set the MAC time on the node to 'time'.  The
@@ -740,12 +739,12 @@ def check_bss_membership(nodes, verbose=False):
 
 
 # -----------------------------------------------------------------------------
-# WLAN Exp Replicated Misc Utilities
+# Replicated Misc Utilities
 # -----------------------------------------------------------------------------
 
 #
-# NOTE:  These utilities are replicated versions of other functions in WLAN Exp.
-#     They are consolidated in util to ease import of WLAN Exp for scripts.
+# NOTE:  These utilities are replicated versions of other functions in wlan_exp.
+#     They are consolidated in util to ease import of wlan_exp for scripts.
 #
 
 def int_to_ip(ip_address):
@@ -854,7 +853,7 @@ def buffer_to_str(buffer):
 
 
 def ver_code_to_str(ver_code):
-    """Convert a WLAN Exp version code to a string."""
+    """Convert a wlan_exp version code to a string."""
     import wlan_exp.version as version
     return version.wlan_exp_ver_code_to_str(ver_code)
 
@@ -862,7 +861,7 @@ def ver_code_to_str(ver_code):
 
 
 # -----------------------------------------------------------------------------
-# WLAN Exp Misc Utilities
+# Misc Utilities
 # -----------------------------------------------------------------------------
 
 def create_locally_administered_bssid(mac_address):
@@ -1101,7 +1100,7 @@ def _get_nodes_by_sn(nodes, serial_number=None):
 
 
 def _time():
-    """WLAN Exp time function to handle differences between Python 2.7 and 3.3"""
+    """Time function to handle differences between Python 2.7 and 3.3"""
     try:
         return time.perf_counter()
     except AttributeError:

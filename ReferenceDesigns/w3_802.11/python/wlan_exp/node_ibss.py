@@ -1,20 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-.. ------------------------------------------------------------------------------
-.. WLAN Experiment Node - IBSS Node
-.. ------------------------------------------------------------------------------
-.. Authors:   Chris Hunter (chunter [at] mangocomm.com)
-..            Patrick Murphy (murphpo [at] mangocomm.com)
-..            Erik Welsh (welsh [at] mangocomm.com)
-.. License:   Copyright 2014-2015, Mango Communications. All rights reserved.
-..            Distributed under the WARP license (http://warpproject.org/license)
-.. ------------------------------------------------------------------------------
-.. MODIFICATION HISTORY:
-..
-.. Ver   Who  Date     Changes
-.. ----- ---- -------- -----------------------------------------------------
-.. 1.00a ejw  1/23/14  Initial release
-.. ------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+Mango 802.11 Reference Design Experiments Framework - Ad hoc (IBSS) Node
+------------------------------------------------------------------------------
+Authors:   Chris Hunter (chunter [at] mangocomm.com)
+           Patrick Murphy (murphpo [at] mangocomm.com)
+           Erik Welsh (welsh [at] mangocomm.com)
+License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
 
 """
 
@@ -26,7 +20,7 @@ __all__ = ['WlanExpNodeIBSS']
 
 
 class WlanExpNodeIBSS(node.WlanExpNode):
-    """802.11 IBSS functionality for a WLAN Experiment node.
+    """wlan_exp Node class for the 802.11 Reference Design IBSS MAC project
     
     Args:
         network_config (transport.NetworkConfiguration) : Network configuration of the node
@@ -34,7 +28,7 @@ class WlanExpNodeIBSS(node.WlanExpNode):
     """
 
     #-------------------------------------------------------------------------
-    # Override WLAN Exp Node Commands
+    # Node Commands
     #-------------------------------------------------------------------------
     def counts_get_txrx(self, device_list=None, return_zeroed_counts_if_none=True):
         """Get the counts from the node.
@@ -101,7 +95,7 @@ class WlanExpNodeIBSS(node.WlanExpNode):
 
 
     #-------------------------------------------------------------------------
-    # Override Internal WLAN Exp Node methods
+    # Internal Node methods
     #-------------------------------------------------------------------------
     def _check_allowed_rate(self, mcs, phy_mode, verbose=False):
         """Check that rate parameters are allowed
@@ -121,7 +115,7 @@ class WlanExpNodeIBSS(node.WlanExpNode):
 
 
     #-------------------------------------------------------------------------
-    # IBSS specific WLAN Exp Commands 
+    # IBSS specific Commands 
     #-------------------------------------------------------------------------
 
 
@@ -141,7 +135,7 @@ class WlanExpNodeIBSS(node.WlanExpNode):
 
         if self.serial_number is not None:
             from wlan_exp.util import mac_addr_to_str
-            msg += "WLAN EXP IBSS Node:\n"
+            msg += "IBSS Node:\n"
             msg += "    WLAN MAC addr :  {0}\n".format(mac_addr_to_str(self.wlan_mac_address))
             msg += "    Node ID       :  {0}\n".format(self.node_id)
             msg += "    Serial #      :  {0}\n".format(self.sn_str)
@@ -150,7 +144,7 @@ class WlanExpNodeIBSS(node.WlanExpNode):
             msg += "Node not initialized."
 
         if self.transport is not None:
-            msg += "WLAN EXP "
+            msg += "wlan_exp "
             msg += str(self.transport)
 
         return msg
@@ -159,7 +153,7 @@ class WlanExpNodeIBSS(node.WlanExpNode):
     def __repr__(self):
         """Return node name and description"""
         msg = super(WlanExpNodeIBSS, self).__repr__()
-        msg = "WLAN EXP IBSS " + msg
+        msg = "IBSS " + msg
         return msg
 
 # End class 

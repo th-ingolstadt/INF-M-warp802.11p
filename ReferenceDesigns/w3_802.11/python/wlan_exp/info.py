@@ -1,20 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-Structured Information classes
+Mango 802.11 Reference Design Experiments Framework - Information Struct classes
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
            Erik Welsh (welsh [at] mangocomm.com)
 License:   Copyright 2014-2015, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
-------------------------------------------------------------------------------
-MODIFICATION HISTORY:
-
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a ejw  10/15/15 Initial release
-
 ------------------------------------------------------------------------------
 
 This module provides class definitions for information classes.
@@ -685,8 +678,8 @@ class BSSInfo(InfoStruct):
         #   - Remove extra characters in the SSID
         #   - Convert the BSS ID to a colon delimited string for storage
         #
-        # NOTE:  A BSS ID is a 40-bit integer and can be treated like a MAC
-        #     address in the WLAN Exp framework (ie all the MAC address
+        #   A BSSID is a 48-bit integer and can be treated like a MAC
+        #     address in the wlan_exp framework (ie all the MAC address
         #     utility functions can be used on it.)
         #
         import ctypes

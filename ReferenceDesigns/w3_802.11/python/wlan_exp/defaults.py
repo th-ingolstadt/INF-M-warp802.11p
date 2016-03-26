@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-WLAN Experiment Default Constants
+Mango 802.11 Reference Design Experiments Framework - Default Constants
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
@@ -9,15 +9,8 @@ Authors:   Chris Hunter (chunter [at] mangocomm.com)
 License:   Copyright 2014-2015, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
-MODIFICATION HISTORY:
 
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a ejw  1/23/14  Initial release
-
-------------------------------------------------------------------------------
-
-This module provides WLAN Exp default constants.
+This module provides wlan_exp default constants.
 
 """
 
@@ -25,8 +18,8 @@ This module provides WLAN Exp default constants.
 PACKAGE_NAME                      = 'wlan_exp'
 
 
-# WLAN Exp Node Types
-#   NOTE:  The C counterparts are found in wlan_exp_common.h
+# Reference Design Node Types
+#  Values here must match C counterparts in wlan_exp_common.h
 WLAN_EXP_MASK                     = 0xFFFF0000
 WLAN_EXP_80211_BASE               = 0x00010000
 
@@ -39,7 +32,6 @@ WLAN_EXP_HIGH_IBSS                = 0x00000300
 WLAN_EXP_HIGH_TYPES               = {WLAN_EXP_HIGH_AP   : "AP",
                                      WLAN_EXP_HIGH_STA  : "STA", 
                                      WLAN_EXP_HIGH_IBSS : "IBSS"}
-
 # CPU Low Types
 WLAN_EXP_LOW_MASK                 = 0x000000FF
 WLAN_EXP_LOW_DCF                  = 0x00000001
@@ -51,34 +43,24 @@ WLAN_EXP_LOW_TYPES                = {WLAN_EXP_LOW_DCF   : "DCF",
 # Node Types (supported combinations of CPU High and CPU Low)
 WLAN_EXP_AP_DCF_TYPE              = WLAN_EXP_80211_BASE + WLAN_EXP_HIGH_AP + WLAN_EXP_LOW_DCF
 WLAN_EXP_AP_DCF_CLASS_INST        = 'node_ap.WlanExpNodeAp(network_config, defaults.WLAN_EXP_LOW_DCF)'
-WLAN_EXP_AP_DCF_DESCRIPTION       = 'WLAN Exp (AP/DCF) '
+WLAN_EXP_AP_DCF_DESCRIPTION       = '(AP/DCF) '
 
 WLAN_EXP_STA_DCF_TYPE             = WLAN_EXP_80211_BASE + WLAN_EXP_HIGH_STA + WLAN_EXP_LOW_DCF
 WLAN_EXP_STA_DCF_CLASS_INST       = 'node_sta.WlanExpNodeSta(network_config, defaults.WLAN_EXP_LOW_DCF)'
-WLAN_EXP_STA_DCF_DESCRIPTION      = 'WLAN Exp (STA/DCF)'
+WLAN_EXP_STA_DCF_DESCRIPTION      = '(STA/DCF)'
 
 WLAN_EXP_IBSS_DCF_TYPE            = WLAN_EXP_80211_BASE + WLAN_EXP_HIGH_IBSS + WLAN_EXP_LOW_DCF
 WLAN_EXP_IBSS_DCF_CLASS_INST      = 'node_ibss.WlanExpNodeIBSS(network_config, defaults.WLAN_EXP_LOW_DCF)'
-WLAN_EXP_IBSS_DCF_DESCRIPTION     = 'WLAN Exp (IBSS/DCF) '
+WLAN_EXP_IBSS_DCF_DESCRIPTION     = '(IBSS/DCF) '
 
 WLAN_EXP_AP_NOMAC_TYPE            = WLAN_EXP_80211_BASE + WLAN_EXP_HIGH_AP + WLAN_EXP_LOW_NOMAC
 WLAN_EXP_AP_NOMAC_CLASS_INST      = 'node_ap.WlanExpNodeAp(network_config, defaults.WLAN_EXP_LOW_NOMAC)'
-WLAN_EXP_AP_NOMAC_DESCRIPTION     = 'WLAN Exp (AP/NOMAC) '
+WLAN_EXP_AP_NOMAC_DESCRIPTION     = '(AP/NOMAC) '
 
 WLAN_EXP_STA_NOMAC_TYPE           = WLAN_EXP_80211_BASE + WLAN_EXP_HIGH_STA + WLAN_EXP_LOW_NOMAC
 WLAN_EXP_STA_NOMAC_CLASS_INST     = 'node_sta.WlanExpNodeSta(network_config, defaults.WLAN_EXP_LOW_NOMAC)'
-WLAN_EXP_STA_NOMAC_DESCRIPTION    = 'WLAN Exp (STA/NOMAC)'
+WLAN_EXP_STA_NOMAC_DESCRIPTION    = '(STA/NOMAC)'
 
 WLAN_EXP_IBSS_NOMAC_TYPE          = WLAN_EXP_80211_BASE + WLAN_EXP_HIGH_IBSS + WLAN_EXP_LOW_NOMAC
 WLAN_EXP_IBSS_NOMAC_CLASS_INST    = 'node_ibss.WlanExpNodeIBSS(network_config, defaults.WLAN_EXP_LOW_NOMAC)'
-WLAN_EXP_IBSS_NOMAC_DESCRIPTION   = 'WLAN Exp (IBSS/NOMAC) '
-
-
-
-
-
-
-
-
-
-
+WLAN_EXP_IBSS_NOMAC_DESCRIPTION   = '(IBSS/NOMAC) '

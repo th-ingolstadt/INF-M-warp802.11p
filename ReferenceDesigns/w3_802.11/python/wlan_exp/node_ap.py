@@ -1,20 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-.. ------------------------------------------------------------------------------
-.. WLAN Experiment Node - Access Point (AP)
-.. ------------------------------------------------------------------------------
-.. Authors:   Chris Hunter (chunter [at] mangocomm.com)
-..            Patrick Murphy (murphpo [at] mangocomm.com)
-..            Erik Welsh (welsh [at] mangocomm.com)
-.. License:   Copyright 2014-2015, Mango Communications. All rights reserved.
-..            Distributed under the WARP license (http://warpproject.org/license)
-.. ------------------------------------------------------------------------------
-.. MODIFICATION HISTORY:
-..
-.. Ver   Who  Date     Changes
-.. ----- ---- -------- -----------------------------------------------------
-.. 1.00a ejw  1/23/14  Initial release
-.. ------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+Mango 802.11 Reference Design Experiments Framework - Access Point Node
+------------------------------------------------------------------------------
+Authors:   Chris Hunter (chunter [at] mangocomm.com)
+           Patrick Murphy (murphpo [at] mangocomm.com)
+           Erik Welsh (welsh [at] mangocomm.com)
+License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
 
 """
 
@@ -26,7 +20,7 @@ __all__ = ['WlanExpNodeAp']
 
 
 class WlanExpNodeAp(node.WlanExpNode):
-    """802.11 Access Point (AP) functionality for a WLAN Experiment node.
+    """wlan_exp Node class for the 802.11 Reference Design AP MAC project
 
     Args:
         network_config (transport.NetworkConfiguration) : Network configuration of the node
@@ -34,7 +28,7 @@ class WlanExpNodeAp(node.WlanExpNode):
     """
 
     #-------------------------------------------------------------------------
-    # Override WLAN Exp Node Commands
+    # Node Commands
     #-------------------------------------------------------------------------
     def configure_bss(self, bssid=False, ssid=None, channel=None, beacon_interval=False, ht_capable=None):
         """Configure the BSS information of the node
@@ -146,7 +140,7 @@ class WlanExpNodeAp(node.WlanExpNode):
 
 
     #-------------------------------------------------------------------------
-    # Override Internal WLAN Exp Node methods
+    # Internal Node methods
     #-------------------------------------------------------------------------
     def _check_allowed_rate(self, mcs, phy_mode, verbose=False):
         """Check that rate parameters are allowed
@@ -167,7 +161,7 @@ class WlanExpNodeAp(node.WlanExpNode):
 
 
     #-------------------------------------------------------------------------
-    # AP specific WLAN Exp Commands
+    # AP specific commands
     #-------------------------------------------------------------------------
     def disassociate(self, device_list):
         """De-authenticate specific devices and remove the devices from the AP's
@@ -218,8 +212,8 @@ class WlanExpNodeAp(node.WlanExpNode):
 
         This command will reset the current address filter and then set the
         address filter to the values in the allow list.  The filter only affects
-        over-the-air associations.  Assocaitions created by WLAN Exp will
-        bypass the filter.
+        over-the-air associations.  Assocaitions created by wlan_exp will
+        bypass any filters configured by this method.
 
         Clients will be allowed to associate if they pass any of the filters
         that are set.
@@ -412,7 +406,7 @@ class WlanExpNodeAp(node.WlanExpNode):
 
         if self.serial_number is not None:
             from wlan_exp.util import mac_addr_to_str
-            msg += "WLAN EXP AP Node:\n"
+            msg += "AP Node:\n"
             msg += "    WLAN MAC addr :  {0}\n".format(mac_addr_to_str(self.wlan_mac_address))
             msg += "    Node ID       :  {0}\n".format(self.node_id)
             msg += "    Serial #      :  {0}\n".format(self.sn_str)
@@ -421,7 +415,7 @@ class WlanExpNodeAp(node.WlanExpNode):
             msg += "Node not initialized."
 
         if self.transport is not None:
-            msg += "WLAN EXP "
+            msg += "wlan_exp "
             msg += str(self.transport)
 
         return msg
@@ -430,7 +424,7 @@ class WlanExpNodeAp(node.WlanExpNode):
     def __repr__(self):
         """Return node name and description"""
         msg = super(WlanExpNodeAp, self).__repr__()
-        msg = "WLAN EXP AP   " + msg
+        msg = "AP   " + msg
         return msg
 
 # End class

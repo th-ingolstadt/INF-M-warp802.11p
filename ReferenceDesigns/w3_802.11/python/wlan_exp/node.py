@@ -1,14 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-.. ------------------------------------------------------------------------------
-.. WLAN Experiments Framework - Node
-.. ------------------------------------------------------------------------------
-.. Authors:   Chris Hunter (chunter [at] mangocomm.com)
-..            Patrick Murphy (murphpo [at] mangocomm.com)
-..            Erik Welsh (welsh [at] mangocomm.com)
-.. License:   Copyright 2014-2016, Mango Communications. All rights reserved.
-..            Distributed under the WARP license (http://warpproject.org/license)
-.. ------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+Mango 802.11 Reference Design Experiments Framework - Node Classes
+------------------------------------------------------------------------------
+Authors:   Chris Hunter (chunter [at] mangocomm.com)
+           Patrick Murphy (murphpo [at] mangocomm.com)
+           Erik Welsh (welsh [at] mangocomm.com)
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
 
 """
 import sys
@@ -24,13 +24,11 @@ import wlan_exp.device as wlan_device
 
 __all__ = ['WlanExpNode', 'WlanExpNodeFactory']
 
-
 # Fix to support Python 2.x and 3.x
 if sys.version[0]=="3": long=None
 
-
-# WLAN Exp Node Parameter Identifiers
-#   NOTE:  The C counterparts are found in *_node.h
+# Node Parameter Identifiers
+#   Values here must match the C counterparts in *_node.h
 #
 # If additional hardware parameters are needed for sub-classes of WlanExpNode,
 # please make sure that the values of these hardware parameters are not reused.
@@ -70,9 +68,9 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         log_total_bytes_read (int): Number of bytes read from the event log
         log_num_wraps (int): Number of times the event log has wrapped
         log_next_read_index (int): Index in to event log of next read
-        wlan_exp_ver_major (int): WLAN Exp Major version running on this node
-        wlan_exp_ver_minor (int): WLAN Exp Minor version running on this node
-        wlan_exp_ver_revision (int): WLAN Exp Revision version running on this node
+        wlan_exp_ver_major (int): wlan_exp Major version running on this node
+        wlan_exp_ver_minor (int): wlan_exp Minor version running on this node
+        wlan_exp_ver_revision (int): wlan_exp Revision version running on this node
         mac_type (int): Value of the MAC type (see wlan_exp.defaults for values)
         max_tx_power_dbm(int): Maximum transmit power of the node (in dBm)
         min_tx_power_dbm(int): Minimum transmit power of the node (in dBm)
@@ -113,7 +111,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         self.ht_capable = True
 
     #-------------------------------------------------------------------------
-    # WLAN Exp Commands for the Node
+    # Node Commands
     #-------------------------------------------------------------------------
 
 
@@ -820,16 +818,16 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             curr_assoc (bool):  All current assocations will have the unicast packet Tx rate set to 'rate'
             new_assoc  (bool):  All new associations will have the unicast packet Tx rate set to 'rate'
 
-        .. note:: One of device_list, curr_assoc or new_assoc must be set.  The device_list
+        One of device_list, curr_assoc or new_assoc must be set.  The device_list
             and curr_assoc are mutually exclusive with curr_assoc having precedence
             (ie if curr_assoc is True, then device_list will be ignored).
 
-        .. note:: WLAN Exp does not differentiate between unicast management tx parameters
+        The MAC code does not differentiate between unicast management tx parameters
             and unicast data tx parameters since unicast management packets only occur when
             they will not materially affect an experiment (ie they are only sent during
             deauthentication)
 
-        .. note:: This will not affect the transmit antenna mode for control frames like ACKs that
+        This will not affect the transmit antenna mode for control frames like ACKs that
             will be transmitted. The rate of control packets is determined by the 802.11 standard.
         """
         if self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode):
@@ -929,7 +927,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         and ``curr_assoc`` are mutually exclusive with ``curr_assoc`` having precedence. If
         ``curr_assoc`` is provided ``device_list`` will be ignored.
 
-        WLAN Exp does not differentiate between unicast management tx parameters
+        The MAC code does not differentiate between unicast management tx parameters
         and unicast data tx parameters since unicast management packets only occur when
         they will not materially affect an experiment (ie they are only sent during
         deauthentication)
@@ -1079,16 +1077,16 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             curr_assoc (bool):  All current assocations will have the unicast packet Tx power set to 'power'
             new_assoc  (bool):  All new associations will have the unicast packet Tx power set to 'power'
 
-        .. note:: One of device_list, curr_assoc or new_assoc must be set.  The device_list
+        One of device_list, curr_assoc or new_assoc must be set.  The device_list
             and curr_assoc are mutually exclusive with curr_assoc having precedence
             (ie if curr_assoc is True, then device_list will be ignored).
 
-        .. note:: WLAN Exp does not differentiate between unicast management tx parameters
+        The MAC code does not differentiate between unicast management tx parameters
             and unicast data tx parameters since unicast management packets only occur when
             they will not materially affect an experiment (ie they are only sent during
             deauthentication)
 
-        .. note:: This will not affect the transmit power for control frames like ACKs that
+        This will not affect the transmit power for control frames like ACKs that
             will be transmitted. To adjust this power, use the set_tx_power_ctrl command
         """
         self._node_set_tx_param_unicast(cmds.NodeProcTxPower, 'tx power', 
@@ -1162,7 +1160,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def set_tx_power_ctrl(self, power):
         """Sets the control packet transmit power of the node.
 
-        .. note:: Only the Tx power of the control packets can be set from WLAN Exp.  The rate
+        Only the Tx power of the control packets can be set via wlan_exp.  The rate
             of control packets is determined by the 802.11 standard and control packets will
             be sent on whatever antenna that cause the control packet to be generated (ie an
             ack for a reception will go out on the same antenna on which the reception occurred).
@@ -1421,7 +1419,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
 
     def set_print_level(self, level):
-        """Set the WLAN Exp print level for UART output on the node.
+        """Set the verbosity of the wlan_exp output to the node's UART.
 
         Args:
             level (int):  Printing level (defaults to WLAN_EXP_PRINT_ERROR)
@@ -1871,7 +1869,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def send_user_command(self, cmd_id, args=None):
         """Send User defined command to the node
 
-        See documentation on how-to add a WLAN Exp command:
+        See documentation on how-to add a wlan_exp command:
             http://warpproject.org/trac/wiki/802.11/wlan_exp/HowToAddCommand
 
         Attributes:
@@ -2195,7 +2193,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 print(msg)
 
     def check_wlan_exp_ver(self):
-        """Check the WLAN Exp version of the node against the current WLAN Exp version."""
+        """Check the wlan_exp version of the node against the current wlan_exp version."""
         ver_str     = version.wlan_exp_ver_str(self.wlan_exp_ver_major,
                                                self.wlan_exp_ver_minor,
                                                self.wlan_exp_ver_revision)
@@ -2208,10 +2206,10 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                                             caller_desc=caller_desc)
 
         if (status == version.WLAN_EXP_VERSION_NEWER):
-            print("Please update the C code on the node to the proper WLAN Exp version.")
+            print("Please update the C code on the node to the proper wlan_exp version.")
 
         if (status == version.WLAN_EXP_VERSION_OLDER):
-            print("Please update the WLAN Exp installation to match the version on the node.")
+            print("Please update the wlan_exp installation to match the version on the node.")
 
 
 # End Class WlanExpNode

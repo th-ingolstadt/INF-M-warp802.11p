@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-WLAN Experiment Commands
+Mango 802.11 Reference Design Experiments Framework - Commands
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
@@ -10,15 +10,13 @@ License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
 
-This module provides class definitions for all WLAN Exp commands.
+This module provides class definitions for all wlan_exp commands.
 
 """
 
 import wlan_exp.transport.cmds as cmds
 import wlan_exp.transport.message as message
 import wlan_exp.transport.transport_eth_ip_udp as transport
-
-
 
 __all__ = [# Log command classes
            'LogGetEvents', 'LogConfigure', 'LogGetStatus', 'LogGetCapacity', 
@@ -50,11 +48,10 @@ __all__ = [# Log command classes
           ]
 
 
-# WLAN Exp Command IDs
-#   NOTE:  The C counterparts are found in wlan_exp_node.h
-#   NOTE:  All Command IDs (CMDID_*) must be unique 24-bit numbers
-
-# Node commands and defined values
+# Command IDs
+#  Each command is identified by a unique 24-bit integer ID
+#  The IDs defined here must match the corresponding definitions in
+#   wlan_exp_node.h
 CMDID_NODE_RESET_STATE                           = 0x001000
 CMDID_NODE_CONFIGURE                             = 0x001001
 CMDID_NODE_CONFIG_BSS                            = 0x001002
@@ -246,14 +243,14 @@ _CMD_GROUP_USER                                  = (cmds.GROUP_USER << 24)
 
 
 #-----------------------------------------------------------------------------
-# Class Definitions for WLAN Exp Commands
+# Class Definitions for wlan_exp Commands
 #-----------------------------------------------------------------------------
 
 #--------------------------------------------
 # Log Commands
 #--------------------------------------------
 class LogGetEvents(message.BufferCmd):
-    """Command to get the WLAN Exp log events of the node"""
+    """Command to retreive log data from a wlan_exp node"""
     def __init__(self, size, start_byte=0):
         command = _CMD_GROUP_NODE + CMDID_LOG_GET_ENTRIES
 
@@ -642,7 +639,7 @@ class NodeConfigure(message.Cmd):
     Attributes:
         dsss_enable (bool) -- Whether DSSS packets are received.
         beacon_mac_time_update (bool) -- Whether MAC time is updated from beacons
-        print_level (int) -- Controls WLAN Exp print level
+        print_level (int) -- Controls verbosity of wlan_exp prints to the node's UART
     """
     def __init__(self, dsss_enable=None, beacon_mac_time_update=None, print_level=None):
         super(NodeConfigure, self).__init__()
@@ -1770,7 +1767,7 @@ class NodeAPSetAuthAddrFilter(message.Cmd):
         length = len(allow)
 
         if (length > 50):
-            msg  = "Currently, the WLAN Exp framework does not support more than "
+            msg  = "Currently, the wlan_exp framework does not support more than "
             msg += "50 address ranges in the association address filter."
             raise AttributeError(msg)
 

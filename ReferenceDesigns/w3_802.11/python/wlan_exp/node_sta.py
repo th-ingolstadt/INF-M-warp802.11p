@@ -1,20 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-.. ------------------------------------------------------------------------------
-.. WLAN Experiment Node - Station (STA)
-.. ------------------------------------------------------------------------------
-.. Authors:   Chris Hunter (chunter [at] mangocomm.com)
-..            Patrick Murphy (murphpo [at] mangocomm.com)
-..            Erik Welsh (welsh [at] mangocomm.com)
-.. License:   Copyright 2014-2015, Mango Communications. All rights reserved.
-..            Distributed under the WARP license (http://warpproject.org/license)
-.. ------------------------------------------------------------------------------
-.. MODIFICATION HISTORY:
-..
-.. Ver   Who  Date     Changes
-.. ----- ---- -------- -----------------------------------------------------
-.. 1.00a ejw  1/23/14  Initial release
-.. ------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+Mango 802.11 Reference Design Experiments Framework - Client (STA) Node
+------------------------------------------------------------------------------
+Authors:   Chris Hunter (chunter [at] mangocomm.com)
+           Patrick Murphy (murphpo [at] mangocomm.com)
+           Erik Welsh (welsh [at] mangocomm.com)
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
 
 """
 
@@ -26,7 +20,7 @@ __all__ = ['WlanExpNodeSta']
 
 
 class WlanExpNodeSta(node.WlanExpNode):
-    """802.11 Station (STA) functionality for a WLAN Experiment node.
+    """wlan_exp Node class for the 802.11 Reference Design STA MAC project
     
     Args:
         network_config (transport.NetworkConfiguration) : Network configuration of the node
@@ -34,7 +28,7 @@ class WlanExpNodeSta(node.WlanExpNode):
     """
     
     #-------------------------------------------------------------------------
-    # Override WLAN Exp Node Commands 
+    # Node Commands 
     #-------------------------------------------------------------------------
     def configure_bss(self, bssid=False, ssid=None, channel=None, beacon_interval=False, ht_capable=None):
         """Configure the BSS information of the node
@@ -95,7 +89,7 @@ class WlanExpNodeSta(node.WlanExpNode):
 
 
     #-------------------------------------------------------------------------
-    # STA specific WLAN Exp Commands 
+    # STA specific Commands 
     #-------------------------------------------------------------------------
     def _check_allowed_rate(self, mcs, phy_mode, verbose=False):
         """Check that rate parameters are allowed
@@ -114,9 +108,6 @@ class WlanExpNodeSta(node.WlanExpNode):
 
 
 
-    #-------------------------------------------------------------------------
-    # STA specific WLAN Exp Commands 
-    #-------------------------------------------------------------------------
     def set_aid(self, aid):
         """Set the Association ID (AID) of the STA.
 
@@ -263,7 +254,7 @@ class WlanExpNodeSta(node.WlanExpNode):
 
         if self.serial_number is not None:
             from wlan_exp.util import mac_addr_to_str
-            msg += "WLAN EXP STA Node:\n"
+            msg += "STA Node:\n"
             msg += "    WLAN MAC addr :  {0}\n".format(mac_addr_to_str(self.wlan_mac_address))
             msg += "    Node ID       :  {0}\n".format(self.node_id)
             msg += "    Serial #      :  {0}\n".format(self.sn_str)
@@ -272,7 +263,7 @@ class WlanExpNodeSta(node.WlanExpNode):
             msg += "Node not initialized."
 
         if self.transport is not None:
-            msg += "WLAN EXP "
+            msg += "wlan_exp "
             msg += str(self.transport)
 
         return msg
@@ -281,7 +272,7 @@ class WlanExpNodeSta(node.WlanExpNode):
     def __repr__(self):
         """Return node name and description"""
         msg = super(WlanExpNodeSta, self).__repr__()
-        msg = "WLAN EXP STA  " + msg
+        msg = "STA  " + msg
         return msg
 
 # End class 

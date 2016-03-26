@@ -1,17 +1,17 @@
 # -*- coding: utf-8 -*-
 """
-.. ------------------------------------------------------------------------------
-.. WLAN Experiment Local Traffic Generation (LTG)
-.. ------------------------------------------------------------------------------
-.. Authors:   Chris Hunter (chunter [at] mangocomm.com)
-..            Patrick Murphy (murphpo [at] mangocomm.com)
-..            Erik Welsh (welsh [at] mangocomm.com)
-.. License:   Copyright 2014-2015, Mango Communications. All rights reserved.
-..            Distributed under the WARP license (http://warpproject.org/license)
-.. ------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+Mango 802.11 Reference Design Experiments Framework - Local Traffic Generation (LTG)
+------------------------------------------------------------------------------
+Authors:   Chris Hunter (chunter [at] mangocomm.com)
+           Patrick Murphy (murphpo [at] mangocomm.com)
+           Erik Welsh (welsh [at] mangocomm.com)
+License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
 
 This module provides definitions for Local Traffic Generation (LTG) on
-WLAN Exp nodes.
+wlan_exp nodes.
 
 It is assumed that users will extend these classes to create their own
 LTG flow configurations.  When an LTG component is serialized, it follows

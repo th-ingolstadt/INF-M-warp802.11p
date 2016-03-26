@@ -1,21 +1,14 @@
 # -*- coding: utf-8 -*-
 """
-.. ------------------------------------------------------------------------------
-.. WLAN Experiment Node
-.. ------------------------------------------------------------------------------
-.. Authors:   Chris Hunter (chunter [at] mangocomm.com)
-..            Patrick Murphy (murphpo [at] mangocomm.com)
-..            Erik Welsh (welsh [at] mangocomm.com)
-.. License:   Copyright 2014-2015, Mango Communications. All rights reserved.
-..            Distributed under the WARP license (http://warpproject.org/license)
-.. ------------------------------------------------------------------------------
-.. MODIFICATION HISTORY:
-..
-.. Ver   Who  Date     Changes
-.. ----- ---- -------- -----------------------------------------------------
-.. 1.00a ejw  1/23/14  Initial release
-.. ------------------------------------------------------------------------------
-
+------------------------------------------------------------------------------
+Mango 802.11 Reference Design Experiments Framework - Device Classes
+------------------------------------------------------------------------------
+Authors:   Chris Hunter (chunter [at] mangocomm.com)
+           Patrick Murphy (murphpo [at] mangocomm.com)
+           Erik Welsh (welsh [at] mangocomm.com)
+License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+           Distributed under the WARP license (http://warpproject.org/license)
+------------------------------------------------------------------------------
 """
 import sys
 
@@ -27,7 +20,9 @@ if sys.version[0]=="3": long=None
 
 
 class WlanDevice(object):
-    """Class for WLAN Device.
+    """Class for WLAN Device. This is the parent class for all wlan_exp node class definitions.
+    This class also provides a node type for devices which exist in a wireless network but are not
+    controlled by wlan_exp (i.e. a Wi-Fi client connected to an 802.11 Reference Design AP).
     
     Args:
         mac_address (int, str): Medium Access Control (MAC) address of the WLAN device (48-bits)
