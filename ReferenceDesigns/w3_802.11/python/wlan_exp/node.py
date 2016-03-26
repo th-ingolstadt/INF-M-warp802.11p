@@ -142,7 +142,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
 
     def log_get(self, size, offset=0, max_req_size=2**23):
-        """Low level method to get part of the log file as a Buffer.
+        """Low level method to retrieve log data from a wlan_exp node.
 
         Args:
             size (int):                   Number of bytes to read from the log
@@ -153,24 +153,23 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         Returns:
             buffer (transport.Buffer):  Data from the log corresponding to the input parameters
 
+        There is no guarentee that this will return data aligned to
+        event boundaries.  Use log_get_indexes() to get event aligned boundaries.
 
-        .. note:: There is no guarentee that this will return data aligned to
-           event boundaries.  Use log_get_indexes() to get event aligned boundaries.
+        Log reads are not destructive. Log entries will only be destroyed by a 
+        log reset or if the log wraps.
 
-        .. note:: Log reads are not destructive.  Log entries will only be
-           destroyed by a log reset or if the log wraps.
+        During a given log_get command, the ETH_B Ethernet interface of
+        the node will not be able to respond to any other Ethernet packets
+        that are sent to the node.  This could cause the node to drop
+        incoming wlan_exp packets from other wlan_exp instances accessing
+        the node. Therefore, for large requests, having a smaller max_req_size
+        will allow the transport to fragement the command and allow the
+        node to be responsive to multiple hosts.
 
-        .. note:: During a given log_get command, the ETH_B Ethernet interface of
-           the node will not be able to respond to any other Ethernet packets
-           that are sent to the node.  This could cause the node to drop
-           incoming wlan_exp packets from other wlan_exp instances accessing
-           the node. Therefore, for large requests, having a smaller max_req_size
-           will allow the transport to fragement the command and allow the
-           node to be responsive to multiple hosts.
-
-        .. note:: Some basic analysis shows that fragment sizes of 2**23 (8 MB)
-           add about 2% overhead to the receive time and each command takes less
-           than 1 second (~0.9 sec), which is the default transport timeout.
+        Some basic analysis shows that fragment sizes of 2**23 (8 MB)
+        add about 2% overhead to the receive time and each command takes less
+        than 1 second (~0.9 sec), which is the default transport timeout.
         """
         cmd_size = size
         log_size = self.log_get_size()
@@ -334,7 +333,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         Returns:
             flags (int): Integer describing the configuration of the event log.
 
-        .. note:: Flag values can be found in wlan_exp.cmds.CMD_PARAM_LOG_CONFIG_FLAG_*
+        Flag values can be found in wlan_exp.cmds.CMD_PARAM_LOG_CONFIG_FLAG_*
         """
         (_, _, _, flags) = self.send_cmd(cmds.LogGetStatus())
 
@@ -364,7 +363,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 chosen by the experimentor
             message (int, str, bytes, optional): Information to be placed in the event log.
 
-        .. note:: Message must be able to be converted to bytearray with 'UTF-8' format.
+        Message must be able to be converted to bytearray with 'UTF-8' format.
         """
         self.send_cmd(cmds.LogAddExpInfoEntry(info_type, message))
 
@@ -530,9 +529,9 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         Args:
             ltg_id_list (list of int, int): List of LTG flow identifiers or single LTG flow identifier
 
-        .. note:: If the ltg_id_list is a single ID, then a single status tuple is
-            returned.  If the ltg_id_list is a list of IDs, then a list of status
-            tuples will be returned in the same order as the IDs in the list.
+        If the ltg_id_list is a single ID, then a single status tuple is
+        returned.  If the ltg_id_list is a list of IDs, then a list of status
+        tuples will be returned in the same order as the IDs in the list.
 
         Returns:
             status (tuple):
@@ -763,11 +762,10 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             channel (int):  Channel index for new center frequency. Must be a valid channel index.
               See ``wlan_channels`` in util.py for the list of supported channel indexes.
         
-        Note:
-            This method will immediately change the center frequency of the node's RF interfaces.
-            As a result this method can only be safely used on a node which is not currently associated
-            with a BSS. To change the center frequency of nodes participating in a BSS use the 
-            ``node.configure_bss(channel=N)`` method on every node in the BSS.
+        This method will immediately change the center frequency of the node's RF interfaces.
+        As a result this method can only be safely used on a node which is not currently associated
+        with a BSS. To change the center frequency of nodes participating in a BSS use the 
+        ``node.configure_bss(channel=N)`` method on every node in the BSS.
         """
         import wlan_exp.util as util
         
@@ -878,8 +876,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         Returns:
             rates (List of tuple):  List of unicast packet Tx rate tuples, (mcs, phy_mode), for the given devices.
 
-        .. note:: If both new_assoc and device_list are specified, the return list will always have
-            the unicast packet Tx rate for all new associations as the first item in the list.
+        If both new_assoc and device_list are specified, the return list will always have
+        the unicast packet Tx rate for all new associations as the first item in the list.
         """
         return self._node_get_tx_param_unicast(cmds.NodeProcTxRate, 'rate', None, device_list, new_assoc)
 
@@ -980,8 +978,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         Returns:
             ant_modes (List of str):  List of unicast packet Tx antenna mode for the given devices (Keys of wlan_tx_ant_modes in wlan_exp.util)
 
-        .. note:: If both new_assoc and device_list are specified, the return list will always have
-            the unicast packet Tx antenna mode for all new associations as the first item in the list.
+        If both new_assoc and device_list are specified, the return list will always have
+        the unicast packet Tx antenna mode for all new associations as the first item in the list.
         """
         return self._node_get_tx_param_unicast(cmds.NodeProcTxAntMode, 'antenna mode', None, device_list, new_assoc)
 
@@ -1129,8 +1127,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         Returns:
             tx_powers (List of int):  List of unicast packet Tx power for the given devices.
 
-        .. note:: If both new_assoc and device_list are specified, the return list will always have
-            the unicast packet Tx power for all new associations as the first item in the list.
+        If both new_assoc and device_list are specified, the return list will always have
+        the unicast packet Tx power for all new associations as the first item in the list.
         """
         return self._node_get_tx_param_unicast(cmds.NodeProcTxPower, 'tx power', 
                                                (0, self.max_tx_power_dbm, self.min_tx_power_dbm), 
@@ -1436,7 +1434,6 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
     #--------------------------------------------
     # Internal methods to view / configure node attributes
-    #     NOTE:  These methods are not safe in all cases; therefore they are not part of the public API
     #--------------------------------------------
     def _check_allowed_rate(self, mcs, phy_mode, verbose=False):
         """Check that rate parameters are allowed
@@ -1495,9 +1492,9 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             curr_assoc (bool):  All current assocations will have Tx unicast param set
             new_assoc  (bool):  All new associations will have Tx unicast param set
 
-        .. note:: One of device_list, curr_assoc or new_assoc must be set.  The device_list
-            and curr_assoc are mutually exclusive with curr_assoc having precedence
-            (ie if curr_assoc is True, then device_list will be ignored).
+        One of device_list, curr_assoc or new_assoc must be set.  The device_list
+        and curr_assoc are mutually exclusive with curr_assoc having precedence
+        (ie if curr_assoc is True, then device_list will be ignored).
         """
         if (device_list is None) and (not curr_assoc) and (not new_assoc):
             msg  = "\nCannot set the unicast transmit {0}:\n".format(param_name)
@@ -1533,8 +1530,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         Returns:
             params (List of params):  List of Tx unicast param for the given devices.
 
-        .. note:: If both new_assoc and device_list are specified, the return list will always have
-            the Tx unicast rate for all new associations as the first item in the list.
+        If both new_assoc and device_list are specified, the return list will always have
+        the Tx unicast rate for all new associations as the first item in the list.
         """
         ret_val = []
 
@@ -1768,7 +1765,6 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
     #--------------------------------------------
     # Association Commands
-    #   NOTE:  Some commands are implemented in sub-classes
     #--------------------------------------------
     def configure_bss(self):
         """Configure the BSS information of the node
@@ -1778,7 +1774,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         be a member of a BSS.  Based on the node type, there is a minimum 
         set of fields needed for a valid bss_info.  
         
-        .. note::  This method is implemented in each of the child classes
+        This method must be overloaded by sub-classes.
         """
         raise NotImplementedError()
 
@@ -2253,11 +2249,11 @@ class WlanExpNodeFactory(node.WarpNodeFactory):
     def node_eval_class(self, node_class, network_config):
         """Evaluate the node_class string to create a node.
 
-        .. note::  This should be overridden in each sub-class with the same overall structure
-            but a different import.  Please call the super class so that the calls will propagate
-            to catch all node types.
+        This should be overridden in each sub-class with the same overall structure
+        but a different import.  Please call the super class so that the calls will propagate
+        to catch all node types.
 
-        .. note::  network_config is used as part of the node_class string to initialize the node.
+        network_config is used as part of the node_class string to initialize the node.
         """
         # NOTE:  "import wlan_exp.defaults as defaults" performed at the top of the file
         import wlan_exp.node_ap as node_ap

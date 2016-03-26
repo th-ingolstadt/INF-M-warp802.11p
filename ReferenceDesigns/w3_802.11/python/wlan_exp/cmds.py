@@ -529,10 +529,8 @@ class LTGConfigure(message.Cmd):
 
 
 class LTGStart(LTGCommon):
-    """Command to start a configured LTG to the given node.
-
-    NOTE:  By providing no node argument, this command will start all
-    configured LTGs on the node.
+    """Command to start an LTG. The LTG must have been previously configured. If no
+    ltg_id is provided the node will start all LTG instances that are currently configured.
     """
     name = 'start'
 
@@ -544,10 +542,8 @@ class LTGStart(LTGCommon):
 
 
 class LTGStop(LTGCommon):
-    """Command to stop a configured LTG to the given node.
-
-    NOTE:  By providing no node argument, this command will stop all
-    configured LTGs on the node.
+    """Command to stop an LTG. The LTG must have been previously configured. If no
+    ltg_id is provided the node will stop all LTG instances that are currently configured.
     """
     name = 'stop'
 
@@ -559,10 +555,8 @@ class LTGStop(LTGCommon):
 
 
 class LTGRemove(LTGCommon):
-    """Command to remove a configured LTG to the given node.
-
-    NOTE:  By providing no node argument, this command will remove all
-    configured LTGs on the node.
+    """Command to remove an LTG instance. If no ltg_id is provided the node will remove all
+    LTG instances that are currently configured.
     """
     name = 'remove'
 
@@ -1470,9 +1464,6 @@ class NodeConfigBSS(message.Cmd):
             update the current beacon interval.
         ht_capable (bool):  TBD.  A value of None will not update the current
             value of HT capable.
-
-    .. note::  This uses the BSSConfig() class defined in info.py to transfer 
-        the parameters to the node.
     """
     bssid           = None
     ssid            = None
@@ -1756,7 +1747,7 @@ class NodeAPSetAuthAddrFilter(message.Cmd):
         allow  -- List of (address, mask) tuples that will be used to filter addresses
                   on the node.
 
-    NOTE:  For the mask, bits that are 0 are treated as "any" and bits that are 1 are
+    For the mask, bits that are 0 are treated as "any" and bits that are 1 are
     treated as "must equal".  For the address, locations of one bits in the mask
     must match the incoming addresses to pass the filter.
     """
@@ -1822,17 +1813,20 @@ class NodeSTASetAID(message.Cmd):
 
 
 class NodeSTAJoin(message.Cmd):
-    """Command to join a given BSS
+    """Command to join a given BSS. The resulting behavior of the STA depends on which arguments
+    are proived.
+
+    If only an SSID is provided the STA will start its scanning state machine to search for a BSS
+    with a matching SSID and will attempt to join the first matching network.
+
+    If BSSID, SSID and channel are all provided the STA will immediately attempt joining the specified
+    BSS without performing a scan.
 
     Attributes:
         ssid     -- SSID of BSS to join.  If value is None, then this will 
                     stop the join process
         bssid    -- (optional) BSSID of the BSS to join
         channel  -- (optional) Channel of BSS to join
-        
-    .. note::  If neither bssid or channel are provided node will start the 
-        scanning state machine until it finds a BSS matching the ssid.  If 
-        only one of bssid or channel is provided, raise error.
     """
     def __init__(self, ssid, bssid=None, channel=None):
         super(NodeSTAJoin, self).__init__()
