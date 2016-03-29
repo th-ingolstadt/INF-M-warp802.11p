@@ -6,7 +6,7 @@ Mango 802.11 Reference Design Experiments Framework - Version Utils
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
            Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
 
@@ -105,7 +105,7 @@ def wlan_exp_ver_check(ver_str=None, major=None, minor=None, revision=None,
     is older than the current version and will raise a VersionError 
     if the version specified is newer than the current version.
     
-    Attributes:
+    Args:
         ver_str  -- Version string returned by wlan_exp_ver_str()
         major    -- Major release number for wlan_exp
         minor    -- Minor release number for wlan_exp
@@ -188,7 +188,7 @@ def wlan_exp_ver_check(ver_str=None, major=None, minor=None, revision=None,
     
     return status
     
-# End of wlan_exp_ver()
+# End def
 
 
 def print_wlan_exp_ver():
@@ -198,14 +198,14 @@ def print_wlan_exp_ver():
     print(os.path.dirname(
               os.path.abspath(inspect.getfile(inspect.currentframe()))))
 
-# End of print_wlan_exp_ver()
+# End def
 
 
 def wlan_exp_ver_str(major=WLAN_EXP_MAJOR, minor=WLAN_EXP_MINOR, 
                      revision=WLAN_EXP_REVISION, xtra=WLAN_EXP_XTRA):
     """Return a string of the wlan_exp version.
     
-    NOTE:  This will raise a VersionError if the arguments are not integers.    
+    This will raise a VersionError if the arguments are not integers.    
     """
     try:
         msg  = "{0:d}.".format(major)
@@ -225,7 +225,7 @@ def wlan_exp_ver_str(major=WLAN_EXP_MAJOR, minor=WLAN_EXP_MINOR,
         
     return msg
     
-# End of wlan_exp_ver_str()
+# End def
 
 
 def wlan_exp_ver_code_to_str(ver_code):
@@ -233,7 +233,7 @@ def wlan_exp_ver_code_to_str(ver_code):
     ver = int(ver_code)
     return wlan_exp_ver_str(((ver >> 24) & 0xFF), ((ver >> 16) & 0xFF), ((ver >> 0) & 0xFF))
 
-# End of wlan_exp_ver_code_to_str()
+# End def
 
 
 

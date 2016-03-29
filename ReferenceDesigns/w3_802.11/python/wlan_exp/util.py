@@ -6,7 +6,7 @@ Mango 802.11 Reference Design Experiments Framework - Utilities
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
            Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
 """
@@ -68,7 +68,7 @@ class consts_dict(dict):
 # Node Print Levels
 # -----------------------------------------------------------------------------
 
-#   NOTE:  The C counterparts are found in wlan_exp_common.h
+# The C counterparts are found in wlan_exp_common.h
 WLAN_EXP_PRINT_NONE               = 0
 WLAN_EXP_PRINT_ERROR              = 1
 WLAN_EXP_PRINT_WARNING            = 2
@@ -462,7 +462,7 @@ def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=Tr
     """Return a list of nodes that match all the values for the given filter parameters.
 
     Each of these filter parameters can be a single value or a list of values.
-
+    
     Args:
         nodes (list of WlanExpNode):  List of WlanExpNode / sub-classes of WlanExpNode
         mac_high (str, int, optional):  Filter for CPU High functionality.  This value must be either
@@ -489,6 +489,8 @@ def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=Tr
     Returns:
         nodes (list of WlanExpNode):  Filtered list of WlanExpNode / sub-classes of WlanExpNode
 
+    If the return list of nodes is empty, then this method will issue a warning 
+    if the parameter warn is True.
 
     **Examples**
     ::
@@ -497,7 +499,6 @@ def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=Tr
         filter_nodes(nodes, mac_high='ap', mac_low='dcf', serial_numbers=['w3-a-00001','w3-a-00002'])
             --> Find AP DCF nodes with serial numbers 'W3-a-00001' and 'W3-a-00002'
 
-    .. note::  If the list is empty, then this method will issue a warning if the parameter warn is True.
     """
     ret_nodes         = []
     tmp_mac_high      = None
@@ -725,9 +726,10 @@ def check_bss_membership(nodes, verbose=False):
                         network_good = False
     else:
         # Other combination of nodes that somehow passed the nodes type checking above
+        # 
         # This should be impossible with the reference AP/STA/IBSS node implementations
-        #  but will catch the case of a new WlanExpNode subclass that we forget to add
-        #  to the nodes type checking
+        # but will catch the case of a new WlanExpNode subclass that has not been added
+        # to the nodes type checking
         raise AttributeError('Unreognized or invalid combination of node types')
 
     # Print message
@@ -743,8 +745,8 @@ def check_bss_membership(nodes, verbose=False):
 # -----------------------------------------------------------------------------
 
 #
-# NOTE:  These utilities are replicated versions of other functions in wlan_exp.
-#     They are consolidated in util to ease import of wlan_exp for scripts.
+# These utilities are replicated versions of other functions in wlan_exp.
+# They are consolidated in util to ease import of wlan_exp for scripts.
 #
 
 def int_to_ip(ip_address):
@@ -989,21 +991,23 @@ def mac_addr_desc(mac_addr, desc_map=None):
 
     This is useful when printing a table of addresses.  Custom MAC address
     descriptions can be provided via the desc_map argument.  In addition
-    to the provided desc_map, the global mac_addr_desc_map that describes mappings
-    of different MAC addresses will also be used.
+    to the provided desc_map, the global mac_addr_desc_map that describes 
+    mappings of different MAC addresses will also be used.
 
     Args:
-        mac_address (int):  Unsigned 48-bit integer representation of the MAC address
+        mac_address (int):  Unsigned 48-bit integer representation of the MAC 
+            address
         desc_map (list of tuple, optional): list of tuple or tuple of the form
             (addr_mask, addr_value, descritpion)
 
     Returns:
-        description (str):  Description of the MAC address or '' if address does
-        not match any descriptions
+        description (str):  Description of the MAC address or '' if address 
+        does not match any descriptions
 
-    .. note:: The mac_addr argument will be bitwise AND'd with each addr_mask, then compared to
-      addr_value. If the result is non-zero the corresponding descprition will be returned.  This
-      will only return the first description in the [desc_map, mac_addr_desc_map] list.
+    The mac_address argument will be bitwise AND'd with each addr_mask, then 
+    compared to addr_value. If the result is non-zero the corresponding 
+    descprition will be returned.  This will only return the first description 
+    in the [desc_map, mac_addr_desc_map] list.
 
     **Example**
     ::
@@ -1138,7 +1142,7 @@ def _broadcast_time_to_nodes(time_cmd, network_config, time=0.0, time_id=None):
     else:
         raise TypeError("Time must be either a float or int")
 
-    # Determine if we are sending to multiple networks
+    # Determine if data is being sent to multiple networks
     if type(network_config) is list:
         configs = network_config
     else:

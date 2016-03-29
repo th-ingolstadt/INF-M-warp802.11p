@@ -1,20 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-Transport - Unicast Ethernet IP/UDP Python Socket Implementation
+Mango 802.11 Reference Design Experiments Framework 
+    - Transport Unicast Ethernet IP/UDP Python Socket Implementation
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
            Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
-------------------------------------------------------------------------------
-MODIFICATION HISTORY:
-
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a ejw  1/23/14  Initial release
-
 ------------------------------------------------------------------------------
 
 This module provides the unicast Ethernet IP/UDP transport based on the python 
@@ -50,10 +44,10 @@ class TransportEthIpUdpPy(tp.TransportEthIpUdp):
     def send(self, payload, robust=True, pkt_type=None):
         """Send a message over the transport.
         
-        Attributes:
-            data -- Data to be sent over the socket
-            robust -- Do we want a response to the sent data
-            max_attempts -- Maximum attempts to transmit the data
+        Args:
+            payload (bytes): Data to be sent over the socket
+            robust (bool):   Is a response required
+            pkt_type (int):  Type of packet to send
         """
         
         if robust:
@@ -80,21 +74,20 @@ class TransportEthIpUdpPy(tp.TransportEthIpUdp):
     def receive(self, timeout=None):
         """Return a response from the transport.
 
-        Attributes:
-            timeout  -- Time (in float seconds) to wait before raising an execption
-                        If no value is specified, then it will use the default 
-                        transport timeout (self.timeout)
+        Args:
+            timeout (float):  Time (in float seconds) to wait before raising 
+                an execption.  If no value is specified, then it will use the 
+                default transport timeout (self.timeout)
         
-        NOTE:  This function will block until a response is received or a
-        timeout occurs.  If a timeout occurs, it will raise a TransportError
-        exception.
+        This function will block until a response is received or a timeout 
+        occurs.  If a timeout occurs, it will raise a TransportError exception.
         """
         reply = b''
 
         if timeout is None:
             timeout  = self.timeout
         else:
-            timeout += self.timeout         # Extend timeout by a bit so we don't run in to race conditions
+            timeout += self.timeout         # Extend timeout to not run in to race conditions
 
         max_pkt_len = self.get_max_payload() + 100;
         received_resp = 0
@@ -126,8 +119,8 @@ class TransportEthIpUdpPy(tp.TransportEthIpUdp):
     def receive_nb(self):
         """Return a response from the transport.
         
-        NOTE:  This function will not block and should be called in a polling
-        loop until a response is received.
+        This function will not block and should be called in a polling loop 
+        until a response is received.
         """
         reply = b''
         recv_data = []

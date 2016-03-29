@@ -44,8 +44,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     """Class for 802.11 Reference Design Experiments Framwork node.
 
     Args:
-        network_config (transport.NetworkConfiguration)    : Network configuration of the node
-        mac_type (int)                                     : CPU Low MAC type
+        network_config (transport.NetworkConfiguration) : Network configuration of the node
+        mac_type (int)                                  : CPU Low MAC type
 
 
     Attributes:
@@ -129,12 +129,18 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         the node.
 
         Args:
-            log_enable (bool):           Enable the event log (Default value on Node: TRUE)
-            log_wrap_enable (bool):      Enable event log wrapping (Default value on Node: FALSE)
-            log_full_payloads (bool):    Record full Tx/Rx payloads in event log (Default value on Node: FALSE)
-            log_commands (bool):         Record commands in event log (Default value on Node: FALSE)
-            log_txrx_mpdu (bool):        Enable Tx/Rx log entries for MPDU frames
-            log_txrx_ctrl (bool):        Enable Tx/Rx log entries for CTRL frames
+            log_enable (bool):        Enable the event log 
+                (Default value on Node: TRUE)
+            log_wrap_enable (bool):   Enable event log wrapping 
+                (Default value on Node: FALSE)
+            log_full_payloads (bool): Record full Tx/Rx payloads in event log 
+                (Default value on Node: FALSE)
+            log_commands (bool):      Record commands in event log 
+                (Default value on Node: FALSE)
+            log_txrx_mpdu (bool):     Enable Tx/Rx log entries for MPDU frames
+                (Default value on Node: TRUE)
+            log_txrx_ctrl (bool):     Enable Tx/Rx log entries for CTRL frames
+                (Default value on Node: TRUE)
         """
         self.send_cmd(cmds.LogConfigure(log_enable, log_wrap_enable,
                                         log_full_payloads, log_commands,
@@ -151,10 +157,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                             will fragment the request into.
 
         Returns:
-            buffer (transport.Buffer):  Data from the log corresponding to the input parameters
+            buffer (transport.Buffer):  
+                Data from the log corresponding to the input parameters
 
-        There is no guarentee that this will return data aligned to
-        event boundaries.  Use log_get_indexes() to get event aligned boundaries.
+        There is no guarentee that this will return data aligned to event
+        boundaries.  Use log_get_indexes() to get event aligned boundaries.
 
         Log reads are not destructive. Log entries will only be destroyed by a 
         log reset or if the log wraps.
@@ -195,13 +202,15 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 data and should not be read.
 
         Returns:
-            buffer (transport.Buffer): Data from the log that contains all entries since the last time the log was read.
+            buffer (transport.Buffer): 
+                Data from the log that contains all entries since the last 
+                time the log was read.
         """
         import wlan_exp.transport.message as message
 
         return_val = message.Buffer()
 
-        # Check if the log is full so that we can interpret the indexes correctly
+        # Check if the log is full to interpret the indexes correctly
         if (self.log_is_full()):
             log_size  = self.log_get_size()
             read_size = log_size - self.log_next_read_index - log_tail_pad
@@ -230,7 +239,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 # This is the first read of the log by this python object
                 if (num_wraps != 0):
                     # Need to advance the num_wraps to the current num_wraps so
-                    # that we don't get into a bad state with log reading.
+                    # that the code does not get into a bad state with log reading.
                     msg  = "\nWARNING:  On first read, the log on the node has already wrapped.\n"
                     msg += "    Skipping the first {0} wraps of log data.\n".format(num_wraps)
                     print(msg)
@@ -254,15 +263,14 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 else:
                     print("WARNING:  No new data on node.")
             else:
-                # Since log has wrapped, we need to get all the entries on the old wrap
+                # Log has wrapped.  Get all the entries on the old wrap
                 if (next_index != 0):
 
                     return_val = self.log_get(offset=self.log_next_read_index,
                                               size=cmds.CMD_PARAM_LOG_GET_ALL_ENTRIES,
                                               max_req_size=max_req_size)
 
-                    # Unfortunately, we do not know how much data should have
-                    # been returned from the node, but it should not be zero
+                    # The amount of data returned from the node should not be zero
                     read_size  = return_val.get_buffer_size()
                     if (read_size > 0):
                         self.log_next_read_index = 0
@@ -359,9 +367,10 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Write the experiment information provided to the log.
 
         Args:
-            info_type (int): Type of the experiment info.  This is an arbitrary 16 bit number
-                chosen by the experimentor
-            message (int, str, bytes, optional): Information to be placed in the event log.
+            info_type (int): Type of the experiment info.  This is an arbitrary 
+                16 bit number chosen by the experimentor
+            message (int, str, bytes, optional): Information to be placed in 
+                the event log.
 
         Message must be able to be converted to bytearray with 'UTF-8' format.
         """
@@ -372,8 +381,9 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Adds the current time in microseconds to the log.
 
         Args:
-            time_id (int, optional):  User providied identifier to be used for the TIME_INFO
-                log entry.  If none is provided, a random number will be inserted.
+            time_id (int, optional):  User providied identifier to be used for 
+                the TIME_INFO log entry.  If none is provided, a random number 
+                will be inserted.
         """
         return self.send_cmd(cmds.NodeProcTime(cmds.CMD_PARAM_TIME_ADD_TO_LOG, cmds.CMD_PARAM_RSVD_TIME, time_id))
 
@@ -386,10 +396,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Configure counts collection on the node.
 
         Args:
-            promisc_counts (bool, optional): Enable promiscuous counts collection. When 
-            promiscuous counts are enbaled the node will create a counts data structure
-            for every unique MAC address it observes in all Tx and Rx packets, independent
-            of the association state of the node or the transmitting device.
+            promisc_counts (bool, optional): Enable promiscuous counts 
+                collection. When promiscuous counts are enbaled the node will 
+                create a counts data structure for every unique MAC address it 
+                observes in all Tx and Rx packets, independent of the 
+                association state of the node or the transmitting device.
         """
         self.send_cmd(cmds.CountsConfigure(promisc_counts))
 
@@ -398,20 +409,26 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Get the Tx/Rx counts data structurs from the node.
 
         Args:
-            device_list (list of WlanExpNode, WlanExpNode, WlanDevice, optional): List of devices
-                for which to get counts.  See note below for more information.
-            return_zeroed_counts_if_none(bool, optional):  If no counts exist on the node for
-                the specified device(s), return a zeroed counts dictionary with proper timestamps
-                instead of None.
+            device_list (list of WlanExpNode, WlanExpNode, WlanDevice, optional): 
+                List of devices for which to get counts.  See note below for 
+                more information.
+            return_zeroed_counts_if_none(bool, optional):  If no counts exist 
+                on the node for the specified device(s), return a zeroed counts 
+                dictionary with proper timestamps instead of None.
 
         Returns:
-            counts_dictionary (list of dictionaries, dictionary): Counts for the device(s) specified.
+            counts_dictionary (list of TxRxCounts, TxRxCounts): 
+                TxRxCounts() for the device(s) specified.
 
 
-        The dictionaries returned by this method have the following fields:
+        The TxRxCounts() structure returned by this method can be accessed like
+        a dictionary and has the following fields:
+        
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | Field                       | Description                                                                                        |
             +=============================+====================================================================================================+
+            | timestamp                   |  Value of MAC Time in microseconds when structure created on the node                              |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
             | mac_addr                    |  MAC address of remote node whose statics are recorded here                                        |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | associated                  |  Boolean indicating whether remote node is currently associated with this node                     |
@@ -448,9 +465,12 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             +-----------------------------+----------------------------------------------------------------------------------------------------+
 
 
-        If the device_list is a single device, then a single dictionary or None is returned.  If the device_list is a list of devices, then a
-        list of dictionaries will be returned in the same order as the devices in the list.  If any of the staistics are not there, None 
-        will be inserted in the list.  If the device_list is not specified, then all the counts on the node will be returned.
+        If the ``device_list`` is a single device, then a single dictionary or 
+        None is returned.  If the ``device_list`` is a list of devices, then a
+        list of dictionaries will be returned in the same order as the devices 
+        in the list.  If any of the counts are not there, None will be inserted 
+        in the list.  If the ``device_list`` is not specified, then all the 
+        counts on the node will be returned.
         """
         ret_val = []
         if not device_list is None:
@@ -481,28 +501,35 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Configure the node for the given traffic flow.
 
         Args:
-            traffic_flow (ltg.FlowConfig):  FlowConfig (or subclass of FlowConfig) that describes
-                the parameters of the LTG.
-            auto_start (bool, optional): Automatically start the LTG or wait until it is explictly started.
+            traffic_flow (ltg.FlowConfig):  FlowConfig (or subclass of 
+                FlowConfig) that describes the parameters of the LTG.
+            auto_start (bool, optional): Automatically start the LTG or wait 
+                until it is explictly started.
 
         Returns:
             ID (int):  Identifier for the LTG flow
 
-        The ``trafic_flow`` argument configures the behavior of the LTG, including the traffic's destination,
-        packet payloads, and packet generation timing. The reference code implements three flow configurations
-        by default:
+        The ``trafic_flow`` argument configures the behavior of the LTG, 
+        including the traffic's destination, packet payloads, and packet 
+        generation timing. The reference code implements three flow 
+        configurations by default:
 
-         - ``FlowConfigCBR()``: a constant bit rate (CBR) source targeted to a specifc destination address. Packet
-                                lengths and the packet creation interval are constant.
-         - ``FlowConfigAllAssocCBR()``: a CBR source that targets traffic to all associated nodes.
-         - ``FlowConfigRandomRandom()``: a source that targets traffic to a specific destination address, where each
-                                     packet has a random length and packets are created at random intervals.
+         - ``FlowConfigCBR()``: a constant bit rate (CBR) source targeted to a 
+           specifc destination address. Packet lengths and the packet 
+           creation interval are constant.
+         - ``FlowConfigAllAssocCBR()``: a CBR source that targets traffic to 
+           all associated nodes.
+         - ``FlowConfigRandomRandom()``: a source that targets traffic to a 
+           specific destination address, where each packet has a random 
+           length and packets are created at random intervals.
 
-        Refer to the :doc:`ltg` documentation for details on these flow configs and the underlying classes that can 
-        be used to build custom flow configurations.
+        Refer to the :doc:`ltg` documentation for details on these flow configs 
+        and the underlying classes that can be used to build custom flow 
+        configurations.
 
         Examples:
-            The code below illustrates a few LTG configuration examples. ``n1`` and ``n2`` here are a wlan_exp node objects.
+            The code below illustrates a few LTG configuration examples. ``n1``
+            and ``n2`` here are a wlan_exp node objects.
             ::
                 # Configure a CBR LTG addressed to a single node
                 ltg_id = n1.ltg_configure(wlan_exp_ltg.FlowConfigCBR(dest_addr=n2.wlan_mac_address, payload_length=40, interval=0.01), auto_start=True)
@@ -518,6 +545,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                                                         min_interval=0,
                                                         max_interval=0.1),
                     auto_start=True)
+        
         """
         traffic_flow.enforce_min_resolution(self.wlan_scheduler_resolution)
         return self.send_cmd(cmds.LTGConfigure(traffic_flow, auto_start))
@@ -527,7 +555,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Get the status of the LTG flows.
 
         Args:
-            ltg_id_list (list of int, int): List of LTG flow identifiers or single LTG flow identifier
+            ltg_id_list (list of int, int): List of LTG flow identifiers or 
+                single LTG flow identifier
 
         If the ltg_id_list is a single ID, then a single status tuple is
         returned.  If the ltg_id_list is a list of IDs, then a list of status
@@ -535,10 +564,12 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
         Returns:
             status (tuple):
-                #. valid (bool):          Is the LTG ID valid? (True/False)
-                #. running (bool):        Is the LTG currently running? (True/False)
+            
+                #. valid (bool): Is the LTG ID valid? (True/False)
+                #. running (bool): Is the LTG currently running? (True/False)
                 #. start_timestamp (int): Timestamp when the LTG started
-                #. stop_timestamp (int):  Timestamp when the LTG stopped
+                #. stop_timestamp (int): Timestamp when the LTG stopped
+            
         """
         ret_val = []
         if (type(ltg_id_list) is list):
@@ -560,7 +591,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Remove the LTG flows.
 
         Args:
-            ltg_id_list (list of int, int): List of LTG flow identifiers or single LTG flow identifier
+            ltg_id_list (list of int, int): List of LTG flow identifiers or 
+                single LTG flow identifier
         """
         if (type(ltg_id_list) is list):
             for ltg_id in ltg_id_list:
@@ -575,7 +607,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Start the LTG flow.
 
         Args:
-            ltg_id_list (list of int, int): List of LTG flow identifiers or single LTG flow identifier
+            ltg_id_list (list of int, int): List of LTG flow identifiers or 
+                single LTG flow identifier
         """
         if (type(ltg_id_list) is list):
             for ltg_id in ltg_id_list:
@@ -590,7 +623,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Stop the LTG flow to the given nodes.
 
         Args:
-            ltg_id_list (list of int, int): List of LTG flow identifiers or single LTG flow identifier
+            ltg_id_list (list of int, int): List of LTG flow identifiers or 
+                single LTG flow identifier
         """
         if (type(ltg_id_list) is list):
             for ltg_id in ltg_id_list:
@@ -638,6 +672,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Resets all portions of a node.
 
         This includes:
+        
           * Log
           * Counts
           * LTG
@@ -645,8 +680,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
           * BSS (i.e. all association state)
           * Networks
 
-        See the reset() command for a list of all portions of the node that will
-        be reset.
+        See the reset() command for a list of all portions of the node that 
+        will be reset.
         """
         status = self.reset(log=True,
                             txrx_counts=True,
@@ -693,7 +728,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Get the WLAN MAC Address of the node.
 
         Returns:
-            MAC Address (int):  Wireless Medium Access Control (MAC) address of the node.
+            MAC Address (int):  
+                Wireless Medium Access Control (MAC) address of the node.
         """
         addr = self.send_cmd(cmds.NodeProcWLANMACAddr(cmds.CMD_PARAM_READ))
 
@@ -712,9 +748,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Sets the MAC time on the node.
 
         Args:
-            time (int):              Time to which the node's timestamp will be set (int in microseconds)
-            time_id (int, optional): Identifier used as part of the TIME_INFO log entry created by this command.
-                If not specified, then a random number will be used.
+            time (int):              Time to which the node's timestamp will 
+                be set (int in microseconds)
+            time_id (int, optional): Identifier used as part of the TIME_INFO 
+                log entry created by this command.  If not specified, then a 
+                random number will be used.
         """
         if type(time) not in [int, long]:
             raise AttributeError("Time must be expressed in int microseconds")
@@ -748,24 +786,29 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Enable / Disable MAC time update from beacons
         
         Args:
-            enable (bool):  ``True`` enables and ``False`` disables MAC time updates from reeived beacons
+            enable (bool):  ``True`` enables and ``False`` disables MAC time 
+                updates from reeived beacons
         """
         self.send_cmd(cmds.NodeConfigure(beacon_mac_time_update=enable))
 
 
     def set_radio_channel(self, channel):
-        """Re-tune the node's RF interfaces to a new center frequency. This method directly
-        controls the RF hardware. This can be disruptive to MAC operation if the node is
-        currently associated with other nodes in a BSS which manages its own channel state.
+        """Re-tune the node's RF interfaces to a new center frequency. 
+        
+        This method directly controls the RF hardware. This can be disruptive 
+        to MAC operation if the node is currently associated with other nodes 
+        in a BSS which manages its own channel state.
+        
+        This method will immediately change the center frequency of the node's 
+        RF interfaces.  As a result this method can only be safely used on a 
+        node which is not currently associated with a BSS. To change the center 
+        frequency of nodes participating in a BSS use the 
+        ``node.configure_bss(channel=N)`` method on every node in the BSS.
         
         Args:
-            channel (int):  Channel index for new center frequency. Must be a valid channel index.
-              See ``wlan_channels`` in util.py for the list of supported channel indexes.
-        
-        This method will immediately change the center frequency of the node's RF interfaces.
-        As a result this method can only be safely used on a node which is not currently associated
-        with a BSS. To change the center frequency of nodes participating in a BSS use the 
-        ``node.configure_bss(channel=N)`` method on every node in the BSS.
+            channel (int):  Channel index for new center frequency. Must be a 
+                valid channel index.  See ``wlan_channels`` in util.py for the 
+                list of supported channel indexes.
         """
         import wlan_exp.util as util
         
@@ -776,10 +819,13 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
 
     def set_low_to_high_rx_filter(self, mac_header=None, fcs=None):
-        """Configures the filter that controls which received packets are passed from CPU Low to CPU High.
-        The filter will always pass received packets where the destination address matches the node's MAC
-        address. The filter can be configured to drop or pass other packets. This filter effectively controls
-        which packets are written to the node's log.
+        """Configures the filter that controls which received packets are 
+        passed from CPU Low to CPU High.
+        
+        The filter will always pass received packets where the destination 
+        address matches the node's MAC address. The filter can be configured 
+        to drop or pass other packets. This filter effectively controls which 
+        packets are written to the node's log.
 
         Args:
             mac_header (str, optional): MAC header filter.  Values can be:
@@ -804,29 +850,40 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def set_tx_rate_unicast(self, mcs, phy_mode, device_list=None, curr_assoc=False, new_assoc=False):
         """Sets the unicast packet transmit rate of the node.
 
-        When using device_list or curr_assoc, this method will set the unicast data packet tx rate since
-        only unicast data transmit parameters are maintained for a given assoication.  However, when using
-        new_assoc, this method will set both the default unicast data and unicast management packet tx rate.
+        When using ``device_list`` or ``curr_assoc``, this method will set the 
+        unicast data packet tx rate since only unicast data transmit parameters 
+        are maintained for a given assoication.  However, when using 
+        ``new_assoc``, this method will set both the default unicast data and 
+        unicast management packet tx rate.
 
         Args:
-            mcs (int):           Modulation and coding scheme (MCS) index
-            phy_mode (str, int): PHY mode (from util.phy_modes)
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices
-                or single 802.11 device for which to set the unicast packet Tx rate to 'rate'
-            curr_assoc (bool):  All current assocations will have the unicast packet Tx rate set to 'rate'
-            new_assoc  (bool):  All new associations will have the unicast packet Tx rate set to 'rate'
+            mcs (int): Modulation and coding scheme (MCS) index (in [0 .. 7])
+            phy_mode (str, int): PHY mode.  Must be one of:
 
-        One of device_list, curr_assoc or new_assoc must be set.  The device_list
-            and curr_assoc are mutually exclusive with curr_assoc having precedence
-            (ie if curr_assoc is True, then device_list will be ignored).
+                * ``'NONHT'``: Use 802.11 (a/g) rates
+                * ``'HTMF'``: Use 802.11 (n) rates
 
-        The MAC code does not differentiate between unicast management tx parameters
-            and unicast data tx parameters since unicast management packets only occur when
-            they will not materially affect an experiment (ie they are only sent during
-            deauthentication)
+            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
+                802.11 devices or single 802.11 device for which to set the 
+                unicast packet Tx rate to 'rate'
+            curr_assoc (bool):  All current assocations will have the unicast 
+                packet Tx rate set to 'rate'
+            new_assoc  (bool):  All new associations will have the unicast 
+                packet Tx rate set to 'rate'
 
-        This will not affect the transmit antenna mode for control frames like ACKs that
-            will be transmitted. The rate of control packets is determined by the 802.11 standard.
+        One of ``device_list``, ``curr_assoc`` or ``new_assoc`` must be set.  
+        The ``device_list`` and ``curr_assoc`` are mutually exclusive with 
+        ``curr_assoc`` having precedence (ie if ``curr_assoc`` is True, then 
+        ``device_list`` will be ignored).
+
+        The MAC code does not differentiate between unicast management tx 
+        parameters and unicast data tx parameters since unicast management 
+        packets only occur when they will not materially affect an experiment 
+        (ie they are only sent during deauthentication)
+
+        This will not affect the transmit antenna mode for control frames like 
+        ACKs that will be transmitted. The rate of control packets is 
+        determined by the 802.11 standard.
         """
         if self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode):
             self._node_set_tx_param_unicast(cmds.NodeProcTxRate, 'rate', (mcs, phy_mode), device_list, curr_assoc, new_assoc)
@@ -839,8 +896,12 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Sets the multicast data packet transmit rate for a node.
 
         Args:
-            mcs (int):           Modulation and coding scheme (MCS) index
-            phy_mode (str, int): PHY mode (from util.phy_modes)
+            mcs (int): Modulation and coding scheme (MCS) index (in [0 .. 7])
+            phy_mode (str, int): PHY mode.  Must be one of:
+
+                * ``'NONHT'``: Use 802.11 (a/g) rates
+                * ``'HTMF'``: Use 802.11 (n) rates
+
         """
         if self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode):
             self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_DATA, (mcs, phy_mode)))
@@ -853,8 +914,12 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Sets the multicast management packet transmit rate for a node.
 
         Args:
-            mcs (int):           Modulation and coding scheme (MCS) index
-            phy_mode (str, int): PHY mode (from util.phy_modes)
+            mcs (int): Modulation and coding scheme (MCS) index (in [0 .. 7])
+            phy_mode (str, int): PHY mode.  Must be one of:
+
+                * ``'NONHT'``: Use 802.11 (a/g) rates
+                * ``'HTMF'``: Use 802.11 (n) rates
+
         """
         if self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode):
             self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_MGMT, (mcs, phy_mode)))
@@ -864,20 +929,27 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
 
     def get_tx_rate_unicast(self, device_list=None, new_assoc=False):
-        """Gets the unicast packet transmit rate of the node for the given device(s).
+        """Gets the unicast packet transmit rate of the node for the given 
+        device(s).
 
-        This will get the unicast data packet tx rate (unicast managment packet tx rate is the same).
+        This will get the unicast data packet tx rate (unicast managment 
+        packet tx rate is the same).
 
         Args:
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices
-                or single 802.11 device for which to get the unicast packet Tx rate
-            new_assoc  (bool):  Get the unicast packet Tx rate for all new associations
+            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
+                802.11 devices or single 802.11 device for which to get the 
+                unicast packet Tx rate
+            new_assoc  (bool):  Get the unicast packet Tx rate for all new 
+                associations
 
         Returns:
-            rates (List of tuple):  List of unicast packet Tx rate tuples, (mcs, phy_mode), for the given devices.
+            rates (List of tuple):  
+                List of unicast packet Tx rate tuples, (mcs, phy_mode), for 
+                the given devices.
 
-        If both new_assoc and device_list are specified, the return list will always have
-        the unicast packet Tx rate for all new associations as the first item in the list.
+        If both ``new_assoc`` and ``device_list`` are specified, the return 
+        list will always have the unicast packet Tx rate for all new 
+        associations as the first item in the list.
         """
         return self._node_get_tx_param_unicast(cmds.NodeProcTxRate, 'rate', None, device_list, new_assoc)
 
@@ -886,7 +958,9 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Gets the current multicast data packet transmit rate for a node.
 
         Returns:
-            rate (tuple):  Multicast data packet transmit rate tuple, (mcs, phy_mode), for the node
+            rate (tuple):  
+                Multicast data packet transmit rate tuple, (mcs, phy_mode), 
+                for the node
         """
         return self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_DATA))
 
@@ -895,7 +969,9 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Gets the current multicast transmit rate for a node.
 
         Returns:
-            rate (tuple):  Multicast management packet transmit rate tuple, (mcs, phy_mode), for the node
+            rate (tuple):  
+                Multicast management packet transmit rate tuple, (mcs, 
+                phy_mode), for the node
         """
         return self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_MGMT))
 
@@ -906,9 +982,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def set_tx_ant_mode_unicast(self, ant_mode, device_list=None, curr_assoc=False, new_assoc=False):
         """Sets the unicast packet transmit antenna mode of the node.
 
-        When using device_list or curr_assoc, this method will set the unicast data packet tx antenna mode since
-        only unicast data transmit parameters are maintained for a given assoication.  However, when using
-        new_assoc, this method will set both the default unicast data and unicast management packet tx antenna mode.
+        When using ``device_list`` or ``curr_assoc``, this method will set the 
+        unicast data packet tx antenna mode since only unicast data transmit 
+        parameters are maintained for a given assoication.  However, when 
+        using ``new_assoc``, this method will set both the default unicast data 
+        and unicast management packet tx antenna mode.
 
         Args:
             ant_mode (str):  Antenna mode; must be one of:
@@ -916,24 +994,29 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 * ``'RF_A'``: transmit on RF A interface
                 * ``'RF_B'``: transmit on RF B interface
 
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices
-                or single 802.11 device for which to set the unicast packet Tx antenna mode to 'ant_mode'
-            curr_assoc (bool):  All current assocations will have the unicast packet Tx antenna mode set to 'ant_mode'
-            new_assoc  (bool):  All new associations will have the unicast packet Tx antenna mode set to 'ant_mode'
+            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
+                802.11 devices or single 802.11 device for which to set the 
+                unicast packet Tx antenna mode to 'ant_mode'
+            curr_assoc (bool):  All current assocations will have the unicast 
+                packet Tx antenna mode set to 'ant_mode'
+            new_assoc  (bool):  All new associations will have the unicast 
+                packet Tx antenna mode set to 'ant_mode'
 
-        One of ``device_list``, ``curr_assoc`` or ``new_assoc`` must be set.  The ``device_list``
-        and ``curr_assoc`` are mutually exclusive with ``curr_assoc`` having precedence. If
-        ``curr_assoc`` is provided ``device_list`` will be ignored.
+        One of ``device_list``, ``curr_assoc`` or ``new_assoc`` must be set.  
+        The ``device_list`` and ``curr_assoc`` are mutually exclusive with 
+        ``curr_assoc`` having precedence. If ``curr_assoc`` is provided 
+        ``device_list`` will be ignored.
 
-        The MAC code does not differentiate between unicast management tx parameters
-        and unicast data tx parameters since unicast management packets only occur when
-        they will not materially affect an experiment (ie they are only sent during
-        deauthentication)
+        The MAC code does not differentiate between unicast management tx 
+        parameters and unicast data tx parameters since unicast management 
+        packets only occur when they will not materially affect an experiment 
+        (ie they are only sent during deauthentication)
 
-        This will not affect the transmit antenna mode for control frames like ACKs that
-        will be transmitted. Control packets will be sent on whatever antenna that cause the
-        control packet to be generated (ie an ack for a reception will go out on the same antenna
-        on which the reception occurred).
+        This will not affect the transmit antenna mode for control frames like 
+        ACKs that will be transmitted. Control packets will be sent on whatever 
+        antenna that cause the control packet to be generated (ie an ack for a 
+        reception will go out on the same antenna on which the reception 
+        occurred).
         """
         if ant_mode is None:
             raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))
@@ -945,7 +1028,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Sets the multicast data packet transmit antenna mode.
 
         Args:
-            ant_mode (str):  Antenna mode (Key of wlan_tx_ant_modes in wlan_exp.util)
+            ant_mode (str):  Antenna mode; must be one of:
+
+                * ``'RF_A'``: transmit on RF A interface
+                * ``'RF_B'``: transmit on RF B interface
+
         """
         if ant_mode is None:
             raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))
@@ -957,7 +1044,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Sets the multicast management packet transmit antenna mode.
 
         Args:
-            ant_mode (str):  Antenna mode (Key of wlan_tx_ant_modes in wlan_exp.util)
+            ant_mode (str):  Antenna mode; must be one of:
+
+                * ``'RF_A'``: transmit on RF A interface
+                * ``'RF_B'``: transmit on RF B interface
+
         """
         if ant_mode is None:
             raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))
@@ -966,29 +1057,46 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
 
     def get_tx_ant_mode_unicast(self, device_list=None, new_assoc=False):
-        """Gets the unicast packet transmit antenna mode of the node for the given device(s).
+        """Gets the unicast packet transmit antenna mode of the node for the 
+        given device(s).
 
-        This will get the unicast data packet Tx antenna mode (unicast managment packet Tx antenna mode is the same).
+        This will get the unicast data packet Tx antenna mode (unicast 
+        managment packet Tx antenna mode is the same).
 
         Args:
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices
-                or single 802.11 device for which to get the unicast packet Tx antenna mode
-            new_assoc  (bool):  Get the unicast packet Tx antenna mode for all new associations
+            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
+                802.11 devices or single 802.11 device for which to get the 
+                unicast packet Tx antenna mode
+            new_assoc  (bool):  Get the unicast packet Tx antenna mode for all 
+                new associations
 
         Returns:
-            ant_modes (List of str):  List of unicast packet Tx antenna mode for the given devices (Keys of wlan_tx_ant_modes in wlan_exp.util)
+            ant_modes (List of str):  
+                List of unicast packet Tx antenna mode for the given devices; 
+                each antenna mode must be one of:
 
-        If both new_assoc and device_list are specified, the return list will always have
-        the unicast packet Tx antenna mode for all new associations as the first item in the list.
+                  * ``'RF_A'``: transmit on RF A interface
+                  * ``'RF_B'``: transmit on RF B interface
+
+        If both ``new_assoc`` and ``device_list`` are specified, the return 
+        list will always have the unicast packet Tx antenna mode for all new 
+        associations as the first item in the list.
         """
         return self._node_get_tx_param_unicast(cmds.NodeProcTxAntMode, 'antenna mode', None, device_list, new_assoc)
 
 
     def get_tx_ant_mode_multicast_data(self):
-        """Gets the current multicast data packet transmit antenna mode for a node.
+        """Gets the current multicast data packet transmit antenna mode for 
+        a node.
 
         Returns:
-            ant_mode (str):  Multicast data packet transmit antenna mode for the node (Key of wlan_tx_ant_modes in wlan_exp.util)
+            ant_mode (str):  
+                Multicast data packet transmit antenna mode for the node; 
+                must be one of:
+
+                  * ``'RF_A'``: transmit on RF A interface
+                  * ``'RF_B'``: transmit on RF B interface
+
         """
         return self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_DATA))
 
@@ -997,8 +1105,13 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Gets the current multicast management packet transmit antenna mode for a node.
 
         Returns:
-            ant_mode (str):  Multicast management packet transmit antenna mode for the node
-                (Key of wlan_tx_ant_modes in wlan_exp.util)
+            ant_mode (str):  
+                Multicast management packet transmit antenna mode for the node;
+                must be one of:
+
+                  * ``'RF_A'``: transmit on RF A interface
+                  * ``'RF_B'``: transmit on RF B interface
+
         """
         return self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_MGMT))
 
@@ -1007,6 +1120,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Sets the transmit antenna mode of the node.
 
         This command will set all transmit antenna mode fields on the node to the same value:
+        
             * Default Unicast Management Packet Tx Antenna mode for new associations
             * Default Unicast Data Packet Tx Tx Antenna mode for new associations
             * Default Multicast Management Packet Tx Antenna mode for new associations
@@ -1015,7 +1129,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         It will also update the transmit antenna mode of all current associations on the node.
 
         Args:
-            ant_mode (str):  Antenna mode (Key of wlan_tx_ant_modes in wlan_exp.util)
+            ant_mode (str):  Antenna mode; must be one of:
+
+                * ``'RF_A'``: transmit on RF A interface
+                * ``'RF_B'``: transmit on RF B interface
+
         """
         if ant_mode is None:
             raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))
@@ -1024,10 +1142,16 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
 
     def get_tx_ant_mode(self):
-        """Gets the current default unicast data transmit antenna mode of the node for new associations.
+        """Gets the current default unicast data transmit antenna mode of the 
+        node for new associations.
 
         Returns:
-            ant_modes (str):  Current unicast packet Tx antenna mode (Key of wlan_tx_ant_modes in wlan_exp.util)
+            ant_mode (str):  
+                Current unicast packet Tx antenna mode; must be one of:
+
+                  * ``'RF_A'``: transmit on RF A interface
+                  * ``'RF_B'``: transmit on RF B interface
+
         """
         return self.get_tx_ant_mode_unicast(new_assoc=True)[0]
 
@@ -1039,8 +1163,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Sets the receive antenna mode for a node and returns the antenna mode that was set.
 
         Args:
-            ant_mode (dict from util.wlan_rx_ant_mode):          Antenna dictionary
-                (Dictionary from the wlan_rx_ant_mode list in wlan_exp.util)
+            ant_mode (str):  Antenna mode; must be one of:
+
+                * ``'RF_A'``: receive on RF A interface
+                * ``'RF_B'``: receive on RF B interface
+
         """
         if ant_mode is None:
             raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))
@@ -1052,7 +1179,12 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Gets the current receive antenna mode for a node.
 
         Returns:
-            ant_mode (dict):  Rx antenna mode dictionary
+            ant_mode (str):  
+                Rx Antenna mode; must be one of:
+
+                  * ``'RF_A'``: receive on RF A interface
+                  * ``'RF_B'``: receive on RF B interface
+
         """
         return self.send_cmd(cmds.NodeProcRxAntMode(cmds.CMD_PARAM_READ))
 
@@ -1063,29 +1195,36 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def set_tx_power_unicast(self, power, device_list=None, curr_assoc=False, new_assoc=False):
         """Sets the unicast packet transmit power of the node.
 
-        When using device_list or curr_assoc, this method will set the unicast data packet tx power since
-        only unicast data transmit parameters are maintained for a given assoication.  However, when using
-        new_assoc, this method will set both the default unicast data and unicast management packet tx power.
+        When using ``device_list`` or ``curr_assoc``, this method will set the 
+        unicast data packet tx power since only unicast data transmit 
+        parameters are maintained for a given assoication.  However, when 
+        using ``new_assoc``, this method will set both the default unicast 
+        data and unicast management packet tx power.
 
         Args:
-            power (int):  Transmit power in dBm (a value between node.max_tx_power_dbm and
-                node.min_tx_power_dbm)
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices
-                or single 802.11 device for which to set the unicast packet Tx power to 'power'
-            curr_assoc (bool):  All current assocations will have the unicast packet Tx power set to 'power'
-            new_assoc  (bool):  All new associations will have the unicast packet Tx power set to 'power'
+            power (int):  Transmit power in dBm (a value between 
+                ``node.max_tx_power_dbm`` and ``node.min_tx_power_dbm``)
+            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
+                802.11 devices or single 802.11 device for which to set the 
+                unicast packet Tx power to 'power'
+            curr_assoc (bool):  All current assocations will have the unicast 
+                packet Tx power set to 'power'
+            new_assoc  (bool):  All new associations will have the unicast 
+                packet Tx power set to 'power'
 
-        One of device_list, curr_assoc or new_assoc must be set.  The device_list
-            and curr_assoc are mutually exclusive with curr_assoc having precedence
-            (ie if curr_assoc is True, then device_list will be ignored).
+        One of ``device_list``, ``curr_assoc`` or ``new_assoc`` must be set.  
+        The ``device_list`` and ``curr_assoc`` are mutually exclusive with 
+        ``curr_assoc`` having precedence (ie if ``curr_assoc`` is True, then 
+        ``device_list`` will be ignored).
 
-        The MAC code does not differentiate between unicast management tx parameters
-            and unicast data tx parameters since unicast management packets only occur when
-            they will not materially affect an experiment (ie they are only sent during
-            deauthentication)
+        The MAC code does not differentiate between unicast management tx 
+        parameters and unicast data tx parameters since unicast management 
+        packets only occur when they will not materially affect an experiment 
+        (ie they are only sent during deauthentication)
 
-        This will not affect the transmit power for control frames like ACKs that
-            will be transmitted. To adjust this power, use the set_tx_power_ctrl command
+        This will not affect the transmit power for control frames like ACKs 
+        that will be transmitted. To adjust this power, use the 
+        ``set_tx_power_ctrl`` command
         """
         self._node_set_tx_param_unicast(cmds.NodeProcTxPower, 'tx power', 
                                         (power, self.max_tx_power_dbm, self.min_tx_power_dbm), 
@@ -1096,8 +1235,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Sets the multicast data packet transmit power.
 
         Args:
-            power (int):  Transmit power in dBm (a value between node.max_tx_power_dbm and
-                node.min_tx_power_dbm)
+            power (int):  Transmit power in dBm (a value between 
+                ``node.max_tx_power_dbm`` and ``node.min_tx_power_dbm``)
         """
         self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_DATA, 
                                            (power, self.max_tx_power_dbm, self.min_tx_power_dbm)))
@@ -1107,28 +1246,34 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Sets the multicast management packet transmit power.
 
         Args:
-            power (int):  Transmit power in dBm (a value between node.max_tx_power_dbm and
-                node.min_tx_power_dbm)
+            power (int):  Transmit power in dBm (a value between 
+                ``node.max_tx_power_dbm`` and ``node.min_tx_power_dbm``)
         """
         self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_MGMT, 
                                            (power, self.max_tx_power_dbm, self.min_tx_power_dbm)))
 
 
     def get_tx_power_unicast(self, device_list=None, new_assoc=False):
-        """Gets the unicast packet transmit power of the node for the given device(s).
+        """Gets the unicast packet transmit power of the node for the given 
+        device(s).
 
-        This will get the unicast data packet Tx power (unicast managment packet Tx power is the same).
+        This will get the unicast data packet Tx power (unicast managment 
+        packet Tx power is the same).
 
         Args:
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices
-                or single 802.11 device for which to get the unicast packet Tx power
-            new_assoc  (bool):  Get the unicast packet Tx power for all new associations
+            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
+                802.11 devices or single 802.11 device for which to get the 
+                unicast packet Tx power
+            new_assoc  (bool):  Get the unicast packet Tx power for all new 
+                associations
 
         Returns:
-            tx_powers (List of int):  List of unicast packet Tx power for the given devices.
+            tx_powers (List of int):  
+                List of unicast packet Tx power for the given devices.
 
-        If both new_assoc and device_list are specified, the return list will always have
-        the unicast packet Tx power for all new associations as the first item in the list.
+        If both ``new_assoc`` and ``device_list`` are specified, the return 
+        list will always have the unicast packet Tx power for all new 
+        associations as the first item in the list.
         """
         return self._node_get_tx_param_unicast(cmds.NodeProcTxPower, 'tx power', 
                                                (0, self.max_tx_power_dbm, self.min_tx_power_dbm), 
@@ -1139,7 +1284,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Gets the current multicast data packet transmit power for a node.
 
         Returns:
-            tx_power (int):  Multicast data packet transmit power for the node in dBm
+            tx_power (int):  
+                Multicast data packet transmit power for the node in dBm
         """
         return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_DATA,
                                                   (0, self.max_tx_power_dbm, self.min_tx_power_dbm)))
@@ -1149,7 +1295,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Gets the current multicast management packet transmit power for a node.
 
         Returns:
-            tx_power (int):  Multicast management packet transmit power for the node in dBm
+            tx_power (int):  
+                Multicast management packet transmit power for the node in dBm
         """
         return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_MGMT, 
                                                   (0, self.max_tx_power_dbm, self.min_tx_power_dbm)))
@@ -1158,14 +1305,15 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def set_tx_power_ctrl(self, power):
         """Sets the control packet transmit power of the node.
 
-        Only the Tx power of the control packets can be set via wlan_exp.  The rate
-            of control packets is determined by the 802.11 standard and control packets will
-            be sent on whatever antenna that cause the control packet to be generated (ie an
-            ack for a reception will go out on the same antenna on which the reception occurred).
+        Only the Tx power of the control packets can be set via wlan_exp.  The 
+        rate of control packets is determined by the 802.11 standard and 
+        control packets will be sent on whatever antenna that cause the control 
+        packet to be generated (ie an ack for a reception will go out on the 
+        same antenna on which the reception occurred).
 
         Args:
-            power (int):  Transmit power in dBm (a value between node.max_tx_power_dbm and
-                node.min_tx_power_dbm)
+            power (int):  Transmit power in dBm (a value between 
+                ``node.max_tx_power_dbm`` and ``node.min_tx_power_dbm``)
         """
         self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_NODE_TX_POWER_LOW, 
                                            (power, self.max_tx_power_dbm, self.min_tx_power_dbm)))
@@ -1174,25 +1322,29 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def set_tx_power(self, power):
         """Sets the transmit power of the node.
 
-        This command will set all transmit power fields on the node to the same value:
+        This command will set all transmit power fields on the node to the same 
+        value:
+        
             * Default Unicast Management Packet Tx Power for new associations
             * Default Unicast Data Packet Tx Power for new associations
             * Default Multicast Management Packet Tx Power for new associations
             * Default Multicast Data Packet Tx Power for new associations
             * Control Packet Tx Power
 
-        It will also update the transmit power of all current associations on the node.
+        It will also update the transmit power of all current associations on 
+        the node.
 
         Args:
-            power (int):  Transmit power in dBm (a value between node.max_tx_power_dbm and
-                node.min_tx_power_dbm)
+            power (int):  Transmit power in dBm (a value between 
+                ``node.max_tx_power_dbm`` and ``node.min_tx_power_dbm``)
         """
         self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_NODE_TX_POWER_ALL, 
                                            (power, self.max_tx_power_dbm, self.min_tx_power_dbm)))
 
 
     def get_tx_power(self):
-        """Gets the current default unicast data transmit power of the node for new associations.
+        """Gets the current default unicast data transmit power of the node 
+        for new associations.
 
         Returns:
             tx_power (int): Current unicast data transmit power in dBm.
@@ -1206,8 +1358,9 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def set_low_param(self, param_id, param_values):
         """Set a CPU Low parameter
 
-        This command provides a generic data pipe to set parameters in CPU Low.  See
-        CMD_PARAM_LOW_PARAM_* in cmds.py for currently supported parameter values.
+        This command provides a generic data pipe to set parameters in CPU Low.  
+        See CMD_PARAM_LOW_PARAM_* in cmds.py for currently supported parameter 
+        values.
 
         See http://warpproject.org/trac/wiki/802.11/wlan_exp/Extending
         for more information.
@@ -1234,9 +1387,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
 
     def set_dcf_param(self, param_name, param_val):
-        """Configures parameters of the DCF MAC in CPU Low. These parameters are write-only. These
-        parameters only affect nodes running the DCF in CPU Low. Other MAC implementations should
-        ignore these parameter updates.
+        """Configures parameters of the DCF MAC in CPU Low. 
+        
+        These parameters are write-only. These parameters only affect nodes 
+        running the DCF in CPU Low. Other MAC implementations should ignore 
+        these parameter updates.
 
         Args:
             param_name (str): Name of the param to change (see table below)
@@ -1366,7 +1521,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Sets the PHY sample rate (in MSps)
 
         Args:
-            phy_samp_rate (int):    PHY sample rate in MSps (10, 20, 40).  Default is 20 MSps.
+            phy_samp_rate (int):    
+                PHY sample rate in MSps (10, 20, 40).  Default is 20 MSps.
         """
         if (phy_samp_rate not in [10, 20, 40]):
             raise AttributeError("'phy_samp_rate' must be in [10, 20, 40].")
@@ -1378,10 +1534,12 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Sets the random number generator seed on the node.
 
         Args:
-            high_seed (int, optional):   Set the random number generator seed on CPU high
-            low_seed (int, optional):    Set the random number generator seed on CPU low
-            gen_random (bool, optional): If high_seed or low_seed is not provided, then generate
-                a random seed for the generator.
+            high_seed (int, optional):   Set the random number generator seed 
+                on CPU high
+            low_seed (int, optional):    Set the random number generator seed 
+                on CPU low
+            gen_random (bool, optional): If high_seed or low_seed is not 
+                provided, then generate a random seed for the generator.
         """
         import random
         max_seed = 2**32 - 1
@@ -1423,6 +1581,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             level (int):  Printing level (defaults to WLAN_EXP_PRINT_ERROR)
 
         Valid print levels can be found in wlan_exp.util:
+        
           * WLAN_EXP_PRINT_NONE
           * WLAN_EXP_PRINT_ERROR
           * WLAN_EXP_PRINT_WARNING
@@ -1456,8 +1615,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         both supported and allowed given the currnet MAC and network state.
 
         Args:
-            mcs (int):           Modulation and coding scheme (MCS) index
-            phy_mode (str, int): PHY mode (from util.phy_modes)
+            mcs (int): Modulation and coding scheme (MCS) index (in [0 .. 7])
+            phy_mode (str, int): PHY mode.  Must be one of:
+
+                * ``'NONHT'``: Use 802.11 (a/g) rates
+                * ``'HTMF'``: Use 802.11 (n) rates
 
         Returns:
             rate_suppored (bool):  True if the specified rate is supported
@@ -1487,14 +1649,18 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             cmd (Cmd):          Command to be used to set param
             param_name (str):   Name of parameter for error messages
             param (int):        Parameter to be set
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices
-                or single 802.11 device for which to set the Tx unicast param
-            curr_assoc (bool):  All current assocations will have Tx unicast param set
-            new_assoc  (bool):  All new associations will have Tx unicast param set
+            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
+                802.11 devices or single 802.11 device for which to set the Tx 
+                unicast param
+            curr_assoc (bool):  All current assocations will have Tx unicast 
+                param set
+            new_assoc  (bool):  All new associations will have Tx unicast 
+                param set
 
-        One of device_list, curr_assoc or new_assoc must be set.  The device_list
-        and curr_assoc are mutually exclusive with curr_assoc having precedence
-        (ie if curr_assoc is True, then device_list will be ignored).
+        One of ``device_list``, ``curr_assoc`` or ``new_assoc`` must be set.  
+        The ``device_list`` and ``curr_assoc`` are mutually exclusive with 
+        ``curr_assoc`` having precedence (ie if ``curr_assoc`` is True, then 
+        ``device_list`` will be ignored).
         """
         if (device_list is None) and (not curr_assoc) and (not new_assoc):
             msg  = "\nCannot set the unicast transmit {0}:\n".format(param_name)
@@ -1523,15 +1689,18 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             cmd (Cmd):          Command to be used to set param
             param_name (str):   Name of parameter for error messages
             param (int):        Optional parameter to pass information to cmd
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 802.11 devices
-                or single 802.11 device for which to get the Tx unicast param
+            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
+                802.11 devices or single 802.11 device for which to get the Tx 
+                unicast param
             new_assoc  (bool):  Get the Tx unicast param for all new associations
 
         Returns:
-            params (List of params):  List of Tx unicast param for the given devices.
+            params (List of params):  
+                List of Tx unicast param for the given devices.
 
-        If both new_assoc and device_list are specified, the return list will always have
-        the Tx unicast rate for all new associations as the first item in the list.
+        If both ``new_assoc`` and ``device_list`` are specified, the return 
+        list will always have the Tx unicast rate for all new associations as 
+        the first item in the list.
         """
         ret_val = []
 
@@ -1648,18 +1817,21 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             ssid (str, optional):  SSID to scan for (as part of probe request);
                 A value of None will not modify the current SSID.
         
-        Setting ``num_probe_tx_per_chan`` to a non-zero value will enable active scanning. The node
-        will transmit broadcast Probe Request packets on every channel and will gather network information
-        from received Probe Response and Beacon packets. Set ``num_probe_tx_per_chan=0`` to enable
-        passive scanning. In this mode the node will not transmit any Probe Request packets and network
-        information will be gathered only from received Beacon packets.
+        Setting ``num_probe_tx_per_chan`` to a non-zero value will enable 
+        active scanning. The node will transmit broadcast Probe Request packets 
+        on every channel and will gather network information from received 
+        Probe Response and Beacon packets. Set ``num_probe_tx_per_chan=0`` to 
+        enable passive scanning. In this mode the node will not transmit any 
+        Probe Request packets and network information will be gathered only 
+        from received Beacon packets.
 
-        The blank SSID (``ssid=""``) is interpretted as a wildcard and will solicit Probe Response packets
-        from networks with any SSID. "Closed" networks do not respond to the wildcard SSID. These networks
-        will still be discovered via Beacon receptions.
+        The blank SSID (``ssid=""``) is interpretted as a wildcard and will 
+        solicit Probe Response packets from networks with any SSID. "Closed" 
+        networks do not respond to the wildcard SSID. These networks will still 
+        be discovered via Beacon receptions.
 
-        If the channel list / SSID is not specified, then it will 
-        not be updated on the node (ie it will use the current channel list / SSID)
+        If the channel list / SSID is not specified, then it will not be 
+        updated on the node (ie it will use the current channel list / SSID)
 
         """
         # Check time_per_channel
@@ -1713,17 +1885,21 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     
     
     def start_network_scan(self):
-        """Starts the wireless network scan state machine at the node. During a scan the node
-        cycles through a set of channels and transmits periodic Probe Request frames on each channel.
-        Information about available wireless networks is extracted from received Probe Response and
-        Beacon frames. The network scan results can be queried any time using the node.get_network_list()
-        method.
+        """Starts the wireless network scan state machine at the node. 
+        
+        During a scan, the node cycles through a set of channels and transmits 
+        periodic Probe Request frames on each channel.  Information about 
+        available wireless networks is extracted from received Probe Responses 
+        and Beacon frames. The network scan results can be queried any time 
+        using the ``node.get_network_list()`` method.
 
-        Network scans can only be run by unassociated nodes. An associated node must first reset its BSS state
-        before starting a scan.
+        Network scans can only be run by unassociated nodes. An associated 
+        node must first reset its BSS state before starting a scan.
 
-        The network scan state machine can be stopped with n.stop_network_scan(). The state machine will also
-        be stopped automatically if the node is configured with a new non-null BSS state.
+        The network scan state machine can be stopped with 
+        ``node.stop_network_scan()``. The scan state machine will also be 
+        stopped automatically if the node is configured with a new non-null 
+        BSS state.
             
         Example:
         ::
@@ -1751,7 +1927,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
 
     def is_scanning(self):
-        """Queries if the node's wireless network scanning state machine is currently running.
+        """Queries if the node's wireless network scanning state machine is 
+        currently running.
         
         Returns:
             status (bool):
@@ -1782,20 +1959,54 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def get_station_info(self, device_list=None):
         """Get the station info from the node.
 
+        The StationInfo() returned by this method can be accessed like a 
+        dictionary and has the following fields:
+        
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | Field                       | Description                                                                                        |
+            +=============================+====================================================================================================+
+            | timestamp                   |  Value of MAC Time in microseconds when structure created on the node                              |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | mac_addr                    |  MAC address of station                                                                            |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | id                          |  Identification Index for this station                                                             |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | host_name                   |  String hostname (19 chars max), taken from DHCP DISCOVER packets                                  |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | flags                       |  Value of System Time in microseconds of last successful Rx from device                            |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | latest_activity_timestamp   |  Total number of bytes transmitted (successfully or not) in DATA packets to remote node            |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | rx_last_seq                 |  Sequence number of last packet received from device                                               |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | rx_last_power               |  Rx power in dBm of last packet received from device                                               |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | tx_phy_mcs                  |  Current PHY MCS index in [0:7] for new transmissions to device                                    |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | tx_phy_mode                 |  Current PHY mode for new transmissions to deivce                                                  |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | tx_phy_antenna_mode         |  Current PHY antenna mode in [1:4] for new transmissions to device                                 |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | tx_phy_power                |  Current Tx power in dBm for new transmissions to device                                           |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | tx_mac_flags                |  Flags for Tx MAC config for new transmissions to device                                           |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+        
         Args:
             device_list (list of WlanExpNode / WlanDevice, optional):  List of 
                 802.11 devices or single 802.11 device for which to get the 
                 station info
 
         Returns:
-            station_infos (list of StationInfo()):  List of StationInfo() known to the node
+            station_infos (list of StationInfo):  
+                List of StationInfo() known to the node
 
-        If the device_list is a single device, then only a station info or
-            None is returned.  If the device_list is a list of devices, then a
-            list of station infos will be returned in the same order as the
-            devices in the list.  If any of the station info are not there,
-            None will be inserted in the list.  If the device_list is not
-            specified, then all the station infos on the node will be returned.
+        If the ``device_list`` is a single device, then only a station info or
+        None is returned.  If the ``device_list`` is a list of devices, then a
+        list of station infos will be returned in the same order as the
+        devices in the list.  If any of the station info are not there,
+        None will be inserted in the list.  If the ``device_list`` is not
+        specified, then all the station infos on the node will be returned.
         """
         ret_val = []
         if not device_list is None:
@@ -1821,8 +2032,36 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def get_bss_info(self):
         """Get the node's BSS info 
 
+        The BSSInfo() returned by this method can be accessed like a 
+        dictionary and has the following fields:
+        
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | Field                       | Description                                                                                        |
+            +=============================+====================================================================================================+
+            | timestamp                   |  Value of MAC Time in microseconds when structure created on the node                              |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | bssid                       |  BSS ID                                                                                            |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | ssid                        |  SSID (32 chars max)                                                                               |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | channel                     |  Primary channel                                                                                   |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | channel_type                |  Channel Type                                                                                      |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | latest_beacon_rx_time       |  Value of System Time in microseconds of last beacon Rx                                            |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | latest_beacon_rx_power      |  Last observed beacon Rx Power (dBm)                                                               |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | flags                       |  BSS flags                                                                                         |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | capabilities                |  Supported capabilities of the BSS                                                                 |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | beacon_interval             |  Beacon interval - In time units of 1024 us'                                                       |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            
         Returns:
-            bss_info (BSSInfo()):  BSS Info of node (can be None if unassociated)
+            bss_info (BSSInfo):  
+                BSS Info of node (can be None if unassociated)
         """
         ret_val = self.send_cmd(cmds.NodeGetBSSInfo())
         
@@ -1838,7 +2077,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Get a list of known networks (BSSInfo()s) on the node
 
         Returns:
-            networks (list of BSSInfo()):  List of BSSInfo() that are known to the node 
+            networks (list of BSSInfo):  
+                List of BSSInfo() that are known to the node 
         """
         return self.send_cmd(cmds.NodeGetBSSInfo("ALL"))
 
@@ -1866,14 +2106,16 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Send User defined command to the node
 
         See documentation on how-to add a wlan_exp command:
-            http://warpproject.org/trac/wiki/802.11/wlan_exp/HowToAddCommand
+        http://warpproject.org/trac/wiki/802.11/wlan_exp/HowToAddCommand
 
-        Attributes:
-            cmd_id  -- User-defined Command ID
-            args    -- Scalar or list of u32 command arguments to send to the node
+        Args:
+            cmd_id (u32):  User-defined Command ID
+            args (u32, list of u32):  Scalar or list of u32 command arguments 
+                to send to the node
 
         Returns:
-            resp_args (list of u32):  List of u32 response arguments received from the node
+            resp_args (list of u32):  
+                List of u32 response arguments received from the node
         """
         if cmd_id is None:
             raise AttributeError("Command ID must be defined for a user command")
@@ -1893,7 +2135,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def _mem_write_high(self, address, values):
         """Writes 'values' to CPU High memory starting at 'address'
 
-        Attributes:
+        Args:
             address (int):         Address must be in [0 .. (2^32 - 1)]
             values (list of int):  Each value must be in [0 .. (2^32 - 1)]
         """
@@ -1908,7 +2150,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def _mem_read_high(self, address, length):
         """Reads 'length' values from CPU High memory starting at 'address'
 
-        Attributes:
+        Args:
             address (int):  Address must be in [0 .. (2^32 - 1)]
             length (int):   Length must be in [1 .. 320] (ie fit in a 1400 byte packet)
 
@@ -1922,7 +2164,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def _mem_write_low(self, address, values):
         """Writes 'values' to CPU Low memory starting at 'address'
 
-        Attributes:
+        Args:
             address (int):         Address must be in [0 .. (2^32 - 1)]
             values (list of int):  Each value must be in [0 .. (2^32 - 1)]
         """
@@ -1937,7 +2179,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def _mem_read_low(self, address, length):
         """Reads 'length' values from CPU Low memory starting at 'address'
 
-        Attributes:
+        Args:
             address (int):  Address must be in [0 .. (2^32 - 1)]
             length (int):   Length must be in [1 .. 320] (ie fit in a 1400 byte packet)
 
@@ -1951,7 +2193,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def _check_mem_access_args(self, address, values=None, length=None):
         """Check memory access variables
 
-        Attributes:
+        Args:
             address (int):         Address must be in [0 .. (2^32 - 1)]
             values (list of int):  Each value must be in [0 .. (2^32 - 1)]
             length (int):          Length must be in [1 .. 320] (ie fit in a 1400 byte packet)
@@ -1986,7 +2228,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def _eeprom_write(self, address, values):
         """Writes 'values' to EEPROM starting at 'address'
 
-        Attributes:
+        Args:
             address (int):         Address must be in [0 .. 15999]
             values (list of int):  Each value must be in [0 .. 255]
         """
@@ -2004,7 +2246,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def _eeprom_read(self, address, length):
         """Reads 'length' values from EEPROM starting at 'address'
 
-        Attributes:
+        Args:
             address (int):  Address must be in [0 .. 16383]
             length (int):   Length must be in [1 .. 320] (ie fit in a 1400 byte packet)
 
@@ -2018,7 +2260,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def _check_eeprom_access_args(self, address, values=None, length=None):
         """Check EEPROM access variables
 
-        Attributes:
+        Args:
             address (int):         Address must be in [0 .. 16383]
             values (list of int):  Each value must be in [0 .. 255]
             length (int):          Length must be in [1 .. 320] (ie fit in a 1400 byte packet)
@@ -2189,7 +2431,9 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 print(msg)
 
     def check_wlan_exp_ver(self):
-        """Check the wlan_exp version of the node against the current wlan_exp version."""
+        """Check the wlan_exp version of the node against the current wlan_exp 
+        version.
+        """
         ver_str     = version.wlan_exp_ver_str(self.wlan_exp_ver_major,
                                                self.wlan_exp_ver_minor,
                                                self.wlan_exp_ver_revision)
@@ -2249,13 +2493,14 @@ class WlanExpNodeFactory(node.WarpNodeFactory):
     def node_eval_class(self, node_class, network_config):
         """Evaluate the node_class string to create a node.
 
-        This should be overridden in each sub-class with the same overall structure
-        but a different import.  Please call the super class so that the calls will propagate
-        to catch all node types.
+        This should be overridden in each sub-class with the same overall 
+        structure but a different import.  Please call the super class so that 
+        the calls will propagate to catch all node types.
 
-        network_config is used as part of the node_class string to initialize the node.
+        network_config is used as part of the node_class string to initialize 
+        the node.
         """
-        # NOTE:  "import wlan_exp.defaults as defaults" performed at the top of the file
+        # "import wlan_exp.defaults as defaults" performed at the top of the file
         import wlan_exp.node_ap as node_ap
         import wlan_exp.node_sta as node_sta
         import wlan_exp.node_ibss as node_ibss

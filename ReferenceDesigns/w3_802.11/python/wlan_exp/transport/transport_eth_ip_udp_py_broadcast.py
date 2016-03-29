@@ -1,20 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-Transport - Broadcast Ethernet IP/UDP Python Socket Implementation
+Mango 802.11 Reference Design Experiments Framework 
+    - Transport Broadcast Ethernet IP/UDP Python Socket Implementation
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
            Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
-------------------------------------------------------------------------------
-MODIFICATION HISTORY:
-
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a ejw  1/23/14  Initial release
-
 ------------------------------------------------------------------------------
 
 This module provides the broadcast Ethernet IP/UDP transport based on the 

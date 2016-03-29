@@ -1,20 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-Transport - Ethernet IP/UDP base class
+Mango 802.11 Reference Design Experiments Framework 
+    - Transport Ethernet IP/UDP base class
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
            Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
-------------------------------------------------------------------------------
-MODIFICATION HISTORY:
-
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a ejw  1/23/14  Initial release
-
 ------------------------------------------------------------------------------
 
 This module provides the base class for Ethernet IP/UDP transports.
@@ -125,7 +119,7 @@ class TransportEthIpUdp(tp.Transport):
             try:
                 self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, tx_buf_size)
             except socket_error as serr:
-                # On some HW we cannot set the buffer size
+                # Cannot set the buffer size on some hardware
                 if serr.errno != errno.ENOBUFS:
                     raise serr
 
@@ -133,7 +127,7 @@ class TransportEthIpUdp(tp.Transport):
             try:
                 self.sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, rx_buf_size)
             except socket_error as serr:
-                # On some HW we cannot set the buffer size
+                # Cannot set the buffer size on some hardware
                 if serr.errno != errno.ENOBUFS:
                     raise serr
 

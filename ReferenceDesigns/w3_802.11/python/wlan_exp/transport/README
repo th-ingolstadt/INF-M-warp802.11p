@@ -1,7 +1,7 @@
-Transport
+Mango 802.11 Reference Design Experiments Framework - Transport
 
-  Transport provides the basic python communication structure for talking with 
-WARP hardware.  The basic file structure:
+  The transport infrastructure provides the basic python communication 
+structure for talking with WARP hardware.  The basic file structure:
 
   - node.py 
       - A Node encapsulates information about a single hardware board and 
@@ -27,9 +27,7 @@ WARP hardware.  The basic file structure:
 
 
 Top Level Scripts:
-  - setup
-      - Used to create initialization files that will set up the environment.
-
+  - None
 
 Notes:
     WARP is a scalable and extensible programmable wireless platform, built 

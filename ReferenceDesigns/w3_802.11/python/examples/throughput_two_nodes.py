@@ -1,17 +1,19 @@
 """
 ------------------------------------------------------------------------------
-Mango 802.11 Reference Design - Experiments Framework - Two Node Throughput
+Mango 802.11 Reference Design Experiments Framework - Two Node Throughput
 ------------------------------------------------------------------------------
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
-This script uses the 802.11 ref design and WLAN Exp to measure throughput between
-an AP and an associated STA using the AP's local traffic generator (LTG).
+This script uses the 802.11 ref design and wlan_exp to measure throughput 
+between an AP and an associated STA using the AP's local traffic generator 
+(LTG).
 
 Hardware Setup:
   - Requires two WARP v3 nodes
-    - One node configured as AP using 802.11 Reference Design v0.95 or later
-    - One node configured as STA using 802.11 Reference Design v0.95 or later
+    - One node configured as AP using 802.11 Reference Design v1.5 or later
+    - One node configured as STA using 802.11 Reference Design v1.5 or later
+    - Two nodes configured as IBSS using 802.11 Reference Design v1.5 or later
   - PC NIC and ETH B on WARP v3 nodes connected to common Ethernet switch
 
 Required Script Changes:
@@ -19,11 +21,12 @@ Required Script Changes:
   - Set NODE_SERIAL_LIST to the serial numbers of your WARP nodes
 
 Description:
-  This script initializes two WARP v3 nodes, one AP and one STA. It assumes the STA is
-already associated with the AP. The script then initiates a traffic flow from the AP to
-the STA, sets the AP Tx rate and measures throughput by counting the number of bytes
-received successfully at the STA. This process repeats for STA -> AP and head-to-head
-traffic flows.
+  This script initializes two WARP v3 nodes, one AP and one STA or two IBSS. 
+It will use wlan_exp commands to set up the network for the experiment.  The 
+script then , sets the Tx rate for the nodes; initiates a traffic flow from 
+the node 1 to node 2 and measures throughput by counting the number of bytes
+received successfully at node 2. This process repeats for node 2 -> node 1 and 
+head-to-head traffic flows.
 ------------------------------------------------------------------------------
 """
 import sys
@@ -36,7 +39,7 @@ import wlan_exp.ltg as ltg
 #  Global experiment variables
 #
 
-# NOTE: change these values to match your experiment / network setup
+# Change these values to match your experiment / network setup
 NETWORK              = '10.0.0.0'
 USE_JUMBO_ETH_FRAMES = False
 NODE_SERIAL_LIST     = ['W3-a-00001', 'W3-a-00002']
@@ -71,15 +74,14 @@ nodes = util.init_nodes(nodes_config, network_config)
 #     node.reset_all()
 
 # Extract the different types of nodes from the list of initialized nodes
-#   NOTE:  This will work for both 'DCF' and 'NOMAC' mac_low projects
+#     - This will work for both 'DCF' and 'NOMAC' mac_low projects
 n_ap_l   = util.filter_nodes(nodes=nodes, mac_high='AP',   serial_number=NODE_SERIAL_LIST, warn=False)
 n_sta_l  = util.filter_nodes(nodes=nodes, mac_high='STA',  serial_number=NODE_SERIAL_LIST, warn=False)
 n_ibss_l = util.filter_nodes(nodes=nodes, mac_high='IBSS', serial_number=NODE_SERIAL_LIST, warn=False)
 
-# Check that we have a valid setup:
-#   1) AP and STA
-#     or
-#   2) Two IBSS nodes
+# Check that setup is valid:
+#     1) AP and STA
+#     2) Two IBSS nodes
 if len(n_ap_l) == 1 and len(n_sta_l) == 1:
     # Setup the two nodes
     node1 = n_ap_l[0]
@@ -162,8 +164,9 @@ print("\nRun Experiment:")
 #   2) Node2 -> Node1 throughput
 #   3) Head-to-head throughput
 #
-#   Since this experiment is basically the same for each iteration, we have pulled out
-# the main control variables so that we do not have repeated code for easier readability.
+# This experiment is basically the same for each iteration.  Therefore, the 
+# main control variables for each iteration have been placed into the 
+# dictionary below to make readability easier by not having repeated code.
 #
 experiment_params = [{'node1_ltg_en' : True,  'node2_ltg_en' : False, 'desc' : 'Node 1 -> Node 2'},
                      {'node1_ltg_en' : False, 'node2_ltg_en' : True,  'desc' : 'Node 2 -> Node 1'},
@@ -194,11 +197,16 @@ for experiment in experiment_params:
                                                               interval=0), auto_start=True)
 
     # Record the initial Tx/Rx counts
-    #   NOTE: Since these are RX counts, we can only see those at the opposite node.  For example, to see the
-    #      packets received from Node 1 at Node 2, we need to get the TX/RX counts from Node 2 for Node 1.  This
-    #      is opposite of TX counts in which to see the packets transmitted from Node 1 to Node 2 we would need
-    #      to get the TX/RX counts from Node 1 for Node 2.  In this example, since we are interested in received
-    #      throughput (not transmitted throughput), we need to use the received (RX) counts.
+    #     - This example is interested in received throughput not transmitted 
+    #       throughput.  Therefore, it must use the received (RX) counts and 
+    #       not the transmitted (TX) counts for the experiment.  To use the 
+    #       RX counts, it must first get them from the receiving node.  For 
+    #       example, to see the packets received from Node 1 at Node 2, get 
+    #       the TX/RX counts from Node 2 for Node 1.  This is opposite of TX 
+    #       counts which must be extracted from the transmitting node.  For 
+    #       example, to see the packets transmitted from Node 1 to Node 2, get 
+    #       the TX/RX counts from Node 1 for Node 2.  
+    #
     node2_txrx_counts_for_node1_start = node2.counts_get_txrx(node1)
     node1_txrx_counts_for_node2_start = node1.counts_get_txrx(node2)
 
@@ -222,9 +230,9 @@ for experiment in experiment_params:
         node2.queue_tx_data_purge_all()
 
     # Compute the throughput
-    # NOTE:  Timestamps are in microseconds; bits/usec == Mbits/sec
-    # NOTE:  In Python 3.x, the division operator is always floating point.  In order to be compatible with all versions
-    #    of python, cast operands to floats to ensure floating point division
+    #     - Timestamps are in microseconds; bits/usec == Mbits/sec
+    #     - In Python 3.x, the division operator is always floating point.  In order to be compatible with all versions
+    #       of python, cast operands to floats to ensure floating point division
     #
     node1_to_node2_num_bits  = float((node2_txrx_counts_for_node1_end['data_num_rx_bytes'] - node2_txrx_counts_for_node1_start['data_num_rx_bytes']) * 8)
     node1_to_node2_time_span = float(node2_txrx_counts_for_node1_end['timestamp'] - node2_txrx_counts_for_node1_start['timestamp'])

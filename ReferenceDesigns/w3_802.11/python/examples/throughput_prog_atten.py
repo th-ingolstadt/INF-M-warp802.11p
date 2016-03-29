@@ -1,17 +1,18 @@
 """
 ------------------------------------------------------------------------------
-Mango 802.11 Reference Design - Experiments Framework - Programmable Attenuator
+Mango 802.11 Reference Design Experiments Framework - Programmable Attenuator
 ------------------------------------------------------------------------------
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
-This script uses the 802.11 ref design and WLAN Exp to measure throughput between
-an AP and an associated STA using the AP's local traffic generator (LTG).
+This script uses the 802.11 ref design and wlan_exp to measure throughput 
+between an AP and an associated STA using the AP's local traffic generator 
+(LTG) and a programmable attenuator.
 
 Hardware Setup:
   - Requires two WARP v3 nodes
-    - One node configured as AP using 802.11 Reference Design v0.95 or later
-    - One node configured as STA using 802.11 Reference Design v0.95 or later
+    - One node configured as AP using 802.11 Reference Design v1.5 or later
+    - One node configured as STA using 802.11 Reference Design v1.5 or later
   - PC NIC and ETH B on WARP v3 nodes connected to common Ethernet switch
   - An Aeroflex USB 4205 Series programmable attenuator connected via USB
 
@@ -20,11 +21,12 @@ Required Script Changes:
   - Set NODE_SERIAL_LIST to the serial numbers of your WARP nodes
 
 Description:
-  This script initializes two WARP v3 nodes, one AP and one STA. It assumes the STA is
-already associated with the AP. The script then initiates a traffic flow from the AP to
-the STA, sets the AP Tx rate and measures throughput by counting the number of bytes
-received successfully at the STA. This process repeats for STA -> AP and head-to-head
-traffic flows.
+  This script initializes two WARP v3 nodes, one AP and one STA. It will use
+wlan_exp commands to set up associations between the AP and STA.  After 
+initalizing the nodes, the script then sets the attenuation value, initiates a 
+traffic flow from the AP to the STA, and measures throughput by counting the 
+number of bytes received successfully at the STA. This process repeats for 
+each attenuation value.
 ------------------------------------------------------------------------------
 """
 import sys
@@ -41,7 +43,7 @@ from wlan_exp.prog_atten import ProgAttenController
 #  Global experiment variables
 #
 
-# NOTE: change these values to match your experiment / network setup
+# Change these values to match your experiment / network setup
 NETWORK              = '10.0.0.0'
 USE_JUMBO_ETH_FRAMES = False
 NODE_SERIAL_LIST     = ['W3-a-00001', 'W3-a-00002']
@@ -75,11 +77,11 @@ nodes_config   = config.WlanExpNodesConfiguration(network_config=network_config,
 nodes = util.init_nodes(nodes_config, network_config)
 
 # Extract the different types of nodes from the list of initialized nodes
-#   NOTE:  This will work for both 'DCF' and 'NOMAC' mac_low projects
+#     - This will work for both 'DCF' and 'NOMAC' mac_low projects
 n_ap_l  = util.filter_nodes(nodes=nodes, mac_high='AP',  serial_number=NODE_SERIAL_LIST)
 n_sta_l = util.filter_nodes(nodes=nodes, mac_high='STA', serial_number=NODE_SERIAL_LIST)
 
-# Check that we have a valid AP and STA
+# Check that setup is valid
 if (((len(n_ap_l) == 1) and (len(n_sta_l) == 1))):
     # Extract the two nodes from the lists for easier referencing below
     n_ap  = n_ap_l[0]
@@ -140,12 +142,7 @@ if not util.check_bss_membership([n_ap, n_sta]):
 print("\nRun Experiment:")
 
 # Experiments:
-#   1) AP -> STA throughput
-#   2) STA -> AP throughput
-#   3) Head-to-head throughput
-#
-#   Since this experiment is basically the same for each iteration, we have pulled out 
-# the main control variables so that we do not have repeated code for easier readability.
+#   1) AP -> STA throughput for each attenuation value
 #
 
 attens = np.arange(49,56,0.5)

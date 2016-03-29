@@ -1,15 +1,15 @@
 """
 ------------------------------------------------------------------------------
-Mango 802.11 Reference Design - Experiments Framework - Continuous Log capture
+Mango 802.11 Reference Design Experiments Framework - Continuous Log capture
 ------------------------------------------------------------------------------
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
-This script uses the 802.11 ref design and WLAN Exp to create a log
+This script uses the 802.11 ref design and wlan_exp to create a log
 file that contains all data assocated with an interactive experiment.
 
 Hardware Setup:
-  - Requires one WARP v3 node configured as either an AP or STA
+  - Requires one WARP v3 node
   - PC NIC and ETH B on WARP v3 nodes connected to common Ethernet switch
 
 Required Script Changes:
@@ -17,11 +17,10 @@ Required Script Changes:
   - Set NODE_SERIAL_LIST to the serial number of your WARP node
 
 Description:
-  This script initializes one WARP v3 node.  It will periodically log the
-Tx/Rx counts and update information on the screen about the log.  The
-script will also read the log data every LOG_READ_TIME seconds, write it
-to the hdf5 file, HDF5_FILENAME, and continue until MAX_LOG_SIZE is reached
-or the user ends the experiment.
+  This script initializes one WARP v3 node.  It will periodically update 
+information on the screen about the log.  The script will also read the log 
+data every LOG_READ_TIME seconds, write it to the hdf5 file, HDF5_FILENAME, 
+and continue until MAX_LOG_SIZE is reached or the user ends the experiment.
 ------------------------------------------------------------------------------
 """
 import sys
@@ -134,7 +133,7 @@ def print_node_state(start_time):
 # Experiment Script
 #-----------------------------------------------------------------------------
 def init_experiment():
-    """Initialize WLAN Experiment."""
+    """Initialize the experiment."""
     global network_config, nodes, attr_dict
 
     print("\nInitializing experiment\n")
@@ -170,10 +169,10 @@ def init_experiment():
 
 
 def setup_experiment():
-    """Setup WLAN Experiment."""
+    """Setup the experiment."""
     global node
 
-    # Check that we have one node
+    # Check that setup is valid
     if (len(nodes) == 1):
         # Extract the node from the list for easier referencing below
         node = nodes[0]
@@ -185,19 +184,16 @@ def setup_experiment():
 
 
 def run_experiment():
-    """WLAN Experiment."""
+    """Run the experiment."""
     global network_config, node, log_container, exp_done, input_done
 
     print("\nRun Experiment:\n")
     print("Log data will be retrieved every {0} seconds\n".format(LOG_READ_TIME))
     print("Use 'q' or Ctrl-C to end the experiment.\n")
-    print("  NOTE:  In IPython, press return to see status update.\n")
+    print("    When using IPython, press return to see status update.\n")
 
     # Add the current time to all the nodes
     wlan_exp_util.broadcast_cmd_write_time_to_logs(network_config)
-
-    # Write Counts to log
-    node.log_write_txrx_counts()
 
     # Get the start time
     start_time = time.time()
@@ -213,9 +209,6 @@ def run_experiment():
         if ((loop_time - last_print) > PRINT_TIME):
             # Print the current state of the node
             print_node_state(start_time)
-
-            # Write Counts to log
-            node.log_write_txrx_counts()
 
             # Set the last_print time
             last_print = time.time()

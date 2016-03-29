@@ -710,11 +710,11 @@ class NodeProcWLANMACAddr(message.Cmd):
 class NodeProcTime(message.Cmd):
     """Command to get / set the time on the node.
 
-    NOTE:  Python time functions operate on floating point numbers in
-        seconds, while the WARP Node operates on microseconds.  In order
-        to be more flexible, this class can be initialized with either
-        type of input.  It will return the time based on the type of the
-        input (either interger microseconds or float seconds).
+    Python time functions operate on floating point numbers in seconds, while 
+    the WARP Node operates on microseconds.  In order to be more flexible, 
+    this class can be initialized with either type of input.  It will return 
+    the time based on the time_type input (either interger microseconds or 
+    float seconds).
 
     Attributes:
         cmd       -- Sub-command to send over the command.  Valid values are:
@@ -765,16 +765,15 @@ class NodeProcTime(message.Cmd):
                 self.add_args(CMD_PARAM_TIME_ADD_TO_LOG)
                 node_time = None
 
-            # Get the current time on the host
-            now = int(round(time.time(), self.time_factor) * (10**self.time_factor))
-
             self.add_args(int(time_id))
+            
             if self.time_type is None:
                 self.time_type = _add_time_to_cmd64(self, node_time, self.time_factor)
             else:
                 _add_time_to_cmd64(self, node_time, self.time_factor)
-            self.add_args((now & 0xFFFFFFFF))
-            self.add_args(((now >> 32) & 0xFFFFFFFF))
+            
+            # Get the current time on the host
+            _add_time_to_cmd64(self, time.time(), self.time_factor)
 
 
     def process_resp(self, resp):
@@ -870,6 +869,8 @@ class NodeSetLowToHighFilter(message.Cmd):
 class NodeProcRandomSeed(message.Cmd):
     """Command to set the random seed of the node.
 
+    If a seed is not provided, then the seed is not updated.
+    
     Attributes:
         cmd       -- Sub-command to send over the command.  Valid values are:
                        CMD_PARAM_READ   (Not supported)
@@ -878,8 +879,7 @@ class NodeProcRandomSeed(message.Cmd):
         low_seed  -- Random number generator seed for CPU low
 
     import random
-    high_seed = random.randint(0, 0xFFFFFFFF)
-    NOTE:  If a seed is not provided, then the seed is not updated.
+    high_seed = random.randint(0, 0xFFFFFFFF)    
     """
     def __init__(self, cmd, high_seed=None, low_seed=None):
         super(NodeProcRandomSeed, self).__init__()
@@ -1402,7 +1402,7 @@ class NodeProcScan(message.Cmd):
     """Command to enable / disable active scan
 
     Attributes:
-        enable -- Whether we are enabling (True) or disabling (False) active scan
+        enable -- Enabling (True) or disabling (False) active scan
     """
     def __init__(self, enable=None):
         super(NodeProcScan, self).__init__()

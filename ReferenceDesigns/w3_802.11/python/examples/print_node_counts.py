@@ -1,11 +1,11 @@
 """
 ------------------------------------------------------------------------------
-Mango 802.11 Reference Design - Experiments Framework - Print Tx/Rx Stats
+Mango 802.11 Reference Design Experiments Framework - Print Tx/Rx Stats
 ------------------------------------------------------------------------------
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
-This module provides a simple WLAN Exp example.
+This module provides a simple wlan_exp example.
 
 Hardware Setup:
   - Requires 1+ WARP v3 node running 802.11 Reference Design v1.5 or later
@@ -16,18 +16,19 @@ Required Script Changes:
   - Set NODE_SERIAL_LIST to the serial numbers of your WARP nodes
 
 Description:
-  This script will initialize the given nodes; extract any APs from the initialized nodes;
-then for each AP, it will get the associations and counts and display them.
+  This script will initialize the given nodes; extract any APs from the 
+initialized nodes; then for each AP, it will get the associations and counts 
+and display them.
 ------------------------------------------------------------------------------
 """
 # Import Python modules
 import time
 
-# Import WLAN Exp Framework
+# Import wlan_exp Framework
 import wlan_exp.config as config
 import wlan_exp.util as util
 
-# NOTE: change these values to match your experiment / network setup
+# Change these values to match your experiment / network setup
 NETWORK              = '10.0.0.0'
 USE_JUMBO_ETH_FRAMES = False
 NODE_SERIAL_LIST     = ['W3-a-00001']
@@ -40,7 +41,7 @@ nodes = []
 
 
 def initialize_experiment():
-    """Initialize the WLAN Exp experiment."""
+    """Initialize the wlan_exp experiment."""
     global nodes
 
     # Print initial message
@@ -71,7 +72,7 @@ def initialize_experiment():
 
 
 def run_experiment():
-    """WLAN Experiment."""
+    """Run the experiment."""
     global nodes
 
     # Print initial message

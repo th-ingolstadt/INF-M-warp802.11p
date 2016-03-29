@@ -1,13 +1,13 @@
 """
 ------------------------------------------------------------------------------
-Mango 802.11 Reference Design - Experiments Framework - Log File Anonymizer
+Mango 802.11 Reference Design Experiments Framework - Log File Anonymizer
 ------------------------------------------------------------------------------
 License:   Copyright 2014-2015, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
-This script uses the WLAN Exp Log framework to anonymize a given hdf5
+This script uses the wlan_exp Log framework to anonymize a given hdf5
 log file that contains data assocated with an experiment utilizing the
-802.11 reference design and WLAN Exp.
+802.11 reference design and 802.11 Reference Design Experiments Framework.
 
 Hardware Setup:
     - None.  Anonymizing log data can be done completely off-line
@@ -57,7 +57,7 @@ def do_replace_addr(addr):
     """Determine if the MAC address should be replaced."""
     do_replace = True
 
-    # NOTE:  This list should stay in sync with wlan_exp.util mac_addr_desc_map
+    # This list should stay in sync with wlan_exp.util mac_addr_desc_map
 
     # Don't replace the broadcast address (FF-FF-FF-FF-FF-FF)
     if(addr == (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF)):
@@ -240,12 +240,12 @@ def log_anonymize(filename):
 
     addr_map = dict()
     for ii,addr in enumerate(all_addrs):
-        # NOTE:  Address should not have a first octet that is odd, as this
-        #  indicates the address is multicast.  Hence we use 0xFE as the first octet.
+        # Address should not have a first octet that is odd, as this indicates 
+        # the address is multicast.  Hence, use 0xFE as the first octet.
         #
-        # NOTE:  Due to FCS errors, the number of addresses in a log file is
-        #  potentially large.  Therefore, we support 2^24 unique addresses with
-        #  the anonymizer.
+        # Due to FCS errors, the number of addresses in a log file is 
+        # potentially large.  Therefore, the anonymizer supports 2^24 unique 
+        # addresses.
         #
         anon_addr = (0xFE, 0xFF, 0xFF, (ii//(256**2)), ((ii//256)%256), (ii%256))
         addr_map[addr] = anon_addr

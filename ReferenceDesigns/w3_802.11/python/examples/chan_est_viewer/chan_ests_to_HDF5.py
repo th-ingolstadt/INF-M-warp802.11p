@@ -45,11 +45,11 @@ else:
 print("WLAN Exp Log Example: OFDM Rx Entry Exporter")
 
 
-#Extract the raw log data and log index from the HDF5 file
+# Extract the raw log data and log index from the HDF5 file
 log_data      = hdf_util.hdf5_to_log_data(filename=LOGFILE)
 raw_log_index = hdf_util.hdf5_to_log_index(filename=LOGFILE)
 
-#Generate indexes with only Rx_OFDM events
+# Generate indexes with only Rx_OFDM events
 log_index_rx = log_util.filter_log_index(raw_log_index, include_only=['RX_OFDM'],
                                          merge={'RX_OFDM': ['RX_OFDM', 'RX_OFDM_LTG']})
 
@@ -59,35 +59,35 @@ log_rx_ofdm = log_np['RX_OFDM']
 
 #################################################################
 # Filter the OFDM Rx Entries
-#  Find the source address for which we have the most receptions
+#  Find the source address for the most receptions
 
-#Extract unique values for address 2 (transmitting address in received MAC headers)
+# Extract unique values for address 2 (transmitting address in received MAC headers)
 uniq_addrs = np.unique(log_rx_ofdm['addr2'])
 
-#Count the number of receptions per source address
+# Count the number of receptions per source address
 num_rx = list()
 for ii,ua in enumerate(uniq_addrs):
     num_rx.append(np.sum(log_rx_ofdm['addr2'] == ua))
 
-#Find the source address responsible for the most receptions
+# Find the source address responsible for the most receptions
 most_rx = max(num_rx)
 most_common_addr = uniq_addrs[num_rx.index(most_rx)]
 
 print("Found {0} receptions from {1}".format(most_rx, wlan_exp_util.mac_addr_to_str(most_common_addr)))
 
-#Create new numpy array of all receptions from most-common source
+# Create new numpy array of all receptions from most-common source
 arr_rx_one_src = np.empty(most_rx, dtype=log_rx_ofdm.dtype)
 arr_rx_one_src[:] = log_rx_ofdm[(log_rx_ofdm['addr2'] == most_common_addr)]
 
-#Create some strings to use as attributes in the HDF5 file
-# attributes are only for convenience - they aren't required for writing or reading HDF5 files
+# Create some strings to use as attributes in the HDF5 file
+#     - attributes are only for convenience - they aren't required for writing or reading HDF5 files
 root_desc = 'Source Log file: {0}\n'.format(LOGFILE)
 root_desc += 'HDF5 file written at {0}\n'.format(datetime.datetime.now())
 
 ds_desc = 'All Rx OFDM entries from addr {0}\n'.format(wlan_exp_util.mac_addr_to_str(most_common_addr))
 
-#Construct dictionaries to feed the HDF5 exporter
-# The dict key names are used as HDF5 dataset names
+# Construct dictionaries to feed the HDF5 exporter
+#     - The dict key names are used as HDF5 dataset names
 log_dict = {'RX_OFDM': arr_rx_one_src}
 attr_dict = {'/': root_desc, 'RX_OFDM': ds_desc}
 

@@ -1,18 +1,18 @@
 """
 ------------------------------------------------------------------------------
-Mango 802.11 Reference Design - Experiments Framework - Two Node Log capture
+Mango 802.11 Reference Design Experiments Framework - Two Node Log capture
 ------------------------------------------------------------------------------
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
-This script uses the 802.11 ref design and WLAN Exp to create a log
+This script uses the 802.11 ref design and wlan_exp to create a log
 file that contains all data assocated with an experiment of head-to-head
 backlogged data transfer using the local traffic generators.
 
 Hardware Setup:
   - Requires two WARP v3 nodes
-    - One node configured as AP using 802.11 Reference Design v0.95 or later
-    - One node configured as STA using 802.11 Reference Design v0.95 or later
+    - One node configured as AP using 802.11 Reference Design v1.5 or later
+    - One node configured as STA using 802.11 Reference Design v1.5 or later
    - PC NIC and ETH B on WARP v3 nodes connected to common Ethernet switch
 
 Required Script Changes:
@@ -20,9 +20,10 @@ Required Script Changes:
   - Set NODE_SERIAL_LIST to the serial numbers of your WARP nodes
 
 Description:
-  This script initializes two WARP v3 nodes, one AP and one STA. It assumes
-the STA is already associated with the AP.  The script then initializes all of
-the experiment parameters and starts a traffic flow from the AP to the STA and
+  This script initializes two WARP v3 nodes, one AP and one STA. It usees 
+wlan_exp commands to form any needed associations.  After initializing all of
+the experiment parameters, the script starts a traffic flow from the AP to 
+the STA and while that flow is running will start and stop a traffic flow from 
 the STA to the AP.  Finally, it resets the log, allows the experiment to run
 and then captures all the log data after the TRIAL_TIME.
 ------------------------------------------------------------------------------
@@ -38,7 +39,7 @@ import wlan_exp.ltg as ltg
 #-----------------------------------------------------------------------------
 # Top Level Script Variables
 #-----------------------------------------------------------------------------
-# NOTE: change these values to match your experiment / network setup
+# Change these values to match your experiment / network setup
 NETWORK              = '10.0.0.0'
 USE_JUMBO_ETH_FRAMES = False
 NODE_SERIAL_LIST     = ['W3-a-00001', 'W3-a-00002']
@@ -103,18 +104,18 @@ nodes = util.init_nodes(nodes_config, network_config)
 util.broadcast_cmd_set_mac_time(0, network_config)
 
 # Extract the different types of nodes from the list of initialized nodes
-#   NOTE:  This will work for both 'DCF' and 'NOMAC' mac_low projects
+#     - This will work for both 'DCF' and 'NOMAC' mac_low projects
 n_ap_l  = util.filter_nodes(nodes=nodes, mac_high='AP',  serial_number=NODE_SERIAL_LIST)
 n_sta_l = util.filter_nodes(nodes=nodes, mac_high='STA', serial_number=NODE_SERIAL_LIST)
 
-# Check that we have a valid AP and STA
+# Check that setup is valid
 if len(n_ap_l) == 1 and len(n_sta_l) == 1:
     # Extract the two nodes from the lists for easier referencing below
     n_ap  = n_ap_l[0]
     n_sta = n_sta_l[0]
 
     # Configure the AP to reject authentication requests from wireless clients
-    #    - Uncomment this line to block any wireless associations during the experiment
+    #     - Uncomment this line to block any wireless associations during the experiment
     # n_ap.set_authentication_address_filter(allow='NONE')
 
     # Configure AP BSS
@@ -158,8 +159,8 @@ print("\nRun Experiment:")
 
 print("\nStart LTG - AP -> STA")
 # Start a flow from the AP's local traffic generator (LTG) to the STA
-#  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
-#  Start the flow immediately
+#     - Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
+#     - Start the flow immediately
 ap_ltg_id  = n_ap.ltg_configure(ltg.FlowConfigCBR(dest_addr=n_sta.wlan_mac_address,
                                                   payload_length=1400, 
                                                   interval=0), auto_start=True)
@@ -170,8 +171,8 @@ time.sleep(TRIAL_TIME/3)
 
 print("\nStart LTG - STA -> AP")
 # Start a flow from the STA's local traffic generator (LTG) to the AP
-#  Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
-#  Start the flow immediately
+#     - Set the flow to 1400 byte payloads, fully backlogged (0 usec between new pkts), run forever
+#     - Start the flow immediately
 sta_ltg_id = n_sta.ltg_configure(ltg.FlowConfigCBR(dest_addr=n_ap.wlan_mac_address,
                                                    payload_length=1400, 
                                                    interval=0), auto_start=True)

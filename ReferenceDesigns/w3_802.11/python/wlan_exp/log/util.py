@@ -28,6 +28,7 @@ a raw_log_index.
 numpy          -- A python package that allows easy and fast manipulation of
 large data sets.  You can find more documentaiton on numpy at:
 http://www.numpy.org/
+
 """
 
 __all__ = ['gen_raw_log_index',
@@ -108,7 +109,8 @@ def gen_raw_log_index(log_data):
             u16 entry_length;
         } entry_header;
 
-        fmt_log_hdr = 'I H H' # If we were using struct.unpack
+        fmt_log_hdr = 'I H H' # Using struct.unpack
+    
     """
 
     offset         = 0
@@ -121,8 +123,8 @@ def gen_raw_log_index(log_data):
     if (log_len == 0):
         return log_index
 
-    # Need to determine if we are using byte arrays or strings for the
-    # log_bytes b/c we need to handle the data differently
+    # Is data type of log_bytes a byte array or string because the data has 
+    # to be handled differently
     try:
         byte_array_test = log_data[offset:offset+hdr_size]
         byte_array_test = ord(byte_array_test[0])
@@ -211,9 +213,9 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
     index, this method will also convert any raw index entries (ie entries
     with keys of type int) in to the corresponding WlanExpLogEntryTypes.
 
-    By using the 'merge', we are able to combine the indexes of WlanExpLogEntryTypes to
-    create super-sets of entries.  For example, we could create a log index that
-    contains all the receive events: ``{'RX_ALL': ['RX_OFDM', 'RX_DSSS']}``
+    Using the 'merge' argument can combine the indexes of WlanExpLogEntryTypes to
+    create super-sets of entries.  For example, to create a log index that
+    contains all the receive events use: ``{'RX_ALL': ['RX_OFDM', 'RX_DSSS']}``
     as long as the names 'RX_ALL', 'RX_OFDM', and 'RX_DSSS' are valid WlanExpLogEntryTypes.
 
     The filter follows the following basic rules:
@@ -225,7 +227,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
     Assume:
             - 'A', 'B', 'C', 'D', 'M' are valid WlanExpLogEntryType instance names
             - The log_index = {'A': [A0, A1, A2], 'B': [B0, B1], 'C': []}
-
+    
     * **include_only**:
         All names specified in 'include_only' are included as part of the
         output dictionary.  It is then up to the consumer to check if the
@@ -242,7 +244,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
 
             x = filter_log_index(log_index, include_only=['D'])
             x == {'D': []]}
-
+    
     * **exclude**:
         All names specified in 'exclude' are removed from the output dictionary.
         However, there is no guarentee what other WlanExpLogEntryTypes are in
@@ -254,7 +256,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
             x = filter_log_index(log_index, exclude=['D'])
             WARNING:  D does not exist in log index.  Ignoring for exclude.
             x == {'A': [A0, A1, A2]}, 'B': [B0, B1], 'C': []}
-
+    
     * **merge**:
         All names specified in the 'merge' are included as part of the output
         dictionary.  It is then up to the consumer to check if the number of
@@ -271,7 +273,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
                   'B': [B0,B1],
                   'C': [],
                   'M': []}
-
+    
     * **Combined**:
         Combining the behavior of 'include_only', 'exclude', and 'merge'
         ::
@@ -285,6 +287,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
             x = filter_log_index(log_index, include_only=['M'], merge={'M': ['C','D']}
             WARNING:  D does not exist in log index.  Ignoring for merge.
             x == {'M': []}
+    
     """
     from .entry_types import log_entry_types
 
@@ -319,9 +322,9 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
                 # Try to merge indexes.  ret_log_index could have keys of either
                 # type <int> or type <WlanExpLogEntryType>.  Also, the value of
                 # v in the merge list could be either a <str> or <int>.  Therefore,
-                # we need to try both cases before we ignore the item in the list
-                # since <str> hashes to the appropriate <WlanExpLogEntryType> but
-                # <int> does not.
+                # try both cases before ignoring the item in the list since <str> 
+                # hashes to the appropriate <WlanExpLogEntryType> but <int> does
+                # not.
                 index = []
 
                 try:
@@ -337,10 +340,10 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
                 new_index += index
 
 
-            # If this merge is going to replace one of the entry types in the current
-            # index, then we need to delete the previous entry.  This is necessary
-            # because at this point, we have a mixture of keys, some are entry type
-            # ids and some are log entry types.
+            # If this merge is going to replace one of the entry types in the 
+            # current index, then delete the previous entry.  This is necessary  
+            # because at this point, there is a mixture of keys, some are entry 
+            # type ids and some are log entry types.
             try:
                 del ret_log_index[log_entry_types[k].entry_type_id]
             except KeyError:
@@ -479,19 +482,18 @@ def get_entry_constants(entry_type):
 def merge_log_indexes(dest_index, src_index, offset):
     """Merge log indexes.
 
+    Both the dest_index and src_index have log entry offsets that are relative 
+    to the beginning of the log data from which they were generated.  If the 
+    log data used to generate the log indexes are being merged, then move the 
+    log entry offsets in the src_index to their absolute offset in the merged 
+    log index.  For each of the log entry offsets in the src_index, the 
+    following translation will occur:
+        <Offset in merged log index> = <Offset in src_index> + offset
+    
     Args:
         dest_index (dict):  Destination log index to merge 'src_index' into
         src_index (dict):   Source log index to merge into destination log index
         offset (int):       Offset of src_index into dest_index
-
-    .. note::  Both the dest_index and src_index have log entry offsets that are
-        relative to the beginning of the log data from which they were generated.
-        If the log data used to generate the log indexes are being merged, then
-        we need to move the log entry offsets in the src_index to their absolute
-        offset in the merged log index.  For each of the log entry offsets in
-        the src_index, the following translation will occur:
-            <Offset in merged log index> = <Offset in src_index> + offset
-
     """
     return_val = dest_index
 
@@ -513,17 +515,17 @@ def calc_next_entry_offset(log_data, raw_log_index):
     """Calculates the offset of the next log entry given the log data and
     the raw log index.
 
+    The log data does not necessarily end on a log entry boundary. Therefore, 
+    it is necessary to be able to calculate the offset of the next log entry 
+    so that it is possible to continue index generation when reading the log 
+    in multiple pieces.
+        
     Args:
         log_data (bytes):  Binary data from a WlanExpNode log
         log_index (dict):  Raw log index dictionary
 
     Returns:
         offset (int):  Offset of next log entry
-
-    .. note::  The log data does not necessarily end on a log entry boundary.
-        Therefore, it is necessary to be able to calculate the offset of the
-        next log entry so that it is possible to continue index generation
-        when reading the log in multiple pieces.
     """
     # See documentation above on header format
     hdr_size             = 8
@@ -550,11 +552,11 @@ def calc_next_entry_offset(log_data, raw_log_index):
 def overwrite_entries_with_null_entry(log_data, byte_offsets):
     """Overwrite the entries in byte_offsets with NULL entries.
 
+    This is an in-place modification of log_data.
+    
     Args:
         log_data (bytes):            Binary data from a WlanExpNode log
         byte_offsets (list of int):  List of offsets corresponding to the entries to overwrite
-
-    .. note:: This is an in-place modification of log_data.
     """
     # See documentation above on header format
     hdr_size         = 8
@@ -583,24 +585,26 @@ def overwrite_payloads(log_data, byte_offsets, payload_offsets=None):
         byte_offsets (list of int):  List of offsets corresponding to the entries to be modified
         payload_offsets (dict):      Dictionary of ``{ entry_type_id : <payload offset> }``
 
-    By default, if payload_offsets is not specified, the method will iterate through all
-    the entry types and calculate the defined size of the entry (ie it will use calcsize
-    on the struct format of the entry).  Sometimes, this is not the desired behavior
-    and calling code woudl want to specify a different amount of the payload to keep.
-    For example, for data transmissions / receptions, it might be desired to also keep
-    the SNAP headers and potentially the IP headers.  In this case, the calling code
-    would get the appropriate set of byte_offsets and then create a payload_offsets
-    dictionary with the desired "size" of the entry for those byte_offsets.  This will
-    result in the calling code potentially calling this function multiple times with
-    different payload_offsets for a given entry_type_id.
+    By default, if payload_offsets is not specified, the method will iterate 
+    through all the entry types and calculate the defined size of the entry 
+    (ie it will use calcsize on the struct format of the entry).  Sometimes, 
+    this is not the desired behavior and calling code would want to specify a 
+    different amount of the payload to keep.  For example, for data 
+    transmissions / receptions, it might be desired to also keep the SNAP 
+    headers and potentially the IP headers.  In this case, the calling code
+    would get the appropriate set of byte_offsets and then create a 
+    payload_offsets dictionary with the desired "size" of the entry for those 
+    byte_offsets.  This will result in the calling code potentially calling 
+    this function multiple times with different payload_offsets for a given 
+    entry_type_id.
 
-    .. note:: This method relies on the fact that for variable length log entries, the
-        variable length data, ie the payload, is always at the end of the entry.  We also
-        know, based on the entry type, the size of the entry without the payload.  Therefore,
-        from the entry header, we can determine how many payload bytes are after the defined
-        fields and zero them out.
+    This method relies on the fact that for variable length log entries, the
+    variable length data, ie the payload, is always at the end of the entry.  
+    The code also knows, based on the entry type, the size of the entry without 
+    the payload.  Therefore, from the entry header, the code can determine how 
+    many payload bytes are after the defined fields and zero them out.
 
-    .. note:: This is an in-place modification of log_data.
+    This is an in-place modification of log_data.
     """
     import struct
     from entry_types import log_entry_types
@@ -654,8 +658,8 @@ def calc_tx_time(mcs, phy_mode, payload_length, phy_samp_rate):
     It does *not* account for MAC overhead. The payload_length argument must 
     include any MAC fields (typically a 24-byte MAC header plus 4 byte FCS).
 
-    .. note:: This method does not check that mcs, phy_mode and payload_length 
-        are the same length
+    This method does not check that mcs, phy_mode and payload_length are the 
+    same length
     """
     import numpy as np
     import wlan_exp.util as util    
@@ -814,11 +818,11 @@ def convert_log_time_str_to_datetime(log_time_str):
 def get_now_as_log_time_str():
     """Get the current time as a log time string.
 
+    This should be used instead of datetime.datetime.now() because it 
+    automatically handles timezones.
+    
     Returns:
         log_time_str (str):  String format of the datetime.datetime.now() to be used in HDF5 files
-
-    .. note::  This should be used instead of datetime.datetime.now() because it
-        automatically handles timezones.
     """
     import time
     import datetime
@@ -966,7 +970,7 @@ def _get_safe_filename(filename, print_warnings=True):
             safe_filename = os.path.join(fn_fldr, new_filename)
             i            += 1
 
-            # Break the loop if we found a unique file name
+            # Found a unique file name.  Break the loop.
             if not os.path.isfile(safe_filename):
                 if print_warnings:
                     msg  = 'WARNING: File "{0}" already exists.\n'.format(filename)

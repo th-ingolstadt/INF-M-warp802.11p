@@ -1,20 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-Transport / Network / Basic Node Commands
+Mango 802.11 Reference Design Experiments Framework 
+    - Transport / Network / Basic Node Commands
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
            Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
-------------------------------------------------------------------------------
-MODIFICATION HISTORY:
-
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a ejw  1/23/14  Initial release
-
 ------------------------------------------------------------------------------
 
 This module provides class definitions for transport, network, and basic node 
@@ -63,7 +57,7 @@ GROUP_NAME_USER                                  = 'user'
 
 
 # Node Command IDs
-#   NOTE:  The C counterparts are found in *_node.h
+#     - The C counterparts are found in *_node.h
 CMDID_NODE_TYPE                                  = 0x000000
 
 CMD_PARAM_NODE_TYPE_RSVD                         = 0xFFFFFFFF
@@ -84,7 +78,7 @@ CMDID_NODE_TEMPERATURE                           = 0x000005
 
 
 # Transport Command IDs
-#   NOTE:  The C counterparts are found in *_transport.h
+#     - The C counterparts are found in *_transport.h
 CMDID_TRANSPORT_PING                             = 0x000001
 CMDID_TRANSPORT_PAYLOAD_SIZE_TEST                = 0x000002
 CMDID_TRANSPORT_NODE_GROUP_ID_ADD                = 0x000100
@@ -203,7 +197,7 @@ class NodeResetNetwork(message.Cmd):
 class NodeGetTemperature(message.Cmd):
     """Command to get the temperature of a node.
     
-    NOTE:  The response must be converted to Celsius with the given formula:
+    The response must be converted to Celsius with the given formula:
         ((double(temp)/65536.0)/0.00198421639) - 273.15
         - http://www.xilinx.com/support/documentation/user_guides/ug370.pdf
         - 16 bit value where 10 MSBs are an ADC value

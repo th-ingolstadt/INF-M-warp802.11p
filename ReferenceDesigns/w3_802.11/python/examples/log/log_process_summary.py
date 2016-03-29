@@ -81,8 +81,7 @@ raw_log_index = hdf_util.hdf5_to_log_index(filename=LOGFILE)
 log_util.print_log_index_summary(raw_log_index, "Raw Log Index Contents:")
 
 # Filter log index to include all Rx entries and all Tx entries
-# Merge LTG events into the non-LTG log entry types, so we can
-#  count all Tx/Rx events together
+# Merge LTG events into the non-LTG log entry types, to count all Tx/Rx events together
 log_index = log_util.filter_log_index(raw_log_index,
                                       include_only=['NODE_INFO', 'TIME_INFO', 'RX_OFDM', 'TX_HIGH', 'EXP_INFO'],
                                       merge={'RX_OFDM': ['RX_OFDM', 'RX_OFDM_LTG'],
@@ -123,8 +122,8 @@ if(len(log_np['TIME_INFO']) > 0):
 
 ###############################################################################
 # Example 1: Count the number of receptions per PHY rate
-#   NOTE:  Since there are only loops, this example can deal with RX_OFDM being an
-#          empty list and does not need a try / except.
+#     - Since there are only loops, this example can deal with RX_OFDM being an
+#       empty list and does not need a try / except.
 #
 
 # Get entry constants

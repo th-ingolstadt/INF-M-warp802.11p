@@ -1,11 +1,12 @@
 """
 ------------------------------------------------------------------------------
-Mango 802.11 Reference Design - Experiments Framework - Interactive Node
+Mango 802.11 Reference Design Experiments Framework - Interactive Node
 ------------------------------------------------------------------------------
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
-This will initialize the nodes array to allow interactive use of WLAN Exp nodes.
+This will initialize the nodes in NODE_SERIAL_LIST to allow interactive use of 
+wlan_exp nodes.
 
 Hardware Setup:
  - Requires one or more WARP v3 nodes
@@ -16,8 +17,8 @@ Required Script Changes:
   - Set NODE_SERIAL_LIST to the serial numbers of your WARP nodes
 
 Description:
-  This will initialize all the nodes.  Then, the script will create an interactive
-prompt to allow for manipulation of the nodes.
+  This will initialize all the nodes.  Then, the script will create an 
+interactive prompt to allow for manipulation of the nodes.
 ------------------------------------------------------------------------------
 """
 import wlan_exp.config as config
@@ -28,7 +29,7 @@ import wlan_exp.util as util
 #  Global experiment variables
 #
 
-# NOTE: change these values to match your experiment setup
+# Change these values to match your experiment setup
 NETWORK              = '10.0.0.0'
 USE_JUMBO_ETH_FRAMES = False
 NODE_SERIAL_LIST     = ['W3-a-00001']
@@ -45,7 +46,7 @@ nodes_config   = config.WlanExpNodesConfiguration(network_config=network_config,
                                                   serial_numbers=NODE_SERIAL_LIST)
 
 # Initialize the Nodes
-#  This command will fail if either WARP v3 node does not respond
+#  This command will fail if any WARP v3 node does not respond
 nodes = util.init_nodes(nodes_config, network_config)
 
 print("\nInitialized nodes:")

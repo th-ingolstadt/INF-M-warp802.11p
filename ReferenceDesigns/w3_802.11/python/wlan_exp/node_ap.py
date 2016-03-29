@@ -6,7 +6,7 @@ Mango 802.11 Reference Design Experiments Framework - Access Point Node
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
            Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
 
@@ -54,8 +54,8 @@ class WlanExpNodeAp(node.WlanExpNode):
                 update the current beacon interval.
             ht_capable (bool):  Is the PHY mode HTMF (True) or NONHT (False)?
 
-        .. note::  For the AP, the bssid is not configurable and should always be
-            the wlan_mac_address of the node.
+        For the AP, the bssid is not configurable and should always be the 
+        wlan_mac_address of the node or None.
         """
         if bssid is not None:
             if bssid is not False:
@@ -86,8 +86,8 @@ class WlanExpNodeAp(node.WlanExpNode):
     def enable_beacon_mac_time_update(self, enable):
         """Enable / Disable MAC time update from beacons
 
-        .. note:: Raises NotImplementedError().  Current AP implementation does
-            not support updating MAC time from beacon receptions
+        Raises NotImplementedError().  Current AP implementation does not 
+        support updating MAC time from beacon receptions
 
         Args:
             enable (bool):  True - enable MAC time updates from beacons
@@ -107,9 +107,9 @@ class WlanExpNodeAp(node.WlanExpNode):
         Returns:
             associated (list of bool):  List of booleans describing whether each given device is associated with the AP
 
-        .. note:: If the device_list is a single device, then only a boolean is
-            returned.  If the device_list is a list of devices, then a list of
-            booleans will be returned in the same order as the devices in the list.
+        If the device_list is a single device, then only a boolean is returned.  
+        If the device_list is a list of devices, then a list of booleans will 
+        be returned in the same order as the devices in the list.
         """
         ret_val  = []
         ret_list = True
@@ -223,10 +223,9 @@ class WlanExpNodeAp(node.WlanExpNode):
                 used to filter addresses on the node.  A tuple can be substituted
                 with a predefined string:  "NONE", "ALL", or "MANGO-W3"
 
-        .. note::  For the mask, bits that are 0 are treated as "any" and bits
-            that are 1 are treated as "must equal".  For the address, locations
-            of one bits in the mask must match the incoming addresses to pass the
-            filter.
+        For the mask, bits that are 0 are treated as "any" and bits that are 1 
+        are treated as "must equal".  For the address, locations of one bits 
+        in the mask must match the incoming addresses to pass the filter.
 
         **Examples:**
 

@@ -13,8 +13,9 @@ AP Node Methods
 
 .. automethod:: wlan_exp.node_ap.WlanExpNodeAp.configure_bss
 .. automethod:: wlan_exp.node_ap.WlanExpNodeAp.add_association
+.. automethod:: wlan_exp.node_ap.WlanExpNodeAp.is_associated
+.. automethod:: wlan_exp.node_ap.WlanExpNodeAp.disassociate
+.. automethod:: wlan_exp.node_ap.WlanExpNodeAp.disassociate_all
 .. automethod:: wlan_exp.node_ap.WlanExpNodeAp.set_authentication_address_filter
 .. automethod:: wlan_exp.node_ap.WlanExpNodeAp.enable_DTIM_multicast_buffering
 .. automethod:: wlan_exp.node_ap.WlanExpNodeAp.enable_beacon_mac_time_update
-.. automethod:: wlan_exp.node_ap.WlanExpNodeAp.disassociate
-.. automethod:: wlan_exp.node_ap.WlanExpNodeAp.disassociate_all

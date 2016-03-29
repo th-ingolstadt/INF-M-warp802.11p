@@ -6,7 +6,7 @@ Mango 802.11 Reference Design Experiments Framework - Ad hoc (IBSS) Node
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
            Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
 
@@ -39,19 +39,60 @@ class WlanExpNodeIBSS(node.WlanExpNode):
         Args:
             device_list (list of WlanExpNode, WlanExpNode, WlanDevice, optional): List of devices
                 for which to get counts.  See note below for more information.
-            return_zeroed_counts_if_none(bool, optional):  If no counts exist on the node for 
+            return_zeroed_counts_if_none(bool, optional):  If no counts exist on the node for
                 the specified device(s), return a zeroed counts dictionary with proper timestamps
                 instead of None.
-        
-        Returns:
-            counts_dictionary (list of dictionaries, dictionary): Counts for the device(s) specified. 
 
-        .. note:: If the device_list is a single device, then a single dictionary or 
-            None is returned.  If the device_list is a list of devices, then a 
-            list of dictionaries will be returned in the same order as the 
-            devices in the list.  If any of the staistics are not there, 
-            None will be inserted in the list.  If the device_list is not 
-            specified, then all the counts on the node will be returned.
+        Returns:
+            counts_dictionary (list of dictionaries, dictionary): Counts for the device(s) specified.
+
+
+        The dictionaries returned by this method have the following fields:
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | Field                       | Description                                                                                        |
+            +=============================+====================================================================================================+
+            | mac_addr                    |  MAC address of remote node whose statics are recorded here                                        |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | associated                  |  Boolean indicating whether remote node is currently associated with this node                     |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | data_num_rx_bytes           |  Total number of bytes received in DATA packets from remote node                                   |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | data_num_tx_bytes_success   |  Total number of bytes successfully transmitted in DATA packets to remote node                     |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | data_num_tx_bytes_total     |  Total number of bytes transmitted (successfully or not) in DATA packets to remote node            |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | data_num_rx_packets         |  Total number of DATA packets received from remote node                                            |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | data_num_tx_packets_success |  Total number of DATA packets successfully transmitted to remote node                              |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | data_num_tx_packets_total   |  Total number of DATA packets transmitted (successfully or not) to remote node                     |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | data_num_tx_packets_low     |  Total number of PHY transmissions of DATA packets to remote node (includes re-transmissions)      |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | mgmt_num_rx_bytes           |  Total number of bytes received in management packets from remote node                             |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | mgmt_num_tx_bytes_success   |  Total number of bytes successfully transmitted in management packets to remote node               |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | mgmt_num_tx_bytes_total     |  Total number of bytes transmitted (successfully or not) in management packets to remote node      |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | mgmt_num_rx_packets         |  Total number of management packets received from remote node                                      |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | mgmt_num_tx_packets_success |  Total number of management packets successfully transmitted to remote node                        |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | mgmt_num_tx_packets_total   |  Total number of management packets transmitted (successfully or not) to remote node               |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | mgmt_num_tx_packets_low     |  Total number of PHY transmissions of management packets to remote node (includes re-transmissions)|
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | latest_txrx_timestamp       |  System Time value of last transmission / reception                                                |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+
+
+        If the device_list is a single device, then a single dictionary or 
+        None is returned.  If the device_list is a list of devices, then a
+        list of dictionaries will be returned in the same order as the devices 
+        in the list.  If any of the staistics are not there, None will be 
+        inserted in the list.  If the device_list is not specified, then all 
+        the counts on the node will be returned.
         """
         return super(WlanExpNodeIBSS, self).counts_get_txrx(device_list, return_zeroed_counts_if_none)
 

@@ -1,20 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-WARP Node
+Mango 802.11 Reference Design Experiments Framework - WARP Node
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
            Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
-------------------------------------------------------------------------------
-MODIFICATION HISTORY:
-
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a ejw  1/23/14  Initial release
-
 ------------------------------------------------------------------------------
 
 This module provides class definition for WARP Node.
@@ -40,7 +33,7 @@ __all__ = ['WarpNode', 'WarpNodeFactory']
 
 
 # Node Parameter Identifiers
-#   NOTE:  The C counterparts are found in *_node.h
+#     - The C counterparts are found in *_node.h
 NODE_TYPE               = 0
 NODE_ID                 = 1
 NODE_HW_GEN             = 2
@@ -176,12 +169,12 @@ class WarpNode(object):
     def set_name(self, name):
         """Set the name of the node.
         
+        The name provided will affect the Python environment only 
+        (ie it will update strings in child classes but will not be 
+        transmitted to the node.)
+            
         Args:
-            name (str):  User provided name of the node.
-        
-        .. note::  The name provided will affect the Python environment only 
-            (ie it will update strings in child classes but will not be 
-            transmitted to the node.)
+            name (str):  User provided name of the node.        
         """
         self.name        = name
         self.description = self.__repr__()
@@ -321,7 +314,7 @@ class WarpNode(object):
     def send_cmd(self, cmd, max_attempts=2, max_req_size=None, timeout=None):
         """Send the provided command.
         
-        Attributes:
+        Args:
             cmd          -- Class of command to send
             max_attempts -- Maximum number of attempts to send a given command
             max_req_size -- Maximum request size (applys only to Buffer Commands)
@@ -411,7 +404,8 @@ class WarpNode(object):
         else:
             fragment_size = total_size
 
-        # With the performance of the transport, we cannot request more than the RX buffer
+        # To not hurt the performance of the transport, do not request more 
+        # data than can fit in the RX buffer
         if (fragment_size > self.transport.rx_buffer_size):
             fragment_size = self.transport.rx_buffer_size
         
@@ -454,7 +448,7 @@ class WarpNode(object):
                 else:
                     # Exit the loop because communication has totally failed for 
                     # the fragment and there is no point to request the next 
-                    # fragment since we only return the truncated buffer.
+                    # fragment.  Only return the truncated buffer.
                     if (print_warnings):
                         msg  = "WARNING:  Command did not return a complete fragment.\n"
                         msg += "  Requested : {0:10d}\n".format(size)
@@ -510,18 +504,17 @@ class WarpNode(object):
                             print(locations)
                             raise Exception()
                         
-                        # Use the standard send so that you get a Buffer with  
-                        #   missing data.  This avoids any race conditions when
-                        #   requesting multiple missing locations.  Make sure
-                        #   that max_attempts are set to 1 for the re-request so
-                        #   that we do not get in to an infinite loop
+                        # Use the standard send to get a Buffer with missing data. 
+                        # This avoids any race conditions when requesting 
+                        # multiple missing locations.  Make sure that max_attempts
+                        # are set to 1 for the re-request to not get in to an 
+                        # infinite loop
                         try:
                             location_resp = self.send_cmd(cmd, max_attempts=max_attempts)
                             self._receive_success()
                         except ex.TransportError:
-                            # If we have timed out on a re-request, then there 
-                            # is something wrong and we should just clean up
-                            # the response and get out of the loop.
+                            # Timed out on a re-request.  There is an error so
+                            # just clean up the response and get out of the loop.
                             if print_warnings:
                                 print("WARNING:  Transport timeout.  Returning truncated buffer.")
                                 print("  Timeout requesting missing location: {1} bytes @ {0}".format(location[0], location[2]))
@@ -558,9 +551,9 @@ class WarpNode(object):
     def send_cmd_broadcast(self, cmd, pkt_type=None):
         """Send the provided command over the broadcast transport.
 
-        NOTE:  Currently, broadcast commands cannot have a response.
+        Currently, broadcast commands cannot have a response.
         
-        Attributes:
+        Args:
             cmd -- Class of command to send
         """
         self.transport_broadcast.send(payload=cmd.serialize(), pkt_type=pkt_type)
@@ -601,23 +594,17 @@ class WarpNode(object):
     # Transport Tracker
     # -------------------------------------------------------------------------
     def _receive_success(self):
-        """Internal method to indicate to the tracker that we successfully 
-        received a packet.
-        """
+        """Internal method - Successfully received a packet."""
         self.transport_tracker = 0
 
     
     def _receive_failure(self):
-        """Internal method to indicate to the tracker that we had a 
-        receive failure.
-        """
+        """Internal method - Had a receive failure."""
         self.transport_tracker += 1
 
 
     def _receive_failure_exceeded(self, max_attempts):
-        """Internal method to indicate if we have had more recieve 
-        failures than max_attempts.
-        """
+        """Internal method - More recieve failures than max_attempts."""
         if (self.transport_tracker < max_attempts):
             return False
         else:
@@ -759,18 +746,18 @@ class WarpNodeFactory(WarpNode):
     def node_eval_class(self, node_class, network_config):
         """Evaluate the node_class string to create a node.  
         
-        NOTE:  This should be overridden in each sub-class with the same
+        This method should be overridden in each sub-class with the same
         overall structure but a different import.  Please call the super
         class function instead of returning an error so that the calls 
         will propagate to catch all node types.
         
-        NOTE:  network_config is used as part of the node_class string
-        to initialize the node.
+        The network_config is used as part of the node_class string to 
+        initialize the node.
         """
-        # NOTE:  IDEs might think that the following imports are not necessary.
-        #     However, they are required for the eval() that we perform for 
-        #     the node class.  This will be similar for all sub-classes of
-        #     WarpNodeFactory.
+        # IDEs might think that the following imports are not necessary.
+        # However, they are required for the eval() that is performed for 
+        # the node class.  This will be similar for all sub-classes of
+        # WarpNodeFactory.
         from . import defaults
         from . import node
         
@@ -779,9 +766,9 @@ class WarpNodeFactory(WarpNode):
         try:
             tmp_node = eval(node_class, globals(), locals())
         except:
-            # We will catch all errors that might occur when trying to create
-            # the node.  Since this is the parent class of all nodes, if we
-            # cannot create the node here, we will raise a ConfigError
+            # Catch all errors that might occur when trying to create the node.
+            # Since this is the parent class of all nodes, raise a ConfigError 
+            # if the node cannot be created here. 
             pass
         
         if tmp_node is None:

@@ -24,15 +24,18 @@ normal operation of wlan_exp tools.
 .. autoclass:: wlan_exp.node.WlanExpNode
 
 
-AP, STA & IBSS Node Classes
+Node Sub-Classes
 ...........................
 
 The AP, STA and IBSS node types are represented by dedicated subclasses of WlanExpNode. The node objects in wlan_exp
 scripts will be instances of these subclasses. Each subclass implements methods that are specific to a given node type.
 
- * :doc:`node_ap`
- * :doc:`node_sta`
- * :doc:`node_ibss`
+.. toctree::
+    :maxdepth: 1
+
+    node_ap.rst
+    node_sta.rst
+    node_ibss.rst
 
 
 Common Node Methods
@@ -122,7 +125,6 @@ Association State
 These WlanExpNode commands are used to modify / query the association state of the node.
 
 .. automethod:: wlan_exp.node.WlanExpNode.configure_bss
-.. automethod:: wlan_exp.node.WlanExpNode.is_associated
 .. automethod:: wlan_exp.node.WlanExpNode.get_station_info
 .. automethod:: wlan_exp.node.WlanExpNode.get_bss_info
 .. automethod:: wlan_exp.node.WlanExpNode.get_network_list
@@ -186,7 +188,6 @@ can be modified with the log_configure() command.
 .. automethod:: wlan_exp.node.WlanExpNode.log_is_full
 .. automethod:: wlan_exp.node.WlanExpNode.log_write_exp_info
 .. automethod:: wlan_exp.node.WlanExpNode.log_write_time
-.. automethod:: wlan_exp.node.WlanExpNode.log_write_txrx_counts
 
 
 Network Scan

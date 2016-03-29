@@ -1,12 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-Mango 802.11 Reference Design Experiments Framework - Information Struct classes
+Mango 802.11 Reference Design Experiments Framework 
+    - Information Struct classes
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
            Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
 
@@ -43,20 +44,17 @@ __all__ = ['StationInfo', 'BSSInfo', 'TxRxCounts']
 # required in order to efficiently serialize / deserialize information objects
 # for communication over the transport.
 #
-# NOTE:  This is to reduce the size of the individual objects and to make it
-#     easier to maintain all the field defintiions
-#
-# NOTE:  These definitions match the corresponding definitions in the WLAN
-#     Exp framework in C.
+# These definitions match the corresponding definitions in the 802.11 
+# Reference Design Experiments Framework in C.
 #
 #-------------------------------------------------------------------------
 info_field_defs = {
     'STATION_INFO' : [
-        ('timestamp',                   'Q',      'uint64',  'Value of MAC Time in microseconds when log entry created'),
-        ('mac_addr',                    '6s',     '6uint8',  'MAC address of associated device'),
-        ('aid',                         'H',      'uint16',  'Association ID (AID) of device'),
+        ('timestamp',                   'Q',      'uint64',  'Value of MAC Time in microseconds when structure created'),
+        ('mac_addr',                    '6s',     '6uint8',  'MAC address of station'),
+        ('id',                          'H',      'uint16',  'Identification Index for this station'),
         ('host_name',                   '20s',    '20uint8', 'String hostname (19 chars max), taken from DHCP DISCOVER packets'),
-        ('flags',                       'I',      'uint32',  'Association state flags: ???'),
+        ('flags',                       'I',      'uint32',  'Station flags'),
         ('latest_activity_timestamp',   'Q',      'uint64',  'Value of System Time in microseconds of last successful Rx from device'),
         ('rx_last_seq',                 'H',      'uint16',  'Sequence number of last packet received from device'),
         ('rx_last_power',               'b',      'int8',    'Rx power in dBm of last packet received from device'),
@@ -69,14 +67,14 @@ info_field_defs = {
         ('padding1',                    '3x',     '3uint8',  '')],
 
     'BSS_INFO' : [
-        ('timestamp',                   'Q',      'uint64',  'Value of MAC Time in microseconds when log entry created'),
+        ('timestamp',                   'Q',      'uint64',  'Value of MAC Time in microseconds when structure created'),
         ('bssid',                       '6s',     '6uint8',  'BSS ID'),
         ('channel',                     'B',      'uint8',   'Primary channel'),
         ('channel_type',                'B',      'uint8',   'Channel Type'),
         ('latest_beacon_rx_time',       'Q',      'uint64',  'Value of System Time in microseconds of last beacon Rx'),
         ('ssid',                        '33s',    '33uint8', 'SSID (32 chars max)'),
         ('padding0',                    'x',      'uint8',   ''),
-        ('latest_beacon_rx_power',      'b',      'int8',    'Last observed Rx Power (dBm)'),
+        ('latest_beacon_rx_power',      'b',      'int8',    'Last observed beacon Rx Power (dBm)'),
         ('flags',                       'B',      'uint8',   'BSS flags'),
         ('capabilities',                'H',      'uint16',  'Supported capabilities of the BSS'),
         ('beacon_interval',             'H',      'uint16',  'Beacon interval - In time units of 1024 us')],
@@ -92,7 +90,7 @@ info_field_defs = {
 
     'TXRX_COUNTS' : [
         ('timestamp',                   'Q',      'uint64',  'Value of MAC Time in microseconds when log entry created'),
-        ('mac_addr',                    '6s',     '6uint8',  'MAC address of remote node whose statics are recorded here'),
+        ('mac_addr',                    '6s',     '6uint8',  'MAC address of remote node whose counts are recorded here'),
         ('associated',                  'B',      'uint8',   'Boolean indicating whether remote node is currently associated with this node'),
         ('padding',                     'x',      'uint8',   ''),
         ('data_num_rx_bytes',           'Q',      'uint64',  'Total number of bytes received in DATA packets from remote node'),
@@ -423,20 +421,20 @@ class TxRxCounts(InfoStruct):
     def __init__(self):
         super(TxRxCounts, self).__init__(field_name='TXRX_COUNTS')
 
-        # NOTE:  To populate the TxRxCounts with information, use the
-        #     deserialize() function on a proper buffer of data
+        # To populate the TxRxCounts with information, use the
+        # deserialize() function on a proper buffer of data
 
 
     def serialize(self):
-        # NOTE:  serialize() is currently not supported for TxRxCounts.  This
-        #     is due to the fact that TxRxCounts information should only come
-        #     directly from the node and should not be set to the node.
+        # serialize() is currently not supported for TxRxCounts.  This
+        # is due to the fact that TxRxCounts information should only come
+        # directly from the node and should not be set to the node.
         #
         print("Error:  serialize() is not supported for TxRxCounts.")
         raise NotImplementedError
 
-        # NOTE:  If serialize() needs to be supported in future version for
-        #     TxRxCounts, below is the code to use:
+        # If serialize() needs to be supported in future version for
+        # TxRxCounts, below is the code to use:
         #
         # # Convert MAC address to byte string for transmit
         # mac_addr_tmp     = self['mac_addr']
@@ -479,20 +477,20 @@ class StationInfo(InfoStruct):
     def __init__(self):
         super(StationInfo, self).__init__(field_name='STATION_INFO')
 
-        # NOTE:  To populate the TxRxCounts with information, use the
-        #     deserialize() function on a proper buffer of data
+        # To populate the TxRxCounts with information, use the
+        # deserialize() function on a proper buffer of data
 
 
     def serialize(self):
-        # NOTE:  serialize() is currently not supported for StationInfo.  This
-        #     is due to the fact that StationInfo information should only come
-        #     directly from the node and should not be set to the node.
+        # serialize() is currently not supported for StationInfo.  This
+        # is due to the fact that StationInfo information should only come
+        # directly from the node and should not be set to the node.
         #
         print("Error:  serialize() is not supported for StationInfo.")
         raise NotImplementedError
 
-        # NOTE:  If serialize() needs to be supported in future version for
-        #     StationInfo, below is the code to use:
+        # If serialize() needs to be supported in future version for
+        # StationInfo, below is the code to use:
         #
         # # Convert MAC address to byte string for transmit
         # mac_addr_tmp     = self['mac_addr']
@@ -637,7 +635,7 @@ class BSSInfo(InfoStruct):
 
                 # Set BSSID, capabilities
                 #   - If this is an IBSS, then set local bit to '1' and mcast bit to '0'
-                #   - Set the appropriate capabilities (NOTE:  the 802.11 reference design only supports short timeslots (ie short = 9us))
+                #   - Set the appropriate capabilities (The 802.11 reference design only supports short timeslots (ie short = 9us))
                 if ibss_status:
                     self['bssid']        = util.create_locally_administered_bssid(bssid)
                     self['capabilities'] = (self._consts.capabilities.IBSS | self._consts.capabilities.SHORT_TIMESLOT)

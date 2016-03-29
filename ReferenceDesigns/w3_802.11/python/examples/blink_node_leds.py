@@ -1,6 +1,6 @@
 """
 ------------------------------------------------------------------------------
-Mango 802.11 Reference Design - Experiments Framework - Identify Nodes Example
+Mango 802.11 Reference Design Experiments Framework - Identify Nodes Example
 ------------------------------------------------------------------------------
 License:   Copyright 2014-2015, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
@@ -28,7 +28,7 @@ segmentation during the experiment.
 import wlan_exp.transport.config as config
 import wlan_exp.transport.util as util
 
-# NOTE: change these values to match your experiment setup
+# Change these values to match your experiment setup
 NETWORK = '10.0.0.0'
 
 # Create the network configuration

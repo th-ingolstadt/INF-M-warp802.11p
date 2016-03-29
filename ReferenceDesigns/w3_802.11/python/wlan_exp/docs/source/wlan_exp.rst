@@ -14,7 +14,7 @@ Examples of WLAN Experiments can be found at http://warpproject.org/trac/wiki/80
 Contents:
 
 .. toctree::
-    :maxdepth: 2
+    :maxdepth: 3
 
     node.rst
     wlan_exp_util.rst

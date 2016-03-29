@@ -1,23 +1,16 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-Utilities
+Mango 802.11 Reference Design Experiments Framework - Transport Utilities
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
            Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
-MODIFICATION HISTORY:
 
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a ejw  1/23/14  Initial release
-
-------------------------------------------------------------------------------
-
-This module provides utility commands.
+This module provides transport utility commands.
 
 Functions (see below for more information):
     init_nodes()                  -- Initialize nodes
@@ -48,12 +41,15 @@ def init_nodes(nodes_config, network_config=None, node_factory=None,
                network_reset=True, output=False):
     """Initalize nodes.
 
-    Attributes:    
-        nodes_config   -- A NodesConfiguration object describing the nodes
-        network_config -- A NetworkConfiguration object describing the network configuration
-        node_factory   -- A NodeFactory or subclass to create nodes of a given node type
-        network_reset  -- Issue a network reset to all the nodes 
-        output         -- Print output about the nodes
+    Args:    
+        nodes_config   (NodesConfiguration):   Describes the node configuration
+        network_config (NetworkConfiguration): Describes the network configuration
+        node_factory   (NodeFactory):          Factory to create nodes of a given node type
+        network_reset  (bool):                 Issue a network reset to all the nodes 
+        output         (bool):                 Print output about the nodes
+    
+    Returns:
+        nodes (list of WlanExpNodes):  List of initialized nodes.
     """
     nodes       = []
     error_nodes = []
@@ -117,16 +113,15 @@ def init_nodes(nodes_config, network_config=None, node_factory=None,
 
     return nodes
 
-# End of init_nodes()
+# End def
 
 
 def identify_all_nodes(network_config):
-    """Issues a broadcast command: Identify.
-
-    Attributes:
-      network_config  - One or more Network configurations
-
-    All nodes should blink their Red LEDs for 10 seconds.    
+    """Issue a broadcast command to all nodes to blink their LEDs for 10 seconds.
+    
+    Args:
+        network_config (list of NetworkConfiguration):  One or more network 
+            configurations
     """
     import time
     from . import cmds
@@ -161,17 +156,19 @@ def identify_all_nodes(network_config):
         
         transport.transport_close()
 
-# End of identify_all_nodes()
+# End def
 
 
 def reset_network_inf_all_nodes(network_config):
-    """Issues a broadcast command: NodeResetNetwork.
+    """Reset the wlan_exp network interface of all nodes.
 
-    Attributes:
-      network_config  - One or more Network configurations
+    This will issue a broadcast command to all nodes on each network to reset 
+    the network interface informaiton (ie IP address, ports, etc.)
+    
+    Args:
+        network_config (list of NetworkConfiguration):  One or more network 
+            configurations
 
-    This will issue a broadcast network interface reset for all nodes on 
-    each of the networks.
     """
     from . import cmds
     from . import transport_eth_ip_udp_py_broadcast as tp_broadcast
@@ -200,22 +197,25 @@ def reset_network_inf_all_nodes(network_config):
         
         transport.transport_close()
 
-# End of identify_all_nodes()
+# End def
 
 
 # -----------------------------------------------------------------------------
 # Misc Utilities
 # -----------------------------------------------------------------------------
 def get_serial_number(serial_number, output=True):
-    """Function will check / convert the provided serial number to a 
-    compatible format.
+    """Check / convert the provided serial number to a compatible format.
     
     Acceptable inputs:
         'W3-a-00001' or 'w3-a-00001' -- Succeeds quietly
         '00001' or '1' or 1          -- Succeeds with a warning
     
+    Args:
+        serial_number (str, int):  Serial number
+        output (bool):  Should the function print any output warnings
+    
     Returns:
-        Tuple:  (serial_number, serial_number_str)
+        serial_number (tuple):  (serial_number, serial_number_str)
     """
     max_sn        = 100000
     sn_valid      = True
@@ -280,230 +280,8 @@ def mac_addr_to_str(mac_address):
 
 
 # -----------------------------------------------------------------------------
-# Setup Utilities
-# -----------------------------------------------------------------------------
-def nodes_setup(ini_file=None):
-    """Create / Modify Nodes ini file from user input."""    
-    nodes_config = None
-
-    print("-" * 70)
-    print("Nodes Setup:")
-    print("   NOTE:  Many values are populated automatically to ease setup.  Excessive")
-    print("          editing using this menu can result in the 'Current Nodes' displayed") 
-    print("          being out of sync with the final nodes configuration.  The final")
-    print("          nodes configuration will be printed on exit.  Please check that")
-    print("          and re-run Nodes Setup if necessary or manually edit the")
-    print("          nodes_config ini file.")
-    print("-" * 70)
-
-    # base_dir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
-    # config_file = os.path.normpath(os.path.join(base_dir, "../", "nodes_config.ini"))
-
-    from . import config
-    nodes_config = config.NodesConfiguration(ini_file=ini_file)
-
-    # Actions Menu    
-    actions = {0 : "Add node",
-               1 : "Remove node",
-               2 : "Change Node ID",
-               3 : "Disable / Enable node",
-               4 : "Change IP address",
-               5 : "Quit (default)"}
-
-    nodes_done = False
-
-    # Process actions until either a Ctrl-C or a quit action
-    try:
-        while not nodes_done:
-            nodes = nodes_config.print_nodes()
-            
-            print("Actions:")
-            for idx in range(len(actions.keys())):
-                print("    [{0}] {1}".format(idx, actions[idx]))
-            
-            action = _select_from_table("Selection : ", actions)
-            print("-" * 50)
-            
-            if (action is None) or (action == 5):
-                nodes_done = True
-            elif (action == 0):
-                serial_num = _add_node_from_user()
-                if serial_num is not None:
-                    nodes_config.add_node(serial_num)
-                    print("    Adding node: {0}".format(serial_num))
-            elif (action == 1):
-                node = _select_from_table("Select node : ", nodes)
-                if node is not None:
-                    nodes_config.remove_node(nodes[node])
-                    print("    Removing node: {0}".format(nodes[node]))
-            elif (action == 2):
-                node = _select_from_table("Select node : ", nodes)
-                if node is not None:
-                    tmp_node_id = _get_node_id_from_user(nodes[node])
-                    if tmp_node_id is not None:
-                        nodes_config.set_param(nodes[node], 'node_id', tmp_node_id)
-                        print("    Setting node: {0} to ID {1}".format(nodes[node], tmp_node_id))
-                    else:
-                        nodes_config.remove_param(nodes[node], 'node_id')
-                        print("    Setting node: {0} to IP address {1}".format(nodes[node], 
-                                nodes_config.get_param(nodes[node], 'node_id')))
-            elif (action == 3):
-                node = _select_from_table("Select node : ", nodes)
-                if node is not None:
-                    if (nodes_config.get_param(nodes[node], 'use_node')):
-                        nodes_config.set_param(nodes[node], 'use_node', False)
-                        print("    Disabling node: {0}".format(nodes[node]))
-                    else:
-                        nodes_config.set_param(nodes[node], 'use_node', True)
-                        print("    Enabling node: {0}".format(nodes[node]))
-            elif (action == 4):
-                node = _select_from_table("Select node : ", nodes)
-                if node is not None:
-                    ip_addr = _get_ip_address_from_user(nodes[node])
-                    if ip_addr is not None:
-                        nodes_config.set_param(nodes[node], 'ip_address', ip_addr)
-                        print("    Setting node: {0} to IP address {1}".format(nodes[node], ip_addr))
-                    else:
-                        nodes_config.remove_param(nodes[node], 'ip_address')
-                        print("    Setting node: {0} to IP address {1}".format(nodes[node], 
-                                nodes_config.get_param(nodes[node], 'ip_address')))
-
-            print("-" * 50)
-            
-    except KeyboardInterrupt:
-        pass
-
-    nodes_config.save_config(output=True)
-    print("-" * 70)
-    print("Final Nodes Configuration:")
-    print("-" * 70)
-
-    # Print final configuration
-    nodes_config = config.NodesConfiguration(ini_file=ini_file)
-    nodes_config.print_nodes()
-
-    print("-" * 70)
-    print("Nodes Configuration Complete.")
-    print("-" * 70)
-    print("\n")
-
-# End of nodes_setup()
-
-
-
-# -----------------------------------------------------------------------------
 # Internal Methods
 # -----------------------------------------------------------------------------
-
-def _add_node_from_user():
-    """Internal method to add a node based on info from the user."""
-    serial_num = None
-    serial_num_done = False
-
-    while not serial_num_done:
-        temp = raw_input("WARP Node Serial Number (last 5 digits or enter to end): ")
-        if temp is not '':
-            serial_num = "W3-a-{0:05d}".format(int(temp))
-            message = "    Is {0} Correct? [Y/n]: ".format(serial_num)
-            confirmation = _get_confirmation_from_user(message)
-            if (confirmation == 'y'):
-                serial_num_done = True
-            else:
-                serial_num = None
-        else:
-            break
-
-    return serial_num
-
-# End of _add_node_from_user()
-
-
-def _get_node_id_from_user(msg):
-    """Internal method to change a node's ID based on info from the user."""
-    node_id = None
-    node_id_done = False
-
-    while not node_id_done:
-        print("-" * 30)
-        temp = raw_input("Enter ID for node {0}: ".format(msg))
-        if temp is not '':
-            if (int(temp) < 254) and (int(temp) >= 0):
-                print("    Setting Node ID to {0}".format(temp))
-                node_id = int(temp)
-                node_id_done = True
-            else:
-                print("    '{0}' is not a valid Node ID.".format(temp))
-                print("    Valid Node IDs are integers in the range of [0,254).")
-        else:
-            break
-    
-    return node_id
-
-# End of _get_ip_address_from_user()
-
-
-def _get_ip_address_from_user(msg):
-    """Internal method to change a node's IP address based on info from 
-    the user.
-    """
-    ip_address = None
-    ip_address_done = False
-
-    while not ip_address_done:
-        print("-" * 30)
-        temp = raw_input("Enter IP address for {0}: ".format(msg))
-        if temp is not '':
-            if _check_ip_address_format(temp):
-                ip_address = temp
-                ip_address_done = True
-        else:
-            break
-    
-    return ip_address
-
-# End of _get_ip_address_from_user()
-
-
-def _select_from_table(select_msg, table):
-    return_val = None
-    selection_done = False
-
-    while not selection_done:
-        temp = raw_input(select_msg)
-        if temp is not '':
-            if (not int(temp) in table.keys()):
-                print("{0} is an invalid Selection.  Please choose again.".format(temp))
-            else:
-                return_val = int(temp)
-                selection_done = True            
-        else:
-            selection_done = True
-
-    return return_val
-
-# End of _select_from_table()
-
-
-def _get_confirmation_from_user(message):
-    """Get confirmation from the user.  Default return value is 'y'."""
-    confirmation = False
-    
-    while not confirmation:            
-        selection = raw_input(message).lower()
-        if selection is not '':
-            if (selection == 'y') or (selection == 'n'):
-                confirmation = True
-            else:
-                print("    '{0}' is not a valid selection.".format(selection))
-                print("    Please select [y] or [n].")
-        else:
-            selection = 'y'
-            confirmation = True
-    
-    return selection
-
-# End of _get_confirmation_from_user()
-
 
 def _get_all_host_ip_addrs():
     """Get all host interface IP addresses."""
@@ -514,8 +292,8 @@ def _get_all_host_ip_addrs():
     # Get all the host address information
     addr_info = socket.getaddrinfo(socket.gethostname(), None)
 
-    # For addresses that are IPv6 and support SOCK_DGRAM or everything
-    #   we need to add them to the list of host IP addresses
+    # Add addresses that are IPv6 and support SOCK_DGRAM or everything (0)
+    #   to the list of host IP addresses
     for info in addr_info:
         if (info[0] == socket.AF_INET) and (info[1] in [0, socket.SOCK_DGRAM]):
             addrs.append(info[4][0])
@@ -527,7 +305,7 @@ def _get_all_host_ip_addrs():
 
     return addrs
 
-# End of _get_all_host_ip_addrs()
+# End def
 
 
 def _get_host_ip_addr_for_network(network):
@@ -551,11 +329,11 @@ def _get_host_ip_addr_for_network(network):
 
     return socket_name
 
-# End of _get_host_ip_addr_for_network()
+# End def
 
 
 def _check_network_interface(network, quiet=False):
-    """Check that this is a network has a valid interface IP address."""
+    """Check that this network has a valid interface IP address."""
     import socket
 
     # Get the first three octets of the network address
@@ -594,7 +372,7 @@ def _check_network_interface(network, quiet=False):
 
     return network_addr
 
-# End of _check_network_interface()
+# End def
 
 
 def _get_ip_address_subnet(ip_address):
@@ -603,7 +381,7 @@ def _get_ip_address_subnet(ip_address):
     tmp = [int(n) for n in expr.split(ip_address)]
     return "{0:d}.{1:d}.{2:d}".format(tmp[0], tmp[1], tmp[2])
     
-# End of _get_ip_address_subnet()
+# End def
 
 
 def _get_broadcast_address(ip_address):
@@ -612,7 +390,7 @@ def _get_broadcast_address(ip_address):
     broadcast_addr = ip_subnet + ".255"
     return broadcast_addr
     
-# End of _get_broadcast_address()
+# End def
     
 
 def _check_ip_address_format(ip_address):
@@ -628,7 +406,7 @@ def _check_ip_address_format(ip_address):
         warnings.warn(msg)
         return False
 
-# End of _check_ip_address_format()
+# End def
 
 
 def _check_host_id(host_id):
@@ -642,7 +420,7 @@ def _check_host_id(host_id):
         warnings.warn(msg)
         return False
 
-# End of _check_host_id()
+# End def
 
 
 def _get_os_socket_buffer_size(req_tx_buf_size, req_rx_buf_size):
@@ -659,7 +437,7 @@ def _get_os_socket_buffer_size(req_tx_buf_size, req_rx_buf_size):
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, req_tx_buf_size)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, req_rx_buf_size)
     except socket_error as serr:
-        # On some HW we cannot set the buffer size
+        # Cannot set the buffer size on some hardware
         if serr.errno != errno.ENOBUFS:
             raise serr
 
@@ -668,7 +446,7 @@ def _get_os_socket_buffer_size(req_tx_buf_size, req_rx_buf_size):
     
     return (sock_tx_buf_size, sock_rx_buf_size)
 
-# End of _get_os_socket_buffer_size()
+# End def
     
 
 

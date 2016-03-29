@@ -1,20 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-Network / Node Configurations
+Mango 802.11 Reference Design Experiments Framework 
+    - Network / Node Configurations
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
            Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
-------------------------------------------------------------------------------
-MODIFICATION HISTORY:
-
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a ejw  1/23/14  Initial release
-
 ------------------------------------------------------------------------------
 
 This module provides class definitions to manage the Network and Nodes 
@@ -202,10 +196,10 @@ class NodesConfiguration(object):
         broadcast_port  - config.ini get_param('network', 'broadcast_port')
         use_node        - "True"
 
-    NOTE:  In order to be as consistent as possible, all nodes in the 
-    configuration file get a node id regardless of whether they are used.
-    Also, we do not sort the INI in our testing, it seems like the nodes are
-    initialized in the order they appear in the config but are not guarenteed.
+    In order to be as consistent as possible, all nodes in the configuration 
+    file get a node id regardless of whether they are used.  Also, while it 
+    seems like the nodes are initialized in the order they appear in the 
+    config, that is not guaranteed.
 
     """
     network_config      = None
@@ -272,7 +266,7 @@ class NodesConfiguration(object):
         self.init_shadow_config(base_ip_address, u_port, b_port)
 
         # Initialize the config based on rules documented above.
-        #   NOTE:  This can raise exceptions if there are issues.
+        #     - This can raise exceptions if there are issues.
         if serial_numbers is None:            
             if ini_file is None:
                 ini_file = defaults.NODES_CONFIG_INI_FILE
@@ -644,7 +638,7 @@ class NodesConfiguration(object):
     def _get_shadow_param(self, section, parameter):
         """Internal method to get shadow parameters.
         
-        NOTE:  This is where to implement any per node defaults.
+        This is where to implement any per node defaults.
         """
         if (parameter in self.shadow_config[section].keys()):
             return self.shadow_config[section][parameter]

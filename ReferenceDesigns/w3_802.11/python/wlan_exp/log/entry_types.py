@@ -55,6 +55,8 @@ import sys, os
 from struct import pack, unpack, calcsize, error
 import wlan_exp.util as util
 
+import wlan_exp.info as info
+
 # Fix to support Python 2.x and 3.x
 if sys.version[0]=="3": long=None
 
@@ -73,6 +75,10 @@ ENTRY_TYPE_EXP_INFO               = 2
 ENTRY_TYPE_NODE_TEMPERATURE       = 4
 
 ENTRY_TYPE_TIME_INFO              = 6
+
+ENTRY_TYPE_STATION_INFO           = 3
+ENTRY_TYPE_BSS_INFO               = 7
+
 
 ENTRY_TYPE_RX_OFDM                = 10
 ENTRY_TYPE_RX_OFDM_LTG            = 11
@@ -191,6 +197,7 @@ class WlanExpLogEntryType(object):
                     * ``field_type_struct``: Field type as string, using formats specified by ``struct`` module
                     * ``field_type_numpy``: Field type as string, using formats specified by numpy ``dtype``
                     * ``field_desc``: String describing the field's meaning, used to generate wiki docs
+        
         """
         if type(field_info) is list:
             self._fields.extend(field_info)
@@ -227,12 +234,14 @@ class WlanExpLogEntryType(object):
 
 
     def add_gen_numpy_array_callback(self, callback):
-        """Add callback that is run after the numpy array is generated from the entry type.
+        """Add callback that is run after the numpy array is generated from 
+        the entry type.
 
+        The callbacks will be executed in the order the are added to the log 
+        entry
+        
         Args:
             callback (function):  Function to run after the numpy array is generated
-
-        .. note:: The callbacks will be executed in the order the are added to the log entry
         """
         if callable(callback):
             self.gen_numpy_callbacks.append(callback)
@@ -349,12 +358,14 @@ class WlanExpLogEntryType(object):
 
 
     def _entry_as_string(self, buf):
-        """Generate a string representation of the entry from a buffer. This method should only
-        be used for debugging log data parsing and log index generation, not for general creation
-        of text log files.
+        """Generate a string representation of the entry from a buffer. 
+        
+        This method should only be used for debugging log data parsing and log 
+        index generation, not for general creation of text log files.
 
-        .. note::  This method does not work correctly on RX_OFDM entries due to the way the channel
-            estimates are defined.  The channel_est, mac_payload_len, and mac_payload will all be zeros.
+        This method does not work correctly on RX_OFDM entries due to the way 
+        the channel estimates are defined.  The channel_est, mac_payload_len, 
+        and mac_payload will all be zeros.
         """
         entry_size = calcsize(self.fields_fmt_struct)
         entry      = self.deserialize(buf[0:entry_size])[0]
@@ -591,6 +602,8 @@ def np_array_add_txrx_fields(np_arr_orig, docs_only=False):
 def np_array_add_fields(np_arr_orig, mac_addr=False, ltg=False, docs_only=False):
     """Add 'virtual' fields to the numpy array.
 
+    This is an example of a gen_numpy_array_callback
+    
     Args:
         np_arr_orig (Numpy Array):  Numpy array to extend
         mac_addr (bool, optional):  Add MAC address information to the numpy array?
@@ -608,8 +621,6 @@ def np_array_add_fields(np_arr_orig, mac_addr=False, ltg=False, docs_only=False)
     IMPORTANT: np_arr uses the original bytearray as its underlying data
     We must operate on a copy to avoid clobbering log entries adjacent to the
     Tx or Rx entries being extended.
-
-    .. note:: This is an example of a gen_numpy_array_callback
     """
     import numpy as np
 
@@ -643,7 +654,7 @@ def np_array_add_fields(np_arr_orig, mac_addr=False, ltg=False, docs_only=False)
 
         return (ret_str, ret_list)
 
-    # Check that the array is not None so we don't raise an Attribute Exception
+    # Return if array is None to not raise an Attribute Exception
     if np_arr_orig is None:
         return np_arr_orig
 
@@ -788,7 +799,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
 
     # The NULL entry is used to "remove" an existing entry within the log.
     #   By replacing the current entry type with the NULL entry type and zeroing
-    #   out all data following the header, we can effectively remove an entry
+    #   out all data following the header, this can effectively remove an entry
     #   without changing the memory footprint of the log.  NULL entries will
     #   be filtered and never show up in the raw_log_index.
 
@@ -1126,4 +1137,38 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     entry_tx_low_ltg.add_gen_numpy_array_callback(np_array_add_txrx_ltg_fields)
 
     entry_tx_low_ltg.consts = entry_tx_low_common.consts.copy()
+
+
+
+    ###########################################################################
+    # Station Info
+    #
+    entry_station_info = WlanExpLogEntryType(name='STATION_INFO', entry_type_id=ENTRY_TYPE_STATION_INFO)
+
+    entry_station_info.description  = 'Information about an 802.11 association. At the AP one STATION_INFO is created '
+    entry_station_info.description += 'for each associated STA and is logged whenever the STA association state changes. '
+    entry_station_info.description += 'At the STA one STATION_INFO is logged whenever the STA associaiton state changes.'
+
+    tmp_station_info                = info.StationInfo()
+
+    entry_station_info.consts       = tmp_station_info.get_consts()
+
+    entry_station_info.append_field_defs(tmp_station_info.get_field_defs())
+
+
+    ###########################################################################
+    # Basic Service Set (BSS) Info
+    #
+    entry_bss_info = WlanExpLogEntryType(name='BSS_INFO', entry_type_id=ENTRY_TYPE_BSS_INFO)
+
+    entry_bss_info.description  = 'Information about an 802.11 basic service set (BSS). '
+
+    tmp_bss_info                = info.BSSInfo()
+
+    entry_bss_info.consts       = tmp_bss_info.get_consts()
+
+    entry_bss_info.append_field_defs(tmp_bss_info.get_field_defs())
+
+
+
 

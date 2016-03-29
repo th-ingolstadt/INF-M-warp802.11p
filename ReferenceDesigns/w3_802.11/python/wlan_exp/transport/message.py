@@ -1,20 +1,13 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-Messages
+Mango 802.11 Reference Design Experiments Framework - Messages
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
            Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
-------------------------------------------------------------------------------
-MODIFICATION HISTORY:
-
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a ejw  1/23/14  Initial release
-
 ------------------------------------------------------------------------------
 
 This module provides class definitions for all over-the-wire messages.
@@ -39,10 +32,10 @@ from . import transport
 __all__ = ['TransportHeader', 'Cmd', 'BufferCmd', 'Resp', 'Buffer']
 
 # Transport Header defines
-#   NOTE:  The C counterparts are found in *_transport.h
-#   NOTE:  For brevity, "HTON" stands for "Host to Node" and "NTOH" stands
-#       for "Node to Host", where the node is the WARP hardware and the host
-#       is the computer running the WLAN Exp Python framework.
+#   - The C counterparts are found in *_transport.h
+#   - For brevity, "HTON" stands for "Host to Node" and "NTOH" stands for
+#     "Node to Host", where the node is the WARP hardware and the host is the 
+#     computer running the 802.11 Reference Design Experiments Framework.
 #
 PKT_TYPE_TRIGGER                       = 0
 PKT_TYPE_HTON_MSG                      = 1
@@ -300,8 +293,8 @@ class Cmd(CmdRespMessage):
     def add_args(self, *args):
         """Append arguments to current command argument list.
         
-        NOTE: Since the transport only operates on unsigned 32 bit integers, 
-        the command will convert all values to 32 bit unsigned integers.        
+        Since the transport only operates on unsigned 32 bit integers, the 
+        command will convert all values to 32 bit unsigned integers.        
         """
         import ctypes
 
@@ -398,8 +391,8 @@ class BufferCmd(CmdRespMessage):
     def add_args(self, *args):
         """Append arguments to current command argument list.
         
-        NOTE: Since the transport only operates on unsigned 32 bit integers, 
-        the command will convert all values to 32 bit unsigned integers.        
+        Since the transport only operates on unsigned 32 bit integers, the 
+        command will convert all values to 32 bit unsigned integers.        
         """
         import ctypes
 
@@ -648,9 +641,9 @@ class Buffer(Message):
         locations = self.get_missing_byte_locations()
         
         if locations:
-            # NOTE:  This assumes that the missing byte locations are in order
-            #   with the first missing byte after the start byte in the first
-            #   item in the list.
+            # This assumes that the missing byte locations are in order
+            # with the first missing byte after the start byte in the first
+            # item in the list.
             missing_start   = locations[0][0]
             contiguous_size = missing_start - self.start_byte
 
@@ -661,9 +654,9 @@ class Buffer(Message):
 
     def sizeof(self):
         """Return the size of the Buffer including all attributes."""
-        # NOTE: Do not calculate the size of the buffer just using calcsize.
-        #     This is extremely memory inefficient for large buffers and can
-        #     cause memory issues.
+        # Do not calculate the size of the buffer just using calcsize.
+        # This is extremely memory inefficient for large buffers and can
+        # cause memory issues.
         return (struct.calcsize('!5I') + self.size)
 
     def get_buffer_id(self):           return self.buffer_id
@@ -774,23 +767,23 @@ class Buffer(Message):
     def _add_buffer_data(self, buffer_offset, data_buffer):
         """Internal method to add data to the Buffer
         
-        Only self.size bytes were allocated for the Buffer.  Therefore, we 
-        will only take an offset from the start_byte (ie a relative address)
+        Only self.size bytes were allocated for the Buffer.  Therefore, 
+        only take an offset from the start_byte (ie a relative address)
         for where to store the data in the Buffer.
         
-        NOTE:  If the provided data is greater than specified Buffer size,
-            then the data will be truncated.
+        If the provided data is greater than specified Buffer size, then the 
+        data will be truncated.
         """
         data_to_add_size = len(data_buffer)
         buffer_end_byte  = buffer_offset + data_to_add_size
 
-        # If we are going to run off the end of the buffer, then truncate the add
+        # If the buffer size will be exceeded, then truncate the add
         if (buffer_end_byte > self.size):
             buffer_end_byte  = self.size
             data_to_add_size = buffer_end_byte - buffer_offset
 
         # Update the tracker with the information
-        #   NOTE:  Need to convert back to absolute addresses for tracker
+        #     - Need to convert back to absolute addresses for tracker
         self._update_tracker((buffer_offset + self.start_byte), (buffer_end_byte + self.start_byte), data_to_add_size)
         
         # Add the data to the buffer
@@ -832,7 +825,7 @@ class Buffer(Message):
             if (start_byte == item[0]) and (end_byte == item[1]) and (size == item[2]):
                 return        
  
-        # See if we can add this update to one of the current tracker entries       
+        # Can this update be added to one of the current tracker entries       
         for item in self.tracker:
             if (start_byte == item[1]):
                 item[1] += size
@@ -848,7 +841,7 @@ class Buffer(Message):
 
     def _compress_tracker(self):
         """Internal method to compress the tracker."""
-        # See if we can compress if there is more than one item
+        # If there is more than one item, try to compress them
         if (len(self.tracker) > 1):
             tracker     = []
             tmp_tracker = sorted(self.tracker, key=lambda k: k[0])
@@ -857,7 +850,7 @@ class Buffer(Message):
             tracker.append(tmp_item)
             
             # For each remaining item if the start_byte equals the end_byte
-            # of the start_item, then we can merge the items
+            # of the start_item, then merge the items
             for item in tmp_tracker[1:]:
                 if (item[0] == tmp_item[1]):
                     tmp_item[1]  = item[1]
@@ -881,7 +874,7 @@ class Buffer(Message):
 
         if (missing_bytes != 0):
             # Iterate through all the items in the list and remove
-            # them as we build up the holes
+            # them to build up the holes
             for item in tmp_tracker:
 
                 # Process item but don't add a hole
@@ -937,7 +930,7 @@ class Buffer(Message):
                     ret_val.append((start, end, tmp_size))
                     missing_bytes -= tmp_size
 
-            # Print a warning because we missed something    
+            # Missing bytes, so print a warning
             if (missing_bytes != 0):
                 print("WARNING: Could not find all missing bytes: {0}".format(missing_bytes))
         

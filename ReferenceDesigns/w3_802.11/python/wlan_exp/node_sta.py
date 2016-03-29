@@ -182,7 +182,7 @@ class WlanExpNodeSta(node.WlanExpNode):
                 # Check when join process completes that STA has joined BSS                
                 while ((time.time() - start_time) < timeout):
                     if self.is_joining():
-                        # Sleep for 0.1 seconds so we don't flood the node
+                        # Sleep for 0.1 seconds to not flood the node
                         time.sleep(0.1)
                     else:
                         status = self._check_associated_node(ssid, bssid)

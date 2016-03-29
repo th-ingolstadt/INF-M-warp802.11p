@@ -97,8 +97,8 @@ log_np = log_util.log_data_to_np_arrays(log_data, log_index)
 
 ###############################################################################
 # Example 1: Gather some Tx information from the log
-#   NOTE:  Since there are only loops, this example can deal with TX_HIGH / TX_LOW
-#          being an empty list and does not need a try / except.
+#     - Since there are only loops, this example can deal with TX_HIGH / TX_LOW
+#       being an empty list and does not need a try / except.
 #
 
 # Initialize variables
@@ -182,9 +182,6 @@ print("\nTotal Retransmissions: {0:d}".format(total_retrans))
 ###############################################################################
 # Example 2: Calculate total number of packets and bytes transmitted to each
 #            distinct MAC address for each of the MAC addresses in the header
-#   NOTE:  Since there are direct accesses to array memory, we need a try/except
-#          in order to catch index errors when there are no 'TX_HIGH' entries in
-#          the log.
 #
 
 # Skip this example if the log doesn't contain TX events

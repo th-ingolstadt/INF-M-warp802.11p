@@ -12,12 +12,12 @@ License:   Copyright 2014-2016, Mango Communications. All rights reserved.
 
 This module provides utility functions for HDF to handle wlan_exp log data.
 
-For wlan_exp log data manipulation, it is necessary to define a common file format
-so that it is easy for multiple consumers, both in python and other languages, to
-access the data.  To do this, we use HDF5 as the container format with a couple of
-additional conventions to hold the log data as well as other pieces of information.
-Below are the rules that we follow to create an HDF5 file that will contain WLAN
-Exp log data:
+For wlan_exp log data manipulation, it is necessary to define a common file 
+format so that it is easy for multiple consumers, both in python and other 
+languages, to access the data.  To do this, HDF5 is used as the container 
+format with a couple of additional conventions to hold the log data as well as 
+other pieces of information.  Below are the rules to create an HDF5 file that 
+will contain wlan_exp log data:
 
 wlan_exp_log_data_container (equivalent to a HDF5 group):
 /: Root Group in HDF5 file
@@ -49,7 +49,7 @@ log_index      -- A log_index is any index that is not a raw_log_index.  In
 general, this will be a interpreted / filtered version of
 a raw_log_index.
 
-hdf5           -- A data container format that we use to store log_data,
+hdf5           -- A data container format used to store log_data,
 raw_log_index, and other user defined attributes.  You can
 find more documentation on HDF / HDF5 at:
 http://www.hdfgroup.org/
@@ -87,8 +87,8 @@ class HDF5LogContainer(log_util.LogContainer):
         name (str, optional):          Name of the HDF5 group of the log container
         compression (bool, optional):  HDF5 compression setting on the log container
 
-    .. note:: When an HDF5LogContainer is created, the underlying HDF5 file will
-        not be modified unless one of the write_* methods are called.
+    When an HDF5LogContainer is created, the underlying HDF5 file will not be 
+    modified unless one of the write_* methods are called.
     """
     hdf5_group_name          = None
     compression              = None
@@ -243,8 +243,7 @@ class HDF5LogContainer(log_util.LogContainer):
         try:
             # Normally the try-catch would handle this error but in HDF5 1.8.9
             # exceptions are not properly thrown when using h5py, so the check
-            # needs to be coded this way so that we don't get a lot of garbage
-            # output.
+            # needs to be coded this way to not get a lot of garbage output.
             #
             for group in group_handle.keys():
                 if (group == index_name):
@@ -445,7 +444,7 @@ class HDF5LogContainer(log_util.LogContainer):
         group_name   = self.hdf5_group_name
         file_handle  = self.file_handle
 
-        # Check if we are using the root group
+        # Using the root group?
         if (group_name == "/"):
             # Use the root group
             return file_handle
@@ -562,8 +561,8 @@ def hdf5_open_file(filename, readonly=False, append=False, print_warnings=True):
         else:
             # Open an HDF5 File Object in 'w' (Create file, truncate if exists) mode
             #
-            # NOTE:  This is due to a bug in Anaconda where it does not throu the appropriate
-            #    IOError to be caught to create a file with the 'a' mode
+            # This is due to a bug in Anaconda where it does not throu the appropriate
+            # IOError to be caught to create a file with the 'a' mode
             file_handle = h5py.File(h5_filename, mode='w')
 
     return file_handle
@@ -619,9 +618,10 @@ def log_data_to_hdf5(log_data, filename, attr_dict=None, gen_index=True, overwri
         container.write_log_data(log_data)
 
         # Add the raw log index to the group
-        #   NOTE:  Done this way to save processing time.  Since log_data is already
-        #          in memory, we do not need to use the default write_log_index which
-        #          pulls the log data out of the HDF5 file to create the raw log index.
+        #     - Done this way to save processing time.  log_data is already
+        #       in memory.  Therefore, the default write_log_index which
+        #       pulls the log data out of the HDF5 file to create the raw log 
+        #       index is not needed.
         if gen_index:
             raw_log_index = log_util.gen_raw_log_index(log_data)
             container.write_log_index(raw_log_index)

@@ -22,7 +22,7 @@ the Mango Reference Design License (http://mangocomm.com/802.11/license).
 Contents:
 
 .. toctree::
-    :maxdepth: 3
+    :maxdepth: 4
 
     wlan_exp.rst
     wlan_exp_log.rst

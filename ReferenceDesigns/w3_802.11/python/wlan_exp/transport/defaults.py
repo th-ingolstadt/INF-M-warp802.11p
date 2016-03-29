@@ -1,20 +1,14 @@
 # -*- coding: utf-8 -*-
 """
 ------------------------------------------------------------------------------
-Transport Default Constants
+Mango 802.11 Reference Design Experiments Framework 
+    - Transport Default Constants
 ------------------------------------------------------------------------------
 Authors:   Chris Hunter (chunter [at] mangocomm.com)
            Patrick Murphy (murphpo [at] mangocomm.com)
            Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
-------------------------------------------------------------------------------
-MODIFICATION HISTORY:
-
-Ver   Who  Date     Changes
------ ---- -------- -----------------------------------------------------
-1.00a ejw  1/23/14  Initial release
-
 ------------------------------------------------------------------------------
 
 This module provides Transport default constants.
@@ -36,8 +30,8 @@ DEFAULT_NODE_DESCRIPTION          = 'Default Node'
 
 
 # Transport Default values
-#   NOTE:  All defaults are strings; Numerical values will be evaluated and
-#          converted to integers before being used
+#     - All defaults are strings; Numerical values will be evaluated and
+#       converted to integers before being used
 NETWORK                           = '10.0.0.0'
 HOST_ID                           = 250
 UNICAST_PORT                      = 9500
