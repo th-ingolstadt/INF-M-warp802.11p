@@ -164,15 +164,15 @@ int wlan_mac_low_init(u32 type){
 			            // CPU Low rebooted after finishing old Tx
 			            // No way to know if CPU Low sent TX_DONE(p) message - must reset p.state here
 			            //  Two potential races:
-			            //   -CPU High just rebooted and will also attempt setting p.state=EMPTY
-			            //      No problem if both CPUs set state to EMPTY
+			            //   -CPU High just rebooted and will also attempt setting p.state=TX_PKT_BUF_HIGH_CTRL
+			            //      No problem if both CPUs set state to TX_PKT_BUF_HIGH_CTRL
 			            //   -CPU High did not reboot and will attempt tx_done_handler(p)
-			            //      If p.state=EMPTY when tx_done_handler(p) runs, CPU High will fail gracefully
-			            //      If p.state set to EMPTY during tx_done_handler(p), CPU High will succeed normally
+			            //      If p.state=TX_PKT_BUF_HIGH_CTRL when tx_done_handler(p) runs, CPU High will fail gracefully
+			            //      If p.state set to TX_PKT_BUF_HIGH_CTRL during tx_done_handler(p), CPU High will succeed normally
 					case TX_PKT_BUF_LOW_CTRL:
 			            // CPU Low rebooted after CPU High submitted packet for Tx
 			            //  Release lock and reset state
-			            //  CPU High will find this EMPTY buffer in next ping/pong update
+			            //  CPU High will find this TX_PKT_BUF_HIGH_CTRL buffer in next ping/pong update
 						tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 						unlock_tx_pkt_buf(i);
 					break;

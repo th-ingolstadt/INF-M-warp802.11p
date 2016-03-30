@@ -1703,7 +1703,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 						// CPU High probably rebooted, initialized Tx pkt buffers
 						//  then got TX_DONE message from pre-reboot
 						// Ignore the contents, force-lock the buffer, and
-						//  leave it EMPTY, will be used by future ping-pong rotation
+						//  leave it TX_PKT_BUF_HIGH_CTRL, will be used by future ping-pong rotation
 						force_lock_tx_pkt_buf(tx_pkt_buf);
 						tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 					case TX_PKT_BUF_READY:
