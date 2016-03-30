@@ -37,31 +37,6 @@ Entry type ID: 2
 
 ----
 
-=== Entry Type STATION_INFO ===
-Information about an 802.11 association. At the AP one STATION_INFO is created for each associated STA and is logged whenever the STA association state changes. At the STA one STATION_INFO is logged whenever the STA associaiton state changes.
-
-Entry type ID: 3
-
-||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| timestamp ||  uint64  || Value of MAC Time in microseconds when structure created ||
-|| mac_addr ||  6uint8  || MAC address of station ||
-|| id ||  uint16  || Identification Index for this station ||
-|| host_name ||  20uint8  || String hostname (19 chars max), taken from DHCP DISCOVER packets ||
-|| flags ||  uint32  || Station flags ||
-|| latest_activity_timestamp ||  uint64  || Value of System Time in microseconds of last successful Rx from device ||
-|| rx_last_seq ||  uint16  || Sequence number of last packet received from device ||
-|| rx_last_power ||  int8  || Rx power in dBm of last packet received from device ||
-|| padding0 ||  uint8  ||  ||
-|| tx_phy_mcs ||  uint8  || Current PHY MCS index in ![0:7] for new transmissions to device ||
-|| tx_phy_mode ||  uint8  || Current PHY mode for new transmissions to deivce ||
-|| tx_phy_antenna_mode ||  uint8  || Current PHY antenna mode in ![1:4] for new transmissions to device ||
-|| tx_phy_power ||  int8  || Current Tx power in dBm for new transmissions to device ||
-|| tx_mac_flags ||  uint8  || Flags for Tx MAC config for new transmissions to device ||
-|| padding1 ||  3uint8  ||  ||
-
-
-----
-
 === Entry Type NODE_TEMPERATURE ===
 Record of the FPGA system monitor die temperature. This entry is only created when directed by a wlan_exp command. Temperature values are stored as 32-bit unsigned integers. To convert to degrees Celcius, apply (((float)temp_u32)/(65536.0*0.00198421639)) - 273.15
 
@@ -90,27 +65,6 @@ Entry type ID: 6
 || mac_timestamp ||  uint64  || New value of MAC Time in microseconds  ||
 || system_timestamp ||  uint64  || Value of System Time in microseconds ||
 || host_timestamp ||  uint64  || Host time in microseconds-since-epoch; 0xFFFFFFFFFFFFFFFF if unknown ||
-
-
-----
-
-=== Entry Type BSS_INFO ===
-Information about an 802.11 basic service set (BSS). 
-
-Entry type ID: 7
-
-||=  Field Name  =||=  Data Type  =||=  Description  =||
-|| timestamp ||  uint64  || Value of MAC Time in microseconds when structure created ||
-|| bssid ||  6uint8  || BSS ID ||
-|| channel ||  uint8  || Primary channel ||
-|| channel_type ||  uint8  || Channel Type ||
-|| latest_beacon_rx_time ||  uint64  || Value of System Time in microseconds of last beacon Rx ||
-|| ssid ||  33uint8  || SSID (32 chars max) ||
-|| padding0 ||  uint8  ||  ||
-|| latest_beacon_rx_power ||  int8  || Last observed beacon Rx Power (dBm) ||
-|| flags ||  uint8  || BSS flags ||
-|| capabilities ||  uint16  || Supported capabilities of the BSS ||
-|| beacon_interval ||  uint16  || Beacon interval - In time units of 1024 us ||
 
 
 ----

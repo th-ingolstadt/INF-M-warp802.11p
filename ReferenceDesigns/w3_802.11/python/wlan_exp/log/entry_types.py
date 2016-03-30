@@ -55,8 +55,6 @@ import sys, os
 from struct import pack, unpack, calcsize, error
 import wlan_exp.util as util
 
-import wlan_exp.info as info
-
 # Fix to support Python 2.x and 3.x
 if sys.version[0]=="3": long=None
 
@@ -75,10 +73,6 @@ ENTRY_TYPE_EXP_INFO               = 2
 ENTRY_TYPE_NODE_TEMPERATURE       = 4
 
 ENTRY_TYPE_TIME_INFO              = 6
-
-ENTRY_TYPE_STATION_INFO           = 3
-ENTRY_TYPE_BSS_INFO               = 7
-
 
 ENTRY_TYPE_RX_OFDM                = 10
 ENTRY_TYPE_RX_OFDM_LTG            = 11
@@ -1137,38 +1131,5 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     entry_tx_low_ltg.add_gen_numpy_array_callback(np_array_add_txrx_ltg_fields)
 
     entry_tx_low_ltg.consts = entry_tx_low_common.consts.copy()
-
-
-
-    ###########################################################################
-    # Station Info
-    #
-    entry_station_info = WlanExpLogEntryType(name='STATION_INFO', entry_type_id=ENTRY_TYPE_STATION_INFO)
-
-    entry_station_info.description  = 'Information about an 802.11 association. At the AP one STATION_INFO is created '
-    entry_station_info.description += 'for each associated STA and is logged whenever the STA association state changes. '
-    entry_station_info.description += 'At the STA one STATION_INFO is logged whenever the STA associaiton state changes.'
-
-    tmp_station_info                = info.StationInfo()
-
-    entry_station_info.consts       = tmp_station_info.get_consts()
-
-    entry_station_info.append_field_defs(tmp_station_info.get_field_defs())
-
-
-    ###########################################################################
-    # Basic Service Set (BSS) Info
-    #
-    entry_bss_info = WlanExpLogEntryType(name='BSS_INFO', entry_type_id=ENTRY_TYPE_BSS_INFO)
-
-    entry_bss_info.description  = 'Information about an 802.11 basic service set (BSS). '
-
-    tmp_bss_info                = info.BSSInfo()
-
-    entry_bss_info.consts       = tmp_bss_info.get_consts()
-
-    entry_bss_info.append_field_defs(tmp_bss_info.get_field_defs())
-
-
 
 
