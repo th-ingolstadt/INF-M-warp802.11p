@@ -3,10 +3,10 @@
  *
  *  This contains code for constructing a variety of different types of MPDUs.
  *
- *  @copyright Copyright 2013-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2013-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
- *				See LICENSE.txt included in the design archive or
- *				at http://mangocomm.com/802.11/license
+ *              See LICENSE.txt included in the design archive or
+ *              at http://mangocomm.com/802.11/license
  *
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
@@ -53,9 +53,9 @@ int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_h
 
 	mac_header->sequence_control = 0; //Will be filled in at dequeue
 
-	memcpy(mac_header->address_1,common->address_1,6);
-	memcpy(mac_header->address_2,common->address_2,6);
-	memcpy(mac_header->address_3,common->address_3,6);
+	memcpy(mac_header->address_1, common->address_1, MAC_ADDR_LEN);
+	memcpy(mac_header->address_2, common->address_2, MAC_ADDR_LEN);
+	memcpy(mac_header->address_3, common->address_3, MAC_ADDR_LEN);
 
 	beacon_probe_frame* beacon_probe_mgmt_header;
 	beacon_probe_mgmt_header = (beacon_probe_frame*)(pkt_buf + sizeof(mac_header_80211));
@@ -172,9 +172,9 @@ int wlan_create_probe_req_frame(void* pkt_buf, mac_header_80211_common* common, 
 	//This field may be overwritten by CPU_LOW
 	probe_req_80211_header->duration_id = 0;
 
-	memcpy(probe_req_80211_header->address_1,common->address_1,6);
-	memcpy(probe_req_80211_header->address_2,common->address_2,6);
-	memcpy(probe_req_80211_header->address_3,common->address_3,6);
+	memcpy(probe_req_80211_header->address_1, common->address_1, MAC_ADDR_LEN);
+	memcpy(probe_req_80211_header->address_2, common->address_2, MAC_ADDR_LEN);
+	memcpy(probe_req_80211_header->address_3, common->address_3, MAC_ADDR_LEN);
 
 	probe_req_80211_header->sequence_control = 0; //Will be filled in at dequeue
 
@@ -220,9 +220,9 @@ int wlan_create_auth_frame(void* pkt_buf, mac_header_80211_common* common, u16 a
 
 	//duration can be filled in by CPU_LOW
 	auth_80211_header->duration_id = 0;
-	memcpy(auth_80211_header->address_1,common->address_1,6);
-	memcpy(auth_80211_header->address_2,common->address_2,6);
-	memcpy(auth_80211_header->address_3,common->address_3,6);
+	memcpy(auth_80211_header->address_1, common->address_1, MAC_ADDR_LEN);
+	memcpy(auth_80211_header->address_2, common->address_2, MAC_ADDR_LEN);
+	memcpy(auth_80211_header->address_3, common->address_3, MAC_ADDR_LEN);
 
 	auth_80211_header->sequence_control = 0; //Will be filled in at dequeue
 
@@ -255,9 +255,9 @@ int wlan_create_deauth_disassoc_frame(void* pkt_buf, u8 frame_control_1, mac_hea
 
 	//duration can be filled in by CPU_LOW
 	deauth_80211_header->duration_id = 0;
-	memcpy(deauth_80211_header->address_1,common->address_1,6);
-	memcpy(deauth_80211_header->address_2,common->address_2,6);
-	memcpy(deauth_80211_header->address_3,common->address_3,6);
+	memcpy(deauth_80211_header->address_1, common->address_1, MAC_ADDR_LEN);
+	memcpy(deauth_80211_header->address_2, common->address_2, MAC_ADDR_LEN);
+	memcpy(deauth_80211_header->address_3, common->address_3, MAC_ADDR_LEN);
 
 	deauth_80211_header->sequence_control = 0; //Will be filled in at dequeue
 
@@ -292,9 +292,9 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 	//duration can be filled in by CPU_LOW
 	assoc_80211_header->duration_id = 0;
 
-	memcpy(assoc_80211_header->address_1,common->address_1,6);
-	memcpy(assoc_80211_header->address_2,common->address_2,6);
-	memcpy(assoc_80211_header->address_3,common->address_3,6);
+	memcpy(assoc_80211_header->address_1, common->address_1, MAC_ADDR_LEN);
+	memcpy(assoc_80211_header->address_2, common->address_2, MAC_ADDR_LEN);
+	memcpy(assoc_80211_header->address_3, common->address_3, MAC_ADDR_LEN);
 
 	assoc_80211_header->sequence_control = 0; //Will be filled in at dequeue
 
@@ -403,9 +403,9 @@ int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_commo
 	//duration can be filled in by CPU_LOW
 	assoc_80211_header->duration_id = 0;
 
-	memcpy(assoc_80211_header->address_1,common->address_1,6);
-	memcpy(assoc_80211_header->address_2,common->address_2,6);
-	memcpy(assoc_80211_header->address_3,common->address_3,6);
+	memcpy(assoc_80211_header->address_1, common->address_1, MAC_ADDR_LEN);
+	memcpy(assoc_80211_header->address_2, common->address_2, MAC_ADDR_LEN);
+	memcpy(assoc_80211_header->address_3, common->address_3, MAC_ADDR_LEN);
 
 	assoc_80211_header->sequence_control = 0; //Will be filled in at dequeue
 
@@ -528,9 +528,9 @@ int wlan_create_data_frame(void* pkt_buf, mac_header_80211_common* common, u8 fl
 
 	data_80211_header->duration_id = 0;
 
-	memcpy(data_80211_header->address_1,common->address_1,6);
-	memcpy(data_80211_header->address_2,common->address_2,6);
-	memcpy(data_80211_header->address_3,common->address_3,6);
+	memcpy(data_80211_header->address_1, common->address_1, MAC_ADDR_LEN);
+	memcpy(data_80211_header->address_2, common->address_2, MAC_ADDR_LEN);
+	memcpy(data_80211_header->address_3, common->address_3, MAC_ADDR_LEN);
 
 	data_80211_header->sequence_control = 0; //Will be filled in at dequeue
 
@@ -549,8 +549,8 @@ int wlan_create_rts_frame(void* pkt_buf_addr, u8* address_ra, u8* address_ta, u1
 	rts_header->frame_control_1 = MAC_FRAME_CTRL1_SUBTYPE_RTS;
 	rts_header->frame_control_2 = 0;
 	rts_header->duration_id = duration;
-	memcpy(rts_header->address_ra, address_ra, 6);
-	memcpy(rts_header->address_ta, address_ta, 6);
+	memcpy(rts_header->address_ra, address_ra, MAC_ADDR_LEN);
+	memcpy(rts_header->address_ta, address_ta, MAC_ADDR_LEN);
 
 	//Include FCS in packet size (MAC accounts for FCS, even though the PHY calculates it)
 	return (sizeof(mac_header_80211_RTS)+WLAN_PHY_FCS_NBYTES);
@@ -568,7 +568,7 @@ int wlan_create_cts_frame(void* pkt_buf_addr, u8* address_ra, u16 duration) {
 	cts_header->frame_control_1 = MAC_FRAME_CTRL1_SUBTYPE_CTS;
 	cts_header->frame_control_2 = 0;
 	cts_header->duration_id = duration;
-	memcpy(cts_header->address_ra, address_ra, 6);
+	memcpy(cts_header->address_ra, address_ra, MAC_ADDR_LEN);
 
 	//Include FCS in packet size (MAC accounts for FCS, even though the PHY calculates it)
 	return (sizeof(mac_header_80211_CTS)+WLAN_PHY_FCS_NBYTES);
@@ -585,7 +585,7 @@ int wlan_create_ack_frame(void* pkt_buf_addr, u8* address_ra) {
 	ack_header->frame_control_1 = MAC_FRAME_CTRL1_SUBTYPE_ACK;
 	ack_header->frame_control_2 = 0;
 	ack_header->duration_id = 0;
-	memcpy(ack_header->address_ra, address_ra, 6);
+	memcpy(ack_header->address_ra, address_ra, MAC_ADDR_LEN);
 
 	//Include FCS in packet size (MAC accounts for FCS, even though the PHY calculates it)
 	return (sizeof(mac_header_80211_ACK)+WLAN_PHY_FCS_NBYTES);

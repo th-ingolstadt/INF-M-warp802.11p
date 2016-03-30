@@ -1,10 +1,10 @@
-/** @file wlan_mac_ipc_util.c
+/** @file wlan_mac_mailbox_util.c
  *  @brief Inter-processor Communication (Mailbox) Framework
  *
  *  This contains code common to both CPU_LOW and CPU_HIGH that allows them
  *  to pass messages to one another.
  *
- *  @copyright Copyright 2013-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2013-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *              See LICENSE.txt included in the design archive or
  *              at http://mangocomm.com/802.11/license

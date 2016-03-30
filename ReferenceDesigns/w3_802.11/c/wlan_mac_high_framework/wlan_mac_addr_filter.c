@@ -3,7 +3,7 @@
  *
  *  This contains code for the filtering MAC addresses
  *
- *  @copyright Copyright 2014-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2014-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *              See LICENSE.txt included in the design archive or
  *              at http://mangocomm.com/802.11/license
@@ -49,8 +49,8 @@ extern bss_info            * my_bss_info;
 dl_list   addr_filter;
 
 // Defines for WARP Hardware
-static u8 warp_range_mask[WHITELIST_ADDR_LEN]    = { 0xFF, 0xFF, 0xFF, 0xFF, 0xF0, 0x00 };
-static u8 warp_range_compare[WHITELIST_ADDR_LEN] = { 0x40, 0xD8, 0x55, 0x04, 0x20, 0x00 };
+static u8 warp_range_mask[MAC_ADDR_LEN]    = { 0xFF, 0xFF, 0xFF, 0xFF, 0xF0, 0x00 };
+static u8 warp_range_compare[MAC_ADDR_LEN] = { 0x40, 0xD8, 0x55, 0x04, 0x20, 0x00 };
 
 
 /*************************** Functions Prototypes ****************************/
@@ -151,8 +151,8 @@ int   wlan_mac_addr_filter_add(u8* mask, u8* compare) {
     entry->data = (void*)range;
 
     // Copy the mask and compare address to the new range
-    memcpy(&(range->mask[0]), mask, WHITELIST_ADDR_LEN);
-    memcpy(&(range->compare[0]), compare, WHITELIST_ADDR_LEN);
+    memcpy(&(range->mask[0]), mask, MAC_ADDR_LEN);
+    memcpy(&(range->compare[0]), compare, MAC_ADDR_LEN);
 
     // Add this range at the end of the address filter
     dl_entry_insertEnd(&addr_filter, entry);
@@ -250,11 +250,11 @@ u8    addr_is_allowed(u8* addr, u8* mask, u8* compare){
 
     sum = 0;
 
-    for (i = 0; i < WHITELIST_ADDR_LEN; i++) {
+    for (i = 0; i < MAC_ADDR_LEN; i++) {
         sum += (mask[i] & compare[i]) == (mask[i] & addr[i]);
     }
 
-    if (sum == WHITELIST_ADDR_LEN) {
+    if (sum == MAC_ADDR_LEN) {
         return 1;
     } else {
         return 0;

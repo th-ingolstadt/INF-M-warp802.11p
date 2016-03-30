@@ -3,10 +3,10 @@
  *
  *  This contains code for the filtering MAC addresses
  *
- *  @copyright Copyright 2014-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2014-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
- *				See LICENSE.txt included in the design archive or
- *				at http://mangocomm.com/802.11/license
+ *              See LICENSE.txt included in the design archive or
+ *              at http://mangocomm.com/802.11/license
  *
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
@@ -20,8 +20,7 @@
 #ifndef WLAN_MAC_ADDR_FILTER_H_
 #define WLAN_MAC_ADDR_FILTER_H_
 
-
-#define WHITELIST_ADDR_LEN                       6
+#include "wlan_mac_802_11_defs.h"
 
 
 /*********************** Global Structure Definitions ************************/
@@ -31,8 +30,8 @@
 //
 typedef struct {
 
-	u8   mask[WHITELIST_ADDR_LEN];
-	u8   compare[WHITELIST_ADDR_LEN];
+	u8   mask[MAC_ADDR_LEN];
+	u8   compare[MAC_ADDR_LEN];
 
 } whitelist_range;
 

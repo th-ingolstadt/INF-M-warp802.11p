@@ -1,13 +1,13 @@
-/** @file wlan_mac_ipc_util.h
- *  @brief Inter-processor Communication Framework
+/** @file wlan_mac_pkt_buf_util.h
+ *  @brief Packet Buffer Definitions
  *
  *  This contains code common to both CPU_LOW and CPU_HIGH that allows them
- *  to pass messages to one another.
+ *  to use the packet buffers.
  *
- *  @copyright Copyright 2013-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2013-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
- *				See LICENSE.txt included in the design archive or
- *				at http://mangocomm.com/802.11/license
+ *              See LICENSE.txt included in the design archive or
+ *              at http://mangocomm.com/802.11/license
  *
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)

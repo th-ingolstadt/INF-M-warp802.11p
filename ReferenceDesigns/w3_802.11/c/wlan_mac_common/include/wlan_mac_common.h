@@ -18,6 +18,8 @@
 
 #include "xil_io.h"
 
+#include "wlan_mac_802_11_defs.h"
+
 
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_COMMON_H_
@@ -227,7 +229,7 @@ typedef enum {
 typedef struct{
     // Beacon Rx Configuration Parameters
     mactime_update_mode_t    ts_update_mode;               // Determines how MAC time is updated on reception of beacons
-    u8                       bssid_match[6];               // BSSID of current association for Rx matching
+    u8                       bssid_match[MAC_ADDR_LEN];    // BSSID of current association for Rx matching
 
     // Beacon Tx Configuration Parameters
     u8                       beacon_template_pkt_buf;      // Packet Buffer that contains the the beacon template to transmit
@@ -241,14 +243,14 @@ typedef struct{
 //   low and high CPUs
 
 #define WLAN_MAC_FPGA_DNA_LEN         2
-#define WLAN_MAC_ETH_ADDR_LEN         6
+
 
 typedef struct {
     u32  wlan_exp_type;
     u32  serial_number;
     u32  fpga_dna[WLAN_MAC_FPGA_DNA_LEN];
-    u8   hw_addr_wlan[WLAN_MAC_ETH_ADDR_LEN];
-    u8   hw_addr_wlan_exp[WLAN_MAC_ETH_ADDR_LEN];
+    u8   hw_addr_wlan[MAC_ADDR_LEN];
+    u8   hw_addr_wlan_exp[MAC_ADDR_LEN];
 } wlan_mac_hw_info_t;
 
 

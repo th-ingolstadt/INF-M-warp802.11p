@@ -1,10 +1,10 @@
-/** @file wlan_mac_misc_util.c
- *  @brief Miscellaneous Utilities
+/** @file wlan_mac_time_util.c
+ *  @brief Time Utilities
  *
  *  This contains code common to both CPU_LOW and CPU_HIGH that allows them
  *  to interact with the MAC Time and User IO cores.
  *
- *  @copyright Copyright 2013-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2013-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *              See LICENSE.txt included in the design archive or
  *              at http://mangocomm.com/802.11/license

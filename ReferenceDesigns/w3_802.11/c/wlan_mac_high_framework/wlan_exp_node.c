@@ -3,7 +3,7 @@
  *
  *  This contains the code for WLAN Experiments Framework.
  *
- *  @copyright Copyright 2013-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2013-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *              See LICENSE.txt included in the design archive or
  *              at http://mangocomm.com/802.11/license
@@ -1718,7 +1718,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //
             u32    id;
             int    power;
-            u8     mac_addr[ETH_MAC_ADDR_LEN];
+            u8     mac_addr[MAC_ADDR_LEN];
             u32    status         = CMD_PARAM_SUCCESS;
             u32    msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
             u32    type           = Xil_Ntohl(cmd_args_32[1]);
@@ -1886,7 +1886,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - cmd_args_32[4 - 5]  - MAC Address (All 0xF means all nodes)
             //
             u32 id;
-            u8  mac_addr[ETH_MAC_ADDR_LEN];
+            u8  mac_addr[MAC_ADDR_LEN];
             u32 status         = CMD_PARAM_SUCCESS;
             u32 msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
             u32 type           = Xil_Ntohl(cmd_args_32[1]);
@@ -2034,7 +2034,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - cmd_args_32[3 - 4]  - MAC Address (All 0xF means all nodes)
             //
             u32    id;
-            u8     mac_addr[ETH_MAC_ADDR_LEN];
+            u8     mac_addr[MAC_ADDR_LEN];
             u32    status         = CMD_PARAM_SUCCESS;
             u32    msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
             u32    type           = Xil_Ntohl(cmd_args_32[1]);
@@ -2968,7 +2968,7 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
 
     u32            id;
     u64            time;
-    u8             mac_addr[BSSID_LEN];
+    u8             mac_addr[MAC_ADDR_LEN];
 
     u32            size;
     u32            transfer_size;
@@ -3236,7 +3236,7 @@ void transfer_log_data(u32 socket_index, void * from,
     u16                      data_length;
     u32                      total_hdr_length;
 
-    u8                       dest_hw_addr[ETH_MAC_ADDR_LEN];
+    u8                       dest_hw_addr[MAC_ADDR_LEN];
     u32                      dest_ip_addr;
     u16                      dest_port;
 
@@ -3319,7 +3319,7 @@ void transfer_log_data(u32 socket_index, void * from,
     //     NOTE:  Adapted from the function:
     //                eth_update_header(&(eth_ip_udp_header->eth_hdr), dest_hw_addr, ETHERTYPE_IP_V4);
     //
-    memcpy((void *)tx_eth_ip_udp_header->eth_hdr.dest_mac_addr, (void *)dest_hw_addr, ETH_MAC_ADDR_LEN);
+    memcpy((void *)tx_eth_ip_udp_header->eth_hdr.dest_mac_addr, (void *)dest_hw_addr, MAC_ADDR_LEN);
     tx_eth_ip_udp_header->eth_hdr.ethertype  = Xil_Htons(ETHERTYPE_IP_V4);
 
     // Update the UDP header
@@ -3488,7 +3488,7 @@ void copy_station_info_to_dest_entry(void * source, void * dest, u8* mac_addr, u
             bzero(curr_source, sizeof(station_info_t));
 
             // Add in MAC address
-            memcpy(curr_source->addr, mac_addr, BSSID_LEN);
+            memcpy(curr_source->addr, mac_addr, MAC_ADDR_LEN);
         }
     }
 
@@ -3545,7 +3545,7 @@ void copy_txrx_counts_to_dest_entry(void * source, void * dest, u8* mac_addr, u6
             bzero(curr_source, sizeof(counts_txrx));
 
             // Add in MAC address
-            memcpy(curr_source->addr, mac_addr, BSSID_LEN);
+            memcpy(curr_source->addr, mac_addr, MAC_ADDR_LEN);
 
             curr_source->latest_txrx_timestamp = CMD_PARAM_NODE_TIME_RSVD_VAL_64;
         }
@@ -3592,7 +3592,7 @@ void copy_bss_info_to_dest_entry(void * source, void * dest, u8* mac_addr, u64 t
             bzero(curr_source, sizeof(bss_info));
 
             // Add in MAC address
-            memcpy(curr_source->bssid, mac_addr, BSSID_LEN);
+            memcpy(curr_source->bssid, mac_addr, MAC_ADDR_LEN);
         }
     }
 

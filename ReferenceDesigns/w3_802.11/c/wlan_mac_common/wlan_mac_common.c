@@ -1,10 +1,9 @@
-/** @file wlan_mac_ipc_util.c
- *  @brief Inter-processor Communication Framework
+/** @file wlan_mac_common.c
+ *  @brief Common Code
  *
- *  This contains code common to both CPU_LOW and CPU_HIGH that allows them
- *  to pass messages to one another.
+ *  This contains code common to both CPU_LOW and CPU_HIGH.
  *
- *  @copyright Copyright 2013-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2013-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *                See LICENSE.txt included in the design archive or
  *                at http://mangocomm.com/802.11/license
@@ -247,13 +246,13 @@ void wlan_print_hw_info(wlan_mac_hw_info_t * info) {
 	xil_printf("  FPGA DNA         :  0x%8x  0x%8x\n", info->fpga_dna[1], info->fpga_dna[0]);
 	xil_printf("  WLAN EXP HW Addr :  %02x",    info->hw_addr_wlan_exp[0]);
 
-	for (i = 1; i < WLAN_MAC_ETH_ADDR_LEN; i++) {
+	for (i = 1; i < MAC_ADDR_LEN; i++) {
 		xil_printf(":%02x", info->hw_addr_wlan_exp[i]);
 	}
 	xil_printf("\n");
 
 	xil_printf("  WLAN HW Addr     :  %02x",    info->hw_addr_wlan[0]);
-	for (i = 1; i < WLAN_MAC_ETH_ADDR_LEN; i++) {
+	for (i = 1; i < MAC_ADDR_LEN; i++) {
 		xil_printf(":%02x", info->hw_addr_wlan[i]);
 	}
 	xil_printf("\n");

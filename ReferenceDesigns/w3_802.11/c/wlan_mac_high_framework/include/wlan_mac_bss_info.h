@@ -19,7 +19,8 @@
 
 /***************************** Include Files *********************************/
 
-#include "wlan_mac_high.h"
+#include "wlan_mac_802_11_defs.h"
+
 
 /*************************** Constant Definitions ****************************/
 
@@ -33,7 +34,6 @@
 //-----------------------------------------------
 // Field size defines
 //
-#define BSSID_LEN                                          6
 #define NUM_BASIC_RATES_MAX                                10
 
 
@@ -76,7 +76,7 @@
 //   Note: These fields have been 32 bit aligned using padding bytes
 
 #define MY_BSS_INFO_COMMON_FIELDS                                                                            \
-        u8         		bssid[BSSID_LEN];                  /* BSS ID - 48 bit HW address */                  \
+        u8         		bssid[MAC_ADDR_LEN];               /* BSS ID - 48 bit HW address */                  \
         chan_spec_t     chan_spec;                         /* Channel Specification */                       \
         u64        		latest_beacon_rx_time;	           /* Timestamp - Last interaction with BSS */       \
         char       		ssid[SSID_LEN_MAX + 1];            /* SSID of the BSS - 33 bytes */                  \
@@ -150,7 +150,7 @@ typedef struct{
  */
 typedef struct{
     u32       		update_mask;                       /* Mask of fields that were updated */
-    u8        		bssid[BSSID_LEN];                  /* BSS ID */
+    u8        		bssid[MAC_ADDR_LEN];               /* BSS ID */
     u16        		beacon_interval;                   /* Beacon interval - In time units of 1024 us */
     char       		ssid[SSID_LEN_MAX + 1];            /* SSID of the BSS - 33 bytes */
     chan_spec_t     chan_spec;                         /* Channel Specification*/

@@ -3,7 +3,7 @@
  *
  *  This contains the top-level code for accessing the WLAN MAC High Framework.
  *
- *  @copyright Copyright 2014-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2014-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *                See LICENSE.txt included in the design archive or
  *                at http://mangocomm.com/802.11/license
@@ -318,7 +318,7 @@ typedef struct{
  *
  ********************************************************************/
 typedef struct{
-    u8                  addr[6];                      ///< HW Address
+    u8                  addr[MAC_ADDR_LEN];           ///< HW Address
     u8                  is_associated;                ///< Is this device associated with me?
     u8                  padding;
     frame_counts_txrx   data;                         ///< Counts about data types
@@ -374,7 +374,7 @@ typedef struct{
 #define STATION_INFO_HOSTNAME_MAXLEN                       19
 
 #define WLAN_STATION_INFO_COMMON_FIELDS                                                                  		\
-        u8          addr[6];                                    /* HW Address */                         		\
+        u8          addr[MAC_ADDR_LEN];                         /* HW Address */                         		\
         u16         ID;                                         /* Identification Index for this station */     \
         char        hostname[STATION_INFO_HOSTNAME_MAXLEN+1];   /* Hostname from DHCP requests */        		\
         u32         flags;                                      /* 1-bit flags */                        		\
@@ -419,8 +419,8 @@ typedef struct{
 
 /***************************** Global Constants ******************************/
 
-extern const  u8 bcast_addr[BSSID_LEN];
-extern const  u8 zero_addr[BSSID_LEN];
+extern const  u8 bcast_addr[MAC_ADDR_LEN];
+extern const  u8 zero_addr[MAC_ADDR_LEN];
 
 
 /*************************** Function Prototypes *****************************/

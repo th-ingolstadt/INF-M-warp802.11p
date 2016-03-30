@@ -124,7 +124,7 @@ int wlan_mac_sta_join_init(){
 	join_success_callback = (function_ptr_t)wlan_null_callback;
 
     // Set default join parameters
-    bzero((u8*)gl_join_parameters.bssid, BSSID_LEN);
+    bzero((u8*)gl_join_parameters.bssid, MAC_ADDR_LEN);
     gl_join_parameters.ssid    = NULL;
     gl_join_parameters.channel = 0;
 
@@ -539,7 +539,7 @@ void wlan_mac_sta_join_bss_attempt_poll(u32 aid){
                     my_aid = aid;
 
                     // Create BSS config from attempt_bss_info
-                    memcpy(bss_config.bssid, attempt_bss_info->bssid, BSSID_LEN);
+                    memcpy(bss_config.bssid, attempt_bss_info->bssid, MAC_ADDR_LEN);
                     strncpy(bss_config.ssid, attempt_bss_info->ssid, SSID_LEN_MAX);
 
                     bss_config.chan_spec       = attempt_bss_info->chan_spec;

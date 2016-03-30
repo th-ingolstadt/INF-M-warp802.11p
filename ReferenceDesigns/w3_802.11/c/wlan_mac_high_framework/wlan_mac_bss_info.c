@@ -4,10 +4,10 @@
  *  This contains code tracking BSS information. It also contains code for managing
  *  the active scan state machine.
  *
- *  @copyright Copyright 2014-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2014-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
- *				See LICENSE.txt included in the design archive or
- *				at http://mangocomm.com/802.11/license
+ *              See LICENSE.txt included in the design archive or
+ *              at http://mangocomm.com/802.11/license
  *
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
@@ -151,7 +151,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 					dl_list_init(&(curr_bss_info->station_info_list));
 
 					// Copy BSSID into bss_info struct
-					memcpy(curr_bss_info->bssid, rx_80211_header->address_3, BSSID_LEN);
+					memcpy(curr_bss_info->bssid, rx_80211_header->address_3, MAC_ADDR_LEN);
 
 				}
 
@@ -463,7 +463,7 @@ bss_info* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan){
 		dl_list_init(&(curr_bss_info->station_info_list));
 
 		// Copy the BSS ID to the entry
-		memcpy(curr_bss_info->bssid, bssid, BSSID_LEN);
+		memcpy(curr_bss_info->bssid, bssid, MAC_ADDR_LEN);
 	}
 
 	// Update the fields of the BSS Info

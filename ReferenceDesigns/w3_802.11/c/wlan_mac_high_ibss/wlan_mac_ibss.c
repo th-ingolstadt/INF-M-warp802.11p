@@ -98,7 +98,7 @@ static u32                        max_queue_size;
 volatile u8                       pause_data_queue;
 
 // MAC address
-static u8 	                      wlan_mac_addr[6];
+static u8 	                      wlan_mac_addr[MAC_ADDR_LEN];
 
 // Beacon configuration
 static	beacon_txrx_configure_t	  gl_beacon_txrx_config;
@@ -121,7 +121,7 @@ void ibss_set_beacon_ts_update_mode(u32 enable);
 
 int main() {
 	u64                scan_start_timestamp;
-	u8                 locally_administered_addr[6];
+	u8                 locally_administered_addr[MAC_ADDR_LEN];
 	dl_list*           ssid_match_list = NULL;
 	dl_entry*          temp_dl_entry = NULL;
 	bss_info*          temp_bss_info = NULL;
@@ -148,7 +148,7 @@ int main() {
 
 	// Initialize beacon configuration
 	gl_beacon_txrx_config.ts_update_mode = FUTURE_ONLY_UPDATE;
-	bzero(gl_beacon_txrx_config.bssid_match, BSSID_LEN);
+	bzero(gl_beacon_txrx_config.bssid_match, MAC_ADDR_LEN);
 	gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
 
 	// New associations adopt these unicast params; the per-node params can be
@@ -252,7 +252,7 @@ int main() {
 
 	// CPU Low will pass HW information to CPU High as part of the boot process
 	//   - Get necessary HW information
-	memcpy((void*) &(wlan_mac_addr[0]), (void*) get_mac_hw_addr_wlan(), BSSID_LEN);
+	memcpy((void*) &(wlan_mac_addr[0]), (void*) get_mac_hw_addr_wlan(), MAC_ADDR_LEN);
 
     // Set Header information
 	tx_header_common.address_2 = &(wlan_mac_addr[0]);
@@ -322,7 +322,7 @@ int main() {
 			xil_printf("Found existing %s network. Matching BSS settings.\n", default_ssid);
 			temp_bss_info = (bss_info*)(temp_dl_entry->data);
 
-			memcpy(bss_config.bssid, temp_bss_info->bssid, BSSID_LEN);
+			memcpy(bss_config.bssid, temp_bss_info->bssid, MAC_ADDR_LEN);
 			strncpy(bss_config.ssid, temp_bss_info->ssid, SSID_LEN_MAX);
 
 			bss_config.chan_spec       = temp_bss_info->chan_spec;
@@ -340,10 +340,10 @@ int main() {
 
 			// Use node's wlan_mac_addr as BSSID
 			//     - Raise the bit identifying this address as locally administered
-			memcpy(locally_administered_addr, wlan_mac_addr, BSSID_LEN);
+			memcpy(locally_administered_addr, wlan_mac_addr, MAC_ADDR_LEN);
 			locally_administered_addr[0] |= MAC_ADDR_MSB_MASK_LOCAL;
 
-			memcpy(bss_config.bssid, locally_administered_addr, BSSID_LEN);
+			memcpy(bss_config.bssid, locally_administered_addr, MAC_ADDR_LEN);
 			strncpy(bss_config.ssid, default_ssid, SSID_LEN_MAX);
 
 			bss_config.chan_spec.chan_pri  = WLAN_DEFAULT_CHANNEL;
@@ -1350,7 +1350,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				// Disable beacons immediately
 				((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON))->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 				gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
-				bzero(gl_beacon_txrx_config.bssid_match, BSSID_LEN);
+				bzero(gl_beacon_txrx_config.bssid_match, MAC_ADDR_LEN);
 				wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
 
 				// Set hex display to "No BSS"
@@ -1454,7 +1454,7 @@ u32	configure_bss(bss_config_t* bss_config){
 			// Update Beacon configuration
 			if (send_beacon_config_to_low) {
 
-				memcpy(gl_beacon_txrx_config.bssid_match, my_bss_info->bssid, BSSID_LEN);
+				memcpy(gl_beacon_txrx_config.bssid_match, my_bss_info->bssid, MAC_ADDR_LEN);
 
 				if ((my_bss_info->beacon_interval == BEACON_INTERVAL_NO_BEACON_TX) ||
 					(my_bss_info->beacon_interval == BEACON_INTERVAL_UNKNOWN)) {

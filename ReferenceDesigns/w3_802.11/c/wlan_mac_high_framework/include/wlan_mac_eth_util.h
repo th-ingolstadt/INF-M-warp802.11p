@@ -3,10 +3,10 @@
  *
  *  Contains code for using Ethernet, including encapsulation and de-encapsulation.
  *
- *  @copyright Copyright 2013-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2013-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
- *				See LICENSE.txt included in the design archive or
- *				at http://mangocomm.com/802.11/license
+ *              See LICENSE.txt included in the design archive or
+ *              at http://mangocomm.com/802.11/license
  *
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
@@ -116,7 +116,7 @@ typedef struct{
 	u8  yiaddr[4];
 	u8  siaddr[4];
 	u8  giaddr[4];
-	u8  chaddr[6];
+	u8  chaddr[MAC_ADDR_LEN];
 	u8  chaddr_padding[10];
 	u8  padding[192];
 	u32 magic_cookie;

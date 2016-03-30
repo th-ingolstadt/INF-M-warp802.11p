@@ -3,10 +3,10 @@
  *  
  *  This contains the top-level code for accessing the WLAN MAC High Framework.
  *  
- *  @copyright Copyright 2014-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2014-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
- *				See LICENSE.txt included in the design archive or
- *				at http://mangocomm.com/802.11/license
+ *              See LICENSE.txt included in the design archive or
+ *              at http://mangocomm.com/802.11/license
  *
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
@@ -70,8 +70,8 @@ extern int                   __stack;                      ///< End of the stack
 /*************************** Variable Definitions ****************************/
 
 // Constants
-const  u8                    bcast_addr[BSSID_LEN]    = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-const  u8                    zero_addr[BSSID_LEN]     = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+const  u8                    bcast_addr[MAC_ADDR_LEN]    = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+const  u8                    zero_addr[MAC_ADDR_LEN]     = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 volatile static u32          max_num_station_infos;
 
 // HW structures
@@ -2416,7 +2416,7 @@ station_info_t *     wlan_mac_high_add_station_info(dl_list* station_info_list, 
 		station_info->counts = station_counts;
 		station_info->counts->is_associated = 1;
 
-		memcpy(station_info->addr, addr, 6);
+		memcpy(station_info->addr, addr, MAC_ADDR_LEN);
 
 		station_info->tx.phy.mcs  = 0;
 		station_info->ID         = 0;
@@ -2769,7 +2769,7 @@ counts_txrx * wlan_mac_high_add_counts(dl_list* counts_tbl, station_info_t* stat
 
 		station_counts_entry->data = (void*)station_counts;
 
-		memcpy(station_counts->addr, addr, 6);
+		memcpy(station_counts->addr, addr, MAC_ADDR_LEN);
 
 		dl_entry_insertEnd(counts_tbl, station_counts_entry);
 
@@ -3050,13 +3050,13 @@ void wlan_mac_high_print_hw_info(wlan_mac_hw_info * info) {
 	xil_printf("  FPGA DNA         :  0x%8x  0x%8x\n", info->fpga_dna[1], info->fpga_dna[0]);
 	xil_printf("  WLAN EXP HW Addr :  %02x",    info->hw_addr_wlan_exp[0]);
 
-	for( i = 1; i < ETH_MAC_ADDR_LEN; i++ ) {
+	for( i = 1; i < MAC_ADDR_LEN; i++ ) {
 		xil_printf(":%02x", info->hw_addr_wlan_exp[i]);
 	}
 	xil_printf("\n");
 
 	xil_printf("  WLAN HW Addr     :  %02x",    info->hw_addr_wlan[0]);
-	for( i = 1; i < ETH_MAC_ADDR_LEN; i++ ) {
+	for( i = 1; i < MAC_ADDR_LEN; i++ ) {
 		xil_printf(":%02x", info->hw_addr_wlan[i]);
 	}
 	xil_printf("\n");

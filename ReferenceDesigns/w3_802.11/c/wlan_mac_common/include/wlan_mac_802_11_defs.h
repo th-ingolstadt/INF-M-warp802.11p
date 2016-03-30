@@ -4,10 +4,10 @@
  *  This contains definitions of 802.11 packets that are required by both
  *  the upper and lower level CPUs.
  *
- *  @copyright Copyright 2013-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2013-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
- *				See LICENSE.txt included in the design archive or
- *				at http://mangocomm.com/802.11/license
+ *              See LICENSE.txt included in the design archive or
+ *              at http://mangocomm.com/802.11/license
  *
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
@@ -17,37 +17,49 @@
 #ifndef WLAN_MAC_802_11_H
 #define WLAN_MAC_802_11_H
 
+
+//-----------------------------------------------
+// Field size defines
+//
+#define MAC_ADDR_LEN                                       6
+#define WLAN_MAC_NUM_MCS                                   8
+
+
+
+//-----------------------------------------------
+// 802.11 structure defines
+//
 typedef struct{
-	u8 frame_control_1;
-	u8 frame_control_2;
+	u8  frame_control_1;
+	u8  frame_control_2;
 	u16 duration_id;
-	u8 address_1[6];
-	u8 address_2[6];
-	u8 address_3[6];
+	u8  address_1[MAC_ADDR_LEN];
+	u8  address_2[MAC_ADDR_LEN];
+	u8  address_3[MAC_ADDR_LEN];
 	u16 sequence_control;
-	//u8 address_4[6];
+	//u8  address_4[MAC_ADDR_LEN];
 } mac_header_80211;
 
 typedef struct{
-	u8 frame_control_1;
-	u8 frame_control_2;
+	u8  frame_control_1;
+	u8  frame_control_2;
 	u16 duration_id;
-	u8 address_ra[6];
+	u8  address_ra[MAC_ADDR_LEN];
 } mac_header_80211_ACK;
 
 typedef struct{
-	u8 frame_control_1;
-	u8 frame_control_2;
+	u8  frame_control_1;
+	u8  frame_control_2;
 	u16 duration_id;
-	u8 address_ra[6];
+	u8  address_ra[MAC_ADDR_LEN];
 } mac_header_80211_CTS;
 
 typedef struct{
-	u8 frame_control_1;
-	u8 frame_control_2;
+	u8  frame_control_1;
+	u8  frame_control_2;
 	u16 duration_id;
-	u8 address_ra[6];
-	u8 address_ta[6];
+	u8  address_ra[MAC_ADDR_LEN];
+	u8  address_ta[MAC_ADDR_LEN];
 } mac_header_80211_RTS;
 
 //IEEE 802.11-2012 section 8.2.4:
@@ -149,7 +161,5 @@ typedef struct{
 	u16 control;
 } qos_control;
 
-
-#define WLAN_MAC_NUM_MCS	8
 
 #endif /* WLAN_MAC_802_11_H */

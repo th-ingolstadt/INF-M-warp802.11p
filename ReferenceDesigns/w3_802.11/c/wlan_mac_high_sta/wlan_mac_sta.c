@@ -97,7 +97,7 @@ static u32                        max_queue_size;
 volatile u8                       pause_data_queue;
 
 // MAC address
-static u8                         wlan_mac_addr[6];
+static u8                         wlan_mac_addr[MAC_ADDR_LEN];
 
 // Beacon configuration
 static beacon_txrx_configure_t    gl_beacon_txrx_config;
@@ -148,7 +148,7 @@ int main() {
 	my_aid = 0;
 
 	gl_beacon_txrx_config.ts_update_mode = ALWAYS_UPDATE;
-	bzero(gl_beacon_txrx_config.bssid_match, BSSID_LEN);
+	bzero(gl_beacon_txrx_config.bssid_match, MAC_ADDR_LEN);
 	gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
 	gl_beacon_txrx_config.beacon_interval_tu = 0;
 
@@ -254,7 +254,7 @@ int main() {
 
 	// CPU Low will pass HW information to CPU High as part of the boot process
 	//   - Get necessary HW information
-	memcpy((void*) &(wlan_mac_addr[0]), (void*) get_mac_hw_addr_wlan(), BSSID_LEN);
+	memcpy((void*) &(wlan_mac_addr[0]), (void*) get_mac_hw_addr_wlan(), MAC_ADDR_LEN);
 
     // Set Header information
 	tx_header_common.address_2 = &(wlan_mac_addr[0]);
@@ -304,7 +304,7 @@ int main() {
 		// Set join parameters
 		//     - Zero out BSSID / Channel so the node performs a scan before joining
 		join_parameters->channel = 0;
-		bzero((void*)join_parameters->bssid, BSSID_LEN);
+		bzero((void*)join_parameters->bssid, MAC_ADDR_LEN);
 
 		wlan_mac_high_free(join_parameters->ssid);
 		join_parameters->ssid = strndup(access_point_ssid, SSID_LEN_MAX);
@@ -876,7 +876,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 							//
 							// Try to re-join the AP
 							// volatile join_parameters_t*  join_parameters = wlan_mac_sta_get_join_parameters();
-							// bzero((void*)join_parameters->bssid, 6);
+							// bzero((void*)join_parameters->bssid, MAC_ADDR_LEN);
 							// wlan_mac_high_free(join_parameters->ssid);
 							// join_parameters->ssid = strndup(curr_bss_info->ssid, SSID_LEN_MAX);
 							// wlan_mac_sta_join();
@@ -930,7 +930,7 @@ void mpdu_dequeue(tx_queue_element* packet){
 			// Overwrite addr1 of this packet with the currently associated AP. This will allow previously
 			// enqueued packets to seamlessly hand off if this STA joins a new AP
 			if(my_bss_info != NULL){
-				memcpy(header->address_1, my_bss_info->bssid, 6);
+				memcpy(header->address_1, my_bss_info->bssid, MAC_ADDR_LEN);
 			} else {
 				xil_printf("Dequeue error: no associated AP\n");
 			}
@@ -1222,7 +1222,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				my_bss_info = NULL;
 
 				// Disable beacon processing immediately
-				bzero(gl_beacon_txrx_config.bssid_match, BSSID_LEN);
+				bzero(gl_beacon_txrx_config.bssid_match, MAC_ADDR_LEN);
 				wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
 
 				// Set hex display to "No BSS"
@@ -1347,7 +1347,7 @@ u32	configure_bss(bss_config_t* bss_config){
 
 			// Update Beacon configuration
 			if (send_beacon_config_to_low) {
-				memcpy(gl_beacon_txrx_config.bssid_match, my_bss_info->bssid, BSSID_LEN);
+				memcpy(gl_beacon_txrx_config.bssid_match, my_bss_info->bssid, MAC_ADDR_LEN);
 
 				gl_beacon_txrx_config.beacon_interval_tu = my_bss_info->beacon_interval;        // CPU_LOW does not need this parameter for the STA project
 				gl_beacon_txrx_config.beacon_template_pkt_buf = TX_PKT_BUF_BEACON;              // CPU_LOW does not need this parameter for the STA project

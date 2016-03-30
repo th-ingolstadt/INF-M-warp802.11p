@@ -3,7 +3,7 @@
  *
  *  This contains code for the 802.11 Station's WLAN experiment interface.
  *
- *  @copyright Copyright 2013-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2013-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *              See LICENSE.txt included in the design archive or
  *              at http://mangocomm.com/802.11/license
@@ -299,7 +299,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             //     resp_args_32[0]  Status
             //
             u32                             status                   = CMD_PARAM_SUCCESS;
-            u8                              bssid[BSSID_LEN];
+            u8                              bssid[MAC_ADDR_LEN];
             u8                              channel                  = (Xil_Ntohl(cmd_args_32[2]) & 0xFF);
             u32                             ssid_length              = Xil_Ntohl(cmd_args_32[3]);
             char *                          ssid                     = (char *)&cmd_args_32[4];
@@ -329,7 +329,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 // Set the BSSID (reserved value is all zeros)
                 //     - Do not need to check if the value is all zero since that will be done
                 //       in the join function itself
-                memcpy((void *)join_parameters->bssid, bssid, BSSID_LEN);
+                memcpy((void *)join_parameters->bssid, bssid, MAC_ADDR_LEN);
 
                 // Set the channel (reserved value is zero)
                 //     - Do not need to check if the value is all zero since that will be done

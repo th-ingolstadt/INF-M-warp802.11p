@@ -3,7 +3,7 @@
  *
  *  This contains code for the 802.11 Access Point's WLAN experiment interface.
  *
- *  @copyright Copyright 2013-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2013-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *              See LICENSE.txt included in the design archive or
  *              at http://mangocomm.com/802.11/license
@@ -213,7 +213,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             //     resp_args_32[0]       Status
             //
             u32                   id;
-            u8                    mac_addr[6];
+            u8                    mac_addr[MAC_ADDR_LEN];
             dl_entry            * curr_entry;
             station_info_t      * curr_station_info;
             interrupt_state_t     prev_interrupt_state;
@@ -354,8 +354,8 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             //     resp_args_32[0]  Status
             //
             u32                   i;
-            u8                    mac_addr[6];
-            u8                    mask[6];
+            u8                    mac_addr[MAC_ADDR_LEN];
+            u8                    mask[MAC_ADDR_LEN];
             interrupt_state_t     prev_interrupt_state;
             u32                   status         = CMD_PARAM_SUCCESS;
             u32                   msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
@@ -423,7 +423,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             //
             u32                   flags;
             u32                   mask;
-            u8                    mac_addr[6];
+            u8                    mac_addr[MAC_ADDR_LEN];
             interrupt_state_t     prev_interrupt_state;
             u32                   status              = CMD_PARAM_SUCCESS;
             station_info_t      * curr_station_info   = NULL;

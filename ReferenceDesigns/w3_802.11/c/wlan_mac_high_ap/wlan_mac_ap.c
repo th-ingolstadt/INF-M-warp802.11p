@@ -5,8 +5,8 @@
  *
  *  @copyright Copyright 2013-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
- *				See LICENSE.txt included in the design archive or
- *				at http://mangocomm.com/802.11/license
+ *              See LICENSE.txt included in the design archive or
+ *              at http://mangocomm.com/802.11/license
  *
  *  @author Chris Hunter (chunter [at] mangocomm.com)
  *  @author Patrick Murphy (murphpo [at] mangocomm.com)
@@ -101,7 +101,7 @@ static u32                        max_queue_size;
 volatile u8                       pause_data_queue;
 
 // MAC address
-static u8 	                      wlan_mac_addr[6];
+static u8 	                      wlan_mac_addr[MAC_ADDR_LEN];
 
 // Traffic Indication Map (TIM) State
 // These global structs must be protected against externing. Any
@@ -265,7 +265,7 @@ int main(){
 
 	// The node's MAC address is stored in the EEPROM, accessible only to CPU Low
 	// CPU Low provides this to CPU High after it boots
-	memcpy((void*) &(wlan_mac_addr[0]), (void*) get_mac_hw_addr_wlan(), BSSID_LEN);
+	memcpy((void*) &(wlan_mac_addr[0]), (void*) get_mac_hw_addr_wlan(), MAC_ADDR_LEN);
 
     // Set Header information
 	tx_header_common.address_2 = &(wlan_mac_addr[0]);
@@ -314,7 +314,7 @@ int main(){
 
 	// If the DIP switch allows it, set up BSS description
 	if ((wlan_mac_high_get_user_io_state() & GPIO_MASK_DS_3) == 0) {
-		memcpy(bss_config.bssid, wlan_mac_addr, BSSID_LEN);
+		memcpy(bss_config.bssid, wlan_mac_addr, MAC_ADDR_LEN);
 		strncpy(bss_config.ssid, default_AP_SSID, SSID_LEN_MAX);
 
 		bss_config.chan_spec.chan_pri  = WLAN_DEFAULT_CHANNEL;
@@ -2306,7 +2306,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				// Disable beacons immediately
 				((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON))->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 				gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
-				bzero(gl_beacon_txrx_config.bssid_match, BSSID_LEN);
+				bzero(gl_beacon_txrx_config.bssid_match, MAC_ADDR_LEN);
 				wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
 
 				// Set hex display to "No BSS"
@@ -2410,7 +2410,7 @@ u32	configure_bss(bss_config_t* bss_config){
 			// Update Beacon configuration
 			if (send_beacon_config_to_low) {
 
-				memcpy(gl_beacon_txrx_config.bssid_match, my_bss_info->bssid, BSSID_LEN);
+				memcpy(gl_beacon_txrx_config.bssid_match, my_bss_info->bssid, MAC_ADDR_LEN);
 
 				if ((my_bss_info->beacon_interval == BEACON_INTERVAL_NO_BEACON_TX) ||
 					(my_bss_info->beacon_interval == BEACON_INTERVAL_UNKNOWN)) {

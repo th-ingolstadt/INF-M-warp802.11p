@@ -274,7 +274,7 @@ void uart_rx(u8 rxByte){
 						// Set up LTG payload
 						traffic_blast_pyld.hdr.type = LTG_PYLD_TYPE_FIXED;
 						traffic_blast_pyld.length   = 1400;
-						memcpy(&traffic_blast_pyld.addr_da, my_bss_info->bssid, ETH_MAC_ADDR_LEN);
+						memcpy(&traffic_blast_pyld.addr_da, my_bss_info->bssid, MAC_ADDR_LEN);
 
 						// Set up LTG schedule
 						traffic_blast_sched.duration_count = LTG_DURATION_FOREVER;
@@ -337,7 +337,7 @@ void uart_rx(u8 rxByte){
 						join_parameters->ssid = strndup(text_entry, SSID_LEN_MAX);
 
 						// Clear the BSSID and channel
-						bzero((void *)join_parameters->bssid, ETH_MAC_ADDR_LEN);
+						bzero((void *)join_parameters->bssid, MAC_ADDR_LEN);
 						join_parameters->channel = 0;
 
 						// Call join function

@@ -1,10 +1,10 @@
-/** @file wlan_mac_misc_util.h
- *  @brief Common Miscellaneous Definitions
+/** @file wlan_mac_sysmon_util.h
+ *  @brief System Monitor Definitions
  *
- *  This contains miscellaneous definitions of required by both the upper and
- *  lower-level CPUs.
+ *  This contains system monitor definitions of required by both CPU_HIGH and
+ *  CPU_LOW.
  *
- *  @copyright Copyright 2013-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2013-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *              See LICENSE.txt included in the design archive or
  *              at http://mangocomm.com/802.11/license

@@ -3,7 +3,7 @@
  *
  *  This contains the code for WLAN Experimental Framework.
  *
- *  @copyright Copyright 2013-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2013-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *              See LICENSE.txt included in the design archive or
  *              at http://mangocomm.com/802.11/license
@@ -24,9 +24,6 @@
 #include "ctype.h"
 #include "string.h"
 #include "stdarg.h"
-
-// BSP library includes
-#include <WARP_ip_udp.h>
 
 // WLAN includes
 #include "wlan_mac_time_util.h"
@@ -96,7 +93,7 @@ void print_mac_address(u8 * mac_address) {
 
     xil_printf("%02x", mac_address[0]);
 
-    for ( i = 1; i < ETH_MAC_ADDR_LEN; i++ ) {
+    for ( i = 1; i < MAC_ADDR_LEN; i++ ) {
         xil_printf(":%02x", mac_address[i]);
     }
 }

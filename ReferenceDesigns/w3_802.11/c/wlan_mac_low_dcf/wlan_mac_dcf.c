@@ -3,7 +3,7 @@
  *
  *  This contains code to implement the 802.11 DCF.
  *
- *  @copyright Copyright 2013-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2013-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *              See LICENSE.txt included in the design archive or
  *              at http://mangocomm.com/802.11/license
@@ -58,7 +58,7 @@ volatile static u8                     gl_cw_exp_max;
 
 volatile static u32                    gl_dot11RTSThreshold;
 
-volatile static u8                     gl_eeprom_addr[6];
+volatile static u8                     gl_eeprom_addr[MAC_ADDR_LEN];
 
 volatile static u8                     gl_mpdu_pkt_buf;
 
@@ -97,7 +97,7 @@ int main(){
 
     gl_beacon_txrx_configure.beacon_tx_mode = NO_BEACON_TX;
     gl_beacon_txrx_configure.ts_update_mode = NEVER_UPDATE;
-    bzero((void*)gl_beacon_txrx_configure.bssid_match,6);
+    bzero((void*)gl_beacon_txrx_configure.bssid_match, MAC_ADDR_LEN);
 
     gl_dot11ShortRetryLimit      = 7;
     gl_dot11LongRetryLimit       = 4;
@@ -120,7 +120,7 @@ int main(){
     gl_cw_exp = gl_cw_exp_min;
 
     hw_info = get_mac_hw_info();
-    memcpy((void*)gl_eeprom_addr, hw_info->hw_addr_wlan, 6);
+    memcpy((void*)gl_eeprom_addr, hw_info->hw_addr_wlan, MAC_ADDR_LEN);
 
     wlan_mac_low_set_frame_rx_callback((void*)frame_receive);
     wlan_mac_low_set_frame_tx_callback((void*)frame_transmit);
@@ -1852,8 +1852,8 @@ int wlan_create_rts_frame(void* pkt_buf_addr, u8* address_ra, u8* address_ta, u1
     rts_header->frame_control_2 = 0;
     rts_header->duration_id     = duration;
 
-    memcpy(rts_header->address_ra, address_ra, 6);
-    memcpy(rts_header->address_ta, address_ta, 6);
+    memcpy(rts_header->address_ra, address_ra, MAC_ADDR_LEN);
+    memcpy(rts_header->address_ta, address_ta, MAC_ADDR_LEN);
 
     // Include FCS in packet size (MAC accounts for FCS, even though the PHY calculates it)
     return (sizeof(mac_header_80211_RTS) + WLAN_PHY_FCS_NBYTES);

@@ -30,9 +30,9 @@
 /*********************** Global Structure Definitions ************************/
 
 typedef struct {
-    char    * ssid;          // Mandatory: SSID string
-    u8        bssid[6];      // Optional: BSSID address, 00-00-00-00-00-00 interpreted as "ignore"
-    u8        channel;       // Optional: Channel number, 0 interpreted as "ignore"
+    char    * ssid;                    // Mandatory: SSID string
+    u8        bssid[MAC_ADDR_LEN];     // Optional: BSSID address, 00-00-00-00-00-00 interpreted as "ignore"
+    u8        channel;                 // Optional: Channel number, 0 interpreted as "ignore"
 } join_parameters_t;
 
 

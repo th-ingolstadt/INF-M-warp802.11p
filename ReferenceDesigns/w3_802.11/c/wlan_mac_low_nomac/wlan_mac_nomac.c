@@ -1,7 +1,7 @@
 /** @file wlan_mac_nomac.c
  *  @brief Simple MAC that does nothing but transmit and receive
  *
- *  @copyright Copyright 2014-2015, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2014-2016, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *              See LICENSE.txt included in the design archive or
  *              at http://mangocomm.com/802.11/license
@@ -48,7 +48,7 @@
 
 
 /*************************** Variable Definitions ****************************/
-static u8                              eeprom_addr[6];
+static u8                              eeprom_addr[MAC_ADDR_LEN];
 
 volatile u8                            red_led_index;
 volatile u8                            green_led_index;
@@ -88,7 +88,7 @@ int main(){
 
     // Get the node's HW address
     hw_info = get_mac_hw_info();
-    memcpy(eeprom_addr, hw_info->hw_addr_wlan, 6);
+    memcpy(eeprom_addr, hw_info->hw_addr_wlan, MAC_ADDR_LEN);
 
     // Set up the TX / RX callbacks
     wlan_mac_low_set_frame_rx_callback(           (void*)frame_receive );
