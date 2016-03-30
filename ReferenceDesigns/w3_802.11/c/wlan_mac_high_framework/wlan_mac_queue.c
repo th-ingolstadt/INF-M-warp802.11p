@@ -374,7 +374,7 @@ tx_queue_element* queue_checkout(){
 
 		// Set the Tx Packet Buffer state to uninitialized. This will be set to READY
 		// after dequeue and CDMA into the actual Tx packet buffer
-		((tx_queue_buffer*)(tqe->data))->frame_info.tx_pkt_buf_state = UNINITIALIZED;
+		((tx_queue_buffer*)(tqe->data))->frame_info.tx_pkt_buf_state = TX_PKT_BUF_UNINITIALIZED;
 
 		return tqe;
 	} else {
@@ -552,7 +552,7 @@ inline int dequeue_transmit_checkin(u16 queue_sel){
 			return_value = 1;
 		} else {
 			// Release the packet buffer because there is no Tx queue element to transmit
-			((tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf))->tx_pkt_buf_state = EMPTY;
+			((tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf))->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 		}
 	}
 

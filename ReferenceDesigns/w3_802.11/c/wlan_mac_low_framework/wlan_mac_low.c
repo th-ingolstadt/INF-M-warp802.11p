@@ -154,13 +154,13 @@ int wlan_mac_low_init(u32 type){
 			case TX_PKT_BUF_MPDU_2:
 			case TX_PKT_BUF_MPDU_3:
 				switch(tx_mpdu->tx_pkt_buf_state){
-					case UNINITIALIZED:
-					case EMPTY:
+					case TX_PKT_BUF_UNINITIALIZED:
+					case TX_PKT_BUF_HIGH_CTRL:
 						// CPU High will initialize
 						break;
 					break;
-					case READY:
-					case DONE:
+					case TX_PKT_BUF_READY:
+					case TX_PKT_BUF_DONE:
 			            // CPU Low rebooted after finishing old Tx
 			            // No way to know if CPU Low sent TX_DONE(p) message - must reset p.state here
 			            //  Two potential races:
@@ -169,11 +169,11 @@ int wlan_mac_low_init(u32 type){
 			            //   -CPU High did not reboot and will attempt tx_done_handler(p)
 			            //      If p.state=EMPTY when tx_done_handler(p) runs, CPU High will fail gracefully
 			            //      If p.state set to EMPTY during tx_done_handler(p), CPU High will succeed normally
-					case CURRENT:
+					case TX_PKT_BUF_LOW_CTRL:
 			            // CPU Low rebooted after CPU High submitted packet for Tx
 			            //  Release lock and reset state
 			            //  CPU High will find this EMPTY buffer in next ping/pong update
-						tx_mpdu->tx_pkt_buf_state = EMPTY;
+						tx_mpdu->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 						unlock_tx_pkt_buf(i);
 					break;
 				}
@@ -184,27 +184,36 @@ int wlan_mac_low_init(u32 type){
 			case TX_PKT_BUF_RTS:
 			case TX_PKT_BUF_ACK_CTS:
 				force_lock_tx_pkt_buf(i);
-				tx_mpdu->tx_pkt_buf_state = EMPTY;
+				tx_mpdu->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
 			default:
 			break;
+		}
+	}
+	// ***************************************************
+	// Initialize Receive Packet Buffers
+	// ***************************************************
+	for(i = 0; i < NUM_RX_PKT_BUFS; i++){
+		rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(i);
+		switch(rx_mpdu->rx_pkt_buf_state){
+		   case RX_PKT_BUF_UNINITIALIZED:
+		   case RX_PKT_BUF_LOW_CTRL:
+			   force_lock_rx_pkt_buf(i);
+			   rx_mpdu->rx_pkt_buf_state = RX_PKT_BUF_LOW_CTRL;
+		   break;
+		   case RX_PKT_BUF_HIGH_CTRL:
+		   case RX_PKT_BUF_READY:
+	           // CPU Low rebooted after submitting packet for de-encapsulation/logging
+	           //  Will be handled by CPU High, either because CPU High is about
+	           //  to de-encapsulate/log p or just rebooted and will clean up
+		   break;
 		}
 	}
 
     // Create IPC message to receive into
     ipc_msg_from_high.payload_ptr = &(ipc_msg_from_high_payload[0]);
 
-    // Begin by trying to lock packet buffer 0 for wireless receptions
-    rx_pkt_buf = 0;
-    if(lock_rx_pkt_buf(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-        wlan_printf(PL_ERROR, "Error: unable to lock pkt_buf %d\n", rx_pkt_buf);
-        wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_RX_MUTEX);
-        return -1;
-    } else {
-        rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
-        rx_mpdu->state = RX_MPDU_STATE_RX_PENDING;
-        wlan_phy_rx_pkt_buf_ofdm(rx_pkt_buf);
-        wlan_phy_rx_pkt_buf_dsss(rx_pkt_buf);
-    }
+    // Point the PHY to an empty Rx Pkt Buffer
+    wlan_mac_low_lock_empty_rx_pkt_buf();
 
     // Move the PHY's starting address into the packet buffers by PHY_XX_PKT_BUF_PHY_HDR_OFFSET.
     // This accounts for the metadata located at the front of every packet buffer (Xx_mpdu_info)
@@ -451,9 +460,6 @@ void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
  * @return  None
  */
 void wlan_mac_hw_init(){
-    u16            i;
-    rx_frame_info* rx_mpdu;
-
     // Enable blocking of the Rx PHY following good-FCS receptions and bad-FCS receptions
     //     BLOCK_RX_ON_VALID_RXEND will block the Rx PHY on all RX_END events following valid RX_START events
     //     This allows the wlan_exp framework to count and log bad FCS receptions
@@ -480,11 +486,6 @@ void wlan_mac_hw_init(){
 
     // Clear any stale Rx events
     wlan_mac_hw_clear_rx_started();
-
-    for(i=0;i < NUM_RX_PKT_BUFS; i++){
-        rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(i);
-        rx_mpdu->state = RX_MPDU_STATE_EMPTY;
-    }
 }
 
 
@@ -1066,18 +1067,18 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 
 	switch(tx_mpdu->tx_pkt_buf_state){
 		// ---- Normal Tx process - buffer contains packet ready for Tx ----
-		case READY:
+		case TX_PKT_BUF_READY:
 			if(lock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 				wlan_printf(PL_ERROR, "Error: unable to lock TX pkt_buf %d\n", tx_pkt_buf);
 
 				get_tx_pkt_buf_status(tx_pkt_buf, &is_locked, &owner);
 
 				wlan_printf(PL_ERROR, "    TX pkt_buf %d status: isLocked = %d, owner = %d\n", tx_pkt_buf, is_locked, owner);
-				tx_mpdu->tx_pkt_buf_state = EMPTY;
+				tx_mpdu->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 
 			} else {
 
-				tx_mpdu->tx_pkt_buf_state = CURRENT;
+				tx_mpdu->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
 
 				tx_mpdu->delay_accept = (u32)(get_mac_time_usec() - tx_mpdu->timestamp_create);
 
@@ -1115,13 +1116,13 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 					tx_mpdu->tx_result = TX_MPDU_RESULT_FAILURE;
 				}
 
-				tx_mpdu->tx_pkt_buf_state = DONE;
+				tx_mpdu->tx_pkt_buf_state = TX_PKT_BUF_DONE;
 
 				//Revert the state of the packet buffer and return control to CPU High
 				if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 					wlan_printf(PL_ERROR, "Error: unable to unlock TX pkt_buf %d\n", tx_pkt_buf);
 					wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_TX_MUTEX);
-					tx_mpdu->tx_pkt_buf_state = EMPTY;
+					tx_mpdu->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 				} else {
 					ipc_msg_to_high.msg_id =  IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_DONE);
 
@@ -1145,13 +1146,14 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 			}
 		break;
 		// ---- Something went wrong - TX_READY message didn't match state of pkt buf ----
-		case CURRENT:
-            // CPU Low responsible for any CURRENT buffers
+		default:
+		case TX_PKT_BUF_LOW_CTRL:
+            // CPU Low responsible for any LOW_CTRL buffers
             //  Don't transmit - just clean up and return
-			tx_mpdu->tx_pkt_buf_state = EMPTY;
-		case UNINITIALIZED:
-		case DONE:
-		case EMPTY:
+			tx_mpdu->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+		case TX_PKT_BUF_UNINITIALIZED:
+		case TX_PKT_BUF_DONE:
+		case TX_PKT_BUF_HIGH_CTRL:
             //  CPU High will handle it eventually
             //  Ensure CPU Low doesn't own lock then return
             unlock_tx_pkt_buf(tx_pkt_buf);
@@ -1539,23 +1541,19 @@ inline void wlan_mac_low_lock_empty_rx_pkt_buf(){
     	rx_pkt_buf = (rx_pkt_buf+1) % NUM_RX_PKT_BUFS;
         rx_mpdu    = (rx_frame_info*) RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
 
-        if((rx_mpdu->state) == RX_MPDU_STATE_EMPTY){
-            if(lock_rx_pkt_buf(rx_pkt_buf) == PKT_BUF_MUTEX_SUCCESS){
+        if((rx_mpdu->rx_pkt_buf_state) == RX_PKT_BUF_LOW_CTRL){
+			// By default Rx pkt buffers are not zeroed out, to save the performance penalty of bzero'ing 2KB
+			//     However zeroing out the pkt buffer can be helpful when debugging Rx MAC/PHY behaviors
+			// bzero((void *)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), 2048);
 
-                // By default Rx pkt buffers are not zeroed out, to save the performance penalty of bzero'ing 2KB
-                //     However zeroing out the pkt buffer can be helpful when debugging Rx MAC/PHY behaviors
-                // bzero((void *)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), 2048);
+			// Set the OFDM and DSSS PHYs to use the same Rx pkt buffer
+			wlan_phy_rx_pkt_buf_ofdm(rx_pkt_buf);
+			wlan_phy_rx_pkt_buf_dsss(rx_pkt_buf);
 
-                rx_mpdu->state = RX_MPDU_STATE_RX_PENDING;
+			if (i > 1) { xil_printf("found in %d iterations.\n", i); }
 
-                // Set the OFDM and DSSS PHYs to use the same Rx pkt buffer
-                wlan_phy_rx_pkt_buf_ofdm(rx_pkt_buf);
-                wlan_phy_rx_pkt_buf_dsss(rx_pkt_buf);
+			return;
 
-                if (i > 1) { xil_printf("found in %d iterations.\n", i); }
-
-                return;
-            }
         }
 
         if (i == 1) { xil_printf("Searching for empty packet buff ... "); }
@@ -1625,10 +1623,10 @@ inline u32 wlan_mac_hw_rx_finish() {
     // Check RX_END_ERROR and FCS
     if( (mac_hw_status & WLAN_MAC_STATUS_MASK_RX_FCS_GOOD) &&
        ((mac_hw_status & WLAN_MAC_STATUS_MASK_RX_END_ERROR) == 0)) {
-        return RX_MPDU_STATE_FCS_GOOD;
+        return 1;
 
     } else {
-        return RX_MPDU_STATE_FCS_BAD;
+        return 0;
 
     }
 }

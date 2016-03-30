@@ -606,7 +606,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* frame_info){
             rx_event_log_entry->phy_mode       = frame_info->phy_details.phy_mode;
             rx_event_log_entry->ant_mode       = frame_info->ant_mode;
             rx_event_log_entry->power          = frame_info->rx_power;
-            rx_event_log_entry->fcs_status     = (frame_info->state == RX_MPDU_STATE_FCS_GOOD) ? RX_ENTRY_FCS_GOOD : RX_ENTRY_FCS_BAD;
+            rx_event_log_entry->fcs_status     = (frame_info->flags & RX_MPDU_FLAGS_FCS_GOOD) ? RX_ENTRY_FCS_GOOD : RX_ENTRY_FCS_BAD;
             rx_event_log_entry->pkt_type       = pkt_type;
             rx_event_log_entry->chan_num       = frame_info->channel;
             rx_event_log_entry->rf_gain        = frame_info->rf_gain;

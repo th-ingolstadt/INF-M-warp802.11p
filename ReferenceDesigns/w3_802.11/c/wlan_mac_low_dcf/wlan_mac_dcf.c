@@ -133,8 +133,8 @@ int main(){
     // wlan_mac_low_init() has placed a mutex lock on TX_PKT_BUF_ACK_CTS and
     // TX_PKT_BUF_RTS already. We should set their packet buffer states to
     // CURRENT.
-    ((tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK_CTS))->tx_pkt_buf_state = CURRENT;
-    ((tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_RTS))->tx_pkt_buf_state = CURRENT;
+    ((tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK_CTS))->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
+    ((tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_RTS))->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
 
     wlan_mac_low_init_finish();
 
@@ -303,7 +303,7 @@ inline int send_beacon(u8 tx_pkt_buf){
 	wlan_mac_pause_backoff_tx_ctrl_A(1);
 
 	switch(tx_frame_info_ptr->tx_pkt_buf_state){
-		case READY:
+		case TX_PKT_BUF_READY:
 			mac_tx_ctrl_status = wlan_mac_get_tx_ctrl_status();
 
 			// Check if Tx controller A is deferring (now with a paused backoff) or idle (no Tx pending)
@@ -323,7 +323,7 @@ inline int send_beacon(u8 tx_pkt_buf){
 
 				// We've locked the beacon template packet buffer. We should set its state to CURRENT
 				// so CPU_HIGH can know that we are just about to transmit it.
-				tx_frame_info_ptr->tx_pkt_buf_state = CURRENT;
+				tx_frame_info_ptr->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
 
 				// Compare the length of this frame to the RTS Threshold
 				if(tx_frame_info_ptr->length <= gl_dot11RTSThreshold) {
@@ -478,7 +478,7 @@ inline int send_beacon(u8 tx_pkt_buf){
 								return_status = 0;
 								// We will not sent a BEACON_DONE IPC message to CPU_HIGH, so
 								// tx_frame_info_ptr->tx_pkt_buf_state should remain READY
-								tx_frame_info_ptr->tx_pkt_buf_state = READY;
+								tx_frame_info_ptr->tx_pkt_buf_state = TX_PKT_BUF_READY;
 								if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 									xil_printf("Error: Unable to unlock Beacon packet buffer (beacon cancel)\n");
 								}
@@ -491,7 +491,7 @@ inline int send_beacon(u8 tx_pkt_buf){
 				} while( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_C_PENDING );
 
 				return_status = 0;
-				tx_frame_info_ptr->tx_pkt_buf_state = DONE;
+				tx_frame_info_ptr->tx_pkt_buf_state = TX_PKT_BUF_DONE;
 				if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) {
 					xil_printf("Error: Unable to unlock Beacon packet buffer (beacon sent) %d\n", unlock_tx_pkt_buf(tx_pkt_buf));
 				}
@@ -504,18 +504,18 @@ inline int send_beacon(u8 tx_pkt_buf){
 				write_mailbox_msg(&ipc_msg_to_high);
 			}
 		break;
-		case UNINITIALIZED:
-		case EMPTY:
-			//	The status was set to EMPTY because CPU_HIGH is in the process of stopping beacon
+		case TX_PKT_BUF_UNINITIALIZED:
+		case TX_PKT_BUF_HIGH_CTRL:
+			//	The status was set to HIGH_CTRL because CPU_HIGH is in the process of stopping beacon
 			//	transmissions. If so, we should expect configure_beacon_txrx() that will prevent
 			//	future calls to this function on TBTT intervals. In this case, we will return a
 			//	"success" to the calling function. We successfully did not sent this beacon because
 			//	we were informed by CPU_HIGH that we should stop.
 			return_status = 0;
 		break;
-		case CURRENT:
+		case TX_PKT_BUF_LOW_CTRL:
 			xil_printf("ERROR (send_beacon): unexpected packet buffer status of CURRENT\n");
-		case DONE:
+		case TX_PKT_BUF_DONE:
 			//	CPU_HIGH is lagging behind. The previous beacon we sent is still being processed
 			//  and hasn't been returned to us. We will exit this context rather than block and try
 			//  again later.
@@ -771,9 +771,15 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
 
     // Based on the RX length threshold, determine processing order
     if((phy_details->length) <= RX_LEN_THRESH) {
-        mpdu_info->state = wlan_mac_hw_rx_finish();
+    	if(wlan_mac_hw_rx_finish() == 1){
+    		//FCS was good
+    		mpdu_info->flags |= RX_MPDU_FLAGS_FCS_GOOD;
+    	} else {
+    		//FCS was bad
+    		mpdu_info->flags &= ~RX_MPDU_FLAGS_FCS_GOOD;
+    	}
 
-        if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD){
+        if(mpdu_info->flags & RX_MPDU_FLAGS_FCS_GOOD){
             switch(rx_finish_state) {
                 case RX_FINISH_SEND_A:
                     wlan_mac_tx_ctrl_A_start(1);
@@ -825,11 +831,17 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
 
     // Block until the reception is complete, storing the checksum status in the frame_info struct
     if ((phy_details->length) > RX_LEN_THRESH) {
-        mpdu_info->state = wlan_mac_hw_rx_finish();
+    	if(wlan_mac_hw_rx_finish() == 1){
+    		//FCS was good
+    		mpdu_info->flags |= RX_MPDU_FLAGS_FCS_GOOD;
+    	} else {
+    		//FCS was bad
+    		mpdu_info->flags &= ~RX_MPDU_FLAGS_FCS_GOOD;
+    	}
     }
 
     // Received packet had good checksum
-    if(mpdu_info->state == RX_MPDU_STATE_FCS_GOOD) {
+    if(mpdu_info->flags & RX_MPDU_FLAGS_FCS_GOOD) {
         // Increment green LEDs
         gl_green_led_index = (gl_green_led_index + 1) % NUM_LEDS;
         userio_write_leds_green(USERIO_BASEADDR, (1<<gl_green_led_index));
@@ -1054,6 +1066,8 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     if (report_to_mac_high) {
         // Unlock the pkt buf mutex before passing the packet up
         //     If this fails, something has gone horribly wrong
+
+    	mpdu_info->rx_pkt_buf_state = RX_PKT_BUF_READY;
         if (unlock_rx_pkt_buf(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) {
             xil_printf("Error: unable to unlock RX pkt_buf %d\n", rx_pkt_buf);
             wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_RX_MUTEX);

@@ -826,7 +826,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 	to_multicast  = wlan_addr_mcast(rx_80211_header->address_1);
 
     // If the packet is good (ie good FCS) and it is destined for me, then process it
-	if( (mpdu_info->state == RX_MPDU_STATE_FCS_GOOD)){
+	if( (mpdu_info->flags & RX_MPDU_FLAGS_FCS_GOOD)){
 
 		// Update the association information
 		if(my_bss_info != NULL){
@@ -1348,7 +1348,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				my_bss_info = NULL;
 
 				// Disable beacons immediately
-				((tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON))->tx_pkt_buf_state = EMPTY;
+				((tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON))->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 				gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
 				bzero(gl_beacon_txrx_config.bssid_match, BSSID_LEN);
 				wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
@@ -1458,7 +1458,7 @@ u32	configure_bss(bss_config_t* bss_config){
 
 				if ((my_bss_info->beacon_interval == BEACON_INTERVAL_NO_BEACON_TX) ||
 					(my_bss_info->beacon_interval == BEACON_INTERVAL_UNKNOWN)) {
-					((tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON))->tx_pkt_buf_state = EMPTY;
+					((tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON))->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 					gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
 				} else {
 					gl_beacon_txrx_config.beacon_tx_mode = IBSS_BEACON_TX;

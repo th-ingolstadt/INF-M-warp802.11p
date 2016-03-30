@@ -142,12 +142,19 @@ typedef struct{
 // Packet buffer state
 //
 typedef enum __attribute__ ((__packed__)) {
-   UNINITIALIZED   = 0,
-   EMPTY           = 1,
-   READY           = 2,
-   CURRENT         = 3,
-   DONE            = 4
-} pkt_buf_state_t;
+   TX_PKT_BUF_UNINITIALIZED   = 0,
+   TX_PKT_BUF_HIGH_CTRL       = 1,
+   TX_PKT_BUF_READY           = 2,
+   TX_PKT_BUF_LOW_CTRL        = 3,
+   TX_PKT_BUF_DONE            = 4
+} tx_pkt_buf_state_t;
+
+typedef enum __attribute__ ((__packed__)) {
+   RX_PKT_BUF_UNINITIALIZED   = 0,
+   RX_PKT_BUF_HIGH_CTRL       = 1,
+   RX_PKT_BUF_READY           = 2,
+   RX_PKT_BUF_LOW_CTRL        = 3
+} rx_pkt_buf_state_t;
 
 
 
@@ -155,7 +162,7 @@ typedef enum __attribute__ ((__packed__)) {
 // Meta-data about transmissions from CPU Low
 //     - This struct must be padded to be an integer number of u32 words.
 //
-typedef struct {
+typedef struct __attribute__ ((__packed__)){
     u64                      tx_start_timestamp_mpdu;
     u64                      tx_start_timestamp_ctrl;
     phy_tx_params_t          phy_params_mpdu;
@@ -176,6 +183,7 @@ typedef struct {
     u16                      ssrc;
     u16                      slrc;
 } wlan_mac_low_tx_details_t;
+CASSERT(sizeof(wlan_mac_low_tx_details_t) == 40, wlan_mac_low_tx_details_t_alignment_check);
 
 
 // tx_details_type defines
@@ -222,26 +230,26 @@ typedef struct {
 //     IMPORTANT:  This structure must be 8-byte aligned.
 //
 typedef struct{
-    u64                      timestamp_create;             ///< MAC timestamp of packet creation
+    u64                      	timestamp_create;             ///< MAC timestamp of packet creation
     //----- 8-byte boundary ------
-    u32                      delay_accept;                 ///< Time in microseconds between timestamp_create and packet acceptance by CPU Low
-    u32                      delay_done;                   ///< Time in microseconds between acceptance and transmit completion
+    u32                      	delay_accept;                 ///< Time in microseconds between timestamp_create and packet acceptance by CPU Low
+    u32                      	delay_done;                   ///< Time in microseconds between acceptance and transmit completion
     //----- 8-byte boundary ------
-    u64                      unique_seq;                   ///< Unique sequence number for this packet (12 LSB used as 802.11 MAC sequence number)
+    u64                      	unique_seq;                   ///< Unique sequence number for this packet (12 LSB used as 802.11 MAC sequence number)
     //----- 8-byte boundary ------
-    tx_queue_details_t       queue_info;                   ///< Information about the TX queue used for the packet (4 bytes)
-    u8                       tx_result;                    ///< Result of transmission attempt - TX_MPDU_RESULT_SUCCESS or TX_MPDU_RESULT_FAILURE
-    u8                       short_retry_count;            ///<
-    u8                       long_retry_count;             ///<
-    u8                       num_tx_attempts;              ///< Number of transmission attempts for this frame
+    tx_queue_details_t       	queue_info;                   ///< Information about the TX queue used for the packet (4 bytes)
+    u8                       	tx_result;                    ///< Result of transmission attempt - TX_MPDU_RESULT_SUCCESS or TX_MPDU_RESULT_FAILURE
+    u8                       	short_retry_count;            ///<
+    u8                       	long_retry_count;             ///<
+    u8                       	num_tx_attempts;              ///< Number of transmission attempts for this frame
     //----- 8-byte boundary ------
-    pkt_buf_state_t          tx_pkt_buf_state;             ///< State of the Tx Packet Buffer
-    u8                       flags;                        ///< Bit flags en/disabling certain operations by the lower-level MAC
-    u8                       phy_samp_rate;                ///< PHY Sampling Rate
-    u8                       padding0;                     ///< Used for alignment of fields (can be appropriated for any future use)
+    volatile tx_pkt_buf_state_t tx_pkt_buf_state;             ///< State of the Tx Packet Buffer
+    u8                       	flags;                        ///< Bit flags en/disabling certain operations by the lower-level MAC
+    u8                       	phy_samp_rate;                ///< PHY Sampling Rate
+    u8                       	padding0;                     ///< Used for alignment of fields (can be appropriated for any future use)
 
-    u16                      length;                       ///< Number of bytes in MAC packet, including MAC header and FCS
-    u16                      ID;                           ///< Station ID of the node to which this packet is addressed
+    u16                      	length;                       ///< Number of bytes in MAC packet, including MAC header and FCS
+    u16                      	ID;                           ///< Station ID of the node to which this packet is addressed
     //----- 8-byte boundary ------
 
     //
@@ -282,44 +290,44 @@ CASSERT(sizeof(tx_frame_info) == 48, tx_frame_info_alignment_check);
 //
 //     IMPORTANT:  This structure must be 8-byte aligned.
 //
-typedef struct{
-    u8                       state;                        ///< Packet buffer state - RX_MPDU_STATE_EMPTY, RX_MPDU_STATE_RX_PENDING, RX_MPDU_STATE_FCS_GOOD or RX_MPDU_STATE_FCS_BAD
-    u8                       flags;                        ///< Bit flags
-    u8                       ant_mode;                     ///< Rx antenna selection
-    s8                       rx_power;                     ///< Rx power, in dBm
-    u8                       rf_gain;                      ///< Gain setting of radio Rx LNA, in [0,1,2]
-    u8                       bb_gain;                      ///< Gain setting of radio Rx VGA, in [0,1,...31]
-    u8                       channel;                      ///< Channel index
-    u8                       padding1;                     ///< Used for alignment of fields (can be appropriated for any future use)
+typedef struct __attribute__ ((__packed__)){
+    u8                       	  	flags;                        ///< Bit flags
+    u8                       	  	ant_mode;                     ///< Rx antenna selection
+    s8                       	 	rx_power;                     ///< Rx power, in dBm
+    u8                       	 	rf_gain;                      ///< Gain setting of radio Rx LNA, in [0,1,2]
+    u8                       	  	bb_gain;                      ///< Gain setting of radio Rx VGA, in [0,1,...31]
+    u8                       	  	channel;                      ///< Channel index
+    volatile rx_pkt_buf_state_t     rx_pkt_buf_state;             ///< State of the Rx Packet Buffer
+    u8                       	  	reserved0;
     //----- 8-byte boundary ------
-    u32                      cfo_est;                      ///< Carrier Frequency Offset Estimate
-    u32                      reserved0;
+    u32                      	  	cfo_est;                      ///< Carrier Frequency Offset Estimate
+    u32							  	reserved1;
     //----- 8-byte boundary ------
-    phy_rx_details_t         phy_details;                  ///< Details from PHY used in this reception
+    phy_rx_details_t         	  	phy_details;                  ///< Details from PHY used in this reception
     //----- 8-byte boundary ------
-    u8                       timestamp_frac;               ///< Fractional timestamp beyond usec timestamp for time of reception
-    u8                       phy_samp_rate;                ///< PHY Sampling Rate
-    u8                       reserved1[2];                 ///< Reserved bytes for alignment
-    u32                      additional_info;              ///< Field to hold MAC-specific info, such as a pointer to a station_info
+    u8                       	  	timestamp_frac;               ///< Fractional timestamp beyond usec timestamp for time of reception
+    u8                       	  	phy_samp_rate;                ///< PHY Sampling Rate
+    u8                       	  	reserved2[2];                 ///< Reserved bytes for alignment
+    u32                      	  	additional_info;              ///< Field to hold MAC-specific info, such as a pointer to a station_info
     //----- 8-byte boundary ------
-    wlan_mac_low_tx_details_t     resp_low_tx_details;
-    u64                      timestamp;                    ///< MAC timestamp at time of reception
-    u32                      channel_est[64];              ///< Rx PHY channel estimates
+    wlan_mac_low_tx_details_t     	resp_low_tx_details;			///< Tx Low Details for a control resonse (e.g. ACK or CTS)
+    //----- 8-byte boundary ------
+    u64                      	  	timestamp;                    ///< MAC timestamp at time of reception
+    //----- 8-byte boundary ------
+    u32                      	  	channel_est[64];              ///< Rx PHY channel estimates
 } rx_frame_info;
+// The above structure assumes that pkt_buf_state_t is a u8.  However, that is architecture dependent.
+// Therefore, the code will check the size of the structure using a compile-time assertion.  This check
+// will need to be updated if fields are added to the structure
+//
+CASSERT(sizeof(rx_frame_info) == 336, rx_frame_info_alignment_check);
 
 
 // Defines for flags field
+// FIXME: rename and remove "MPDU". These also apply to control frames
 #define RX_MPDU_FLAGS_FORMED_RESPONSE                      0x1
 #define RX_MPDU_FLAGS_RETRY                                0x2
-
-
-// TODO:  Convert to pkt_buf_state_t
-// FIXME: these shouldn't be named "MPDU"
-#define RX_MPDU_STATE_EMPTY                                0
-#define RX_MPDU_STATE_RX_PENDING                           1
-#define RX_MPDU_STATE_FCS_GOOD                             2
-#define RX_MPDU_STATE_FCS_BAD                              3
-
+#define RX_MPDU_FLAGS_FCS_GOOD                             0x4
 
 
 /*************************** Function Prototypes *****************************/

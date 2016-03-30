@@ -684,7 +684,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 	to_multicast  = wlan_addr_mcast(rx_80211_header->address_1);
 
     // If the packet is good (ie good FCS) and it is destined for me, then process it
-	if( (frame_info->state == RX_MPDU_STATE_FCS_GOOD)){
+	if( (frame_info->flags & RX_MPDU_FLAGS_FCS_GOOD)){
 
 		// Update the association information
 		if(my_bss_info != NULL){
