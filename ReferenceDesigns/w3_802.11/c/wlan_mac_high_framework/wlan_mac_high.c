@@ -264,13 +264,13 @@ void wlan_mac_high_cpu_ddr_linker_data_init(u8 dram_present) {
  * @return None
  */
 void wlan_mac_high_init(){
-	int            Status;
-    u32            i;
-	tx_frame_info* tx_mpdu;
-	rx_frame_info* rx_mpdu;
-	u64            timestamp;
-	u32            log_size;
-	XAxiCdma_Config *cdma_cfg_ptr;
+	int              Status;
+    u32              i;
+	tx_frame_info_t* tx_frame_info;
+	rx_frame_info_t* rx_frame_info;
+	u64              timestamp;
+	u32              log_size;
+	XAxiCdma_Config* cdma_cfg_ptr;
 
 
 	// Check that right shift works correctly
@@ -339,12 +339,12 @@ void wlan_mac_high_init(){
 	// Initialize Transmit Packet Buffers
 	// ***************************************************
 	for(i = 0; i < NUM_TX_PKT_BUFS; i++){
-		tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(i);
+		tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(i);
 		switch(i){
 			case TX_PKT_BUF_MPDU_1:
 			case TX_PKT_BUF_MPDU_2:
 			case TX_PKT_BUF_MPDU_3:
-				switch(tx_mpdu->tx_pkt_buf_state){
+				switch(tx_frame_info->tx_pkt_buf_state){
 					default:
 					case TX_PKT_BUF_UNINITIALIZED:
 					case TX_PKT_BUF_HIGH_CTRL:
@@ -353,7 +353,7 @@ void wlan_mac_high_init(){
 						// CPU High rebooted while CPU Low finished old Tx
 						//  Ignore the packet buffer contents and clean up
 						force_lock_tx_pkt_buf(i);
-						tx_mpdu->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+						tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 					break;
 					case TX_PKT_BUF_READY:
 					case TX_PKT_BUF_LOW_CTRL:
@@ -364,7 +364,7 @@ void wlan_mac_high_init(){
 				}
 			break;
 			case TX_PKT_BUF_BEACON:
-				tx_mpdu->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+				tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 			case TX_PKT_BUF_RTS:
 			case TX_PKT_BUF_ACK_CTS:
 				unlock_tx_pkt_buf(i);
@@ -377,8 +377,8 @@ void wlan_mac_high_init(){
 	// Initialize Receive Packet Buffers
 	// ***************************************************
 	for(i = 0; i < NUM_RX_PKT_BUFS; i++){
-		rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(i);
-		switch(rx_mpdu->rx_pkt_buf_state){
+		rx_frame_info = (rx_frame_info_t*)RX_PKT_BUF_TO_ADDR(i);
+		switch(rx_frame_info->rx_pkt_buf_state){
 			case RX_PKT_BUF_UNINITIALIZED:
 			case RX_PKT_BUF_LOW_CTRL:
 				//CPU_LOW will initialize
@@ -394,7 +394,7 @@ void wlan_mac_high_init(){
 	            //  fill the packet buffer all while the mutex is unlocked. Once the
 	            //  state transitions to READY and is passed to CPU_HIGH, this ambiguous
 	            //  state will be resolved.
-				rx_mpdu->rx_pkt_buf_state = RX_PKT_BUF_LOW_CTRL;
+				rx_frame_info->rx_pkt_buf_state = RX_PKT_BUF_LOW_CTRL;
 				unlock_rx_pkt_buf(i);
 			break;
 		}
@@ -1358,15 +1358,15 @@ void wlan_mac_high_cdma_finish_transfer(){
  *
  */
 void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
-	wlan_ipc_msg_t 	ipc_msg_to_low;
-	tx_frame_info* 	tx_mpdu;
-	station_info_t* station_info;
-	void* 			dest_addr;
-	void* 			src_addr;
-	u32 			xfer_len;
+	wlan_ipc_msg_t 		ipc_msg_to_low;
+	tx_frame_info_t* 	tx_frame_info;
+	station_info_t* 	station_info;
+	void* 				dest_addr;
+	void* 				src_addr;
+	u32 				xfer_len;
 
 
-	tx_mpdu   = (tx_frame_info*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+	tx_frame_info   = (tx_frame_info_t*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 
     // Call user code to notify it of dequeue
 	mpdu_tx_dequeue_callback(packet);
@@ -1375,8 +1375,8 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
     //     NOTE:  This must be done after the mpdu_tx_dequeue_callback since that call can
     //         modify the packet contents.
 	dest_addr = (void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
-	src_addr  = (void*) (&(((tx_queue_buffer*)(packet->data))->frame_info));
-	xfer_len  = ((tx_queue_buffer*)(packet->data))->frame_info.length + sizeof(tx_frame_info) + PHY_TX_PKT_BUF_PHY_HDR_SIZE - WLAN_PHY_FCS_NBYTES;
+	src_addr  = (void*) (&(((tx_queue_buffer*)(packet->data))->tx_frame_info));
+	xfer_len  = ((tx_queue_buffer*)(packet->data))->tx_frame_info.length + sizeof(tx_frame_info_t) + PHY_TX_PKT_BUF_PHY_HDR_SIZE - WLAN_PHY_FCS_NBYTES;
 
 	// Transfer the frame info
 	wlan_mac_high_cdma_start_transfer( dest_addr, src_addr, xfer_len);
@@ -1385,7 +1385,7 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
 	wlan_mac_high_cdma_finish_transfer();
 
 	// Unique_seq will be filled in by CPU_LOW
-	tx_mpdu->unique_seq = 0;
+	tx_frame_info->unique_seq = 0;
 
 	switch(((tx_queue_buffer*)(packet->data))->metadata.metadata_type){
 	    case QUEUE_METADATA_TYPE_IGNORE:
@@ -1398,27 +1398,27 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
 			// NOTE: this would be a good place to add code to handle the automatic adjustment of transmission properties like rate
 			//
 
-			memcpy(&(tx_mpdu->params), &(station_info->tx), sizeof(tx_params_t));
+			memcpy(&(tx_frame_info->params), &(station_info->tx), sizeof(tx_params_t));
 		break;
 
 		case QUEUE_METADATA_TYPE_TX_PARAMS:
-			memcpy(&(tx_mpdu->params), (void*)(((tx_queue_buffer*)(packet->data))->metadata.metadata_ptr), sizeof(tx_params_t));
+			memcpy(&(tx_frame_info->params), (void*)(((tx_queue_buffer*)(packet->data))->metadata.metadata_ptr), sizeof(tx_params_t));
 		break;
 	}
 
-	tx_mpdu->short_retry_count = 0;
-	tx_mpdu->long_retry_count = 0;
+	tx_frame_info->short_retry_count = 0;
+	tx_frame_info->long_retry_count = 0;
 
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_READY);
 	ipc_msg_to_low.arg0              = tx_pkt_buf;
 	ipc_msg_to_low.num_payload_words = 0;
 
 	// Set the packet buffer state to READY
-	tx_mpdu->tx_pkt_buf_state = TX_PKT_BUF_READY;
+	tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_READY;
 
 	if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 		wlan_printf(PL_ERROR, "Error: unable to unlock tx pkt_buf %d\n",tx_pkt_buf);
-		tx_mpdu->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+		tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 	} else {
 		write_mailbox_msg(&ipc_msg_to_low);
 	}
@@ -1535,16 +1535,16 @@ void wlan_mac_high_setup_tx_frame_info(mac_header_80211_common * header, tx_queu
 	tx_queue_buffer* curr_tx_queue_buffer = ((tx_queue_buffer*)(curr_tx_queue_element->data));
 
     // Get occupancy that was filled in during the enqueue_after_tail() call
-	occupancy = curr_tx_queue_buffer->frame_info.queue_info.occupancy;
+	occupancy = curr_tx_queue_buffer->tx_frame_info.queue_info.occupancy;
 
-	bzero(&(curr_tx_queue_buffer->frame_info), sizeof(tx_frame_info));
+	bzero(&(curr_tx_queue_buffer->tx_frame_info), sizeof(tx_frame_info_t));
 
 	// Set up frame info data
-	curr_tx_queue_buffer->frame_info.timestamp_create            = get_mac_time_usec();
-	curr_tx_queue_buffer->frame_info.length                      = tx_length;
-	curr_tx_queue_buffer->frame_info.flags                       = flags;
-	curr_tx_queue_buffer->frame_info.queue_info.QID              = QID;
-	curr_tx_queue_buffer->frame_info.queue_info.occupancy        = occupancy;
+	curr_tx_queue_buffer->tx_frame_info.timestamp_create            = get_mac_time_usec();
+	curr_tx_queue_buffer->tx_frame_info.length                      = tx_length;
+	curr_tx_queue_buffer->tx_frame_info.flags                       = flags;
+	curr_tx_queue_buffer->tx_frame_info.queue_info.QID              = QID;
+	curr_tx_queue_buffer->tx_frame_info.queue_info.occupancy        = occupancy;
 
 }
 
@@ -1595,8 +1595,8 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 	u8                  rx_pkt_buf;
 	u8					tx_pkt_buf;
     u32                 temp_1;
-	rx_frame_info*      rx_mpdu;
-	tx_frame_info*      tx_mpdu;
+	rx_frame_info_t*    rx_frame_info;
+	tx_frame_info_t*    tx_frame_info;
 
     // Determine what type of message this is
 	switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)) {
@@ -1608,9 +1608,9 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 				if(lock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 					xil_printf("Error: CPU_LOW had lock on Beacon packet buffer during IPC_MBOX_TX_BEACON_DONE\n");
 				} else {
-					tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
-					beacon_tx_done_callback( tx_mpdu, (wlan_mac_low_tx_details_t*)(msg->payload_ptr) );
-					tx_mpdu->tx_pkt_buf_state = TX_PKT_BUF_READY;
+					tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+					beacon_tx_done_callback( tx_frame_info, (wlan_mac_low_tx_details_t*)(msg->payload_ptr) );
+					tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_READY;
 					if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 						xil_printf("Error: Unable to unlock Beacon packet buffer during IPC_MBOX_TX_BEACON_DONE\n");
 						return;
@@ -1627,9 +1627,9 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 			//
 			rx_pkt_buf = msg->arg0;
 			if(rx_pkt_buf < NUM_RX_PKT_BUFS){
-				rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
+				rx_frame_info = (rx_frame_info_t*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
 
-				switch(rx_mpdu->rx_pkt_buf_state){
+				switch(rx_frame_info->rx_pkt_buf_state){
 				   case RX_PKT_BUF_READY:
 					   // Normal Rx process - buffer contains packet ready for de-encap and logging
 					   // Attempt to lock the indicated Rx pkt buf (CPU Low must unlock it before sending this msg)
@@ -1637,7 +1637,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 							wlan_printf(PL_ERROR, "Error: unable to lock pkt_buf %d\n", rx_pkt_buf);
 						} else {
 
-							rx_mpdu->rx_pkt_buf_state = RX_PKT_BUF_HIGH_CTRL;
+							rx_frame_info->rx_pkt_buf_state = RX_PKT_BUF_HIGH_CTRL;
 
 							//Before calling the user's callback, we'll pass this reception off to the BSS info subsystem so it can scrape for BSS metadata
 							bss_info_rx_process((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)));
@@ -1646,7 +1646,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 							mpdu_rx_callback((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)));
 
 							// Free up the rx_pkt_buf
-							rx_mpdu->rx_pkt_buf_state = RX_PKT_BUF_LOW_CTRL;
+							rx_frame_info->rx_pkt_buf_state = RX_PKT_BUF_LOW_CTRL;
 
 							if(unlock_rx_pkt_buf(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 								wlan_printf(PL_ERROR, "Error: unable to unlock rx pkt_buf %d\n", rx_pkt_buf);
@@ -1656,7 +1656,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 				   default:
 				   case RX_PKT_BUF_HIGH_CTRL:
 					   //  Don't de-encap - just clean up and return
-					   rx_mpdu->rx_pkt_buf_state = RX_PKT_BUF_LOW_CTRL;
+					   rx_frame_info->rx_pkt_buf_state = RX_PKT_BUF_LOW_CTRL;
 				   case RX_PKT_BUF_UNINITIALIZED:
 				   case RX_PKT_BUF_LOW_CTRL:
 					   if(unlock_rx_pkt_buf(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
@@ -1676,15 +1676,15 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
             //
 			tx_pkt_buf = msg->arg0;
 			if(tx_pkt_buf < NUM_TX_PKT_BUFS){
-				tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
-				switch(tx_mpdu->tx_pkt_buf_state){
+				tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+				switch(tx_frame_info->tx_pkt_buf_state){
 					case TX_PKT_BUF_DONE:
 						// Expected state after CPU Low finishes Tx
 						//  Run normal post-tx processing
 						// Lock this packet buffer
 						if(lock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 							xil_printf("Error: DONE Lock Tx Pkt Buf State Mismatch\n");
-							tx_mpdu->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+							tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 							return;
 						}
 
@@ -1693,8 +1693,8 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 						tx_poll_callback();
 
 						temp_1  = (4*(msg->num_payload_words)) / sizeof(wlan_mac_low_tx_details_t);
-						mpdu_tx_done_callback(tx_mpdu, (wlan_mac_low_tx_details_t*)(msg->payload_ptr), temp_1);
-						tx_mpdu->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+						mpdu_tx_done_callback(tx_frame_info, (wlan_mac_low_tx_details_t*)(msg->payload_ptr), temp_1);
+						tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 					break;
 					// Something has gone wrong - TX_DONE message disagrees
 					//  with state of Tx pkt buf
@@ -1705,7 +1705,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 						// Ignore the contents, force-lock the buffer, and
 						//  leave it EMPTY, will be used by future ping-pong rotation
 						force_lock_tx_pkt_buf(tx_pkt_buf);
-						tx_mpdu->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+						tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 					case TX_PKT_BUF_READY:
 					case TX_PKT_BUF_LOW_CTRL:
 						//CPU Low will clean up
@@ -2188,9 +2188,9 @@ inline int wlan_mac_high_is_dequeue_allowed(){
 	num_empty = 0;
 	num_done = 0;
 	for( i = 0; i < 3; i++ ){
-		if( ((tx_frame_info*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state == TX_PKT_BUF_HIGH_CTRL ){
+		if( ((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state == TX_PKT_BUF_HIGH_CTRL ){
 			num_empty++;
-		} else if( ((tx_frame_info*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state == TX_PKT_BUF_DONE ){
+		} else if( ((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state == TX_PKT_BUF_DONE ){
 			num_done++;
 		}
 	}
@@ -2219,7 +2219,7 @@ int wlan_mac_high_get_empty_tx_packet_buffer(){
 	int pkt_buf_sel = -1;
 
 	for( i = 0; i < 3; i++ ){
-		if( ((tx_frame_info*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state == TX_PKT_BUF_HIGH_CTRL ){
+		if( ((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state == TX_PKT_BUF_HIGH_CTRL ){
 			pkt_buf_sel = i;
 			break;
 		}
@@ -2841,15 +2841,15 @@ void wlan_mac_high_reset_counts(dl_list* counts_tbl){
  *     - Pointer to the TX MPDU that we will use to update the counts
  * @return None
  */
-void wlan_mac_high_update_tx_counts(tx_frame_info* tx_mpdu, station_info_t* station_info) {
-	void              * mpdu           = (u8*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
+void wlan_mac_high_update_tx_counts(tx_frame_info_t* tx_frame_info, station_info_t* station_info) {
+	void              * mac_payload    = (u8*)tx_frame_info + PHY_TX_PKT_BUF_MPDU_OFFSET;
 	frame_counts_txrx * frame_counts   = NULL;
 
 	u8                  pkt_type;
 
 	if(station_info != NULL){
 	    // Get the packet type
-		pkt_type = wlan_mac_high_pkt_type(mpdu, tx_mpdu->length);
+		pkt_type = wlan_mac_high_pkt_type(mac_payload, tx_frame_info->length);
 
 		switch(pkt_type){
 			case PKT_TYPE_DATA_ENCAP_ETH:
@@ -2867,12 +2867,12 @@ void wlan_mac_high_update_tx_counts(tx_frame_info* tx_mpdu, station_info_t* stat
 			station_info->counts->latest_txrx_timestamp = get_system_time_usec();
 
 			(frame_counts->tx_num_packets_total)++;
-			(frame_counts->tx_num_bytes_total) += (tx_mpdu->length);
-			(frame_counts->tx_num_packets_low) += (tx_mpdu->short_retry_count); //TODO: Needs to be fixed for short/long
+			(frame_counts->tx_num_bytes_total) += (tx_frame_info->length);
+			(frame_counts->tx_num_packets_low) += (tx_frame_info->short_retry_count); //TODO: Needs to be fixed for short/long
 
-			if((tx_mpdu->tx_result) == TX_MPDU_RESULT_SUCCESS){
+			if((tx_frame_info->tx_result) == TX_MPDU_RESULT_SUCCESS){
 				(frame_counts->tx_num_packets_success)++;
-				(frame_counts->tx_num_bytes_success) += tx_mpdu->length;
+				(frame_counts->tx_num_bytes_success) += tx_frame_info->length;
 
 				// Update the latest_activity_timestamp for the station because we had a successful TX
 				station_info->latest_activity_timestamp = get_system_time_usec();
@@ -2894,7 +2894,7 @@ void wlan_mac_high_update_tx_counts(tx_frame_info* tx_mpdu, station_info_t* stat
 int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, bss_info* bss_info_ptr, tx_params_t* tx_params_ptr, u8 flags) {
 	u16 tx_length;
 
-	tx_frame_info*  tx_frame_info_ptr = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON);
+	tx_frame_info_t*  tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON);
 	if(lock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
 		xil_printf("Error: CPU_LOW had lock on Beacon packet buffer during initial configuration\n");
 		return -1;
@@ -2902,29 +2902,29 @@ int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_heade
 
 	// Fill in the data
 	tx_length = wlan_create_beacon_frame(
-		(void*)(tx_frame_info_ptr)+PHY_TX_PKT_BUF_MPDU_OFFSET,
+		(void*)(tx_frame_info)+PHY_TX_PKT_BUF_MPDU_OFFSET,
 		tx_header_common_ptr,
 		bss_info_ptr);
 
-	bzero(tx_frame_info_ptr, sizeof(tx_frame_info));
+	bzero(tx_frame_info, sizeof(tx_frame_info));
 
 	// Set up frame info data
-	tx_frame_info_ptr->timestamp_create            = get_mac_time_usec();
-	tx_frame_info_ptr->length                      = tx_length;
-	tx_frame_info_ptr->flags                       = flags;
-	tx_frame_info_ptr->queue_info.QID			   = 0xFF;
-	tx_frame_info_ptr->queue_info.occupancy 	   = 0;
+	tx_frame_info->timestamp_create            = get_mac_time_usec();
+	tx_frame_info->length                      = tx_length;
+	tx_frame_info->flags                       = flags;
+	tx_frame_info->queue_info.QID			   = 0xFF;
+	tx_frame_info->queue_info.occupancy 	   = 0;
 
 
 	// Unique_seq will be filled in by CPU_LOW
-	tx_frame_info_ptr->unique_seq = 0;
+	tx_frame_info->unique_seq = 0;
 
-	memcpy(&(tx_frame_info_ptr->params), tx_params_ptr, sizeof(tx_params_t));
+	memcpy(&(tx_frame_info->params), tx_params_ptr, sizeof(tx_params_t));
 
-	tx_frame_info_ptr->short_retry_count = 0;
-	tx_frame_info_ptr->long_retry_count = 0;
+	tx_frame_info->short_retry_count = 0;
+	tx_frame_info->long_retry_count = 0;
 
-	tx_frame_info_ptr->tx_pkt_buf_state = TX_PKT_BUF_READY;
+	tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_READY;
 	if(unlock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
 		xil_printf("Error: Unable to unlock Beacon packet buffer during initial configuration\n");
 		return -1;
@@ -2949,14 +2949,14 @@ int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_heade
  * @return status            - 0 - Success;   -1 Failure
  */
 int wlan_mac_high_update_beacon_tx_params(tx_params_t* tx_params_ptr) {
-	tx_frame_info*  tx_frame_info_ptr = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON);
+	tx_frame_info_t*  tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON);
 
 	if (lock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS) {
 		xil_printf("Error: CPU_LOW had lock on Beacon packet buffer during initial configuration\n");
 		return -1;
 	}
 
-	memcpy(&(tx_frame_info_ptr->params), tx_params_ptr, sizeof(tx_params_t));
+	memcpy(&(tx_frame_info->params), tx_params_ptr, sizeof(tx_params_t));
 
 	if (unlock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS) {
 		xil_printf("Error: Unable to unlock Beacon packet buffer during initial configuration\n");

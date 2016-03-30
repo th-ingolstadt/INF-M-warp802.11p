@@ -405,10 +405,10 @@ void             * wlan_exp_log_create_entry(u16 entry_type_id, u16 entry_size);
 //-----------------------------------------------
 // Methods to create an entry
 //
-tx_high_entry    * wlan_exp_log_create_tx_high_entry(tx_frame_info* tx_mpdu);
-tx_low_entry     * wlan_exp_log_create_tx_low_entry(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details_t* tx_low_details, u32 tx_low_count);
+tx_high_entry    * wlan_exp_log_create_tx_high_entry(tx_frame_info_t* tx_frame_info);
+tx_low_entry     * wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details, u32 tx_low_count);
 
-rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info* frame_info);
+rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info);
 
 //-----------------------------------------------
 // Print function for all entries

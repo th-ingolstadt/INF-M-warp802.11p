@@ -606,7 +606,7 @@ void transmit_join_auth_req(){
             // Set the information in the TX queue buffer
             curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
             curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-            curr_tx_queue_buffer->frame_info.ID         = 0;
+            curr_tx_queue_buffer->tx_frame_info.ID         = 0;
 
             // Put the packet in the queue
             enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
@@ -652,7 +652,7 @@ void transmit_join_assoc_req(){
             // Set the information in the TX queue buffer
             curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
             curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-            curr_tx_queue_buffer->frame_info.ID          = 0;
+            curr_tx_queue_buffer->tx_frame_info.ID          = 0;
 
             // Put the packet in the queue
             enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);

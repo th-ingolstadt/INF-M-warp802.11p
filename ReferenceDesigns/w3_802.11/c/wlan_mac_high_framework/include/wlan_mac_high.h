@@ -507,7 +507,7 @@ u32                wlan_mac_high_get_max_num_station_infos();
 
 counts_txrx*       wlan_mac_high_add_counts(dl_list* counts_tbl, station_info_t* station_info, u8* addr);
 void               wlan_mac_high_reset_counts(dl_list* counts_tbl);
-void               wlan_mac_high_update_tx_counts(tx_frame_info* tx_mpdu, station_info_t* station_info);
+void               wlan_mac_high_update_tx_counts(tx_frame_info_t* tx_frame_info, station_info_t* station_info);
 int                wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, bss_info* bss_info_ptr, tx_params_t* tx_params_ptr, u8 flags);
 int                wlan_mac_high_update_beacon_tx_params(tx_params_t* tx_params_ptr);
 

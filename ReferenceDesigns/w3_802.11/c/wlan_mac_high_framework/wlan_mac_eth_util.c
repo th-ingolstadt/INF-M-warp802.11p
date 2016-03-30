@@ -986,7 +986,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
     int                      status;
     u8                     * eth_mid_ptr;
 
-    rx_frame_info          * frame_info;
+    rx_frame_info_t        * rx_frame_info;
 
     mac_header_80211       * rx80211_hdr;
     llc_header_t           * llc_hdr;
@@ -1073,17 +1073,17 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
                                         case DHCP_HOST_NAME:
                                             if (is_dhcp_req) {
                                                 // Look backwards from the MPDU payload to find the wireless Rx pkt metadata (the rx_frame_info struct)
-                                                frame_info = (rx_frame_info*)((u8*)mpdu  - PHY_RX_PKT_BUF_MPDU_OFFSET);
+                                                rx_frame_info = (rx_frame_info_t*)((u8*)mpdu  - PHY_RX_PKT_BUF_MPDU_OFFSET);
 
-                                                if (frame_info->additional_info != NULL) {
+                                                if (rx_frame_info->additional_info != NULL) {
                                                     // rx_frame_info has pointer to STA entry in association table - fill in that entry's hostname field
 
                                                     // Zero out the hostname field of the station_info
                                                     //     NOTE: This will effectively Null-terminate the string
-                                                    bzero(((station_info_t*)(frame_info->additional_info))->hostname, STATION_INFO_HOSTNAME_MAXLEN+1);
+                                                    bzero(((station_info_t*)(rx_frame_info->additional_info))->hostname, STATION_INFO_HOSTNAME_MAXLEN+1);
 
                                                     // Copy the string from the DHCP payload into the hostname field
-                                                    memcpy(((station_info_t*)(frame_info->additional_info))->hostname,
+                                                    memcpy(((station_info_t*)(rx_frame_info->additional_info))->hostname,
                                                             &(eth_mid_ptr[2]),
                                                             min(STATION_INFO_HOSTNAME_MAXLEN, eth_mid_ptr[1]));
                                                 }

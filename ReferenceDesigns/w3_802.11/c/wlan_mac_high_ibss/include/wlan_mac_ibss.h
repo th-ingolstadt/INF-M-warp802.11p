@@ -71,8 +71,8 @@ void association_timestamp_adjust(s64 timestamp_diff);
 int  ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length);
 
 void mpdu_rx_process(void* pkt_buf_addr);
-void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details_t* tx_low_details, u16 num_tx_low_details);
-void beacon_transmit_done( tx_frame_info* tx_mpdu, wlan_mac_low_tx_details_t* tx_low_details );
+void mpdu_transmit_done(tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details, u16 num_tx_low_details);
+void beacon_transmit_done( tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details );
 void process_scan_state_change(scan_state_t scan_state);
 void poll_tx_queues();
 void purge_all_data_tx_queue();

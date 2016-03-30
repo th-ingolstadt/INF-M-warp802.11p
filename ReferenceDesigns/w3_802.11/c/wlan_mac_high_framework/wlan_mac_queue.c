@@ -289,7 +289,7 @@ void enqueue_after_tail(u16 queue_sel, tx_queue_element* tqe){
 	//         field is set after the current tx queue element has been added to the queue, so the
 	//         occupancy value includes itself.
 	//
-	((tx_queue_buffer*)(tqe->data))->frame_info.queue_info.occupancy = (tx_queues[queue_sel].length & 0xFFFF);
+	((tx_queue_buffer*)(tqe->data))->tx_frame_info.queue_info.occupancy = (tx_queues[queue_sel].length & 0xFFFF);
 
 	if(tx_queues[queue_sel].length == 1){
 		//If the queue element we just added is now the only member of this queue, we should inform
@@ -374,7 +374,7 @@ tx_queue_element* queue_checkout(){
 
 		// Set the Tx Packet Buffer state to uninitialized. This will be set to READY
 		// after dequeue and CDMA into the actual Tx packet buffer
-		((tx_queue_buffer*)(tqe->data))->frame_info.tx_pkt_buf_state = TX_PKT_BUF_UNINITIALIZED;
+		((tx_queue_buffer*)(tqe->data))->tx_frame_info.tx_pkt_buf_state = TX_PKT_BUF_UNINITIALIZED;
 
 		return tqe;
 	} else {
@@ -552,7 +552,7 @@ inline int dequeue_transmit_checkin(u16 queue_sel){
 			return_value = 1;
 		} else {
 			// Release the packet buffer because there is no Tx queue element to transmit
-			((tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf))->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+			((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf))->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 		}
 	}
 

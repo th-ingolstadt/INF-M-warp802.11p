@@ -53,9 +53,9 @@ typedef struct{
 
 typedef struct{
 	tx_queue_metadata   metadata;
-	tx_frame_info       frame_info;
+	tx_frame_info_t     tx_frame_info;
 	u8                  phy_hdr_pad[PHY_TX_PKT_BUF_PHY_HDR_SIZE];
-	u8                  frame[QUEUE_BUFFER_SIZE - PHY_TX_PKT_BUF_PHY_HDR_SIZE - sizeof(tx_frame_info) - sizeof(tx_queue_metadata)];
+	u8                  frame[QUEUE_BUFFER_SIZE - PHY_TX_PKT_BUF_PHY_HDR_SIZE - sizeof(tx_frame_info_t) - sizeof(tx_queue_metadata)];
 } tx_queue_buffer;
 
 

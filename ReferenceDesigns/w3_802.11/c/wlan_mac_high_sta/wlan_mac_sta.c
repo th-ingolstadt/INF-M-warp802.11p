@@ -364,7 +364,7 @@ void send_probe_req(){
 		// Set the information in the TX queue buffer
 		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
 		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_mgmt_tx_params);
-		curr_tx_queue_buffer->frame_info.ID          = 0;
+		curr_tx_queue_buffer->tx_frame_info.ID          = 0;
 
 		// Put the packet in the queue
 		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
@@ -517,15 +517,15 @@ void purge_all_data_tx_queue(){
  *  - Cleanup any resources dedicated to the packet
  *  - Update any counts and log info to reflect the Tx result
  *
- * @param tx_frame_info* tx_mpdu
- *  - Pointer to the MPDU which was just transmitted
+ * @param tx_frame_info* tx_frame_info
+ *  - Pointer to the frame info which was just transmitted
  * @param wlan_mac_low_tx_details* tx_low_details
  *  - Pointer to the array of data recorded by the lower-level MAC about each re-transmission of the MPDU
  * @param u16 num_tx_low_details
  *  - number of elements in array pointed to by previous argument
  * @return None
  *****************************************************************************/
-void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details_t* tx_low_details, u16 num_tx_low_details) {
+void mpdu_transmit_done(tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details, u16 num_tx_low_details) {
 	u32                   	 i;
 	station_info_t*          station_info 				   = NULL;
 
@@ -540,15 +540,15 @@ void mpdu_transmit_done(tx_frame_info* tx_mpdu, wlan_mac_low_tx_details_t* tx_lo
 	// Log all of the TX Low transmissions
 	for (i = 0; i < num_tx_low_details; i++) {
 		// Log the TX low
-		wlan_exp_log_create_tx_low_entry(tx_mpdu, &tx_low_details[i], i);
+		wlan_exp_log_create_tx_low_entry(tx_frame_info, &tx_low_details[i], i);
 	}
 
 	// Log the TX MPDU
-	wlan_exp_log_create_tx_high_entry(tx_mpdu);
+	wlan_exp_log_create_tx_high_entry(tx_frame_info);
 
 	// Update the counts for the node to which the packet was just transmitted
-	if (tx_mpdu->ID != 0) {
-		wlan_mac_high_update_tx_counts(tx_mpdu, station_info);
+	if (tx_frame_info->ID != 0) {
+		wlan_mac_high_update_tx_counts(tx_frame_info, station_info);
 	}
 
 	// Send log entry to wlan_exp controller immediately (not currently supported)
@@ -609,7 +609,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 			// Set the information in the TX queue buffer
 			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
 			curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)ap_station_info;
-			curr_tx_queue_buffer->frame_info.ID         = 0;
+			curr_tx_queue_buffer->tx_frame_info.ID         = 0;
 
 			// Put the packet in the queue
 			enqueue_after_tail(UNICAST_QID, curr_tx_queue_element);
@@ -646,10 +646,10 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
  *****************************************************************************/
 void mpdu_rx_process(void* pkt_buf_addr) {
 
-	rx_frame_info*      frame_info                = (rx_frame_info*)pkt_buf_addr;
-	void*               mpdu                     = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
-	u8*                 mpdu_ptr_u8              = (u8*)mpdu;
-	mac_header_80211*   rx_80211_header          = (mac_header_80211*)((void *)mpdu_ptr_u8);
+	rx_frame_info_t*    rx_frame_info            = (rx_frame_info_t*)pkt_buf_addr;
+	void*               mac_payload              = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
+	u8*                 mac_payload_ptr_u8       = (u8*)mac_payload;
+	mac_header_80211*   rx_80211_header          = (mac_header_80211*)((void *)mac_payload_ptr_u8);
 
 	u16                 rx_seq;
 	rx_common_entry*    rx_event_log_entry       = NULL;
@@ -666,12 +666,12 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 	volatile bss_info*	attempt_bss_info;
 	u8					pre_llc_offset			 = 0;
 
-	u8 					mcs	     = frame_info->phy_details.mcs;
-	u16 				length   = frame_info->phy_details.length;
+	u8 					mcs	     = rx_frame_info->phy_details.mcs;
+	u16 				length   = rx_frame_info->phy_details.length;
 
 
 	// Log the reception
-	rx_event_log_entry = wlan_exp_log_create_rx_entry(frame_info);
+	rx_event_log_entry = wlan_exp_log_create_rx_entry(rx_frame_info);
 
 	// If this function was passed a CTRL frame (e.g., CTS, ACK), then we should just quit.
 	// The only reason this occured was so that it could be logged in the line above.
@@ -684,7 +684,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 	to_multicast  = wlan_addr_mcast(rx_80211_header->address_1);
 
     // If the packet is good (ie good FCS) and it is destined for me, then process it
-	if( (frame_info->flags & RX_MPDU_FLAGS_FCS_GOOD)){
+	if( (rx_frame_info->flags & RX_MPDU_FLAGS_FCS_GOOD)){
 
 		// Update the association information
 		if(my_bss_info != NULL){
@@ -698,7 +698,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 			// Update station information
 			ap_station_info->latest_activity_timestamp = get_system_time_usec();
-			ap_station_info->rx.last_power             = frame_info->rx_power;
+			ap_station_info->rx.last_power             = rx_frame_info->rx_power;
 			ap_station_info->rx.last_mcs               = mcs;
 
 			is_associated  = 1;
@@ -752,7 +752,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 					if(is_associated){
 						if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_FROM_DS) {
 							// MPDU is flagged as destined to the DS - send it for de-encapsulation and Ethernet Tx (if appropriate)
-							wlan_mpdu_eth_send(mpdu,length, pre_llc_offset);
+							wlan_mpdu_eth_send(mac_payload,length, pre_llc_offset);
 						}
 					}
 				break;
@@ -763,16 +763,16 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 					// Association response
 					//   - If we are in the correct association state and the response was success, then associate with the AP
 					//
-					mpdu_ptr_u8 += sizeof(mac_header_80211);
+					mac_payload_ptr_u8 += sizeof(mac_header_80211);
 
-					if(wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr) && ((association_response_frame*)mpdu_ptr_u8)->status_code == STATUS_SUCCESS){
+					if(wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr) && ((association_response_frame*)mac_payload_ptr_u8)->status_code == STATUS_SUCCESS){
 						// AP is authenticating us. Update BSS_info.
 						bss_info_entry = wlan_mac_high_find_bss_info_BSSID(rx_80211_header->address_3);
 
 						if(bss_info_entry != NULL){
 							curr_bss_info = (bss_info*)(bss_info_entry->data);
 							wlan_mac_sta_successfully_associated(curr_bss_info->bssid,
-																(((association_response_frame*)mpdu_ptr_u8)->association_id)&~0xC000);
+																(((association_response_frame*)mac_payload_ptr_u8)->association_id)&~0xC000);
 
 						}
 					} else {
@@ -787,7 +787,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 							xil_printf("Join process association failed for BSS %s\n", ((bss_info*)(bss_info_entry->data))->ssid);
 						}
 
-						xil_printf("Association failed, reason code %d\n", ((association_response_frame*)mpdu_ptr_u8)->status_code);
+						xil_printf("Association failed, reason code %d\n", ((association_response_frame*)mac_payload_ptr_u8)->status_code);
 					}
 				break;
 
@@ -799,16 +799,16 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 					if( wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr)) {
 
 						// Move the packet pointer to after the header
-						mpdu_ptr_u8 += sizeof(mac_header_80211);
+						mac_payload_ptr_u8 += sizeof(mac_header_80211);
 
 						// Check the authentication algorithm
-						switch(((authentication_frame*)mpdu_ptr_u8)->auth_algorithm){
+						switch(((authentication_frame*)mac_payload_ptr_u8)->auth_algorithm){
 
 							case AUTH_ALGO_OPEN_SYSTEM:
 								// Check that this was a successful authentication response
-								if(((authentication_frame*)mpdu_ptr_u8)->auth_sequence == AUTH_SEQ_RESP){
+								if(((authentication_frame*)mac_payload_ptr_u8)->auth_sequence == AUTH_SEQ_RESP){
 
-									if(((authentication_frame*)mpdu_ptr_u8)->status_code == STATUS_SUCCESS){
+									if(((authentication_frame*)mac_payload_ptr_u8)->status_code == STATUS_SUCCESS){
 										// AP is authenticating us. Update BSS_info.
 										bss_info_entry = wlan_mac_high_find_bss_info_BSSID(rx_80211_header->address_3);
 										if(bss_info_entry != NULL){
@@ -835,7 +835,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 									xil_printf("Join process authentication failed for BSS %s\n", ((bss_info*)(bss_info_entry->data))->ssid);
 								}
 
-								xil_printf("Authentication failed.  AP uses authentication algorithm %d which is not support by the 802.11 reference design.\n", ((authentication_frame*)mpdu_ptr_u8)->auth_algorithm);
+								xil_printf("Authentication failed.  AP uses authentication algorithm %d which is not support by the 802.11 reference design.\n", ((authentication_frame*)mac_payload_ptr_u8)->auth_algorithm);
 							break;
 						}
 					}
@@ -918,12 +918,12 @@ void mpdu_rx_process(void* pkt_buf_addr) {
  *****************************************************************************/
 void mpdu_dequeue(tx_queue_element* packet){
 	mac_header_80211* 	header;
-	tx_frame_info*		frame_info;
+	tx_frame_info_t*	tx_frame_info;
 	u32 				packet_payload_size;
 
 	header 	  			= (mac_header_80211*)((((tx_queue_buffer*)(packet->data))->frame));
-	frame_info 			= (tx_frame_info*)&((((tx_queue_buffer*)(packet->data))->frame_info));
-	packet_payload_size	= frame_info->length;
+	tx_frame_info 		= (tx_frame_info_t*)&((((tx_queue_buffer*)(packet->data))->tx_frame_info));
+	packet_payload_size	= tx_frame_info->length;
 
 	switch(wlan_mac_high_pkt_type(header, packet_payload_size)){
 		case PKT_TYPE_DATA_ENCAP_ETH:
@@ -1005,7 +1005,7 @@ void ltg_event(u32 id, void* callback_arg){
 				// Update the queue entry metadata to reflect the new new queue entry contents
 				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
 				curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)ap_station_info;
-				curr_tx_queue_buffer->frame_info.ID         = 0;
+				curr_tx_queue_buffer->tx_frame_info.ID         = 0;
 
 				// Submit the new packet to the appropriate queue
 				enqueue_after_tail(UNICAST_QID, curr_tx_queue_element);
@@ -1094,7 +1094,7 @@ int  sta_disassociate( void ) {
 			// Set the information in the TX queue buffer
 			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
 			curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-			curr_tx_queue_buffer->frame_info.ID         = 0;
+			curr_tx_queue_buffer->tx_frame_info.ID         = 0;
 
 			// Put the packet in the queue
 			enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);

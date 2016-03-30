@@ -99,8 +99,8 @@
 #define TX_PKT_BUF_TO_ADDR(n)                             (XPAR_PKT_BUFF_TX_BRAM_CTRL_S_AXI_BASEADDR + ((n) & 0x7) * PKT_BUF_SIZE)
 #define RX_PKT_BUF_TO_ADDR(n)                             (XPAR_PKT_BUFF_RX_BRAM_CTRL_S_AXI_BASEADDR + ((n) & 0x7) * PKT_BUF_SIZE)
 
-#define PHY_RX_PKT_BUF_PHY_HDR_OFFSET                     (sizeof(rx_frame_info))
-#define PHY_TX_PKT_BUF_PHY_HDR_OFFSET                     (sizeof(tx_frame_info))
+#define PHY_RX_PKT_BUF_PHY_HDR_OFFSET                     (sizeof(rx_frame_info_t))
+#define PHY_TX_PKT_BUF_PHY_HDR_OFFSET                     (sizeof(tx_frame_info_t))
 
 #define PHY_RX_PKT_BUF_PHY_HDR_SIZE                        0x10
 #define PHY_TX_PKT_BUF_PHY_HDR_SIZE                        0x10
@@ -258,13 +258,13 @@ typedef struct{
 
     //----- 8-byte boundary ------
     tx_params_t              params;                       ///< Additional lower-level MAC and PHY parameters (8 bytes)
-} tx_frame_info;
+} tx_frame_info_t;
 
 // The above structure assumes that pkt_buf_state_t is a u8.  However, that is architecture dependent.
 // Therefore, the code will check the size of the structure using a compile-time assertion.  This check
 // will need to be updated if fields are added to the structure
 //
-CASSERT(sizeof(tx_frame_info) == 48, tx_frame_info_alignment_check);
+CASSERT(sizeof(tx_frame_info_t) == 48, tx_frame_info_alignment_check);
 
 
 // Defines for power field in phy_tx_params_t in tx_params_t
@@ -315,12 +315,12 @@ typedef struct __attribute__ ((__packed__)){
     u64                      	  	timestamp;                    ///< MAC timestamp at time of reception
     //----- 8-byte boundary ------
     u32                      	  	channel_est[64];              ///< Rx PHY channel estimates
-} rx_frame_info;
+} rx_frame_info_t;
 // The above structure assumes that pkt_buf_state_t is a u8.  However, that is architecture dependent.
 // Therefore, the code will check the size of the structure using a compile-time assertion.  This check
 // will need to be updated if fields are added to the structure
 //
-CASSERT(sizeof(rx_frame_info) == 336, rx_frame_info_alignment_check);
+CASSERT(sizeof(rx_frame_info_t) == 336, rx_frame_info_alignment_check);
 
 
 // Defines for flags field

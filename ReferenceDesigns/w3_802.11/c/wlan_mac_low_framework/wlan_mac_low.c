@@ -106,11 +106,11 @@ const static u16 mcs_to_n_dbps_htmf_lut[WLAN_MAC_NUM_MCS] = {26, 52, 78, 104, 15
  * @return  int              - Initialization status (0 = success)
  */
 int wlan_mac_low_init(u32 type){
-    u32 		   status;
-    rx_frame_info* rx_mpdu;
-	tx_frame_info* tx_mpdu;
-    wlan_ipc_msg_t ipc_msg_to_high;
-    u32			   i;
+    u32 		     status;
+    rx_frame_info_t* rx_frame_info;
+	tx_frame_info_t* tx_frame_info;
+    wlan_ipc_msg_t   ipc_msg_to_high;
+    u32			     i;
 
     mac_param_dsss_en        = 1;
     mac_param_band           = RC_24GHZ;
@@ -148,12 +148,12 @@ int wlan_mac_low_init(u32 type){
 	// Initialize Transmit Packet Buffers
 	// ***************************************************
 	for(i = 0; i < NUM_TX_PKT_BUFS; i++){
-		tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(i);
+		tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(i);
 		switch(i){
 			case TX_PKT_BUF_MPDU_1:
 			case TX_PKT_BUF_MPDU_2:
 			case TX_PKT_BUF_MPDU_3:
-				switch(tx_mpdu->tx_pkt_buf_state){
+				switch(tx_frame_info->tx_pkt_buf_state){
 					case TX_PKT_BUF_UNINITIALIZED:
 					case TX_PKT_BUF_HIGH_CTRL:
 						// CPU High will initialize
@@ -173,7 +173,7 @@ int wlan_mac_low_init(u32 type){
 			            // CPU Low rebooted after CPU High submitted packet for Tx
 			            //  Release lock and reset state
 			            //  CPU High will find this EMPTY buffer in next ping/pong update
-						tx_mpdu->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+						tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 						unlock_tx_pkt_buf(i);
 					break;
 				}
@@ -184,7 +184,7 @@ int wlan_mac_low_init(u32 type){
 			case TX_PKT_BUF_RTS:
 			case TX_PKT_BUF_ACK_CTS:
 				force_lock_tx_pkt_buf(i);
-				tx_mpdu->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
+				tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
 			default:
 			break;
 		}
@@ -193,12 +193,12 @@ int wlan_mac_low_init(u32 type){
 	// Initialize Receive Packet Buffers
 	// ***************************************************
 	for(i = 0; i < NUM_RX_PKT_BUFS; i++){
-		rx_mpdu = (rx_frame_info*)RX_PKT_BUF_TO_ADDR(i);
-		switch(rx_mpdu->rx_pkt_buf_state){
+		rx_frame_info = (rx_frame_info_t*)RX_PKT_BUF_TO_ADDR(i);
+		switch(rx_frame_info->rx_pkt_buf_state){
 		   case RX_PKT_BUF_UNINITIALIZED:
 		   case RX_PKT_BUF_LOW_CTRL:
 			   force_lock_rx_pkt_buf(i);
-			   rx_mpdu->rx_pkt_buf_state = RX_PKT_BUF_LOW_CTRL;
+			   rx_frame_info->rx_pkt_buf_state = RX_PKT_BUF_LOW_CTRL;
 		   break;
 		   case RX_PKT_BUF_HIGH_CTRL:
 		   case RX_PKT_BUF_READY:
@@ -1051,7 +1051,7 @@ void wlan_mac_low_DSSS_rx_disable() {
  */
 void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
     u32                      status;
-    tx_frame_info          * tx_mpdu;
+    tx_frame_info_t        * tx_frame_info;
     mac_header_80211       * tx_80211_header;
     u32                      is_locked, owner;
     u32                      low_tx_details_size;
@@ -1063,9 +1063,9 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
     	return;
     }
 
-	tx_mpdu = (tx_frame_info*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+    tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 
-	switch(tx_mpdu->tx_pkt_buf_state){
+	switch(tx_frame_info->tx_pkt_buf_state){
 		// ---- Normal Tx process - buffer contains packet ready for Tx ----
 		case TX_PKT_BUF_READY:
 			if(lock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
@@ -1074,13 +1074,13 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 				get_tx_pkt_buf_status(tx_pkt_buf, &is_locked, &owner);
 
 				wlan_printf(PL_ERROR, "    TX pkt_buf %d status: isLocked = %d, owner = %d\n", tx_pkt_buf, is_locked, owner);
-				tx_mpdu->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+				tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 
 			} else {
 
-				tx_mpdu->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
+				tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
 
-				tx_mpdu->delay_accept = (u32)(get_mac_time_usec() - tx_mpdu->timestamp_create);
+				tx_frame_info->delay_accept = (u32)(get_mac_time_usec() - tx_frame_info->timestamp_create);
 
 				// Get pointer to start of MAC header in packet buffer
 				tx_80211_header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
@@ -1088,7 +1088,7 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 				// Insert sequence number here
 				tx_80211_header->sequence_control = ((tx_80211_header->sequence_control) & 0xF) | ( (unique_seq&0xFFF)<<4 );
 
-				if((tx_mpdu->flags) & TX_MPDU_FLAGS_FILL_UNIQ_SEQ){
+				if((tx_frame_info->flags) & TX_MPDU_FLAGS_FILL_UNIQ_SEQ){
 					// Fill unique sequence number into LTG payload
 					pkt_id             = (ltg_packet_id_t*)((u8*)tx_80211_header + sizeof(mac_header_80211));
 					pkt_id->unique_seq = unique_seq;
@@ -1106,23 +1106,23 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 				status = frame_tx_callback(tx_pkt_buf, low_tx_details);
 
 				//Record the total time this MPDU spent in the Tx state machine
-				tx_mpdu->delay_done = (u32)(get_mac_time_usec() - (tx_mpdu->timestamp_create + (u64)(tx_mpdu->delay_accept)));
+				tx_frame_info->delay_done = (u32)(get_mac_time_usec() - (tx_frame_info->timestamp_create + (u64)(tx_frame_info->delay_accept)));
 
-				low_tx_details_size = (tx_mpdu->num_tx_attempts)*sizeof(wlan_mac_low_tx_details_t);
+				low_tx_details_size = (tx_frame_info->num_tx_attempts)*sizeof(wlan_mac_low_tx_details_t);
 
 				if(status == TX_MPDU_RESULT_SUCCESS){
-					tx_mpdu->tx_result = TX_MPDU_RESULT_SUCCESS;
+					tx_frame_info->tx_result = TX_MPDU_RESULT_SUCCESS;
 				} else {
-					tx_mpdu->tx_result = TX_MPDU_RESULT_FAILURE;
+					tx_frame_info->tx_result = TX_MPDU_RESULT_FAILURE;
 				}
 
-				tx_mpdu->tx_pkt_buf_state = TX_PKT_BUF_DONE;
+				tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_DONE;
 
 				//Revert the state of the packet buffer and return control to CPU High
 				if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 					wlan_printf(PL_ERROR, "Error: unable to unlock TX pkt_buf %d\n", tx_pkt_buf);
 					wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_TX_MUTEX);
-					tx_mpdu->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+					tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 				} else {
 					ipc_msg_to_high.msg_id =  IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_DONE);
 
@@ -1150,7 +1150,7 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 		case TX_PKT_BUF_LOW_CTRL:
             // CPU Low responsible for any LOW_CTRL buffers
             //  Don't transmit - just clean up and return
-			tx_mpdu->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+			tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 		case TX_PKT_BUF_UNINITIALIZED:
 		case TX_PKT_BUF_DONE:
 		case TX_PKT_BUF_HIGH_CTRL:
@@ -1530,7 +1530,7 @@ int wlan_mac_low_set_pkt_det_min_power(s8 rx_pow){
  */
 inline void wlan_mac_low_lock_empty_rx_pkt_buf(){
     // This function blocks until it safely finds a packet buffer for the PHY RX to store a future reception
-    rx_frame_info* rx_mpdu;
+    rx_frame_info_t* rx_frame_info;
     u32 i = 1;
 
     while(1) {
@@ -1539,9 +1539,9 @@ inline void wlan_mac_low_lock_empty_rx_pkt_buf(){
     	// select the "oldest" packet buffer, the one that is most likely to have already
     	// been processed and released by CPU High
     	rx_pkt_buf = (rx_pkt_buf+1) % NUM_RX_PKT_BUFS;
-        rx_mpdu    = (rx_frame_info*) RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
+    	rx_frame_info    = (rx_frame_info_t*) RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
 
-        if((rx_mpdu->rx_pkt_buf_state) == RX_PKT_BUF_LOW_CTRL){
+        if((rx_frame_info->rx_pkt_buf_state) == RX_PKT_BUF_LOW_CTRL){
 			// By default Rx pkt buffers are not zeroed out, to save the performance penalty of bzero'ing 2KB
 			//     However zeroing out the pkt buffer can be helpful when debugging Rx MAC/PHY behaviors
 			// bzero((void *)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), 2048);

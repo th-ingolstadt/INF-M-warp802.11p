@@ -99,20 +99,20 @@ void bss_info_init_finish(){
 
 inline void bss_info_rx_process(void* pkt_buf_addr) {
 
-	rx_frame_info*      mpdu_info                = (rx_frame_info*)pkt_buf_addr;
-	void*               mpdu                     = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
-	u8*                 mpdu_ptr_u8              = (u8*)mpdu;
+	rx_frame_info_t*    rx_frame_info   	     = (rx_frame_info_t*)pkt_buf_addr;
+	void*               mac_payload              = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
+	u8*                 mac_payload_ptr_u8       = (u8*)mac_payload;
 	char*               ssid;
 	u8                  ssid_length;
-	mac_header_80211*   rx_80211_header          = (mac_header_80211*)((void *)mpdu_ptr_u8);
+	mac_header_80211*   rx_80211_header          = (mac_header_80211*)((void *)mac_payload_ptr_u8);
 	dl_entry*			curr_dl_entry;
 	bss_info*			curr_bss_info;
 	u8					update_rx_power 		 = 0;
 	u8					update_timestamp 		 = 0;
 
-	u16 				length					 = mpdu_info->phy_details.length;
+	u16 				length					 = rx_frame_info->phy_details.length;
 
-	if( (mpdu_info->flags & RX_MPDU_FLAGS_FCS_GOOD)){
+	if( (rx_frame_info->flags & RX_MPDU_FLAGS_FCS_GOOD)){
 		switch(rx_80211_header->frame_control_1) {
 			case (MAC_FRAME_CTRL1_SUBTYPE_BEACON):
 				update_rx_power = 1;
@@ -156,38 +156,38 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 				}
 
 				// Move the packet pointer to after the header
-				mpdu_ptr_u8 += sizeof(mac_header_80211);
+				mac_payload_ptr_u8 += sizeof(mac_header_80211);
 
 				// Copy capabilities into bss_info struct
-				curr_bss_info->capabilities = ((beacon_probe_frame*)mpdu_ptr_u8)->capabilities;
+				curr_bss_info->capabilities = ((beacon_probe_frame*)mac_payload_ptr_u8)->capabilities;
 
 				// Copy beacon interval into bss_info struct
-				curr_bss_info->beacon_interval = ((beacon_probe_frame*)mpdu_ptr_u8)->beacon_interval;
+				curr_bss_info->beacon_interval = ((beacon_probe_frame*)mac_payload_ptr_u8)->beacon_interval;
 
 				// Copy the channel on which this packet was received into the bss_info struct
 				//   Note: chan_spec will be overwritten later in this function if a HT
 				//   capabilities tag is discovered
-				curr_bss_info->chan_spec.chan_pri = mpdu_info->channel;
+				curr_bss_info->chan_spec.chan_pri = rx_frame_info->channel;
 				curr_bss_info->chan_spec.chan_type = CHAN_TYPE_BW20;
 
 				// Copy the Rx power with which this packet was received into the bss_info stuct
-				if(update_rx_power) curr_bss_info->latest_beacon_rx_power = mpdu_info->rx_power;
+				if(update_rx_power) curr_bss_info->latest_beacon_rx_power = rx_frame_info->rx_power;
 
 				// Move the packet pointer to after the beacon/probe frame
-				mpdu_ptr_u8 += sizeof(beacon_probe_frame);
+				mac_payload_ptr_u8 += sizeof(beacon_probe_frame);
 
 				// Parse the tagged parameters
-				while( (((u32)mpdu_ptr_u8) - ((u32)mpdu)) < (length - WLAN_PHY_FCS_NBYTES)) {
+				while( (((u32)mac_payload_ptr_u8) - ((u32)mac_payload)) < (length - WLAN_PHY_FCS_NBYTES)) {
 
 					// Parse each of the tags
-					switch(mpdu_ptr_u8[0]){
+					switch(mac_payload_ptr_u8[0]){
 
 						//-------------------------------------------------
 						case TAG_SSID_PARAMS:
 							// SSID parameter set
 							//
-							ssid        = (char*)(&(mpdu_ptr_u8[2]));
-							ssid_length = min(mpdu_ptr_u8[1],SSID_LEN_MAX);
+							ssid        = (char*)(&(mac_payload_ptr_u8[2]));
+							ssid_length = min(mac_payload_ptr_u8[1],SSID_LEN_MAX);
 
 							memcpy(curr_bss_info->ssid, ssid, ssid_length);
 
@@ -201,13 +201,13 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 						break;
 						//-------------------------------------------------
 						case TAG_HT_INFORMATION:
-							curr_bss_info->chan_spec.chan_pri = mpdu_ptr_u8[2];
-							if(mpdu_ptr_u8[2] & 0x4){
+							curr_bss_info->chan_spec.chan_pri = mac_payload_ptr_u8[2];
+							if(mac_payload_ptr_u8[2] & 0x4){
 								// Channel widths larger than 20MHz are supported by this BSS
-								if((mpdu_ptr_u8[2] & 0x3) == 0x3){
+								if((mac_payload_ptr_u8[2] & 0x3) == 0x3){
 									//Secondary Channel is below primary channel
 									curr_bss_info->chan_spec.chan_type = CHAN_TYPE_BW40_SEC_BELOW;
-								} else if((mpdu_ptr_u8[2] & 0x3) == 0x1){
+								} else if((mac_payload_ptr_u8[2] & 0x3) == 0x1){
 									//Secondary Channel is above primary channel
 									curr_bss_info->chan_spec.chan_type = CHAN_TYPE_BW40_SEC_ABOVE;
 								}
@@ -216,12 +216,12 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 						break;
 						case TAG_DS_PARAMS:
 							// DS Parameter set (e.g. channel)
-							curr_bss_info->chan_spec.chan_pri = mpdu_ptr_u8[2];
+							curr_bss_info->chan_spec.chan_pri = mac_payload_ptr_u8[2];
 						break;
 					}
 
 					// Increment packet pointer to the next tag
-					mpdu_ptr_u8 += mpdu_ptr_u8[1]+2;
+					mac_payload_ptr_u8 += mac_payload_ptr_u8[1]+2;
 				}
 
 				if(update_timestamp) curr_bss_info->latest_beacon_rx_time = get_system_time_usec();

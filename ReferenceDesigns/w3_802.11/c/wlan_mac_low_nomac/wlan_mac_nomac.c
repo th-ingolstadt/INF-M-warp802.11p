@@ -147,35 +147,35 @@ int main(){
 u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details){
 
     void              * pkt_buf_addr        = (void *) RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
-    rx_frame_info     * frame_info           = (rx_frame_info *) pkt_buf_addr;
+    rx_frame_info_t   * rx_frame_info       = (rx_frame_info_t *) pkt_buf_addr;
 
     // Fill in the MPDU info fields for the reception. These values are known at RX_START. The other fields below
     //  must be written after RX_END
-    frame_info->flags          = 0;
-    frame_info->phy_details    = *phy_details;
-    frame_info->channel        = wlan_mac_low_get_active_channel();
-    frame_info->phy_samp_rate  = (u8)wlan_mac_low_get_phy_samp_rate();
-    frame_info->timestamp      = wlan_mac_low_get_rx_start_timestamp();
-    frame_info->timestamp_frac = wlan_mac_low_get_rx_start_timestamp_frac();
+    rx_frame_info->flags          = 0;
+    rx_frame_info->phy_details    = *phy_details;
+    rx_frame_info->channel        = wlan_mac_low_get_active_channel();
+    rx_frame_info->phy_samp_rate  = (u8)wlan_mac_low_get_phy_samp_rate();
+    rx_frame_info->timestamp      = wlan_mac_low_get_rx_start_timestamp();
+    rx_frame_info->timestamp_frac = wlan_mac_low_get_rx_start_timestamp_frac();
 
     // Wait for the Rx PHY to finish receiving this packet
 	if(wlan_mac_hw_rx_finish() == 1){
 		//FCS was good
-		frame_info->flags |= RX_MPDU_FLAGS_FCS_GOOD;
+		rx_frame_info->flags |= RX_MPDU_FLAGS_FCS_GOOD;
 	} else {
 		//FCS was bad
-		frame_info->flags &= ~RX_MPDU_FLAGS_FCS_GOOD;
+		rx_frame_info->flags &= ~RX_MPDU_FLAGS_FCS_GOOD;
 	}
 
     // Update the rest of the frame_info fields using post-Rx information
-    frame_info->ant_mode = wlan_phy_rx_get_active_rx_ant();
-    frame_info->cfo_est	 = wlan_phy_rx_get_cfo_est();
-    frame_info->rf_gain  = wlan_phy_rx_get_agc_RFG(frame_info->ant_mode);
-    frame_info->bb_gain  = wlan_phy_rx_get_agc_BBG(frame_info->ant_mode);
-    frame_info->rx_power = wlan_mac_low_calculate_rx_power(wlan_phy_rx_get_pkt_rssi(frame_info->ant_mode), wlan_phy_rx_get_agc_RFG(frame_info->ant_mode));
+	rx_frame_info->ant_mode = wlan_phy_rx_get_active_rx_ant();
+	rx_frame_info->cfo_est	 = wlan_phy_rx_get_cfo_est();
+	rx_frame_info->rf_gain  = wlan_phy_rx_get_agc_RFG(rx_frame_info->ant_mode);
+	rx_frame_info->bb_gain  = wlan_phy_rx_get_agc_BBG(rx_frame_info->ant_mode);
+	rx_frame_info->rx_power = wlan_mac_low_calculate_rx_power(wlan_phy_rx_get_pkt_rssi(rx_frame_info->ant_mode), wlan_phy_rx_get_agc_RFG(rx_frame_info->ant_mode));
 
     // Increment the LEDs based on the FCS status
-    if(frame_info->flags & RX_MPDU_FLAGS_FCS_GOOD){
+    if(rx_frame_info->flags & RX_MPDU_FLAGS_FCS_GOOD){
         green_led_index = (green_led_index + 1) % NUM_LEDS;
         userio_write_leds_green(USERIO_BASEADDR, (1 << green_led_index));
     } else {
@@ -223,13 +223,13 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
     u32 mac_tx_ctrl_status;
     u8 tx_gain;
 
-    tx_frame_info     * frame_info           = (tx_frame_info*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
+    tx_frame_info_t   * tx_frame_info       = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
     u8                  mpdu_tx_ant_mask    = 0;
 
     // Extract waveform params from the tx_frame_info
-    u8  mcs      = frame_info->params.phy.mcs;
-    u8  phy_mode = (frame_info->params.phy.phy_mode & (PHY_MODE_HTMF | PHY_MODE_NONHT));
-    u16 length   = frame_info->length;
+    u8  mcs      = tx_frame_info->params.phy.mcs;
+    u8  phy_mode = (tx_frame_info->params.phy.phy_mode & (PHY_MODE_HTMF | PHY_MODE_NONHT));
+    u16 length   = tx_frame_info->length;
 
     //FIXME: should this callback sanity-check mcs/phy_mode/length before submitting the Tx to the PHY? Or is that the framework's job?
 
@@ -237,7 +237,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
     write_phy_preamble(pkt_buf, phy_mode, mcs, length);
 
     // Set the antenna mode
-    switch(frame_info->params.phy.antenna_mode) {
+    switch(tx_frame_info->params.phy.antenna_mode) {
         case TX_ANTMODE_SISO_ANTA:  mpdu_tx_ant_mask |= 0x1;  break;
         case TX_ANTMODE_SISO_ANTB:  mpdu_tx_ant_mask |= 0x2;  break;
         case TX_ANTMODE_SISO_ANTC:  mpdu_tx_ant_mask |= 0x4;  break;
@@ -246,13 +246,13 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
     }
 
     // Fill in the number of attempts to transmit the packet
-    frame_info->num_tx_attempts  = 1;
+    tx_frame_info->num_tx_attempts  = 1;
 
     // Update tx_frame_info with current PHY sampling rate
-    frame_info->phy_samp_rate	= (u8)wlan_mac_low_get_phy_samp_rate();
+    tx_frame_info->phy_samp_rate	= (u8)wlan_mac_low_get_phy_samp_rate();
 
     // Convert the requested Tx power (dBm) to a Tx gain setting for the radio
-    tx_gain = wlan_mac_low_dbm_to_gain_target(frame_info->params.phy.power);
+    tx_gain = wlan_mac_low_dbm_to_gain_target(tx_frame_info->params.phy.power);
 
     // Set the MAC HW control parameters
     //  args: (pktBuf, antMask, preTx_backoff_slots, preWait_postRxTimer1, preWait_postTxTimer1, postWait_postTxTimer2, phy_mode)
@@ -275,8 +275,8 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
         if (low_tx_details != NULL) {
             low_tx_details[0].phy_params_mpdu.mcs          = mcs;
             low_tx_details[0].phy_params_mpdu.phy_mode     = phy_mode;
-            low_tx_details[0].phy_params_mpdu.power        = frame_info->params.phy.power;
-            low_tx_details[0].phy_params_mpdu.antenna_mode = frame_info->params.phy.antenna_mode;
+            low_tx_details[0].phy_params_mpdu.power        = tx_frame_info->params.phy.power;
+            low_tx_details[0].phy_params_mpdu.antenna_mode = tx_frame_info->params.phy.antenna_mode;
             low_tx_details[0].chan_num                     = wlan_mac_low_get_active_channel();
             low_tx_details[0].num_slots                    = 0;
             low_tx_details[0].cw                           = 0;
