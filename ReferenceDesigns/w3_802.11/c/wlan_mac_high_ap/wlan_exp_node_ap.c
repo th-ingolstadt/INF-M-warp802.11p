@@ -59,7 +59,7 @@
 
 extern dl_list                    counts_table;
 extern tx_params_t                default_unicast_data_tx_params;
-extern bss_info*                  my_bss_info;
+extern bss_info_t*                  my_bss_info;
 
 extern wlan_exp_function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback;
 

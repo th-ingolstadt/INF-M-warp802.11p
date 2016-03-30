@@ -30,10 +30,13 @@
 
 /*********************** Global Variable Definitions *************************/
 
-//TODO: This is too strict. It has hard-coded the use of the address filter
+//FIXME: This is too strict. It has hard-coded the use of the address filter
 //as something that must be used for authentications. Plus: the framework
 //shouldn't extern globals from the top-level projects.
-extern bss_info            * my_bss_info;
+//At a minimum this should be a getter callback from each of the top-level projects. The
+//wlan_exp command that returns the single active BSS info struct should also
+//use this getter. A hypothetical NoAPP would not attach anything to this callback.
+extern bss_info_t            * my_bss_info;
 
 
 /*************************** Variable Definitions ****************************/

@@ -59,7 +59,7 @@ extern u8                         pause_data_queue;
 extern wlan_mac_low_config_t      cpu_low_config;
 extern tx_params_t                default_unicast_mgmt_tx_params;
 extern u8                         my_aid;
-extern bss_info                 * my_bss_info;
+extern bss_info_t* 				  my_bss_info;
 
 /*************************** Variable Definitions ****************************/
 
@@ -85,7 +85,7 @@ volatile join_parameters_t        gl_join_parameters;
 // Scan state variables
 static join_state_t               join_state;
 static authentication_state_t	  authentication_state;
-static bss_info*                  attempt_bss_info;
+static bss_info_t*                attempt_bss_info;
 char*                             scan_ssid_save;
 
 static u32                        search_sched_id;
@@ -174,7 +174,7 @@ volatile join_parameters_t* wlan_mac_sta_get_join_parameters(){
  * @return  volatile bss_info*     - Pointer to bss_info
  *
  *****************************************************************************/
-volatile bss_info* wlan_mac_sta_get_attempt_bss_info(){
+volatile bss_info_t* wlan_mac_sta_get_attempt_bss_info(){
 	if(wlan_mac_sta_is_joining()){
 		return attempt_bss_info;
 	} else {
@@ -454,7 +454,7 @@ void wlan_mac_sta_join_bss_search_poll(u32 schedule_id){
                     wlan_mac_sta_join_return_to_idle();
 
                     // Set bss info to attempt to join
-                    attempt_bss_info = (bss_info*)(curr_dl_entry->data);
+                    attempt_bss_info = (bss_info_t*)(curr_dl_entry->data);
 
 	               // Start the "ATTEMPTING" process
 	               start_join_attempt();

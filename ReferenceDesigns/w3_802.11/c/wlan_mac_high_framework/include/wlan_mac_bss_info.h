@@ -131,7 +131,7 @@ CASSERT(sizeof(chan_spec_t) == 2, chan_spec_t_alignment_check);
 typedef struct{
     MY_BSS_INFO_COMMON_FIELDS
     dl_list station_info_list;
-} bss_info;
+} bss_info_t;
 
 /**
  * @brief Base BSS Information Structure
@@ -175,9 +175,9 @@ void             bss_info_timestamp_check();
 dl_list        * wlan_mac_high_find_bss_info_SSID(char* ssid);
 dl_entry       * wlan_mac_high_find_bss_info_BSSID(u8* bssid);
 
-bss_info       * wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan);
+bss_info_t     * wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan);
 void 			 wlan_mac_high_reset_network_list();
-void             wlan_mac_high_clear_bss_info(bss_info * info);
+void             wlan_mac_high_clear_bss_info(bss_info_t * info);
 
 inline dl_list * wlan_mac_high_get_bss_info_list();
 

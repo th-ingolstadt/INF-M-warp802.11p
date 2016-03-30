@@ -88,7 +88,7 @@ tx_params_t                       default_multicast_mgmt_tx_params;
 tx_params_t                       default_multicast_data_tx_params;
 
 // Top level IBSS state
-bss_info*                         my_bss_info;
+bss_info_t*                       my_bss_info;
 
 // List to hold Tx/Rx counts
 dl_list                           counts_table;
@@ -124,7 +124,7 @@ int main() {
 	u8                 locally_administered_addr[MAC_ADDR_LEN];
 	dl_list*           ssid_match_list = NULL;
 	dl_entry*          temp_dl_entry = NULL;
-	bss_info*          temp_bss_info = NULL;
+	bss_info_t*          temp_bss_info = NULL;
 	bss_config_t       bss_config;
 
 	// Print initial message to UART
@@ -320,7 +320,7 @@ int main() {
 		if (temp_dl_entry != NULL) {
 			// Found an existing network matching the default SSID. Adopt that network's BSS configuration
 			xil_printf("Found existing %s network. Matching BSS settings.\n", default_ssid);
-			temp_bss_info = (bss_info*)(temp_dl_entry->data);
+			temp_bss_info = (bss_info_t*)(temp_dl_entry->data);
 
 			memcpy(bss_config.bssid, temp_bss_info->bssid, MAC_ADDR_LEN);
 			strncpy(bss_config.ssid, temp_bss_info->ssid, SSID_LEN_MAX);
@@ -1236,7 +1236,7 @@ u32	configure_bss(bss_config_t* bss_config){
 	u8					send_beacon_config_to_low 	= 0;
 	u8					send_channel_switch_to_low	= 0;
 
-	bss_info*			local_bss_info;
+	bss_info_t*			local_bss_info;
 	interrupt_state_t   curr_interrupt_state;
 	station_info_t* 	curr_station_info;
 	dl_entry* 			next_station_info_entry;

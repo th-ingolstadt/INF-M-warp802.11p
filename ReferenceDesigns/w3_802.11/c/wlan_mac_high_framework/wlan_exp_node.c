@@ -78,7 +78,7 @@ extern u8                  promiscuous_counts_enabled;
 extern u8                  rx_ant_mode_tracker;
 
 // Declared in each of the AP / STA / IBSS
-extern bss_info*           my_bss_info;
+extern bss_info_t*         my_bss_info;
 
 extern tx_params_t         default_unicast_mgmt_tx_params;
 extern tx_params_t         default_unicast_data_tx_params;
@@ -3578,7 +3578,7 @@ void zero_bss_info_entry(void * dest) {
 
 void copy_bss_info_to_dest_entry(void * source, void * dest, u8* mac_addr, u64 time) {
 
-    bss_info           * curr_source = (bss_info *)(source);
+    bss_info_t         * curr_source = (bss_info_t *)(source);
     bss_info_entry     * curr_dest   = (bss_info_entry *)(dest);
 
     // Set the timestamp for the station_info entry
@@ -3586,10 +3586,10 @@ void copy_bss_info_to_dest_entry(void * source, void * dest, u8* mac_addr, u64 t
 
     // Fill in zeroed entry if source is NULL
     if (source == NULL) {
-        curr_source = wlan_mac_high_malloc(sizeof(bss_info));
+        curr_source = wlan_mac_high_malloc(sizeof(bss_info_t));
 
         if (curr_source != NULL) {
-            bzero(curr_source, sizeof(bss_info));
+            bzero(curr_source, sizeof(bss_info_t));
 
             // Add in MAC address
             memcpy(curr_source->bssid, mac_addr, MAC_ADDR_LEN);

@@ -2891,7 +2891,7 @@ void wlan_mac_high_update_tx_counts(tx_frame_info_t* tx_frame_info, station_info
  * @param  None
  * @return None
  */
-int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, bss_info* bss_info_ptr, tx_params_t* tx_params_ptr, u8 flags) {
+int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, bss_info_t* bss_info, tx_params_t* tx_params_ptr, u8 flags) {
 	u16 tx_length;
 
 	tx_frame_info_t*  tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON);
@@ -2904,7 +2904,7 @@ int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_heade
 	tx_length = wlan_create_beacon_frame(
 		(void*)(tx_frame_info)+PHY_TX_PKT_BUF_MPDU_OFFSET,
 		tx_header_common_ptr,
-		bss_info_ptr);
+		bss_info);
 
 	bzero(tx_frame_info, sizeof(tx_frame_info));
 

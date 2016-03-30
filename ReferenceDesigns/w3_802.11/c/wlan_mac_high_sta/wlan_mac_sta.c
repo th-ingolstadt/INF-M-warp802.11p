@@ -87,7 +87,7 @@ tx_params_t                       default_multicast_data_tx_params;
 
 // Access point information
 u8                                my_aid;
-bss_info*                         my_bss_info;
+bss_info_t*                       my_bss_info;
 
 // List to hold Tx/Rx counts
 dl_list                           counts_table;
@@ -646,25 +646,25 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
  *****************************************************************************/
 void mpdu_rx_process(void* pkt_buf_addr) {
 
-	rx_frame_info_t*    rx_frame_info            = (rx_frame_info_t*)pkt_buf_addr;
-	void*               mac_payload              = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
-	u8*                 mac_payload_ptr_u8       = (u8*)mac_payload;
-	mac_header_80211*   rx_80211_header          = (mac_header_80211*)((void *)mac_payload_ptr_u8);
+	rx_frame_info_t*    	rx_frame_info            = (rx_frame_info_t*)pkt_buf_addr;
+	void*               	mac_payload              = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
+	u8*                		mac_payload_ptr_u8       = (u8*)mac_payload;
+	mac_header_80211*   	rx_80211_header          = (mac_header_80211*)((void *)mac_payload_ptr_u8);
 
-	u16                 rx_seq;
-	rx_common_entry*    rx_event_log_entry       = NULL;
+	u16                 	rx_seq;
+	rx_common_entry*    	rx_event_log_entry       = NULL;
 
-	dl_entry*	        associated_station_entry;
-	station_info_t*     ap_station_info          = NULL;
-	counts_txrx*        station_counts           = NULL;
+	dl_entry*	        	associated_station_entry;
+	station_info_t*     	ap_station_info          = NULL;
+	counts_txrx*        	station_counts           = NULL;
 
-	u8                  unicast_to_me;
-	u8                  to_multicast;
-	u8                  is_associated            = 0;
-	dl_entry*			bss_info_entry;
-	bss_info*			curr_bss_info;
-	volatile bss_info*	attempt_bss_info;
-	u8					pre_llc_offset			 = 0;
+	u8                  	unicast_to_me;
+	u8                  	to_multicast;
+	u8                  	is_associated            = 0;
+	dl_entry*				bss_info_entry;
+	bss_info_t*				curr_bss_info;
+	volatile bss_info_t*	attempt_bss_info;
+	u8						pre_llc_offset			 = 0;
 
 	u8 					mcs	     = rx_frame_info->phy_details.mcs;
 	u16 				length   = rx_frame_info->phy_details.length;
@@ -770,7 +770,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 						bss_info_entry = wlan_mac_high_find_bss_info_BSSID(rx_80211_header->address_3);
 
 						if(bss_info_entry != NULL){
-							curr_bss_info = (bss_info*)(bss_info_entry->data);
+							curr_bss_info = (bss_info_t*)(bss_info_entry->data);
 							wlan_mac_sta_successfully_associated(curr_bss_info->bssid,
 																(((association_response_frame*)mac_payload_ptr_u8)->association_id)&~0xC000);
 
@@ -781,10 +781,10 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 						bss_info_entry = wlan_mac_high_find_bss_info_BSSID(rx_80211_header->address_3);
 
 						if (bss_info_entry != NULL) {
-							curr_bss_info = (bss_info*)(bss_info_entry->data);
+							curr_bss_info = (bss_info_t*)(bss_info_entry->data);
 							attempt_bss_info = wlan_mac_sta_get_attempt_bss_info();
 							if(wlan_addr_eq(attempt_bss_info && curr_bss_info->bssid, attempt_bss_info->bssid)) wlan_mac_sta_join_return_to_idle();
-							xil_printf("Join process association failed for BSS %s\n", ((bss_info*)(bss_info_entry->data))->ssid);
+							xil_printf("Join process association failed for BSS %s\n", ((bss_info_t*)(bss_info_entry->data))->ssid);
 						}
 
 						xil_printf("Association failed, reason code %d\n", ((association_response_frame*)mac_payload_ptr_u8)->status_code);
@@ -812,7 +812,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 										// AP is authenticating us. Update BSS_info.
 										bss_info_entry = wlan_mac_high_find_bss_info_BSSID(rx_80211_header->address_3);
 										if(bss_info_entry != NULL){
-											curr_bss_info = (bss_info*)(bss_info_entry->data);
+											curr_bss_info = (bss_info_t*)(bss_info_entry->data);
 											wlan_mac_sta_successfully_authenticated(curr_bss_info->bssid);
 										}
 									}
@@ -828,11 +828,11 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 								bss_info_entry = wlan_mac_high_find_bss_info_BSSID(rx_80211_header->address_3);
 
 								if (bss_info_entry != NULL) {
-									curr_bss_info = (bss_info*)(bss_info_entry->data);
+									curr_bss_info = (bss_info_t*)(bss_info_entry->data);
 									attempt_bss_info = wlan_mac_sta_get_attempt_bss_info();
 									if(attempt_bss_info && wlan_addr_eq(curr_bss_info->bssid, attempt_bss_info->bssid)) wlan_mac_sta_join_return_to_idle();
 
-									xil_printf("Join process authentication failed for BSS %s\n", ((bss_info*)(bss_info_entry->data))->ssid);
+									xil_printf("Join process authentication failed for BSS %s\n", ((bss_info_t*)(bss_info_entry->data))->ssid);
 								}
 
 								xil_printf("Authentication failed.  AP uses authentication algorithm %d which is not support by the 802.11 reference design.\n", ((authentication_frame*)mac_payload_ptr_u8)->auth_algorithm);
@@ -1121,7 +1121,7 @@ u32	configure_bss(bss_config_t* bss_config){
 	u8                  send_channel_switch_to_low  = 0;
 	u8                  send_beacon_config_to_low   = 0;
 
-	bss_info*           local_bss_info;
+	bss_info_t*           local_bss_info;
 	interrupt_state_t   curr_interrupt_state;
 	station_info_t*     curr_station_info;
 	dl_entry*           curr_station_info_entry;

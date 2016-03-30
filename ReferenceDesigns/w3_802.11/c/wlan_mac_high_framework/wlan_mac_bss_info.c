@@ -69,7 +69,7 @@ void bss_info_init(u8 dram_present){
 		// The number of BSS info elements we can initialize is limited by the smaller of two values:
 		//     (1) The number of dl_entry structs we can squeeze into BSS_INFO_DL_ENTRY_MEM_SIZE
 		//     (2) The number of bss_info structs we can squeeze into BSS_INFO_BUFFER_SIZE
-		num_bss_info = min(BSS_INFO_DL_ENTRY_MEM_SIZE/sizeof(dl_entry), BSS_INFO_BUFFER_SIZE/sizeof(bss_info));
+		num_bss_info = min(BSS_INFO_DL_ENTRY_MEM_SIZE/sizeof(dl_entry), BSS_INFO_BUFFER_SIZE/sizeof(bss_info_t));
 
 		// At boot, every dl_entry buffer descriptor is free
 		// To set up the doubly linked list, we exploit the fact that we know the starting state is sequential.
@@ -77,11 +77,11 @@ void bss_info_init(u8 dram_present){
 		dl_entry_base = (dl_entry*)(BSS_INFO_DL_ENTRY_MEM_BASE);
 
 		for (i = 0; i < num_bss_info; i++) {
-			dl_entry_base[i].data = (void*)(BSS_INFO_BUFFER_BASE + (i*sizeof(bss_info)));
+			dl_entry_base[i].data = (void*)(BSS_INFO_BUFFER_BASE + (i*sizeof(bss_info_t)));
 			dl_entry_insertEnd(&bss_info_free, &(dl_entry_base[i]));
 		}
 
-		xil_printf("BSS Info list (len %d) placed in DRAM: using %d kB\n", num_bss_info, (num_bss_info*sizeof(bss_info))/1024);
+		xil_printf("BSS Info list (len %d) placed in DRAM: using %d kB\n", num_bss_info, (num_bss_info*sizeof(bss_info_t))/1024);
 
 	} else {
 		xil_printf("Error initializing BSS info subsystem\n");
@@ -106,7 +106,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 	u8                  ssid_length;
 	mac_header_80211*   rx_80211_header          = (mac_header_80211*)((void *)mac_payload_ptr_u8);
 	dl_entry*			curr_dl_entry;
-	bss_info*			curr_bss_info;
+	bss_info_t*			curr_bss_info;
 	u8					update_rx_power 		 = 0;
 	u8					update_timestamp 		 = 0;
 
@@ -122,7 +122,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 				curr_dl_entry = wlan_mac_high_find_bss_info_BSSID(rx_80211_header->address_3);
 
 				if(curr_dl_entry != NULL){
-					curr_bss_info = (bss_info*)(curr_dl_entry->data);
+					curr_bss_info = (bss_info_t*)(curr_dl_entry->data);
 					dl_entry_remove(&bss_info_list, curr_dl_entry);
 				} else {
 					// We haven't seen this BSS ID before, so we'll attempt to checkout a new dl_entry
@@ -142,7 +142,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 						}
 					}
 
-					curr_bss_info = (bss_info*)(curr_dl_entry->data);
+					curr_bss_info = (bss_info_t*)(curr_dl_entry->data);
 
 					// Clear any old information from the BSS info
 					wlan_mac_high_clear_bss_info(curr_bss_info);
@@ -244,7 +244,7 @@ void print_bss_info(){
 	int       iter;
 	u32       i;
 	dl_entry* curr_dl_entry;
-	bss_info* curr_bss_info;
+	bss_info_t* curr_bss_info;
 
 
 	i = 0;
@@ -255,7 +255,7 @@ void print_bss_info(){
 	xil_printf("************************ BSS Info *************************\n");
 
 	while ((curr_dl_entry != NULL) && (iter-- > 0)) {
-		curr_bss_info = (bss_info*)(curr_dl_entry->data);
+		curr_bss_info = (bss_info_t*)(curr_dl_entry->data);
 
 		xil_printf("[%d] SSID:     %s ", i, curr_bss_info->ssid);
 
@@ -286,12 +286,12 @@ void print_bss_info(){
 
 void bss_info_timestamp_check() {
 	dl_entry* curr_dl_entry;
-	bss_info* curr_bss_info;
+	bss_info_t* curr_bss_info;
 
 	curr_dl_entry = bss_info_list.first;
 
 	while(curr_dl_entry != NULL){
-		curr_bss_info = (bss_info*)(curr_dl_entry->data);
+		curr_bss_info = (bss_info_t*)(curr_dl_entry->data);
 
 		if((get_system_time_usec() - curr_bss_info->latest_beacon_rx_time) > BSS_INFO_TIMEOUT_USEC){
 			if((curr_bss_info->flags & BSS_FLAGS_KEEP) == 0){
@@ -312,13 +312,13 @@ void bss_info_timestamp_check() {
 
 dl_entry* bss_info_checkout(){
 	dl_entry* bsi;
-	bss_info* curr_bss_info;
+	bss_info_t* curr_bss_info;
 
 	if(bss_info_free.length > 0){
 		bsi = ((dl_entry*)(bss_info_free.first));
 		dl_entry_remove(&bss_info_free,bss_info_free.first);
 
-		curr_bss_info = (bss_info*)(bsi->data);
+		curr_bss_info = (bss_info_t*)(bsi->data);
 		dl_list_init(&(curr_bss_info->station_info_list));
 		return bsi;
 	} else {
@@ -342,7 +342,7 @@ dl_list* wlan_mac_high_find_bss_info_SSID(char* ssid){
 	dl_entry* curr_dl_entry_primary_list;
 	dl_entry* curr_dl_entry_match_list;
 	dl_entry* next_dl_entry_match_list;
-	bss_info* curr_bss_info;
+	bss_info_t* curr_bss_info;
 
 	// Remove/free any members of bss_info_matching_ssid_list that exist since the last time
 	// this function was called
@@ -366,7 +366,7 @@ dl_list* wlan_mac_high_find_bss_info_SSID(char* ssid){
 	curr_dl_entry_primary_list = bss_info_list.last;
 
 	while ((curr_dl_entry_primary_list != NULL) && (iter-- > 0)) {
-		curr_bss_info = (bss_info*)(curr_dl_entry_primary_list->data);
+		curr_bss_info = (bss_info_t*)(curr_dl_entry_primary_list->data);
 
 		if (strcmp(ssid, curr_bss_info->ssid) == 0) {
 			curr_dl_entry_match_list = wlan_mac_high_malloc(sizeof(dl_entry));
@@ -384,13 +384,13 @@ dl_list* wlan_mac_high_find_bss_info_SSID(char* ssid){
 dl_entry* wlan_mac_high_find_bss_info_BSSID(u8* bssid){
 	int       iter;
 	dl_entry* curr_dl_entry;
-	bss_info* curr_bss_info;
+	bss_info_t* curr_bss_info;
 
 	iter          = bss_info_list.length;
 	curr_dl_entry = bss_info_list.last;
 
 	while ((curr_dl_entry != NULL) && (iter-- > 0)) {
-		curr_bss_info = (bss_info*)(curr_dl_entry->data);
+		curr_bss_info = (bss_info_t*)(curr_dl_entry->data);
 
 		if (wlan_addr_eq(bssid,curr_bss_info->bssid)) {
 			return curr_dl_entry;
@@ -405,13 +405,13 @@ dl_entry* wlan_mac_high_find_bss_info_BSSID(u8* bssid){
 dl_entry* wlan_mac_high_find_bss_info_oldest(){
 	int       iter;
 	dl_entry* curr_dl_entry;
-	bss_info* curr_bss_info;
+	bss_info_t* curr_bss_info;
 
 	iter          = bss_info_list.length;
 	curr_dl_entry = bss_info_list.first;
 
 	while ((curr_dl_entry != NULL) && (iter-- > 0)) {
-		curr_bss_info = (bss_info*)(curr_dl_entry->data);
+		curr_bss_info = (bss_info_t*)(curr_dl_entry->data);
 
 		if ((curr_bss_info->flags & BSS_FLAGS_KEEP) == 0) {
 			return curr_dl_entry;
@@ -427,14 +427,14 @@ dl_entry* wlan_mac_high_find_bss_info_oldest(){
 // Function will create a bss_info and make sure that the BSS ID is unique
 // in the bss_info list.
 //
-bss_info* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan){
+bss_info_t* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan){
 	dl_entry * curr_dl_entry;
-	bss_info * curr_bss_info = NULL;
+	bss_info_t * curr_bss_info = NULL;
 
 	curr_dl_entry = wlan_mac_high_find_bss_info_BSSID(bssid);
 
 	if (curr_dl_entry != NULL){
-		curr_bss_info = (bss_info*)(curr_dl_entry->data);
+		curr_bss_info = (bss_info_t*)(curr_dl_entry->data);
 		dl_entry_remove(&bss_info_list, curr_dl_entry);
 	} else {
 		// We haven't seen this BSS ID before, so we'll attempt to grab a new dl_entry
@@ -454,7 +454,7 @@ bss_info* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan){
 			}
 		}
 
-		curr_bss_info = (bss_info*)(curr_dl_entry->data);
+		curr_bss_info = (bss_info_t*)(curr_dl_entry->data);
 
 		// Clear any old information from the BSS info
 		wlan_mac_high_clear_bss_info(curr_bss_info);
@@ -489,13 +489,13 @@ void wlan_mac_high_reset_network_list(){
 	dl_list  * bss_info_list = wlan_mac_high_get_bss_info_list();
 	dl_entry * next_dl_entry = bss_info_list->first;
 	dl_entry * curr_dl_entry;
-    bss_info * curr_bss_info;
+    bss_info_t * curr_bss_info;
     int		   iter = bss_info_list->length;
 
 	while( (next_dl_entry != NULL) && (iter-- > 0) ){
 		curr_dl_entry = next_dl_entry;
 		next_dl_entry = dl_entry_next(curr_dl_entry);
-		curr_bss_info = (bss_info *)(curr_dl_entry->data);
+		curr_bss_info = (bss_info_t*)(curr_dl_entry->data);
 
 		if( (curr_bss_info->flags & BSS_FLAGS_KEEP) == 0){
 			wlan_mac_high_clear_bss_info(curr_bss_info);
@@ -505,7 +505,7 @@ void wlan_mac_high_reset_network_list(){
 	}
 }
 
-void wlan_mac_high_clear_bss_info(bss_info * info){
+void wlan_mac_high_clear_bss_info(bss_info_t * info){
 	int            iter;
 	station_info_t * curr_station_info;
 	dl_entry       * next_station_info_entry;
@@ -528,7 +528,7 @@ void wlan_mac_high_clear_bss_info(bss_info * info){
 		}
 
 		// Clear the bss_info
-        bzero(info, sizeof(bss_info));
+        bzero(info, sizeof(bss_info_t));
 
         // Set beacon_interval to "unknown"
         info->beacon_interval = BEACON_INTERVAL_UNKNOWN;

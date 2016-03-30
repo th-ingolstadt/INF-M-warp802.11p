@@ -91,7 +91,7 @@ tx_params_t default_multicast_data_tx_params;
 // station_info that represent stations in State 2
 // (Authenticated, Unassociated). Only members of this list will be allowed
 // to elevate to State 4 in the my_bss_info.
-bss_info*	                      my_bss_info;
+bss_info_t*	                      my_bss_info;
 
 dl_list		                      counts_table;
 dl_list		                      station_info_state_2;
@@ -2191,7 +2191,7 @@ u32	configure_bss(bss_config_t* bss_config){
 	u8					send_beacon_config_to_low 	= 0;
 	u8					send_channel_switch_to_low	= 0;
 
-	bss_info*			local_bss_info;
+	bss_info_t*			local_bss_info;
 	interrupt_state_t   curr_interrupt_state;
 	station_info_t* 	curr_station_info;
 	dl_entry* 			next_station_info_entry;
