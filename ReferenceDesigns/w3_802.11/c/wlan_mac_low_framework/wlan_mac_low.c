@@ -173,6 +173,11 @@ int wlan_mac_low_init(u32 type){
 			            // CPU Low rebooted after CPU High submitted packet for Tx
 			            //  Release lock and reset state
 			            //  CPU High will find this TX_PKT_BUF_HIGH_CTRL buffer in next ping/pong update
+					default:
+						// Something went wrong if tx_pkt_buf_state is something
+						// other than one of the tx_pkt_buf_state_t enums. We'll
+						// attempt to resolve the problem by explicitly setting
+						// the state.
 						tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 						unlock_tx_pkt_buf(i);
 					break;
@@ -197,6 +202,11 @@ int wlan_mac_low_init(u32 type){
 		switch(rx_frame_info->rx_pkt_buf_state){
 		   case RX_PKT_BUF_UNINITIALIZED:
 		   case RX_PKT_BUF_LOW_CTRL:
+		   default:
+				// Something went wrong if rx_pkt_buf_state is something
+				// other than one of the rx_pkt_buf_state_t enums. We'll
+				// attempt to resolve the problem by explicitly setting
+				// the state.
 			   force_lock_rx_pkt_buf(i);
 			   rx_frame_info->rx_pkt_buf_state = RX_PKT_BUF_LOW_CTRL;
 		   break;

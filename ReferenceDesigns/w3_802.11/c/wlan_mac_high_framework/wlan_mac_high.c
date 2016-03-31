@@ -345,13 +345,17 @@ void wlan_mac_high_init(){
 			case TX_PKT_BUF_MPDU_2:
 			case TX_PKT_BUF_MPDU_3:
 				switch(tx_frame_info->tx_pkt_buf_state){
-					default:
 					case TX_PKT_BUF_UNINITIALIZED:
 					case TX_PKT_BUF_HIGH_CTRL:
 						// Buffer already clean on boot or reboot
 					case TX_PKT_BUF_DONE:
 						// CPU High rebooted while CPU Low finished old Tx
 						//  Ignore the packet buffer contents and clean up
+					default:
+						// Something went wrong if tx_pkt_buf_state is something
+						// other than one of the tx_pkt_buf_state_t enums. We'll
+						// attempt to resolve the problem by explicitly setting
+						// the state.
 						force_lock_tx_pkt_buf(i);
 						tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 					break;
@@ -383,7 +387,6 @@ void wlan_mac_high_init(){
 			case RX_PKT_BUF_LOW_CTRL:
 				//CPU_LOW will initialize
 			break;
-			default:
 			case RX_PKT_BUF_HIGH_CTRL:
 			case RX_PKT_BUF_READY:
 	            // CPU HIGH rebooted after CPU Low submitted packet for de-encap/logging
@@ -394,6 +397,11 @@ void wlan_mac_high_init(){
 	            //  fill the packet buffer all while the mutex is unlocked. Once the
 	            //  state transitions to READY and is passed to CPU_HIGH, this ambiguous
 	            //  state will be resolved.
+			default:
+				// Something went wrong if rx_pkt_buf_state is something
+				// other than one of the rx_pkt_buf_state_t enums. We'll
+				// attempt to resolve the problem by explicitly setting
+				// the state.
 				rx_frame_info->rx_pkt_buf_state = RX_PKT_BUF_LOW_CTRL;
 				unlock_rx_pkt_buf(i);
 			break;
