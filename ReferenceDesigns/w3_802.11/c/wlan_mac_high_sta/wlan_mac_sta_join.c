@@ -59,7 +59,7 @@ extern u8                         pause_data_queue;
 extern wlan_mac_low_config_t      cpu_low_config;
 extern tx_params_t                default_unicast_mgmt_tx_params;
 extern u8                         my_aid;
-extern bss_info_t* 				  my_bss_info;
+extern bss_info_t* 				  active_bss_info;
 
 /*************************** Variable Definitions ****************************/
 
@@ -316,8 +316,8 @@ void start_join_attempt() {
     join_state = ATTEMPTING;
 
     // Check the current association
-    if (my_bss_info != NULL) {
-        if (wlan_addr_eq(gl_join_parameters.bssid, my_bss_info->bssid)) {
+    if (active_bss_info != NULL) {
+        if (wlan_addr_eq(gl_join_parameters.bssid, active_bss_info->bssid)) {
             // Already associated with this BSS
             wlan_mac_sta_join_return_to_idle();
             return;

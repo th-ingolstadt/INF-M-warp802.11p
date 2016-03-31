@@ -385,32 +385,4 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
 
 
-
-/*****************************************************************************/
-/**
- * This will initialize the WLAN Exp STA specific items
- *
- * @param   wlan_exp_type    - WLAN Exp type of the node
- * @param   serial_number    - Serial number of the node
- * @param   fpga_dna         - FPGA DNA of the node
- * @param   eth_dev_num      - Ethernet device to use for WLAN Exp
- * @param   wlan_exp_hw_addr - WLAN Exp hardware address
- * @param   wlan_hw_addr     - WLAN hardware address
- *
- * @return  int              - Status of the command:
- *                                 XST_SUCCESS - Command completed successfully
- *                                 XST_FAILURE - There was an error in the command
- *
- * @note    Function name must not collide with wlan_exp_node_init
- *
- *****************************************************************************/
-int wlan_exp_node_sta_init(u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wlan_exp_hw_addr, u8 *wlan_hw_addr) {
-
-    xil_printf("Configuring STA ...\n");
-
-    return XST_SUCCESS;
-}
-
-
-
 #endif

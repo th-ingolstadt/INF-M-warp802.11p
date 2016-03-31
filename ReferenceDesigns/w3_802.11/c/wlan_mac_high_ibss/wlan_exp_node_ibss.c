@@ -44,7 +44,7 @@
 /*********************** Global Variable Definitions *************************/
 extern dl_list                    counts_table;
 
-extern bss_info_t*                  my_bss_info;
+extern bss_info_t*                  active_bss_info;
 
 extern wlan_exp_function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback;
 
@@ -158,7 +158,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             if (flags & CMD_PARAM_NODE_RESET_FLAG_BSS) {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Resetting BSS\n");
 
-                // Set "my_bss_info" to NULL
+                // Set "active_bss_info" to NULL
                 configure_bss(NULL);
             }
 
@@ -196,33 +196,6 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
     return resp_sent;
 }
 
-
-
-/*****************************************************************************/
-/**
- * This will initialize the WLAN Exp IBSS specific items
- *
- * @param   wlan_exp_type    - WLAN Exp type of the node
- * @param   serial_number    - Serial number of the node
- * @param   fpga_dna         - FPGA DNA of the node
- * @param   eth_dev_num      - Ethernet device to use for WLAN Exp
- * @param   wlan_exp_hw_addr - WLAN Exp hardware address
- * @param   wlan_hw_addr     - WLAN hardware address
- *
- * @return  int              - Status of the command:
- *                                 XST_SUCCESS - Command completed successfully
- *                                 XST_FAILURE - There was an error in the command
- *
- * @note    Function name must not collide with wlan_exp_node_init
- *
- ******************************************************************************/
-int wlan_exp_node_ibss_init(u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wlan_exp_hw_addr, u8 *wlan_hw_addr) {
-
-    xil_printf("Configuring IBSS ...\n");
-
-    return XST_SUCCESS;
-}
-
 /*****************************************************************************/
 /**
  * Used by wlan_exp_cmd_add_association_callback in wlan_exp_node.c
@@ -237,7 +210,7 @@ void wlan_exp_ibss_tx_cmd_add_association(u8* mac_addr) {
     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Adding association for:  ");
     wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, mac_addr); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
 
-    wlan_mac_high_add_station_info(&my_bss_info->station_info_list, &counts_table, mac_addr, ADD_STATION_INFO_ANY_ID);
+    wlan_mac_high_add_station_info(&active_bss_info->station_info_list, &counts_table, mac_addr, ADD_STATION_INFO_ANY_ID);
 }
 
 

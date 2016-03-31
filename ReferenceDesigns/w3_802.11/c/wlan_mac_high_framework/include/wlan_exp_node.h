@@ -296,13 +296,13 @@ int  wlan_exp_node_init           (u32 wlan_exp_type, u32 serial_number, u32 *fp
 // Callbacks
 void wlan_exp_reset_all_callbacks                     ();
 void wlan_exp_set_process_node_cmd_callback           (void(*callback)());
-void wlan_exp_set_init_callback                       (void(*callback)());
 void wlan_exp_set_purge_all_data_tx_queue_callback    (void(*callback)());
 void wlan_exp_set_tx_cmd_add_association_callback     (void(*callback)());
 void wlan_exp_set_process_user_cmd_callback           (void(*callback)());
 void wlan_exp_set_beacon_ts_update_mode_callback      (void(*callback)());
 void wlan_exp_set_process_config_bss_callback         (void(*callback)());
-void wlan_exp_set_beacon_tx_param_update_callback     (void(*callback)());
+void wlan_exp_set_active_bss_info_getter_callback	  (void(*callback)());
+
 
 // WLAN Exp commands
 u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr);

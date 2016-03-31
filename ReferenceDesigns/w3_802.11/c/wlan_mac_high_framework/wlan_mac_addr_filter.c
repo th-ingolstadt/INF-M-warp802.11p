@@ -30,15 +30,6 @@
 
 /*********************** Global Variable Definitions *************************/
 
-//FIXME: This is too strict. It has hard-coded the use of the address filter
-//as something that must be used for authentications. Plus: the framework
-//shouldn't extern globals from the top-level projects.
-//At a minimum this should be a getter callback from each of the top-level projects. The
-//wlan_exp command that returns the single active BSS info struct should also
-//use this getter. A hypothetical NoAPP would not attach anything to this callback.
-extern bss_info_t            * my_bss_info;
-
-
 /*************************** Variable Definitions ****************************/
 
 
@@ -188,15 +179,6 @@ u8    wlan_mac_addr_filter_is_allowed(u8* addr){
     //     NOTE: By default, we disallow all addresses
     //
     if (list_len == 0) { return 1; }
-
-
-    // Check if you are currently in the association table
-    //    If you are 're-joining' you should be allowed
-    //
-    if(my_bss_info != NULL){
-        if (wlan_mac_high_find_station_info_ADDR(&(my_bss_info->station_info_list), addr) != NULL) { return 1; }
-    }
-
 
     // Check if the incoming address is within the allowable range of addresses
     iter                = addr_filter.length;

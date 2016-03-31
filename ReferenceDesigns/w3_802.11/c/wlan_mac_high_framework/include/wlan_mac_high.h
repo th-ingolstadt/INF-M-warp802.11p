@@ -515,6 +515,7 @@ void               wlan_mac_high_print_station_infos(dl_list* assoc_tbl);
 
 
 // Common functions that must be implemented by users of the framework
+// FIXME: Make these into callback. We should not require these implementations
 dl_list*          get_counts();
 dl_list*          get_station_info_list();
 u8*          	  get_wlan_mac_addr();

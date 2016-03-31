@@ -87,6 +87,7 @@ void send_probe_req();
 void process_scan_state_change(scan_state_t scan_state);
 void poll_tx_queues();
 void purge_all_data_tx_queue();
+bss_info_t * 	   active_bss_info_getter();
 
 void reset_station_counts();
 dl_list * get_counts();

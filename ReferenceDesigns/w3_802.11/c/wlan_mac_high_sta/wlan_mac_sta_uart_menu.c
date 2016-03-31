@@ -69,7 +69,7 @@ void uart_rx(u8 rxByte){ };
 extern wlan_mac_low_config_t                cpu_low_config;
 extern tx_params_t                          default_unicast_data_tx_params;
 
-extern bss_info_t*                          my_bss_info;
+extern bss_info_t*                          active_bss_info;
 extern dl_list                              counts_table;
 
 /*************************** Variable Definitions ****************************/
@@ -270,11 +270,11 @@ void uart_rx(u8 rxByte){
 				//
 				case ASCII_b:
 					// Check if an LTG has been created and create a new one if not
-					if ((traffic_blast_ltg_id == LTG_ID_INVALID) && (my_bss_info != NULL)) {
+					if ((traffic_blast_ltg_id == LTG_ID_INVALID) && (active_bss_info != NULL)) {
 						// Set up LTG payload
 						traffic_blast_pyld.hdr.type = LTG_PYLD_TYPE_FIXED;
 						traffic_blast_pyld.length   = 1400;
-						memcpy(&traffic_blast_pyld.addr_da, my_bss_info->bssid, MAC_ADDR_LEN);
+						memcpy(&traffic_blast_pyld.addr_da, active_bss_info->bssid, MAC_ADDR_LEN);
 
 						// Set up LTG schedule
 						traffic_blast_sched.duration_count = LTG_DURATION_FOREVER;
@@ -423,8 +423,8 @@ void print_station_status(){
     dl_entry     	* access_point_entry  = NULL;
     station_info_t  * access_point        = NULL;
 
-    if(my_bss_info != NULL){
-        access_point_entry = my_bss_info->station_info_list.first;
+    if(active_bss_info != NULL){
+        access_point_entry = active_bss_info->station_info_list.first;
         access_point = ((station_info_t*)(access_point_entry->data));
     }
 
@@ -433,7 +433,7 @@ void print_station_status(){
         xil_printf("\f");
         xil_printf("---------------------------------------------------\n");
 
-            if(my_bss_info != NULL){
+            if(active_bss_info != NULL){
                 xil_printf(" MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n",
                             access_point->addr[0],access_point->addr[1],access_point->addr[2],access_point->addr[3],access_point->addr[4],access_point->addr[5]);
 
@@ -503,9 +503,9 @@ void check_join_status() {
 		// Return to main menu
 		uart_mode = UART_MODE_MAIN;
 
-		if (my_bss_info != NULL) {
+		if (active_bss_info != NULL) {
 			// Print success message
-			xil_printf("\nSuccessfully Joined: %s\n", my_bss_info->ssid);
+			xil_printf("\nSuccessfully Joined: %s\n", active_bss_info->ssid);
 		} else {
 			// Print error message
 			xil_printf("\nJoin not successful.  Returning to Main Menu.\n");

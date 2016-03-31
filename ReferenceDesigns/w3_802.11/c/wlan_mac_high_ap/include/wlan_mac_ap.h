@@ -85,12 +85,12 @@ void ltg_event(u32 id, void* callback_arg);
 
 int  ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length);
 
-void mpdu_rx_process(void* pkt_buf_addr);
-void mpdu_transmit_done(tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details, u16 num_tx_low_details);
-
-void process_scan_state_change(scan_state_t scan_state);
-void set_power_save_configuration(ps_conf power_save_configuration);
-volatile ps_conf * get_power_save_configuration();
+void 				mpdu_rx_process(void* pkt_buf_addr);
+void 				mpdu_transmit_done(tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details, u16 num_tx_low_details);
+bss_info_t* 		active_bss_info_getter();
+void 				process_scan_state_change(scan_state_t scan_state);
+void 				set_power_save_configuration(ps_conf power_save_configuration);
+volatile ps_conf* 	get_power_save_configuration();
 
 void queue_state_change(u32 QID, u8 queue_len);
 inline void update_tim_tag_aid(u8 aid, u8 bit_val_in);

@@ -77,9 +77,6 @@
 extern u8                  promiscuous_counts_enabled;
 extern u8                  rx_ant_mode_tracker;
 
-// Declared in each of the AP / STA / IBSS
-extern bss_info_t*         my_bss_info;
-
 extern tx_params_t         default_unicast_mgmt_tx_params;
 extern tx_params_t         default_unicast_data_tx_params;
 extern tx_params_t         default_multicast_mgmt_tx_params;
@@ -135,14 +132,13 @@ int           null_process_cmd_callback(u32 cmd_id, void* param);
 wlan_exp_node_info                node_info;
 static wlan_exp_tag_parameter     node_parameters[NODE_PARAM_MAX_PARAMETER];
 
-static wlan_exp_function_ptr_t    wlan_exp_init_callback                     = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
 static wlan_exp_function_ptr_t    wlan_exp_process_node_cmd_callback         = (wlan_exp_function_ptr_t) null_process_cmd_callback;
        wlan_exp_function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback  = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_tx_cmd_add_association_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_process_user_cmd_callback         = (wlan_exp_function_ptr_t) null_process_cmd_callback;
        wlan_exp_function_ptr_t    wlan_exp_beacon_ts_update_mode_callback    = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_process_config_bss_callback       = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
-       wlan_exp_function_ptr_t    wlan_exp_beacon_tx_param_update_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
+       wlan_exp_function_ptr_t    wlan_exp_active_bss_info_getter_callback	 = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
 
 static u32                        wlan_exp_enable_logging = 0;
 
@@ -322,12 +318,6 @@ int wlan_exp_node_init(u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna, u32 
     //     IMPORTANT: Must be called after transport_init()
     //
     transport_set_process_hton_msg_callback((void *)process_hton_msg);
-
-
-    // ------------------------------------------
-    // Call child init function
-    status = wlan_exp_init_callback(wlan_exp_type, serial_number, fpga_dna, eth_dev_num, wlan_exp_hw_addr, wlan_hw_addr);
-
 
     wlan_exp_printf(WLAN_EXP_PRINT_NONE, NULL, "WLAN EXP Initialization complete\n");
 
@@ -1798,7 +1788,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default multicast mgmt TX power = %d dBm\n", power);
 
                         // Update beacon tx params
-                        wlan_exp_beacon_tx_param_update_callback(&default_multicast_mgmt_tx_params);
+                        wlan_mac_high_update_beacon_tx_params(&default_multicast_mgmt_tx_params);
                     break;
 
                     case CMD_PARAM_READ_VAL:
@@ -1857,7 +1847,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 status = process_tx_power(CMD_PARAM_WRITE_VAL, WLAN_EXP_AID_ALL, power);
 
                 // Update beacon tx params
-                wlan_exp_beacon_tx_param_update_callback(&default_multicast_mgmt_tx_params);
+                wlan_mac_high_update_beacon_tx_params(&default_multicast_mgmt_tx_params);
             } else {
                 wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown type for CMDID_NODE_TX_POWER: %d\n", type);
                 status = CMD_PARAM_ERROR;
@@ -1994,7 +1984,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                                         "Set default multicast mgmt Tx rate to MCS %d, PHY mode %d\n", mcs, phy_mode);
 
                         // Update beacon tx params
-                        wlan_exp_beacon_tx_param_update_callback(&default_multicast_mgmt_tx_params);
+                        wlan_mac_high_update_beacon_tx_params(&default_multicast_mgmt_tx_params);
                     break;
 
                     case CMD_PARAM_READ_VAL:
@@ -2124,7 +2114,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default multicast mgmt TX antenna mode = %d\n", ant_mode);
 
                         // Update beacon tx params
-                        wlan_exp_beacon_tx_param_update_callback(&default_multicast_mgmt_tx_params);
+                        wlan_mac_high_update_beacon_tx_params(&default_multicast_mgmt_tx_params);
                     break;
 
                     case CMD_PARAM_READ_VAL:
@@ -2163,7 +2153,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 }
 
                 // Update beacon tx params
-                wlan_exp_beacon_tx_param_update_callback(&default_multicast_mgmt_tx_params);
+                wlan_mac_high_update_beacon_tx_params(&default_multicast_mgmt_tx_params);
             } else {
                 wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown type for NODE_TX_ANT_MODE: %d\n", type);
                 status = CMD_PARAM_ERROR;
@@ -2407,13 +2397,14 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //     resp_args_32[0]  Status
             //     resp_args_32[1]  Is Scanning?
             //
-            u32    status         = CMD_PARAM_SUCCESS;
-            u32    enable         = Xil_Ntohl(cmd_args_32[0]);
+            u32    		status         = CMD_PARAM_SUCCESS;
+            u32    		enable         = Xil_Ntohl(cmd_args_32[0]);
+            bss_info_t* 	active_bss_info = ((bss_info_t*)wlan_exp_active_bss_info_getter_callback());
 
             switch (enable) {
                 case CMD_PARAM_NODE_SCAN_ENABLE:
                     // Enable scan
-                    if (my_bss_info == NULL) {
+                    if (active_bss_info == NULL) {
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Scan enabled.\n");
                         wlan_mac_scan_start();
                     } else {
@@ -2526,13 +2517,14 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - size            - uint32  - Number of payload bytes in this packet
             //   - byte[]          - uint8[] - Array of payload bytes
             //
-            u8   process_buffer = 1;
+            u8   			process_buffer = 1;
+            bss_info_t* 	active_bss_info = ((bss_info_t*)wlan_exp_active_bss_info_getter_callback());
 
             // If MAC address is all zeros, then return my_bss_info
             if ((cmd_args_32[4] == CMD_PARAM_RSVD) && (cmd_args_32[5] == CMD_PARAM_RSVD)) {
-                if (my_bss_info != NULL) {
+                if (active_bss_info != NULL) {
                     // Replace MAC address of command with my_bss_info BSSID
-                    wlan_exp_put_mac_addr(my_bss_info->bssid, &cmd_args_32[4]);
+                    wlan_exp_put_mac_addr(active_bss_info->bssid, &cmd_args_32[4]);
                 } else {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Return NULL BSS info\n");
 
@@ -3623,21 +3615,14 @@ void copy_bss_info_to_dest_entry(void * source, void * dest, u8* mac_addr, u64 t
  *
  *****************************************************************************/
 void wlan_exp_reset_all_callbacks(){
-    wlan_exp_init_callback                     = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_process_node_cmd_callback         = (wlan_exp_function_ptr_t) null_process_cmd_callback;
     wlan_exp_purge_all_data_tx_queue_callback  = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_tx_cmd_add_association_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_process_user_cmd_callback         = (wlan_exp_function_ptr_t) null_process_cmd_callback;
     wlan_exp_beacon_ts_update_mode_callback    = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
     wlan_exp_process_config_bss_callback       = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
-    wlan_exp_beacon_tx_param_update_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
+    wlan_exp_active_bss_info_getter_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
 }
-
-
-void wlan_exp_set_init_callback(void(*callback)()){
-    wlan_exp_init_callback = (wlan_exp_function_ptr_t) callback;
-}
-
 
 void wlan_exp_set_process_node_cmd_callback(void(*callback)()){
 	wlan_exp_process_node_cmd_callback = (wlan_exp_function_ptr_t) callback;
@@ -3668,9 +3653,8 @@ void wlan_exp_set_process_config_bss_callback(void(*callback)()){
     wlan_exp_process_config_bss_callback = (wlan_exp_function_ptr_t) callback;
 }
 
-
-void wlan_exp_set_beacon_tx_param_update_callback(void(*callback)()){
-    wlan_exp_beacon_tx_param_update_callback = (wlan_exp_function_ptr_t) callback;
+void wlan_exp_set_active_bss_info_getter_callback(void(*callback)()){
+	wlan_exp_active_bss_info_getter_callback = (wlan_exp_function_ptr_t) callback;
 }
 
 
@@ -3803,15 +3787,16 @@ u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr) {
     u32            		id;
     dl_entry     	* 	entry;
     station_info_t  * 	station_info;
+    bss_info_t* 		active_bss_info = ((bss_info_t*)wlan_exp_active_bss_info_getter_callback());
 
     if (wlan_addr_eq(mac_addr, zero_addr)) {
         id = WLAN_EXP_AID_ALL;
     } else {
-        if(my_bss_info != NULL){
-            if (wlan_addr_eq(mac_addr, my_bss_info->bssid)) {
+        if(active_bss_info != NULL){
+            if (wlan_addr_eq(mac_addr, active_bss_info->bssid)) {
                 id = WLAN_EXP_AID_ME;
             } else {
-                entry = wlan_mac_high_find_station_info_ADDR(&(my_bss_info->station_info_list), mac_addr);
+                entry = wlan_mac_high_find_station_info_ADDR(&(active_bss_info->station_info_list), mac_addr);
 
                 if (entry != NULL) {
                 	station_info = (station_info_t*)(entry->data);
