@@ -427,7 +427,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | Field                       | Description                                                                                        |
             +=============================+====================================================================================================+
-            | timestamp                   |  Value of MAC Time in microseconds when structure created on the node                              |
+            | retrieval_timestamp         |  Value of System Time in microseconds when structure retrieved from the node                       |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | mac_addr                    |  MAC address of remote node whose statics are recorded here                                        |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
@@ -1965,7 +1965,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | Field                       | Description                                                                                        |
             +=============================+====================================================================================================+
-            | timestamp                   |  Value of MAC Time in microseconds when structure created on the node                              |
+            | retrieval_timestamp         |  Value of System Time in microseconds when structure retrieved from the node                       |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | mac_addr                    |  MAC address of station                                                                            |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
@@ -1973,9 +1973,14 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | host_name                   |  String hostname (19 chars max), taken from DHCP DISCOVER packets                                  |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | flags                       |  Value of System Time in microseconds of last successful Rx from device                            |
+            | flags                       |  Station flags.  Value containts 1 bit fields:                                                     |
+            |                             |                                                                                                    |
+            |                             |      * 0x0001 - 'DISABLE_ASSOC_CHECK'                                                              |
+            |                             |      * 0x0002 - 'DOZE'                                                                             |
+            |                             |      * 0x0004 - 'HT_CAPABLE'                                                                       |
+            |                             |                                                                                                    |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | latest_activity_timestamp   |  Total number of bytes transmitted (successfully or not) in DATA packets to remote node            |
+            | latest_activity_timestamp   |  Value of System Time in microseconds of last successful Rx from device                            |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | rx_last_seq                 |  Sequence number of last packet received from device                                               |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
@@ -1989,7 +1994,10 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | tx_phy_power                |  Current Tx power in dBm for new transmissions to device                                           |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | tx_mac_flags                |  Flags for Tx MAC config for new transmissions to device                                           |
+            | tx_mac_flags                |  Flags for Tx MAC config for new transmissions to device.  Value contains 1 bit flags:             |
+            |                             |                                                                                                    |
+            |                             |      * None defined                                                                                |
+            |                             |                                                                                                    |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
         
         Args:
@@ -2038,23 +2046,46 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | Field                       | Description                                                                                        |
             +=============================+====================================================================================================+
-            | timestamp                   |  Value of MAC Time in microseconds when structure created on the node                              |
+            | retrieval_timestamp         |  Value of System Time in microseconds when structure retrieved from the node                       |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | bssid                       |  BSS ID                                                                                            |
+            | bssid                       |  BSS ID: 48-bit MAC address                                                                        |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | ssid                        |  SSID (32 chars max)                                                                               |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | channel                     |  Primary channel                                                                                   |
+            | channel                     |  Primary channel.  In util.wlan_channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 36, 40, 44, 48]     |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | channel_type                |  Channel Type. One of { 'BW20' : 0x00, 'BW40_SEC_BELOW' : 0x01, 'BW40_SEC_ABOVE' : 0x02}           |
+            | channel_type                |  Channel Type.  Value is one of:                                                                   |
+            |                             |                                                                                                    |
+            |                             |      * 0x00 - 'BW20'                                                                               |
+            |                             |      * 0x01 - 'BW40_SEC_BELOW'                                                                     |
+            |                             |      * 0x02 - 'BW40_SEC_ABOVE'                                                                     |
+            |                             |                                                                                                    |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | latest_beacon_rx_time       |  Value of System Time in microseconds of last beacon Rx                                            |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | latest_beacon_rx_power      |  Last observed beacon Rx Power (dBm)                                                               |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | flags                       |  BSS flags                                                                                         |
+            | flags                       |  BSS flags.  Value contains 1 bit fields:                                                          |
+            |                             |                                                                                                    |
+            |                             |      * 0x0001 - 'KEEP'                                                                             |
+            |                             |      * 0x0002 - 'HT_CAPABLE'                                                                       |
+            |                             |                                                                                                    |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | capabilities                |  Supported capabilities of the BSS                                                                 |
+            | capabilities                |  Supported capabilities of the BSS.  Value contains 1 bit fields:                                  |
+            |                             |                                                                                                    |
+            |                             |      * 0x0001 - 'ESS'                                                                              |
+            |                             |      * 0x0002 - 'IBSS'                                                                             |
+            |                             |      * 0x0010 - 'PRIVACY'                                                                          |
+            |                             |      * 0x0020 - 'SHORT_PREAMBLE'                                                                   |
+            |                             |      * 0x0040 - 'PBCC'                                                                             |
+            |                             |      * 0x0080 - 'CHAN_AGILITY'                                                                     |
+            |                             |      * 0x0100 - 'SPEC_MGMT'                                                                        |
+            |                             |      * 0x0400 - 'SHORT_TIMESLOT'                                                                   |
+            |                             |      * 0x0800 - 'APSD'                                                                             |
+            |                             |      * 0x2000 - 'DSSS_OFDM'                                                                        |
+            |                             |      * 0x4000 - 'DELAYED_BLOCK_ACK'                                                                |
+            |                             |      * 0x8000 - 'IMMEDIATE_BLOCK_ACK'                                                              |
+            |                             |                                                                                                    |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | beacon_interval             |  Beacon interval - In time units of 1024 us'                                                       |
             +-----------------------------+----------------------------------------------------------------------------------------------------+

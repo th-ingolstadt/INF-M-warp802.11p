@@ -51,6 +51,8 @@ class WlanExpNodeIBSS(node.WlanExpNode):
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | Field                       | Description                                                                                        |
             +=============================+====================================================================================================+
+            | retrieval_timestamp         |  Value of System Time in microseconds when structure retrieved from the node                       |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
             | mac_addr                    |  MAC address of remote node whose statics are recorded here                                        |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | associated                  |  Boolean indicating whether remote node is currently associated with this node                     |

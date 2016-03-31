@@ -173,7 +173,7 @@ for idx,atten in enumerate(attens):
     n_ap.queue_tx_data_purge_all()
     
     sta_num_bits  = float((sta_rx_counts_end['data_num_rx_bytes'] - sta_rx_counts_start['data_num_rx_bytes']) * 8)
-    sta_time_span = float(sta_rx_counts_end['timestamp'] - sta_rx_counts_start['timestamp'])
+    sta_time_span = float(sta_rx_counts_end['retrieval_timestamp'] - sta_rx_counts_start['retrieval_timestamp'])
     sta_xput      = sta_num_bits / sta_time_span
     xputs[idx] = sta_xput
     

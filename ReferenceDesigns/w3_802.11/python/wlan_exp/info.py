@@ -50,7 +50,7 @@ __all__ = ['StationInfo', 'BSSInfo', 'TxRxCounts']
 #-------------------------------------------------------------------------
 info_field_defs = {
     'STATION_INFO' : [
-        ('timestamp',                   'Q',      'uint64',  'Value of MAC Time in microseconds when structure created'),
+        ('retrieval_timestamp',         'Q',      'uint64',  'Value of System Time in microseconds when structure retrieved from the node'),
         ('mac_addr',                    '6s',     '6uint8',  'MAC address of station'),
         ('id',                          'H',      'uint16',  'Identification Index for this station'),
         ('host_name',                   '20s',    '20uint8', 'String hostname (19 chars max), taken from DHCP DISCOVER packets'),
@@ -67,7 +67,7 @@ info_field_defs = {
         ('padding1',                    '3x',     '3uint8',  '')],
 
     'BSS_INFO' : [
-        ('timestamp',                   'Q',      'uint64',  'Value of MAC Time in microseconds when structure created'),
+        ('retrieval_timestamp',         'Q',      'uint64',  'Value of System Time in microseconds when structure retrieved from the node'),
         ('bssid',                       '6s',     '6uint8',  'BSS ID'),
         ('channel',                     'B',      'uint8',   'Primary channel'),
         ('channel_type',                'B',      'uint8',   'Channel Type'),
@@ -89,7 +89,7 @@ info_field_defs = {
         ('ht_capable',                  'B',      'uint8',   'Support for HTMF Tx/Rx')],
 
     'TXRX_COUNTS' : [
-        ('timestamp',                   'Q',      'uint64',  'Value of MAC Time in microseconds when log entry created'),
+        ('retrieval_timestamp',         'Q',      'uint64',  'Value of System Time in microseconds when structure retrieved from the node'),
         ('mac_addr',                    '6s',     '6uint8',  'MAC address of remote node whose counts are recorded here'),
         ('associated',                  'B',      'uint8',   'Boolean indicating whether remote node is currently associated with this node'),
         ('padding',                     'x',      'uint8',   ''),
@@ -117,7 +117,7 @@ info_consts_defs = {
         'flags'         : util.consts_dict({
             'DISABLE_ASSOC_CHECK'      : 0x00000001,
             'DOZE'                     : 0x00000002,
-            'DO_NOT_REMOVE'            : 0x80000000
+            'HT_CAPABLE'               : 0x00000004
         }),
         'tx_phy_mode'   : util.phy_modes,
         'tx_mac_flags'  : util.consts_dict()
