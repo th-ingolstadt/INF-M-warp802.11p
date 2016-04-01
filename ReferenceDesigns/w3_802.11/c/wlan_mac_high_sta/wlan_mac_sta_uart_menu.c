@@ -419,7 +419,7 @@ void print_main_menu(){
 void print_station_status(){
 
     u64            timestamp;
-    counts_txrx  	* curr_counts;
+    counts_txrx_t  	* curr_counts;
     dl_entry     	* access_point_entry  = NULL;
     station_info_t  * access_point        = NULL;
 
@@ -463,14 +463,14 @@ void print_station_status(){
 
 
 void print_all_observed_counts(){
-    dl_entry     * curr_counts_entry;
-    counts_txrx  * curr_counts;
+    dl_entry       * curr_counts_entry;
+    counts_txrx_t  * curr_counts;
 
     curr_counts_entry = counts_table.first;
 
     xil_printf("\nAll Counts:\n");
     while(curr_counts_entry != NULL){
-        curr_counts = (counts_txrx*)(curr_counts_entry->data);
+        curr_counts = (counts_txrx_t*)(curr_counts_entry->data);
         xil_printf("---------------------------------------------------\n");
         xil_printf("%02x:%02x:%02x:%02x:%02x:%02x\n", curr_counts->addr[0], curr_counts->addr[1], curr_counts->addr[2],
                                                       curr_counts->addr[3], curr_counts->addr[4], curr_counts->addr[5]);

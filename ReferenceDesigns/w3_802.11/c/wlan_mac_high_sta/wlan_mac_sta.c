@@ -341,8 +341,8 @@ int main() {
  *****************************************************************************/
 void send_probe_req(){
 	u16                             tx_length;
-	tx_queue_element*               curr_tx_queue_element;
-	tx_queue_buffer*                curr_tx_queue_buffer;
+	tx_queue_element_t*             curr_tx_queue_element;
+	tx_queue_buffer_t*              curr_tx_queue_buffer;
 	volatile scan_parameters_t*     scan_parameters = wlan_mac_scan_get_parameters();
 
 	// Check out queue element for packet
@@ -350,7 +350,7 @@ void send_probe_req(){
 
 	// Create probe request
 	if(curr_tx_queue_element != NULL){
-		curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+		curr_tx_queue_buffer = (tx_queue_buffer_t*)(curr_tx_queue_element->data);
 
 		// Setup the TX header
 		wlan_mac_high_setup_tx_header(&tx_header_common, (u8 *)bcast_addr, (u8 *)bcast_addr);
@@ -570,7 +570,7 @@ void mpdu_transmit_done(tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_
  * The tx_queue_list argument is a DL list, but must contain exactly one queue entry which contains the encapsulated packet
  * A list container is used here to ease merging of the list with the target queue.
  *
- * @param tx_queue_element* curr_tx_queue_element
+ * @param tx_queue_element_t* curr_tx_queue_element
  *  - A single queue element containing the packet to transmit
  * @param u8* eth_dest
  *  - 6-byte destination address from original Ethernet packet
@@ -580,8 +580,8 @@ void mpdu_transmit_done(tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_
  *  - Length (in bytes) of the packet payload
  * @return 1 for successful enqueuing of the packet, 0 otherwise
  *****************************************************************************/
-int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length){
-	tx_queue_buffer* 	curr_tx_queue_buffer;
+int ethernet_receive(tx_queue_element_t* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length){
+	tx_queue_buffer_t* 	curr_tx_queue_buffer;
 	station_info_t* 	ap_station_info;
 
 
@@ -595,7 +595,7 @@ int ethernet_receive(tx_queue_element* curr_tx_queue_element, u8* eth_dest, u8* 
 
 			// Send the pre-encapsulated Ethernet frame over the wireless interface
 			//     NOTE:  The queue element has already been provided, so we do not need to check if it is NULL
-			curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+			curr_tx_queue_buffer = (tx_queue_buffer_t*)(curr_tx_queue_element->data);
 
 			// Setup the TX header
 			wlan_mac_high_setup_tx_header( &tx_header_common, ap_station_info->addr,(u8*)(&(eth_dest[0])));
@@ -656,7 +656,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 	dl_entry*	        	associated_station_entry;
 	station_info_t*     	ap_station_info          = NULL;
-	counts_txrx*        	station_counts           = NULL;
+	counts_txrx_t*        	station_counts           = NULL;
 
 	u8                  	unicast_to_me;
 	u8                  	to_multicast;
@@ -916,13 +916,13 @@ void mpdu_rx_process(void* pkt_buf_addr) {
  * @param  packet            - Pointer to the TX queue element that is being dequeued
  *
  *****************************************************************************/
-void mpdu_dequeue(tx_queue_element* packet){
+void mpdu_dequeue(tx_queue_element_t* packet){
 	mac_header_80211* 	header;
 	tx_frame_info_t*	tx_frame_info;
 	u32 				packet_payload_size;
 
-	header 	  			= (mac_header_80211*)((((tx_queue_buffer*)(packet->data))->frame));
-	tx_frame_info 		= (tx_frame_info_t*)&((((tx_queue_buffer*)(packet->data))->tx_frame_info));
+	header 	  			= (mac_header_80211*)((((tx_queue_buffer_t*)(packet->data))->frame));
+	tx_frame_info 		= (tx_frame_info_t*)&((((tx_queue_buffer_t*)(packet->data))->tx_frame_info));
 	packet_payload_size	= tx_frame_info->length;
 
 	switch(wlan_mac_high_pkt_type(header, packet_payload_size)){
@@ -964,8 +964,8 @@ void ltg_event(u32 id, void* callback_arg){
 	u32                 min_ltg_payload_length;
 	u8*                 addr_da;
 	station_info_t*     ap_station_info;
-	tx_queue_element* curr_tx_queue_element        = NULL;
-	tx_queue_buffer*  curr_tx_queue_buffer         = NULL;
+	tx_queue_element_t* curr_tx_queue_element        = NULL;
+	tx_queue_buffer_t*  curr_tx_queue_buffer         = NULL;
 
 	if(active_bss_info != NULL){
 		switch(((ltg_pyld_hdr*)callback_arg)->type){
@@ -991,7 +991,7 @@ void ltg_event(u32 id, void* callback_arg){
 			curr_tx_queue_element = queue_checkout();
 			if(curr_tx_queue_element != NULL){
 				// Create LTG packet
-				curr_tx_queue_buffer = ((tx_queue_buffer*)(curr_tx_queue_element->data));
+				curr_tx_queue_buffer = ((tx_queue_buffer_t*)(curr_tx_queue_element->data));
 
 				// Setup the MAC header
 				wlan_mac_high_setup_tx_header( &tx_header_common, ap_station_info->addr, addr_da );
@@ -1050,8 +1050,8 @@ int  sta_disassociate( void ) {
 	int                 status = 0;
 	station_info_t*     ap_station_info          = NULL;
 	dl_entry*           ap_station_info_entry;
-	tx_queue_element*   curr_tx_queue_element;
-	tx_queue_buffer*    curr_tx_queue_buffer;
+	tx_queue_element_t* curr_tx_queue_element;
+	tx_queue_buffer_t*  curr_tx_queue_buffer;
 	u32                 tx_length;
 
 	// If the STA is currently associated, remove the association; otherwise do nothing
@@ -1076,7 +1076,7 @@ int  sta_disassociate( void ) {
 		curr_tx_queue_element = queue_checkout();
 
 		if(curr_tx_queue_element != NULL){
-			curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+			curr_tx_queue_buffer = (tx_queue_buffer_t*)(curr_tx_queue_element->data);
 
 			// Setup the TX header
 			wlan_mac_high_setup_tx_header(&tx_header_common, ap_station_info->addr, wlan_mac_addr );

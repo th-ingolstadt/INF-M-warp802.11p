@@ -181,7 +181,7 @@ CASSERT(sizeof(station_info_entry) == 60, station_info_entry_alignment_check);
 //
 typedef struct __attribute__((__packed__)){
     u64                 timestamp;               // Timestamp of the log entry
-    bss_info_base       info;                    // Framework's bss_info struct
+    bss_info_base_t     info;                    // Framework's bss_info struct
 } bss_info_entry;
 
 CASSERT(sizeof(bss_info_entry) == 64, bss_info_entry_alignment_check);
@@ -246,7 +246,7 @@ typedef struct{
 //
 typedef struct{
     u64                 timestamp;               // Timestamp of the log entry
-    counts_txrx         counts;                  // Framework's counts struct
+    counts_txrx_t       counts;                  // Framework's counts struct
 } txrx_counts_entry;
 
 

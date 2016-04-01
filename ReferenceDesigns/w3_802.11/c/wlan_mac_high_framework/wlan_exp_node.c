@@ -3515,14 +3515,14 @@ void zero_txrx_counts_entry(void * dest) {
 
     txrx_counts_entry * curr_entry = (txrx_counts_entry *)(dest);
 
-    bzero((void *)(&curr_entry->counts), sizeof(counts_txrx));
+    bzero((void *)(&curr_entry->counts), sizeof(counts_txrx_t));
 }
 
 
 
 void copy_txrx_counts_to_dest_entry(void * source, void * dest, u8* mac_addr, u64 time) {
 
-    counts_txrx         * curr_source   = (counts_txrx *)(source);
+    counts_txrx_t       * curr_source   = (counts_txrx_t *)(source);
     txrx_counts_entry   * curr_dest     = (txrx_counts_entry *)(dest);
 
     // Set the timestamp for the station_info entry
@@ -3531,10 +3531,10 @@ void copy_txrx_counts_to_dest_entry(void * source, void * dest, u8* mac_addr, u6
     // Fill in zeroed entry if source is NULL
     //   - All fields are zero except last_txrx_timestamp which is CMD_PARAM_NODE_TIME_RSVD_VAL_64
     if (source == NULL) {
-        curr_source = wlan_mac_high_malloc(sizeof(counts_txrx));
+        curr_source = wlan_mac_high_malloc(sizeof(counts_txrx_t));
 
         if (curr_source != NULL) {
-            bzero(curr_source, sizeof(counts_txrx));
+            bzero(curr_source, sizeof(counts_txrx_t));
 
             // Add in MAC address
             memcpy(curr_source->addr, mac_addr, MAC_ADDR_LEN);
@@ -3547,7 +3547,7 @@ void copy_txrx_counts_to_dest_entry(void * source, void * dest, u8* mac_addr, u6
     //   NOTE:  This assumes that the destination log entry in wlan_mac_entries.h has a contiguous piece of memory
     //          similar to the source information structure in wlan_mac_high.h
     if (curr_source != NULL) {
-        memcpy((void *)(&curr_dest->counts), (void *)(curr_source), sizeof(counts_txrx));
+        memcpy((void *)(&curr_dest->counts), (void *)(curr_source), sizeof(counts_txrx_t));
     } else {
         wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_counts, "Could not copy counts_txrx to entry\n");
     }
@@ -3563,7 +3563,7 @@ void zero_bss_info_entry(void * dest) {
 
     bss_info_entry * curr_entry = (bss_info_entry *)(dest);
 
-    bzero((void *)(&curr_entry->info), sizeof(bss_info_base));
+    bzero((void *)(&curr_entry->info), sizeof(bss_info_base_t));
 }
 
 
@@ -3592,7 +3592,7 @@ void copy_bss_info_to_dest_entry(void * source, void * dest, u8* mac_addr, u64 t
     //   NOTE:  This assumes that the destination log entry in wlan_mac_entries.h has a contiguous piece of memory
     //          similar to the source information structure in wlan_mac_high.h
     if (curr_source != NULL) {
-        memcpy( (void *)(&curr_dest->info), (void *)(curr_source), sizeof(bss_info_base) );
+        memcpy( (void *)(&curr_dest->info), (void *)(curr_source), sizeof(bss_info_base_t) );
     } else {
         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Could not copy bss_info to entry\n");
     }

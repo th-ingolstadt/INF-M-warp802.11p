@@ -360,14 +360,14 @@ void print_queue_status(){
 
 
 void print_all_observed_counts(){
-	counts_txrx  * curr_counts;
+	counts_txrx_t* curr_counts;
 	dl_entry     * curr_counts_entry;
 
 	curr_counts_entry = counts_table.first;
 
 	xil_printf("\nAll Counts:\n");
 	while(curr_counts_entry != NULL){
-		curr_counts = (counts_txrx*)(curr_counts_entry->data);
+		curr_counts = (counts_txrx_t*)(curr_counts_entry->data);
 
 		xil_printf("---------------------------------------------------\n");
 		xil_printf("%02x:%02x:%02x:%02x:%02x:%02x\n",          curr_counts->addr[0], curr_counts->addr[1], curr_counts->addr[2],

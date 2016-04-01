@@ -757,7 +757,7 @@ dl_entry* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr){
  */
 dl_entry* wlan_mac_high_find_counts_ADDR(dl_list* list, u8* addr){
 	dl_entry*           curr_counts_entry;
-	counts_txrx*        curr_counts;
+	counts_txrx_t*      curr_counts;
 	int					iter = list->length;
 
 	curr_counts_entry = list->first;
@@ -765,7 +765,7 @@ dl_entry* wlan_mac_high_find_counts_ADDR(dl_list* list, u8* addr){
 
 	while( (curr_counts_entry != NULL) && (iter-- > 0) ){
 
-		curr_counts = (counts_txrx*)(curr_counts_entry->data);
+		curr_counts = (counts_txrx_t*)(curr_counts_entry->data);
 
 		if(wlan_addr_eq(curr_counts->addr, addr)){
 			// Move this counts entry to the front of the list to increase the performance of finding it again.
@@ -1360,12 +1360,12 @@ void wlan_mac_high_cdma_finish_transfer(){
  *
  * This function passes off an MPDU to the lower-level processor for transmission.
  *
- * @param tx_queue_entry* packet
+ * @param tx_queue_entry_t* packet
  *  - Pointer to the packet that should be transmitted
  * @return None
  *
  */
-void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
+void wlan_mac_high_mpdu_transmit(tx_queue_element_t* packet, int tx_pkt_buf) {
 	wlan_ipc_msg_t 		ipc_msg_to_low;
 	tx_frame_info_t* 	tx_frame_info;
 	station_info_t* 	station_info;
@@ -1383,8 +1383,8 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
     //     NOTE:  This must be done after the mpdu_tx_dequeue_callback since that call can
     //         modify the packet contents.
 	dest_addr = (void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
-	src_addr  = (void*) (&(((tx_queue_buffer*)(packet->data))->tx_frame_info));
-	xfer_len  = ((tx_queue_buffer*)(packet->data))->tx_frame_info.length + sizeof(tx_frame_info_t) + PHY_TX_PKT_BUF_PHY_HDR_SIZE - WLAN_PHY_FCS_NBYTES;
+	src_addr  = (void*) (&(((tx_queue_buffer_t*)(packet->data))->tx_frame_info));
+	xfer_len  = ((tx_queue_buffer_t*)(packet->data))->tx_frame_info.length + sizeof(tx_frame_info_t) + PHY_TX_PKT_BUF_PHY_HDR_SIZE - WLAN_PHY_FCS_NBYTES;
 
 	// Transfer the frame info
 	wlan_mac_high_cdma_start_transfer( dest_addr, src_addr, xfer_len);
@@ -1395,12 +1395,12 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
 	// Unique_seq will be filled in by CPU_LOW
 	tx_frame_info->unique_seq = 0;
 
-	switch(((tx_queue_buffer*)(packet->data))->metadata.metadata_type){
+	switch(((tx_queue_buffer_t*)(packet->data))->metadata.metadata_type){
 	    case QUEUE_METADATA_TYPE_IGNORE:
 		break;
 
 		case QUEUE_METADATA_TYPE_STATION_INFO:
-			station_info = (station_info_t*)(((tx_queue_buffer*)(packet->data))->metadata.metadata_ptr);
+			station_info = (station_info_t*)(((tx_queue_buffer_t*)(packet->data))->metadata.metadata_ptr);
 
 			//
 			// NOTE: this would be a good place to add code to handle the automatic adjustment of transmission properties like rate
@@ -1410,7 +1410,7 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf) {
 		break;
 
 		case QUEUE_METADATA_TYPE_TX_PARAMS:
-			memcpy(&(tx_frame_info->params), (void*)(((tx_queue_buffer*)(packet->data))->metadata.metadata_ptr), sizeof(tx_params_t));
+			memcpy(&(tx_frame_info->params), (void*)(((tx_queue_buffer_t*)(packet->data))->metadata.metadata_ptr), sizeof(tx_params_t));
 		break;
 	}
 
@@ -1526,7 +1526,7 @@ void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_
  *
  * @param  mac_header_80211_common * header
  *     - Pointer to the 802.11 header
- * @param  tx_queue_element * curr_tx_queue_element
+ * @param  tx_queue_element_t * curr_tx_queue_element
  *     - Pointer to the TX queue element
  * @param  u32 tx_length
  *     - Length of the frame info
@@ -1536,11 +1536,11 @@ void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_
  *     - Queue ID
  * @return None
  */
-void wlan_mac_high_setup_tx_frame_info(mac_header_80211_common * header, tx_queue_element * curr_tx_queue_element, u32 tx_length, u8 flags, u8 QID) {
+void wlan_mac_high_setup_tx_frame_info(mac_header_80211_common * header, tx_queue_element_t * curr_tx_queue_element, u32 tx_length, u8 flags, u8 QID) {
 
 	u16 occupancy;
 
-	tx_queue_buffer* curr_tx_queue_buffer = ((tx_queue_buffer*)(curr_tx_queue_element->data));
+	tx_queue_buffer_t* curr_tx_queue_buffer = ((tx_queue_buffer_t*)(curr_tx_queue_element->data));
 
     // Get occupancy that was filled in during the enqueue_after_tail() call
 	occupancy = curr_tx_queue_buffer->tx_frame_info.queue_info.occupancy;
@@ -2352,7 +2352,7 @@ station_info_t *     wlan_mac_high_add_station_info(dl_list* station_info_list, 
 	dl_entry* 		entry;
 	station_info_t* station_info;
 
-	counts_txrx* 	station_counts;
+	counts_txrx_t* 	station_counts;
 	dl_entry* 		curr_station_info_entry;
 	station_info_t* station_info_temp;
 	u16            	curr_ID;
@@ -2703,14 +2703,14 @@ void wlan_mac_high_print_station_infos(dl_list* station_info_list){
  *     - Pointer to the counts structure in the counts table
  *     - NULL
  */
-counts_txrx * wlan_mac_high_add_counts(dl_list* counts_tbl, station_info_t* station_info, u8* addr){
+counts_txrx_t * wlan_mac_high_add_counts(dl_list* counts_tbl, station_info_t* station_info, u8* addr){
 	dl_entry     * station_counts_entry;
 	dl_entry     * curr_counts_entry;
 	dl_entry     * oldest_counts_entry = NULL;
 
-	counts_txrx  * station_counts      = NULL;
-	counts_txrx  * curr_counts         = NULL;
-	counts_txrx  * oldest_counts       = NULL;
+	counts_txrx_t  * station_counts      = NULL;
+	counts_txrx_t  * curr_counts         = NULL;
+	counts_txrx_t  * oldest_counts       = NULL;
 	u32			   iter;
 
 	if(station_info == NULL){
@@ -2735,17 +2735,17 @@ counts_txrx * wlan_mac_high_add_counts(dl_list* counts_tbl, station_info_t* stat
 			iter = counts_tbl->length;
 
 			while( (curr_counts_entry != NULL) && (iter-- > 0) ){
-				curr_counts = (counts_txrx*)(curr_counts_entry->data);
+				curr_counts = (counts_txrx_t*)(curr_counts_entry->data);
 
 				if( (oldest_counts_entry == NULL) ){
 					if(curr_counts->is_associated == 0){
 						oldest_counts_entry = curr_counts_entry;
-						oldest_counts       = (counts_txrx*)(oldest_counts_entry->data);
+						oldest_counts       = (counts_txrx_t*)(oldest_counts_entry->data);
 					}
 				} else if(((curr_counts->latest_txrx_timestamp) < (oldest_counts->latest_txrx_timestamp))){
 					if(curr_counts->is_associated == 0){
 						oldest_counts_entry = curr_counts_entry;
-						oldest_counts       = (counts_txrx*)(oldest_counts_entry->data);
+						oldest_counts       = (counts_txrx_t*)(oldest_counts_entry->data);
 					}
 				}
 				curr_counts_entry = dl_entry_next(curr_counts_entry);
@@ -2768,7 +2768,7 @@ counts_txrx * wlan_mac_high_add_counts(dl_list* counts_tbl, station_info_t* stat
 			return NULL;
 		}
 
-		station_counts = wlan_mac_high_calloc(sizeof(counts_txrx));
+		station_counts = wlan_mac_high_calloc(sizeof(counts_txrx_t));
 
 		if(station_counts == NULL){
 			wlan_mac_high_free(station_counts_entry);
@@ -2782,7 +2782,7 @@ counts_txrx * wlan_mac_high_add_counts(dl_list* counts_tbl, station_info_t* stat
 		dl_entry_insertEnd(counts_tbl, station_counts_entry);
 
 	} else {
-		station_counts = (counts_txrx*)(station_counts_entry->data);
+		station_counts = (counts_txrx_t*)(station_counts_entry->data);
 	}
 	if(station_info != NULL){
 		station_info->counts = station_counts;
@@ -2803,7 +2803,7 @@ counts_txrx * wlan_mac_high_add_counts(dl_list* counts_tbl, station_info_t* stat
  * @return None
  */
 void wlan_mac_high_reset_counts(dl_list* counts_tbl){
-	counts_txrx  * curr_counts       = NULL;
+	counts_txrx_t* curr_counts       = NULL;
 	dl_entry     * next_counts_entry = NULL;
 	dl_entry     * curr_counts_entry = NULL;
 	u32			   iter;
@@ -2820,11 +2820,11 @@ void wlan_mac_high_reset_counts(dl_list* counts_tbl){
 		curr_counts_entry = next_counts_entry;
 		next_counts_entry = dl_entry_next(curr_counts_entry);
 
-		curr_counts = (counts_txrx*)(curr_counts_entry->data);
+		curr_counts = (counts_txrx_t*)(curr_counts_entry->data);
 
 		// Zero counts structures
-		bzero((void*)(&(curr_counts->data)), sizeof(frame_counts_txrx));
-		bzero((void*)(&(curr_counts->mgmt)), sizeof(frame_counts_txrx));
+		bzero((void*)(&(curr_counts->data)), sizeof(frame_counts_txrx_t));
+		bzero((void*)(&(curr_counts->mgmt)), sizeof(frame_counts_txrx_t));
 
 		// Zero latest txrx timestamp
 		curr_counts->latest_txrx_timestamp = 0;
@@ -2850,8 +2850,8 @@ void wlan_mac_high_reset_counts(dl_list* counts_tbl){
  * @return None
  */
 void wlan_mac_high_update_tx_counts(tx_frame_info_t* tx_frame_info, station_info_t* station_info) {
-	void              * mac_payload    = (u8*)tx_frame_info + PHY_TX_PKT_BUF_MPDU_OFFSET;
-	frame_counts_txrx * frame_counts   = NULL;
+	void                * mac_payload    = (u8*)tx_frame_info + PHY_TX_PKT_BUF_MPDU_OFFSET;
+	frame_counts_txrx_t * frame_counts   = NULL;
 
 	u8                  pkt_type;
 

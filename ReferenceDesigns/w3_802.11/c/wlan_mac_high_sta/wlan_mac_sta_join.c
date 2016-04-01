@@ -583,8 +583,8 @@ void wlan_mac_sta_join_bss_attempt_poll(u32 aid){
  *****************************************************************************/
 void transmit_join_auth_req(){
     u16                 tx_length;
-    tx_queue_element*   curr_tx_queue_element;
-    tx_queue_buffer*    curr_tx_queue_buffer;
+    tx_queue_element_t*   curr_tx_queue_element;
+    tx_queue_buffer_t*    curr_tx_queue_buffer;
 
     // Only transmit if FSM is "ATTEMPTING" to join
     if (join_state == ATTEMPTING) {
@@ -592,7 +592,7 @@ void transmit_join_auth_req(){
         curr_tx_queue_element = queue_checkout();
 
         if (curr_tx_queue_element != NULL) {
-            curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+            curr_tx_queue_buffer = (tx_queue_buffer_t*)(curr_tx_queue_element->data);
 
             // Setup the TX header
             wlan_mac_high_setup_tx_header(&tx_header_common, attempt_bss_info->bssid, attempt_bss_info->bssid);
@@ -629,8 +629,8 @@ void transmit_join_auth_req(){
  *****************************************************************************/
 void transmit_join_assoc_req(){
     u16                 tx_length;
-    tx_queue_element*   curr_tx_queue_element;
-    tx_queue_buffer*    curr_tx_queue_buffer;
+    tx_queue_element_t*   curr_tx_queue_element;
+    tx_queue_buffer_t*    curr_tx_queue_buffer;
 
     // Only transmit if FSM is "ATTEMPTING" to join
     if (join_state == ATTEMPTING) {
@@ -638,7 +638,7 @@ void transmit_join_assoc_req(){
         curr_tx_queue_element = queue_checkout();
 
         if (curr_tx_queue_element != NULL) {
-            curr_tx_queue_buffer = (tx_queue_buffer*)(curr_tx_queue_element->data);
+            curr_tx_queue_buffer = (tx_queue_buffer_t*)(curr_tx_queue_element->data);
 
             // Setup the TX header
             wlan_mac_high_setup_tx_header(&tx_header_common, attempt_bss_info->bssid, attempt_bss_info->bssid);

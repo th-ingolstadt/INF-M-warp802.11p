@@ -207,7 +207,7 @@ u32 queue_num_queued(u16 queue_sel){
 void purge_queue(u16 queue_sel){
 	u32                        num_queued;
 	u32                        i;
-	tx_queue_element         * curr_tx_queue_element;
+	tx_queue_element_t       * curr_tx_queue_element;
 	volatile interrupt_state_t prev_interrupt_state;
 
 	num_queued = queue_num_queued(queue_sel);
@@ -257,10 +257,10 @@ void purge_queue(u16 queue_sel){
  * @param  u16 queue_sel          - ID of the queue to which tqe is added. A new
  *                                  queue with ID queue_sel will be created if it
  *                                  does not already exist.
- * @param  tx_queue_element* tqe  - Tx Queue entry containing packet for transmission
+ * @param  tx_queue_element_t* tqe  - Tx Queue entry containing packet for transmission
  *
  *****************************************************************************/
-void enqueue_after_tail(u16 queue_sel, tx_queue_element* tqe){
+void enqueue_after_tail(u16 queue_sel, tx_queue_element_t* tqe){
 	u32 i;
 
 	// Create queues up to and including queue_sel if they don't already exist
@@ -289,7 +289,7 @@ void enqueue_after_tail(u16 queue_sel, tx_queue_element* tqe){
 	//         field is set after the current tx queue element has been added to the queue, so the
 	//         occupancy value includes itself.
 	//
-	((tx_queue_buffer*)(tqe->data))->tx_frame_info.queue_info.occupancy = (tx_queues[queue_sel].length & 0xFFFF);
+	((tx_queue_buffer_t*)(tqe->data))->tx_frame_info.queue_info.occupancy = (tx_queues[queue_sel].length & 0xFFFF);
 
 	if(tx_queues[queue_sel].length == 1){
 		//If the queue element we just added is now the only member of this queue, we should inform
@@ -315,11 +315,11 @@ void enqueue_after_tail(u16 queue_sel, tx_queue_element* tqe){
  *
  * @param  u16 queue_sel          - ID of the queue from which to dequeue an entry
  *
- * @return tx_queue_element *     - Pointer to queue entry if available,
+ * @return tx_queue_element_t *     - Pointer to queue entry if available,
  *                                  NULL if queue is empty
  *
  *****************************************************************************/
-tx_queue_element* dequeue_from_head(u16 queue_sel){
+tx_queue_element_t* dequeue_from_head(u16 queue_sel){
 	dl_entry          * curr_dl_entry;
 
 	if ((queue_sel + 1) > num_tx_queues) {
@@ -342,7 +342,7 @@ tx_queue_element* dequeue_from_head(u16 queue_sel){
 				queue_state_change_callback(queue_sel, 0);
 			}
 
-			return (tx_queue_element *) curr_dl_entry;
+			return (tx_queue_element_t *) curr_dl_entry;
 		}
 	}
 }
@@ -357,24 +357,24 @@ tx_queue_element* dequeue_from_head(u16 queue_sel){
  * removes one entry from the free pool and returns it for use by the MAC
  * application. If the free pool is empty NULL is returned.
  *
- * @return tx_queue_element *     - Pointer to new queue entry if available,
+ * @return tx_queue_element_t *     - Pointer to new queue entry if available,
  *                                  NULL if free queue is empty
  *
  *****************************************************************************/
-tx_queue_element* queue_checkout(){
-	tx_queue_element* tqe;
+tx_queue_element_t* queue_checkout(){
+	tx_queue_element_t* tqe;
 
 	if(free_queue.length > 0){
-		tqe = ((tx_queue_element*)(free_queue.first));
+		tqe = ((tx_queue_element_t*)(free_queue.first));
 		dl_entry_remove(&free_queue,free_queue.first);
 
 		// Initialize the metadata type of the tx_queue entry since this
 		// framework does not guarantee a Tx Queue entry is all zero on checkout
-		((tx_queue_buffer*)(tqe->data))->metadata.metadata_type = QUEUE_METADATA_TYPE_IGNORE;
+		((tx_queue_buffer_t*)(tqe->data))->metadata.metadata_type = QUEUE_METADATA_TYPE_IGNORE;
 
 		// Set the Tx Packet Buffer state to uninitialized. This will be set to READY
 		// after dequeue and CDMA into the actual Tx packet buffer
-		((tx_queue_buffer*)(tqe->data))->tx_frame_info.tx_pkt_buf_state = TX_PKT_BUF_UNINITIALIZED;
+		((tx_queue_buffer_t*)(tqe->data))->tx_frame_info.tx_pkt_buf_state = TX_PKT_BUF_UNINITIALIZED;
 
 		return tqe;
 	} else {
@@ -393,10 +393,10 @@ tx_queue_element* queue_checkout(){
  * entry which the MAC application no longer needs. The application must not
  * use the entry pointed to by tqe after calling this function.
  *
- * @param  tx_queue_element* tqe  - Pointer to queue entry to be returned to free pool
+ * @param  tx_queue_element_t* tqe  - Pointer to queue entry to be returned to free pool
  *
  *****************************************************************************/
-void queue_checkin(tx_queue_element* tqe){
+void queue_checkin(tx_queue_element_t* tqe){
 	if (tqe != NULL) {
 	    dl_entry_insertEnd(&free_queue, (dl_entry*) tqe);
 	}
@@ -524,7 +524,7 @@ int queue_checkin_list(dl_list * list) {
 inline int dequeue_transmit_checkin(u16 queue_sel){
 	int                 return_value             = 0;
 	int                 tx_pkt_buf               = -1;
-	tx_queue_element  * curr_tx_queue_element;
+	tx_queue_element_t  * curr_tx_queue_element;
 
 	tx_pkt_buf = wlan_mac_high_get_empty_tx_packet_buffer();
 

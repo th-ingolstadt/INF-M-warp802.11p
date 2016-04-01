@@ -141,7 +141,7 @@ typedef struct{
  */
 typedef struct{
     MY_BSS_INFO_COMMON_FIELDS
-} bss_info_base;
+} bss_info_base_t;
 
 /**
  * @brief BSS Configuration Structure

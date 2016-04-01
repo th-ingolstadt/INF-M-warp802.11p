@@ -299,7 +299,7 @@ typedef struct{
     u32        tx_num_packets_success;      ///< # of successfully transmitted packets (high-level MPDUs)
     u32        tx_num_packets_total;        ///< Total # of transmitted packets (high-level MPDUs)
     u32        tx_num_packets_low;          ///< # of low-level transmitted frames (including retransmissions)
-} frame_counts_txrx;
+} frame_counts_txrx_t;
 
 
 
@@ -318,15 +318,15 @@ typedef struct{
  *
  ********************************************************************/
 typedef struct{
-    u8                  addr[MAC_ADDR_LEN];           ///< HW Address
-    u8                  is_associated;                ///< Is this device associated with me?
-    u8                  padding;
-    frame_counts_txrx   data;                         ///< Counts about data types
-    frame_counts_txrx   mgmt;                         ///< Counts about management types
-    u64                 latest_txrx_timestamp;        ///< Timestamp of the last frame reception
-} counts_txrx;
+    u8                    addr[MAC_ADDR_LEN];           ///< HW Address
+    u8                    is_associated;                ///< Is this device associated with me?
+    u8                    padding;
+    frame_counts_txrx_t   data;                         ///< Counts about data types
+    frame_counts_txrx_t   mgmt;                         ///< Counts about management types
+    u64                   latest_txrx_timestamp;        ///< Timestamp of the last frame reception
+} counts_txrx_t;
 
-CASSERT(sizeof(counts_txrx) == 96, counts_txrx_alignment_check);
+CASSERT(sizeof(counts_txrx_t) == 96, counts_txrx_alignment_check);
 
 
 
@@ -341,7 +341,7 @@ typedef struct{
     u16  last_seq;       ///< Sequence number of the last MPDU reception
     s8   last_power;     ///< Power of last frame reception (in dBm)
     u8   last_mcs;      ///< Rate of last MPDU reception
-} rx_info;
+} rx_info_t;
 
 
 
@@ -379,7 +379,7 @@ typedef struct{
         char        hostname[STATION_INFO_HOSTNAME_MAXLEN+1];   /* Hostname from DHCP requests */        		\
         u32         flags;                                      /* 1-bit flags */                        		\
         u64         latest_activity_timestamp;                  /* Timestamp of most recent activity */  		\
-        rx_info     rx;                                         /* Reception Information Structure */    		\
+        rx_info_t   rx;                                         /* Reception Information Structure */    		\
         tx_params_t tx;                                         /* Transmission Parameters Structure */
 
 
@@ -387,7 +387,7 @@ typedef struct{
 
     WLAN_STATION_INFO_COMMON_FIELDS
 
-    counts_txrx*        counts;                                 ///< Counts Information Structure
+    counts_txrx_t*        counts;                                 ///< Counts Information Structure
                                                                 ///< @note This is a pointer to the counts structure
                                                                 ///< because counts can survive outside of the context
                                                                 ///< of associated station_info structs.
@@ -462,13 +462,13 @@ int                wlan_mac_high_right_shift_test();
 int                wlan_mac_high_cdma_start_transfer(void* dest, void* src, u32 size);
 void               wlan_mac_high_cdma_finish_transfer();
 
-void               wlan_mac_high_mpdu_transmit(tx_queue_element* packet, int tx_pkt_buf);
+void               wlan_mac_high_mpdu_transmit(tx_queue_element_t* packet, int tx_pkt_buf);
 
 u8                 wlan_mac_high_valid_tagged_rate(u8 rate);
 void               wlan_mac_high_tagged_rate_to_readable_rate(u8 rate, char* str);
 
 void               wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_1, u8 * addr_3 );
-void               wlan_mac_high_setup_tx_frame_info( mac_header_80211_common * header, tx_queue_element * curr_tx_queue_element, u32 tx_length, u8 flags, u8 QID );
+void               wlan_mac_high_setup_tx_frame_info( mac_header_80211_common * header, tx_queue_element_t * curr_tx_queue_element, u32 tx_length, u8 flags, u8 QID );
 
 void               wlan_mac_high_ipc_rx();
 void               wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg);
@@ -505,7 +505,7 @@ u8                 wlan_mac_high_is_station_info_list_member(dl_list* station_in
 u32                wlan_mac_high_set_max_num_station_infos(u32 num_station_infos);
 u32                wlan_mac_high_get_max_num_station_infos();
 
-counts_txrx*       wlan_mac_high_add_counts(dl_list* counts_tbl, station_info_t* station_info, u8* addr);
+counts_txrx_t*     wlan_mac_high_add_counts(dl_list* counts_tbl, station_info_t* station_info, u8* addr);
 void               wlan_mac_high_reset_counts(dl_list* counts_tbl);
 void               wlan_mac_high_update_tx_counts(tx_frame_info_t* tx_frame_info, station_info_t* station_info);
 int                wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, bss_info_t* bss_info, tx_params_t* tx_params_ptr, u8 flags);
