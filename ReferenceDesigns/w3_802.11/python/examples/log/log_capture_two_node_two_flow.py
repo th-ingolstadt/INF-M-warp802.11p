@@ -42,7 +42,7 @@ import wlan_exp.ltg as ltg
 # Change these values to match your experiment / network setup
 NETWORK              = '10.0.0.0'
 USE_JUMBO_ETH_FRAMES = False
-NODE_SERIAL_LIST     = ['W3-a-00094', 'W3-a-00629']
+NODE_SERIAL_LIST     = ['W3-a-00001', 'W3-a-00002']
 
 AP_HDF5_FILENAME     = "ap_two_node_two_flow_capture.hdf5"
 STA_HDF5_FILENAME    = "sta_two_node_two_flow_capture.hdf5"
@@ -53,7 +53,7 @@ CHANNEL              = 1
 BEACON_INTERVAL      = 100
 
 # Set the experiment duration (in seconds)
-TRIAL_TIME           = 10
+TRIAL_TIME           = 60
 
 #-----------------------------------------------------------------------------
 # Local Helper Utilities
@@ -166,7 +166,7 @@ ap_ltg_id  = n_ap.ltg_configure(ltg.FlowConfigCBR(dest_addr=n_sta.wlan_mac_addre
                                                   interval=0), auto_start=True)
 
 # Let the LTG flows run at the new rate
-time.sleep(TRIAL_TIME)
+time.sleep(TRIAL_TIME/3)
 
 
 print("\nStart LTG - STA -> AP")
@@ -197,6 +197,7 @@ n_ap.queue_tx_data_purge_all()
 
 # Remove the LTGs so there are no memory leaks
 n_ap.ltg_remove(ap_ltg_id)
+n_sta.ltg_remove(sta_ltg_id)
 
 # Look at the final log sizes for reference
 ap_log_size  = n_ap.log_get_size()

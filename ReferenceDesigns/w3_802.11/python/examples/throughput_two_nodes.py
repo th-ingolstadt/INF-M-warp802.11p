@@ -42,7 +42,7 @@ import wlan_exp.ltg as ltg
 # Change these values to match your experiment / network setup
 NETWORK              = '10.0.0.0'
 USE_JUMBO_ETH_FRAMES = False
-NODE_SERIAL_LIST     = ['W3-a-00650', 'W3-a-00629']
+NODE_SERIAL_LIST     = ['W3-a-00001', 'W3-a-00002']
 
 # BSS parameters
 SSID                 = "WARP Xput Example"
@@ -128,9 +128,6 @@ mcs       = 3
 phy_mode  = util.phy_modes['NONHT']
 rate_info = util.get_rate_info(mcs, phy_mode)
 
-#Reset both nodes MAC times to 0
-wlan_exp_util.broadcast_cmd_set_mac_time(0.0, network_config)
-
 # Put each node in a known, good state
 for node in [node1, node2]:
     node.set_tx_rate_unicast(mcs, phy_mode, curr_assoc=True, new_assoc=True)
@@ -172,7 +169,8 @@ print("\nRun Experiment:")
 # dictionary below to make readability easier by not having repeated code.
 #
 experiment_params = [{'node1_ltg_en' : True,  'node2_ltg_en' : False, 'desc' : 'Node 1 -> Node 2'},
-                     {'node1_ltg_en' : False, 'node2_ltg_en' : True,  'desc' : 'Node 2 -> Node 1'},]
+                     {'node1_ltg_en' : False, 'node2_ltg_en' : True,  'desc' : 'Node 2 -> Node 1'},
+                     {'node1_ltg_en' : True,  'node2_ltg_en' : True,  'desc' : 'Head-to-Head'}]
 
 
 #-------------------------------------------------------------------------
