@@ -2102,7 +2102,7 @@ void wlan_mac_high_set_dsss(u32 dsss_value) {
 	ipc_config_phy_rx_t* config_phy_rx;
 
 	// Send message to CPU Low
-	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_PHY_RX);
+	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_DSSS_EN);
 	ipc_msg_to_low.num_payload_words = sizeof(ipc_config_phy_rx_t)/sizeof(u32);
 	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload[0]);
 
@@ -2134,33 +2134,6 @@ void wlan_mac_high_request_low_state(){
 
 	write_mailbox_msg(&ipc_msg_to_low);
 }
-
-
-
-/**
- * @brief Update CPU low's configuration
- *
- * Send an IPC message to CPU Low to update its configuration.  This includes
- * all parameters in wlan_mac_low_config_t
- *
- * @param  config            - Pointer to wlan_mac_low_config_t
- * @return None
- */
-void wlan_mac_high_update_low_config(wlan_mac_low_config_t * config){
-
-	// Update CPU Low parameters based on configuration
-	wlan_mac_high_set_radio_channel(config->channel);
-	wlan_mac_high_set_rx_ant_mode(config->rx_ant_mode);
-	wlan_mac_high_set_rx_filter_mode(config->rx_filter_mode);
-	wlan_mac_high_set_tx_ctrl_pow(config->tx_ctrl_pow);
-
-	// TODO:  Replace with single IPC message:
-	//     send_msg(IPC_MBOX_CONFIG_LOW, 0, (sizeof(wlan_mac_low_config_t) / sizeof(u32)), (u32 *)config);
-	//
-	// This will require additional set methods that do appropriate error checking on each parameter
-}
-
-
 
 /**
  * @brief Check that CPU low is initialized

@@ -56,7 +56,6 @@
 
 extern mac_header_80211_common    tx_header_common;
 extern u8                         pause_data_queue;
-extern wlan_mac_low_config_t      cpu_low_config;
 extern tx_params_t                default_unicast_mgmt_tx_params;
 extern u8                         my_aid;
 extern bss_info_t* 				  active_bss_info;
@@ -335,8 +334,7 @@ void start_join_attempt() {
     pause_data_queue = 1;
 
     // Move the AP's channel
-    cpu_low_config.channel = wlan_mac_high_bss_channel_spec_to_radio_chan(attempt_bss_info->chan_spec);
-    wlan_mac_high_set_radio_channel(cpu_low_config.channel);
+    wlan_mac_high_set_radio_channel(wlan_mac_high_bss_channel_spec_to_radio_chan(attempt_bss_info->chan_spec));
 
     // Attempt to join the BSS
     wlan_mac_sta_join_bss_attempt_poll(0);

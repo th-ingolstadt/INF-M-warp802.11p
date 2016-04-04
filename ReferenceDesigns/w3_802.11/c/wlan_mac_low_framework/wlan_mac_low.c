@@ -119,7 +119,6 @@ int wlan_mac_low_init(u32 type){
 
     unique_seq = 0;
 
-    // mac_param_rx_filter      = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ADDR_MATCH_MPDU);
     mac_param_rx_filter      = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL);
 
     frame_rx_callback           = (function_ptr_t) wlan_null_callback;
@@ -910,13 +909,7 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
         break;
 
         //---------------------------------------------------------------------
-        case IPC_MBOX_CONFIG_PHY_TX: {
-            process_config_phy_tx((ipc_config_phy_tx_t*)ipc_msg_from_high_payload);
-        }
-        break;
-
-        //---------------------------------------------------------------------
-        case IPC_MBOX_CONFIG_PHY_RX: {
+        case IPC_MBOX_CONFIG_DSSS_EN: {
             process_config_phy_rx((ipc_config_phy_rx_t*)ipc_msg_from_high_payload);
         }
         break;

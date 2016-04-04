@@ -254,21 +254,6 @@ typedef struct {
 } wlan_mac_hw_info_t;
 
 
-//-----------------------------------------------
-// CPU Low Configuration Parameters
-//     - These CPU Low parameters are maintained by CPU High due to the need
-//       for updates / configuration by WLAN Exp and potentially future
-//       extensions to the framework.
-//
-typedef struct {
-    u32  channel;
-    u32  tx_ctrl_pow;
-    u32  rx_ant_mode;
-    u32  rx_filter_mode;
-} wlan_mac_low_config_t;
-
-
-
 /*************************** Function Prototypes *****************************/
 
 int                     wlan_null_callback(void * param);
@@ -281,13 +266,5 @@ void                    init_mac_hw_info(u32 cpu_type);
 wlan_mac_hw_info_t    * get_mac_hw_info();
 u8                    * get_mac_hw_addr_wlan();
 u8                    * get_mac_hw_addr_wlan_exp();
-
-
-void                    init_mac_low_config(u32 channel, s8 tx_ctrl_pow, u8 rx_ant_mode, u32 rx_filter_mode);
-wlan_mac_low_config_t * get_mac_low_config();
-u32                     get_mac_low_channel();
-s8                      get_mac_low_tx_ctrl_pow();
-u8                      get_mac_low_rx_ant_mode();
-u32                     get_mac_low_rx_filter_mode();
 
 #endif   // END WLAN_MAC_COMMON_H_

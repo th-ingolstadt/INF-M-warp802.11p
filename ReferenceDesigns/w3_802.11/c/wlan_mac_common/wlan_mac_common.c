@@ -36,7 +36,6 @@
 /*************************** Variable Definitions ****************************/
 
 static wlan_mac_hw_info_t         mac_hw_info;
-static wlan_mac_low_config_t      mac_low_config;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -184,48 +183,6 @@ void init_mac_hw_info(u32 wlan_exp_type) {
 wlan_mac_hw_info_t * get_mac_hw_info()          { return &mac_hw_info; }
 u8                 * get_mac_hw_addr_wlan()     { return mac_hw_info.hw_addr_wlan; }
 u8                 * get_mac_hw_addr_wlan_exp() { return mac_hw_info.hw_addr_wlan_exp; }
-
-
-
-/*****************************************************************************/
-/**
- * Initialize the MAC Low config
- *
- * This function will initialize the MAC Low configuration parameters.  All
- * parameters are stored as u32 but will be interpreted as the correct data
- * type by CPU Low.
- *
- * @param   wlan_exp_type    - WLAN Exp type of the CPU
- *                                 See wlan_exp.h or WLAN Exp types
- *
- *****************************************************************************/
-void init_mac_low_config(u32 channel, s8 tx_ctrl_pow, u8 rx_ant_mode, u32 rx_filter_mode) {
-    // Initialize the wlan_mac_low_config_t structure to all zeros
-    memset((void*)(&mac_low_config), 0x0, sizeof(wlan_mac_low_config_t));
-
-    // Set configuration parameters
-    mac_low_config.channel        = channel;
-    mac_low_config.tx_ctrl_pow    = (u32) tx_ctrl_pow;
-    mac_low_config.rx_ant_mode    = (u32) rx_ant_mode;
-    mac_low_config.rx_filter_mode = rx_filter_mode;
-}
-
-
-
-/*****************************************************************************/
-/**
- * Get the MAC Low config
- *
- * Return the MAC configuration parameter.  These methods should only be used
- * after the structure is initialized.
- *
- *****************************************************************************/
-wlan_mac_low_config_t * get_mac_low_config()          { return &mac_low_config; }
-u32                     get_mac_low_channel()         { return mac_low_config.channel; }
-s8                      get_mac_low_tx_ctrl_pow()     { return (s8) mac_low_config.tx_ctrl_pow; }
-u8                      get_mac_low_rx_ant_mode()     { return (u8) mac_low_config.rx_ant_mode; }
-u32                     get_mac_low_rx_filter_mode()  { return mac_low_config.rx_filter_mode; }
-
 
 
 #ifdef _DEBUG_

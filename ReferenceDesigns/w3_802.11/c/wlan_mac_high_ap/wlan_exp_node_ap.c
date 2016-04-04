@@ -484,6 +484,8 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
                     memcpy(&(curr_station_info->tx), &default_unicast_data_tx_params, sizeof(tx_params_t));
 
+                    //FIXME: Check STATION_INFO_FLAG_HT_CAPABLE and change tx_params accordingly
+
                     // Update the hex display
                     ap_update_hex_display(active_bss_info->station_info_list.length);
 

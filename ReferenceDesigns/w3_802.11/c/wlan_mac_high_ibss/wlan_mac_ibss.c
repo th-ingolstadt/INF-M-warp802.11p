@@ -103,9 +103,6 @@ static u8 	                      wlan_mac_addr[MAC_ADDR_LEN];
 // Beacon configuration
 static	beacon_txrx_configure_t	  gl_beacon_txrx_config;
 
-// CPU Low configuration information
-wlan_mac_low_config_t             cpu_low_config;
-
 
 /*************************** Functions Prototypes ****************************/
 
@@ -256,19 +253,12 @@ int main() {
     // Set Header information
 	tx_header_common.address_2 = &(wlan_mac_addr[0]);
 
-	// Set CPU Low configuration (radio / PHY parameters)
-	//     - rx_filter_mode:
-	//         - Default is "promiscuous" mode - pass all data and management packets
-	//           with good or bad checksums.  This allows logging of all data/management
-	//           receptions, even if they're not intended for this node
-	//
-	cpu_low_config.channel        = WLAN_DEFAULT_CHANNEL;
-	cpu_low_config.rx_ant_mode    = WLAN_DEFAULT_RX_ANTENNA;
-	cpu_low_config.rx_filter_mode = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL);
-	cpu_low_config.tx_ctrl_pow    = WLAN_DEFAULT_TX_PWR;
+	// Set the at-boot MAC Time to 0 usec
+	set_mac_time_usec(0);
 
-	// Send configuration to CPU Low
-	wlan_mac_high_update_low_config(&cpu_low_config);
+	wlan_mac_high_set_radio_channel(WLAN_DEFAULT_CHANNEL);
+	wlan_mac_high_set_rx_ant_mode(WLAN_DEFAULT_RX_ANTENNA);
+	wlan_mac_high_set_tx_ctrl_pow(WLAN_DEFAULT_TX_PWR);
 
 	// Initialize interrupts
 	wlan_mac_high_interrupt_init();
@@ -1402,10 +1392,6 @@ u32	configure_bss(bss_config_t* bss_config){
 
 			if (bss_config->update_mask & BSS_FIELD_MASK_CHAN) {
 				active_bss_info->chan_spec = bss_config->chan_spec;
-
-				// Update local CPU_LOW parameters
-				cpu_low_config.channel = wlan_mac_high_bss_channel_spec_to_radio_chan(active_bss_info->chan_spec);
-
 				send_channel_switch_to_low = 1;
 				update_beacon_template = 1;
 			}

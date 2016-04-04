@@ -63,7 +63,6 @@ void uart_rx(u8 rxByte){ };
 
 /*********************** Global Variable Definitions *************************/
 
-extern wlan_mac_low_config_t                cpu_low_config;
 extern tx_params_t                          default_unicast_data_tx_params;
 
 extern bss_info_t*                          active_bss_info;
