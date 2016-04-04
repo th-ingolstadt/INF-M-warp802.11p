@@ -157,38 +157,6 @@ typedef struct{
 
 
 //-----------------------------------------------
-// Station Info Entry
-//
-//     Only used to communicate with WLAN Exp Host.
-//
-typedef struct{
-    u64                 timestamp;               // Timestamp of the log entry
-    station_info_base_t info;                    // Framework's station_info struct
-} station_info_entry;
-
-CASSERT(sizeof(station_info_entry) == 60, station_info_entry_alignment_check);
-
-
-#define STATION_INFO_ENTRY_NO_CHANGE             0
-#define STATION_INFO_ENTRY_ZERO_AID              1
-
-
-
-//-----------------------------------------------
-// Basic Service Set (BSS) Info Entry
-//
-//     Only used to communicate with WLAN Exp Host.
-//
-typedef struct __attribute__((__packed__)){
-    u64                 timestamp;               // Timestamp of the log entry
-    bss_info_base_t     info;                    // Framework's bss_info struct
-} bss_info_entry;
-
-CASSERT(sizeof(bss_info_entry) == 64, bss_info_entry_alignment_check);
-
-
-
-//-----------------------------------------------
 // Temperature Entry
 //   NOTE: The temperature values are copied directly from the system monitor and need
 //         to be converted to Celsius:
@@ -237,17 +205,6 @@ typedef struct{
 #define TIME_INFO_ENTRY_BASE_SYSTEM_TIME_ID      0x80000000
 
 #define TIME_INFO_ENTRY_TIME_RSVD_VAL_64         0xFFFFFFFFFFFFFFFF
-
-
-//-----------------------------------------------
-// Tx/Rx Counts Entry
-//
-//     Only used to communicate with WLAN Exp Host.
-//
-typedef struct{
-    u64                 timestamp;               // Timestamp of the log entry
-    counts_txrx_t       counts;                  // Framework's counts struct
-} txrx_counts_entry;
 
 
 

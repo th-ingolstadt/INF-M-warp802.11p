@@ -21,8 +21,9 @@
 //-----------------------------------------------
 // Field size defines
 //
-#define MAC_ADDR_LEN                                       6
-#define WLAN_MAC_NUM_MCS                                   8
+#define MAC_ADDR_LEN                                       6                                  ///< MAC Address Length (in bytes)
+#define WLAN_MAC_NUM_MCS                                   8                                  ///< Number of MCS indexes [0 .. (num - 1)]
+#define SSID_LEN_MAX                                       32                                 ///< Maximum SSID length
 
 
 

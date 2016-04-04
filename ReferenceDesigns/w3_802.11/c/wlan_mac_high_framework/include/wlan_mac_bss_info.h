@@ -20,6 +20,8 @@
 /***************************** Include Files *********************************/
 
 #include "wlan_mac_802_11_defs.h"
+#include "wlan_mac_dl_list.h"
+#include "wlan_mac_common.h"
 
 
 /*************************** Constant Definitions ****************************/
@@ -75,18 +77,16 @@
 // Define common BSS info fields
 //   Note: These fields have been 32 bit aligned using padding bytes
 
-#define MY_BSS_INFO_COMMON_FIELDS                                                                            \
-        u8         		bssid[MAC_ADDR_LEN];               /* BSS ID - 48 bit HW address */                  \
+#define BSS_INFO_COMMON_FIELDS                                                                               \
+        u8              bssid[MAC_ADDR_LEN];               /* BSS ID - 48 bit HW address */                  \
         chan_spec_t     chan_spec;                         /* Channel Specification */                       \
-        u64        		latest_beacon_rx_time;	           /* Timestamp - Last interaction with BSS */       \
-        char       		ssid[SSID_LEN_MAX + 1];            /* SSID of the BSS - 33 bytes */                  \
-        u8         		padding0;																			 \
-        s8         		latest_beacon_rx_power;            /* Last observed Rx Power (dBm) */				 \
-        u8         		flags;                             /* BSS Flags - Each flag is 1 bit */              \
-        u16        		capabilities;                      /* Supported capabilities */                      \
-        u16        		beacon_interval;                   /* Beacon interval - In time units of 1024 us */
-
-
+        u64             latest_beacon_rx_time;	           /* Timestamp - Last interaction with BSS */       \
+        char            ssid[SSID_LEN_MAX + 1];            /* SSID of the BSS - 33 bytes */                  \
+        u8              padding0;                                                                            \
+        s8              latest_beacon_rx_power;            /* Last observed Rx Power (dBm) */                \
+        u8              flags;                             /* BSS Flags - Each flag is 1 bit */              \
+        u16             capabilities;                      /* Supported capabilities */                      \
+        u16             beacon_interval;                   /* Beacon interval - In time units of 1024 us */
 
 
 /*********************** Global Structure Definitions ************************/
@@ -102,12 +102,14 @@
  * expects.
  *
  ********************************************************************/
-typedef enum __attribute__((__packed__)){
+typedef enum __attribute__((__packed__)) {
 	CHAN_TYPE_BW20 = 0,
 	CHAN_TYPE_BW40_SEC_BELOW = 1,
 	CHAN_TYPE_BW40_SEC_ABOVE = 2
 } chan_type_t;
+
 CASSERT(sizeof(chan_type_t) == 1, chan_type_t_alignment_check);
+
 
 
 /********************************************************************
@@ -118,43 +120,39 @@ CASSERT(sizeof(chan_type_t) == 1, chan_type_t_alignment_check);
  * center frequency and bandwidth of the radio.
  ********************************************************************/
 typedef struct __attribute__((__packed__)){
-	u8			chan_pri;
-	chan_type_t	chan_type;
+	u8             chan_pri;
+	chan_type_t    chan_type;
 } chan_spec_t;
+
 CASSERT(sizeof(chan_spec_t) == 2, chan_spec_t_alignment_check);
 
-/**
+
+
+/********************************************************************
  * @brief Basic Service Set (BSS) Information Structure
  *
  * This struct contains information about the basic service set for the node.
- */
+ ********************************************************************/
 typedef struct{
-    MY_BSS_INFO_COMMON_FIELDS
+    BSS_INFO_COMMON_FIELDS
+
     dl_list station_info_list;
 } bss_info_t;
 
-/**
- * @brief Base BSS Information Structure
- *
- * This struct is a modification of the bss_info struct that eliminates
- * pointers to other data.
- */
-typedef struct{
-    MY_BSS_INFO_COMMON_FIELDS
-} bss_info_base_t;
 
-/**
+
+/********************************************************************
  * @brief BSS Configuration Structure
  *
  * This struct contains all the BSS info fields that can be modified.
- */
+ ********************************************************************/
 typedef struct{
-    u32       		update_mask;                       /* Mask of fields that were updated */
-    u8        		bssid[MAC_ADDR_LEN];               /* BSS ID */
-    u16        		beacon_interval;                   /* Beacon interval - In time units of 1024 us */
-    char       		ssid[SSID_LEN_MAX + 1];            /* SSID of the BSS - 33 bytes */
-    chan_spec_t     chan_spec;                         /* Channel Specification*/
-    u8         		ht_capable;                        /* Support HTMF Tx/Rx */
+    u32            update_mask;                       /* Mask of fields that were updated */
+    u8             bssid[MAC_ADDR_LEN];               /* BSS ID */
+    u16            beacon_interval;                   /* Beacon interval - In time units of 1024 us */
+    char           ssid[SSID_LEN_MAX + 1];            /* SSID of the BSS - 33 bytes */
+    chan_spec_t    chan_spec;                         /* Channel Specification*/
+    u8             ht_capable;                        /* Support HTMF Tx/Rx */
 } bss_config_t;
 
 
@@ -176,7 +174,7 @@ dl_list        * wlan_mac_high_find_bss_info_SSID(char* ssid);
 dl_entry       * wlan_mac_high_find_bss_info_BSSID(u8* bssid);
 
 bss_info_t     * wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan);
-void 			 wlan_mac_high_reset_network_list();
+void             wlan_mac_high_reset_network_list();
 void             wlan_mac_high_clear_bss_info(bss_info_t * info);
 
 inline dl_list * wlan_mac_high_get_bss_info_list();

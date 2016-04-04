@@ -107,20 +107,20 @@ u32           process_buffer_cmds(int socket_index, void * from, cmd_resp * comm
                                   u32 eth_dev_num, u32 max_resp_len,
                                   char * type, char * description, dl_list * source_list, u32 dest_size,
                                   u32 (*find_id)(u8 *),
-                                  dl_entry * (*find_source_entry)(u8 *),
-                                  void (*copy_source_to_dest)(void *, void *, u8*, u64),
+                                  dl_entry * (*find_source)(u8 *),
+                                  void (*copy_source_to_dest)(void *, void *, u8*),
                                   void (*zero_dest)(void *));
 
-dl_entry *    find_station_info_entry(u8 * mac_addr);
-void          zero_station_info_entry(void * dest);
-void          copy_station_info_to_dest_entry(void * source, void * dest, u8* mac_addr, u64 time);
+dl_entry *    find_station_info(u8 * mac_addr);
+void          zero_station_info(void * dest);
+void          copy_station_info_to_dest(void * source, void * dest, u8* mac_addr);
 
-dl_entry *    find_txrx_counts_entry(u8 * mac_addr);
-void          zero_txrx_counts_entry(void * dest);
-void          copy_txrx_counts_to_dest_entry(void * source, void * dest, u8* mac_addr, u64 time);
+dl_entry *    find_counts_txrx(u8 * mac_addr);
+void          zero_counts_txrx(void * dest);
+void          copy_counts_txrx_to_dest(void * source, void * dest, u8* mac_addr);
 
-void          zero_bss_info_entry(void * dest);
-void          copy_bss_info_to_dest_entry(void * source, void * dest, u8* mac_addr, u64 time);
+void          zero_bss_info(void * dest);
+void          copy_bss_info_to_dest(void * source, void * dest, u8* mac_addr);
 
 // Null callback function declarations
 int           null_process_cmd_callback(u32 cmd_id, void* param);
@@ -1110,11 +1110,11 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                                             cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_resp_len,
                                             print_type_counts, "counts",
                                             get_counts(),
-                                            sizeof(txrx_counts_entry),
+                                            sizeof(wlan_exp_counts_txrx_t),
                                             &wlan_exp_get_id_in_counts,
-                                            &find_txrx_counts_entry,
-                                            &copy_txrx_counts_to_dest_entry,
-                                            &zero_txrx_counts_entry);
+                                            &find_counts_txrx,
+                                            &copy_counts_txrx_to_dest,
+                                            &zero_counts_txrx);
         }
         break;
 
@@ -2491,11 +2491,11 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                                             cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_resp_len,
                                             print_type_node, "station info",
                                             get_station_info_list(),
-                                            sizeof(station_info_entry),
+                                            sizeof(wlan_exp_station_info_t),
                                             &wlan_exp_get_id_in_associated_stations,
-                                            &find_station_info_entry,
-                                            &copy_station_info_to_dest_entry,
-                                            &zero_station_info_entry);
+                                            &find_station_info,
+                                            &copy_station_info_to_dest,
+                                            &zero_station_info);
         }
         break;
 
@@ -2550,11 +2550,11 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                                                 cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_resp_len,
                                                 print_type_node, "bss info",
                                                 wlan_mac_high_get_bss_info_list(),
-                                                sizeof(bss_info_entry),
+                                                sizeof(wlan_exp_bss_info_t),
                                                 &wlan_exp_get_id_in_bss_info,
                                                 &wlan_mac_high_find_bss_info_BSSID,
-                                                &copy_bss_info_to_dest_entry,
-                                                &zero_bss_info_entry);
+                                                &copy_bss_info_to_dest,
+                                                &zero_bss_info);
             }
         }
         break;
@@ -2933,9 +2933,9 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
  * Process buffer commands and return a valid buffer with the requested information.
  *
  * Terminology:
- *    "source" - the data to be transferred.
- *    "dest"   - log entry type (from wlan_mac_entries.h) that corresponds to the info
- *    "entry"  - dl_list term meaning an element of the list
+ *    "source" - the data to be transferred
+ *    "dest"   - destination within Ethernet packet for the data
+ *    "entry"  - Element of a dl_list
  *
  * @param    None
  *
@@ -2949,8 +2949,8 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
                         u32 eth_dev_num, u32 max_resp_len,
                         char * type, char * description, dl_list * source_list, u32 dest_size,
                         u32 (*find_id)(u8 *),
-                        dl_entry * (*find_source_entry)(u8 *),
-                        void (*copy_source_to_dest)(void *, void *, u8*, u64),
+                        dl_entry * (*find_source)(u8 *),
+                        void (*copy_source_to_dest)(void *, void *, u8*),
                         void (*zero_dest)(void *)) {
 
     u32            resp_index           = 5;                // There will always be 5 return args for a buffer
@@ -2959,7 +2959,6 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
     u32            i, j;
 
     u32            id;
-    u64            time;
     u8             mac_addr[MAC_ADDR_LEN];
 
     u32            size;
@@ -2992,8 +2991,8 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
     if (id == WLAN_EXP_AID_NONE) {
         if ((Xil_Ntohl(cmd_args_32[1]) & CMD_PARAM_COUNTS_RETURN_ZEROED_IF_NONE) == CMD_PARAM_COUNTS_RETURN_ZEROED_IF_NONE) {
 
-            // Copy routine will fill in a zeroed entry if the source is NULL
-            copy_source_to_dest(NULL, &resp_args_32[resp_index], &mac_addr[0], get_system_time_usec());
+            // Copy routine will zero out destination if the source is NULL
+            copy_source_to_dest(NULL, &resp_args_32[resp_index], &mac_addr[0]);
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, type, "Returning zeroed %s entry for node: ", description);
             wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, &mac_addr[0]); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
@@ -3004,21 +3003,19 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
             resp_args_32[4]   = Xil_Htonl(dest_size);
             resp_hdr->length += dest_size;
         } else {
-            // If we cannot find the MAC address, return an empty buffer
+            // Cannot find the MAC address, return an empty buffer
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, type, "Could not find %s for specified node: ", description);
             wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, &mac_addr[0]); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
         }
     } else {
         // If parameter is not the magic number to return all structures
         if (id != WLAN_EXP_AID_ALL) {
-            // Find the source information entry
-            curr_entry = find_source_entry(&mac_addr[0]);
+            // Find the source information dl_entry
+            curr_entry = find_source(&mac_addr[0]);
 
             if (curr_entry != NULL) {
-                // Copy the info to the entry
-                //   NOTE:  This assumes that the info entry in wlan_mac_entries.h has a contiguous piece of memory
-                //          similar to the info structures in wlan_mac_high.h
-                copy_source_to_dest(curr_entry->data, &resp_args_32[resp_index], &mac_addr[0], get_system_time_usec());
+                // Copy the info to the destination
+                copy_source_to_dest(curr_entry->data, &resp_args_32[resp_index], &mac_addr[0]);
 
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, type, "Get %s entry for node: ", description);
                 wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, &mac_addr[0]); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
@@ -3048,7 +3045,7 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, type, "Getting %d entries (%d bytes)\n", total_entries, size);
 
             if (size != 0) {
-                // Send the entries as a series of WLAN Exp Buffers
+                // Send the dl_list entries as a series of WLAN Exp Buffers
 
                 // Set loop variables
                 entry_per_pkt     = (max_resp_len * 4) / dest_size;
@@ -3061,7 +3058,6 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
                 bytes_remaining   = size;
                 curr_index        = 0;
                 curr_entry        = source_list->first;
-                time              = get_system_time_usec();
 
                 // Set response header arguments that do not change per packet
                 resp_hdr->num_args = 5;
@@ -3104,7 +3100,7 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
                             // Copy the info to the Ethernet packet
                             //   NOTE:  This assumes that the info entry in wlan_mac_entries.h has a contiguous piece of memory
                             //          similar to the info structures in wlan_mac_high.h
-                            copy_source_to_dest(curr_entry->data, curr_dest, &mac_addr[0], time);
+                            copy_source_to_dest(curr_entry->data, curr_dest, &mac_addr[0]);
 
                             // Increment the entry pointers
                             curr_entry = dl_entry_next(curr_entry);
@@ -3435,19 +3431,19 @@ void transfer_log_data(u32 socket_index, void * from,
  * Helper functions for node_process_buffer_cmds
  *
  * For each type of structure (ie <> in the notation below) to be transferred
- * using a buffer, you need to implement the following commands:
+ * using a buffer, the following commands are needed:
  *
- *     dl_entry * find_<>_entry(u8 * mac_addr)
- *     void       zero_<>_entry(void * dest);
- *     void       copy_<>_to_dest_entry(void * source, void * dest, u64 time);
+ *     dl_entry * find_<>(u8 * mac_addr)
+ *     void       zero_<>(void * dest);
+ *     void       copy_<>_to_dest(void * source, void * dest);
  *
  * @param   See description
  *
  *****************************************************************************/
-dl_entry * find_station_info_entry(u8 * mac_addr) {
+dl_entry * find_station_info(u8 * mac_addr) {
     dl_list * source_list = get_station_info_list();
 
-    if( source_list != NULL){
+    if (source_list != NULL) {
         return wlan_mac_high_find_station_info_ADDR(source_list, mac_addr);
     } else {
         return NULL;
@@ -3455,22 +3451,17 @@ dl_entry * find_station_info_entry(u8 * mac_addr) {
 }
 
 
-void zero_station_info_entry(void * dest) {
 
-    station_info_entry * curr_entry = (station_info_entry *)(dest);
-
-    bzero((void *)(&curr_entry->info), sizeof(station_info_base_t));
+void zero_station_info(void * dest) {
+    bzero(dest, sizeof(wlan_exp_station_info_t));
 }
 
 
 
-void copy_station_info_to_dest_entry(void * source, void * dest, u8* mac_addr, u64 time) {
+void copy_station_info_to_dest(void * source, void * dest, u8* mac_addr) {
 
-    station_info_t     * curr_source = (station_info_t *)(source);
-    station_info_entry * curr_dest   = (station_info_entry *)(dest);
-
-    // Set the timestamp for the station_info entry
-    curr_dest->timestamp = time;
+    station_info_t          * curr_source = (station_info_t *)(source);
+    wlan_exp_station_info_t * curr_dest   = (wlan_exp_station_info_t *)(dest);
 
     // Fill in zeroed entry if source is NULL
     if (source == NULL) {
@@ -3484,11 +3475,9 @@ void copy_station_info_to_dest_entry(void * source, void * dest, u8* mac_addr, u
         }
     }
 
-    // Copy the source information to the destination log entry
-    //   NOTE:  This assumes that the destination log entry in wlan_mac_entries.h has a contiguous piece of memory
-    //          similar to the source information structure in wlan_mac_high.h
+    // Copy the source information to the destination
     if (curr_source != NULL) {
-        memcpy( (void *)(&curr_dest->info), (void *)(curr_source), sizeof(station_info_base_t) );
+        memcpy((void *)(curr_dest), (void *)(curr_source), sizeof(wlan_exp_station_info_t));
     } else {
         wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_node, "Could not copy station_info to entry\n");
     }
@@ -3500,7 +3489,8 @@ void copy_station_info_to_dest_entry(void * source, void * dest, u8* mac_addr, u
 }
 
 
-dl_entry * find_txrx_counts_entry(u8 * mac_addr) {
+
+dl_entry * find_counts_txrx(u8 * mac_addr) {
     dl_list * source_list = get_counts();
 
     if( source_list != NULL){
@@ -3511,22 +3501,24 @@ dl_entry * find_txrx_counts_entry(u8 * mac_addr) {
 }
 
 
-void zero_txrx_counts_entry(void * dest) {
 
-    txrx_counts_entry * curr_entry = (txrx_counts_entry *)(dest);
+void zero_counts_txrx(void * dest) {
 
-    bzero((void *)(&curr_entry->counts), sizeof(counts_txrx_t));
+    wlan_exp_counts_txrx_t * counts = (wlan_exp_counts_txrx_t *)(dest);
+
+    // Do not zero out timestamp
+    bzero((void *)(&counts->counts), sizeof(counts_txrx_t));
 }
 
 
 
-void copy_txrx_counts_to_dest_entry(void * source, void * dest, u8* mac_addr, u64 time) {
+void copy_counts_txrx_to_dest(void * source, void * dest, u8* mac_addr) {
 
-    counts_txrx_t       * curr_source   = (counts_txrx_t *)(source);
-    txrx_counts_entry   * curr_dest     = (txrx_counts_entry *)(dest);
+    counts_txrx_t          * curr_source    = (counts_txrx_t *)(source);
+    wlan_exp_counts_txrx_t * curr_dest      = (wlan_exp_counts_txrx_t *)(dest);
 
-    // Set the timestamp for the station_info entry
-    curr_dest->timestamp = time;
+    // Set the timestamp using system time
+    curr_dest->timestamp = get_system_time_usec();
 
     // Fill in zeroed entry if source is NULL
     //   - All fields are zero except last_txrx_timestamp which is CMD_PARAM_NODE_TIME_RSVD_VAL_64
@@ -3539,13 +3531,12 @@ void copy_txrx_counts_to_dest_entry(void * source, void * dest, u8* mac_addr, u6
             // Add in MAC address
             memcpy(curr_source->addr, mac_addr, MAC_ADDR_LEN);
 
+            // Set latest_txrx_timestamp to reserved value
             curr_source->latest_txrx_timestamp = CMD_PARAM_NODE_TIME_RSVD_VAL_64;
         }
     }
 
-    // Copy the source information to the destination log entry
-    //   NOTE:  This assumes that the destination log entry in wlan_mac_entries.h has a contiguous piece of memory
-    //          similar to the source information structure in wlan_mac_high.h
+    // Copy the source information to the destination
     if (curr_source != NULL) {
         memcpy((void *)(&curr_dest->counts), (void *)(curr_source), sizeof(counts_txrx_t));
     } else {
@@ -3559,22 +3550,23 @@ void copy_txrx_counts_to_dest_entry(void * source, void * dest, u8* mac_addr, u6
 }
 
 
-void zero_bss_info_entry(void * dest) {
 
-    bss_info_entry * curr_entry = (bss_info_entry *)(dest);
+//
+// Do not need separate find_bss_info function.  Currently exists in wlan_mac_bss_info.c
+//
 
-    bzero((void *)(&curr_entry->info), sizeof(bss_info_base_t));
+
+
+void zero_bss_info(void * dest) {
+    bzero(dest, sizeof(wlan_exp_bss_info_t));
 }
 
 
 
-void copy_bss_info_to_dest_entry(void * source, void * dest, u8* mac_addr, u64 time) {
+void copy_bss_info_to_dest(void * source, void * dest, u8* mac_addr) {
 
-    bss_info_t         * curr_source = (bss_info_t *)(source);
-    bss_info_entry     * curr_dest   = (bss_info_entry *)(dest);
-
-    // Set the timestamp for the station_info entry
-    curr_dest->timestamp = time;
+    bss_info_t          * curr_source  = (bss_info_t *)(source);
+    wlan_exp_bss_info_t * curr_dest    = (wlan_exp_bss_info_t *)(dest);
 
     // Fill in zeroed entry if source is NULL
     if (source == NULL) {
@@ -3589,10 +3581,8 @@ void copy_bss_info_to_dest_entry(void * source, void * dest, u8* mac_addr, u64 t
     }
 
     // Copy the source information to the destination log entry
-    //   NOTE:  This assumes that the destination log entry in wlan_mac_entries.h has a contiguous piece of memory
-    //          similar to the source information structure in wlan_mac_high.h
     if (curr_source != NULL) {
-        memcpy( (void *)(&curr_dest->info), (void *)(curr_source), sizeof(bss_info_base_t) );
+        memcpy((void *)(curr_dest), (void *)(curr_source), sizeof(wlan_exp_bss_info_t));
     } else {
         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Could not copy bss_info to entry\n");
     }

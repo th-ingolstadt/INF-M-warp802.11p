@@ -138,11 +138,6 @@ void wlan_mac_high_copy_comparison();
 #endif
 
 
-// Functions implemented in AP, STA, etc
-dl_list * get_station_info_list();
-
-
-
 /******************************** Functions **********************************/
 
 /**

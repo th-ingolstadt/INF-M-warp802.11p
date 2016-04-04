@@ -18,6 +18,9 @@
 #include "wlan_exp_common.h"
 #include "wlan_exp_transport.h"
 
+#include "wlan_mac_bss_info.h"
+#include "wlan_mac_high.h"
+
 
 
 /*************************** Constant Definitions ****************************/
@@ -247,6 +250,7 @@
 
 /*********************** Global Structure Definitions ************************/
 
+//-----------------------------------------------
 // Node Info Structure for Tag Parameter Information
 //
 //     NOTE:  This structure has to have the same fields in the same order as the Node Tag Parameters
@@ -285,6 +289,50 @@ typedef struct {
     transport_eth_dev_info  * eth_dev;                     // Information on Ethernet device
 
 } wlan_exp_node_info;
+
+
+
+//-----------------------------------------------
+// wlan_exp Station Info
+//
+//     Only used to communicate with WLAN Exp Host.
+//
+typedef struct __attribute__((__packed__)){
+    // All station_info_t common fields
+    STATION_INFO_COMMON_FIELDS
+} wlan_exp_station_info_t;
+
+CASSERT(sizeof(wlan_exp_station_info_t) == 52, wlan_exp_station_info_alignment_check);
+
+
+#define STATION_INFO_ENTRY_NO_CHANGE             0
+#define STATION_INFO_ENTRY_ZERO_AID              1
+
+
+
+//-----------------------------------------------
+// wlan_exp Basic Service Set (BSS) Info
+//
+//     Only used to communicate with WLAN Exp Host.
+//
+typedef struct __attribute__((__packed__)){
+    // All bss_info_t common fields
+    BSS_INFO_COMMON_FIELDS
+} wlan_exp_bss_info_t;
+
+CASSERT(sizeof(wlan_exp_bss_info_t) == 56, wlan_exp_bss_info_alignment_check);
+
+
+
+//-----------------------------------------------
+// wlan_exp Tx/Rx Counts
+//
+//     Only used to communicate with WLAN Exp Host.
+//
+typedef struct{
+    u64                 timestamp;               // Timestamp of the log entry
+    counts_txrx_t       counts;                  // Framework's counts struct
+} wlan_exp_counts_txrx_t;
 
 
 

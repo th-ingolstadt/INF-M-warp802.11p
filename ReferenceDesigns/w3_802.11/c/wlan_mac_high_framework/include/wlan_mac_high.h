@@ -256,8 +256,6 @@
 #define WLAN_MAC_HIGH_MAX_PROMISC_COUNTS                   50                                 ///< Maximum number of promiscuous counts
 #define WLAN_MAC_HIGH_MAX_STATION_INFOS                    20                                 ///< Maximum number of station_info structs in any given list
 
-#define SSID_LEN_MAX                                       32                                 ///< Maximum SSID length
-
 
 
 /***************************** Include Files *********************************/
@@ -373,7 +371,7 @@ typedef struct{
  ********************************************************************/
 #define STATION_INFO_HOSTNAME_MAXLEN                       19
 
-#define WLAN_STATION_INFO_COMMON_FIELDS                                                                  		\
+#define STATION_INFO_COMMON_FIELDS                                                                  		\
         u8          addr[MAC_ADDR_LEN];                         /* HW Address */                         		\
         u16         ID;                                         /* Identification Index for this station */     \
         char        hostname[STATION_INFO_HOSTNAME_MAXLEN+1];   /* Hostname from DHCP requests */        		\
@@ -385,7 +383,7 @@ typedef struct{
 
 typedef struct{
 
-    WLAN_STATION_INFO_COMMON_FIELDS
+    STATION_INFO_COMMON_FIELDS
 
     counts_txrx_t*        counts;                                 ///< Counts Information Structure
                                                                 ///< @note This is a pointer to the counts structure
@@ -394,21 +392,6 @@ typedef struct{
     rate_selection_info_t rate_info;
 
 } station_info_t;
-
-
-
-/********************************************************************
- * @brief Base Station Information Structure
- *
- * This struct is a modification of the station_info struct that eliminates pointers to other data.  It
- * is used primarily for logging.
- *
- ********************************************************************/
-typedef struct{
-
-    WLAN_STATION_INFO_COMMON_FIELDS
-
-} station_info_base_t;
 
 
 #define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK              0x0001              ///< Mask for flag in station_info -- disable association check
@@ -434,7 +417,7 @@ inline interrupt_state_t     wlan_mac_high_interrupt_stop();
 void               wlan_mac_high_uart_rx_handler(void *CallBackRef, unsigned int EventData);
 void               wlan_mac_high_gpio_handler(void *InstancePtr);
 
-dl_entry* 		   wlan_mac_high_find_station_info_ID(dl_list* list, u32 id);
+dl_entry*          wlan_mac_high_find_station_info_ID(dl_list* list, u32 id);
 dl_entry*          wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr);
 dl_entry*          wlan_mac_high_find_counts_ADDR(dl_list* list, u8* addr);
 

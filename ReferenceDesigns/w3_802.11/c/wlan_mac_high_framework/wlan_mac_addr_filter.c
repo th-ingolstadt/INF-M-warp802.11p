@@ -30,6 +30,7 @@
 
 /*********************** Global Variable Definitions *************************/
 
+
 /*************************** Variable Definitions ****************************/
 
 
@@ -47,10 +48,14 @@ static u8 warp_range_mask[MAC_ADDR_LEN]    = { 0xFF, 0xFF, 0xFF, 0xFF, 0xF0, 0x0
 static u8 warp_range_compare[MAC_ADDR_LEN] = { 0x40, 0xD8, 0x55, 0x04, 0x20, 0x00 };
 
 
+// Callback for MAC specific address filtering
+volatile function_ptr_t      addr_is_allowed_callback;
+
+
 /*************************** Functions Prototypes ****************************/
 
-u8    addr_is_allowed(u8* addr, u8* mask, u8* compare);
-
+u8  addr_is_allowed(u8* addr, u8* mask, u8* compare);
+u32 addr_filter_null_callback(void* param);
 
 /******************************** Functions **********************************/
 
@@ -66,6 +71,9 @@ u8    addr_is_allowed(u8* addr, u8* mask, u8* compare);
 void  wlan_mac_addr_filter_init() {
     // Setup the address filter
     dl_list_init(&addr_filter);
+
+    // Initialize the callback
+    addr_is_allowed_callback = (function_ptr_t)addr_filter_null_callback;
 }
 
 
@@ -165,20 +173,33 @@ int   wlan_mac_addr_filter_add(u8* mask, u8* compare) {
  *
  * @param    u8 * addr  - Address to check against the filter
  * @return   u8
- *      - zero if address is not allowed
- *      - one  if address is allowed
+ *      - ADDR_FILTER_ADDR_NOT_ALLOWED if address is not allowed
+ *      - ADDR_FILTER_ADDR_ALLOWED if address is allowed
  */
 u8    wlan_mac_addr_filter_is_allowed(u8* addr){
     int                 iter;
     u32                 list_len = addr_filter.length;
     whitelist_range   * curr_range;
     dl_entry*           curr_range_dl_entry;
+    u32                 status;
+
+    // Call project specific address filtering
+    //     - This is called first to allow the project to determine what addresses
+    //       are allowed before the default behavior is checked.  If the value of
+    //       ADDR_FILTER_RESERVED is returned this will continue with the rest of
+    //       address checking.
+    status = addr_is_allowed_callback();
+
+    if (status != ADDR_FILTER_RESERVED) {
+        return status;
+    }
 
 
     // Check if the list is empty
-    //     NOTE: By default, we disallow all addresses
+    //     - By default, we allow all addresses
     //
-    if (list_len == 0) { return 1; }
+    if (list_len == 0) { return ADDR_FILTER_ADDR_ALLOWED; }
+
 
     // Check if the incoming address is within the allowable range of addresses
     iter                = addr_filter.length;
@@ -188,13 +209,15 @@ u8    wlan_mac_addr_filter_is_allowed(u8* addr){
 
         curr_range = (whitelist_range*)(curr_range_dl_entry->data);
 
-        if (addr_is_allowed(addr, (curr_range->mask), (curr_range->compare)) == 1) return 1;
+        if (addr_is_allowed(addr, (curr_range->mask), (curr_range->compare)) == ADDR_FILTER_ADDR_ALLOWED) {
+            return ADDR_FILTER_ADDR_ALLOWED;
+        }
 
         curr_range_dl_entry = dl_entry_next(curr_range_dl_entry);
     }
 
     // If the code made it this far, we aren't allowing this address to join the network.
-    return 0;
+    return ADDR_FILTER_ADDR_NOT_ALLOWED;
 }
 
 
@@ -207,8 +230,8 @@ u8    wlan_mac_addr_filter_is_allowed(u8* addr){
  *
  * @param    u8 * addr  - Address to check against the filter
  * @return   u8
- *      - zero if address is not a WARP address
- *      - one  if address is a WARP address
+ *      - ADDR_FILTER_ADDR_NOT_ALLOWED if address is not a WARP address
+ *      - ADDR_FILTER_ADDR_ALLOWED if address is a WARP address
  */
 u8    wlan_mac_addr_is_warp(u8* addr){
     return addr_is_allowed(addr, warp_range_mask, warp_range_compare);
@@ -218,7 +241,48 @@ u8    wlan_mac_addr_is_warp(u8* addr){
 
 /*****************************************************************************/
 /**
- * @brief
+ * @brief Set MAC address is allowed Callback
+ *
+ * Allows projects to define MAC specific address filtering behavior.  This
+ * will be called first as part of wlan_mac_addr_filter_is_allowed() allowing
+ * the project to bypass the default filtering behavior.  Function should
+ * return:
+ *    - ADDR_FILTER_ADDR_NOT_ALLOWED - Address not allowed
+ *    - ADDR_FILTER_ADDR_ALLOWED     - Address is allowed
+ *    - ADDR_FILTER_RESERVED         - Address was not allowed by the check but
+ *                                     perform default checking
+ *
+ * @param  function_ptr_t callback      - Pointer to callback function
+ * @return None
+ *
+ */
+void wlan_mac_addr_filter_set_addr_is_allowed_callback(function_ptr_t callback){
+    addr_is_allowed_callback = callback;
+}
+
+
+
+/*****************************************************************************/
+/**
+ * Address Filter Null Callback
+ *
+ * This function will always return ADDR_FILTER_RESERVED and should be used to
+ * initialize the address filter callbacks.  All input parameters will be ignored.
+ *
+ * @param   param            - Void pointer for parameters
+ *
+ * @return  int              - Status:
+ *                                 ADDR_FILTER_RESERVED
+ *****************************************************************************/
+u32 addr_filter_null_callback(void* param) {
+    return ADDR_FILTER_RESERVED;
+};
+
+
+
+/*****************************************************************************/
+/**
+ * @brief Internal address checking method
  *
  * This function will check the address against the given address range.
  *
@@ -226,8 +290,8 @@ u8    wlan_mac_addr_is_warp(u8* addr){
  * @param    u8 * mask    - Mask of the address range
  * @param    u8 * compare - Compare address of the address range
  * @return   u8
- *      - zero if address is not in the range
- *      - one  if address is in the range
+ *      - ADDR_FILTER_ADDR_NOT_ALLOWED if address is not in the range
+ *      - ADDR_FILTER_ADDR_ALLOWED if address is in the range
  */
 u8    addr_is_allowed(u8* addr, u8* mask, u8* compare){
     u32       i;
@@ -240,9 +304,9 @@ u8    addr_is_allowed(u8* addr, u8* mask, u8* compare){
     }
 
     if (sum == MAC_ADDR_LEN) {
-        return 1;
+        return ADDR_FILTER_ADDR_ALLOWED;
     } else {
-        return 0;
+        return ADDR_FILTER_ADDR_NOT_ALLOWED;
     }
 }
 
