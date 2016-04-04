@@ -661,7 +661,7 @@ def check_bss_membership(nodes, verbose=False):
     if (len(ibsss) == 1):
         raise AttributeError('Network with IBSS nodes must have 2 or more nodes')
 
-    if ((len(ap) == 0) and (len(sta) == 1)):
+    if ((len(ap) == 0) and (len(stas) == 1)):
         raise AttributeError('Network with STA must include 1 AP')
 
     msg = ''
