@@ -50,7 +50,6 @@ __all__ = ['StationInfo', 'BSSInfo', 'TxRxCounts']
 #-------------------------------------------------------------------------
 info_field_defs = {
     'STATION_INFO' : [
-        ('retrieval_timestamp',         'Q',      'uint64',  'Value of System Time in microseconds when structure retrieved from the node'),
         ('mac_addr',                    '6s',     '6uint8',  'MAC address of station'),
         ('id',                          'H',      'uint16',  'Identification Index for this station'),
         ('host_name',                   '20s',    '20uint8', 'String hostname (19 chars max), taken from DHCP DISCOVER packets'),
@@ -67,7 +66,6 @@ info_field_defs = {
         ('padding1',                    '3x',     '3uint8',  '')],
 
     'BSS_INFO' : [
-        ('retrieval_timestamp',         'Q',      'uint64',  'Value of System Time in microseconds when structure retrieved from the node'),
         ('bssid',                       '6s',     '6uint8',  'BSS ID'),
         ('channel',                     'B',      'uint8',   'Primary channel'),
         ('channel_type',                'B',      'uint8',   'Channel Type'),
