@@ -75,7 +75,7 @@
 
 // Declared in wlan_mac_high.c
 extern u8                  promiscuous_counts_enabled;
-extern u8                  rx_ant_mode_tracker;
+extern u8                  low_param_rx_ant_mode;
 
 extern tx_params_t         default_unicast_mgmt_tx_params;
 extern tx_params_t         default_unicast_data_tx_params;
@@ -158,7 +158,6 @@ u8     ETH_header_buffer[WLAN_EXP_ETH_NUM_BUFFER * WLAN_EXP_ETH_BUFFER_SIZE] __a
  * This will initialize the WLAN Exp node with the appropriate information
  * and set up the node to communicate with a host on the device.
  *
- * @param   wlan_exp_type    - WLAN Exp type of the node
  * @param   serial_number    - Serial number of the node
  * @param   fpga_dna         - FPGA DNA of the node
  * @param   eth_dev_num      - Ethernet device to use for WLAN Exp
@@ -172,7 +171,7 @@ u8     ETH_header_buffer[WLAN_EXP_ETH_NUM_BUFFER * WLAN_EXP_ETH_BUFFER_SIZE] __a
  * @note    This function will print to the terminal but is not able to control any of the LEDs
  *
  *****************************************************************************/
-int wlan_exp_node_init(u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wlan_exp_hw_addr, u8 *wlan_hw_addr) {
+int wlan_exp_node_init(u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wlan_exp_hw_addr, u8 *wlan_hw_addr) {
 
     int  i;
     int  status              = XST_SUCCESS;
@@ -192,7 +191,11 @@ int wlan_exp_node_init(u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna, u32 
     //   Node ID / Network information must be set using dynamic node configuration process
     //   Initial IP Address should be NODE_IP_ADDR_BASE for all nodes
     //
-    node_info.node_type                     = wlan_exp_type;
+    node_info.node_type						= 0; //Field will be overwritten in pieces by the three "wlan_exp_node_set_type_*" setters
+
+    // Set the Design Type fields in wlan_exp's node_type struct
+	wlan_exp_node_set_type_design(WLAN_EXP_TYPE_DESIGN_80211);
+
     node_info.node_id                       = 0xFFFF;
     node_info.hw_generation                 = WLAN_EXP_HW_VERSION;
     node_info.serial_number                 = serial_number;
@@ -324,7 +327,52 @@ int wlan_exp_node_init(u32 wlan_exp_type, u32 serial_number, u32 *fpga_dna, u32 
     return status;
 }
 
+/*****************************************************************************/
+/**
+ * Set Design Type
+ *
+ * This function sets the design type bits in the node_info.node_type field.
+ * It is called by the wlan_exp node initialization function.
+ *
+ * @param   type_design      - Design Type from wlan_exp.h
+ *
+ ******************************************************************************/
+void wlan_exp_node_set_type_design(u32 type_design){
+	node_info.node_type &= ~WLAN_EXP_TYPE_DESIGN_MASK;
+	node_info.node_type |= (type_design&WLAN_EXP_TYPE_DESIGN_MASK);
+}
 
+/*****************************************************************************/
+/**
+ * Set CPU_HIGH Type
+ *
+ * This function sets the CPU_HIGH type bits in the node_info.node_type field.
+ * It is typically the responsibility of the high-level application to call
+ * this setter.
+ *
+ * @param   type_high      - CPU_HIGH Type from wlan_exp.h
+ *
+ ******************************************************************************/
+void wlan_exp_node_set_type_high(u32 type_high){
+	node_info.node_type &= ~WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_MASK;
+	node_info.node_type |= (type_high&WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_MASK);
+}
+
+/*****************************************************************************/
+/**
+ * Set CPU_LOW Type
+ *
+ * This function sets the CPU_LOW type bits in the node_info.node_type field.
+ * The MAC High Framework will call this function after receiving an IPC message
+ * from CPU_LOW indicating its wlan_exp type.
+ *
+ * @param   type_low      - CPU_LOW Type from wlan_exp.h
+ *
+ ******************************************************************************/
+void wlan_exp_node_set_type_low(u32 type_low){
+	node_info.node_type &= ~WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW_MASK;
+	node_info.node_type |= (type_low&WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW_MASK);
+}
 
 /*****************************************************************************/
 /**
@@ -2201,7 +2249,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
                 case CMD_PARAM_READ_VAL:
                 case CMD_PARAM_READ_DEFAULT_VAL:
-                    ant_mode = rx_ant_mode_tracker;
+                    ant_mode = low_param_rx_ant_mode;
                 break;
 
                 default:

@@ -54,7 +54,7 @@
 /*************************** Constant Definitions ****************************/
 
 #define  WLAN_EXP_ETH                            TRANSPORT_ETH_B
-#define  WLAN_EXP_NODE_TYPE                     (WLAN_EXP_TYPE_DESIGN_80211 + WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_IBSS)
+#define  WLAN_EXP_NODE_TYPE                      WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_IBSS
 
 
 #define  WLAN_DEFAULT_USE_HT                     1
@@ -194,6 +194,7 @@ int main() {
 	wlan_mac_ltg_sched_set_callback(            (void *) ltg_event);
 	wlan_mac_scan_set_tx_probe_request_callback((void *) send_probe_req);
 	wlan_mac_scan_set_state_change_callback(    (void *) process_scan_state_change);
+	wlan_mac_high_set_cpu_low_reboot_callback(  (void *) handle_cpu_low_reboot);
 
 	// Set the Ethernet ecapsulation mode
 	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_IBSS);
@@ -214,7 +215,6 @@ int main() {
 	};
 
 #ifdef USE_WLAN_EXP
-    u32                  node_type;
     wlan_mac_hw_info_t * hw_info;
 
     // NOTE:  To use the WLAN Experiments Framework, it must be initialized after
@@ -235,15 +235,12 @@ int main() {
     // Get the hardware info that has been collected from CPU low
     hw_info = get_mac_hw_info();
 
-    // Set the node type
-    node_type = WLAN_EXP_NODE_TYPE + hw_info->wlan_exp_type;
-
-    // Configure the wlan_exp framework
-    wlan_exp_init(node_type, WLAN_EXP_ETH);
-
     // Initialize WLAN Exp
-    wlan_exp_node_init(node_type, hw_info->serial_number, hw_info->fpga_dna,
+    wlan_exp_node_init(hw_info->serial_number, hw_info->fpga_dna,
                        WLAN_EXP_ETH, hw_info->hw_addr_wlan_exp, hw_info->hw_addr_wlan);
+
+    // Set CPU_HIGH Type in wlan_exp's node_info struct;
+	wlan_exp_node_set_type_high(WLAN_EXP_NODE_TYPE);
 #endif
 
 	// CPU Low will pass HW information to CPU High as part of the boot process
@@ -1211,7 +1208,26 @@ void reset_station_counts(){
 	wlan_mac_high_reset_counts(&counts_table);
 }
 
-
+/*****************************************************************************/
+/**
+ * @brief Handle a reboot of CPU_LOW
+ *
+ * If CPU_LOW reboots, any parameters we had previously set in it will be lost.
+ * This function is called to tell us that we should re-apply any previous
+ * parameters we had set.
+ *
+ * @param  None
+ * @return None
+ *****************************************************************************/
+void handle_cpu_low_reboot(){
+	if(active_bss_info){
+		// 1) Re-apply any Beacon Tx configurations
+		wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
+		// 2) Re-apply radio channel
+		wlan_mac_high_set_radio_channel(
+				wlan_mac_high_bss_channel_spec_to_radio_chan(active_bss_info->chan_spec));
+	}
+}
 
 /*****************************************************************************/
 /**

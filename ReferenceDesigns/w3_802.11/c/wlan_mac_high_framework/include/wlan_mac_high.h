@@ -432,6 +432,7 @@ void               wlan_mac_high_set_beacon_tx_done_callback(function_ptr_t call
 void               wlan_mac_high_set_mpdu_rx_callback(function_ptr_t callback);
 void               wlan_mac_high_set_poll_tx_queues_callback(function_ptr_t callback);
 void               wlan_mac_high_set_mpdu_dequeue_callback(function_ptr_t callback);
+void 			   wlan_mac_high_set_cpu_low_reboot_callback(function_ptr_t callback);
 
 void*              wlan_mac_high_malloc(u32 size);
 void*              wlan_mac_high_calloc(u32 size);
@@ -459,7 +460,6 @@ void               wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg);
 void               wlan_mac_high_set_srand(u32 seed);
 u8                 wlan_mac_high_bss_channel_spec_to_radio_chan(chan_spec_t chan_spec);
 void               wlan_mac_high_set_radio_channel(u32 mac_channel);
-u32                wlan_mac_high_get_channel();
 void               wlan_mac_high_config_txrx_beacon(beacon_txrx_configure_t* beacon_txrx_configure);
 void               wlan_mac_high_set_rx_ant_mode(u8 ant_mode);
 void               wlan_mac_high_set_tx_ctrl_pow(s8 pow);
@@ -471,7 +471,7 @@ int                wlan_mac_high_read_low_mem(u32 num_words, u32 baseaddr, u32* 
 int                wlan_mac_high_write_low_param(u32 num_words, u32* payload);
 
 void               wlan_mac_high_request_low_state();
-int                wlan_mac_high_is_cpu_low_initialized();
+int 			   wlan_mac_high_is_cpu_low_initialized();
 inline int         wlan_mac_high_is_dequeue_allowed();
 int                wlan_mac_high_get_empty_tx_packet_buffer();
 u8                 wlan_mac_high_pkt_type(void* mpdu, u16 length);

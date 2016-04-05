@@ -63,10 +63,10 @@ volatile static u32               mac_param_rx_filter;                          
 volatile static u8                rx_pkt_buf;                                       ///< Current receive buffer of the lower-level MAC
 
 static u32                        cpu_low_status;                                   ///< Status flags that are reported to upper-level MAC
+static u32						  cpu_low_type;										///< wlan_exp CPU_LOW type that is reported to upperp-level MAC
 
-static wlan_mac_hw_info_t  * hw_info;                                                    ///< Information about the hardware reported to upper-level MAC
-static wlan_ipc_msg_t        ipc_msg_from_high;                                          ///< Buffer for incoming IPC messages
-static u32                   ipc_msg_from_high_payload[MAILBOX_BUFFER_MAX_NUM_WORDS];    ///< Buffer for payload of incoming IPC messages
+static wlan_ipc_msg_t        	  ipc_msg_from_high;                                          ///< Buffer for incoming IPC messages
+static u32                   	  ipc_msg_from_high_payload[MAILBOX_BUFFER_MAX_NUM_WORDS];    ///< Buffer for payload of incoming IPC messages
 
 volatile static u8           allow_new_mpdu_tx;                                     ///< Toggle for allowing new MPDU Tx requests to be processed
 volatile static s8           pkt_buf_pending_tx;                                    ///< Internal state variable for knowing if an MPDU Tx request is pending
@@ -109,13 +109,13 @@ int wlan_mac_low_init(u32 type){
     u32 		     status;
     rx_frame_info_t* rx_frame_info;
 	tx_frame_info_t* tx_frame_info;
-    wlan_ipc_msg_t   ipc_msg_to_high;
     u32			     i;
 
     mac_param_dsss_en        = 1;
     mac_param_band           = RC_24GHZ;
     mac_param_ctrl_tx_pow    = 10;
     cpu_low_status           = 0;
+    cpu_low_type			 = type;
 
     unique_seq = 0;
 
@@ -236,18 +236,10 @@ int wlan_mac_low_init(u32 type){
     wlan_mac_reset(0);
 
     // Initialize the HW info structure
-    init_mac_hw_info(type);
-    hw_info = get_mac_hw_info();
+    init_mac_hw_info();
 
     // Set the NAV ignore addr to this HW address
     wlan_mac_low_set_nav_check_addr(get_mac_hw_addr_wlan());
-
-    // Send a message to other processor to identify hw info of cpu low
-    ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_HW_INFO);
-    ipc_msg_to_high.num_payload_words = 8;
-    ipc_msg_to_high.payload_ptr       = (u32 *) hw_info;
-
-    write_mailbox_msg(&ipc_msg_to_high);
 
     return 0;
 }
@@ -265,8 +257,6 @@ int wlan_mac_low_init(u32 type){
  * @return  None
  */
 void wlan_mac_low_init_finish(){
-    wlan_ipc_msg_t ipc_msg_to_high;
-    u32            ipc_msg_to_high_payload[1];
 
     //Set the default PHY sample rate to 20 MSps
 	set_phy_samp_rate(PHY_20M);
@@ -274,13 +264,22 @@ void wlan_mac_low_init_finish(){
     // Update the CPU Low status
     cpu_low_status |= CPU_STATUS_INITIALIZED;
 
-    // Send a message to other processor to say that this processor is initialized and ready
-    ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CPU_STATUS);
-    ipc_msg_to_high.num_payload_words = 1;
-    ipc_msg_to_high.payload_ptr       = &(ipc_msg_to_high_payload[0]);
-    ipc_msg_to_high_payload[0]        = cpu_low_status;
+    wlan_mac_low_send_status();
 
-    write_mailbox_msg(&ipc_msg_to_high);
+}
+
+void wlan_mac_low_send_status(){
+	wlan_ipc_msg_t ipc_msg_to_high;
+	u32            ipc_msg_to_high_payload[2];
+
+	// Send a message to other processor to say that this processor is initialized and ready
+	ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CPU_STATUS);
+	ipc_msg_to_high.num_payload_words = 2;
+	ipc_msg_to_high.payload_ptr       = &(ipc_msg_to_high_payload[0]);
+	ipc_msg_to_high_payload[0]        = cpu_low_status;
+	ipc_msg_to_high_payload[1]        = cpu_low_type;
+
+	write_mailbox_msg(&ipc_msg_to_high);
 }
 
 
@@ -723,16 +722,7 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
         case IPC_MBOX_CPU_STATUS: {
             // If CPU_HIGH just booted, we should re-inform it what our hardware details are.
             // Send a message to other processor to identify hw info of cpu low
-            ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_HW_INFO);
-            ipc_msg_to_high.num_payload_words = 8;
-            ipc_msg_to_high.payload_ptr       = (u32 *) hw_info;
-            write_mailbox_msg(&ipc_msg_to_high);
-
-            //Send the status that we are booted
-            ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CPU_STATUS);
-            ipc_msg_to_high.num_payload_words = 1;
-            ipc_msg_to_high.payload_ptr       = &cpu_low_status;
-            write_mailbox_msg(&ipc_msg_to_high);
+        	wlan_mac_low_send_status();
         }
         break;
 
@@ -910,7 +900,13 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
 
         //---------------------------------------------------------------------
         case IPC_MBOX_CONFIG_DSSS_EN: {
-            process_config_phy_rx((ipc_config_phy_rx_t*)ipc_msg_from_high_payload);
+			if (ipc_msg_from_high_payload[0] == 1) {
+				// xil_printf("Enabling DSSS\n");
+				wlan_mac_low_DSSS_rx_enable();
+			} else {
+				// xil_printf("Disabling DSSS\n");
+				wlan_mac_low_DSSS_rx_disable();
+			}
         }
         break;
 

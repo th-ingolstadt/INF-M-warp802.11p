@@ -110,6 +110,7 @@ void reset_station_counts();
 
 u32  deauthenticate_station( station_info_t* station_info );
 void deauthenticate_all_stations();
+void handle_cpu_low_reboot();
 u32  configure_bss(bss_config_t* bss_config);
 void mpdu_dequeue(tx_queue_element_t* packet);
 

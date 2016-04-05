@@ -432,8 +432,4 @@ inline void wlan_tx_start();
 inline u16 wlan_ofdm_calc_txtime(u16 length, u8 mcs, u8 phy_mode, phy_samp_rate_t phy_samp_rate);
 inline u16 wlan_ofdm_calc_num_payload_syms(u16 length, u8 mcs, u8 phy_mode);
 
-// IPC message processing functions
-void process_config_phy_rx(ipc_config_phy_rx_t* config_phy_rx);
-void process_config_phy_tx(ipc_config_phy_tx_t* config_phy_tx);
-
 #endif /* WLAN_PHY_UTIL_H_ */

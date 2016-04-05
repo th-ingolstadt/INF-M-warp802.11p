@@ -60,7 +60,7 @@
 
 /*************************** Function Prototypes *****************************/
 int  main();
-
+void handle_cpu_low_reboot();
 u32  configure_bss(bss_config_t* bss_config);
 
 void remove_inactive_station_infos();

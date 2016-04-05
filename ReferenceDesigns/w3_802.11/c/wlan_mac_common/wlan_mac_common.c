@@ -144,16 +144,14 @@ void cpu_error_halt(u32 error_code) {
  * provided.  This function should only be called after the EEPROM has been
  * initialized.
  *
- * @param   wlan_exp_type    - WLAN Exp type of the CPU
- *                                 See wlan_exp.h or WLAN Exp types
+ * @param   None
  *
  *****************************************************************************/
-void init_mac_hw_info(u32 wlan_exp_type) {
+void init_mac_hw_info() {
     // Initialize the wlan_mac_hw_info_t structure to all zeros
     memset((void*)(&mac_hw_info), 0x0, sizeof(wlan_mac_hw_info_t));
 
     // Set General Node information
-    mac_hw_info.wlan_exp_type = wlan_exp_type;
     mac_hw_info.serial_number = w3_eeprom_read_serial_num(EEPROM_BASEADDR);
     mac_hw_info.fpga_dna[1]   = w3_eeprom_read_fpga_dna(EEPROM_BASEADDR, 1);
     mac_hw_info.fpga_dna[0]   = w3_eeprom_read_fpga_dna(EEPROM_BASEADDR, 0);

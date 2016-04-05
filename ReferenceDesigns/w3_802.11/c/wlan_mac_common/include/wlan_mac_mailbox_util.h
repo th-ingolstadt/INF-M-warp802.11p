@@ -64,9 +64,7 @@
 #define IPC_MBOX_TX_MPDU_READY                             1
 #define IPC_MBOX_TXRX_BEACON_CONFIGURE                     2
 #define IPC_MBOX_TX_MPDU_DONE                              3
-#define IPC_MBOX_HW_INFO                                   4
 #define IPC_MBOX_CPU_STATUS                                5
-#define IPC_MBOX_CONFIG_LOW                                6
 #define IPC_MBOX_CONFIG_CHANNEL                            7
 #define IPC_MBOX_CONFIG_DSSS_EN                            8
 #define IPC_MBOX_TX_BEACON_DONE                            10
@@ -127,25 +125,6 @@ typedef struct{
     u32       baseaddr;
     u32       num_words;
 } ipc_reg_read_write_t;
-
-
-//-----------------------------------------------
-// IPC_MBOX_CONFIG_PHY_TX payload structure
-//     - Must be u32 aligned
-//
-typedef struct{
-    u8        reserved[4];
-} ipc_config_phy_tx_t;
-
-
-//-----------------------------------------------
-// IPC_MBOX_CONFIG_PHY_TX payload structure
-//     - Must be u32 aligned
-//
-typedef struct{
-    u8        enable_dsss;
-    u8        reserved[3];
-} ipc_config_phy_rx_t;
 
 
 //-----------------------------------------------

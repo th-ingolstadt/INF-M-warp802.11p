@@ -154,28 +154,6 @@ int wlan_exp_null_callback(void* param){
     return XST_SUCCESS;
 }
 
-
-
-/*****************************************************************************/
-/**
-* WLAN Experiments Framework Initialization
-*
-     This function will initialize     he wlan_mac_hw_info structure.
-*
-* @param    type          - WLAN Exp type
-* @param    eth_dev_num   - WLAN Exp Ethernet device
-*
-* @return   None
-*
-******************************************************************************/
-void wlan_exp_init(u32 type, u32 eth_dev_num) {
-
-    // TBD
-
-}
-
-
-
 /****************************************************************************/
 /**
  * Get MAC Address

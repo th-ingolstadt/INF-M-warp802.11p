@@ -246,7 +246,6 @@ typedef struct{
 
 
 typedef struct {
-    u32  wlan_exp_type;
     u32  serial_number;
     u32  fpga_dna[WLAN_MAC_FPGA_DNA_LEN];
     u8   hw_addr_wlan[MAC_ADDR_LEN];
@@ -262,7 +261,7 @@ int                     wlan_verify_channel(u32 channel);
 
 void                    cpu_error_halt(u32 error_code);
 
-void                    init_mac_hw_info(u32 cpu_type);
+void                    init_mac_hw_info();
 wlan_mac_hw_info_t    * get_mac_hw_info();
 u8                    * get_mac_hw_addr_wlan();
 u8                    * get_mac_hw_addr_wlan_exp();

@@ -268,7 +268,6 @@ typedef struct {
 /*************************** Function Prototypes *****************************/
 
 // Initialization Functions
-void          wlan_exp_init(u32 type, u32 eth_dev_num);
 
 // Callbacks
 int           wlan_exp_null_callback(void* param);

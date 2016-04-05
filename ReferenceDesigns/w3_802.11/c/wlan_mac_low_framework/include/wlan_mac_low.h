@@ -426,6 +426,7 @@
 /*************************** Function Prototypes *****************************/
 int                wlan_mac_low_init(u32 type);
 void               wlan_mac_low_init_finish();
+void 			   wlan_mac_low_send_status();
 void 			   set_phy_samp_rate(phy_samp_rate_t phy_samp_rate);
 void               wlan_mac_hw_init();
 void               wlan_mac_low_init_hw_info(u32 type);

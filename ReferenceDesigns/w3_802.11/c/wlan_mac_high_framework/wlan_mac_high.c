@@ -46,6 +46,7 @@
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
 #include "wlan_mac_scan.h"
+#include "w3_iic_eeprom.h"
 
 /*********************** Global Variable Definitions *************************/
 
@@ -93,10 +94,19 @@ volatile function_ptr_t      mpdu_rx_callback;             ///< User callback fo
 volatile function_ptr_t      tx_poll_callback;             ///< User callback when higher-level framework is ready to send a packet to low
 volatile function_ptr_t		 beacon_tx_done_callback;	   ///< User callback for low-level message that a Beacon transmission is complete
 volatile function_ptr_t      mpdu_tx_dequeue_callback;     ///< User callback for higher-level framework dequeuing a packet
+volatile function_ptr_t      cpu_low_reboot_callback;     ///< User callback for CPU_LOW boot
+
+// CPU_LOW parameters that MAC High Framework tracks and is responsible for re-applying
+//  in the event of a CPU_LOW reboot.
+volatile	u32			 low_param_channel;
+volatile	u32			 low_param_dsss_en;
+volatile	u8			 low_param_rx_ant_mode;
+volatile 	s8			 low_param_tx_ctrl_pow;
+volatile	u32			 low_param_rx_filter;
+volatile	u32			 low_param_random_seed;
 
 // Node information
 volatile u8                  dram_present;                 ///< Indication variable for whether DRAM SODIMM is present on this hardware
-volatile u32                 mac_param_chan;			   ///< Variable indicates the last channel that was written to CPU_LOW via wlan_mac_high_set_channel
 
 // Status information
 wlan_mac_hw_info_t         * hw_info;
@@ -105,6 +115,8 @@ volatile static u32          cpu_low_status;               ///< Tracking variabl
 // CPU Low Register Read Buffer
 volatile static u32        * cpu_low_reg_read_buffer;
 volatile static u8           cpu_low_reg_read_buffer_status;
+
+#define EEPROM_BASEADDR                                    XPAR_W3_IIC_EEPROM_ONBOARD_BASEADDR
 
 #define CPU_LOW_REG_READ_BUFFER_STATUS_READY               1
 #define CPU_LOW_REG_READ_BUFFER_STATUS_NOT_READY           0
@@ -126,9 +138,6 @@ volatile static u32          num_realloc;                  ///< Tracking variabl
 
 // Counts Flags
 volatile u8                  promiscuous_counts_enabled;   ///< Are promiscuous counts collected (1 = Yes / 0 = No)
-
-// Receive Antenna mode tracker
-volatile u8                  rx_ant_mode_tracker = 0;      ///< Tracking variable for RX Antenna mode for CPU Low
 
 
 /*************************** Functions Prototypes ****************************/
@@ -302,6 +311,12 @@ void wlan_mac_high_init(){
 	mtshr(&__stack);
 	mtslr(&_stack_end);
 
+    // Initialize the EEPROM read/write core
+    iic_eeprom_init(EEPROM_BASEADDR, 0x64, XPAR_CPU_ID);
+
+	// Initialize the HW info structure
+	init_mac_hw_info();
+
 	// ***************************************************
     // Initialize callbacks and global state variables
 	// ***************************************************
@@ -314,6 +329,7 @@ void wlan_mac_high_init(){
 	beacon_tx_done_callback	 = (function_ptr_t)wlan_null_callback;
 	tx_poll_callback         = (function_ptr_t)wlan_null_callback;
 	mpdu_tx_dequeue_callback = (function_ptr_t)wlan_null_callback;
+	cpu_low_reboot_callback  = (function_ptr_t)wlan_null_callback;
 
 	set_mailbox_rx_callback((function_ptr_t)wlan_mac_high_ipc_rx);
 
@@ -324,6 +340,13 @@ void wlan_mac_high_init(){
 	num_malloc  = 0;
 	num_realloc = 0;
 	num_free    = 0;
+
+	low_param_channel 		= 0xFFFFFFFF;
+	low_param_dsss_en 		= 0xFFFFFFFF;
+	low_param_rx_ant_mode 	= 0xFF;
+	low_param_tx_ctrl_pow 	= -1;
+	low_param_rx_filter 	= 0xFFFFFFFF;
+	low_param_random_seed	= 0xFFFFFFFF;
 
 	cpu_low_reg_read_buffer        = NULL;
 
@@ -979,6 +1002,22 @@ void wlan_mac_high_set_mpdu_dequeue_callback(function_ptr_t callback){
 	mpdu_tx_dequeue_callback = callback;
 }
 
+
+/**
+ * @brief Set CPU_LOW Reboot Callback
+ *
+ * Tells the framework which function should be called when
+ * CPU_LOW boots or reboots. This allows a high-level application
+ * to restore any parameters it previously set in CPU_LOW
+ *
+ * @param function_ptr_t callback
+ *  - Pointer to callback function
+ * @return None
+ *
+ */
+void wlan_mac_high_set_cpu_low_reboot_callback(function_ptr_t callback){
+	cpu_low_reboot_callback = callback;
+}
 
 
 /**
@@ -1725,17 +1764,6 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 
 
 		//---------------------------------------------------------------------
-		case IPC_MBOX_HW_INFO:
-			// CPU low is passing up node hardware information that is only accessible by CPU low
-			//
-            //     NOTE:  This information is typically stored in the WARP v3 EEPROM, accessible only to CPU Low
-			//
-			hw_info = get_mac_hw_info();
-			memcpy((void*) hw_info, (void*) &(ipc_msg_from_low_payload[0]), sizeof(wlan_mac_hw_info_t));
-		break;
-
-
-		//---------------------------------------------------------------------
 		case IPC_MBOX_CPU_STATUS:
 			// CPU low's status
 			//
@@ -1746,6 +1774,29 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 				wlan_printf(PL_ERROR, "    Reason code: %d\n", ipc_msg_from_low_payload[1]);
 				cpu_error_halt(WLAN_ERROR_CPU_STOP);
 			}
+
+			if(cpu_low_status & CPU_STATUS_INITIALIZED){
+				// Set the CPU_LOW wlan_exp type
+				wlan_exp_node_set_type_low(ipc_msg_from_low_payload[1]);
+
+				// Set any of low parameters that have been modified and
+				//  the MAC High Framework is responsible for tracking
+
+				// FIXME: Debate the following:
+				// It is arguable that low_param_channel should be tracked and re-applied by the High Framework.
+				//   The high-level project will also re-apply any channel settings in active_bss_info. There is no
+				//   real harm to doubling up on this parameter set, but it does lead to some ugly redundancies.
+				if(low_param_channel != 0xFFFFFFFF)		wlan_mac_high_set_radio_channel(low_param_channel);
+				if(low_param_dsss_en != 0xFFFFFFFF)		wlan_mac_high_set_dsss(low_param_dsss_en);
+				if(low_param_rx_ant_mode != 0xFF) 		wlan_mac_high_set_rx_ant_mode(low_param_rx_ant_mode);
+				if(low_param_tx_ctrl_pow != -1) 		wlan_mac_high_set_tx_ctrl_pow(low_param_tx_ctrl_pow);
+				if(low_param_rx_filter != 0xFFFFFFFF) 	wlan_mac_high_set_rx_filter_mode(low_param_rx_filter);
+				if(low_param_random_seed != 0xFFFFFFFF) wlan_mac_high_set_srand(low_param_random_seed);
+
+				// Notify the high-level project that CPU_LOW has rebooted
+				cpu_low_reboot_callback();
+			}
+
 		break;
 
 
@@ -1802,6 +1853,9 @@ void wlan_mac_high_set_srand(u32 seed) {
 	wlan_ipc_msg_t     ipc_msg_to_low;
 	u32                ipc_msg_to_low_payload = seed;
 
+	//Set tracking global
+	low_param_random_seed = seed;
+
 	// Send message to CPU Low
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_LOW_RANDOM_SEED);
 	ipc_msg_to_low.num_payload_words = 1;
@@ -1841,7 +1895,8 @@ void wlan_mac_high_set_radio_channel(u32 mac_channel) {
 	u32                ipc_msg_to_low_payload = mac_channel;
 
 	if(wlan_verify_channel(mac_channel) == XST_SUCCESS){
-		mac_param_chan = mac_channel;
+		//Set tracking global
+		low_param_channel = mac_channel;
 
 		// Send message to CPU Low
 		ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_CHANNEL);
@@ -1852,10 +1907,6 @@ void wlan_mac_high_set_radio_channel(u32 mac_channel) {
 	} else {
 		xil_printf("Channel %d not allowed\n", mac_channel);
 	}
-}
-
-u32 wlan_mac_high_get_channel(){
-	return mac_param_chan;
 }
 
 void wlan_mac_high_config_txrx_beacon(beacon_txrx_configure_t* beacon_txrx_configure){
@@ -1890,7 +1941,8 @@ void wlan_mac_high_set_rx_ant_mode(u8 ant_mode) {
 		case RX_ANTMODE_SISO_ANTC:
 		case RX_ANTMODE_SISO_ANTD:
 		case RX_ANTMODE_SISO_SELDIV_2ANT:
-			rx_ant_mode_tracker = ant_mode;
+			//Set tracking global
+			low_param_rx_ant_mode = ant_mode;
 		break;
 		default:
 			xil_printf("Error: unsupported antenna mode %x\n", ant_mode);
@@ -1921,6 +1973,9 @@ void wlan_mac_high_set_tx_ctrl_pow(s8 pow) {
 
 	wlan_ipc_msg_t     ipc_msg_to_low;
 	u32                ipc_msg_to_low_payload = (u32)pow;
+
+	//Set tracking global
+	low_param_tx_ctrl_pow = pow;
 
 	// Send message to CPU Low
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_TX_CTRL_POW);
@@ -1954,6 +2009,9 @@ void wlan_mac_high_set_rx_filter_mode(u32 filter_mode) {
 
 	wlan_ipc_msg_t     ipc_msg_to_low;
 	u32                ipc_msg_to_low_payload = (u32)filter_mode;
+
+	//Set tracking global
+	low_param_rx_filter = filter_mode;
 
 	// Send message to CPU Low
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_RX_FILTER);
@@ -2098,18 +2156,15 @@ int wlan_mac_high_write_low_param(u32 num_words, u32* payload) {
 void wlan_mac_high_set_dsss(u32 dsss_value) {
 
 	wlan_ipc_msg_t       ipc_msg_to_low;
-	u32                  ipc_msg_to_low_payload[1];
-	ipc_config_phy_rx_t* config_phy_rx;
+	u32                  ipc_msg_to_low_payload = dsss_value;
+
+	//Set tracking global
+	low_param_dsss_en = dsss_value;
 
 	// Send message to CPU Low
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_DSSS_EN);
-	ipc_msg_to_low.num_payload_words = sizeof(ipc_config_phy_rx_t)/sizeof(u32);
-	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload[0]);
-
-	// Initialize the payload
-	init_ipc_config(config_phy_rx, ipc_msg_to_low_payload, ipc_config_phy_rx_t);
-
-	config_phy_rx->enable_dsss = dsss_value;
+	ipc_msg_to_low.num_payload_words = 1;
+	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload);
 
 	write_mailbox_msg(&ipc_msg_to_low);
 }
@@ -2135,20 +2190,19 @@ void wlan_mac_high_request_low_state(){
 	write_mailbox_msg(&ipc_msg_to_low);
 }
 
+
 /**
- * @brief Check that CPU low is initialized
- *
- * @param  None
- * @return int
- *     - 0 if CPU low is not initialized
- *     - 1 if CPU low is initialized
- */
+* @brief Check that CPU low is initialized
+*
+* @param  None
+* @return int
+*     - 0 if CPU low is not initialized
+*     - 1 if CPU low is initialized
+*/
 int wlan_mac_high_is_cpu_low_initialized(){
 	wlan_mac_high_ipc_rx();
 	return ( (cpu_low_status & CPU_STATUS_INITIALIZED) != 0 );
 }
-
-
 
 /**
  * @brief Check that CPU low is ready to transmit
