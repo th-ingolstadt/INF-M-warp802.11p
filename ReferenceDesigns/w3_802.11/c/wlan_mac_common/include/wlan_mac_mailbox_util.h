@@ -57,6 +57,12 @@
 #define IPC_MBOX_MSG_ID_DELIM                              0xF000
 
 
+#define CPU_STATUS_REASON_BOOTED 	0
+#define CPU_STATUS_REASON_RESPONSE  1
+#define	CPU_STATUS_REASON_EXCEPTION 2
+
+
+
 //-----------------------------------------------
 // IPC Message IDs
 //

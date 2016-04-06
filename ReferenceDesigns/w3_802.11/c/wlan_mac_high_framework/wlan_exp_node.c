@@ -76,6 +76,7 @@
 // Declared in wlan_mac_high.c
 extern u8                  promiscuous_counts_enabled;
 extern u8                  low_param_rx_ant_mode;
+extern u8				   low_param_channel;
 
 extern tx_params_t         default_unicast_mgmt_tx_params;
 extern tx_params_t         default_unicast_data_tx_params;
@@ -1399,6 +1400,39 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 //-----------------------------------------------------------------------------
 // Node Commands
 //-----------------------------------------------------------------------------
+
+        //---------------------------------------------------------------------
+	   case CMDID_NODE_CHANNEL: {
+		   //   - cmd_args_32[0]      - Command
+		   //   - cmd_args_32[1]      - Channel
+		   //
+		   u32    status         = CMD_PARAM_SUCCESS;
+		   u32    msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
+		   u32    channel        = Xil_Ntohl(cmd_args_32[1]);
+
+		   if (msg_cmd == CMD_PARAM_WRITE_VAL) {
+			   // Set the Channel
+			   if (wlan_verify_channel(channel) == 0){
+
+				   wlan_mac_high_set_radio_channel(channel);
+
+				   wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set Channel = %d\n", channel);
+
+			   } else {
+				   status  = CMD_PARAM_ERROR;
+				   wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node,
+								   "Channel %d is not supported by the node.\n", channel);
+			   }
+		   }
+
+		   // Send response
+		   resp_args_32[resp_index++] = Xil_Htonl(status);
+		   resp_args_32[resp_index++] = Xil_Htonl(low_param_channel);
+
+		   resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+		   resp_hdr->num_args = resp_index;
+	   }
+	   break;
 
 
         //---------------------------------------------------------------------

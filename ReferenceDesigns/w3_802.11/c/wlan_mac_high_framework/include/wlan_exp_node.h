@@ -59,6 +59,7 @@
 #define CMDID_NODE_CONFIGURE                               0x001001
 #define CMDID_NODE_CONFIG_BSS                              0x001002
 #define CMDID_NODE_TIME                                    0x001010
+#define CMDID_NODE_CHANNEL                                 0x001011
 #define CMDID_NODE_TX_POWER                                0x001012
 #define CMDID_NODE_TX_RATE                                 0x001013
 #define CMDID_NODE_TX_ANT_MODE                             0x001014

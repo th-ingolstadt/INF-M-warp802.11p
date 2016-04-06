@@ -264,16 +264,17 @@ void wlan_mac_low_init_finish(){
     // Update the CPU Low status
     cpu_low_status |= CPU_STATUS_INITIALIZED;
 
-    wlan_mac_low_send_status();
+    wlan_mac_low_send_status(CPU_STATUS_REASON_BOOTED);
 
 }
 
-void wlan_mac_low_send_status(){
+void wlan_mac_low_send_status(u8 cpu_status_reason){
 	wlan_ipc_msg_t ipc_msg_to_high;
 	u32            ipc_msg_to_high_payload[2];
 
 	// Send a message to other processor to say that this processor is initialized and ready
 	ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CPU_STATUS);
+	ipc_msg_to_high.arg0			  = cpu_status_reason;
 	ipc_msg_to_high.num_payload_words = 2;
 	ipc_msg_to_high.payload_ptr       = &(ipc_msg_to_high_payload[0]);
 	ipc_msg_to_high_payload[0]        = cpu_low_status;
@@ -518,6 +519,7 @@ inline void wlan_mac_low_send_exception(u32 reason){
 
     // Send an exception to CPU_HIGH along with a reason
     ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CPU_STATUS);
+    ipc_msg_to_high.arg0			  = (u8)CPU_STATUS_REASON_EXCEPTION;
     ipc_msg_to_high.num_payload_words = 2;
     ipc_msg_to_high.payload_ptr       = &(ipc_msg_to_high_payload[0]);
     ipc_msg_to_high_payload[0]        = cpu_low_status;
@@ -720,9 +722,10 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
 
 		//---------------------------------------------------------------------
         case IPC_MBOX_CPU_STATUS: {
-            // If CPU_HIGH just booted, we should re-inform it what our hardware details are.
-            // Send a message to other processor to identify hw info of cpu low
-        	wlan_mac_low_send_status();
+        	if(msg->arg0 == (u8)CPU_STATUS_REASON_BOOTED){
+        		// If CPU_HIGH just booted, we should re-inform it of our CPU status
+        		wlan_mac_low_send_status(CPU_STATUS_REASON_RESPONSE);
+        	}
         }
         break;
 
@@ -811,11 +814,6 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
                             } else {
                                 wlan_phy_disable_req_both_pkt_det();
                             }
-                        }
-                        break;
-
-                        case LOW_PARAM_RADIO_CHANNEL: {
-                            wlan_mac_low_set_radio_channel(ipc_msg_from_high_payload[1]);
                         }
                         break;
 

@@ -418,7 +418,6 @@
 #define LOW_PARAM_LINEARITY_UPCONV   0x00000004
 #define LOW_PARAM_AD_SCALING         0x00000005
 #define LOW_PARAM_PKT_DET_MIN_POWER  0x00000006
-#define LOW_PARAM_RADIO_CHANNEL      0x00000007
 #define LOW_PARAM_PHY_SAMPLE_RATE    0x00000008
 
 
@@ -426,7 +425,7 @@
 /*************************** Function Prototypes *****************************/
 int                wlan_mac_low_init(u32 type);
 void               wlan_mac_low_init_finish();
-void 			   wlan_mac_low_send_status();
+void 			   wlan_mac_low_send_status(u8 cpu_status_reason);
 void 			   set_phy_samp_rate(phy_samp_rate_t phy_samp_rate);
 void               wlan_mac_hw_init();
 void               wlan_mac_low_init_hw_info(u32 type);

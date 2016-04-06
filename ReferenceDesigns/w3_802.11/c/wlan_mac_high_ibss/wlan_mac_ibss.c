@@ -205,15 +205,6 @@ int main() {
 	// Set the maximum number of addressable peers
 	wlan_mac_high_set_max_num_station_infos(MAX_NUM_PEERS);
 
-	// Ask CPU Low for its status
-	//     The response to this request will be handled asynchronously
-	wlan_mac_high_request_low_state();
-
-    // Wait for CPU Low to initialize
-	while( wlan_mac_high_is_cpu_low_initialized() == 0){
-		xil_printf("waiting on CPU_LOW to boot\n");
-	};
-
 #ifdef USE_WLAN_EXP
     wlan_mac_hw_info_t * hw_info;
 
@@ -1221,11 +1212,8 @@ void reset_station_counts(){
  *****************************************************************************/
 void handle_cpu_low_reboot(){
 	if(active_bss_info){
-		// 1) Re-apply any Beacon Tx configurations
+		// Re-apply any Beacon Tx configurations
 		wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
-		// 2) Re-apply radio channel
-		wlan_mac_high_set_radio_channel(
-				wlan_mac_high_bss_channel_spec_to_radio_chan(active_bss_info->chan_spec));
 	}
 }
 

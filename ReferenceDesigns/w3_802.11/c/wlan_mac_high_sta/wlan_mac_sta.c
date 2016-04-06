@@ -199,22 +199,12 @@ int main() {
 	wlan_mac_high_set_pb_u_callback(             (void *) up_button);
 	wlan_mac_scan_set_tx_probe_request_callback( (void *) send_probe_req);
 	wlan_mac_scan_set_state_change_callback(     (void *) process_scan_state_change);
-	wlan_mac_high_set_cpu_low_reboot_callback(   (void *) handle_cpu_low_reboot);
 
 	// Set the Ethernet ecapsulation mode
 	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_STA);
 
 	// Initialize the association and counts tables
 	dl_list_init(&counts_table);
-
-	// Ask CPU Low for its status
-	//     The response to this request will be handled asynchronously
-	wlan_mac_high_request_low_state();
-
-	// Wait for CPU Low to initialize
-	while( wlan_mac_high_is_cpu_low_initialized() == 0){
-		xil_printf("waiting on CPU_LOW to boot\n");
-	};
 
 #ifdef USE_WLAN_EXP
     wlan_mac_hw_info_t * hw_info;
@@ -1094,25 +1084,6 @@ int  sta_disassociate( void ) {
 	}
 
 	return status;
-}
-
-/*****************************************************************************/
-/**
- * @brief Handle a reboot of CPU_LOW
- *
- * If CPU_LOW reboots, any parameters we had previously set in it will be lost.
- * This function is called to tell us that we should re-apply any previous
- * parameters we had set.
- *
- * @param  None
- * @return None
- *****************************************************************************/
-void handle_cpu_low_reboot(){
-	if(active_bss_info){
-		// 1) Re-apply radio channel
-		wlan_mac_high_set_radio_channel(
-				wlan_mac_high_bss_channel_spec_to_radio_chan(active_bss_info->chan_spec));
-	}
 }
 
 /*****************************************************************************/

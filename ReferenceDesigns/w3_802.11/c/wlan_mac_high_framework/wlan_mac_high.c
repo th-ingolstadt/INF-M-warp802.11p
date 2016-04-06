@@ -506,6 +506,11 @@ void wlan_mac_high_init(){
 	wlan_mac_ltg_sched_init();
 	wlan_mac_addr_filter_init();
 	wlan_mac_scan_init();
+
+	//Non-blocking request for CPU_LOW to send its state. This handles the case that
+	//CPU_HIGH reboots some point after CPU_LOW had already booted.
+	wlan_mac_high_request_low_state();
+
 	wlan_mac_high_set_radio_channel(1); // Set a sane default channel. The top-level project (AP/STA/IBSS/etc) is free to change this
 
 	//Create IPC message to receive into
@@ -1774,36 +1779,38 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 		case IPC_MBOX_CPU_STATUS:
 			// CPU low's status
 			//
+
+			// cpu_low_status isn't needed to process this IPC message since there is an explicit
+			// reason provided in the arg0 field of the message. However, we'll copy the information
+			// into the global in case any future process wants record of it.
 			cpu_low_status = ipc_msg_from_low_payload[0];
 
-			if(cpu_low_status & CPU_STATUS_EXCEPTION){
-				wlan_printf(PL_ERROR, "ERROR:  An unrecoverable exception has occurred in CPU_LOW, halting...\n");
-				wlan_printf(PL_ERROR, "    Reason code: %d\n", ipc_msg_from_low_payload[1]);
-				cpu_error_halt(WLAN_ERROR_CPU_STOP);
+			switch( msg->arg0 ){
+				case CPU_STATUS_REASON_EXCEPTION:
+					wlan_printf(PL_ERROR, "ERROR:  An unrecoverable exception has occurred in CPU_LOW, halting...\n");
+					wlan_printf(PL_ERROR, "    Reason code: %d\n", ipc_msg_from_low_payload[1]);
+					cpu_error_halt(WLAN_ERROR_CPU_STOP);
+				break;
+
+				case CPU_STATUS_REASON_BOOTED:
+					// Set any of low parameters that have been modified and
+					//  the MAC High Framework is responsible for tracking
+					if(low_param_channel != 0xFFFFFFFF)		wlan_mac_high_set_radio_channel(low_param_channel);
+					if(low_param_dsss_en != 0xFFFFFFFF)		wlan_mac_high_set_dsss(low_param_dsss_en);
+					if(low_param_rx_ant_mode != 0xFF) 		wlan_mac_high_set_rx_ant_mode(low_param_rx_ant_mode);
+					if(low_param_tx_ctrl_pow != -1) 		wlan_mac_high_set_tx_ctrl_pow(low_param_tx_ctrl_pow);
+					if(low_param_rx_filter != 0xFFFFFFFF) 	wlan_mac_high_set_rx_filter_mode(low_param_rx_filter);
+					if(low_param_random_seed != 0xFFFFFFFF) wlan_mac_high_set_srand(low_param_random_seed);
+
+					// Notify the high-level project that CPU_LOW has rebooted
+					cpu_low_reboot_callback();
+				case CPU_STATUS_REASON_RESPONSE:
+					// Set the CPU_LOW wlan_exp type
+					wlan_exp_node_set_type_low(ipc_msg_from_low_payload[1]);
+				default:
+
+				break;
 			}
-
-			if(cpu_low_status & CPU_STATUS_INITIALIZED){
-				// Set the CPU_LOW wlan_exp type
-				wlan_exp_node_set_type_low(ipc_msg_from_low_payload[1]);
-
-				// Set any of low parameters that have been modified and
-				//  the MAC High Framework is responsible for tracking
-
-				// FIXME: Debate the following:
-				// It is arguable that low_param_channel should be tracked and re-applied by the High Framework.
-				//   The high-level project will also re-apply any channel settings in active_bss_info. There is no
-				//   real harm to doubling up on this parameter set, but it does lead to some ugly redundancies.
-				if(low_param_channel != 0xFFFFFFFF)		wlan_mac_high_set_radio_channel(low_param_channel);
-				if(low_param_dsss_en != 0xFFFFFFFF)		wlan_mac_high_set_dsss(low_param_dsss_en);
-				if(low_param_rx_ant_mode != 0xFF) 		wlan_mac_high_set_rx_ant_mode(low_param_rx_ant_mode);
-				if(low_param_tx_ctrl_pow != -1) 		wlan_mac_high_set_tx_ctrl_pow(low_param_tx_ctrl_pow);
-				if(low_param_rx_filter != 0xFFFFFFFF) 	wlan_mac_high_set_rx_filter_mode(low_param_rx_filter);
-				if(low_param_random_seed != 0xFFFFFFFF) wlan_mac_high_set_srand(low_param_random_seed);
-
-				// Notify the high-level project that CPU_LOW has rebooted
-				cpu_low_reboot_callback();
-			}
-
 		break;
 
 
@@ -2192,7 +2199,7 @@ void wlan_mac_high_request_low_state(){
 	// Send message to CPU Low
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CPU_STATUS);
 	ipc_msg_to_low.num_payload_words = 0;
-	ipc_msg_to_low.arg0              = 1; // This means a request for a status update
+	ipc_msg_to_low.arg0              = (u8)CPU_STATUS_REASON_BOOTED;
 
 	write_mailbox_msg(&ipc_msg_to_low);
 }
