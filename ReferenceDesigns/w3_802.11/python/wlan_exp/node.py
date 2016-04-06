@@ -813,7 +813,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         import wlan_exp.util as util
         
         if channel in util.wlan_channels:
-            self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_RADIO_CHANNEL, param_values=channel)
+            self.send_cmd(cmds.NodeProcChannel(cmds.CMD_PARAM_WRITE, channel))
         else:
             raise AttributeError("Channel must be in util.py wlan_channels")
 

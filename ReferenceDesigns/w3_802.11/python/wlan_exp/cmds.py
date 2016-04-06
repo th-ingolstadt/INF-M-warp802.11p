@@ -56,6 +56,7 @@ CMDID_NODE_RESET_STATE                           = 0x001000
 CMDID_NODE_CONFIGURE                             = 0x001001
 CMDID_NODE_CONFIG_BSS                            = 0x001002
 CMDID_NODE_TIME                                  = 0x001010
+CMDID_NODE_CHANNEL                               = 0x001011
 CMDID_NODE_TX_POWER                              = 0x001012
 CMDID_NODE_TX_RATE                               = 0x001013
 CMDID_NODE_TX_ANT_MODE                           = 0x001014
@@ -129,7 +130,6 @@ CMD_PARAM_LOW_PARAM_LINEARITY_VGA                = 0x00000003
 CMD_PARAM_LOW_PARAM_LINEARITY_UPCONV             = 0x00000004
 CMD_PARAM_LOW_PARAM_AD_SCALING                   = 0x00000005
 CMD_PARAM_LOW_PARAM_PKT_DET_MIN_POWER            = 0x00000006
-CMD_PARAM_LOW_PARAM_RADIO_CHANNEL                = 0x00000007
 CMD_PARAM_LOW_PARAM_PHY_SAMPLE_RATE              = 0x00000008
 
 CMD_PARAM_LOW_PARAM_DCF_RTS_THRESH               = 0x10000001
@@ -865,6 +865,52 @@ class NodeSetLowToHighFilter(message.Cmd):
 
 # End Class
 
+class NodeProcChannel(message.Cmd):
+    """Command to get / set the channel of the node.
+    
+    Attributes:
+        cmd       -- Sub-command to send over the command.  Valid values are:
+                       CMD_PARAM_READ
+                       CMD_PARAM_WRITE
+        channel   -- 802.11 Channel for the node.  Should be a valid channel defined
+                       in wlan_exp.util wlan_channel table.
+    """
+    channel  = None
+
+    def __init__(self, cmd, channel=None):
+        super(NodeProcChannel, self).__init__()
+        self.command = _CMD_GROUP_NODE + CMDID_NODE_CHANNEL
+
+        self.add_args(cmd)
+        
+        if channel is not None:
+            self.channel = _get_channel_number(channel)
+
+        if self.channel is not None:
+            self.add_args(self.channel)
+        else:
+            self.add_args(CMD_PARAM_RSVD_CHANNEL)
+
+    
+    def process_resp(self, resp):
+        import wlan_exp.util as util
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could not get / set the channel on the node"
+        status_errors = { error_code : error_msg }
+        
+        if resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from the Channel command'):
+            args = resp.get_args()
+            if self.channel is not None:
+                if (args[1] != self.channel):
+                    msg  = "WARNING: Channel mismatch.\n"
+                    msg += "    Tried to set channel to {0}\n".format(util.channel_to_str(self.channel))
+                    msg += "    Actually set channel to {0}\n".format(util.channel_to_str(args[1]))
+                    print(msg)
+            return util.find_channel_by_channel_number(args[1])
+        else:
+            return None
+
+# End Class
 
 class NodeProcRandomSeed(message.Cmd):
     """Command to set the random seed of the node.
@@ -2255,3 +2301,21 @@ def _get_ssid_from_resp(resp, status_errors):
 
 # End def
 
+def _get_channel_number(channel):
+    """Internal method to get the channel number."""
+    try:
+        my_channel = channel['index']
+    except (KeyError, TypeError):
+        import wlan_exp.util as util
+        
+        tmp_chan = util.find_channel_by_channel_number(channel)
+        
+        if tmp_chan is not None:
+            my_channel = tmp_chan['index']
+        else:
+            msg  = "Unknown channel:  {0}".format(channel)
+            raise ValueError(msg)
+
+    return my_channel
+
+# End def
