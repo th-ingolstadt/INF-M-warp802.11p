@@ -29,7 +29,6 @@
 //
 #define ADDR_FILTER_ADDR_NOT_ALLOWED                       0
 #define ADDR_FILTER_ADDR_ALLOWED                           1
-#define ADDR_FILTER_RESERVED                               0xFFFFFFFF
 
 
 
@@ -56,8 +55,6 @@ int   wlan_mac_addr_filter_add(u8* mask, u8* compare);
 
 u8    wlan_mac_addr_filter_is_allowed(u8* addr);
 u8    wlan_mac_addr_is_warp(u8* addr);
-
-void  wlan_mac_addr_filter_set_addr_is_allowed_callback(function_ptr_t callback);
 
 #endif /* WLAN_MAC_ADDR_FILTER_H_ */
 

@@ -48,14 +48,9 @@ static u8 warp_range_mask[MAC_ADDR_LEN]    = { 0xFF, 0xFF, 0xFF, 0xFF, 0xF0, 0x0
 static u8 warp_range_compare[MAC_ADDR_LEN] = { 0x40, 0xD8, 0x55, 0x04, 0x20, 0x00 };
 
 
-// Callback for MAC specific address filtering
-volatile function_ptr_t      addr_is_allowed_callback;
-
-
 /*************************** Functions Prototypes ****************************/
 
 u8  addr_is_allowed(u8* addr, u8* mask, u8* compare);
-u32 addr_filter_null_callback(void* param);
 
 /******************************** Functions **********************************/
 
@@ -71,9 +66,6 @@ u32 addr_filter_null_callback(void* param);
 void  wlan_mac_addr_filter_init() {
     // Setup the address filter
     dl_list_init(&addr_filter);
-
-    // Initialize the callback
-    addr_is_allowed_callback = (function_ptr_t)addr_filter_null_callback;
 }
 
 
@@ -183,18 +175,6 @@ u8    wlan_mac_addr_filter_is_allowed(u8* addr){
     dl_entry*           curr_range_dl_entry;
     u32                 status;
 
-    // Call project specific address filtering
-    //     - This is called first to allow the project to determine what addresses
-    //       are allowed before the default behavior is checked.  If the value of
-    //       ADDR_FILTER_RESERVED is returned this will continue with the rest of
-    //       address checking.
-    status = addr_is_allowed_callback();
-
-    if (status != ADDR_FILTER_RESERVED) {
-        return status;
-    }
-
-
     // Check if the list is empty
     //     - By default, we allow all addresses
     //
@@ -220,8 +200,6 @@ u8    wlan_mac_addr_filter_is_allowed(u8* addr){
     return ADDR_FILTER_ADDR_NOT_ALLOWED;
 }
 
-
-
 /*****************************************************************************/
 /**
  * @brief Is the given address a WARP node?
@@ -236,49 +214,6 @@ u8    wlan_mac_addr_filter_is_allowed(u8* addr){
 u8    wlan_mac_addr_is_warp(u8* addr){
     return addr_is_allowed(addr, warp_range_mask, warp_range_compare);
 }
-
-
-
-/*****************************************************************************/
-/**
- * @brief Set MAC address is allowed Callback
- *
- * Allows projects to define MAC specific address filtering behavior.  This
- * will be called first as part of wlan_mac_addr_filter_is_allowed() allowing
- * the project to bypass the default filtering behavior.  Function should
- * return:
- *    - ADDR_FILTER_ADDR_NOT_ALLOWED - Address not allowed
- *    - ADDR_FILTER_ADDR_ALLOWED     - Address is allowed
- *    - ADDR_FILTER_RESERVED         - Address was not allowed by the check but
- *                                     perform default checking
- *
- * @param  function_ptr_t callback      - Pointer to callback function
- * @return None
- *
- */
-void wlan_mac_addr_filter_set_addr_is_allowed_callback(function_ptr_t callback){
-    addr_is_allowed_callback = callback;
-}
-
-
-
-/*****************************************************************************/
-/**
- * Address Filter Null Callback
- *
- * This function will always return ADDR_FILTER_RESERVED and should be used to
- * initialize the address filter callbacks.  All input parameters will be ignored.
- *
- * @param   param            - Void pointer for parameters
- *
- * @return  int              - Status:
- *                                 ADDR_FILTER_RESERVED
- *****************************************************************************/
-u32 addr_filter_null_callback(void* param) {
-    return ADDR_FILTER_RESERVED;
-};
-
-
 
 /*****************************************************************************/
 /**

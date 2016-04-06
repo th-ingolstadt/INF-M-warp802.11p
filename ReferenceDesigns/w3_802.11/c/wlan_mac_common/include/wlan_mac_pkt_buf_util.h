@@ -44,6 +44,7 @@
 #define PKT_BUF_MUTEX_FAIL_INVALID_BUF                    -1
 #define PKT_BUF_MUTEX_FAIL_ALREADY_LOCKED                 -2
 #define PKT_BUF_MUTEX_FAIL_NOT_LOCK_OWNER                 -3
+#define	PKT_BUF_MUTEX_ALREADY_UNLOCKED				  	  -4
 
 
 //-----------------------------------------------

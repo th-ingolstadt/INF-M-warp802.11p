@@ -1458,13 +1458,20 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element_t* packet, int tx_pkt_buf) {
 	// Set the packet buffer state to READY
 	tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_READY;
 
-	if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+	if(unlock_tx_pkt_buf(tx_pkt_buf) == PKT_BUF_MUTEX_FAIL_NOT_LOCK_OWNER){
+		// The unlock failed because CPU_LOW currently has the mutex lock. We will not
+		// submit a READY message for this packet. Instead, we'll drop it and revert
+		// the state of the packet buffer to TX_PKT_BUF_HIGH_CTRL. CPU_LOW will unlock the
+		// packet buffer when it is done transmitting from it or if it reboots. At that
+		// point, we will clean up and be able to use this packet buffer again for future
+		// transmissions.
 		wlan_printf(PL_ERROR, "Error: unable to unlock tx pkt_buf %d\n",tx_pkt_buf);
 		tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 	} else {
+		// We successfully unlocked the packet buffer or we failed to unlock it because
+		// it was already unlocked. In either case, we can submit this READY message.
 		write_mailbox_msg(&ipc_msg_to_low);
 	}
-
 }
 
 /**

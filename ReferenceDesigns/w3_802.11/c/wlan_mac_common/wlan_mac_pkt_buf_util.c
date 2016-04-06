@@ -153,12 +153,16 @@ int unlock_tx_pkt_buf(u8 pkt_buf_ind) {
     if(pkt_buf_ind >= NUM_TX_PKT_BUFS)
         return PKT_BUF_MUTEX_FAIL_INVALID_BUF;
 
-    status = XMutex_Unlock(&pkt_buf_mutex, (pkt_buf_ind + PKT_BUF_MUTEX_TX_BASE));
+    if(XMutex_IsLocked(&pkt_buf_mutex, (pkt_buf_ind + PKT_BUF_MUTEX_TX_BASE))){
+        status = XMutex_Unlock(&pkt_buf_mutex, (pkt_buf_ind + PKT_BUF_MUTEX_TX_BASE));
 
-    if(status == XST_SUCCESS)
-        return PKT_BUF_MUTEX_SUCCESS;
-    else
-        return PKT_BUF_MUTEX_FAIL_NOT_LOCK_OWNER;
+        if(status == XST_SUCCESS)
+            return PKT_BUF_MUTEX_SUCCESS;
+        else
+            return PKT_BUF_MUTEX_FAIL_NOT_LOCK_OWNER;
+    } else {
+    	return PKT_BUF_MUTEX_ALREADY_UNLOCKED;
+    }
 }
 
 int unlock_rx_pkt_buf(u8 pkt_buf_ind) {
