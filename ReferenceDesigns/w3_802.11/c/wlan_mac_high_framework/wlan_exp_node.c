@@ -141,7 +141,6 @@ static wlan_exp_function_ptr_t    wlan_exp_process_node_cmd_callback         = (
        wlan_exp_function_ptr_t    wlan_exp_process_config_bss_callback       = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
        wlan_exp_function_ptr_t    wlan_exp_active_bss_info_getter_callback	 = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
 
-static u32                        wlan_exp_enable_logging = 0;
 
 // Allocate Ethernet Header buffer
 //     NOTE:  The buffer memory must be placed in DMA accessible DDR such that it can be fetched by the AXI DMA
@@ -922,14 +921,6 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 }
             }
 
-            if (mask & CMD_PARAM_LOG_CONFIG_FLAG_WLAN_EXP_CMDS) {
-                if (flags & CMD_PARAM_LOG_CONFIG_FLAG_WLAN_EXP_CMDS) {
-                    wlan_exp_enable_logging = 1;
-                } else {
-                    wlan_exp_enable_logging = 0;
-                }
-            }
-
             if (mask & CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU) {
                 if (flags & CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU) {
                     entry_mask |= ENTRY_EN_MASK_TXRX_MPDU;
@@ -964,11 +955,33 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - resp_args_32[1] - Oldest empty entry index
             //   - resp_args_32[2] - Number of wraps
             //   - resp_args_32[3] - Flags
+            //                         [0] - Log enabled
+            //                         [1] - Log wrapping enabled
+            //                         [2] - Log full payloads enabled
+            //                         [3] - Log Tx / Rx MPDU frames enabled
+            //                         [4] - Log Tx / Rx CTRL frames enabled
             //
+            u32 flags         = event_log_get_flags();
+            u32 log_length    = wlan_exp_log_get_mac_payload_len();
+            u8  entry_en_mask = wlan_exp_log_get_entry_en_mask();
+
+            if (log_length == MAX_MAC_PAYLOAD_LOG_LEN) {
+                flags |= CMD_PARAM_LOG_CONFIG_FLAG_PAYLOADS;
+            }
+
+            if (entry_en_mask & ENTRY_EN_MASK_TXRX_MPDU) {
+                flags |= CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU;
+            }
+
+            if (entry_en_mask & ENTRY_EN_MASK_TXRX_CTRL) {
+                flags |= CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL;
+            }
+
+            // Set response
             resp_args_32[resp_index++] = Xil_Htonl(event_log_get_next_entry_index());
             resp_args_32[resp_index++] = Xil_Htonl(event_log_get_oldest_entry_index());
             resp_args_32[resp_index++] = Xil_Htonl(event_log_get_num_wraps());
-            resp_args_32[resp_index++] = Xil_Htonl(event_log_get_flags());
+            resp_args_32[resp_index++] = Xil_Htonl(flags);
 
             // Send response of current info
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));

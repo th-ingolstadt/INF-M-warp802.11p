@@ -348,8 +348,9 @@ void               wlan_exp_log_set_entry_en_mask(u8 mask);
 void               wlan_exp_log_reset_system_time_id();
 
 //-----------------------------------------------
-// Method to set the global variable mac_payload_log_len
+// Method to get / set the global variable mac_payload_log_len
 //
+u32                wlan_exp_log_get_mac_payload_len();
 void               wlan_exp_log_set_mac_payload_len(u32 payload_len);
 
 

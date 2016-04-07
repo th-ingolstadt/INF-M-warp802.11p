@@ -128,7 +128,7 @@ void wlan_exp_log_reset_system_time_id(){
 
 /*****************************************************************************/
 /**
- * Set max_mac_payload_log_len
+ * Get / Set max_mac_payload_log_len
  *
  * @param   payload_len      - Number of bytes to set aside for payload.
  *                               NOTE:  This needs to be 4-byte aligned.
@@ -136,6 +136,10 @@ void wlan_exp_log_reset_system_time_id(){
  * @return  None
  *
  *****************************************************************************/
+u32  wlan_exp_log_get_mac_payload_len() {
+    return mac_payload_log_len;
+}
+
 void wlan_exp_log_set_mac_payload_len(u32 payload_len){
     u32 value;
     u32 offset;
