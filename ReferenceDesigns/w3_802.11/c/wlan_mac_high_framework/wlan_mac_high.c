@@ -276,6 +276,30 @@ void wlan_mac_high_init(){
 	u32              log_size;
 	XAxiCdma_Config* cdma_cfg_ptr;
 
+	// ***************************************************
+	// Initialize XIntc
+	// ***************************************************
+	/* XIntc_Initialize() doesn't deal well with a reboot
+	 * of CPU_HIGH where interrupt peripherals are still
+	 * running. We'll explicitly do the following before
+	 * re-initializing the interrupt controller:
+	 *
+	 * - Disable IRQ output signal
+	 * - Disable all interrupt sources
+	 * - Acknowledge all sources
+	 */
+	XIntc_Config *CfgPtr = XIntc_LookupConfig(INTC_DEVICE_ID);
+
+	XIntc_Out32(CfgPtr->BaseAddress + XIN_MER_OFFSET, 0);
+	XIntc_Out32(CfgPtr->BaseAddress + XIN_IER_OFFSET, 0);
+	XIntc_Out32(CfgPtr->BaseAddress + XIN_IAR_OFFSET, 0xFFFFFFFF);
+
+	bzero(&InterruptController, sizeof(XIntc));
+
+	Status = XIntc_Initialize(&InterruptController, INTC_DEVICE_ID);
+	if ((Status != XST_SUCCESS)) {
+		xil_printf("Error in initializing Interrupt Controller\n");
+	}
 
 	// Check that right shift works correctly
 	//   Issue with -Os in Xilinx SDK 14.7
@@ -295,7 +319,6 @@ void wlan_mac_high_init(){
 	if(Status != 1){
 		xil_printf("Error: Overlap detected in DRAM. Check address assignments\n");
 	}
-
 
 	// ***************************************************
 	// Initialize libraries
@@ -426,7 +449,6 @@ void wlan_mac_high_init(){
 		}
 	}
 
-
 	// ***************************************************
 	// Initialize CDMA, GPIO, and UART drivers
 	// ***************************************************
@@ -501,7 +523,7 @@ void wlan_mac_high_init(){
 	}
 
 	bss_info_init(dram_present);
-	wlan_eth_init();
+	wlan_eth_init(); 			//FIXME add reset to deal with previous boots
 	wlan_mac_schedule_init();
 	wlan_mac_ltg_sched_init();
 	wlan_mac_addr_filter_init();
@@ -532,13 +554,7 @@ void wlan_mac_high_init(){
 int wlan_mac_high_interrupt_init(){
 	int Result;
 
-	// ***************************************************
-	// Initialize XIntc
-	// ***************************************************
-	Result = XIntc_Initialize(&InterruptController, INTC_DEVICE_ID);
-	if (Result != XST_SUCCESS) {
-		return Result;
-	}
+	//FIXME add reset to deal with previous boots
 
 	// ***************************************************
 	// Connect interrupt devices "owned" by wlan_mac_high
@@ -1713,9 +1729,9 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 					   rx_frame_info->rx_pkt_buf_state = RX_PKT_BUF_LOW_CTRL;
 				   case RX_PKT_BUF_UNINITIALIZED:
 				   case RX_PKT_BUF_LOW_CTRL:
-					   if(unlock_rx_pkt_buf(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-							wlan_printf(PL_ERROR, "Error: unable to unlock rx pkt_buf %d\n", rx_pkt_buf);
-						}
+					   if(unlock_rx_pkt_buf(rx_pkt_buf) == PKT_BUF_MUTEX_SUCCESS){
+							wlan_printf(PL_ERROR, "Error: state mismatch; CPU_HIGH owned the lock on rx pkt_buf %d\n", rx_pkt_buf);
+					   }
 				   break;
 				}
 			} else {

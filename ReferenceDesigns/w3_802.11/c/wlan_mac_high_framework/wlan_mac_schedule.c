@@ -86,20 +86,56 @@ int wlan_mac_schedule_init(){
 	wlan_sched_fine.next = NULL;
 
 	// Initialize the timer
-	status = XTmrCtr_Initialize(&timer_instance, TMRCTR_DEVICE_ID);
-	if (status != XST_SUCCESS) {
-		xil_printf("ERROR:  XTmrCtr failed to initialize\n");
+	// The driver for the timer does not handle a reboot of CPU_HIGH
+	// gracefully. Before initializing it, we should stop any running
+	// timers. Note: we cannot use the official XTmrCtr_Stop() function
+	// for this since it requires that the timer instance be initialized.
+	u32 ControlStatusReg;
+	u8	i;
+	XTmrCtr_Config *TmrCtrConfigPtr = XTmrCtr_LookupConfig(TMRCTR_DEVICE_ID);
+
+	if(TmrCtrConfigPtr != NULL){
+		for(i=0; i<2; i++){
+			//Loop over timer instances
+			/*
+			 * Read the current register contents
+			 */
+			ControlStatusReg = XTmrCtr_ReadReg(TmrCtrConfigPtr->BaseAddress,
+										i, XTC_TCSR_OFFSET);
+
+			/*
+			 * Disable the timer counter such that it's not running
+			 */
+			ControlStatusReg &= ~(XTC_CSR_ENABLE_TMR_MASK);
+
+			/*
+			 * Write out the updated value to the actual register.
+			 */
+			XTmrCtr_WriteReg(TmrCtrConfigPtr->BaseAddress, i,
+					  XTC_TCSR_OFFSET, ControlStatusReg);
+
+		}
+
+
+
+		status = XTmrCtr_Initialize(&timer_instance, TMRCTR_DEVICE_ID);
+		if ( (status != XST_SUCCESS) ) {
+			xil_printf("ERROR:  XTmrCtr failed to initialize\n");
+			return -1;
+		}
+
+		// Set the handler for Timer
+		XTmrCtr_SetHandler(&timer_instance, schedule_handler, &timer_instance);
+
+		// Enable interrupt of timer and auto-reload so it continues repeatedly
+		XTmrCtr_SetOptions(&timer_instance, TIMER_CNTR_FAST, XTC_DOWN_COUNT_OPTION | XTC_INT_MODE_OPTION | XTC_AUTO_RELOAD_OPTION);
+		XTmrCtr_SetOptions(&timer_instance, TIMER_CNTR_SLOW, XTC_DOWN_COUNT_OPTION | XTC_INT_MODE_OPTION | XTC_AUTO_RELOAD_OPTION);
+
+		return 0;
+	} else {
+		//Could not find XTmrCtr_Config for the timer
 		return -1;
 	}
-
-	// Set the handler for Timer
-	XTmrCtr_SetHandler(&timer_instance, schedule_handler, &timer_instance);
-
-	// Enable interrupt of timer and auto-reload so it continues repeatedly
-	XTmrCtr_SetOptions(&timer_instance, TIMER_CNTR_FAST, XTC_DOWN_COUNT_OPTION | XTC_INT_MODE_OPTION | XTC_AUTO_RELOAD_OPTION);
-	XTmrCtr_SetOptions(&timer_instance, TIMER_CNTR_SLOW, XTC_DOWN_COUNT_OPTION | XTC_INT_MODE_OPTION | XTC_AUTO_RELOAD_OPTION);
-
-	return 0;
 }
 
 
