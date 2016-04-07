@@ -62,6 +62,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         device_type (int): Unique type of the WlanDevice (inherited from WlanDevice)
         wlan_mac_address (int): Wireless MAC address of the node (inherited from WlanDevice)
         ht_capable (bool): Indicates if device has PHY capable of HT (802.11n) rates 
+            (inherited from WlanDevice)
 
         wlan_scheduler_resolution (int): Minimum resolution (in us) of the LTG
         log_max_size (int): Maximum size of event log (in bytes)
@@ -119,8 +120,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     # Log Commands
     #--------------------------------------------
     def log_configure(self, log_enable=None, log_wrap_enable=None,
-                            log_full_payloads=None, log_commands=None,
-                            log_txrx_mpdu=None, log_txrx_ctrl=None):
+                            log_full_payloads=None, log_txrx_mpdu=None,  
+                            log_txrx_ctrl=None):
         """Configure log with the given flags.
 
         By default all attributes are set to None.  Only attributes that
@@ -135,16 +136,14 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 (Default value on Node: FALSE)
             log_full_payloads (bool): Record full Tx/Rx payloads in event log 
                 (Default value on Node: FALSE)
-            log_commands (bool):      Record commands in event log 
-                (Default value on Node: FALSE)
             log_txrx_mpdu (bool):     Enable Tx/Rx log entries for MPDU frames
                 (Default value on Node: TRUE)
             log_txrx_ctrl (bool):     Enable Tx/Rx log entries for CTRL frames
                 (Default value on Node: TRUE)
         """
         self.send_cmd(cmds.LogConfigure(log_enable, log_wrap_enable,
-                                        log_full_payloads, log_commands,
-                                        log_txrx_mpdu, log_txrx_ctrl))
+                                        log_full_payloads, log_txrx_mpdu, 
+                                        log_txrx_ctrl))
 
 
     def log_get(self, size, offset=0, max_req_size=2**23):
@@ -154,25 +153,25 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             size (int):                   Number of bytes to read from the log
             offset (int, optional):       Starting byte to read from the log
             max_req_size (int, optional): Max request size that the transport 
-                            will fragment the request into.
+                will fragment the request into.
 
         Returns:
             buffer (transport.Buffer):  
                 Data from the log corresponding to the input parameters
 
         There is no guarentee that this will return data aligned to event
-        boundaries.  Use log_get_indexes() to get event aligned boundaries.
+        boundaries.  Use ``log_get_indexes()`` to get event aligned boundaries.
 
         Log reads are not destructive. Log entries will only be destroyed by a 
         log reset or if the log wraps.
 
-        During a given log_get command, the ETH_B Ethernet interface of
+        During a given ``log_get()`` command, the ETH_B Ethernet interface of
         the node will not be able to respond to any other Ethernet packets
         that are sent to the node.  This could cause the node to drop
         incoming wlan_exp packets from other wlan_exp instances accessing
-        the node. Therefore, for large requests, having a smaller max_req_size
-        will allow the transport to fragement the command and allow the
-        node to be responsive to multiple hosts.
+        the node. Therefore, for large requests, having a smaller 
+        ``max_req_size`` will allow the transport to fragement the command and 
+        allow the node to be responsive to multiple hosts.
 
         Some basic analysis shows that fragment sizes of 2**23 (8 MB)
         add about 2% overhead to the receive time and each command takes less
@@ -193,6 +192,37 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
     def log_get_all_new(self, log_tail_pad=500, max_req_size=2**23):
         """Get all "new" entries in the log.
+        
+        In order to make reading log data easier, the ``log_get_all_new()``
+        command was created.  It utilizes the ``log_get_indexex()`` and 
+        ``log_get()`` commmands to understand the state of the log and to 
+        retrieve data from the log.  The Python node object also maintains 
+        internal state about what log data has been read from the node to 
+        determine if there is "new" data in the log.  Since this state data is 
+        maintained in Python and not on the node itself, it is possible for
+        multiple host scripts to read log data using ``log_get_all_new()``. The 
+        internal state maintained for ``log_get_all_new()`` is only reset when 
+        using the node reset method (i.e. ``node.reset(log=True)``).
+        
+        When a node is adding entries to its log, it will allocate the 
+        memory for an entry from the log and then fill in the contents.  This 
+        means at any given time, the last log entry may have incomplete 
+        information.  Currently, the log maintains the index where the next 
+        log entry will be recorded (i.e. the ``next_index``), which does not 
+        provide any state about whether the last log entry has been completed.
+        Therefore, in order to not retrieve incomplete information, 
+        ``log_get_all_new()`` has an argument ``log_tail_pad=N`` to not read 
+        the last N "new" bytes of log data.  
+        
+        Unfortunately, this means that using a ``log_tail_pad`` other than 
+        zero will result in return data that is not aligned to a log entry
+        boundary.  This should not be an issue if the goal is to periodically
+        read the log data from the node and store it in a file (as seen in 
+        the ``log_capture_continuous.py`` example).  However, this can be an 
+        issue if trying to periodically read the log and process the log data 
+        directly.  In this case, ``log_tail_pad`` must be zero and the code 
+        has to assume the last entry is invalid.  This has not come up very 
+        much, but please let us know if this is an issue via the forums.        
 
         Args:
             log_tail_pad (int, optional): Number of bytes from the current end 
@@ -319,9 +349,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
         Returns:
             indexes (tuple):
+            
                 #. oldest_index (int): Log index of the oldest event in the log
                 #. next_index (int):   Log index where the next event will be recorded
                 #. num_wraps (int):    Number of times the log has wrapped
+        
         """
         (next_index, oldest_index, num_wraps, _) = self.send_cmd(cmds.LogGetStatus())
 
@@ -340,8 +372,13 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
         Returns:
             flags (int): Integer describing the configuration of the event log.
-
-        Flag values can be found in wlan_exp.cmds.CMD_PARAM_LOG_CONFIG_FLAG_*
+            
+                * ``0x0001`` - Logging enabled
+                * ``0x0002`` - Log wrapping enabled
+                * ``0x0004`` - Full payload logging enabled
+                * ``0x0008`` - Tx/Rx log entries for MPDU frames enabled
+                * ``0x0010`` - Tx/Rx log entries for CTRL frames enabled
+                
         """
         (_, _, _, flags) = self.send_cmd(cmds.LogGetStatus())
 
@@ -699,12 +736,34 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Resets the state of node depending on the attributes.
 
         Args:
-            log (bool):          Reset the log
-            txrx_counts (bool):  Reset the TX/RX Counts
-            ltg (bool):          Remove all LTGs
-            queue_data (bool):   Purge all TX queue data
-            bss (bool):          Reset association state
-            network_list (bool): Remove all known networks on the node
+            log (bool):          Reset the log data.  This will reset both the 
+                log data on the node as well as the local variables used to 
+                track log reads for ``log_get_all_new()``.  This will 
+                not alter any log settings set by ``log_configure()``.
+            txrx_counts (bool):  Reset the TX/RX Counts.  This will zero out 
+                all of the packet / byte counts as well as the 
+                latest_txrx_timestamp for all nodes in the station info list.  
+                It will also remove all promiscuous counts.
+            ltg (bool):          Remove all LTGs.  This will stop and remove
+                any LTGs that are on the node.
+            queue_data (bool):   Purge all TX queue data.  This will discard
+                all currently enqueued packets awaiting transmission at the 
+                time the command is received.  This will not discard packets
+                already submitted to the lower-level MAC for transmission.
+                Also, this will not stop additional packets from sources 
+                such as LTGs from being enqueued.
+            bss (bool):          Reset network state.  This will nullify
+                the node's active BSS and removes all entries from the 
+                station info list.  However, it will not remove the BSS from 
+                the network list.  This will produce the following OTA
+                transmissions:
+                
+                  * For AP, a deauthentication frame to each associated station
+                  * For STA, a disassociation frame to its AP
+                  * For IBSS, nothing. 
+                    
+            network_list (bool): Remove all BSS entries from the network list,
+                excluding the BSS entry for the node's current network (if any)            
         """
         flags = 0;
 
@@ -1566,10 +1625,15 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
     def enable_dsss(self, enable):
         """Enable / Disable DSSS receptions on the node
+
+        By default DSSS receptions are enabled on the node when possible 
+        (ie PHY sample rate is 20 MHz and Channel is in 2.4 GHz band)
         
         Args:
-            enable (bool):  True - enable DSSS receptions on the node
-                            False - disable DSSS receptions on the node (DEFAULT)
+            enable (bool):  
+            
+              * True - enable DSSS receptions on the node
+              * False - disable DSSS receptions on the node
         """
         self.send_cmd(cmds.NodeConfigure(dsss_enable=enable))
 
@@ -1578,17 +1642,35 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """Set the verbosity of the wlan_exp output to the node's UART.
 
         Args:
-            level (int):  Printing level (defaults to WLAN_EXP_PRINT_ERROR)
+            level (int):  Printing level (defaults to ``WARNING``)
 
-        Valid print levels can be found in wlan_exp.util:
+        Valid print levels can be found in ``wlan_exp.util.uart_print_levels``:
         
-          * WLAN_EXP_PRINT_NONE
-          * WLAN_EXP_PRINT_ERROR
-          * WLAN_EXP_PRINT_WARNING
-          * WLAN_EXP_PRINT_INFO
-          * WLAN_EXP_PRINT_DEBUG
+          * ``NONE``    - Do not print messages
+          * ``ERROR``   - Only print error messages
+          * ``WARNING`` - Print error and warning messages
+          * ``INFO``    - Print error, warning and info messages
+          * ``DEBUG``   - Print error, warning, info and debug messages
         """
-        self.send_cmd(cmds.NodeConfigure(print_level=level))
+        import wlan_exp.util as util
+        
+        valid_levels = ['NONE', 'ERROR', 'WARNING', 'INFO', 'DEBUG',
+                        util.uart_print_levels['NONE'], 
+                        util.uart_print_levels['ERROR'],
+                        util.uart_print_levels['WARNING'],
+                        util.uart_print_levels['INFO'],
+                        util.uart_print_levels['DEBUG']]
+        
+        if (level in valid_levels):
+            self.send_cmd(cmds.NodeConfigure(print_level=level))
+        else:
+            msg  = "\nInvalid print level {0}.  Print level must be one of: \n".format(level)
+            msg += "    ['NONE', 'ERROR', 'WARNING', 'INFO', 'DEBUG', \n"
+            msg += "     uart_print_levels['NONE'], uart_print_levels['ERROR'],\n"
+            msg += "     uart_print_levels['WARNING'], uart_print_levels['INFO'],\n"
+            msg += "     uart_print_levels['DEBUG']]"
+            raise ValueError(msg)
+            
 
 
     #--------------------------------------------
@@ -1635,7 +1717,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
         if (phy_mode not in ['NONHT', 'HTMF', util.phy_modes['NONHT'], util.phy_modes['HTMF']]):
             if (verbose):
-                print("Invalid PHY mode {0}. PHY mode must be one of ['NONHT', 'HTMF', phy_modes['NONHT'], phy_modes['HTMF']".format(phy_mode))
+                print("Invalid PHY mode {0}. PHY mode must be one of ['NONHT', 'HTMF', phy_modes['NONHT'], phy_modes['HTMF']]".format(phy_mode))
             rate_ok = False
 
         return rate_ok
@@ -1965,8 +2047,6 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | Field                       | Description                                                                                        |
             +=============================+====================================================================================================+
-            | retrieval_timestamp         |  Value of System Time in microseconds when structure retrieved from the node                       |
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
             | mac_addr                    |  MAC address of station                                                                            |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | id                          |  Identification Index for this station                                                             |
@@ -2046,8 +2126,6 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | Field                       | Description                                                                                        |
             +=============================+====================================================================================================+
-            | retrieval_timestamp         |  Value of System Time in microseconds when structure retrieved from the node                       |
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
             | bssid                       |  BSS ID: 48-bit MAC address                                                                        |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | ssid                        |  SSID (32 chars max)                                                                               |
@@ -2119,7 +2197,16 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     # Queue Commands
     #--------------------------------------------
     def queue_tx_data_purge_all(self):
-        """Purges all data transmit queues on the node."""
+        """Purges all data transmit queues on the node.
+        
+        This will discard all currently enqueued packets awaiting transmission 
+        at the time the command is received.  This will not discard packets
+        already submitted to the lower-level MAC for transmission.  Also, this 
+        will not stop additional packets from sources such as LTGs from being 
+        enqueued.
+        
+        This command is equivalent to ``reset(queue_data=True)``.
+        """
         self.send_cmd(cmds.QueueTxDataPurgeAll())
 
 

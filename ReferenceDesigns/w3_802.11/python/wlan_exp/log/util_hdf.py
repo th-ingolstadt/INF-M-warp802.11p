@@ -518,7 +518,7 @@ def hdf5_open_file(filename, readonly=False, append=False, print_warnings=True):
         print_warnings (bool, optional):  Print warning messages
 
     Returns:
-        file_handle (h5py.File()):  Handle for the HDF5 file
+        file_handle (h5py.File):  Handle for the HDF5 file
 
 
     Behavior of input attributes:
@@ -575,7 +575,7 @@ def hdf5_close_file(file_handle):
     """Close an HDF5 file.
  
     Args:
-        file_handle (h5py.File()):  Handle for the HDF5 file    
+        file_handle (h5py.File):  Handle for the HDF5 file    
     """
     file_handle.close()
 
@@ -591,7 +591,7 @@ def log_data_to_hdf5(log_data, filename, attr_dict=None, gen_index=True, overwri
         log_data (bytes):            Binary data from a WlanExpNode log
         filename (str):              Filename of the HDF5 file to appear on disk
         attr_dict (dict, optional):  A dictionary of user provided attributes that will be added to the HDF5 group.
-        gen_index (bool, optional):  Generate the 'raw_log_index' from the log_data and store it in the file.
+        gen_index (bool, optional):  Generate the ``raw_log_index`` from the ``log_data`` and store it in the file.
         overwrite (bool, optional):  If True method will overwrite existing file with filename
 
     If the requested filename already exists and ``overwrite==True`` this
@@ -689,12 +689,12 @@ def hdf5_to_log_index(filename, group_name=None, gen_index=True):
         filename (str):              Name of HDF5 file to open
         group_name (str, optional):  Name of Group within the HDF5 file object 
             (defaults to "\")
-        gen_index (bool, optional):  Generate the 'raw_log_index' from the log_data and 
-            store it in the file if the 'log_index' is not in the file.
+        gen_index (bool, optional):  Generate the ``raw_log_index`` from the ``log_data`` and 
+            store it in the file if the ``log_index`` is not in the file.
 
     Returns:
-        log_index (dict):  Either the 'log_index' from HDF5 file or a generated 
-            raw_log_index from log_data in HDF5 file
+        log_index (dict):  Either the ``log_index`` from HDF5 file or a generated 
+            ``raw_log_index`` from ``log_data`` in HDF5 file
     """
     log_index   = None
 

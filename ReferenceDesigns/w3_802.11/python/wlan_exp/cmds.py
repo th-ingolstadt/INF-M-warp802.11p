@@ -173,9 +173,8 @@ CMD_PARAM_LOG_GET_ALL_ENTRIES                    = 0xFFFFFFFF
 CMD_PARAM_LOG_CONFIG_FLAG_LOGGING                = 0x00000001
 CMD_PARAM_LOG_CONFIG_FLAG_WRAP                   = 0x00000002
 CMD_PARAM_LOG_CONFIG_FLAG_LOG_PAYLOADS           = 0x00000004
-CMD_PARAM_LOG_CONFIG_FLAG_LOG_CMDS               = 0x00000008
-CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU              = 0x00000010
-CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL              = 0x00000020
+CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU              = 0x00000008
+CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL              = 0x00000010
 
 
 # Counts commands and defined values
@@ -273,13 +272,12 @@ class LogConfigure(message.Cmd):
         log_enable           -- Enable the event log (TRUE/False)
         log_wrap_enable      -- Enable event log wrapping (True/FALSE)
         log_full_payloads    -- Record full Tx/Rx payloads in event log (True/FALSE)
-        log_commands         -- Record commands in event log (True/FALSE)
         log_txrx_mpdu        -- Enable Tx/Rx log entries for MPDU frames (TRUE/False)
         log_txrx_ctrl        -- Enable Tx/Rx log entries for CTRL frames (TRUE/False)
     """
     def __init__(self, log_enable=None, log_wrap_enable=None,
-                       log_full_payloads=None, log_commands=None,
-                       log_txrx_mpdu=None, log_txrx_ctrl=None):
+                       log_full_payloads=None, log_txrx_mpdu=None, 
+                       log_txrx_ctrl=None):
         super(LogConfigure, self).__init__()
         self.command = _CMD_GROUP_NODE + CMDID_LOG_CONFIG
 
@@ -300,11 +298,6 @@ class LogConfigure(message.Cmd):
             mask += CMD_PARAM_LOG_CONFIG_FLAG_LOG_PAYLOADS
             if log_full_payloads:
                 flags += CMD_PARAM_LOG_CONFIG_FLAG_LOG_PAYLOADS
-
-        if log_commands is not None:
-            mask += CMD_PARAM_LOG_CONFIG_FLAG_LOG_CMDS
-            if log_commands:
-                flags += CMD_PARAM_LOG_CONFIG_FLAG_LOG_CMDS
 
         if log_txrx_mpdu is not None:
             mask += CMD_PARAM_LOG_CONFIG_FLAG_TXRX_MPDU
@@ -654,7 +647,11 @@ class NodeConfigure(message.Cmd):
                 flags += CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TIME_UPDATE
 
         if print_level is not None:
-            level = CMD_PARAM_NODE_CONFIG_SET_WLAN_EXP_PRINT_LEVEL + print_level
+            if (type(print_level) is str):
+                import wlan_exp.util as util
+                level = CMD_PARAM_NODE_CONFIG_SET_WLAN_EXP_PRINT_LEVEL + util.phy_modes[print_level]
+            else:
+                level = CMD_PARAM_NODE_CONFIG_SET_WLAN_EXP_PRINT_LEVEL + print_level            
 
         self.add_args(flags)
         self.add_args(mask)

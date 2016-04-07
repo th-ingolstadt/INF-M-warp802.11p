@@ -6,13 +6,12 @@ WLAN Device
 -----------
 
 The WLAN device represents an 802.11 device in a WLAN network.  This can 
-be used to define non-WARP nodes so that the experiment framework can 
+be used to define non-WARP nodes so that the experiments framework can 
 interact with them.
 
 Class
 `````
 .. autoclass:: wlan_exp.device.WlanDevice
-   :members:
 
 
 Example

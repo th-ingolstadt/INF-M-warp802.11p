@@ -65,15 +65,25 @@ class consts_dict(dict):
 
 
 # -----------------------------------------------------------------------------
-# Node Print Levels
+# UART Print Levels
 # -----------------------------------------------------------------------------
 
+#: wlan_exp UART Print Levels:
+#:
+#:  * ``NONE``    - Do not print messages
+#:  * ``ERROR``   - Only print error messages
+#:  * ``WARNING`` - Print error and warning messages
+#:  * ``INFO``    - Print error, warning and info messages
+#:  * ``DEBUG``   - Print error, warning, info and debug messages
+#:    
+#: Use this dictionary for the ``set_print_level()`` command 
 # The C counterparts are found in wlan_exp_common.h
-WLAN_EXP_PRINT_NONE               = 0
-WLAN_EXP_PRINT_ERROR              = 1
-WLAN_EXP_PRINT_WARNING            = 2
-WLAN_EXP_PRINT_INFO               = 3
-WLAN_EXP_PRINT_DEBUG              = 4
+uart_print_levels = consts_dict({
+       'NONE'      :  0,
+       'ERROR'     :  1,
+       'WARNING'   :  2,
+       'INFO'      :  3,
+       'DEBUG'     :  4})
 
 
 
@@ -81,7 +91,12 @@ WLAN_EXP_PRINT_DEBUG              = 4
 # Rate definitions
 # -----------------------------------------------------------------------------
 
-#: PHY Modes - DSSS (Rx only), NONHT OFDM (11a/g) and HTMF (11n).
+#: PHY Modes
+#:
+#:   * 'DSSS'  - DSSS (Rx only)
+#:   * 'NONHT' - NONHT OFDM (11a/g)
+#:   * 'HTMF'  - HTMF (11n)
+#:
 #: Use this dictionary to interpret ``phy_mode`` values encoded in Tx/Rx log entries
 phy_modes = consts_dict({
        'DSSS'      :  0,
@@ -183,6 +198,7 @@ def rate_info_to_str(rate_info):
         >>> r = util.get_rate_info(mcs=3, phy_mode='HTMF')
         >>> print(util.rate_info_to_str(r))
         26.0 Mbps (HTMF 16-QAM 1/2)
+    
     """
     msg = ""
     if type(rate_info) is dict:
@@ -492,13 +508,17 @@ def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=Tr
     If the return list of nodes is empty, then this method will issue a warning 
     if the parameter warn is True.
 
-    **Examples**
+    Examples:
     ::
-        filter_nodes(nodes, mac_high='AP', mac_low='DCF') --> Only AP DCF nodes
-        filter_nodes(nodes, mac_high='AP')                --> AP nodes where low can be DCF/NOMAC
+        # Find AP DCF nodes
+        filter_nodes(nodes, mac_high='AP', mac_low='DCF')
+        
+        # Find AP nodes where low can be DCF/NOMAC
+        filter_nodes(nodes, mac_high='AP')
+        
+        # Find AP DCF nodes with serial numbers 'W3-a-00001' and 'W3-a-00002'
         filter_nodes(nodes, mac_high='ap', mac_low='dcf', serial_numbers=['w3-a-00001','w3-a-00002'])
-            --> Find AP DCF nodes with serial numbers 'W3-a-00001' and 'W3-a-00002'
-
+    
     """
     ret_nodes         = []
     tmp_mac_high      = None
@@ -1009,7 +1029,7 @@ def mac_addr_desc(mac_addr, desc_map=None):
     descprition will be returned.  This will only return the first description 
     in the [desc_map, mac_addr_desc_map] list.
 
-    **Example**
+    Example:
     ::
         desc_map = [ (0x000102030405, 0xFFFFFFFFFFFF, 'My Custom MAC Addr'),
                      (0x000203040506, 0xFFFFFFFFFFFF, 'My Other MAC Addr') ]

@@ -7,28 +7,11 @@ WLAN Exp Utilities
 Common utilities for the WLAN Experiment framework.
 
 
-.. automodule:: wlan_exp.util
+UART Print Levels
+.................
+Defined UART print levels to control the verbosity of the wlan_exp UART output.
 
-
-Debug Print Levels
-..................
-Defined print levels that can be passed to WlanExpNode set_print_level() to control the verbosity of the 
-WLAN Exp UART output of the node.
-
-.. autoattribute:: wlan_exp.util.WLAN_EXP_PRINT_NONE
-    :annotation: 
-
-.. autoattribute:: wlan_exp.util.WLAN_EXP_PRINT_ERROR
-    :annotation: 
-
-.. autoattribute:: wlan_exp.util.WLAN_EXP_PRINT_WARNING
-    :annotation: 
-
-.. autoattribute:: wlan_exp.util.WLAN_EXP_PRINT_INFO
-    :annotation: 
-
-.. autoattribute:: wlan_exp.util.WLAN_EXP_PRINT_DEBUG
-    :annotation: 
+.. autodata:: wlan_exp.util.uart_print_levels
 
 
 Transmit / Receive Rate Definitions

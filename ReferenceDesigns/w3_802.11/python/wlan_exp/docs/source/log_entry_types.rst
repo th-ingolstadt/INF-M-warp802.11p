@@ -6,8 +6,8 @@
 Log Entry
 ---------
 
-The log defines a number of entry types to collect information.  The definition of the various entry types can 
-be found in the :ug:`user guide <wlan_exp/log/entry_types>`.
+The log defines a number of entry types to collect information.  The definition 
+of the various entry types can be found in the :ug:`user guide <wlan_exp/log/entry_types>`.
 
 
 Log Entry Class

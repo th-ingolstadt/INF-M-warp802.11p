@@ -13,8 +13,8 @@ of the node. This is the base class for all node types and provides the common f
 Base Node Class
 ...............
 The WlanExpNode class implements the interface to an 802.11 Reference Design node. The WlanExpNode class should
-**not** be instantiated directly. Refer to the wlan_exp examples for the recommend node initialization flow which
-returns a properly initialized WlanExpNode instance.
+**not** be instantiated directly. Refer to the wlan_exp examples (http://warpproject.org/trac/wiki/802.11/wlan_exp/examples)
+for the recommend node initialization flow which returns a properly initialized WlanExpNode instance.
 
 The class attributes listed below should be considered read-only. The relevant attributes are given values during
 the initialization process. These values represent the identity and state of the node running the 802.11 Reference
@@ -68,8 +68,8 @@ These WlanExpNode commands are used to interact with the node and control parame
 
 .. automethod:: wlan_exp.node.WlanExpNode.send_user_command
 
-.. automethod:: wlan_exp.node.WlanExpNode.node_identify
-.. automethod:: wlan_exp.node.WlanExpNode.node_ping
+.. automethod:: wlan_exp.node.WlanExpNode.identify
+.. automethod:: wlan_exp.node.WlanExpNode.ping
 
 
 Tx Power and Rate
@@ -132,13 +132,14 @@ These WlanExpNode commands are used to modify / query the association state of t
 
 Tx/Rx Packet Counts
 ```````````````````
-These WlanExpNode commands are used to to interact with the counts framework.  Counts are kept for for
-each association (the counts that are kept can be found as part of the `log entry types
-<http://warpproject.org/trac/wiki/802.11/wlan_exp/log/entry_types>`_).  If promiscuous counts are enabled, 
-then the node will keep counts for every MAC address overheard (whether the node is associated or not).  In 
-order to keep the maximum number of counts recorded on the node to a reasonable amount, there is a maximum number
-of counts implemented in the C code.  When that maximum is reached, then the oldest counts structure of an 
-unassociated node will be overwritten.
+These WlanExpNode commands are used to to interact with the counts framework.  
+Counts are kept for for each node in the station info list.  If promiscuous 
+counts are enabled, then the node will keep counts for every MAC address 
+overheard (whether the node is in the station info list or not).  In order to 
+keep the maximum number of counts recorded on the node to a reasonable amount, 
+there is a maximum number of counts implemented in the C code.  When that 
+maximum is reached, then the oldest counts structure of an unassociated node 
+will be overwritten.
 
 .. automethod:: wlan_exp.node.WlanExpNode.counts_configure_txrx
 .. automethod:: wlan_exp.node.WlanExpNode.counts_get_txrx
@@ -168,15 +169,18 @@ and timing of LTG flows are controlled.
 
 Log
 ```
-These WlanExpNode commands are used to interact with the logging framework.  The log occupies
-a large portion of DRAM which is set in C code during runtime (see `wlan_mac_high.h 
-<http://warpproject.org/trac/browser/ReferenceDesigns/w3_802.11/c/wlan_mac_high_framework/include/wlan_mac_high.h>`_ 
-for more information on the memory map; Use log_get_capacity() to see the number of bytes allocated for the log).
+These WlanExpNode commands are used to interact with the logging framework.  
+The log occupies a large portion of DRAM which is set in C code during runtime 
+(see `wlan_mac_high.h <http://warpproject.org/trac/browser/ReferenceDesigns/w3_802.11/c/wlan_mac_high_framework/include/wlan_mac_high.h>`_ 
+for more information on the memory map; Use ``log_get_capacity()`` to see the 
+number of bytes allocated for the log).
 
-The log has the ability to wrap to enable longer experiments.  By enabling wrapping and periodically pulling
-the logs, you can effectively log an experiment for an indefinite amount of time.  Also, the log can record the 
-entire payload of the wireless packets.  Both the log wrapping and logging of full payloads is off by default and 
-can be modified with the log_configure() command.
+The log has the ability to wrap to enable longer experiments.  By enabling 
+wrapping and periodically pulling the logs, you can effectively log an 
+experiment for an indefinite amount of time.  Also, the log can record the 
+entire payload of the wireless packets.  Both the log wrapping and logging of 
+full payloads is off by default and can be modified with the 
+``log_configure()`` command.
 
 .. automethod:: wlan_exp.node.WlanExpNode.log_configure
 .. automethod:: wlan_exp.node.WlanExpNode.log_get

@@ -155,7 +155,7 @@ class WarpNode(object):
         self.transport.ping(self)
         self.transport.test_payload_size(self, jumbo_frame_support)        
 
-        resp = self.node_get_info()
+        resp = self.get_info()
         try:
             self.process_parameters(resp)
         except ex.ParameterError as err:
@@ -184,35 +184,47 @@ class WarpNode(object):
     # -------------------------------------------------------------------------
     # Commands for the Node
     # -------------------------------------------------------------------------
-    def node_identify(self):
-        """Have the node physically identify itself."""
+    def identify(self):
+        """Identify the node
+        
+        The node will physically identify itself by:
+        
+          * Blinking the Hex Display (for approx 10 seconds)
+          * Output Node ID and IP adress to UART output
+        """
         self.send_cmd(cmds.NodeIdentify(self.serial_number))
 
-    def node_ping(self):
-        """Ping the node."""
+    def ping(self):
+        """'Ping' the node 
+        
+        Send an empty packet to the node via the transport to test connectivity
+        between the host and the node.  This is the simplest command that can
+        be processed by the node and is similar to the unix "ping" command used
+        check network connectivity.
+        """
         self.transport.ping(self, output=True)
 
-    def node_get_type(self):
+    def get_type(self):
         """Get the type of the node."""
         if self.node_type is None:
             return self.send_cmd(cmds.NodeGetType())
         else:
             return self.node_type
 
-    def node_get_info(self):
+    def get_info(self):
         """Get the Hardware Information from the node."""
         return self.send_cmd(cmds.NodeGetHwInfo())
 
-    def node_get_temp(self):
+    def get_temp(self):
         """Get the temperature of the node."""
         (curr_temp, _, _) = self.send_cmd(cmds.NodeGetTemperature()) # Min / Max temp not used
         return curr_temp
 
-    def node_setup_network_inf(self):
+    def setup_network_inf(self):
         """Setup the transport network information for the node."""
         self.send_cmd_broadcast(cmds.NodeSetupNetwork(self))
         
-    def node_reset_network_inf(self):
+    def reset_network_inf(self):
         """Reset the transport network information for the node."""
         self.send_cmd_broadcast(cmds.NodeResetNetwork(self.serial_number))
 
@@ -702,14 +714,14 @@ class WarpNodeFactory(WarpNode):
         # Initialize the node network interface
         if network_reset:
             # Send broadcast command to reset the node network interface
-            self.node_reset_network_inf()
+            self.reset_network_inf()
     
             # Send broadcast command to initialize the node network interface
-            self.node_setup_network_inf()
+            self.setup_network_inf()
 
         try:
             # Send unicast command to get the node type
-            node_type = self.node_get_type()
+            node_type = self.get_type()
             
             # Get the node class from the Factory dictionary
             node_class = self.node_get_class(node_type)

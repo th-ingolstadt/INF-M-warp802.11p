@@ -482,18 +482,18 @@ def get_entry_constants(entry_type):
 def merge_log_indexes(dest_index, src_index, offset):
     """Merge log indexes.
 
-    Both the dest_index and src_index have log entry offsets that are relative 
+    Both the ``dest_index`` and ``src_index`` have log entry offsets that are relative 
     to the beginning of the log data from which they were generated.  If the 
     log data used to generate the log indexes are being merged, then move the 
-    log entry offsets in the src_index to their absolute offset in the merged 
-    log index.  For each of the log entry offsets in the src_index, the 
+    log entry offsets in the ``src_index`` to their absolute offset in the merged 
+    log index.  For each of the log entry offsets in the ``src_index``, the 
     following translation will occur:
         <Offset in merged log index> = <Offset in src_index> + offset
     
     Args:
-        dest_index (dict):  Destination log index to merge 'src_index' into
+        dest_index (dict):  Destination log index to merge ``src_index`` into
         src_index (dict):   Source log index to merge into destination log index
-        offset (int):       Offset of src_index into dest_index
+        offset (int):       Offset of ``src_index`` into ``dest_index``
     """
     return_val = dest_index
 
@@ -585,7 +585,7 @@ def overwrite_payloads(log_data, byte_offsets, payload_offsets=None):
         byte_offsets (list of int):  List of offsets corresponding to the entries to be modified
         payload_offsets (dict):      Dictionary of ``{ entry_type_id : <payload offset> }``
 
-    By default, if payload_offsets is not specified, the method will iterate 
+    By default, if ``payload_offsets`` is not specified, the method will iterate 
     through all the entry types and calculate the defined size of the entry 
     (ie it will use calcsize on the struct format of the entry).  Sometimes, 
     this is not the desired behavior and calling code would want to specify a 
@@ -593,10 +593,10 @@ def overwrite_payloads(log_data, byte_offsets, payload_offsets=None):
     transmissions / receptions, it might be desired to also keep the SNAP 
     headers and potentially the IP headers.  In this case, the calling code
     would get the appropriate set of byte_offsets and then create a 
-    payload_offsets dictionary with the desired "size" of the entry for those 
-    byte_offsets.  This will result in the calling code potentially calling 
-    this function multiple times with different payload_offsets for a given 
-    entry_type_id.
+    ``payload_offsets`` dictionary with the desired "size" of the entry for those 
+    ``byte_offsets``.  This will result in the calling code potentially calling 
+    this function multiple times with different ``payload_offsets`` for a given 
+    ``entry_type_id``.
 
     This method relies on the fact that for variable length log entries, the
     variable length data, ie the payload, is always at the end of the entry.  
@@ -604,7 +604,7 @@ def overwrite_payloads(log_data, byte_offsets, payload_offsets=None):
     the payload.  Therefore, from the entry header, the code can determine how 
     many payload bytes are after the defined fields and zero them out.
 
-    This is an in-place modification of log_data.
+    This is an in-place modification of ``log_data``.
     """
     import struct
     from entry_types import log_entry_types

@@ -5,10 +5,10 @@
 Event Log
 *********
 
-The :mod:`wlan_exp_log` package provides utilities to process log data from 802.11 Reference Design nodes.
+The :mod:`wlan_exp.log` package provides utilities to process log data from 802.11 Reference Design nodes.
 
 The documentation here describes the Python framework for processing log data. For more details
-on the reference design's logging system itself, please refer to the design's :ug:`user guide <wlan_exp/log>`.
+on the reference design's logging system itself, please refer to the :ug:`user guide <wlan_exp/log>`.
 
 Contents:
 

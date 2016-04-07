@@ -60,7 +60,7 @@ print("\n\n")
 print("*********************************************************************")
 print("Starting interactive console. The initialized wlan_exp node instances")
 print(" are stored in the list variable 'nodes', indexed in order of node ID")
-print("Example: blink LEDs at node ID 0: 'nodes[0].node_identify()'")
+print("Example: blink LEDs at node ID 0: 'nodes[0].identify()'")
 print("*********************************************************************")
 print("\n\n")
 

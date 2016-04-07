@@ -7,8 +7,6 @@ Event Log Utilities
 ----------------------
 Common utilities for the WLAN Experiment logging framework.
 
-.. automodule:: wlan_exp.log.util
-
 
 Log Utility Functions
 ......................
