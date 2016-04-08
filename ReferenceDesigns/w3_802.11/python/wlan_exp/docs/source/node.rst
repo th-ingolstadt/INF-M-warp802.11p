@@ -2,24 +2,24 @@
 
 .. include:: globals.rst
 
-wlan_exp Node Classes
----------------------
+Node Classes
+------------
 
-The WlanExpNode class represents one node in a network of nodes running the 802.11 Reference Design. This class
+The ``WlanExpNode`` class represents one node in a network of nodes running the 802.11 Reference Design. This class
 is the primary interface for interacting with nodes by providing methods to send commands and read status 
 of the node. This is the base class for all node types and provides the common functionality for all nodes.
 
 
 Base Node Class
 ...............
-The WlanExpNode class implements the interface to an 802.11 Reference Design node. The WlanExpNode class should
-**not** be instantiated directly. Refer to the wlan_exp examples (http://warpproject.org/trac/wiki/802.11/wlan_exp/examples)
-for the recommend node initialization flow which returns a properly initialized WlanExpNode instance.
+The ``WlanExpNode`` class implements the interface to an 802.11 Reference Design node. The ``WlanExpNode`` class should
+**not** be instantiated directly. Refer to the ``wlan_exp`` examples (http://warpproject.org/trac/wiki/802.11/wlan_exp/examples)
+for the recommend node initialization flow which returns a properly initialized ``WlanExpNode`` instance.
 
 The class attributes listed below should be considered read-only. The relevant attributes are given values during
 the initialization process. These values represent the identity and state of the node running the 802.11 Reference
 Design. Changing an attribute value does not change the corresponding state of the node, a mismatch that will distrupt
-normal operation of wlan_exp tools.
+normal operation of ``wlan_exp`` tools.
 
 .. autoclass:: wlan_exp.node.WlanExpNode
 
@@ -27,7 +27,7 @@ normal operation of wlan_exp tools.
 Node Sub-Classes
 ...........................
 
-The AP, STA and IBSS node types are represented by dedicated subclasses of WlanExpNode. The node objects in wlan_exp
+The AP, STA and IBSS node types are represented by dedicated subclasses of ``WlanExpNode``. The node objects in ``wlan_exp``
 scripts will be instances of these subclasses. Each subclass implements methods that are specific to a given node type.
 
 .. toctree::
@@ -40,12 +40,12 @@ scripts will be instances of these subclasses. Each subclass implements methods 
 
 Common Node Methods
 ...................
-The list below documents each node method implemented by the WlanExpNode class. These methods can be used with any
-wlan_exp node type (AP, STA, IBSS).
+The list below documents each node method implemented by the ``WlanExpNode`` class. These methods can be used with any
+``wlan_exp`` node type (AP, STA, IBSS).
 
 Node
 ````
-These WlanExpNode commands are used to interact with the node and control parameters associated with the node operation.
+These ``WlanExpNode`` commands are used to interact with the node and control parameters associated with the node operation.
 
 .. automethod:: wlan_exp.node.WlanExpNode.reset_all
 .. automethod:: wlan_exp.node.WlanExpNode.reset
@@ -122,7 +122,7 @@ is used for Tx and Rx of individual packet types.
 
 Association State
 `````````````````
-These WlanExpNode commands are used to modify / query the association state of the node.
+These ``WlanExpNode`` commands are used to modify / query the association state of the node.
 
 .. automethod:: wlan_exp.node.WlanExpNode.configure_bss
 .. automethod:: wlan_exp.node.WlanExpNode.get_station_info
@@ -132,7 +132,7 @@ These WlanExpNode commands are used to modify / query the association state of t
 
 Tx/Rx Packet Counts
 ```````````````````
-These WlanExpNode commands are used to to interact with the counts framework.  
+These ``WlanExpNode`` commands are used to to interact with the counts framework.  
 Counts are kept for for each node in the station info list.  If promiscuous 
 counts are enabled, then the node will keep counts for every MAC address 
 overheard (whether the node is in the station info list or not).  In order to 
@@ -147,7 +147,7 @@ will be overwritten.
 
 Local Traffic Generator (LTG)
 `````````````````````````````
-These WlanExpNode commands interact with the node's LTG framework. LTGs provides local traffic sources with configurable
+These ``WlanExpNode`` commands interact with the node's LTG framework. LTGs provides local traffic sources with configurable
 destimations, payloads, and traffic loads. These traffic sources are ideal for running experiments without external
 traffic sources connected via Ethernet.
 
@@ -169,7 +169,7 @@ and timing of LTG flows are controlled.
 
 Log
 ```
-These WlanExpNode commands are used to interact with the logging framework.  
+These ``WlanExpNode`` commands are used to interact with the logging framework.  
 The log occupies a large portion of DRAM which is set in C code during runtime 
 (see `wlan_mac_high.h <http://warpproject.org/trac/browser/ReferenceDesigns/w3_802.11/c/wlan_mac_high_framework/include/wlan_mac_high.h>`_ 
 for more information on the memory map; Use ``log_get_capacity()`` to see the 
@@ -196,7 +196,7 @@ full payloads is off by default and can be modified with the
 
 Network Scan
 ````````````
-These WlanExpNode commands are used to to scan the node's environment.
+These ``WlanExpNode`` commands are used to to scan the node's environment.
 
 .. automethod:: wlan_exp.node.WlanExpNode.set_scan_parameters
 .. automethod:: wlan_exp.node.WlanExpNode.start_network_scan

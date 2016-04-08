@@ -71,9 +71,8 @@ info_field_defs = {
         ('channel_type',                'B',      'uint8',   'Channel Type'),
         ('latest_beacon_rx_time',       'Q',      'uint64',  'Value of System Time in microseconds of last beacon Rx'),
         ('ssid',                        '33s',    '33uint8', 'SSID (32 chars max)'),
-        ('padding0',                    'x',      'uint8',   ''),
         ('latest_beacon_rx_power',      'b',      'int8',    'Last observed beacon Rx Power (dBm)'),
-        ('flags',                       'B',      'uint8',   'BSS flags'),
+        ('padding0',                    '2x',     'uint16',  ''),
         ('capabilities',                'H',      'uint16',  'Supported capabilities of the BSS'),
         ('beacon_interval',             'H',      'uint16',  'Beacon interval - In time units of 1024 us')],
 
@@ -127,23 +126,11 @@ info_consts_defs = {
             'BW40_SEC_BELOW'           : 0x0001,
             'BW40_SEC_ABOVE'           : 0x0002,
         }),
-        'flags'         : util.consts_dict({
-            'KEEP'                     : 0x0001,
-            'HT_CAPABLE'               : 0x0002
-        }),
         'capabilities'  : util.consts_dict({
             'ESS'                      : 0x0001,
             'IBSS'                     : 0x0002,
+            'HT_CAPABLE'               : 0x0004,
             'PRIVACY'                  : 0x0010,
-            'SHORT_PREAMBLE'           : 0x0020,
-            'PBCC'                     : 0x0040,
-            'CHAN_AGILITY'             : 0x0080,
-            'SPEC_MGMT'                : 0x0100,
-            'SHORT_TIMESLOT'           : 0x0400,
-            'APSD'                     : 0x0800,
-            'DSSS_OFDM'                : 0x2000,
-            'DELAYED_BLOCK_ACK'        : 0x4000,
-            'IMMEDIATE_BLOCK_ACK'      : 0x8000
         })
     }),
 

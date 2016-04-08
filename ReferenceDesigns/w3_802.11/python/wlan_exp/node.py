@@ -45,7 +45,6 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
     Args:
         network_config (transport.NetworkConfiguration) : Network configuration of the node
-        mac_type (int)                                  : CPU Low MAC type
 
 
     Attributes:
@@ -59,26 +58,26 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         transport (transport.Transport): Node's transport object
         transport_broadcast (transport.Transport): Node's broadcast transport object
 
-        device_type (int): Unique type of the WlanDevice (inherited from WlanDevice)
-        wlan_mac_address (int): Wireless MAC address of the node (inherited from WlanDevice)
+        device_type (int): Unique type of the ``WlanDevice`` (inherited from ``WlanDevice``)
+        wlan_mac_address (int): Wireless MAC address of the node (inherited from ``WlanDevice``)
         ht_capable (bool): Indicates if device has PHY capable of HT (802.11n) rates 
-            (inherited from WlanDevice)
+            (inherited from ``WlanDevice``)
 
-        wlan_scheduler_resolution (int): Minimum resolution (in us) of the LTG
+        scheduler_resolution (int): Minimum resolution (in us) of the scheduler.  This
+            is also the minimum time between LTGs.
         log_max_size (int): Maximum size of event log (in bytes)
         log_total_bytes_read (int): Number of bytes read from the event log
         log_num_wraps (int): Number of times the event log has wrapped
         log_next_read_index (int): Index in to event log of next read
-        wlan_exp_ver_major (int): wlan_exp Major version running on this node
-        wlan_exp_ver_minor (int): wlan_exp Minor version running on this node
-        wlan_exp_ver_revision (int): wlan_exp Revision version running on this node
-        mac_type (int): Value of the MAC type (see wlan_exp.defaults for values)
+        wlan_exp_ver_major (int): ``wlan_exp`` Major version running on this node
+        wlan_exp_ver_minor (int): ``wlan_exp`` Minor version running on this node
+        wlan_exp_ver_revision (int): ``wlan_exp`` Revision version running on this node
         max_tx_power_dbm(int): Maximum transmit power of the node (in dBm)
         min_tx_power_dbm(int): Minimum transmit power of the node (in dBm)
 
     """
 
-    wlan_scheduler_resolution          = None
+    scheduler_resolution               = None
 
     log_max_size                       = None
     log_total_bytes_read               = None
@@ -89,24 +88,20 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     wlan_exp_ver_minor                 = None
     wlan_exp_ver_revision              = None
 
-    mac_type                           = None
-    
     max_tx_power_dbm                   = None
     min_tx_power_dbm                   = None
 
-    def __init__(self, network_config=None, mac_type=None):
+    def __init__(self, network_config=None):
         super(WlanExpNode, self).__init__(network_config)
 
         (self.wlan_exp_ver_major, self.wlan_exp_ver_minor,
                 self.wlan_exp_ver_revision) = version.wlan_exp_ver()
 
-        self.wlan_scheduler_resolution      = 1
+        self.scheduler_resolution           = 1
 
         self.log_total_bytes_read           = 0
         self.log_num_wraps                  = 0
         self.log_next_read_index            = 0
-
-        self.mac_type                       = mac_type
 
         # As of v1.5 all 802.11 Ref Design nodes are HT capable
         self.ht_capable = True
@@ -584,7 +579,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                     auto_start=True)
         
         """
-        traffic_flow.enforce_min_resolution(self.wlan_scheduler_resolution)
+        traffic_flow.enforce_min_resolution(self.scheduler_resolution)
         return self.send_cmd(cmds.LTGConfigure(traffic_flow, auto_start))
 
 
@@ -2143,26 +2138,12 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | latest_beacon_rx_power      |  Last observed beacon Rx Power (dBm)                                                               |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | flags                       |  BSS flags.  Value contains 1 bit fields:                                                          |
-            |                             |                                                                                                    |
-            |                             |      * 0x0001 - 'KEEP'                                                                             |
-            |                             |      * 0x0002 - 'HT_CAPABLE'                                                                       |
-            |                             |                                                                                                    |
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
             | capabilities                |  Supported capabilities of the BSS.  Value contains 1 bit fields:                                  |
             |                             |                                                                                                    |
             |                             |      * 0x0001 - 'ESS'                                                                              |
             |                             |      * 0x0002 - 'IBSS'                                                                             |
+            |                             |      * 0x0004 - 'HT_CAPABLE'                                                                       |
             |                             |      * 0x0010 - 'PRIVACY'                                                                          |
-            |                             |      * 0x0020 - 'SHORT_PREAMBLE'                                                                   |
-            |                             |      * 0x0040 - 'PBCC'                                                                             |
-            |                             |      * 0x0080 - 'CHAN_AGILITY'                                                                     |
-            |                             |      * 0x0100 - 'SPEC_MGMT'                                                                        |
-            |                             |      * 0x0400 - 'SHORT_TIMESLOT'                                                                   |
-            |                             |      * 0x0800 - 'APSD'                                                                             |
-            |                             |      * 0x2000 - 'DSSS_OFDM'                                                                        |
-            |                             |      * 0x4000 - 'DELAYED_BLOCK_ACK'                                                                |
-            |                             |      * 0x8000 - 'IMMEDIATE_BLOCK_ACK'                                                              |
             |                             |                                                                                                    |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | beacon_interval             |  Beacon interval - In time units of 1024 us'                                                       |
@@ -2436,7 +2417,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
         elif   (identifier == NODE_PARAM_ID_WLAN_SCHEDULER_RESOLUTION):
             if (length == 1):
-                self.wlan_scheduler_resolution = values[0]
+                self.scheduler_resolution = values[0]
             else:
                 raise ex.ParameterError("NODE_LTG_RESOLUTION", "Incorrect length")
 

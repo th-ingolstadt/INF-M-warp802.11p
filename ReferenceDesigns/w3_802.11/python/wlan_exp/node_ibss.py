@@ -24,7 +24,6 @@ class WlanExpNodeIBSS(node.WlanExpNode):
     
     Args:
         network_config (transport.NetworkConfiguration) : Network configuration of the node
-        mac_type (int)                                  : CPU Low MAC type
     """
 
     #-------------------------------------------------------------------------
@@ -48,6 +47,7 @@ class WlanExpNodeIBSS(node.WlanExpNode):
 
 
         The dictionaries returned by this method have the following fields:
+        
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | Field                       | Description                                                                                        |
             +=============================+====================================================================================================+
@@ -102,19 +102,33 @@ class WlanExpNodeIBSS(node.WlanExpNode):
     def configure_bss(self, bssid=False, ssid=None, channel=None, beacon_interval=False, ht_capable=None):
         """Configure the BSS information of the node
         
-        Each node is either a member of no BSS (colloquially "unassociated") 
-        or a member of one BSS.  A node requires a minimum valid bss_info to 
-        be a member of a BSS. The minimum valid bss_info has:
+        Each node is either a member of no BSS (colloquially "unassociated")
+        or a member of one BSS.  A node requires a minimum valid set of BSS 
+        information to be a member of a BSS. The minimum valid set of BSS 
+        information for an IBSS node is:
             #. BSSID: 48-bit MAC address
             #. Channel: Logical channel for Tx/Rx by BSS members
             #. SSID: Variable length string (ie the name of the network)
             #. Beacon Interval:  Interval (in TUs) for beacons
-            
-        This method is used to manipulate node parameters that affect BSS state
+
+        If a node is not a member of a BSS (i.e. ``n.get_bss_info()`` returns
+        ``None``), then the node requires all parameters of a minimum valid 
+        set of BSS information be specified (i.e. BSSID, Channel, SSID, and
+        Beacon Interval).  
+        
+        For an IBSS node, the BSSID must be locally administered.  To create a 
+        locally administered BSSID, a utility method is provided in util.py:
+        
+            ``bssid = util.create_locally_administered_bssid(node.wlan_mac_address)``
+        
+        See https://warpproject.org/trac/wiki/802.11/wlan_exp/bss
+        for more documentation on BSS information / configuration.
+        
         
         Args:
             bssid (int, str):  48-bit ID of the BSS either as a integer or 
-                colon delimited string of the form:  XX:XX:XX:XX:XX:XX
+                colon delimited string of the form:  XX:XX:XX:XX:XX:XX.  The 
+                ``bssid`` must be locally administered.
             ssid (str):  SSID string (Must be 32 characters or less)
             channel (int): Channel number on which the BSS operates
             beacon_interval (int): Integer number of beacon Time Units in [10, 65534]
@@ -183,6 +197,12 @@ class WlanExpNodeIBSS(node.WlanExpNode):
             msg += "    Node ID       :  {0}\n".format(self.node_id)
             msg += "    Serial #      :  {0}\n".format(self.sn_str)
             msg += "    HW version    :  WARP v{0}\n".format(self.hw_ver)
+            try:
+                import wlan_exp.defaults as defaults
+                cpu_low_type = defaults.WLAN_EXP_LOW_TYPES[(self.node_type & defaults.WLAN_EXP_LOW_MASK)]
+                msg += "    CPU Low Type  :  {0}\n".format(cpu_low_type)
+            except:
+                pass            
         else:
             msg += "Node not initialized."
 
