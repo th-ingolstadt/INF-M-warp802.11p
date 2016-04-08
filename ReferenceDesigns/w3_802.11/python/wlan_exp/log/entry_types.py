@@ -774,17 +774,16 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     # -----------------------------------------------------------------------------
 
     # Packet Type
-    #     Matches definition in wlan_mac_high.h
+    #     Matches definition in wlan_mac_802_11_defs.h
     common_pkt_type = util.consts_dict({
-        'UNDEFINED'      :  0,
-        'DATA'           :  1,
-        'ENCAP_ETH'      :  2,
-        'LTG'            :  3,
-        'DATA_PROTECTED' :  4,
-        'MGMT'           : 11,
-        'CONTROL_ACK'    : 21,
-        'CONTROL_RTS'    : 22,
-        'CONTROL_CTS'    : 23})
+        'BEACON'            :  0x80,
+        'PROBE_RESP'        :  0x50,
+        'ACK'               :  0xD4,        
+        'CTS'               :  0xC4,
+        'RTS'               :  0xB4,
+        'DATA'              :  0x08,        
+        'QOSDATA'           :  0x88,
+        'NULLDATA'          :  0x48,})
         
 
     # -----------------------------------------------------------------------------
@@ -823,23 +822,22 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('phy_mode',               'B',      'uint8',   'PHY mode'),
         ('ant_mode',               'B',      'uint8',   'Antenna mode: [1,2,3,4] for SISO Rx on RF [A,B,C,D]'),
         ('power',                  'b',      'int8',    'Rx power in dBm'),
-        ('fcs_result',             'B',      'uint8',   'Checksum status, 0 = no errors'),
-        ('pkt_type',               'B',      'uint8',   'Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS'),
+        ('padding0',               'x',      'uint8',   ''),
+        ('pkt_type',               'B',      'uint8',   'Packet type, (first frame control byte of 802.11 header)'),
         ('channel',                'B',      'uint8',   'Channel (center frequency) index'),
-        ('padding',                'x',      'uint8',   ''),
+        ('padding1',               'x',      'uint8',   ''),
         ('rf_gain',                'B',      'uint8',   'AGC RF gain setting: [1,2,3] for [0,15,30]dB gain'),
         ('bb_gain',                'B',      'uint8',   'AGC BB gain setting: [0:31] for approx [0:63]dB gain'),
-        ('flags',                  'H',      'uint16',  'Bit OR\'d flags: 0x1 = Rx was duplicate of previous Rx')])
+        ('flags',                  'H',      'uint16',  '1-bit flags')])
 
     entry_rx_common.consts = util.consts_dict({
-        'fcs_result'    : util.consts_dict({
-            'GOOD'           : 0x00,
-            'BAD'            : 0x01
-        }),
         'pkt_type'      : common_pkt_type,
         'phy_mode'      : util.phy_modes,
         'flags'         : util.consts_dict({
-            'DUPLICATE'      : 0x0001
+            'FCS_GOOD'       : 0x0001,
+            'DUPLICATE'      : 0x0002,
+            'LTG_PYLD'       : 0x0040,
+            'LTG'            : 0x0080
         })
     })
 
@@ -866,17 +864,18 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('num_tx',                 'B',      'uint8',   'Number of actual PHY Tx events which were used to transmit the MPDU (first Tx + all re-Tx)'),
         ('padding0',               'B',      'uint8',   'Padding'),
         ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
-        ('result',                 'B',      'uint8',   'Tx result; 0 = ACK received or not required'),
-        ('pkt_type',               'B',      'uint8',   'Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS'),
+        ('padding1',               'x',      'uint8',   ''),
+        ('pkt_type',               'B',      'uint8',   'Packet type, (first frame control byte of 802.11 header)'),
         ('queue_id',               'H',      'uint16',  'Tx queue ID from which the packet was retrieved'),
         ('queue_occupancy',        'H',      'uint16',  'Occupancy of the Tx queue at the time the packet was created (value includes itself)'),
-        ('padding',                '2x',     '2uint8',  '')])
+        ('flags',                  'H',      'uint16',  '1-bit flags')])
 
     entry_tx_common.consts = util.consts_dict({
         'phy_mode'   : util.phy_modes,
         'result'     : util.consts_dict({
-            'SUCCESS'        : 0x00,
-            'FAILURE'        : 0x01
+            'SUCCESSFUL'     : 0x0001,
+            'LTG_PYLD'       : 0x0040,
+            'LTG'            : 0x0080
         }),
         'pkt_type'   : common_pkt_type
     })
@@ -903,7 +902,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
         ('num_slots',              'h',      'int16',   'Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0); A value of -1 in this field means no backoff occured'),
         ('cw',                     'H',      'uint16',  'Contention window value at time of this Tx'),
-        ('pkt_type',               'B',      'uint8',   'Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS'),
+        ('pkt_type',               'B',      'uint8',   'Packet type, (first frame control byte of 802.11 header)'),
         ('flags',                  'B',      'uint8',   'B0: 1 = ACKed, 0 = Not ACKed'),
         ('timestamp_frac',         'B',      'uint8',   'Fractional timestamp (units of 6.25ns)'),
         ('phy_samp_rate',          'B',      'uint8',   'PHY Sampling Rate Mode')])

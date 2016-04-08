@@ -227,12 +227,12 @@ if('RX_OFDM' in log_np.keys()):
     #   - Good checksum (FCS = good)
     #   - Data / Management packets
     #
-    rx_idx       = ((log_rx['fcs_result'] == RX_CONSTS.fcs_result.GOOD) & 
+    rx_idx       = (((log_rx['flags'] == RX_CONSTS.flags.FCS_GOOD) != 0) & 
                     ((log_rx['pkt_type'] == RX_CONSTS.pkt_type.DATA) | 
-                     (log_rx['pkt_type'] == RX_CONSTS.pkt_type.ENCAP_ETH) | 
-                     (log_rx['pkt_type'] == RX_CONSTS.pkt_type.LTG) | 
-                     (log_rx['pkt_type'] == RX_CONSTS.pkt_type.DATA_PROTECTED) | 
-                     (log_rx['pkt_type'] == RX_CONSTS.pkt_type.MGMT)))
+                     (log_rx['pkt_type'] == RX_CONSTS.pkt_type.QOSDATA) | 
+                     (log_rx['pkt_type'] == RX_CONSTS.pkt_type.NULLDATA) | 
+                     (log_rx['pkt_type'] == RX_CONSTS.pkt_type.BEACON) | 
+                     (log_rx['pkt_type'] == RX_CONSTS.pkt_type.PROBE_RESP)))
 
     rx_good_data_mgmt = log_rx[rx_idx]
 

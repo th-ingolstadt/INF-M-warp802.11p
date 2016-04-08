@@ -118,11 +118,11 @@ for phy_mode in wlan_exp_util.phy_modes.keys():
     tx_high_idx        = (log_tx_high['phy_mode'] == TX_CONSTS.phy_mode[phy_mode])
     tx_low_idx         = (log_tx_low['phy_mode'] == TX_CONSTS.phy_mode[phy_mode])    
     tx_low_no_ctrl_idx = ((log_tx_low['phy_mode'] == TX_CONSTS.phy_mode[phy_mode]) & 
-                          ((log_tx_low['pkt_type'] == TX_CONSTS.pkt_type.DATA) | 
-                           (log_tx_low['pkt_type'] == TX_CONSTS.pkt_type.ENCAP_ETH) | 
-                           (log_tx_low['pkt_type'] == TX_CONSTS.pkt_type.LTG) | 
-                           (log_tx_low['pkt_type'] == TX_CONSTS.pkt_type.DATA_PROTECTED) | 
-                           (log_tx_low['pkt_type'] == TX_CONSTS.pkt_type.MGMT)))
+                          ((log_tx_low['pkt_type'] != TX_CONSTS.pkt_type.ACK) & 
+                           (log_tx_low['pkt_type'] != TX_CONSTS.pkt_type.CTS) & 
+                           (log_tx_low['pkt_type'] != TX_CONSTS.pkt_type.RTS)))
+
+
 
     # Extract arrays for each PHY mode
     tx_high_entries = log_tx_high[tx_high_idx]
@@ -243,12 +243,12 @@ if('RX_OFDM' in log_np.keys()):
     #   - Good checksum (FCS = good)
     #   - Data / Management packets
     #
-    rx_idx       = ((log_rx['fcs_result'] == RX_CONSTS.fcs_result.GOOD) & 
+    rx_idx       = (((log_rx['flags'] == RX_CONSTS.flags.FCS_GOOD) != 0) & 
                     ((log_rx['pkt_type'] == RX_CONSTS.pkt_type.DATA) | 
-                     (log_rx['pkt_type'] == RX_CONSTS.pkt_type.ENCAP_ETH) | 
-                     (log_rx['pkt_type'] == RX_CONSTS.pkt_type.LTG) | 
-                     (log_rx['pkt_type'] == RX_CONSTS.pkt_type.DATA_PROTECTED) | 
-                     (log_rx['pkt_type'] == RX_CONSTS.pkt_type.MGMT)))
+                     (log_rx['pkt_type'] == RX_CONSTS.pkt_type.QOSDATA) | 
+                     (log_rx['pkt_type'] == RX_CONSTS.pkt_type.NULLDATA) | 
+                     (log_rx['pkt_type'] == RX_CONSTS.pkt_type.BEACON) | 
+                     (log_rx['pkt_type'] == RX_CONSTS.pkt_type.PROBE_RESP)))
 
     rx_good_data_mgmt = log_rx[rx_idx]
     
