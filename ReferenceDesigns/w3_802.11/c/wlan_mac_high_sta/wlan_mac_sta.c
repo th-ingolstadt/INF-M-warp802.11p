@@ -59,7 +59,7 @@
 #define  WLAN_EXP_NODE_TYPE                      WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_STA
 
 
-#define  WLAN_DEFAULT_USE_HT                      0
+#define  WLAN_DEFAULT_USE_HT                      1
 #define  WLAN_DEFAULT_CHANNEL                     1
 #define  WLAN_DEFAULT_TX_PWR                      15
 #define  WLAN_DEFAULT_TX_ANTENNA                  TX_ANTMODE_SISO_ANTA
@@ -1243,27 +1243,32 @@ u32	configure_bss(bss_config_t* bss_config){
 
 				if (local_bss_info != NULL) {
 					local_bss_info->flags |= BSS_FLAGS_KEEP;
-					local_bss_info->capabilities = (CAPABILITIES_SHORT_TIMESLOT | CAPABILITIES_ESS);
+#if WLAN_DEFAULT_USE_HT
+					local_bss_info->capabilities = (BSS_CAPABILITIES_ESS | BSS_CAPABILITIES_HT_CAPABLE);
+#else
+					local_bss_info->capabilities = (BSS_CAPABILITIES_ESS);
+#endif
 					active_bss_info = local_bss_info;
+
 
 					// Add AP to association table
 					ap_station_info = wlan_mac_high_add_station_info(&(active_bss_info->station_info_list), &counts_table, active_bss_info->bssid, 0);
 
 					if(ap_station_info != NULL) {
 
-						//Start off with a copy of the default unicast data Tx parameters.
+						// Start off with a copy of the default unicast data Tx parameters.
 						ap_station_info->tx = default_unicast_data_tx_params;
 
-						if(active_bss_info->flags & BSS_FLAGS_HT_CAPABLE){
+						if(active_bss_info->capabilities & BSS_CAPABILITIES_HT_CAPABLE){
 							ap_station_info->flags |= STATION_INFO_FLAG_HT_CAPABLE;
 						} else {
 							ap_station_info->flags &= ~STATION_INFO_FLAG_HT_CAPABLE;
 						}
 
 						if((ap_station_info->flags & STATION_INFO_FLAG_HT_CAPABLE) == 0){
-							//If this station is not capable of HT phy_mode, then we'll adjust its tx_params.
-							//Note: If the default tx_params does not support HT, then we will not explicitly
-							//set the phy_mode to HT just because the STA is capable of it
+							// If this station is not capable of HT phy_mode, then we'll adjust its tx_params.
+							//     - If the default tx_params does not support HT, then we will not explicitly
+							//       set the phy_mode to HT just because the STA is capable of it
 							ap_station_info->tx.phy.phy_mode = PHY_MODE_NONHT;
 						}
 
@@ -1302,9 +1307,9 @@ u32	configure_bss(bss_config_t* bss_config){
 				// 	   1) Update existing MCS selections for defaults and
 				//	  		single station_info that represents AP?
 				if (bss_config->ht_capable) {
-					active_bss_info->flags |= BSS_FLAGS_HT_CAPABLE;
+					active_bss_info->capabilities |= BSS_CAPABILITIES_HT_CAPABLE;
 				} else {
-					active_bss_info->flags &= ~BSS_FLAGS_HT_CAPABLE;
+					active_bss_info->capabilities &= ~BSS_CAPABILITIES_HT_CAPABLE;
 				}
 			}
 

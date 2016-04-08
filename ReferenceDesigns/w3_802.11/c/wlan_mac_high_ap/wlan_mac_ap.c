@@ -56,7 +56,7 @@
 #define  WLAN_EXP_ETH                            TRANSPORT_ETH_B
 #define  WLAN_EXP_NODE_TYPE                      WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_AP
 
-#define  WLAN_DEFAULT_USE_HT                     1
+#define  WLAN_DEFAULT_USE_HT                     0
 #define  WLAN_DEFAULT_CHANNEL                    1
 #define  WLAN_DEFAULT_TX_PWR                     15
 #define  WLAN_DEFAULT_TX_ANTENNA                 TX_ANTMODE_SISO_ANTA
@@ -2282,16 +2282,22 @@ u32	configure_bss(bss_config_t* bss_config){
 					// Purge any data for the station
 					purge_queue(STATION_ID_TO_QUEUE_ID(curr_station_info->ID));
 
-					// Remove the association
+					// Remove the associations
 					wlan_mac_high_remove_station_info(&active_bss_info->station_info_list, &counts_table, curr_station_info->addr);
 
 					// Update the hex display to show station was removed
 					ap_update_hex_display(active_bss_info->station_info_list.length);
 				}
 
-				// Inform the MAC High Framework to no longer will keep this BSS Info. This will
-				// allow it to be overwritten in the future to make space for new BSS Infos.
-				active_bss_info->flags &= ~BSS_FLAGS_KEEP;
+				// Remove the bss_info from the network list
+				//     - When the AP "leaves" a BSS, the BSS actually no longer exists.  Therefore, it should
+				//       not continue to exist in the network list.
+				dl_list  * bss_info_list = wlan_mac_high_get_bss_info_list();
+				dl_entry * bss_entry     = wlan_mac_high_find_bss_info_BSSID(active_bss_info->bssid);
+
+				wlan_mac_high_clear_bss_info(active_bss_info);
+				dl_entry_remove(bss_info_list, bss_entry);
+				bss_info_checkin(bss_entry);
 
 				// Set "active_bss_info" to NULL
 				//     - All functions must be able to handle active_bss_info = NULL
@@ -2336,7 +2342,11 @@ u32	configure_bss(bss_config_t* bss_config){
 
 				if (local_bss_info != NULL) {
 					local_bss_info->flags |= BSS_FLAGS_KEEP;
-					local_bss_info->capabilities = (CAPABILITIES_SHORT_TIMESLOT | CAPABILITIES_ESS);
+#if WLAN_DEFAULT_USE_HT
+						local_bss_info->capabilities = (BSS_CAPABILITIES_ESS | BSS_CAPABILITIES_HT_CAPABLE);
+#else
+						local_bss_info->capabilities = (BSS_CAPABILITIES_ESS);
+#endif
 					active_bss_info = local_bss_info;
 				}
 
@@ -2374,9 +2384,9 @@ u32	configure_bss(bss_config_t* bss_config){
 				//	  		associated stations?
 
 				if (bss_config->ht_capable) {
-					active_bss_info->flags |= BSS_FLAGS_HT_CAPABLE;
+					active_bss_info->capabilities |= BSS_CAPABILITIES_HT_CAPABLE;
 				} else {
-					active_bss_info->flags &= ~BSS_FLAGS_HT_CAPABLE;
+					active_bss_info->capabilities &= ~BSS_CAPABILITIES_HT_CAPABLE;
 				}
 
 				update_beacon_template = 1;

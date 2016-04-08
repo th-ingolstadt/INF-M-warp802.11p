@@ -47,10 +47,22 @@
 #define BEACON_INTERVAL_UNKNOWN                            0xFFFF
 
 //-----------------------------------------------
+// BSS Capabilities defines
+//     - Uses some values from wlan_mac_802_11_defs.h for to map BSS
+//       capabilities to the capabilities transmitted in a beacon.
+//
+#define BSS_CAPABILITIES_BEACON_MASK                      (CAPABILITIES_ESS | CAPABILITIES_IBSS | CAPABILITIES_PRIVACY)
+
+#define BSS_CAPABILITIES_ESS                               CAPABILITIES_ESS
+#define BSS_CAPABILITIES_IBSS                              CAPABILITIES_IBSS
+#define BSS_CAPABILITIES_HT_CAPABLE                        0x0004
+#define BSS_CAPABILITIES_PRIVACY                           CAPABILITIES_PRIVACY
+
+
+//-----------------------------------------------
 // BSS Flags defines
 //
 #define BSS_FLAGS_KEEP                                     0x0001
-#define BSS_FLAGS_HT_CAPABLE                               0x0002
 
 
 //-----------------------------------------------
@@ -82,9 +94,8 @@
         chan_spec_t     chan_spec;                         /* Channel Specification */                       \
         u64             latest_beacon_rx_time;	           /* Timestamp - Last interaction with BSS */       \
         char            ssid[SSID_LEN_MAX + 1];            /* SSID of the BSS - 33 bytes */                  \
-        u8              padding0;                                                                            \
         s8              latest_beacon_rx_power;            /* Last observed Rx Power (dBm) */                \
-        u8              flags;                             /* BSS Flags - Each flag is 1 bit */              \
+        u16             padding0;                                                                            \
         u16             capabilities;                      /* Supported capabilities */                      \
         u16             beacon_interval;                   /* Beacon interval - In time units of 1024 us */
 
@@ -136,6 +147,7 @@ CASSERT(sizeof(chan_spec_t) == 2, chan_spec_t_alignment_check);
 typedef struct{
     BSS_INFO_COMMON_FIELDS
 
+    u32     flags;
     dl_list station_info_list;
 } bss_info_t;
 

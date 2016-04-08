@@ -305,7 +305,7 @@ int main() {
 			bss_config.chan_spec       = temp_bss_info->chan_spec;
 			bss_config.beacon_interval = temp_bss_info->beacon_interval;
 
-			if(temp_bss_info->flags & BSS_FLAGS_HT_CAPABLE){
+			if(temp_bss_info->capabilities & BSS_CAPABILITIES_HT_CAPABLE){
 				bss_config.ht_capable  = 1;
 			} else {
 				bss_config.ht_capable  = 0;
@@ -1377,7 +1377,11 @@ u32	configure_bss(bss_config_t* bss_config){
 
 				if(local_bss_info != NULL){
 					local_bss_info->flags |= BSS_FLAGS_KEEP;
-					local_bss_info->capabilities = (CAPABILITIES_SHORT_TIMESLOT | CAPABILITIES_IBSS);
+#if WLAN_DEFAULT_USE_HT
+					local_bss_info->capabilities = (BSS_CAPABILITIES_IBSS | BSS_CAPABILITIES_HT_CAPABLE);
+#else
+					local_bss_info->capabilities = (BSS_CAPABILITIES_IBSS);
+#endif
 					active_bss_info = local_bss_info;
 				}
 
@@ -1415,9 +1419,9 @@ u32	configure_bss(bss_config_t* bss_config){
 				//        associated stations?
 
 				if (bss_config->ht_capable) {
-					active_bss_info->flags |= BSS_FLAGS_HT_CAPABLE;
+					active_bss_info->capabilities |= BSS_CAPABILITIES_HT_CAPABLE;
 				} else {
-					active_bss_info->flags &= ~BSS_FLAGS_HT_CAPABLE;
+					active_bss_info->capabilities &= ~BSS_CAPABILITIES_HT_CAPABLE;
 				}
 
 				update_beacon_template = 1;

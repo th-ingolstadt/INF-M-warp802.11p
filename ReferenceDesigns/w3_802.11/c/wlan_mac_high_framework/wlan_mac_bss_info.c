@@ -158,15 +158,20 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 				// Move the packet pointer to after the header
 				mac_payload_ptr_u8 += sizeof(mac_header_80211);
 
-				// Copy capabilities into bss_info struct
-				curr_bss_info->capabilities = ((beacon_probe_frame*)mac_payload_ptr_u8)->capabilities;
+				// Set capabilities to zero
+				//     - Capabilities of the BSS will be filled in below
+				curr_bss_info->capabilities = 0;
+
+				// Copy beacon capabilities into bss_info struct
+				//     - Only a subset of beacon capabilities are recorded
+				curr_bss_info->capabilities |= (((beacon_probe_frame*)mac_payload_ptr_u8)->capabilities & BSS_CAPABILITIES_BEACON_MASK);
 
 				// Copy beacon interval into bss_info struct
 				curr_bss_info->beacon_interval = ((beacon_probe_frame*)mac_payload_ptr_u8)->beacon_interval;
 
 				// Copy the channel on which this packet was received into the bss_info struct
-				//   Note: chan_spec will be overwritten later in this function if a HT
-				//   capabilities tag is discovered
+				//     - chan_spec will be overwritten later in this function if a HT
+				//       capabilities tag is discovered
 				curr_bss_info->chan_spec.chan_pri = rx_frame_info->channel;
 				curr_bss_info->chan_spec.chan_type = CHAN_TYPE_BW20;
 
@@ -197,7 +202,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 
 						//-------------------------------------------------
 						case TAG_HT_CAPABILITIES:
-							curr_bss_info->flags |= BSS_FLAGS_HT_CAPABLE;
+							curr_bss_info->capabilities |= BSS_CAPABILITIES_HT_CAPABLE;
 						break;
 						//-------------------------------------------------
 						case TAG_HT_INFORMATION:
@@ -259,10 +264,10 @@ void print_bss_info(){
 
 		xil_printf("[%d] SSID:     %s ", i, curr_bss_info->ssid);
 
-		if(curr_bss_info->capabilities & CAPABILITIES_PRIVACY){
+		if(curr_bss_info->capabilities & BSS_CAPABILITIES_PRIVACY){
 			xil_printf("(*)");
 		}
-		if(curr_bss_info->capabilities & CAPABILITIES_IBSS){
+		if(curr_bss_info->capabilities & BSS_CAPABILITIES_IBSS){
 			xil_printf("(I)");
 		}
 		if(curr_bss_info->flags & BSS_FLAGS_KEEP){
@@ -472,6 +477,18 @@ bss_info_t* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan){
 	curr_bss_info->chan_spec.chan_type      = CHAN_TYPE_BW20;
 	curr_bss_info->latest_beacon_rx_time    = get_system_time_usec();
 
+	//
+	// The following fields have their previous value retained if the were
+	// in the network list (i.e. wlan_mac_high_find_bss_info_BSSID() returned
+	// a non-NULL entry):
+	//    - latest_beacon_rx_power
+	//    - capabilities
+	//    - beacon_interval
+	//    - flags
+	//    - station_info_list
+	//
+
+	// Insert the updated entry into the network list
 	dl_entry_insertEnd(&bss_info_list, curr_dl_entry);
 
 	return curr_bss_info;
