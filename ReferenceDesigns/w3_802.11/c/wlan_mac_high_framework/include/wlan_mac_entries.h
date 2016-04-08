@@ -221,20 +221,23 @@ typedef struct{
     u8                  phy_mode;                // Mode of the PHY when the packet was received
     u8                  ant_mode;                // Antenna mode of the received packet
     s8                  power;                   // Power of the received packet
-    u8                  fcs_status;              // FCS Status of the packet
+    u8                  reserved0;
     u8                  pkt_type;                // Type of packet
     u8                  chan_num;                // Channel on which the packet was received
-    u8                  reserved;
+    u8                  reserved1;
     u8                  rf_gain;                 // RF gain of the received packet
     u8                  bb_gain;                 // Baseband gain of the received packet
-    u16                 flags;                   // Flags
+    u16                 flags;                   // 1-bit flags
 } rx_common_entry;
+//FIXME
+#define RX_FLAGS_FCS_GOOD   	0x0001
+//FIXME
+#define RX_FLAGS_DUPLICATE		0x0002
+//FIXME
+#define RX_FLAGS_LTG_PYLD		0x0040
+//FIXME
+#define RX_FLAGS_LTG			0x0080
 
-
-#define RX_ENTRY_FCS_GOOD                        0
-#define RX_ENTRY_FCS_BAD                         1
-
-#define RX_ENTRY_FLAGS_IS_DUPLICATE	             0x0001
 
 
 
@@ -297,16 +300,20 @@ typedef struct{
     u8                  num_tx;                  // Number of Transmissions that it took to send the packet
     u8                  padding0;                // Padding for 32-bit alignment
     u16                 length;                  // Length of the packet
-    u8                  result;                  // Result of the transmission
+    u8                  padding1;
     u8                  pkt_type;                // Type of packet
     u16                 queue_id;                // Queue ID this packet was sent from
     u16                 queue_occupancy;         // Occupancy of queue (includes itself)
-    u8                  padding[2];              // Padding for alignment
+    u16                 flags;                   // 1-bit flags
     u32                 mac_payload_log_len;     // Number of payload bytes actually recorded in log entry
     u32                 mac_payload[MIN_MAC_PAYLOAD_LOG_LEN/4];
 } tx_high_entry;
-
-
+//FIXME
+#define TX_HIGH_FLAGS_SUCCESSFUL 0x0001
+//FIXME
+#define TX_HIGH_FLAGS_LTG_PYLD	 0x0040
+//FIXME
+#define TX_HIGH_FLAGS_LTG		 0x0080
 
 //-----------------------------------------------
 // Low-level Transmit Entry
@@ -329,14 +336,21 @@ typedef struct{
     s16                 num_slots;               // Number of backoff slots
     u16                 cw;                      // Contention Window
     u8                  pkt_type;                // Type of packet
-    u8                  flags;                   // Misc. flags from CPU_HIGH
+    u8                  flags;                   // Misc. flags
     u8                  timestamp_send_frac;     // Additional fractional timestamp (160MHz clock units)
     u8                  phy_samp_rate;           // PHY Sampling Rate Mode
     u32                 mac_payload_log_len;     // Number of payload bytes actually recorded in log entry
     u32                 mac_payload[MIN_MAC_PAYLOAD_LOG_LEN/4];
 } tx_low_entry;
 
-#define TX_LOW_FLAGS_WAS_ACKED 0x01
+//FIXME
+#define TX_LOW_FLAGS_SUCCESSFUL     0x01
+//FIXME
+#define TX_LOW_FLAGS_LTG_PYLD		0x40
+//FIXME
+#define TX_LOW_FLAGS_LTG	    	0x80
+
+
 
 
 

@@ -1445,7 +1445,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 			//   - Received seq num matched previously received seq num for this STA
 			if( ((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY) && (associated_station->rx.last_seq == rx_seq) ) {
 				if(rx_event_log_entry != NULL){
-					rx_event_log_entry->flags |= RX_ENTRY_FLAGS_IS_DUPLICATE;
+					rx_event_log_entry->flags |= RX_FLAGS_DUPLICATE;
 				}
 
 				// Finish the function
@@ -2004,31 +2004,29 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 void mpdu_dequeue(tx_queue_element_t* packet){
 	mac_header_80211* 	header;
 	tx_frame_info_t*	tx_frame_info;
-	u32 				packet_payload_size;
 	dl_entry*			curr_station_entry;
 	station_info_t*		curr_station;
 
 	header 	  			= (mac_header_80211*)((((tx_queue_buffer_t*)(packet->data))->frame));
 	tx_frame_info 		= (tx_frame_info_t*)&((((tx_queue_buffer_t*)(packet->data))->tx_frame_info));
-	packet_payload_size	= tx_frame_info->length;
 
-	switch(wlan_mac_high_pkt_type(header, packet_payload_size)){
-		case PKT_TYPE_DATA_ENCAP_ETH:
-			if(active_bss_info != NULL){
-				curr_station_entry = wlan_mac_high_find_station_info_ID(&(active_bss_info->station_info_list), tx_frame_info->ID);
-				if(curr_station_entry != NULL){
-					curr_station = (station_info_t*)(curr_station_entry->data);
-					if(queue_num_queued(STATION_ID_TO_QUEUE_ID(curr_station->ID)) > 1){
-						//If the is more data (in addition to this packet) queued for this station, we can let it know
-						//in the frame_control_2 field.
-						header->frame_control_2 |= MAC_FRAME_CTRL2_FLAG_MORE_DATA;
-					} else {
-						header->frame_control_2 = (header->frame_control_2) & ~MAC_FRAME_CTRL2_FLAG_MORE_DATA;
-					}
-				}
+
+	if(active_bss_info != NULL){
+		//The below line assumes that each dequeued MPDU will explicitly have a 0-valued ID field for
+		//frames that aren't tied to a particular STA (e.g. management frames).
+		curr_station_entry = wlan_mac_high_find_station_info_ID(&(active_bss_info->station_info_list), tx_frame_info->ID);
+		if(curr_station_entry != NULL){
+			curr_station = (station_info_t*)(curr_station_entry->data);
+			if(queue_num_queued(STATION_ID_TO_QUEUE_ID(curr_station->ID)) > 1){
+				//If the is more data (in addition to this packet) queued for this station, we can let it know
+				//in the frame_control_2 field.
+				header->frame_control_2 |= MAC_FRAME_CTRL2_FLAG_MORE_DATA;
+			} else {
+				header->frame_control_2 = (header->frame_control_2) & ~MAC_FRAME_CTRL2_FLAG_MORE_DATA;
 			}
-		break;
+		}
 	}
+
 }
 
 

@@ -2288,66 +2288,45 @@ int wlan_mac_high_get_empty_tx_packet_buffer(){
 }
 
 /**
- * @brief Determine the MPDU packet type
+ * @brief Determine if Packet is LTG
+ * This function inspects the payload of the packet provided as an argument
+ * and searches for the LTG-specific LLC header. If it finds such a header,
+ * it returns a 1.
  *
  * @param  None
  * @return u8
- *     - Packet type: {PKT_TYPE_MGMT, PKT_TYPE_CONTROL, PKT_TYPE_DATA_ENCAP_ETH, PKT_TYPE_DATA_ENCAP_LTG, PKT_TYPE_DATA_OTHER}
- *     - NULL
+ *     - 1 if LTG
+ *     - 0 if not LTG
  */
-u8 wlan_mac_high_pkt_type(void* mpdu, u16 length){
+u8 wlan_mac_high_is_pkt_ltg(void* mac_payload, u16 length){
 
 	mac_header_80211* hdr_80211;
 	llc_header_t* llc_hdr;
 
-	hdr_80211 = (mac_header_80211*)((void*)mpdu);
+	hdr_80211 = (mac_header_80211*)((void*)mac_payload);
 
-	if((hdr_80211->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_MGMT){
-		return PKT_TYPE_MGMT;
-
-	} else if((hdr_80211->frame_control_1) == MAC_FRAME_CTRL1_SUBTYPE_ACK) {
-		return PKT_TYPE_CONTROL_ACK;
-
-	} else if((hdr_80211->frame_control_1) == MAC_FRAME_CTRL1_SUBTYPE_CTS) {
-		return PKT_TYPE_CONTROL_CTS;
-
-	} else if((hdr_80211->frame_control_1) == MAC_FRAME_CTRL1_SUBTYPE_RTS) {
-		return PKT_TYPE_CONTROL_RTS;
-
-	} else if((hdr_80211->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA) {
+	if((hdr_80211->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA) {
 
 		//Check if this is an encrypted packet. If it is, we can't trust any of the MPDU
 		//payload bytes for further classification
 		if(hdr_80211->frame_control_2 & MAC_FRAME_CTRL2_FLAG_PROTECTED){
-			return PKT_TYPE_DATA_PROTECTED;
+			return 0;
 		}
 
-		llc_hdr = (llc_header_t*)((u8*)mpdu + sizeof(mac_header_80211));
+		llc_hdr = (llc_header_t*)((u8*)mac_payload + sizeof(mac_header_80211));
 
 		if(length < (sizeof(mac_header_80211) + sizeof(llc_header_t) + WLAN_PHY_FCS_NBYTES)){
 			// This was a DATA packet, but it wasn't long enough to have an LLC header.
-			return PKT_TYPE_DATA_OTHER;
+			return 0;
 
 		} else {
-			switch(llc_hdr->type){
-				case LLC_TYPE_ARP:
-				case LLC_TYPE_IP:
-					return PKT_TYPE_DATA_ENCAP_ETH;
-				break;
-
-				case LLC_TYPE_WLAN_LTG:
-					return PKT_TYPE_DATA_ENCAP_LTG;
-				break;
-
-				default:
-					return PKT_TYPE_DATA_OTHER;
-				break;
+			if(llc_hdr->type == LLC_TYPE_WLAN_LTG){
+				return 1;
 			}
 		}
 	}
 
-	// Unknown packet type, return NULL
-	return NULL;
+	return 0;
 }
 
 
@@ -2902,23 +2881,21 @@ void wlan_mac_high_reset_counts(dl_list* counts_tbl){
  * @return None
  */
 void wlan_mac_high_update_tx_counts(tx_frame_info_t* tx_frame_info, station_info_t* station_info) {
-	void                * mac_payload    = (u8*)tx_frame_info + PHY_TX_PKT_BUF_MPDU_OFFSET;
-	frame_counts_txrx_t * frame_counts   = NULL;
-
-	u8                  pkt_type;
+	mac_header_80211    * header            = (mac_header_80211*)((u8*)tx_frame_info + PHY_TX_PKT_BUF_MPDU_OFFSET);
+	frame_counts_txrx_t * frame_counts      = NULL;
 
 	if(station_info != NULL){
-	    // Get the packet type
-		pkt_type = wlan_mac_high_pkt_type(mac_payload, tx_frame_info->length);
-
-		switch(pkt_type){
-			case PKT_TYPE_DATA_ENCAP_ETH:
-			case PKT_TYPE_DATA_ENCAP_LTG:
+		switch((header->frame_control_1) & MAC_FRAME_CTRL1_MASK_TYPE){
+			case MAC_FRAME_CTRL1_TYPE_DATA:
 				frame_counts = &(station_info->counts->data);
 			break;
-
-			case PKT_TYPE_MGMT:
+			case MAC_FRAME_CTRL1_TYPE_MGMT:
 				frame_counts = &(station_info->counts->mgmt);
+			break;
+			default:
+				//This frame is neither data nor management, so we will not
+				//update any counts
+				return;
 			break;
 		}
 

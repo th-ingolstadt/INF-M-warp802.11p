@@ -191,7 +191,6 @@ int main() {
 	// Initialize callbacks
 	wlan_mac_util_set_eth_rx_callback(           (void *) ethernet_receive);
 	wlan_mac_high_set_mpdu_tx_done_callback(     (void *) mpdu_transmit_done);
-	wlan_mac_high_set_mpdu_dequeue_callback(     (void *) mpdu_dequeue);
 	wlan_mac_high_set_mpdu_rx_callback(          (void *) mpdu_rx_process);
 	wlan_mac_high_set_uart_rx_callback(          (void *) uart_rx);
 	wlan_mac_high_set_poll_tx_queues_callback(   (void *) poll_tx_queues);
@@ -687,7 +686,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 			//   - Received seq num matched previously received seq num for this STA
 			if( ((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY) && (ap_station_info->rx.last_seq == rx_seq) ) {
 				if(rx_event_log_entry != NULL){
-					rx_event_log_entry->flags |= RX_ENTRY_FLAGS_IS_DUPLICATE;
+					rx_event_log_entry->flags |= RX_FLAGS_DUPLICATE;
 				}
 
 				// Finish the function
@@ -883,39 +882,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
     return;
 }
-
-
-
-/*****************************************************************************/
-/**
- * Callback to process a packet that is being dequeued
- *
- * @param  packet            - Pointer to the TX queue element that is being dequeued
- *
- *****************************************************************************/
-void mpdu_dequeue(tx_queue_element_t* packet){
-	mac_header_80211* 	header;
-	tx_frame_info_t*	tx_frame_info;
-	u32 				packet_payload_size;
-
-	header 	  			= (mac_header_80211*)((((tx_queue_buffer_t*)(packet->data))->frame));
-	tx_frame_info 		= (tx_frame_info_t*)&((((tx_queue_buffer_t*)(packet->data))->tx_frame_info));
-	packet_payload_size	= tx_frame_info->length;
-
-	switch(wlan_mac_high_pkt_type(header, packet_payload_size)){
-		case PKT_TYPE_DATA_ENCAP_ETH:
-			// Overwrite addr1 of this packet with the currently associated AP. This will allow previously
-			// enqueued packets to seamlessly hand off if this STA joins a new AP
-			if(active_bss_info != NULL){
-				memcpy(header->address_1, active_bss_info->bssid, MAC_ADDR_LEN);
-			} else {
-				xil_printf("Dequeue error: no associated AP\n");
-			}
-		break;
-	}
-}
-
-
 
 /*****************************************************************************/
 /**

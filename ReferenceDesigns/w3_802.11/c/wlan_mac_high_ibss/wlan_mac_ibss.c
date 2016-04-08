@@ -835,7 +835,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 			//   - Received seq num matched previously received seq num for this STA
 			if( ((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY) && (station_info->rx.last_seq == rx_seq) ) {
 				if(rx_event_log_entry != NULL){
-					rx_event_log_entry->flags |= RX_ENTRY_FLAGS_IS_DUPLICATE;
+					rx_event_log_entry->flags |= RX_FLAGS_DUPLICATE;
 				}
 
 				// Finish the function

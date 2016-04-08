@@ -242,15 +242,6 @@
 
 #define NUM_VALID_RATES                                    12                                 ///< Number of supported rates
 
-#define PKT_TYPE_DATA_OTHER                                1                                  ///< Other Data
-#define PKT_TYPE_DATA_ENCAP_ETH                            2                                  ///< Encapsulated Ethernet Type
-#define PKT_TYPE_DATA_ENCAP_LTG                            3                                  ///< Encapsulated LTG Type
-#define PKT_TYPE_DATA_PROTECTED                            4                                  ///< Protected Data
-#define PKT_TYPE_MGMT                                      11                                 ///< Management Type
-#define PKT_TYPE_CONTROL_ACK                               21                                 ///< ACK Control Type
-#define PKT_TYPE_CONTROL_RTS                               22                                 ///< RTS Control Type
-#define PKT_TYPE_CONTROL_CTS                               23                                 ///< CTS Control Type
-
 #define ADD_STATION_INFO_ANY_ID                            0                                  ///< Special argument to function that adds station_info structs
 
 #define WLAN_MAC_HIGH_MAX_PROMISC_COUNTS                   50                                 ///< Maximum number of promiscuous counts
@@ -474,7 +465,7 @@ void               wlan_mac_high_request_low_state();
 int 			   wlan_mac_high_is_cpu_low_initialized();
 inline int         wlan_mac_high_is_dequeue_allowed();
 int                wlan_mac_high_get_empty_tx_packet_buffer();
-u8                 wlan_mac_high_pkt_type(void* mpdu, u16 length);
+u8                 wlan_mac_high_is_pkt_ltg(void* mac_payload, u16 length);
 
 inline void        wlan_mac_high_set_debug_gpio(u8 val);
 inline void        wlan_mac_high_clear_debug_gpio(u8 val);

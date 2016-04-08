@@ -214,15 +214,16 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, 
     u8*               mac_payload_ptr_u8;
     mac_header_80211* tx_80211_header;
     u32               packet_payload_size;
-    u8                pkt_type;
     u16               entry_type;
     u32               entry_size;
     u32               entry_payload_size;
     u32               min_entry_payload_size;
+    u8				  is_ltg;
 
     mac_payload             = (u8*)tx_frame_info + PHY_TX_PKT_BUF_MPDU_OFFSET;
     mac_payload_ptr_u8      = (u8*)mac_payload;
     tx_80211_header         = (mac_header_80211*)((void *)mac_payload_ptr_u8);
+    is_ltg					= 0;
 
     // ----------------------------------------------------
     // Create RTS log entry
@@ -264,9 +265,6 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, 
                       (entry_payload_size - (packet_payload_size - WLAN_PHY_FCS_NBYTES)));
             }
 
-            // Get the packet type based on the new packet
-            pkt_type = wlan_mac_high_pkt_type(&((tx_low_entry*)tx_low_event_log_entry)->mac_payload, packet_payload_size);
-
             // Update the log entry fields
             tx_low_event_log_entry->timestamp_send         = tx_low_details->tx_start_timestamp_ctrl;
             tx_low_event_log_entry->unique_seq             = tx_frame_info->unique_seq; // NOTE: RTS frames don't have sequence numbers. However, for easier processing
@@ -279,8 +277,14 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, 
             tx_low_event_log_entry->length                 = packet_payload_size;
             tx_low_event_log_entry->num_slots              = tx_low_details->num_slots;
             tx_low_event_log_entry->cw                     = tx_low_details->cw;
-            tx_low_event_log_entry->pkt_type               = pkt_type;
             tx_low_event_log_entry->flags                  = 0;
+            tx_low_event_log_entry->pkt_type                = MAC_FRAME_CTRL1_SUBTYPE_RTS;
+            tx_low_event_log_entry->flags                   = 0;
+            if(tx_low_details->tx_details_type == TX_DETAILS_RTS_MPDU){
+            	tx_low_event_log_entry->flags					|= TX_LOW_FLAGS_SUCCESSFUL;
+            } else {
+            	tx_low_event_log_entry->flags					&= ~TX_LOW_FLAGS_SUCCESSFUL;
+            }
             tx_low_event_log_entry->timestamp_send_frac    = tx_low_details->tx_start_timestamp_frac_ctrl;
             tx_low_event_log_entry->phy_samp_rate          = tx_frame_info->phy_samp_rate;
         }
@@ -295,10 +299,10 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, 
         packet_payload_size = tx_frame_info->length;
 
         // Determine the type of the packet
-        pkt_type = wlan_mac_high_pkt_type(mac_payload, packet_payload_size);
+        is_ltg = wlan_mac_high_is_pkt_ltg(mac_payload, packet_payload_size);
 
         // Determine the entry type
-        if (pkt_type == PKT_TYPE_DATA_ENCAP_LTG) {
+        if (is_ltg) {
             entry_type = ENTRY_TYPE_TX_LOW_LTG;
         } else {
             entry_type = ENTRY_TYPE_TX_LOW;
@@ -334,13 +338,21 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, 
             tx_low_event_log_entry->length                 = tx_frame_info->length;
             tx_low_event_log_entry->num_slots              = tx_low_details->num_slots;
             tx_low_event_log_entry->cw                     = tx_low_details->cw;
-            tx_low_event_log_entry->pkt_type               = pkt_type;
+            tx_low_event_log_entry->pkt_type               = tx_80211_header->frame_control_1;
+
+            if(is_ltg){
+            	tx_low_event_log_entry->flags |= TX_LOW_FLAGS_LTG_PYLD;
+            	tx_low_event_log_entry->flags |= TX_LOW_FLAGS_LTG;
+            } else {
+            	tx_low_event_log_entry->flags &= ~TX_LOW_FLAGS_LTG_PYLD;
+            	tx_low_event_log_entry->flags &= ~TX_LOW_FLAGS_LTG;
+            }
 
             // Set the flags in the log entry
             if(((tx_low_count + 1) == (tx_frame_info->num_tx_attempts)) && (tx_frame_info->tx_result == TX_MPDU_RESULT_SUCCESS)){
-                tx_low_event_log_entry->flags = TX_LOW_FLAGS_WAS_ACKED;
+                tx_low_event_log_entry->flags |= TX_LOW_FLAGS_SUCCESSFUL;
             } else {
-                tx_low_event_log_entry->flags = 0;
+                tx_low_event_log_entry->flags &= ~TX_LOW_FLAGS_SUCCESSFUL;
             }
 
             tx_low_event_log_entry->timestamp_send_frac    = tx_low_details->tx_start_timestamp_frac_mpdu;
@@ -389,23 +401,22 @@ tx_high_entry * wlan_exp_log_create_tx_high_entry(tx_frame_info_t* tx_frame_info
     u8*               mac_payload_ptr_u8      = (u8*)mac_payload;
     mac_header_80211* tx_80211_header         = (mac_header_80211*)((void *)mac_payload_ptr_u8);
     u32               packet_payload_size     = tx_frame_info->length;
-    u8                pkt_type;
     u16               entry_type;
     u32               entry_size;
     u32               entry_payload_size;
     u32               min_entry_payload_size;
     u32               transfer_len;
+    u8				  is_ltg;
 
     // MPDU logging is disabled
     if((log_entry_en_mask & ENTRY_EN_MASK_TXRX_MPDU) == 0){
         return NULL;
     }
 
-    // Determine the type of the packet
-    pkt_type = wlan_mac_high_pkt_type(mac_payload, packet_payload_size);
+    is_ltg = wlan_mac_high_is_pkt_ltg(mac_payload, packet_payload_size);
 
     // Determine the entry type
-    if (pkt_type == PKT_TYPE_DATA_ENCAP_LTG) {
+    if (is_ltg) {
         entry_type = ENTRY_TYPE_TX_HIGH_LTG;
     } else {
         entry_type = ENTRY_TYPE_TX_HIGH;
@@ -444,8 +455,6 @@ tx_high_entry * wlan_exp_log_create_tx_high_entry(tx_frame_info_t* tx_frame_info
         }
 
         // Populate the log entry
-        bzero(tx_high_event_log_entry->padding , sizeof(tx_high_event_log_entry->padding));
-
         tx_high_event_log_entry->timestamp_create         = tx_frame_info->timestamp_create;
         tx_high_event_log_entry->delay_accept             = tx_frame_info->delay_accept;
         tx_high_event_log_entry->delay_done               = tx_frame_info->delay_done;
@@ -456,8 +465,21 @@ tx_high_entry * wlan_exp_log_create_tx_high_entry(tx_frame_info_t* tx_frame_info
         tx_high_event_log_entry->phy_params.power         = tx_frame_info->params.phy.power;
         tx_high_event_log_entry->num_tx                   = tx_frame_info->num_tx_attempts;              // TODO: Add long/short distinction to event log
         tx_high_event_log_entry->length                   = tx_frame_info->length;
-        tx_high_event_log_entry->result                   = tx_frame_info->tx_result;
-        tx_high_event_log_entry->pkt_type                 = pkt_type;
+        tx_high_event_log_entry->flags					  = 0;
+
+        if(is_ltg){
+        	tx_high_event_log_entry->flags				  |= TX_LOW_FLAGS_LTG_PYLD;
+        	tx_high_event_log_entry->flags				  |= TX_LOW_FLAGS_LTG;
+        } else {
+        	tx_high_event_log_entry->flags				  &= ~TX_LOW_FLAGS_LTG_PYLD;
+        	tx_high_event_log_entry->flags				  &= ~TX_LOW_FLAGS_LTG;
+        }
+        if(tx_frame_info->tx_result == TX_MPDU_RESULT_SUCCESS){
+        	tx_high_event_log_entry->flags				  |= TX_HIGH_FLAGS_SUCCESSFUL;
+        } else {
+        	tx_high_event_log_entry->flags				  &= ~TX_HIGH_FLAGS_SUCCESSFUL;
+        }
+        tx_high_event_log_entry->pkt_type                 = tx_80211_header->frame_control_1;
         tx_high_event_log_entry->queue_id                 = tx_frame_info->queue_info.QID;
         tx_high_event_log_entry->queue_occupancy          = tx_frame_info->queue_info.occupancy;
 
@@ -493,7 +515,6 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
     mac_header_80211* rx_80211_header         = (mac_header_80211*)((void *)mac_payload_ptr_u8);
     u32               packet_payload_size     = rx_frame_info->phy_details.length;
     u8                phy_mode                = rx_frame_info->phy_details.phy_mode;
-    u8                pkt_type;
     u32               entry_type;
     u8                rx_is_ltg               = 0;
     u32               entry_size;
@@ -511,18 +532,15 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
         ( (rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_MGMT)) {
 
         // Determine the type of the packet
-        pkt_type = wlan_mac_high_pkt_type(mac_payload, packet_payload_size);
+    	rx_is_ltg = wlan_mac_high_is_pkt_ltg(mac_payload, packet_payload_size);
 
         // Determine the entry type based on the received waveform format
         if((phy_mode & PHY_MODE_HTMF) || (phy_mode & PHY_MODE_NONHT)) {
-        	// OFDM (11a or 11n) reception
-            if (pkt_type == PKT_TYPE_DATA_ENCAP_LTG) {
-                entry_type = ENTRY_TYPE_RX_OFDM_LTG;
-                rx_is_ltg = 1;
-            } else {
-                entry_type = ENTRY_TYPE_RX_OFDM;
-                rx_is_ltg = 0;
-            }
+        	if(rx_is_ltg){
+        		entry_type = ENTRY_TYPE_RX_OFDM_LTG;
+        	} else {
+        		entry_type = ENTRY_TYPE_RX_OFDM;
+        	}
         } else {
         	// DSSS reception
             entry_type = ENTRY_TYPE_RX_DSSS;
@@ -610,12 +628,23 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
             rx_event_log_entry->phy_mode       = rx_frame_info->phy_details.phy_mode;
             rx_event_log_entry->ant_mode       = rx_frame_info->ant_mode;
             rx_event_log_entry->power          = rx_frame_info->rx_power;
-            rx_event_log_entry->fcs_status     = (rx_frame_info->flags & RX_MPDU_FLAGS_FCS_GOOD) ? RX_ENTRY_FCS_GOOD : RX_ENTRY_FCS_BAD;
-            rx_event_log_entry->pkt_type       = pkt_type;
+            rx_event_log_entry->flags		   = 0;
+            if(rx_is_ltg){
+            	rx_event_log_entry->flags	   |= RX_FLAGS_LTG_PYLD;
+            	rx_event_log_entry->flags	   |= RX_FLAGS_LTG;
+            } else {
+            	rx_event_log_entry->flags	   &= ~RX_FLAGS_LTG_PYLD;
+            	rx_event_log_entry->flags	   &= ~RX_FLAGS_LTG;
+            }
+            if( (rx_frame_info->flags & RX_MPDU_FLAGS_FCS_GOOD) ){
+            	rx_event_log_entry->flags	   |= RX_FLAGS_FCS_GOOD;
+            } else {
+            	rx_event_log_entry->flags	   &= ~RX_FLAGS_FCS_GOOD;
+            }
+            rx_event_log_entry->pkt_type       = rx_80211_header->frame_control_1;
             rx_event_log_entry->chan_num       = rx_frame_info->channel;
             rx_event_log_entry->rf_gain        = rx_frame_info->rf_gain;
             rx_event_log_entry->bb_gain        = rx_frame_info->bb_gain;
-            rx_event_log_entry->flags          = 0;
 
             // Start second copy based on the copy order
             switch(copy_order){
@@ -693,9 +722,6 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
                           (entry_payload_size - (packet_payload_size - WLAN_PHY_FCS_NBYTES)));
                 }
 
-                // Get the packet type based on the new packet
-                pkt_type = wlan_mac_high_pkt_type(&((tx_low_entry*)tx_low_event_log_entry)->mac_payload, packet_payload_size);
-
                 // Update the log entry fields
                 tx_low_event_log_entry->timestamp_send          = rx_frame_info->resp_low_tx_details.tx_start_timestamp_ctrl;
                 tx_low_event_log_entry->unique_seq              = UNIQUE_SEQ_INVALID;
@@ -708,8 +734,9 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
                 tx_low_event_log_entry->length                  = packet_payload_size;
                 tx_low_event_log_entry->num_slots               = rx_frame_info->resp_low_tx_details.num_slots;
                 tx_low_event_log_entry->cw                      = rx_frame_info->resp_low_tx_details.cw;
-                tx_low_event_log_entry->pkt_type                = pkt_type;
+                tx_low_event_log_entry->pkt_type                = MAC_FRAME_CTRL1_SUBTYPE_CTS;
                 tx_low_event_log_entry->flags                   = 0;
+                tx_low_event_log_entry->flags					|= TX_LOW_FLAGS_SUCCESSFUL;
                 tx_low_event_log_entry->timestamp_send_frac     = rx_frame_info->resp_low_tx_details.tx_start_timestamp_frac_ctrl;
                 tx_low_event_log_entry->phy_samp_rate           = rx_frame_info->phy_samp_rate; // TODO: Makes assumption that response uses same PHY BW as Rx
             }
@@ -752,9 +779,6 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
                           (entry_payload_size - (packet_payload_size - WLAN_PHY_FCS_NBYTES)));
                 }
 
-                // Get the packet type based on the new packet
-                pkt_type = wlan_mac_high_pkt_type(&((tx_low_entry*)tx_low_event_log_entry)->mac_payload, packet_payload_size);
-
                 // Update the log entry fields
                 tx_low_event_log_entry->timestamp_send          = rx_frame_info->resp_low_tx_details.tx_start_timestamp_ctrl;
 
@@ -773,7 +797,9 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
                 tx_low_event_log_entry->length                  = packet_payload_size;
                 tx_low_event_log_entry->num_slots               = rx_frame_info->resp_low_tx_details.num_slots;
                 tx_low_event_log_entry->cw                      = rx_frame_info->resp_low_tx_details.cw;
-                tx_low_event_log_entry->pkt_type                = pkt_type;
+                tx_low_event_log_entry->pkt_type                = MAC_FRAME_CTRL1_SUBTYPE_ACK;
+                tx_low_event_log_entry->flags                   = 0;
+                tx_low_event_log_entry->flags					|= TX_LOW_FLAGS_SUCCESSFUL;
                 tx_low_event_log_entry->timestamp_send_frac     = rx_frame_info->resp_low_tx_details.tx_start_timestamp_frac_ctrl;
                 tx_low_event_log_entry->phy_samp_rate           = rx_frame_info->phy_samp_rate; // TODO: Makes assumption that response uses same PHY BW as Rx
                 tx_low_event_log_entry->flags                   = 0;
