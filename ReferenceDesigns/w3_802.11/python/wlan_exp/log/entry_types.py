@@ -872,12 +872,12 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
 
     entry_tx_common.consts = util.consts_dict({
         'phy_mode'   : util.phy_modes,
-        'result'     : util.consts_dict({
+        'pkt_type'   : common_pkt_type,
+        'flags'      : util.consts_dict({
             'SUCCESSFUL'     : 0x0001,
             'LTG_PYLD'       : 0x0040,
             'LTG'            : 0x0080
-        }),
-        'pkt_type'   : common_pkt_type
+        })
     })
 
 

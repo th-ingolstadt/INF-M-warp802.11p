@@ -158,7 +158,7 @@ for phy_mode in wlan_exp_util.phy_modes.keys():
 
         # Calculate retransmissions
         #    Must use the counts with no control packets since control packets
-        #    are transmitted without a corresponding TX_HIGH entry
+        #    and beacons are transmitted without a corresponding TX_HIGH entry
         retrans = tx_low_src_high_only_mcs_counts[mcs] - tx_high_entries_mcs_counts[mcs]
         total_retrans  += retrans
 
@@ -244,7 +244,7 @@ if('RX_OFDM' in log_np.keys()):
     #   - Good checksum (FCS = good)
     #   - Data / Management packets
     #
-    rx_idx       = (((log_rx['flags'] == RX_CONSTS.flags.FCS_GOOD) != 0) & 
+    rx_idx       = (((log_rx['flags'] & RX_CONSTS.flags.FCS_GOOD) != 0) & 
                     ((log_rx['pkt_type'] == RX_CONSTS.pkt_type.DATA) | 
                      (log_rx['pkt_type'] == RX_CONSTS.pkt_type.QOSDATA) | 
                      (log_rx['pkt_type'] == RX_CONSTS.pkt_type.NULLDATA) | 

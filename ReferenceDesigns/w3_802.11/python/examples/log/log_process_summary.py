@@ -227,7 +227,7 @@ if('RX_OFDM' in log_np.keys()):
     #   - Good checksum (FCS = good)
     #   - Data / Management packets
     #
-    rx_idx       = (((log_rx['flags'] == RX_CONSTS.flags.FCS_GOOD) != 0) & 
+    rx_idx       = (((log_rx['flags'] & RX_CONSTS.flags.FCS_GOOD) != 0) & 
                     ((log_rx['pkt_type'] == RX_CONSTS.pkt_type.DATA) | 
                      (log_rx['pkt_type'] == RX_CONSTS.pkt_type.QOSDATA) | 
                      (log_rx['pkt_type'] == RX_CONSTS.pkt_type.NULLDATA) | 
