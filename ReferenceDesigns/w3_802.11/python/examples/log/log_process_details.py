@@ -117,8 +117,9 @@ for phy_mode in wlan_exp_util.phy_modes.keys():
     # Create index based on phy_mode    
     tx_high_idx        = (log_tx_high['phy_mode'] == TX_CONSTS.phy_mode[phy_mode])
     tx_low_idx         = (log_tx_low['phy_mode'] == TX_CONSTS.phy_mode[phy_mode])    
-    tx_low_no_ctrl_idx = ((log_tx_low['phy_mode'] == TX_CONSTS.phy_mode[phy_mode]) & 
-                          ((log_tx_low['pkt_type'] != TX_CONSTS.pkt_type.ACK) & 
+    tx_low_src_high_only_idx = ((log_tx_low['phy_mode'] == TX_CONSTS.phy_mode[phy_mode]) & 
+                          ((log_tx_low['pkt_type'] != TX_CONSTS.pkt_type.BEACON) & 
+                           (log_tx_low['pkt_type'] != TX_CONSTS.pkt_type.ACK) & 
                            (log_tx_low['pkt_type'] != TX_CONSTS.pkt_type.CTS) & 
                            (log_tx_low['pkt_type'] != TX_CONSTS.pkt_type.RTS)))
 
@@ -127,18 +128,18 @@ for phy_mode in wlan_exp_util.phy_modes.keys():
     # Extract arrays for each PHY mode
     tx_high_entries = log_tx_high[tx_high_idx]
     tx_low_entries  = log_tx_low[tx_low_idx]
-    tx_low_no_ctrl  = log_tx_low[tx_low_no_ctrl_idx]
+    tx_low_src_high_only  = log_tx_low[tx_low_src_high_only_idx]
 
     # Extract arrays of just the MCS indexes
     tx_high_entries_mcs = tx_high_entries['mcs']
     tx_low_entries_mcs  = tx_low_entries['mcs']
-    tx_low_no_ctrl_mcs  = tx_low_no_ctrl['mcs']
+    tx_low_src_high_only_mcs  = tx_low_src_high_only['mcs']
 
     # Initialize an array to count number of packets per MCS index
     #   MAC uses MCS indexes 0:7 to encode OFDM rates
     tx_high_entries_mcs_counts = np.bincount(tx_high_entries_mcs, minlength=8)
     tx_low_entries_mcs_counts  = np.bincount(tx_low_entries_mcs, minlength=8)
-    tx_low_no_ctrl_mcs_counts  = np.bincount(tx_low_no_ctrl_mcs, minlength=8)
+    tx_low_src_high_only_mcs_counts  = np.bincount(tx_low_src_high_only_mcs, minlength=8)
     
     # Extract an array of just the 'time_to_done' timestamp offsets
     tx_high_done = tx_high_entries['time_to_done']
@@ -158,7 +159,7 @@ for phy_mode in wlan_exp_util.phy_modes.keys():
         # Calculate retransmissions
         #    Must use the counts with no control packets since control packets
         #    are transmitted without a corresponding TX_HIGH entry
-        retrans = tx_low_no_ctrl_mcs_counts[mcs] - tx_high_entries_mcs_counts[mcs]
+        retrans = tx_low_src_high_only_mcs_counts[mcs] - tx_high_entries_mcs_counts[mcs]
         total_retrans  += retrans
 
         # Print info
