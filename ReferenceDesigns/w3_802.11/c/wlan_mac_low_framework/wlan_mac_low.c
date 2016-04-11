@@ -996,6 +996,14 @@ void wlan_mac_low_set_radio_channel(u32 channel){
 			wlan_phy_DSSS_rx_disable();
 		}
 
+	    if(channel >= 36){
+	        // Adjust Tx baseband gain when switching to 5GHz channels; this adjustment makes
+	    	//  the actual Tx power set via the Tx VGA more accurate
+	        radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXGAIN_BB, 3);
+	    } else {
+	        radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXGAIN_BB, 1);
+	    }
+
 		radio_controller_setCenterFrequency(RC_BASEADDR, (RC_ALL_RF), mac_param_band, wlan_mac_low_wlan_chan_to_rc_chan(mac_param_chan));
 		wlan_mac_reset_NAV_counter();
 
@@ -1687,13 +1695,6 @@ inline u8 wlan_mac_low_dbm_to_gain_target(s8 power){
  */
 inline u32 wlan_mac_low_wlan_chan_to_rc_chan(u32 mac_channel) {
     int return_value = 0;
-
-    if(mac_channel >= 36){
-        // 5GHz Channel we need to tweak gain settings so that tx power settings are accurate
-        radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXGAIN_BB, 3);
-    } else {
-        radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXGAIN_BB, 1);
-    }
 
     switch(mac_channel){
         // 2.4GHz channels
