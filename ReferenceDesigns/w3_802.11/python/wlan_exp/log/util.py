@@ -727,7 +727,7 @@ def calc_tx_time(mcs, phy_mode, payload_length, phy_samp_rate):
 
     # HTMF waveforms have 4 extra preamble symbols
     #  HT-SIG1, HT-SIG2, HT-STF, HT-LTF
-    num_ht_preamble_syms = 4 * (phy_mode == util.phy_mode['HTMF'])
+    num_ht_preamble_syms = 4 * (phy_mode == util.phy_modes['HTMF'])
 
     T_TOT = T_PREAMBLE + T_SIG + (T_SYM * num_ht_preamble_syms) + (T_SYM * num_data_syms) + T_EXT
 
