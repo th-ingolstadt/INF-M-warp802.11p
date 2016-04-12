@@ -183,16 +183,17 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details){
         userio_write_leds_red(USERIO_BASEADDR, (1 << red_led_index));
     }
 
-    // Unlock the pkt buf mutex before passing the packet up
-    if (unlock_rx_pkt_buf(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) {
-        xil_printf("Error: unable to unlock RX pkt_buf %d\n", rx_pkt_buf);
-        wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_RX_MUTEX);
-    } else {
-        wlan_mac_low_frame_ipc_send();
+    rx_frame_info->rx_pkt_buf_state = RX_PKT_BUF_READY;
+	if (unlock_rx_pkt_buf(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) {
+		xil_printf("Error: unable to unlock RX pkt_buf %d\n", rx_pkt_buf);
+		wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_RX_MUTEX);
+	} else {
+		wlan_mac_low_frame_ipc_send();
 
-        // Find a free packet buffer and begin receiving packets there (blocks until free buf is found)
-        wlan_mac_low_lock_empty_rx_pkt_buf();
-    }
+		// Find a free packet buffer and begin receiving packets there (blocks until free buf is found)
+		wlan_mac_low_lock_empty_rx_pkt_buf();
+	}
+
 
     return 0;
 }
