@@ -173,7 +173,6 @@ u8    wlan_mac_addr_filter_is_allowed(u8* addr){
     u32                 list_len = addr_filter.length;
     whitelist_range   * curr_range;
     dl_entry*           curr_range_dl_entry;
-    u32                 status;
 
     // Check if the list is empty
     //     - By default, we allow all addresses

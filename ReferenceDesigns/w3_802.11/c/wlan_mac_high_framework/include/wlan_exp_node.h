@@ -76,6 +76,7 @@
 #define CMD_PARAM_RSVD                                     0xFFFFFFFF
 
 #define CMD_PARAM_SUCCESS                                  0x00000000
+#define CMD_PARAM_WARNING                                  0xF0000000
 #define CMD_PARAM_ERROR                                    0xFF000000
 
 #define CMD_PARAM_UNICAST_VAL                              0x00000000

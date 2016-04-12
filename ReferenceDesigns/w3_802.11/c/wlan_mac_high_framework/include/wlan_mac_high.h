@@ -470,13 +470,13 @@ u8                 wlan_mac_high_is_pkt_ltg(void* mac_payload, u16 length);
 inline void        wlan_mac_high_set_debug_gpio(u8 val);
 inline void        wlan_mac_high_clear_debug_gpio(u8 val);
 
-station_info_t*    wlan_mac_high_add_station_info(dl_list* station_info_list, dl_list* counts_tbl, u8* addr, u16 requested_ID);
+station_info_t*    wlan_mac_high_add_station_info(dl_list* station_info_list, dl_list* counts_tbl, u8* addr, u16 requested_ID, tx_params_t* tx_params, u8 ht_capable);
 int                wlan_mac_high_remove_station_info(dl_list* station_info_list, dl_list* counts_tbl, u8* addr);
-
 
 u8                 wlan_mac_high_is_station_info_list_member(dl_list* station_info_list, station_info_t* station_info);
 u32                wlan_mac_high_set_max_num_station_infos(u32 num_station_infos);
 u32                wlan_mac_high_get_max_num_station_infos();
+int                wlan_mac_high_update_station_info_rate(station_info_t* station_info, u8 mcs, u8 phy_mode);
 
 counts_txrx_t*     wlan_mac_high_add_counts(dl_list* counts_tbl, station_info_t* station_info, u8* addr);
 void               wlan_mac_high_reset_counts(dl_list* counts_tbl);

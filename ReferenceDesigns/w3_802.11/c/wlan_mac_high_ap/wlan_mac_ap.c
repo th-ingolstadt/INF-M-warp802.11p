@@ -56,12 +56,22 @@
 #define  WLAN_EXP_ETH                            TRANSPORT_ETH_B
 #define  WLAN_EXP_NODE_TYPE                      WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_AP
 
-#define  WLAN_DEFAULT_USE_HT                     1
 #define  WLAN_DEFAULT_CHANNEL                    1
 #define  WLAN_DEFAULT_TX_PWR                     15
 #define  WLAN_DEFAULT_TX_ANTENNA                 TX_ANTMODE_SISO_ANTA
 #define  WLAN_DEFAULT_RX_ANTENNA                 RX_ANTMODE_SISO_ANTA
 #define  WLAN_DEFAULT_BEACON_INTERVAL_TU         100
+
+// WLAN_DEFAULT_USE_HT
+//
+// The WLAN_DEFAULT_USE_HT define will set the default unicast TX phy mode
+// to:  1 --> HTMF  or  0 --> NONHT.  It will also be used as the default
+// value for the HT_CAPABLE capability of the BSS in configure_bss() when
+// moving from a NULL to a non-NULL BSS and the ht_capable parameter is not
+// specified.  This does not affect the ability of the node to send and
+// receive HT packets.   All WARP nodes are HT capable (ie they can send
+// and receive both HTMF and NONHT packets).
+#define  WLAN_DEFAULT_USE_HT                     1
 
 
 /*********************** Global Variable Definitions *************************/
@@ -156,17 +166,21 @@ int main(){
 	// Initialize hex display to "No BSS"
 	ap_update_hex_display(0xFF);
 
+	// Zero out all TX params
+	bzero(&default_unicast_data_tx_params, sizeof(tx_params_t));
+	bzero(&default_unicast_mgmt_tx_params, sizeof(tx_params_t));
+	bzero(&default_multicast_data_tx_params, sizeof(tx_params_t));
+	bzero(&default_multicast_mgmt_tx_params, sizeof(tx_params_t));
+
 	// New associations adopt these unicast params; the per-node params can be
 	// overridden via wlan_exp calls or by custom C code
 	default_unicast_data_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
 	default_unicast_data_tx_params.phy.mcs            = 3;
-
 #if WLAN_DEFAULT_USE_HT
 	default_unicast_data_tx_params.phy.phy_mode       = PHY_MODE_HTMF;
 #else
 	default_unicast_data_tx_params.phy.phy_mode       = PHY_MODE_NONHT;
 #endif
-
 	default_unicast_data_tx_params.phy.antenna_mode   = WLAN_DEFAULT_TX_ANTENNA;
 
 	default_unicast_mgmt_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
@@ -1734,8 +1748,10 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 							if(wlan_mac_high_find_station_info_ADDR (&(active_bss_info->station_info_list), rx_80211_header->address_2) == NULL){
 								xil_printf("Authenticated, Unassociated Stations:\n");
-								//This station wasn't already authenticated/associated (state 4), so we'll manually add it to the state 2 list.
-								wlan_mac_high_add_station_info(&station_info_state_2, &counts_table, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID);
+								// This station wasn't already authenticated/associated (state 4), so manually add it to the state 2 list.
+								//     - Set ht_capable argument to WLAN_DEFAULT_USE_HT.  This will be updated with the correct value when the
+								//       node moves from the state 2 list during association.
+								wlan_mac_high_add_station_info(&station_info_state_2, &counts_table, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, WLAN_DEFAULT_USE_HT);
 							}
 
 							// Create a successful authentication response frame
@@ -1764,7 +1780,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 								// Put the packet in the queue
 								enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
-
 							}
 
 							// Finish the function
@@ -1797,7 +1812,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 								// Put the packet in the queue
 								enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
-
 							}
 						}
 
@@ -1827,23 +1841,26 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 							//
 
 							xil_printf("Authenticated, Associated Stations:\n");
-							associated_station = wlan_mac_high_add_station_info(&active_bss_info->station_info_list, &counts_table, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID);
+
+							// Add the station info
+							//     - Set ht_capable argument to WLAN_DEFAULT_USE_HT.  This will be updated below with the
+							//       correct value from the tagged parameters in the association request.
+							associated_station = wlan_mac_high_add_station_info(&active_bss_info->station_info_list, &counts_table, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, WLAN_DEFAULT_USE_HT);
+
 							ap_update_hex_display(active_bss_info->station_info_list.length);
 						}
 
 						if(associated_station != NULL) {
 
-							//Start off with a copy of the default unicast data Tx parameters.
-							associated_station->tx = default_unicast_data_tx_params;
-
+							// Zero the HT_CAPABLE flag
 							associated_station->flags &= ~STATION_INFO_FLAG_HT_CAPABLE;
 
-							//Find if the association request contains HT capabilities
-							//	- We use the existence of this tag as our proxy the overall single bit HT capabilities flag
+							// Find if the association request contains HT capabilities
+							//     - Use the existence of this tag as our proxy the overall single bit HT capabilities flag
 
 							// Parse the tagged parameters
 							mac_payload_ptr_u8 = mac_payload_ptr_u8 + sizeof(mac_header_80211) + sizeof(association_req_frame);
-							while( (((u32)mac_payload_ptr_u8) - ((u32)mac_payload)) < (length - WLAN_PHY_FCS_NBYTES)) {
+							while ((((u32)mac_payload_ptr_u8) - ((u32)mac_payload)) < (length - WLAN_PHY_FCS_NBYTES)) {
 								// Parse each of the tags
 								switch(mac_payload_ptr_u8[0]){
 
@@ -1866,15 +1883,8 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 								mac_payload_ptr_u8 += mac_payload_ptr_u8[1]+2;
 							}
 
-							if((associated_station->flags & STATION_INFO_FLAG_HT_CAPABLE) == 0){
-								//If this station is not capable of HT phy_mode, then we'll adjust its tx_params.
-								//Note: If the default tx_params does not support HT, then we will not explicitly
-								//set the phy_mode to HT just because the STA is capable of it
-								associated_station->tx.phy.phy_mode = PHY_MODE_NONHT; //FIXME: How do you do this in wlan_exp add_association()?
-								///
-								// FIXME: DO MCS conversion
-								///
-							}
+							// Update the rate based on the flags that were set
+							wlan_mac_high_update_station_info_rate(associated_station, default_unicast_data_tx_params.phy.mcs, default_unicast_data_tx_params.phy.phy_mode);
 
 							//
 							// TODO:  (Optional) Log association state change
@@ -2376,10 +2386,10 @@ u32	configure_bss(bss_config_t* bss_config){
 				send_beacon_config_to_low = 1;
 			}
 			if (bss_config->update_mask & BSS_FIELD_MASK_HT_CAPABLE) {
-				// FIXME:
-				//     1) Update Beacon Template capabilities
-				// 	   2) Update existing MCS selections for defaults and
-				//	  		associated stations?
+				// Changing the BSS HT_CAPABLE capabilities only affects what is advertised in
+				// the BSS beacons.  It does not affect the HT capabilities of nodes in the
+				// network.  It should also not change any of the default TX params since the
+				// AP is still capable of sending and receiving HT packets.
 
 				if (bss_config->ht_capable) {
 					active_bss_info->capabilities |= BSS_CAPABILITIES_HT_CAPABLE;
@@ -2387,6 +2397,7 @@ u32	configure_bss(bss_config_t* bss_config){
 					active_bss_info->capabilities &= ~BSS_CAPABILITIES_HT_CAPABLE;
 				}
 
+				// Update the beacon template to match capabilities
 				update_beacon_template = 1;
 			}
 

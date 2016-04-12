@@ -2017,7 +2017,6 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                             wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Station not found\n");
                             status = CMD_PARAM_ERROR;
                         }
-
                     break;
 
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
@@ -4046,6 +4045,7 @@ int process_tx_power(u32 cmd, u32 aid, int tx_power) {
  *
  * @return  u32          - Status
  *                         - CMD_PARAM_SUCCESS
+ *                         - CMD_PARAM_WARNING
  *                         - CMD_PARAM_ERROR
  *
  *****************************************************************************/
@@ -4066,6 +4066,7 @@ u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 
 
             iter       = curr_list->length;
             curr_entry = curr_list->first;
+            status     = CMD_PARAM_SUCCESS;
 
             while ((curr_entry != NULL) && (iter-- > 0)) {
                 curr_station_info = (station_info_t*)(curr_entry->data);
@@ -4074,19 +4075,18 @@ u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                             "Set Tx rate on AID %d to MCS %d , PHY Mode %d\n", curr_station_info->ID, mcs, phy_mode);
 
-                    curr_station_info->tx.phy.mcs      = mcs;
-                    curr_station_info->tx.phy.phy_mode = phy_mode;
-
-                    status = CMD_PARAM_SUCCESS;
+                    if (wlan_mac_high_update_station_info_rate(curr_station_info, mcs, phy_mode) != 0) {
+                        status = CMD_PARAM_WARNING;
+                    }
 
                 } else if (aid == curr_station_info->ID) {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                             "Set Tx rate on AID %d to MCS %d , PHY Mode %d\n", curr_station_info->ID, mcs, phy_mode);
 
-                    curr_station_info->tx.phy.mcs      = mcs;
-                    curr_station_info->tx.phy.phy_mode = phy_mode;
+                    if (wlan_mac_high_update_station_info_rate(curr_station_info, mcs, phy_mode) != 0) {
+                        status = CMD_PARAM_WARNING;
+                    }
 
-                    status = CMD_PARAM_SUCCESS;
                     break;
                 }
                 curr_entry = dl_entry_next(curr_entry);

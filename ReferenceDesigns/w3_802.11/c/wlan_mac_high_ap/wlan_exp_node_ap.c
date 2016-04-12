@@ -447,17 +447,19 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
                 // Add association
-                curr_station_info = wlan_mac_high_add_station_info(&active_bss_info->station_info_list, &counts_table, &mac_addr[0], ADD_STATION_INFO_ANY_ID);
+                //     - Set ht_capable argument to zero.  This will be set correctly by the code below based on the
+                //       flags of the command.
+                curr_station_info = wlan_mac_high_add_station_info(&active_bss_info->station_info_list, &counts_table, &mac_addr[0], ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, 0);
 
                 // Update the new station_info flags field
                 //  Only override the defaults set by the framework add_station_info if the wlan_exp command explicitly included a flag
                 station_flags = curr_station_info->flags;
 
                 if (mask & CMD_PARAM_AP_ASSOCIATE_FLAG_DISABLE_INACTIVITY_TIMEOUT) {
-                	if (flags & CMD_PARAM_AP_ASSOCIATE_FLAG_DISABLE_INACTIVITY_TIMEOUT) {
+                    if (flags & CMD_PARAM_AP_ASSOCIATE_FLAG_DISABLE_INACTIVITY_TIMEOUT) {
                         station_flags |= STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
                     } else {
-                    	station_flags &= ~STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
+                        station_flags &= ~STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
                     }
                 }
 
@@ -472,6 +474,9 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 // Update the station_info flags
                 curr_station_info->flags = station_flags;
 
+                // Update the rate based on the flags that were set
+                wlan_mac_high_update_station_info_rate(curr_station_info, default_unicast_data_tx_params.phy.mcs, default_unicast_data_tx_params.phy.phy_mode);
+
                 // Re-enable interrupts
                 wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
@@ -481,10 +486,6 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                     //
                     // TODO:  (Optional) Log association state change
                     //
-
-                    memcpy(&(curr_station_info->tx), &default_unicast_data_tx_params, sizeof(tx_params_t));
-
-                    //FIXME: Check STATION_INFO_FLAG_HT_CAPABLE and change tx_params accordingly
 
                     // Update the hex display
                     ap_update_hex_display(active_bss_info->station_info_list.length);

@@ -2373,34 +2373,37 @@ inline void wlan_mac_high_clear_debug_gpio(u8 val){
  *     - Address of station to add to the dl_list
  * @param  u16 requested_ID
  *     - Requested ID for the new station.  A value of 'ADD_STATION_INFO_ANY_ID' will use the next available AID.
+ * @param  tx_params_t tx_params
+ *     - Transmit parameters for the new station.
+ * @param  u8 ht_capable
+ *     - Is this station HT capable?  (This will set the station info HT_CAPABLE flag)
  * @return station_info *
  *     - Pointer to the station_info in the dl_list
  *     - NULL
  *
  * @note   This function will not perform any filtering on the addr field
  */
-station_info_t *     wlan_mac_high_add_station_info(dl_list* station_info_list, dl_list* counts_tbl, u8* addr, u16 requested_ID){
-	dl_entry* 		entry;
-	station_info_t* station_info;
-
-	counts_txrx_t* 	station_counts;
-	dl_entry* 		curr_station_info_entry;
-	station_info_t* station_info_temp;
-	u16            	curr_ID;
-	int			   	iter;
+station_info_t * wlan_mac_high_add_station_info(dl_list* station_info_list, dl_list* counts_tbl, u8* addr, u16 requested_ID, tx_params_t* tx_params, u8 ht_capable){
+	dl_entry*           entry;
+	station_info_t*     station_info;
+	counts_txrx_t*      station_counts;
+	dl_entry*           curr_station_info_entry;
+	station_info_t*     station_info_temp;
+	u16                 curr_ID;
+	int                 iter;
 
 	curr_ID = 0;
 
-	if(requested_ID != ADD_STATION_INFO_ANY_ID){
+	if (requested_ID != ADD_STATION_INFO_ANY_ID) {
 		// This call is requesting a particular ID.
 		entry = wlan_mac_high_find_station_info_ID(station_info_list, requested_ID);
 
-		if(entry != NULL){
+		if (entry != NULL) {
 			station_info = (station_info_t*)(entry->data);
-			// We found a station_info with this requested AID. Let's check
-			// if the address matches the argument to this function call
+			// Found a station_info with this requested AID. Check if
+			// the address matches the argument to this function call
 			if(wlan_addr_eq(station_info->addr, addr)){
-				// We already have this exact station_info, so we'll just return a pointer to it.
+				// Already have this exact station_info, so just return a pointer to it.
 				return station_info;
 			} else {
 				// The requested ID is already in use and it is used by a different
@@ -2451,14 +2454,13 @@ station_info_t *     wlan_mac_high_add_station_info(dl_list* station_info_list, 
 		// Populate the entry
 		entry->data = (void*)station_info;
 
-		// Populate the station with information
+		// Populate the station with default information
 		station_info->counts = station_counts;
 		station_info->counts->is_associated = 1;
 
 		memcpy(station_info->addr, addr, MAC_ADDR_LEN);
 
-		station_info->tx.phy.mcs  = 0;
-		station_info->ID         = 0;
+		station_info->ID          = 0;
 		station_info->hostname[0] = 0;
 		station_info->flags       = 0;
 
@@ -2476,11 +2478,19 @@ station_info_t *     wlan_mac_high_add_station_info(dl_list* station_info_list, 
 			station_info->flags |= STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
 		}
 
+		// Set the HT_CAPABLE flag base on input parameter
+		if (ht_capable) {
+			station_info->flags |= STATION_INFO_FLAG_HT_CAPABLE;
+		}
+
 		// Set the TX parameters
-		station_info->tx.phy.power          = 15;
-		station_info->tx.phy.mcs            = 0;
-		station_info->tx.phy.phy_mode       = PHY_MODE_NONHT;
-		station_info->tx.phy.antenna_mode   = TX_ANTMODE_SISO_ANTA;
+		//     1) Do a blind copy of the TX parameters from the input argument.
+		//     2) Update the (mcs, phy_mode) parameters.  This will adjust the TX rate of the station
+		//        was not HT_CAPABLE and a HT rate was requested.
+		//
+		station_info->tx = *tx_params;
+
+		wlan_mac_high_update_station_info_rate(station_info, tx_params->phy.mcs, tx_params->phy.phy_mode);
 
 		// Set up the station ID
 		if(requested_ID == ADD_STATION_INFO_ANY_ID){
@@ -2488,11 +2498,11 @@ station_info_t *     wlan_mac_high_add_station_info(dl_list* station_info_list, 
 			curr_station_info_entry = station_info_list->first;
 			iter = station_info_list->length;
 
-			while( (curr_station_info_entry != NULL) && (iter-- > 0) ){
+			while((curr_station_info_entry != NULL) && (iter-- > 0)){
 
 				station_info_temp = (station_info_t*)(curr_station_info_entry->data);
 
-				if( (station_info_temp->ID - curr_ID) > 1 ){
+				if((station_info_temp->ID - curr_ID) > 1){
 					// There is a hole in the list and we can re-issue a previously issued station ID.
 					station_info->ID = station_info_temp->ID - 1;
 
@@ -2680,6 +2690,51 @@ u32 wlan_mac_high_set_max_num_station_infos(u32 num_station_infos) {
  */
 u32 wlan_mac_high_get_max_num_station_infos() {
     return max_num_station_infos;
+}
+
+
+
+/**
+ * @brief Update station_info TX rate
+ *
+ * Function will update the TX rate based on the passed in parameters.  This function will
+ * honor the ht_capable flag of the station info.  If the station is not ht_capable, then
+ * the function will map the (mcs, phy_mode) to the nearest NONHT MCS:
+ *     Requested HT MCS: 0 1 2 3 4 5 6 7
+ *     Actual NONHT MCS: 0 2 3 4 5 6 7 7
+ *
+ * @return int     - Status
+ *                     -  0 - Rate set was rate given
+ *                     - -1 - Rate set was adjusted from given rate
+ *
+ */
+int wlan_mac_high_update_station_info_rate(station_info_t* station_info, u8 mcs, u8 phy_mode) {
+	int status          = 0;
+	u8  tmp_mcs;
+
+	if (station_info->flags & STATION_INFO_FLAG_HT_CAPABLE) {
+		station_info->tx.phy.phy_mode = phy_mode;
+		station_info->tx.phy.mcs      = mcs;
+	} else {
+		if (phy_mode == PHY_MODE_HTMF) {
+			// Requested rate was HT, adjust the MCS corresponding to the table above
+			if ((mcs == 0) || (mcs == 7)) {
+				tmp_mcs = mcs;
+			} else {
+				tmp_mcs = mcs + 1;
+			}
+
+			status = -1;
+		} else {
+			// Requested rate was non-HT, so do not adjust MCS
+			tmp_mcs = mcs;
+		}
+
+		station_info->tx.phy.phy_mode = PHY_MODE_NONHT;
+		station_info->tx.phy.mcs      = tmp_mcs;
+	}
+
+	return status;
 }
 
 

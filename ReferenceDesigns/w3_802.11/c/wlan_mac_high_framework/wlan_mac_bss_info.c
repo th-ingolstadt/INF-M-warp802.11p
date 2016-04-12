@@ -112,7 +112,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 
 	u16 				length					 = rx_frame_info->phy_details.length;
 
-	if( (rx_frame_info->flags & RX_MPDU_FLAGS_FCS_GOOD)){
+	if ((rx_frame_info->flags & RX_MPDU_FLAGS_FCS_GOOD)) {
 		switch(rx_80211_header->frame_control_1) {
 			case (MAC_FRAME_CTRL1_SUBTYPE_BEACON):
 				update_rx_power = 1;
@@ -123,6 +123,8 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 
 				if(curr_dl_entry != NULL){
 					curr_bss_info = (bss_info_t*)(curr_dl_entry->data);
+
+					// Remove entry from bss_info_list; Will be added back at the bottom of the function
 					dl_entry_remove(&bss_info_list, curr_dl_entry);
 				} else {
 					// We haven't seen this BSS ID before, so we'll attempt to checkout a new dl_entry
@@ -175,9 +177,6 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 				curr_bss_info->chan_spec.chan_pri = rx_frame_info->channel;
 				curr_bss_info->chan_spec.chan_type = CHAN_TYPE_BW20;
 
-				// Copy the Rx power with which this packet was received into the bss_info stuct
-				if(update_rx_power) curr_bss_info->latest_beacon_rx_power = rx_frame_info->rx_power;
-
 				// Move the packet pointer to after the beacon/probe frame
 				mac_payload_ptr_u8 += sizeof(beacon_probe_frame);
 
@@ -204,6 +203,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 						case TAG_HT_CAPABILITIES:
 							curr_bss_info->capabilities |= BSS_CAPABILITIES_HT_CAPABLE;
 						break;
+
 						//-------------------------------------------------
 						case TAG_HT_INFORMATION:
 							curr_bss_info->chan_spec.chan_pri = mac_payload_ptr_u8[2];
@@ -217,8 +217,9 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 									curr_bss_info->chan_spec.chan_type = CHAN_TYPE_BW40_SEC_ABOVE;
 								}
 							}
-
 						break;
+
+						//-------------------------------------------------
 						case TAG_DS_PARAMS:
 							// DS Parameter set (e.g. channel)
 							curr_bss_info->chan_spec.chan_pri = mac_payload_ptr_u8[2];
@@ -229,8 +230,17 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 					mac_payload_ptr_u8 += mac_payload_ptr_u8[1]+2;
 				}
 
-				if(update_timestamp) curr_bss_info->latest_beacon_rx_time = get_system_time_usec();
-				dl_entry_insertEnd(&bss_info_list,curr_dl_entry);
+				// Update the beacon Rx power
+				if (update_rx_power) curr_bss_info->latest_beacon_rx_power = rx_frame_info->rx_power;
+
+				// Update the beacon timestamp
+				if (update_timestamp) curr_bss_info->latest_beacon_rx_time = get_system_time_usec();
+
+				// FIXME:  MAC specific callback to update MAC based on new BSS capabilities
+				//     - Specifically, in the cast of a STA, the AP station info flags should be updated
+
+				// Add BSS info into bss_info_list
+				dl_entry_insertEnd(&bss_info_list, curr_dl_entry);
 			break;
 
 
@@ -439,16 +449,18 @@ bss_info_t* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan){
 	curr_dl_entry = wlan_mac_high_find_bss_info_BSSID(bssid);
 
 	if (curr_dl_entry != NULL){
+		// Get the BSS info from the entry
 		curr_bss_info = (bss_info_t*)(curr_dl_entry->data);
+
+		// Remove the entry from the info list so it can be added back later
 		dl_entry_remove(&bss_info_list, curr_dl_entry);
 	} else {
-		// We haven't seen this BSS ID before, so we'll attempt to grab a new dl_entry
+		// Have not seen this BSS ID before; attempt to grab a new dl_entry
 		// struct from the free pool
 		curr_dl_entry = bss_info_checkout();
 
 		if (curr_dl_entry == NULL){
-			// No free dl_entry!
-			// We'll have to reallocate the oldest entry in the filled list
+			// No free dl_entry; Re-allocate the oldest entry in the filled list
 			curr_dl_entry = wlan_mac_high_find_bss_info_oldest();
 
 			if (curr_dl_entry != NULL) {
@@ -459,6 +471,7 @@ bss_info_t* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan){
 			}
 		}
 
+		// Get the BSS info from the entry
 		curr_bss_info = (bss_info_t*)(curr_dl_entry->data);
 
 		// Clear any old information from the BSS info

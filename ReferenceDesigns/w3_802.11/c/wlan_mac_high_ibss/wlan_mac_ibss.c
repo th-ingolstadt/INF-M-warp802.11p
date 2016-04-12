@@ -57,7 +57,6 @@
 #define  WLAN_EXP_NODE_TYPE                      WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_IBSS
 
 
-#define  WLAN_DEFAULT_USE_HT                     1
 #define  WLAN_DEFAULT_CHANNEL                    1
 #define  WLAN_DEFAULT_TX_PWR                     15
 #define  WLAN_DEFAULT_TX_ANTENNA                 TX_ANTMODE_SISO_ANTA
@@ -65,6 +64,17 @@
 #define  WLAN_DEFAULT_BEACON_INTERVAL_TU         100
 
 #define  WLAN_DEFAULT_SCAN_TIMEOUT_USEC          5000000
+
+// WLAN_DEFAULT_USE_HT
+//
+// The WLAN_DEFAULT_USE_HT define will set the default unicast TX phy mode
+// to:  1 --> HTMF  or  0 --> NONHT.  It will also be used as the default
+// value for the HT_CAPABLE capability of the BSS in configure_bss() when
+// moving from a NULL to a non-NULL BSS and the ht_capable parameter is not
+// specified.  This does not affect the ability of the node to send and
+// receive HT packets.   All WARP nodes are HT capable (ie they can send
+// and receive both HTMF and NONHT packets).
+#define  WLAN_DEFAULT_USE_HT                     0
 
 
 /*********************** Global Variable Definitions *************************/
@@ -147,6 +157,12 @@ int main() {
 	gl_beacon_txrx_config.ts_update_mode = FUTURE_ONLY_UPDATE;
 	bzero(gl_beacon_txrx_config.bssid_match, MAC_ADDR_LEN);
 	gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
+
+	// Zero out all TX params
+	bzero(&default_unicast_data_tx_params, sizeof(tx_params_t));
+	bzero(&default_unicast_mgmt_tx_params, sizeof(tx_params_t));
+	bzero(&default_multicast_data_tx_params, sizeof(tx_params_t));
+	bzero(&default_multicast_mgmt_tx_params, sizeof(tx_params_t));
 
 	// New associations adopt these unicast params; the per-node params can be
 	//   overridden via wlan_exp calls or by custom C code
@@ -709,9 +725,13 @@ int ethernet_receive(tx_queue_element_t* curr_tx_queue_element, u8* eth_dest, u8
 			if(station_info_entry != NULL){
 				station_info = (station_info_t*)station_info_entry->data;
 			} else {
-				station_info = wlan_mac_high_add_station_info(&active_bss_info->station_info_list, &counts_table, eth_dest, ADD_STATION_INFO_ANY_ID);
+				// Add station info
+				//     - Set ht_capable argument to the HT_CAPABLE capability of the BSS.  Given that the node does not know
+				//       the HT capabilities of the new station, it is reasonable to assume that they are the same as the BSS.
+				//
+				station_info = wlan_mac_high_add_station_info(&(active_bss_info->station_info_list), &counts_table, eth_dest, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params,
+															  (active_bss_info->capabilities & BSS_CAPABILITIES_HT_CAPABLE));
 				ibss_update_hex_display(active_bss_info->station_info_list.length);
-				if(station_info != NULL) station_info->tx = default_unicast_data_tx_params;
 			}
 
 			if(station_info == NULL){
@@ -811,9 +831,13 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 				if(station_info_entry != NULL){
 					station_info = (station_info_t*)station_info_entry->data;
 				} else {
-					station_info = wlan_mac_high_add_station_info(&active_bss_info->station_info_list, &counts_table, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID);
+					// Add station info
+					//     - Set ht_capable argument to the HT_CAPABLE capability of the BSS.  Given that the node does not know
+					//       the HT capabilities of the new station, it is reasonable to assume that they are the same as the BSS.
+					//
+					station_info = wlan_mac_high_add_station_info(&(active_bss_info->station_info_list), &counts_table, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params,
+																  (active_bss_info->capabilities & BSS_CAPABILITIES_HT_CAPABLE));
 					ibss_update_hex_display(active_bss_info->station_info_list.length);
-					if(station_info != NULL) station_info->tx = default_unicast_data_tx_params;
 				}
 			}
 		} else {
@@ -821,7 +845,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 		}
 
 		if(station_info != NULL) {
-
 
 			// Update station information
 			station_info->latest_activity_timestamp = get_system_time_usec();
@@ -940,7 +963,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 									// Put the packet in the queue
 									enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
-
 								}
 
 								// Finish the function
@@ -1108,9 +1130,13 @@ void ltg_event(u32 id, void* callback_arg){
 			station_info_entry = wlan_mac_high_find_station_info_ADDR(&active_bss_info->station_info_list, addr_da);
 
 			if(station_info_entry == NULL){
-				station_info = wlan_mac_high_add_station_info(&active_bss_info->station_info_list, &counts_table, addr_da, ADD_STATION_INFO_ANY_ID);
+				// Add station info
+				//     - Set ht_capable argument to the HT_CAPABLE capability of the BSS.  Given that the node does not know
+				//       the HT capabilities of the new station, it is reasonable to assume that they are the same as the BSS.
+				//
+				station_info = wlan_mac_high_add_station_info(&(active_bss_info->station_info_list), &counts_table, addr_da, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params,
+															  (active_bss_info->capabilities & BSS_CAPABILITIES_HT_CAPABLE));
 				ibss_update_hex_display(active_bss_info->station_info_list.length);
-				if(station_info != NULL) station_info->tx = default_unicast_data_tx_params;
 			}
 		}
 
@@ -1413,10 +1439,15 @@ u32	configure_bss(bss_config_t* bss_config){
 				send_beacon_config_to_low = 1;
 			}
 			if (bss_config->update_mask & BSS_FIELD_MASK_HT_CAPABLE) {
-				// TODO:
-				//     1) Update Beacon Template capabilities
-				//     2) Update existing MCS selections for defaults and
-				//        associated stations?
+				// In an IBSS network, the node does not know the HT capabilities of any of
+				// the peer nodes in the BSS.  Therefore, when station infos are added to
+				// track peer nodes, the node assumes that the peer node's HT capabilities
+				// matches that of the BSS.  Given that changing the BSS capabilities does
+				// not invalidate that assumption, the IBSS node does not update any station
+				// info HT capabilities when the BSS capabilities change.  Therefore,
+				// changing the BSS HT_CAPABLE capabilities only affects what is advertised in
+				// the IBSS beacons.  Also, it should not change any of the default TX params
+				// since the IBSS node is still capable of sending and receiving HT packets.
 
 				if (bss_config->ht_capable) {
 					active_bss_info->capabilities |= BSS_CAPABILITIES_HT_CAPABLE;
@@ -1424,6 +1455,7 @@ u32	configure_bss(bss_config_t* bss_config){
 					active_bss_info->capabilities &= ~BSS_CAPABILITIES_HT_CAPABLE;
 				}
 
+				// Update the beacon template to match capabilities
 				update_beacon_template = 1;
 			}
 

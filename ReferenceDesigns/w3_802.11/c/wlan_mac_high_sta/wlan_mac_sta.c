@@ -59,11 +59,21 @@
 #define  WLAN_EXP_NODE_TYPE                      WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_STA
 
 
-#define  WLAN_DEFAULT_USE_HT                      1
 #define  WLAN_DEFAULT_CHANNEL                     1
 #define  WLAN_DEFAULT_TX_PWR                      15
 #define  WLAN_DEFAULT_TX_ANTENNA                  TX_ANTMODE_SISO_ANTA
 #define  WLAN_DEFAULT_RX_ANTENNA                  RX_ANTMODE_SISO_ANTA
+
+// WLAN_DEFAULT_USE_HT
+//
+// The WLAN_DEFAULT_USE_HT define will set the default unicast TX phy mode
+// to:  1 --> HTMF  or  0 --> NONHT.  It will also be used as the default
+// value for the HT_CAPABLE capability of the BSS in configure_bss() when
+// moving from a NULL to a non-NULL BSS and the ht_capable parameter is not
+// specified.  This does not affect the ability of the node to send and
+// receive HT packets.   All WARP nodes are HT capable (ie they can send
+// and receive both HTMF and NONHT packets).
+#define  WLAN_DEFAULT_USE_HT                      1
 
 
 /*********************** Global Variable Definitions *************************/
@@ -148,6 +158,12 @@ int main() {
 	bzero(gl_beacon_txrx_config.bssid_match, MAC_ADDR_LEN);
 	gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
 	gl_beacon_txrx_config.beacon_interval_tu = 0;
+
+	// Zero out all TX params
+	bzero(&default_unicast_data_tx_params, sizeof(tx_params_t));
+	bzero(&default_unicast_mgmt_tx_params, sizeof(tx_params_t));
+	bzero(&default_multicast_data_tx_params, sizeof(tx_params_t));
+	bzero(&default_multicast_mgmt_tx_params, sizeof(tx_params_t));
 
 	// New associations adopt these unicast params; the per-node params can be
 	//   overridden via wlan_exp calls or by custom C code
@@ -1216,28 +1232,14 @@ u32	configure_bss(bss_config_t* bss_config){
 #endif
 					active_bss_info = local_bss_info;
 
-
 					// Add AP to association table
-					ap_station_info = wlan_mac_high_add_station_info(&(active_bss_info->station_info_list), &counts_table, active_bss_info->bssid, 0);
+					//     - Set ht_capable argument to the HT_CAPABLE capability of the BSS.  Given that the STA does not know
+					//       the HT capabilities of the AP, it is reasonable to assume that they are the same as the BSS.
+					//
+					ap_station_info = wlan_mac_high_add_station_info(&(active_bss_info->station_info_list), &counts_table, active_bss_info->bssid, 0, &default_unicast_data_tx_params,
+																	 (active_bss_info->capabilities & BSS_CAPABILITIES_HT_CAPABLE));
 
-					if(ap_station_info != NULL) {
-
-						// Start off with a copy of the default unicast data Tx parameters.
-						ap_station_info->tx = default_unicast_data_tx_params;
-
-						if(active_bss_info->capabilities & BSS_CAPABILITIES_HT_CAPABLE){
-							ap_station_info->flags |= STATION_INFO_FLAG_HT_CAPABLE;
-						} else {
-							ap_station_info->flags &= ~STATION_INFO_FLAG_HT_CAPABLE;
-						}
-
-						if((ap_station_info->flags & STATION_INFO_FLAG_HT_CAPABLE) == 0){
-							// If this station is not capable of HT phy_mode, then we'll adjust its tx_params.
-							//     - If the default tx_params does not support HT, then we will not explicitly
-							//       set the phy_mode to HT just because the STA is capable of it
-							ap_station_info->tx.phy.phy_mode = PHY_MODE_NONHT;
-						}
-
+					if (ap_station_info != NULL) {
 						//
 						// TODO:  (Optional) Log association state change
 						//
@@ -1269,13 +1271,35 @@ u32	configure_bss(bss_config_t* bss_config){
 				send_beacon_config_to_low = 1;
 			}
 			if (bss_config->update_mask & BSS_FIELD_MASK_HT_CAPABLE) {
-				// FIXME:
-				// 	   1) Update existing MCS selections for defaults and
-				//	  		single station_info that represents AP?
 				if (bss_config->ht_capable) {
 					active_bss_info->capabilities |= BSS_CAPABILITIES_HT_CAPABLE;
 				} else {
 					active_bss_info->capabilities &= ~BSS_CAPABILITIES_HT_CAPABLE;
+				}
+
+				// The HT_CAPABLE flag of the AP station_info should match the HT_CAPABLE capabilities
+				// of the BSS.  This is a reasonable assumption given that the STA cannot know the HT
+				// capabilities of the AP.
+
+				// Get the AP station info
+				if (ap_station_info == NULL) {
+					dl_entry * entry = wlan_mac_high_find_station_info_ADDR(&(active_bss_info->station_info_list), active_bss_info->bssid);
+
+					if (entry != NULL) {
+						ap_station_info = (station_info_t*)(entry->data);
+					}
+				}
+
+				// Update the AP station info based on BSS capabilities
+				if (ap_station_info != NULL) {
+					if (active_bss_info->capabilities & BSS_CAPABILITIES_HT_CAPABLE) {
+						ap_station_info->flags |= STATION_INFO_FLAG_HT_CAPABLE;
+					} else {
+						ap_station_info->flags &= ~STATION_INFO_FLAG_HT_CAPABLE;
+					}
+
+					// Update the rate based on the flags that were set
+					wlan_mac_high_update_station_info_rate(ap_station_info, default_unicast_data_tx_params.phy.mcs, default_unicast_data_tx_params.phy.phy_mode);
 				}
 			}
 
