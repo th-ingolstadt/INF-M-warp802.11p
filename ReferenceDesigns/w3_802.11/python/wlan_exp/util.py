@@ -1133,7 +1133,7 @@ def _time():
 # End def
 
 
-def _broadcast_time_to_nodes(time_cmd, network_config, time=0.0, time_id=None):
+def _broadcast_time_to_nodes(time_cmd, network_config, time=0, time_id=None):
     """Internal method to issue broadcast time commands
 
     This method will iterate through all host interfaces and issue a
@@ -1145,9 +1145,8 @@ def _broadcast_time_to_nodes(time_cmd, network_config, time=0.0, time_id=None):
     Attributes:
         time_cmd       -- NodeProcTime command to issue
         network_config -- A NetworkConfiguration object
-        time           -- Optional time to broadcast to the nodes (defaults to 0.0)
-                          either as an integer number of microseconds or a floating
-                          point number in seconds
+        time           -- Optional time to broadcast to the nodes (defaults to 0)
+                          as an integer number of microseconds
         time_id        -- Optional value to identify broadcast time commands across nodes
     """
     import wlan_exp.cmds as cmds
@@ -1155,12 +1154,10 @@ def _broadcast_time_to_nodes(time_cmd, network_config, time=0.0, time_id=None):
     time_factor = 6               # Time can be in # of microseconds (ie 10^(-6) seconds)
 
     # Need to convert time input to float so that it can be added to _time()
-    if   (type(time) is float):
-        node_time   = time
-    elif (type(time) in [int, long]):
+    if (type(time) in [int, long]):
         node_time   = float(time / (10**time_factor))   # Convert to float
     else:
-        raise TypeError("Time must be either a float or int")
+        raise TypeError("Time must be an integer number of microseconds.")
 
     # Determine if data is being sent to multiple networks
     if type(network_config) is list:

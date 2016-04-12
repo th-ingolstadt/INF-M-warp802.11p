@@ -563,7 +563,6 @@ class LTGRemove(LTGCommon):
 
 class LTGStatus(message.Cmd):
     """Command to get the status of the LTG."""
-    time_factor = 6
     name        = 'status'
 
     def __init__(self, ltg_id):
@@ -708,39 +707,20 @@ class NodeProcWLANMACAddr(message.Cmd):
 class NodeProcTime(message.Cmd):
     """Command to get / set the time on the node.
 
-    Python time functions operate on floating point numbers in seconds, while 
-    the WARP Node operates on microseconds.  In order to be more flexible, 
-    this class can be initialized with either type of input.  It will return 
-    the time based on the time_type input (either interger microseconds or 
-    float seconds).
-
     Attributes:
         cmd       -- Sub-command to send over the command.  Valid values are:
                        CMD_PARAM_READ
                        CMD_PARAM_WRITE
                        TIME_ADD_TO_LOG
-        node_time -- Time as either an integer number of microseconds or
-                       a floating point number in seconds.
+        node_time -- Time to set the on the node
         time_id   -- ID to use identify the time command in the log.
-        time_type -- Type of the time value (float seconds or int microseconds).
-                     Valid values are:
-                         TIME_TYPE_FLOAT
-                         TIME_TYPE_INT
     """
-    time_factor = 6
-    time_type   = None
-
-    def __init__(self, cmd, node_time, time_id=None, time_type=None):
+    def __init__(self, cmd, node_time, time_id=None):
         super(NodeProcTime, self).__init__()
         self.command  = _CMD_GROUP_NODE + CMDID_NODE_TIME
 
-        if time_type is not None:
-            self.time_type = time_type
-
-        # Read the time as a float
+        # Read the time as int microseconds
         if (cmd == CMD_PARAM_READ):
-            if self.time_type is None:
-                self.time_type = TIME_TYPE_INT
             self.add_args(CMD_PARAM_READ)
             self.add_args(CMD_PARAM_RSVD_TIME)             # Reads do not need a time_id
             self.add_args(CMD_PARAM_RSVD_TIME)
@@ -752,26 +732,25 @@ class NodeProcTime(message.Cmd):
         else:
             import time
 
-            # By default set the time_id to a random number between [0, 2^32)
-            if time_id is None:
-                import random
-                time_id = 2**32 * random.random()
-
+            # Set the command
             if (cmd == CMD_PARAM_WRITE):
                 self.add_args(CMD_PARAM_WRITE)
             else:
                 self.add_args(CMD_PARAM_TIME_ADD_TO_LOG)
                 node_time = None
 
+            # By default set the time_id to a random number between [0, 2^32)
+            if time_id is None:
+                import random
+                time_id = 2**32 * random.random()
+
             self.add_args(int(time_id))
-            
-            if self.time_type is None:
-                self.time_type = _add_time_to_cmd64(self, node_time, self.time_factor)
-            else:
-                _add_time_to_cmd64(self, node_time, self.time_factor)
+
+            # Add the time
+            _add_time_to_cmd64(self, node_time)
             
             # Get the current time on the host
-            _add_time_to_cmd64(self, time.time(), self.time_factor)
+            _add_time_to_cmd64(self, time.time())
 
 
     def process_resp(self, resp):
@@ -786,12 +765,6 @@ class NodeProcTime(message.Cmd):
         else:
             mac_time = 0
             sys_time = 0
-
-        if (self.time_type == TIME_TYPE_FLOAT):
-            mac_time = float(mac_time / (10**self.time_factor))
-            sys_time = float(sys_time / (10**self.time_factor))
-
-        # Use existing mac_time, sys_time if time_type is TIME_TYPE_INT
 
         return (mac_time, sys_time)
 
@@ -1428,7 +1401,6 @@ class NodeProcScanParam(message.Cmd):
         channel_list             -- List of channels to scan (optional)
         ssid                     -- SSID (optional)
     """
-    time_factor = 6
     time_type   = None
 
     def __init__(self, cmd, time_per_channel=None, num_probe_tx_per_channel=None, channel_list=None, ssid=None):
@@ -1439,7 +1411,7 @@ class NodeProcScanParam(message.Cmd):
             self.add_args(cmd)
 
             # Add the time_per_channel to the command
-            _add_time_to_cmd32(self, time_per_channel, self.time_factor)
+            _add_time_to_cmd32(self, time_per_channel)
 
             # Add num_probe_tx_per_channel to the command
             if num_probe_tx_per_channel is not None:
@@ -2257,24 +2229,17 @@ def _add_ssid_to_cmd(cmd, ssid):
 # End def
 
 
-def _add_time_to_cmd64(cmd, time, time_factor):
-    """Internal method to add a 64-bit time value to the given command.
-
-    Returns:
-        Type of the time argument
-    """
-    ret_val = TIME_TYPE_FLOAT
-
+def _add_time_to_cmd64(cmd, time):
+    """Internal method to add a 64-bit time value to the given command."""
     if time is not None:
-        # Format the time appropriately
+        # Convert to int microseconds
         if   (type(time) is float):
+            time_factor    = 6         # Python time functions uses float seconds
             time_to_send   = int(round(time, time_factor) * (10**time_factor))
-            ret_val        = TIME_TYPE_FLOAT
         elif (type(time) in [int, long]):
             time_to_send   = time
-            ret_val        = TIME_TYPE_INT
         else:
-            raise TypeError("Time must be either a float or int")
+            raise TypeError("Time must be an integer number of microseconds.")
 
         cmd.add_args((time_to_send & 0xFFFFFFFF))
         cmd.add_args(((time_to_send >> 32) & 0xFFFFFFFF))
@@ -2282,29 +2247,20 @@ def _add_time_to_cmd64(cmd, time, time_factor):
         cmd.add_args(CMD_PARAM_RSVD_TIME)
         cmd.add_args(CMD_PARAM_RSVD_TIME)
 
-    return ret_val
-
 # End def
 
 
-def _add_time_to_cmd32(cmd, time, time_factor):
-    """Internal method to add a 32-bit time value to the given command.
-
-    Returns:
-        Type of the time argument
-    """
-    ret_val = TIME_TYPE_FLOAT
-
+def _add_time_to_cmd32(cmd, time):
+    """Internal method to add a 32-bit time value to the given command."""
     if time is not None:
-        # Format the time appropriately
+        # Convert to int microseconds
         if   (type(time) is float):
+            time_factor    = 6         # Python time functions uses float seconds
             time_to_send   = int(round(time, time_factor) * (10**time_factor))
-            ret_val        = TIME_TYPE_FLOAT
         elif (type(time) is int):
             time_to_send   = time
-            ret_val        = TIME_TYPE_INT
         else:
-            raise TypeError("Time must be either a float or int")
+            raise TypeError("Time must be an integer number of microseconds.")
 
         if (time_to_send > 0xFFFFFFFF):
             time_to_send = 0xFFFFFFFF
@@ -2313,8 +2269,6 @@ def _add_time_to_cmd32(cmd, time, time_factor):
         cmd.add_args((time_to_send & 0xFFFFFFFF))
     else:
         cmd.add_args(CMD_PARAM_RSVD_TIME)
-
-    return ret_val
 
 # End def
 
