@@ -660,6 +660,17 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         ctrl_tx_gain = wlan_mac_low_dbm_to_gain_target(wlan_mac_low_get_current_ctrl_tx_pow());
         wlan_mac_tx_ctrl_B_gains(ctrl_tx_gain, ctrl_tx_gain, ctrl_tx_gain, ctrl_tx_gain);
 
+
+        if((phy_details->length) >= MAC_HW_LASTBYTE_ADDR2){
+        	// Wait until the PHY has written enough bytes so that the second address field can be processed
+        	// If this is a short reception that does not have a second address, it is still possible to get
+        	// to this line of code if there is an FCS error and the WLAN_IS_CTRL_FRAME check above fails.
+        	// As such, we sanity check the length of the reception before getting into a potentially infinite
+        	// loop.
+        	while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR2) {
+			};
+        }
+
         // Construct the ACK frame in the dedicated Tx pkt buf
         tx_length = wlan_create_ack_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK_CTS) + PHY_TX_PKT_BUF_MPDU_OFFSET), rx_header->address_2);
 
