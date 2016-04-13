@@ -706,7 +706,11 @@ inline u16 wlan_ofdm_calc_txtime(u16 length, u8 mcs, u8 phy_mode, phy_samp_rate_
 
     u16 t_preamble;
     u16 t_sym;
-    u16 t_ext = 6; //FIXME: this should refer to whatever constant sets the Tx/Rx PHY's actual extensions
+
+    // Note: the t_ext signal extension represent the value used in the standard, which in turn
+    // is the value expected by other commercial WLAN devices. By default, the signal extensions
+    // programmed into the PHY match this value.
+    u16 t_ext = 6;
 
     // Set OFDM symbol duration in microseconds; only depends on PHY sampling rate
     switch(phy_samp_rate) {

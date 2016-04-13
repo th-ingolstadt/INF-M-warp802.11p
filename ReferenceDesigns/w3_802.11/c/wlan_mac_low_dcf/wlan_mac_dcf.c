@@ -1211,14 +1211,12 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
             // The rate given to us in the argument of frame_transmit applies to the MPDU. Several
             // elements depend on this rate:
             //
-            // 1) The rate of the RTS we will send
-            // 2) The rate of the CTS we expect to receive
+            // 1) The rate of the RTS we will send (fixed NONHT phy mode for CTRL response)
+            // 2) The rate of the CTS we expect to receive (fixed NONHT phy mode for CTRL response)
             // 3) The duration of the RTS/CTS/DATA frames a long with the IFS periods between them
             //
             // The below switch() sets these elements accordingly.
             //
-
-            //FIXME: mcs decisions below need phy_mode too
             switch (mcs) {
                 default:
                 case 0:
