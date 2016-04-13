@@ -74,7 +74,7 @@
 // specified.  This does not affect the ability of the node to send and
 // receive HT packets.   All WARP nodes are HT capable (ie they can send
 // and receive both HTMF and NONHT packets).
-#define  WLAN_DEFAULT_USE_HT                     0
+#define  WLAN_DEFAULT_USE_HT                     1
 
 
 /*********************** Global Variable Definitions *************************/
