@@ -456,45 +456,45 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         The TxRxCounts() structure returned by this method can be accessed like
         a dictionary and has the following fields:
         
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | Field                       | Description                                                                                        |
-            +=============================+====================================================================================================+
-            | retrieval_timestamp         |  Value of System Time in microseconds when structure retrieved from the node                       |
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | mac_addr                    |  MAC address of remote node whose statics are recorded here                                        |
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | associated                  |  Boolean indicating whether remote node is currently associated with this node                     |
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | data_num_rx_bytes           |  Total number of bytes received in DATA packets from remote node                                   |
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | data_num_tx_bytes_success   |  Total number of bytes successfully transmitted in DATA packets to remote node                     |
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | data_num_tx_bytes_total     |  Total number of bytes transmitted (successfully or not) in DATA packets to remote node            |
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | data_num_rx_packets         |  Total number of DATA packets received from remote node                                            |
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | data_num_tx_packets_success |  Total number of DATA packets successfully transmitted to remote node                              |
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | data_num_tx_packets_total   |  Total number of DATA packets transmitted (successfully or not) to remote node                     |
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | data_num_tx_packets_low     |  Total number of PHY transmissions of DATA packets to remote node (includes re-transmissions)      |
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | mgmt_num_rx_bytes           |  Total number of bytes received in management packets from remote node                             |
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | mgmt_num_tx_bytes_success   |  Total number of bytes successfully transmitted in management packets to remote node               |
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | mgmt_num_tx_bytes_total     |  Total number of bytes transmitted (successfully or not) in management packets to remote node      |
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | mgmt_num_rx_packets         |  Total number of management packets received from remote node                                      |
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | mgmt_num_tx_packets_success |  Total number of management packets successfully transmitted to remote node                        |
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | mgmt_num_tx_packets_total   |  Total number of management packets transmitted (successfully or not) to remote node               |
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | mgmt_num_tx_packets_low     |  Total number of PHY transmissions of management packets to remote node (includes re-transmissions)|
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | latest_txrx_timestamp       |  System Time value of last transmission / reception                                                |
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            +-----------------------------+-----------------------------------------------------------------------------------------------------+
+            | Field                       | Description                                                                                         |
+            +=============================+=====================================================================================================+
+            | retrieval_timestamp         |  Value of System Time in microseconds when structure retrieved from the node                        |
+            +-----------------------------+-----------------------------------------------------------------------------------------------------+
+            | mac_addr                    |  MAC address of remote node whose statics are recorded here                                         |
+            +-----------------------------+-----------------------------------------------------------------------------------------------------+
+            | associated                  |  Boolean indicating whether remote node is currently associated with this node                      |
+            +-----------------------------+-----------------------------------------------------------------------------------------------------+
+            | data_num_rx_bytes           |  Total number of bytes received in DATA packets from remote node                                    |
+            +-----------------------------+-----------------------------------------------------------------------------------------------------+
+            | data_num_tx_bytes_success   |  Total number of bytes successfully transmitted in DATA packets to remote node                      |
+            +-----------------------------+-----------------------------------------------------------------------------------------------------+
+            | data_num_tx_bytes_total     |  Total number of bytes transmitted (successfully or not) in DATA packets to remote node             |
+            +-----------------------------+-----------------------------------------------------------------------------------------------------+
+            | data_num_rx_packets         |  Total number of DATA packets received from remote node                                             |
+            +-----------------------------+-----------------------------------------------------------------------------------------------------+
+            | data_num_tx_packets_success |  Total number of DATA packets successfully transmitted to remote node                               |
+            +-----------------------------+-----------------------------------------------------------------------------------------------------+
+            | data_num_tx_packets_total   |  Total number of DATA packets transmitted (successfully or not) to remote node                      |
+            +-----------------------------+-----------------------------------------------------------------------------------------------------+
+            | data_num_tx_attempts        |  Total number of low-level attempts of DATA packets to remote node (includes re-transmissions)      |
+            +-----------------------------+-----------------------------------------------------------------------------------------------------+
+            | mgmt_num_rx_bytes           |  Total number of bytes received in management packets from remote node                              |
+            +-----------------------------+-----------------------------------------------------------------------------------------------------+
+            | mgmt_num_tx_bytes_success   |  Total number of bytes successfully transmitted in management packets to remote node                |
+            +-----------------------------+-----------------------------------------------------------------------------------------------------+
+            | mgmt_num_tx_bytes_total     |  Total number of bytes transmitted (successfully or not) in management packets to remote node       |
+            +-----------------------------+-----------------------------------------------------------------------------------------------------+
+            | mgmt_num_rx_packets         |  Total number of management packets received from remote node                                       |
+            +-----------------------------+-----------------------------------------------------------------------------------------------------+
+            | mgmt_num_tx_packets_success |  Total number of management packets successfully transmitted to remote node                         |
+            +-----------------------------+-----------------------------------------------------------------------------------------------------+
+            | mgmt_num_tx_packets_total   |  Total number of management packets transmitted (successfully or not) to remote node                |
+            +-----------------------------+-----------------------------------------------------------------------------------------------------+
+            | mgmt_num_tx_attempts        |  Total number of low-level attempts of management packets to remote node (includes re-transmissions)|
+            +-----------------------------+-----------------------------------------------------------------------------------------------------+
+            | latest_txrx_timestamp       |  System Time value of last transmission / reception                                                 |
+            +-----------------------------+-----------------------------------------------------------------------------------------------------+
 
 
         If the ``device_list`` is a single device, then a single dictionary or 

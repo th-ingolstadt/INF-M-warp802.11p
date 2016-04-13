@@ -96,14 +96,14 @@ info_field_defs = {
         ('data_num_rx_packets',         'I',      'uint32',  'Total number of DATA packets received from remote node'),
         ('data_num_tx_packets_success', 'I',      'uint32',  'Total number of DATA packets successfully transmitted to remote node'),
         ('data_num_tx_packets_total',   'I',      'uint32',  'Total number of DATA packets transmitted (successfully or not) to remote node'),
-        ('data_num_tx_packets_low',     'I',      'uint32',  'Total number of PHY transmissions of DATA packets to remote node (includes re-transmissions)'),
+        ('data_num_tx_attempts',        'I',      'uint32',  'Total number of attempts of DATA packets to remote node (includes re-transmissions)'),
         ('mgmt_num_rx_bytes',           'Q',      'uint64',  'Total number of bytes received in management packets from remote node'),
         ('mgmt_num_tx_bytes_success',   'Q',      'uint64',  'Total number of bytes successfully transmitted in management packets to remote node'),
         ('mgmt_num_tx_bytes_total',     'Q',      'uint64',  'Total number of bytes transmitted (successfully or not) in management packets to remote node'),
         ('mgmt_num_rx_packets',         'I',      'uint32',  'Total number of management packets received from remote node'),
         ('mgmt_num_tx_packets_success', 'I',      'uint32',  'Total number of management packets successfully transmitted to remote node'),
         ('mgmt_num_tx_packets_total',   'I',      'uint32',  'Total number of management packets transmitted (successfully or not) to remote node'),
-        ('mgmt_num_tx_packets_low',     'I',      'uint32',  'Total number of PHY transmissions of management packets to remote node (includes re-transmissions)'),
+        ('mgmt_num_tx_attempts',        'I',      'uint32',  'Total number of attempts management packets to remote node (includes re-transmissions)'),
         ('latest_txrx_timestamp',       'Q',      'uint64',  'Value of Sytem Time in microseconds of last transmission / reception')]
 
 }

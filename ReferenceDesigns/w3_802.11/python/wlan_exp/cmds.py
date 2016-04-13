@@ -877,7 +877,7 @@ class NodeProcChannel(message.Cmd):
                     msg += "    Tried to set channel to {0}\n".format(util.channel_to_str(self.channel))
                     msg += "    Actually set channel to {0}\n".format(util.channel_to_str(args[1]))
                     print(msg)
-            return util.find_channel_by_channel_number(args[1])
+            return util.get_channel_info(args[1])
         else:
             return None
 
@@ -2312,10 +2312,10 @@ def _get_channel_number(channel):
     except (KeyError, TypeError):
         import wlan_exp.util as util
         
-        tmp_chan = util.find_channel_by_channel_number(channel)
+        tmp_chan = util.get_channel_info(channel)
         
         if tmp_chan is not None:
-            my_channel = tmp_chan['index']
+            my_channel = tmp_chan['channel']
         else:
             msg  = "Unknown channel:  {0}".format(channel)
             raise ValueError(msg)
