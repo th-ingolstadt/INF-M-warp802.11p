@@ -1198,9 +1198,9 @@ class NodeProcTxRate(message.Cmd):
                 elif self.cmd == CMD_PARAM_WRITE:
                     cmd = "set {0} rate".format(tx_type)
                 elif self.cmd == CMD_PARAM_READ_DEFAULT:
-                    cmd = "get {0} for new associations".format(tx_type)
+                    cmd = "get {0} for new station infos".format(tx_type)
                 elif self.cmd == CMD_PARAM_WRITE_DEFAULT:
-                    cmd = "set {0} for new associations".format(tx_type)
+                    cmd = "set {0} for new station infos".format(tx_type)
                     
                 msg    += "    Could not {0} ".format(cmd)
  

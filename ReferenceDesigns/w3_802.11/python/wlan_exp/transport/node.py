@@ -199,7 +199,7 @@ class WarpNode(object):
         
         Send an empty packet to the node via the transport to test connectivity
         between the host and the node.  This is the simplest command that can
-        be processed by the node and is similar to the unix "ping" command used
+        be processed by the node and is similar to the "ping" command used
         check network connectivity.
         """
         self.transport.ping(self, output=True)

@@ -28,6 +28,7 @@ class WlanDevice(object):
         mac_address (int, str): Medium Access Control (MAC) address of the WLAN device (48-bits)
              The mac_address should be of the format:  0x0123456789AB or '01:23:45:67:89:AB'
         name (string):          User generated description of the WLAN device
+        ht_capable (bool):      Indicates if device has PHY capable of HT (802.11n) rates 
 
     **Class Members:**
     
