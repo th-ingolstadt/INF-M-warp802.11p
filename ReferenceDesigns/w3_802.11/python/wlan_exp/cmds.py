@@ -1581,44 +1581,8 @@ class NodeConfigBSS(message.Cmd):
     def process_resp(self, resp):
         # Check number of arguments
         if (resp.resp_is_valid(num_args=1, name='from config BSS command')):
-            args    = resp.get_args()
-            status  = args[0]
-            msg     = "ERROR:  Invalid response from node:\n"
-            ret_val = True
-            
-            # Check status
-            if (status & ERROR_CONFIG_BSS_BSSID_INVALID):
-                if type(self.bssid) in [int, long]:
-                    import wlan_exp.util as util
-                    self.bssid = util.mac_addr_to_str(self.bssid)
-                msg    += "    BSSID {0} was invalid.\n".format(self.bssid)
-                ret_val = False
-            
-            if (status & ERROR_CONFIG_BSS_BSSID_INSUFFICIENT_ARGUMENTS):
-                msg    += "    Insufficient arguments to create BSS.\n"
-                msg    += "        BSSID           = {0}\n".format(self.bssid)
-                msg    += "        SSID            = {0}\n".format(self.ssid)
-                msg    += "        CHANNEL         = {0}\n".format(self.channel)
-                msg    += "        BEACON_INTERVAL = {0}\n".format(self.beacon_interval)
-                msg    += "        HT_CAPABLE      = {0}\n".format(self.ht_capable)
-                ret_val = False
-            
-            if (status & ERROR_CONFIG_BSS_CHANNEL_INVALID):
-                msg    += "    Channel {0} was invalid.\n".format(self.channel)
-                ret_val = False
-            
-            if (status & ERROR_CONFIG_BSS_BEACON_INTERVAL_INVALID):
-                msg    += "    Beacon interval {0} was invalid.\n".format(self.beacon_interval)
-                ret_val = False
-            
-            if (status & ERROR_CONFIG_BSS_HT_CAPABLE_INVALID):
-                msg    += "    HT capable {0} was invalid.\n".format(self.ht_capable)
-                ret_val = False
-            
-            if not ret_val:
-                print(msg)
-            
-            return ret_val
+            # All error checking is done by the individual implementations
+            return resp.get_args()
         else:
             return False
 

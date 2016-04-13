@@ -147,8 +147,49 @@ class WlanExpNodeIBSS(node.WlanExpNode):
                     msg += "    create a 'locally adminstered' BSSID."
                     raise AttributeError(msg)
         
-        self.send_cmd(cmds.NodeConfigBSS(bssid=bssid, ssid=ssid, channel=channel, 
-                                         beacon_interval=beacon_interval, ht_capable=ht_capable))
+        resp_args = self.send_cmd(cmds.NodeConfigBSS(bssid=bssid, ssid=ssid, channel=channel,
+                                                     beacon_interval=beacon_interval, ht_capable=ht_capable))
+        
+        # Process response arguments
+        if (resp_args is not False):
+            status  = resp_args[0]
+            msg     = "ERROR:  Invalid response from node:\n"
+            ret_val = True
+            
+            # Check status
+            if (status & cmds.ERROR_CONFIG_BSS_BSSID_INVALID):
+                if type(self.bssid) in [int, long]:
+                    import wlan_exp.util as util
+                    self.bssid = util.mac_addr_to_str(self.bssid)
+                msg    += "    BSSID {0} was invalid.\n".format(self.bssid)
+                ret_val = False
+            
+            if (status & cmds.ERROR_CONFIG_BSS_BSSID_INSUFFICIENT_ARGUMENTS):
+                msg    += "    Insufficient arguments to create BSS.  Must provide:\n"
+                if (bssid is False): 
+                    msg    += "        BSSID\n"
+                if (ssid is None):
+                    msg    += "        SSID\n"
+                if (channel is None):
+                    msg    += "        CHANNEL\n"
+                if (beacon_interval is False):
+                    msg    += "        BEACON_INTERVAL\n"
+                ret_val = False
+            
+            if (status & cmds.ERROR_CONFIG_BSS_CHANNEL_INVALID):
+                msg    += "    Channel {0} was invalid.\n".format(self.channel)
+                ret_val = False
+            
+            if (status & cmds.ERROR_CONFIG_BSS_BEACON_INTERVAL_INVALID):
+                msg    += "    Beacon interval {0} was invalid.\n".format(self.beacon_interval)
+                ret_val = False
+            
+            if (status & cmds.ERROR_CONFIG_BSS_HT_CAPABLE_INVALID):
+                msg    += "    HT capable {0} was invalid.\n".format(self.ht_capable)
+                ret_val = False
+            
+            if not ret_val:
+                print(msg)
 
 
     #-------------------------------------------------------------------------
