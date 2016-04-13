@@ -563,6 +563,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     // for the hard SIFS boundary.
     //
 
+	int					i;
     u32                 return_value             = 0;
     u32                 tx_length;
     u8                  tx_mcs;
@@ -633,16 +634,9 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     }
 
     // Wait until the PHY has written enough bytes so that the first address field can be processed
+    i = 0;
     while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1) {
-
-    	// Software workaround for PHY bug when receiving waveforms with invalid HT-SIG fields
-    	//  Fixed in v1.5 PHY (I think) - consider removing
-		mac_hw_status = wlan_mac_get_status();
-		if((wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1) && ((mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE) == 0)) {
-			//Rx PHY is idle, but we're still waiting for bytes - bad MAC/PHY status, ignore Rx and return
-			xil_printf("ERROR (frame_receive): Rx PHY idle while waiting for 14 bytes\n");
-			return return_value;
-		}
+    	if(i++ > 1000000) {xil_printf("Stuck waiting for MAC_HW_LASTBYTE_ADDR1: wlan_mac_get_last_byte_index() = %d\n", wlan_mac_get_last_byte_index());}
     };
 
     // Check the destination address
@@ -667,7 +661,9 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         	// to this line of code if there is an FCS error and the WLAN_IS_CTRL_FRAME check above fails.
         	// As such, we sanity check the length of the reception before getting into a potentially infinite
         	// loop.
+        	i = 0;
         	while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR2) {
+        		if(i++ > 1000000) {xil_printf("Stuck waiting for MAC_HW_LASTBYTE_ADDR2: wlan_mac_get_last_byte_index() = %d\n", wlan_mac_get_last_byte_index());}
 			};
         }
 
