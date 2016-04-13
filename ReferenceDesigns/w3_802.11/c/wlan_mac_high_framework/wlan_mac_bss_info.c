@@ -112,7 +112,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 
 	u16 				length					 = rx_frame_info->phy_details.length;
 
-	if ((rx_frame_info->flags & RX_MPDU_FLAGS_FCS_GOOD)) {
+	if ((rx_frame_info->flags & RX_FRAME_INFO_FLAGS_FCS_GOOD)) {
 		switch(rx_80211_header->frame_control_1) {
 			case (MAC_FRAME_CTRL1_SUBTYPE_BEACON):
 				update_rx_power = 1;

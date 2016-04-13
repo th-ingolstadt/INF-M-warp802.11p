@@ -636,7 +636,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
             	rx_event_log_entry->flags	   &= ~RX_FLAGS_LTG_PYLD;
             	rx_event_log_entry->flags	   &= ~RX_FLAGS_LTG;
             }
-            if( (rx_frame_info->flags & RX_MPDU_FLAGS_FCS_GOOD) ){
+            if( (rx_frame_info->flags & RX_FRAME_INFO_FLAGS_FCS_GOOD) ){
             	rx_event_log_entry->flags	   |= RX_FLAGS_FCS_GOOD;
             } else {
             	rx_event_log_entry->flags	   &= ~RX_FLAGS_FCS_GOOD;
@@ -682,7 +682,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
         }
     }
 
-    if ((rx_frame_info->flags & RX_MPDU_FLAGS_FORMED_RESPONSE) && (log_entry_en_mask & ENTRY_EN_MASK_TXRX_CTRL)) {
+    if ((rx_frame_info->flags & RX_FRAME_INFO_FLAGS_FORMED_RESPONSE) && (log_entry_en_mask & ENTRY_EN_MASK_TXRX_CTRL)) {
 
         // ------------------------------------------------
         // Create CTS log entry

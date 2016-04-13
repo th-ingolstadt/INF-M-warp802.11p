@@ -324,10 +324,9 @@ CASSERT(sizeof(rx_frame_info_t) == 336, rx_frame_info_alignment_check);
 
 
 // Defines for flags field
-// FIXME: rename and remove "MPDU". These also apply to control frames
-#define RX_MPDU_FLAGS_FORMED_RESPONSE                      0x1
-#define RX_MPDU_FLAGS_RETRY                                0x2
-#define RX_MPDU_FLAGS_FCS_GOOD                             0x4
+#define RX_FRAME_INFO_FLAGS_FORMED_RESPONSE                      0x1
+#define RX_FRAME_INFO_FLAGS_RETRY                                0x2
+#define RX_FRAME_INFO_FLAGS_FCS_GOOD                             0x4
 
 
 /*************************** Function Prototypes *****************************/

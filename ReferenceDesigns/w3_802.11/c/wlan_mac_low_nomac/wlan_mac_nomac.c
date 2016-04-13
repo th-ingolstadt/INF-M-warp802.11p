@@ -161,10 +161,10 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details){
     // Wait for the Rx PHY to finish receiving this packet
 	if(wlan_mac_hw_rx_finish() == 1){
 		//FCS was good
-		rx_frame_info->flags |= RX_MPDU_FLAGS_FCS_GOOD;
+		rx_frame_info->flags |= RX_FRAME_INFO_FLAGS_FCS_GOOD;
 	} else {
 		//FCS was bad
-		rx_frame_info->flags &= ~RX_MPDU_FLAGS_FCS_GOOD;
+		rx_frame_info->flags &= ~RX_FRAME_INFO_FLAGS_FCS_GOOD;
 	}
 
     // Update the rest of the frame_info fields using post-Rx information
@@ -175,7 +175,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details){
 	rx_frame_info->rx_power = wlan_mac_low_calculate_rx_power(wlan_phy_rx_get_pkt_rssi(rx_frame_info->ant_mode), wlan_phy_rx_get_agc_RFG(rx_frame_info->ant_mode));
 
     // Increment the LEDs based on the FCS status
-    if(rx_frame_info->flags & RX_MPDU_FLAGS_FCS_GOOD){
+    if(rx_frame_info->flags & RX_FRAME_INFO_FLAGS_FCS_GOOD){
         green_led_index = (green_led_index + 1) % NUM_LEDS;
         userio_write_leds_green(USERIO_BASEADDR, (1 << green_led_index));
     } else {

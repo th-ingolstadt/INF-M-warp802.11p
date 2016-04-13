@@ -30,7 +30,13 @@
 //
 #define MAILBOX_DEVICE_ID                                  XPAR_MBOX_0_DEVICE_ID
 
-// FIXME: v1.5 hardware has 512-word mailbox
+// TODO: Note that v1.5 hardware has 512-word mailbox
+//  - In a future release, we may reduce the mailbox size anyway. At the moment,
+//    we are constrained by the IPC_MBOX_TX_MPDU_DONE message, which contains
+//	  wlan_mac_low_tx_details_t structs for every attempt as part of its payload.
+//	  We intend to break this dependence in the future, which will limit all
+//	  IPC messages to a fixed size. We can revisit the definition of
+//	  MAILBOX_BUFFER_MAX_NUM_WORDS at that time.
 #define MAILBOX_BUFFER_MAX_NUM_WORDS                       100
 
 

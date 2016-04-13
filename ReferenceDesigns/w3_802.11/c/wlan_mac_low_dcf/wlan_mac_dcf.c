@@ -576,7 +576,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     u8                  report_to_mac_high;
     int                 curr_tx_pow;
     u8                  ctrl_tx_gain;
-    u32                 mac_hw_status;
     u32                 mac_tx_ctrl_status;
     s64					time_delta;
     u32 				current_tu;
@@ -778,13 +777,13 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     if((phy_details->length) <= RX_LEN_THRESH) {
     	if(wlan_mac_hw_rx_finish() == 1){
     		//FCS was good
-    		rx_frame_info->flags |= RX_MPDU_FLAGS_FCS_GOOD;
+    		rx_frame_info->flags |= RX_FRAME_INFO_FLAGS_FCS_GOOD;
     	} else {
     		//FCS was bad
-    		rx_frame_info->flags &= ~RX_MPDU_FLAGS_FCS_GOOD;
+    		rx_frame_info->flags &= ~RX_FRAME_INFO_FLAGS_FCS_GOOD;
     	}
 
-        if(rx_frame_info->flags & RX_MPDU_FLAGS_FCS_GOOD){
+        if(rx_frame_info->flags & RX_FRAME_INFO_FLAGS_FCS_GOOD){
             switch(rx_finish_state) {
                 case RX_FINISH_SEND_A:
                     wlan_mac_tx_ctrl_A_start(1);
@@ -817,7 +816,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
 
     // This reception was a re-transmission by the other node
     if ((rx_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY) {
-    	rx_frame_info->flags |= RX_MPDU_FLAGS_RETRY;
+    	rx_frame_info->flags |= RX_FRAME_INFO_FLAGS_RETRY;
     }
 
     // Record information about the reception in the RX packet metadata
@@ -838,15 +837,15 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     if ((phy_details->length) > RX_LEN_THRESH) {
     	if(wlan_mac_hw_rx_finish() == 1){
     		//FCS was good
-    		rx_frame_info->flags |= RX_MPDU_FLAGS_FCS_GOOD;
+    		rx_frame_info->flags |= RX_FRAME_INFO_FLAGS_FCS_GOOD;
     	} else {
     		//FCS was bad
-    		rx_frame_info->flags &= ~RX_MPDU_FLAGS_FCS_GOOD;
+    		rx_frame_info->flags &= ~RX_FRAME_INFO_FLAGS_FCS_GOOD;
     	}
     }
 
     // Received packet had good checksum
-    if(rx_frame_info->flags & RX_MPDU_FLAGS_FCS_GOOD) {
+    if(rx_frame_info->flags & RX_FRAME_INFO_FLAGS_FCS_GOOD) {
         // Increment green LEDs
         gl_green_led_index = (gl_green_led_index + 1) % NUM_LEDS;
         userio_write_leds_green(USERIO_BASEADDR, (1<<gl_green_led_index));
@@ -1032,11 +1031,11 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
                     	// NAV is clear at the time of transmission. This code block handles the case the the support core
                     	// elected not to transmit the frame.
                     	//
-                        rx_frame_info->flags = rx_frame_info->flags & ~RX_MPDU_FLAGS_FORMED_RESPONSE;
+                        rx_frame_info->flags = rx_frame_info->flags & ~RX_FRAME_INFO_FLAGS_FORMED_RESPONSE;
                         break;
                     }
                     if ((mac_tx_ctrl_status & WLAN_MAC_TXCTRL_STATUS_MASK_TX_B_RESULT) == WLAN_MAC_TXCTRL_STATUS_TX_B_RESULT_DID_TX) {
-                    	rx_frame_info->flags |= RX_MPDU_FLAGS_FORMED_RESPONSE;
+                    	rx_frame_info->flags |= RX_FRAME_INFO_FLAGS_FORMED_RESPONSE;
                         break;
                     }
                 } else if(((mac_tx_ctrl_status & WLAN_MAC_TXCTRL_STATUS_MASK_TX_B_STATE) == WLAN_MAC_TXCTRL_STATUS_TX_B_STATE_PRE_TX_WAIT) &&
@@ -1051,7 +1050,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
                     num_resp_failures++;
 
                     if(num_resp_failures > 2){
-                    	rx_frame_info->flags = rx_frame_info->flags & ~RX_MPDU_FLAGS_FORMED_RESPONSE;
+                    	rx_frame_info->flags = rx_frame_info->flags & ~RX_FRAME_INFO_FLAGS_FORMED_RESPONSE;
 
                         wlan_mac_reset_tx_ctrl_B(1);
                         wlan_mac_reset_tx_ctrl_B(0);
@@ -1062,7 +1061,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         break;
     }
 
-    if(rx_frame_info->flags & RX_MPDU_FLAGS_FORMED_RESPONSE) {
+    if(rx_frame_info->flags & RX_FRAME_INFO_FLAGS_FORMED_RESPONSE) {
     	rx_frame_info->resp_low_tx_details.tx_start_timestamp_ctrl 		= wlan_mac_low_get_tx_start_timestamp();
     	rx_frame_info->resp_low_tx_details.tx_start_timestamp_frac_ctrl = wlan_mac_low_get_tx_start_timestamp_frac();
     }
