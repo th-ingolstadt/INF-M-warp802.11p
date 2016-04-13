@@ -1567,43 +1567,6 @@ inline void wlan_mac_low_lock_empty_rx_pkt_buf(){
 }
 
 
-
-/*****************************************************************************/
-/**
- * @brief Unblock the Receive PHY
- *
- * This function unblocks the receive PHY, allowing it to overwrite the currently selected
- * rx packet buffer
- *
- * @param   None
- * @return  None
- */
-void wlan_mac_dcf_hw_unblock_rx_phy() {
-	//FIXME: no longer required - delete and remove from other MAC code
-	return;
-#if 0
-	// Posedge on WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET unblocks PHY (clear then set here to ensure posedge)
-    REG_CLEAR_BITS(WLAN_MAC_REG_CONTROL, WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET);
-    REG_SET_BITS(WLAN_MAC_REG_CONTROL, WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET);
-    REG_CLEAR_BITS(WLAN_MAC_REG_CONTROL, WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET);
-#endif
-
-/*
-    // Debugging PHY unblock -> still blocked bug
-    while(wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_PHY_RX_ACTIVE) {
-        xil_printf("ERROR: PHY still active at unblock!\n");
-    }
-
-    while(wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_RX_PHY_BLOCKED) {
-        xil_printf("ERROR: PHY still blocked after unblocking!\n");
-        REG_SET_BITS(WLAN_MAC_REG_CONTROL, WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET);
-        REG_CLEAR_BITS(WLAN_MAC_REG_CONTROL, WLAN_MAC_CTRL_MASK_RX_PHY_BLOCK_RESET);
-    }
-*/
-}
-
-
-
 /*****************************************************************************/
 /**
  * @brief Finish PHY Reception
