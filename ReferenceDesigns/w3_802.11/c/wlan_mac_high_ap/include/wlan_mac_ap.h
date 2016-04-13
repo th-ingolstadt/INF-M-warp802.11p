@@ -74,6 +74,7 @@ typedef struct{
 	u8  enable;
 	u8  dtim_period;
 	u8  dtim_count;
+	u8  dtim_mcast_buffer_enable;
 	u64 dtim_timestamp;
 	u64 dtim_mcast_allow_window;
 } ps_conf;

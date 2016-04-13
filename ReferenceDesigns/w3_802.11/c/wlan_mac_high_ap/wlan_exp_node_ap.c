@@ -322,9 +322,9 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
                 // Update enable based on command
                 if (flags & CMD_PARAM_NODE_AP_CONFIG_FLAG_DTIM_MULTICAST_BUFFER) {
-                    new_params.enable = 1;
+                    new_params.dtim_mcast_buffer_enable = 1;
                 } else {
-                    new_params.enable = 0;
+                    new_params.dtim_mcast_buffer_enable = 0;
                 }
 
                 // Update PS config

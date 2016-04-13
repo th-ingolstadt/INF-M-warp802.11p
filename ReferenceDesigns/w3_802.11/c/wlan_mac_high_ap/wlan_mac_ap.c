@@ -281,7 +281,8 @@ int main(){
 	initial_power_save_configuration.enable      = 1;
 	initial_power_save_configuration.dtim_period = 1;
 	initial_power_save_configuration.dtim_count  = 0;
-	initial_power_save_configuration.dtim_mcast_allow_window = (WLAN_DEFAULT_BEACON_INTERVAL_TU * BSS_MICROSECONDS_IN_A_TU) / 4;
+	initial_power_save_configuration.dtim_mcast_buffer_enable = 1;
+	initial_power_save_configuration.dtim_mcast_allow_window  = (WLAN_DEFAULT_BEACON_INTERVAL_TU * BSS_MICROSECONDS_IN_A_TU) / 4;
 
 	// Initialize TIM management tag that will be postpended to a beacon
 	mgmt_tag_tim_update_schedule_id = SCHEDULE_ID_RESERVED_MAX;
@@ -860,6 +861,7 @@ void poll_tx_queues(){
 
 								if( (num_dozed_stations == 0)
 										|| (get_system_time_usec() < gl_power_save_configuration.dtim_timestamp)
+										|| (gl_power_save_configuration.dtim_mcast_buffer_enable == 0)
 										|| (gl_power_save_configuration.enable == 0) ){
 									if(dequeue_transmit_checkin(MCAST_QID)){
 										// Found a not-empty queue, transmitted a packet
