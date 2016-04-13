@@ -299,8 +299,7 @@ void print_station_status(){
 			xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", curr_station_info->ID,
 					curr_station_info->addr[0],curr_station_info->addr[1],curr_station_info->addr[2],curr_station_info->addr[3],curr_station_info->addr[4],curr_station_info->addr[5]);
 
-			xil_printf("     - Last heard from         %d ms ago\n",((u32)(timestamp - (curr_station_info->latest_activity_timestamp)))/1000);
-			xil_printf("     - Last Rx Power:          %d dBm\n",curr_station_info->rx.last_power);
+			xil_printf("     - Last heard from         %d ms ago\n",((u32)(timestamp - (curr_station_info->rx_latest_activity_timestamp)))/1000);
 			xil_printf("     - # of queued MPDUs:      %d\n", queue_num_queued(STATION_ID_TO_QUEUE_ID(curr_station_info->ID)));
 			xil_printf("     - # Tx High Data MPDUs:   %d (%d successful)\n", curr_station_info->counts->data.tx_num_packets_total,
 			                                                                  curr_station_info->counts->data.tx_num_packets_success);

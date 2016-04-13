@@ -437,8 +437,7 @@ void print_station_status(){
 
                 curr_counts = access_point->counts;
 
-                xil_printf("     - Last heard from         %d ms ago\n",((u32)(timestamp - (access_point->latest_activity_timestamp)))/1000);
-                xil_printf("     - Last Rx Power:          %d dBm\n",access_point->rx.last_power);
+                xil_printf("     - Last heard from         %d ms ago\n",((u32)(timestamp - (access_point->rx_latest_activity_timestamp)))/1000);
                 xil_printf("     - # of queued MPDUs:      %d\n", queue_num_queued(UNICAST_QID));
                 xil_printf("     - # Tx High Data MPDUs:   %d (%d successful)\n", curr_counts->data.tx_num_packets_total, curr_counts->data.tx_num_packets_success);
                 xil_printf("     - # Tx High Data bytes:   %d (%d successful)\n", (u32)(curr_counts->data.tx_num_bytes_total), (u32)(curr_counts->data.tx_num_bytes_success));

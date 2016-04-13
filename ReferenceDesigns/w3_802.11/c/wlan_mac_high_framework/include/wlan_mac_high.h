@@ -317,23 +317,6 @@ typedef struct{
 
 CASSERT(sizeof(counts_txrx_t) == 96, counts_txrx_alignment_check);
 
-
-
-/********************************************************************
- * @brief Reception Information Structure
- *
- * This structure contains information about the previous reception. It is used in high
- * level MACs to de-duplicate incoming receptions.
- *
- ********************************************************************/
-typedef struct{
-    u16  last_seq;       ///< Sequence number of the last MPDU reception
-    s8   last_power;     ///< Power of last frame reception (in dBm)
-    u8   last_mcs;      ///< Rate of last MPDU reception
-} rx_info_t;
-
-
-
 /********************************************************************
  * @brief Rate Selection Information
  *
@@ -362,13 +345,15 @@ typedef struct{
  ********************************************************************/
 #define STATION_INFO_HOSTNAME_MAXLEN                       19
 
-#define STATION_INFO_COMMON_FIELDS                                                                  		\
-        u8          addr[MAC_ADDR_LEN];                         /* HW Address */                         		\
-        u16         ID;                                         /* Identification Index for this station */     \
-        char        hostname[STATION_INFO_HOSTNAME_MAXLEN+1];   /* Hostname from DHCP requests */        		\
-        u32         flags;                                      /* 1-bit flags */                        		\
-        u64         latest_activity_timestamp;                  /* Timestamp of most recent activity */  		\
-        rx_info_t   rx;                                         /* Reception Information Structure */    		\
+#define STATION_INFO_COMMON_FIELDS                                                                  						\
+        u8          addr[MAC_ADDR_LEN];                         /* HW Address */                         					\
+        u16         ID;                                         /* Identification Index for this station */     			\
+        char        hostname[STATION_INFO_HOSTNAME_MAXLEN+1];   /* Hostname from DHCP requests */        					\
+        u32         flags;                                      /* 1-bit flags */                        					\
+        u64         rx_latest_activity_timestamp;               /* Timestamp of most recent activity */  					\
+        u16   		rx_latest_seq;                              /* Sequence number of the last MPDU reception */    		\
+        u8			reserved0;																								\
+        u8			reserved1;																								\
         tx_params_t tx;                                         /* Transmission Parameters Structure */
 
 
@@ -376,7 +361,7 @@ typedef struct{
 
     STATION_INFO_COMMON_FIELDS
 
-    counts_txrx_t*        counts;                                 ///< Counts Information Structure
+    counts_txrx_t*        counts;                               ///< Counts Information Structure
                                                                 ///< @note This is a pointer to the counts structure
                                                                 ///< because counts can survive outside of the context
                                                                 ///< of associated station_info structs.

@@ -658,7 +658,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 	volatile bss_info_t*	attempt_bss_info;
 	u8						pre_llc_offset			 = 0;
 
-	u8 					mcs	     = rx_frame_info->phy_details.mcs;
 	u16 				length   = rx_frame_info->phy_details.length;
 
 
@@ -689,9 +688,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 			ap_station_info = (station_info_t*)(associated_station_entry->data);
 
 			// Update station information
-			ap_station_info->latest_activity_timestamp = get_system_time_usec();
-			ap_station_info->rx.last_power             = rx_frame_info->rx_power;
-			ap_station_info->rx.last_mcs               = mcs;
+			ap_station_info->rx_latest_activity_timestamp = get_system_time_usec();
 
 			is_associated  = 1;
 			rx_seq         = ((rx_80211_header->sequence_control)>>4)&0xFFF;
@@ -700,7 +697,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 			// Check if this was a duplicate reception
 			//   - Received seq num matched previously received seq num for this STA
-			if( ((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY) && (ap_station_info->rx.last_seq == rx_seq) ) {
+			if( ((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY) && (ap_station_info->rx_latest_seq == rx_seq) ) {
 				if(rx_event_log_entry != NULL){
 					rx_event_log_entry->flags |= RX_FLAGS_DUPLICATE;
 				}
@@ -708,7 +705,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 				// Finish the function
 				goto mpdu_rx_process_end;
 			} else {
-				ap_station_info->rx.last_seq = rx_seq;
+				ap_station_info->rx_latest_seq = rx_seq;
 			}
 		} else {
 			station_counts = wlan_mac_high_add_counts(&counts_table, NULL, rx_80211_header->address_2);

@@ -2464,11 +2464,11 @@ station_info_t * wlan_mac_high_add_station_info(dl_list* station_info_list, dl_l
 		// Initialize the latest activity timestamp
 		//     NOTE:  This is so we don't run into a race condition when we try to check the timeout
 		//
-		station_info->latest_activity_timestamp = get_system_time_usec();
+		station_info->rx_latest_activity_timestamp = get_system_time_usec();
 
 		// Set the last received sequence number to something invalid so we don't accidentally
-		// de-duplicate the next reception if that sequency number is 0.
-		station_info->rx.last_seq = 0xFFFF; //Sequence numbers are only 12 bits long. This is intentionally invalid.
+		// de-duplicate the next reception if that sequence number is 0.
+		station_info->rx_latest_seq = 0xFFFF; //Sequence numbers are only 12 bits long. This is intentionally invalid.
 
 		// Do not allow WARP nodes to time out
 		if(wlan_mac_addr_is_warp(addr)){
@@ -2963,8 +2963,8 @@ void wlan_mac_high_update_tx_counts(tx_frame_info_t* tx_frame_info, station_info
 				(frame_counts->tx_num_packets_success)++;
 				(frame_counts->tx_num_bytes_success) += tx_frame_info->length;
 
-				// Update the latest_activity_timestamp for the station because we had a successful TX
-				station_info->latest_activity_timestamp = get_system_time_usec();
+				// Update the latest_activity_timestamp for the station because we had a successful TX (i.e. a successful ACK Rx)
+				station_info->rx_latest_activity_timestamp = get_system_time_usec();
 			}
 		}
 	}

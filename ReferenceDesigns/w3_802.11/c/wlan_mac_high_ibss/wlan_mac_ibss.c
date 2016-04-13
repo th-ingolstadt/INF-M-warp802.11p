@@ -746,7 +746,7 @@ int ethernet_receive(tx_queue_element_t* curr_tx_queue_element, u8* eth_dest, u8
 				queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
 				// Setup the TX frame info
 				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_MPDU_FLAGS_FILL_DURATION | TX_MPDU_FLAGS_REQ_TO), queue_sel );
-				station_info->latest_activity_timestamp = get_system_time_usec();
+				station_info->rx_latest_activity_timestamp = get_system_time_usec();
 				curr_tx_queue_buffer->metadata.metadata_type  = QUEUE_METADATA_TYPE_STATION_INFO;
 				curr_tx_queue_buffer->metadata.metadata_ptr   = (u32)station_info;
 				curr_tx_queue_buffer->tx_frame_info.ID          = station_info->ID;
@@ -804,7 +804,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 	u32					tx_length;
 	u8					pre_llc_offset			 = 0;
 
-	u8 					mcs					 = rx_frame_info->phy_details.mcs;
 	u16 				length				 = rx_frame_info->phy_details.length;
 
 	// Log the reception
@@ -847,16 +846,14 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 		if(station_info != NULL) {
 
 			// Update station information
-			station_info->latest_activity_timestamp = get_system_time_usec();
-			station_info->rx.last_power             = rx_frame_info->rx_power;
-			station_info->rx.last_mcs               = mcs;
+			station_info->rx_latest_activity_timestamp = get_system_time_usec();
 
 			rx_seq         = ((rx_80211_header->sequence_control)>>4)&0xFFF;
 			station_counts = station_info->counts;
 
 			// Check if this was a duplicate reception
 			//   - Received seq num matched previously received seq num for this STA
-			if( ((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY) && (station_info->rx.last_seq == rx_seq) ) {
+			if( ((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY) && (station_info->rx_latest_seq == rx_seq) ) {
 				if(rx_event_log_entry != NULL){
 					rx_event_log_entry->flags |= RX_FLAGS_DUPLICATE;
 				}
@@ -864,7 +861,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 				// Finish the function
 				goto mpdu_rx_process_end;
 			} else {
-				station_info->rx.last_seq = rx_seq;
+				station_info->rx_latest_seq = rx_seq;
 			}
 		} else {
 			station_counts = wlan_mac_high_add_counts(&counts_table, NULL, rx_80211_header->address_2);
@@ -1019,7 +1016,7 @@ void remove_inactive_station_infos() {
 			next_station_info_entry = dl_entry_next(curr_station_info_entry);
 
 			curr_station_info        = (station_info_t*)(curr_station_info_entry->data);
-			time_since_last_activity = (get_system_time_usec() - curr_station_info->latest_activity_timestamp);
+			time_since_last_activity = (get_system_time_usec() - curr_station_info->rx_latest_activity_timestamp);
 
 			// De-authenticate the station if we have timed out and we have not disabled this check for the station
 			if((time_since_last_activity > ASSOCIATION_TIMEOUT_US) && ((curr_station_info->flags & STATION_INFO_FLAG_DISABLE_ASSOC_CHECK) == 0)){
