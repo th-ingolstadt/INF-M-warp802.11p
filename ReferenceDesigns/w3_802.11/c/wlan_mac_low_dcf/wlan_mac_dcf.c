@@ -1152,7 +1152,6 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
     // waiting for anything.
     tx_wait_state = TX_WAIT_NONE;
 
-    // Reset SRC/LRC and num_tx_attempts (which is the union of SRC and LRC)
     tx_frame_info->num_tx_attempts   = 0;
     tx_frame_info->phy_samp_rate	  = (u8)wlan_mac_low_get_phy_samp_rate();
 
@@ -1542,7 +1541,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                             // Now we evaluate the SRC and LRC to see if either has reached its maximum
                             //     NOTE:  Use >= here to handle unlikely case of retryLimit values changing mid-Tx
                             if ((short_retry_count >= gl_dot11ShortRetryLimit) ||
-                                (short_retry_count >= gl_dot11LongRetryLimit )) {
+                                (long_retry_count >= gl_dot11LongRetryLimit )) {
 
                                 return TX_MPDU_RESULT_FAILURE;
                             }
