@@ -647,7 +647,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     if(unicast_to_me && !WLAN_IS_CTRL_FRAME(rx_header)) {
         // Auto TX Delay is in units of 100ns. This delay runs from RXEND of the preceding reception.
         //     wlan_mac_tx_ctrl_B_params(pktBuf, antMask, req_zeroNAV, preWait_postRxTimer1, preWait_postRxTimer2, postWait_postTxTimer1)
-        wlan_mac_tx_ctrl_B_params(TX_PKT_BUF_ACK_CTS, tx_ant_mask, 0, 1, 0, 0, TMP_B_PHY_MODE);
+        wlan_mac_tx_ctrl_B_params(TX_PKT_BUF_ACK_CTS, tx_ant_mask, 0, 1, 0, 0, PHY_MODE_NONHT);
 
         // ACKs are transmitted with a nominal Tx power used for all control packets
         ctrl_tx_gain = wlan_mac_low_dbm_to_gain_target(wlan_mac_low_get_current_ctrl_tx_pow());
@@ -670,7 +670,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         tx_length = wlan_create_ack_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK_CTS) + PHY_TX_PKT_BUF_MPDU_OFFSET), rx_header->address_2);
 
         // Write the SIGNAL field for the ACK
-        write_phy_preamble(TX_PKT_BUF_ACK_CTS, TMP_B_PHY_MODE, tx_mcs, tx_length);
+        write_phy_preamble(TX_PKT_BUF_ACK_CTS, PHY_MODE_NONHT, tx_mcs, tx_length);
 
         rx_finish_state = RX_FINISH_SEND_B;
 
@@ -731,7 +731,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         //     Auto TX Delay is in units of 100ns. This delay runs from RXEND of the preceding reception.
         //     wlan_mac_tx_ctrl_B_params(pktBuf, antMask, req_zeroNAV, preWait_postRxTimer1, preWait_postRxTimer2, postWait_postTxTimer1)
         //
-        wlan_mac_tx_ctrl_B_params(TX_PKT_BUF_ACK_CTS, tx_ant_mask, 1, 1, 0, 0, TMP_B_PHY_MODE);
+        wlan_mac_tx_ctrl_B_params(TX_PKT_BUF_ACK_CTS, tx_ant_mask, 1, 1, 0, 0, PHY_MODE_NONHT);
 
         // CTSs are transmitted with a nominal Tx power used for all control packets
         ctrl_tx_gain = wlan_mac_low_dbm_to_gain_target(wlan_mac_low_get_current_ctrl_tx_pow());
@@ -746,7 +746,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
                                           cts_duration);
 
         // Write the SIGNAL field for the CTS
-        write_phy_preamble(TX_PKT_BUF_ACK_CTS, TMP_B_PHY_MODE, tx_mcs, tx_length);
+        write_phy_preamble(TX_PKT_BUF_ACK_CTS, PHY_MODE_NONHT, tx_mcs, tx_length);
 
         rx_finish_state = RX_FINISH_SEND_B;
 

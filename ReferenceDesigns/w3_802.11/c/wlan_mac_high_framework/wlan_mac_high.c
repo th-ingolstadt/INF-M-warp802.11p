@@ -523,7 +523,7 @@ void wlan_mac_high_init(){
 	}
 
 	bss_info_init(dram_present);
-	wlan_eth_init(); 			//FIXME add reset to deal with previous boots
+	wlan_eth_init();
 	wlan_mac_schedule_init();
 	wlan_mac_ltg_sched_init();
 	wlan_mac_addr_filter_init();

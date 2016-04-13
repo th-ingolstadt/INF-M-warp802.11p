@@ -478,12 +478,9 @@ inline u32         wlan_mac_low_wlan_chan_to_rc_chan(u32 mac_channel);
 inline u16         wlan_mac_low_mcs_to_n_dbps(u8 mcs, u8 phy_mode);
 inline u8 		   wlan_mac_low_mcs_to_ctrl_resp_mcs(u8 mcs, u8 phy_mode);
 
-inline u64              wlan_mac_low_get_unique_seq();
-inline void             wlan_mac_low_set_unique_seq(u64 curr_unique_seq);
-inline void wlan_mac_hw_clear_rx_started();
-
-//FIXME: placeholders for actual runtime PHY mode variables
-#define TMP_B_PHY_MODE PHY_MODE_NONHT
+inline u64         wlan_mac_low_get_unique_seq();
+inline void        wlan_mac_low_set_unique_seq(u64 curr_unique_seq);
+inline void 	   wlan_mac_hw_clear_rx_started();
 
 
 #endif /* WLAN_MAC_LOW_H_ */
