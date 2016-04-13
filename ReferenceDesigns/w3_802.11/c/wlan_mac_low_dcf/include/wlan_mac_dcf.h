@@ -115,8 +115,8 @@ void 			   handle_mactime_change(s64 time_delta_usec);
 void 			   configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure);
 int 			   frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details);
 
-inline void        increment_src_ssrc(u8* src_ptr);
-inline void        increment_lrc_slrc(u8* lrc_ptr);
+inline void        increment_src(u16* src_ptr);
+inline void        increment_lrc(u16* lrc_ptr);
 
 inline poll_tbtt_return_t poll_tbtt();
 inline int 		   		  send_beacon(u8 tx_pkt_buf);

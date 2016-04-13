@@ -1469,9 +1469,6 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element_t* packet, int tx_pkt_buf) {
 		break;
 	}
 
-	tx_frame_info->short_retry_count = 0;
-	tx_frame_info->long_retry_count = 0;
-
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_READY);
 	ipc_msg_to_low.arg0              = tx_pkt_buf;
 	ipc_msg_to_low.num_payload_words = 0;
@@ -2960,7 +2957,7 @@ void wlan_mac_high_update_tx_counts(tx_frame_info_t* tx_frame_info, station_info
 
 			(frame_counts->tx_num_packets_total)++;
 			(frame_counts->tx_num_bytes_total) += (tx_frame_info->length);
-			(frame_counts->tx_num_packets_low) += (tx_frame_info->short_retry_count); //TODO: Needs to be fixed for short/long
+			(frame_counts->tx_num_attempts)    += (tx_frame_info->num_tx_attempts);
 
 			if((tx_frame_info->tx_result) == TX_MPDU_RESULT_SUCCESS){
 				(frame_counts->tx_num_packets_success)++;
@@ -3012,9 +3009,6 @@ int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_heade
 	tx_frame_info->unique_seq = 0;
 
 	memcpy(&(tx_frame_info->params), tx_params_ptr, sizeof(tx_params_t));
-
-	tx_frame_info->short_retry_count = 0;
-	tx_frame_info->long_retry_count = 0;
 
 	tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_READY;
 	if(unlock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){

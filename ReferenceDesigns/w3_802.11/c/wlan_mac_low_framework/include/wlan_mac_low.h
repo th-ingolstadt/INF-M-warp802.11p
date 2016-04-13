@@ -23,7 +23,7 @@
 
 //-----------------------------------------------
 // MAC Header defines
-#define MAC_HW_LASTBYTE_ADDR1 (13)
+#define MAC_HW_LASTBYTE_ADDR1 (9)
 
 //-----------------------------------------------
 // Power defines

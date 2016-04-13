@@ -287,7 +287,7 @@ typedef struct{
     u32        rx_num_packets;              ///< # of successfully received packets (de-duplicated)
     u32        tx_num_packets_success;      ///< # of successfully transmitted packets (high-level MPDUs)
     u32        tx_num_packets_total;        ///< Total # of transmitted packets (high-level MPDUs)
-    u32        tx_num_packets_low;          ///< # of low-level transmitted frames (including retransmissions)
+    u32        tx_num_attempts;             ///< # of low-level attempts (including retransmissions)
 } frame_counts_txrx_t;
 
 

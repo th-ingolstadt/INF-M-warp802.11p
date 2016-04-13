@@ -390,8 +390,6 @@ inline int send_beacon(u8 tx_pkt_buf){
 					n_slots = n_slots_readback;
 				}
 
-				tx_frame_info->short_retry_count = 0;
-				tx_frame_info->long_retry_count  = 0;
 				tx_frame_info->num_tx_attempts   = 1;
 				tx_frame_info->phy_samp_rate	 = wlan_mac_low_get_phy_samp_rate();
 
@@ -413,8 +411,8 @@ inline int send_beacon(u8 tx_pkt_buf){
 				low_tx_details.cw          = (1 << gl_cw_exp)-1; //(2^(gl_cw_exp) - 1)
 				low_tx_details.ssrc        = gl_stationShortRetryCount;
 				low_tx_details.slrc        = gl_stationLongRetryCount;
-				low_tx_details.src         = tx_frame_info->short_retry_count;
-				low_tx_details.lrc         = tx_frame_info->long_retry_count;
+				low_tx_details.src         = 0;
+				low_tx_details.lrc         = 0;
 
 				// The pre-Tx backoff may not occur for the initial transmission attempt. If the medium has been idle for >DIFS when
 				//  the first Tx occurs the DCF state machine will not start a backoff. The upper-level MAC should compare the num_slots value
@@ -1133,6 +1131,8 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
     tx_wait_state_t     tx_wait_state;
     tx_mode_t           tx_mode;
 
+    u16					short_retry_count	= 0;
+    u16					long_retry_count	= 0;
     u16                 n_slots             = 0;
     u16                 n_slots_readback    = 0;
     u8                  mpdu_tx_ant_mask    = 0;
@@ -1153,8 +1153,6 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
     tx_wait_state = TX_WAIT_NONE;
 
     // Reset SRC/LRC and num_tx_attempts (which is the union of SRC and LRC)
-    tx_frame_info->short_retry_count = 0;
-    tx_frame_info->long_retry_count  = 0;
     tx_frame_info->num_tx_attempts   = 0;
     tx_frame_info->phy_samp_rate	  = (u8)wlan_mac_low_get_phy_samp_rate();
 
@@ -1375,8 +1373,8 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
         low_tx_details[low_tx_details_num].cw          = (1 << gl_cw_exp)-1; //(2^(gl_cw_exp) - 1)
         low_tx_details[low_tx_details_num].ssrc        = gl_stationShortRetryCount;
         low_tx_details[low_tx_details_num].slrc        = gl_stationLongRetryCount;
-        low_tx_details[low_tx_details_num].src         = tx_frame_info->short_retry_count;
-        low_tx_details[low_tx_details_num].lrc         = tx_frame_info->long_retry_count;
+        low_tx_details[low_tx_details_num].src         = short_retry_count;
+        low_tx_details[low_tx_details_num].lrc         = long_retry_count;
 
         // NOTE: the pre-Tx backoff may not occur for the initial transmission attempt. If the medium has been idle for >DIFS when
         // the first Tx occurs the DCF state machine will not start a backoff. The upper-level MAC should compare the num_slots value
@@ -1518,10 +1516,10 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
 
                                     switch(tx_mode) {
                                         case TX_MODE_SHORT:
-                                            increment_src_ssrc(&(tx_frame_info->short_retry_count));
+                                            increment_src(&short_retry_count);
                                         break;
                                         case TX_MODE_LONG:
-                                            increment_lrc_slrc(&(tx_frame_info->long_retry_count));
+                                            increment_lrc(&long_retry_count);
                                         break;
                                     }
                                 break;
@@ -1530,7 +1528,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                                     // We were waiting for a CTS but did not get it.
                                     //     - Increment the SRC
                                     //
-                                    increment_src_ssrc(&(tx_frame_info->short_retry_count));
+                                    increment_src(&short_retry_count);
                                 break;
 
                                 case TX_WAIT_NONE:
@@ -1543,8 +1541,8 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                             wlan_mac_dcf_hw_start_backoff(n_slots);
                             // Now we evaluate the SRC and LRC to see if either has reached its maximum
                             //     NOTE:  Use >= here to handle unlikely case of retryLimit values changing mid-Tx
-                            if ((tx_frame_info->short_retry_count >= gl_dot11ShortRetryLimit) ||
-                                (tx_frame_info->long_retry_count  >= gl_dot11LongRetryLimit )) {
+                            if ((short_retry_count >= gl_dot11ShortRetryLimit) ||
+                                (short_retry_count >= gl_dot11LongRetryLimit )) {
 
                                 return TX_MPDU_RESULT_FAILURE;
                             }
@@ -1571,10 +1569,10 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
 
                                 switch(tx_mode){
                                     case TX_MODE_SHORT:
-                                        increment_src_ssrc(&(tx_frame_info->short_retry_count));
+                                        increment_src(&short_retry_count);
                                     break;
                                     case TX_MODE_LONG:
-                                        increment_lrc_slrc(&(tx_frame_info->long_retry_count));
+                                        increment_lrc(&long_retry_count);
                                     break;
                                 }
                             break;
@@ -1582,7 +1580,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                             case TX_WAIT_CTS:
                                 // We were waiting for a CTS but did not get it.
                                 //     - Increment the SRC
-                                increment_src_ssrc(&(tx_frame_info->short_retry_count));
+                                increment_src(&short_retry_count);
                             break;
 
                             case TX_WAIT_NONE:
@@ -1595,8 +1593,8 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                         wlan_mac_dcf_hw_start_backoff(n_slots);
 
                         // Now we evaluate the SRC and LRC to see if either has reached its maximum
-                        if ((tx_frame_info->short_retry_count == gl_dot11ShortRetryLimit) ||
-                            (tx_frame_info->long_retry_count  == gl_dot11LongRetryLimit )) {
+                        if ((short_retry_count == gl_dot11ShortRetryLimit) ||
+                            (long_retry_count  == gl_dot11LongRetryLimit )) {
 
                             return TX_MPDU_RESULT_FAILURE;
                         }
@@ -1631,16 +1629,22 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
 
 /*****************************************************************************/
 /**
- * @brief Increment Short Retry Count / Station Short Retry Count
+ * @brief Increment Short Retry Count
+ *
+ * This function increments the short retry count. According to Section 9.3.3
+ * of 802.11-2012, incrementing the short retry count also causes the
+ * the following:
+ * 		1) An increment of the station short retry count
+ * 		2) An increase of the contention window (which is technically dependent
+ * 		   on the station count incremented in the first step)
  *
  * @param   src_ptr          - Pointer to short retry count
  * @return  None
  */
-inline void increment_src_ssrc(u8* src_ptr){
+inline void increment_src(u16* src_ptr){
     // Increment the Short Retry Count
     (*src_ptr)++;
 
-    // Increment the Station Short Retry Count (see 9.3.3 in 802.11-2012)
     gl_stationShortRetryCount = sat_add32(gl_stationShortRetryCount, 1);
 
     if (gl_stationShortRetryCount == gl_dot11ShortRetryLimit) {
@@ -1654,16 +1658,22 @@ inline void increment_src_ssrc(u8* src_ptr){
 
 /*****************************************************************************/
 /**
- * @brief Increment Long Retry Count / Station Long Retry Count
+ * @brief Increment Long Retry Count
+ *
+ * This function increments the long retry count. According to Section 9.3.3
+ * of 802.11-2012, incrementing the long retry count also causes the
+ * the following:
+ * 		1) An increment of the station long retry count
+ * 		2) An increase of the contention window (which is technically dependent
+ * 		   on the station count incremented in the first step)
  *
  * @param   src_ptr          - Pointer to long retry count
  * @return  None
  */
-inline void increment_lrc_slrc(u8* lrc_ptr){
+inline void increment_lrc(u16* lrc_ptr){
     // Increment the Long Retry Count
     (*lrc_ptr)++;
 
-    // Increment the Station Long Retry Count (see 9.3.3 in 802.11-2012)
     gl_stationLongRetryCount = sat_add32(gl_stationLongRetryCount, 1);
 
     if(gl_stationLongRetryCount == gl_dot11LongRetryLimit){

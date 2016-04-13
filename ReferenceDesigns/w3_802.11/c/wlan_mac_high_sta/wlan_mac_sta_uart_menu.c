@@ -442,10 +442,10 @@ void print_station_status(){
                 xil_printf("     - # of queued MPDUs:      %d\n", queue_num_queued(UNICAST_QID));
                 xil_printf("     - # Tx High Data MPDUs:   %d (%d successful)\n", curr_counts->data.tx_num_packets_total, curr_counts->data.tx_num_packets_success);
                 xil_printf("     - # Tx High Data bytes:   %d (%d successful)\n", (u32)(curr_counts->data.tx_num_bytes_total), (u32)(curr_counts->data.tx_num_bytes_success));
-                xil_printf("     - # Tx Low Data MPDUs:    %d\n", curr_counts->data.tx_num_packets_low);
+                xil_printf("     - # Tx Low Data Attempts: %d\n", curr_counts->data.tx_num_attempts);
                 xil_printf("     - # Tx High Mgmt MPDUs:   %d (%d successful)\n", curr_counts->mgmt.tx_num_packets_total, curr_counts->mgmt.tx_num_packets_success);
                 xil_printf("     - # Tx High Mgmt bytes:   %d (%d successful)\n", (u32)(curr_counts->mgmt.tx_num_bytes_total), (u32)(curr_counts->mgmt.tx_num_bytes_success));
-                xil_printf("     - # Tx Low Mgmt MPDUs:    %d\n", curr_counts->mgmt.tx_num_packets_low);
+                xil_printf("     - # Tx Low Mgmt Attempts: %d\n", curr_counts->mgmt.tx_num_attempts);
                 xil_printf("     - # Rx Data MPDUs:        %d\n", curr_counts->data.rx_num_packets);
                 xil_printf("     - # Rx Data Bytes:        %d\n", curr_counts->data.rx_num_bytes);
                 xil_printf("     - # Rx Mgmt MPDUs:        %d\n", curr_counts->mgmt.rx_num_packets);
@@ -476,10 +476,10 @@ void print_all_observed_counts(){
         xil_printf("     - Associated?             %d\n", curr_counts->is_associated);
         xil_printf("     - # Tx High Data MPDUs:   %d (%d successful)\n", curr_counts->data.tx_num_packets_total, curr_counts->data.tx_num_packets_success);
         xil_printf("     - # Tx High Data bytes:   %d (%d successful)\n", (u32)(curr_counts->data.tx_num_bytes_total), (u32)(curr_counts->data.tx_num_bytes_success));
-        xil_printf("     - # Tx Low Data MPDUs:    %d\n", curr_counts->data.tx_num_packets_low);
+        xil_printf("     - # Tx Low Data Attempts: %d\n", curr_counts->data.tx_num_attempts);
         xil_printf("     - # Tx High Mgmt MPDUs:   %d (%d successful)\n", curr_counts->mgmt.tx_num_packets_total, curr_counts->mgmt.tx_num_packets_success);
         xil_printf("     - # Tx High Mgmt bytes:   %d (%d successful)\n", (u32)(curr_counts->mgmt.tx_num_bytes_total), (u32)(curr_counts->mgmt.tx_num_bytes_success));
-        xil_printf("     - # Tx Low Mgmt MPDUs:    %d\n", curr_counts->mgmt.tx_num_packets_low);
+        xil_printf("     - # Tx Low Mgmt Attempts: %d\n", curr_counts->mgmt.tx_num_attempts);
         xil_printf("     - # Rx Data MPDUs:        %d\n", curr_counts->data.rx_num_packets);
         xil_printf("     - # Rx Data Bytes:        %d\n", curr_counts->data.rx_num_bytes);
         xil_printf("     - # Rx Mgmt MPDUs:        %d\n", curr_counts->mgmt.rx_num_packets);

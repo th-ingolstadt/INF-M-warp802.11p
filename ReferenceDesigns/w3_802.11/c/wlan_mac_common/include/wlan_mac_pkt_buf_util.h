@@ -240,9 +240,8 @@ typedef struct{
     //----- 8-byte boundary ------
     tx_queue_details_t       	queue_info;                   ///< Information about the TX queue used for the packet (4 bytes)
     u8                       	tx_result;                    ///< Result of transmission attempt - TX_MPDU_RESULT_SUCCESS or TX_MPDU_RESULT_FAILURE
-    u8                       	short_retry_count;            ///<
-    u8                       	long_retry_count;             ///<
-    u8                       	num_tx_attempts;              ///< Number of transmission attempts for this frame
+    u8                       	reserved;
+    u16                       	num_tx_attempts;              ///< Number of transmission attempts for this frame
     //----- 8-byte boundary ------
     volatile tx_pkt_buf_state_t tx_pkt_buf_state;             ///< State of the Tx Packet Buffer
     u8                       	flags;                        ///< Bit flags en/disabling certain operations by the lower-level MAC
