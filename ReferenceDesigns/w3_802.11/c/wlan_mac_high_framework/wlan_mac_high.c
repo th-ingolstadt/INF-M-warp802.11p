@@ -554,8 +554,6 @@ void wlan_mac_high_init(){
 int wlan_mac_high_interrupt_init(){
 	int Result;
 
-	//FIXME add reset to deal with previous boots
-
 	// ***************************************************
 	// Connect interrupt devices "owned" by wlan_mac_high
 	// ***************************************************

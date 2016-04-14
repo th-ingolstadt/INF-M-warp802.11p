@@ -236,8 +236,7 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 				// Update the beacon timestamp
 				if (update_timestamp) curr_bss_info->latest_beacon_rx_time = get_system_time_usec();
 
-				// FIXME:  MAC specific callback to update MAC based on new BSS capabilities
-				//     - Specifically, in the cast of a STA, the AP station info flags should be updated
+				// TODO: Potential here for a application-specific callback on new BSS capabilities
 
 				// Add BSS info into bss_info_list
 				dl_entry_insertEnd(&bss_info_list, curr_dl_entry);

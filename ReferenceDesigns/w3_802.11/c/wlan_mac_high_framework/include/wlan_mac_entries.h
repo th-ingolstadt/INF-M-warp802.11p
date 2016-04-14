@@ -229,13 +229,9 @@ typedef struct{
     u8                  bb_gain;                 // Baseband gain of the received packet
     u16                 flags;                   // 1-bit flags
 } rx_common_entry;
-//FIXME
 #define RX_FLAGS_FCS_GOOD   	0x0001
-//FIXME
 #define RX_FLAGS_DUPLICATE		0x0002
-//FIXME
 #define RX_FLAGS_LTG_PYLD		0x0040
-//FIXME
 #define RX_FLAGS_LTG			0x0080
 
 
@@ -308,11 +304,9 @@ typedef struct{
     u32                 mac_payload_log_len;     // Number of payload bytes actually recorded in log entry
     u32                 mac_payload[MIN_MAC_PAYLOAD_LOG_LEN/4];
 } tx_high_entry;
-//FIXME
+
 #define TX_HIGH_FLAGS_SUCCESSFUL 0x0001
-//FIXME
 #define TX_HIGH_FLAGS_LTG_PYLD	 0x0040
-//FIXME
 #define TX_HIGH_FLAGS_LTG		 0x0080
 
 //-----------------------------------------------
@@ -342,12 +336,8 @@ typedef struct{
     u32                 mac_payload_log_len;     // Number of payload bytes actually recorded in log entry
     u32                 mac_payload[MIN_MAC_PAYLOAD_LOG_LEN/4];
 } tx_low_entry;
-
-//FIXME
 #define TX_LOW_FLAGS_SUCCESSFUL     0x01
-//FIXME
 #define TX_LOW_FLAGS_LTG_PYLD		0x40
-//FIXME
 #define TX_LOW_FLAGS_LTG	    	0x80
 
 

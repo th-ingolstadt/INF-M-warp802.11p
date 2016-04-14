@@ -1370,12 +1370,15 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 	u8*                 mac_payload_ptr_u8       = (u8*)mac_payload;
 	mac_header_80211*   rx_80211_header          = (mac_header_80211*)((void *)mac_payload_ptr_u8);
 
-	u8                    send_response            = 0;
-	u16                   tx_length;
-	u16                   rx_seq;
-	tx_queue_element_t*   curr_tx_queue_element;
-	tx_queue_buffer_t*    curr_tx_queue_buffer;
-	rx_common_entry*      rx_event_log_entry;
+	u8                  send_response            = 0;
+	u16                 tx_length;
+	u16                 rx_seq;
+	tx_queue_element_t* curr_tx_queue_element;
+	tx_queue_buffer_t*  curr_tx_queue_buffer;
+	rx_common_entry*    rx_event_log_entry;
+	char                ssid[SSID_LEN_MAX];
+	u8                  ssid_length				 = 0;
+	u8					sta_is_ht_capable		 = 0;
 
 	dl_entry*	        associated_station_entry = NULL;
 	station_info_t*     associated_station       = NULL;
@@ -1500,7 +1503,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 							// Check if this is a multicast packet
 							if(wlan_addr_mcast(rx_80211_header->address_3)){
-								//TODO: Needs fix for QoS case to handle u16 offset of QoS Control
 								// Send the data packet over the wireless
 								curr_tx_queue_element = queue_checkout();
 
@@ -1822,10 +1824,40 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 				case (MAC_FRAME_CTRL1_SUBTYPE_ASSOC_REQ):
 				case (MAC_FRAME_CTRL1_SUBTYPE_REASSOC_REQ):
 					// Association Request / Re-association Request
-					//   - Check if the packet is for me
-					//
 
-					if((active_bss_info != NULL) && wlan_addr_eq(rx_80211_header->address_3, active_bss_info->bssid)) {
+					// Parse the tagged parameters
+					mac_payload_ptr_u8 = mac_payload_ptr_u8 + sizeof(mac_header_80211) + sizeof(association_req_frame);
+					while ((((u32)mac_payload_ptr_u8) - ((u32)mac_payload)) < (length - WLAN_PHY_FCS_NBYTES)) {
+						// Parse each of the tags
+						switch(mac_payload_ptr_u8[0]){
+
+							//-------------------------------------------------
+							case TAG_SSID_PARAMS:
+								// SSID parameter set
+								//
+								strncpy(ssid, (char*)(&(mac_payload_ptr_u8[2])), SSID_LEN_MAX);
+								ssid_length = min(mac_payload_ptr_u8[1],SSID_LEN_MAX);
+							break;
+
+
+							//-------------------------------------------------
+							case TAG_HT_CAPABILITIES:
+								// This station is capable of HT Tx and Rx
+								sta_is_ht_capable = 1;
+							break;
+						}
+
+						// Increment packet pointer to the next tag
+						mac_payload_ptr_u8 += mac_payload_ptr_u8[1]+2;
+					}
+
+					//   - Check if the packet is for this BSS. Necessary Criteria:
+					//		- RA is unicast and directed to this node's wlan_mac_address
+					//		- SSID string in payload of reception matches this BSS's SSID string
+					//		- BSSID matches this BSS's ID
+					if( unicast_to_me &&
+						(strncmp(ssid, active_bss_info->ssid, ssid_length) == 0) &&
+						(active_bss_info != NULL) && wlan_addr_eq(rx_80211_header->address_3, active_bss_info->bssid)) {
 
 						// Check if we have authenticated this TA
 						if (wlan_mac_high_find_station_info_ADDR(&station_info_state_2, rx_80211_header->address_2) != NULL){
@@ -1850,34 +1882,10 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 						if(associated_station != NULL) {
 
 							// Zero the HT_CAPABLE flag
-							associated_station->flags &= ~STATION_INFO_FLAG_HT_CAPABLE;
-
-							// Find if the association request contains HT capabilities
-							//     - Use the existence of this tag as our proxy the overall single bit HT capabilities flag
-
-							// Parse the tagged parameters
-							mac_payload_ptr_u8 = mac_payload_ptr_u8 + sizeof(mac_header_80211) + sizeof(association_req_frame);
-							while ((((u32)mac_payload_ptr_u8) - ((u32)mac_payload)) < (length - WLAN_PHY_FCS_NBYTES)) {
-								// Parse each of the tags
-								switch(mac_payload_ptr_u8[0]){
-
-									//-------------------------------------------------
-									case TAG_SSID_PARAMS:
-										// SSID parameter set
-										//
-										//FIXME: Check and make sure the SSID string matches before we send a successful association response
-									break;
-
-
-									//-------------------------------------------------
-									case TAG_HT_CAPABILITIES:
-										// This station is capable of HT Tx and Rx
-										associated_station->flags |= STATION_INFO_FLAG_HT_CAPABLE;
-									break;
-								}
-
-								// Increment packet pointer to the next tag
-								mac_payload_ptr_u8 += mac_payload_ptr_u8[1]+2;
+							if(sta_is_ht_capable){
+								associated_station->flags |= STATION_INFO_FLAG_HT_CAPABLE;
+							} else {
+								associated_station->flags &= ~STATION_INFO_FLAG_HT_CAPABLE;
 							}
 
 							// Update the rate based on the flags that were set
@@ -1909,7 +1917,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
 								curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-								curr_tx_queue_buffer->tx_frame_info.ID         = 0;
+								curr_tx_queue_buffer->tx_frame_info.ID       = 0;
 
 								// Put the packet in the queue
 								enqueue_after_tail(STATION_ID_TO_QUEUE_ID(associated_station->ID), curr_tx_queue_element);

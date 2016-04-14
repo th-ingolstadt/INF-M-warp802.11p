@@ -232,8 +232,6 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
     u8  phy_mode = (tx_frame_info->params.phy.phy_mode & (PHY_MODE_HTMF | PHY_MODE_NONHT));
     u16 length   = tx_frame_info->length;
 
-    //FIXME: should this callback sanity-check mcs/phy_mode/length before submitting the Tx to the PHY? Or is that the framework's job?
-
     // Write the PHY premable (SIGNAL or L-SIG/HT-SIG) to the packet buffer
     write_phy_preamble(pkt_buf, phy_mode, mcs, length);
 
