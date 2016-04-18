@@ -1068,35 +1068,35 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     ###########################################################################
     # Transmit from CPU High
     #
-    entry_tx = WlanExpLogEntryType(name='TX_HIGH', entry_type_id=ENTRY_TYPE_TX_HIGH)
+    entry_tx_high = WlanExpLogEntryType(name='TX_HIGH', entry_type_id=ENTRY_TYPE_TX_HIGH)
 
-    entry_tx.description  = entry_tx_common.description
+    entry_tx_high.description  = entry_tx_common.description
 
-    entry_tx.append_field_defs(entry_tx_common.get_field_defs())
-    entry_tx.append_field_defs([
+    entry_tx_high.append_field_defs(entry_tx_common.get_field_defs())
+    entry_tx_high.append_field_defs([
         ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
         ('mac_payload',            '24s',    '24uint8',     'First 24 bytes of MAC payload, typically the 802.11 MAC header')])
 
-    entry_tx.add_gen_numpy_array_callback(np_array_add_txrx_fields)
+    entry_tx_high.add_gen_numpy_array_callback(np_array_add_txrx_fields)
 
-    entry_tx.consts = entry_tx_common.consts.copy()
+    entry_tx_high.consts = entry_tx_common.consts.copy()
 
 
     ###########################################################################
     # Transmit from CPU High LTG packet
     #
-    entry_tx_ltg = WlanExpLogEntryType(name='TX_HIGH_LTG', entry_type_id=ENTRY_TYPE_TX_HIGH_LTG)
+    entry_tx_high_ltg = WlanExpLogEntryType(name='TX_HIGH_LTG', entry_type_id=ENTRY_TYPE_TX_HIGH_LTG)
 
-    entry_tx_ltg.description  = entry_tx_common.description
+    entry_tx_high_ltg.description  = entry_tx_common.description
 
-    entry_tx_ltg.append_field_defs(entry_tx_common.get_field_defs())
-    entry_tx_ltg.append_field_defs([
+    entry_tx_high_ltg.append_field_defs(entry_tx_common.get_field_defs())
+    entry_tx_high_ltg.append_field_defs([
         ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
         ('mac_payload',            '44s',    '44uint8',     'First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG ID')])
 
-    entry_tx_ltg.add_gen_numpy_array_callback(np_array_add_txrx_ltg_fields)
+    entry_tx_high_ltg.add_gen_numpy_array_callback(np_array_add_txrx_ltg_fields)
 
-    entry_tx_ltg.consts = entry_tx_common.consts.copy()
+    entry_tx_high_ltg.consts = entry_tx_common.consts.copy()
 
 
     ###########################################################################
