@@ -896,7 +896,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                - ``'GOOD'``       -- Pass only packets with good checksum result
                - ``'ALL'``        -- Pass packets with any checksum result
 
-        At boot the filter defaults to ``mac_header='ALL_MPDU'`` and ``fcs='GOOD'``.
+        At boot the filter defaults to ``mac_header='ALL'`` and ``fcs='ALL'``.
         """
         self.send_cmd(cmds.NodeSetLowToHighFilter(cmds.CMD_PARAM_WRITE, mac_header, fcs))
 
