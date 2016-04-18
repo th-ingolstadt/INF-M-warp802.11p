@@ -2,7 +2,7 @@
 ------------------------------------------------------------------------------
 Mango 802.11 Reference Design - Experiments Framework - Log File Summary
 ------------------------------------------------------------------------------
-License:   Copyright 2014-2015, Mango Communications. All rights reserved.
+License:   Copyright 2014-2016, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
 This script uses the WLAN Exp Log utilities to prase raw log data and print
@@ -37,7 +37,7 @@ import wlan_exp.log.util_sample_data as sample_data_util
 # Process command line arguments
 #-----------------------------------------------------------------------------
 
-DEFAULT_LOGFILE = 'ap_two_node_two_flow_capture.hdf5'
+DEFAULT_LOGFILE = 'sta_two_node_two_flow_capture.hdf5'
 logfile_error   = False
 
 # Use log file given as command line argument, if present

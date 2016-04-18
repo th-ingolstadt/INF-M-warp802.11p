@@ -139,9 +139,9 @@ if not util.check_bss_membership([n_ap, n_sta]):
 
 print("\nExperimental Setup:")
 
-# Set the rate of both nodes to 18 Mbps (mcs = 3, phy_mode = 'NONHT')
+# Set the rate of both nodes to 26 Mbps (mcs = 3, phy_mode = 'HTMF')
 mcs       = 3
-phy_mode  = util.phy_modes['NONHT']
+phy_mode  = util.phy_modes['HTMF']
 rate_info = util.get_rate_info(mcs, phy_mode)
 
 # Put each node in a known, good state
