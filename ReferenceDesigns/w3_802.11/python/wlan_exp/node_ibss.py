@@ -106,6 +106,7 @@ class WlanExpNodeIBSS(node.WlanExpNode):
         or a member of one BSS.  A node requires a minimum valid set of BSS 
         information to be a member of a BSS. The minimum valid set of BSS 
         information for an IBSS node is:
+        
             #. BSSID: 48-bit MAC address
             #. Channel: Logical channel for Tx/Rx by BSS members
             #. SSID: Variable length string (ie the name of the network)
@@ -127,8 +128,10 @@ class WlanExpNodeIBSS(node.WlanExpNode):
         
         Args:
             bssid (int, str):  48-bit ID of the BSS either as a integer or 
-                colon delimited string of the form:  XX:XX:XX:XX:XX:XX.  The 
-                ``bssid`` must be locally administered.
+                colon delimited string of the form ``'01:23:45:67:89:ab'``. The 
+                ``bssid`` must be a valid locally administered BSSID. Use 
+                wlan_exp.util.create_locally_administered_bssid() to generate a valid
+                locally administered BSSID based on the node's MAC address.
             ssid (str):  SSID string (Must be 32 characters or less)
             channel (int): Channel number on which the BSS operates
             beacon_interval (int): Integer number of beacon Time Units in [10, 65534]

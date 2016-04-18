@@ -36,6 +36,7 @@ class WlanExpNodeSta(node.WlanExpNode):
         or a member of one BSS.  A node requires a minimum valid set of BSS 
         information to be a member of a BSS. The minimum valid set of BSS 
         information for an STA is:
+
             #. BSSID: 48-bit MAC address
             #. Channel: Logical channel for Tx/Rx by BSS members
             #. SSID: Variable length string (ie the name of the network)
@@ -50,7 +51,7 @@ class WlanExpNodeSta(node.WlanExpNode):
         
         Args:
             bssid (int, str):  48-bit ID of the BSS either as a integer or 
-                colon delimited string of the form:  XX:XX:XX:XX:XX:XX
+                colon delimited string of the form ``'01:23:45:67:89:ab'``
             ssid (str):  SSID string (Must be 32 characters or less)
             channel (int): Channel number on which the BSS operates
             beacon_interval (int): Integer number of beacon Time Units in [10, 65534]

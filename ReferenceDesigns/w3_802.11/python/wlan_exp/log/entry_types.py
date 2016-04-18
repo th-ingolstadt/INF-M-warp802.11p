@@ -187,6 +187,7 @@ class WlanExpLogEntryType(object):
         Args:
             field_info (list of tuple):  Each must be of the form
                 ``(field_name, field_type_struct, field_type_numpy)`` where:
+                
                     * ``field_name``: Name of field as string
                     * ``field_type_struct``: Field type as string, using formats specified by ``struct`` module
                     * ``field_type_numpy``: Field type as string, using formats specified by numpy ``dtype``

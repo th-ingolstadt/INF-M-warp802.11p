@@ -36,6 +36,7 @@ class WlanExpNodeAp(node.WlanExpNode):
         or a member of one BSS.  A node requires a minimum valid set of BSS 
         information to be a member of a BSS. The minimum valid set of BSS 
         information for an AP is:
+
             #. BSSID: 48-bit MAC address
             #. Channel: Logical channel for Tx/Rx by BSS members
             #. SSID: Variable length string (ie the name of the network)
@@ -274,34 +275,24 @@ class WlanExpNodeAp(node.WlanExpNode):
         are treated as "must equal".  For the address, locations of one bits 
         in the mask must match the incoming addresses to pass the filter.
 
-        **Examples:**
+        Examples:
 
-        * **Allow a single client**:
-            To only accept a single client with a given MAC address, say '01:23:45:67:89:AB'.
-            ::
-                n_ap.set_authentication_address_filter(allow=('01:23:45:67:89:AB', 'FF:FF:FF:FF:FF:FF'))
-                n_ap.set_authentication_address_filter(allow=(0x0123456789AB, 0xFFFFFFFFFFFF))
+        * Only allow client with MAC address ``01:23:45:67:89:AB``:
 
-        * **Allow a range of clients**:
-            To only accept clients with MAC address starint with '01:23:45'.
-            ::
-                n_ap.set_authentication_address_filter(allow=('01:23:45:00:00:00', 'FF:FF:FF:00:00:00'))
-                n_ap.set_authentication_address_filter(allow=(0x012345000000, 0xFFFFFF000000))
+            >>> n_ap.set_authentication_address_filter(allow=(0x0123456789AB, 0xFFFFFFFFFFFF))
 
-        * **Allow multiple ranges of clients**:
-            To only accept clients with MAC address starint with '01:23:45' and '40'
-            ::
-                n_ap.set_authentication_address_filter(allow=[('01:23:45:00:00:00', 'FF:FF:FF:00:00:00'),
-                                                              ('40:00:00:00:00:00', 'FF:00:00:00:00:00')])
-                n_ap.set_authentication_address_filter(allow=[(0x012345000000, 0xFFFFFF000000),
-                                                              (0x400000000000, 0xFF0000000000)])
+        * Only allow clients with MAC addresses starting with ``01:23:45``:
 
-        * **Pre-defined filters**:
-            Pre-defined strings can be used instead of specific ranges.
-            ::
-                n_ap.set_authentication_address_filter(allow='NONE')     # Same as allow=(0x000000000000, 0xFFFFFFFFFFFF)
-                n_ap.set_authentication_address_filter(allow='ALL')      # Same as allow=(0x000000000000, 0x000000000000)
-                n_ap.set_authentication_address_filter(allow='MANGO-W3') # Same as allow=(0x40d855042000, 0xFFFFFFFFF000)
+            >>> n_ap.set_authentication_address_filter(allow=(0x012345000000, 0xFFFFFF000000))
+
+        * Allow clients with MAC addresses starting with ``01:23:45`` or ``40:``
+
+            >>> n_ap.set_authentication_address_filter(allow=[(0x012345000000, 0xFFFFFF000000), (0x400000000000, 0xFF0000000000)])
+        * Use one of the pre-defined address filter configurations:
+
+            >>> n_ap.set_authentication_address_filter(allow='NONE')     # Same as allow=(0x000000000000, 0xFFFFFFFFFFFF)
+            >>> n_ap.set_authentication_address_filter(allow='ALL')      # Same as allow=(0x000000000000, 0x000000000000)
+            >>> n_ap.set_authentication_address_filter(allow='MANGO-W3') # Same as allow=(0x40d855042000, 0xFFFFFFFFF000)
 
         """
         filters = []

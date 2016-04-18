@@ -693,8 +693,9 @@ def hdf5_to_log_index(filename, group_name=None, gen_index=True):
             store it in the file if the ``log_index`` is not in the file.
 
     Returns:
-        log_index (dict):  Either the ``log_index`` from HDF5 file or a generated 
-            ``raw_log_index`` from ``log_data`` in HDF5 file
+        log_index (dict):  Either the ``log_index`` from HDF5 file or a generated  ``raw_log_index`` 
+        from ``log_data`` in HDF5 file
+
     """
     log_index   = None
 
@@ -779,8 +780,9 @@ def np_arrays_to_hdf5(filename, np_log_dict, attr_dict=None, compression=None):
     entries may have an extra value with key ``'/'``, which will be used as the value for a 
     group attribute named ``'INFO'``.
     
-    **Examples:**
+    Examples:
     ::
+
         # No groups - all datasets in root group
         np_log_dict = {
             'RX_OFDM':  np_array_of_rx_etries,

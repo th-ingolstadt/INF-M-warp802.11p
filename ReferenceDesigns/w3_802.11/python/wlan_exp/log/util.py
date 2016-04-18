@@ -103,6 +103,7 @@ def gen_raw_log_index(log_data):
 
     Format of log entry header:
     ::
+    
         typedef struct{
             u32 delimiter;
             u16 entry_type;
@@ -233,6 +234,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
         output dictionary.  It is then up to the consumer to check if the
         number of entries for a given 'name' is zero (ie the list is empty).
         ::
+
             x = filter_log_index(log_index, include_only=['A'])
             x == {'A': [A0, A1, A2]}
 
@@ -250,6 +252,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
         However, there is no guarentee what other WlanExpLogEntryTypes are in
         the output dictionary.  That depends on the entries in the input log index.
         ::
+
             x = filter_log_index(log_index, exclude=['B'])
             x == {'A': [A0, A1, A2]}, 'C': []}
 
@@ -262,6 +265,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
         dictionary.  It is then up to the consumer to check if the number of
         entries for a given 'name' is zero (ie the list is empty).
         ::
+
             x = filter_log_index(log_index, merge={'D': ['A', 'B']}
             x == {'A': [A0, A1, A2],
                   'B': [B0, B1],
@@ -277,6 +281,7 @@ def filter_log_index(log_index, include_only=None, exclude=None, merge=None, ver
     * **Combined**:
         Combining the behavior of 'include_only', 'exclude', and 'merge'
         ::
+
             x = filter_log_index(log_index, include_only=['M'], merge={'M': ['A','C']}
             x == {'M': [A0, A1, A2]}
 
@@ -488,12 +493,15 @@ def merge_log_indexes(dest_index, src_index, offset):
     log entry offsets in the ``src_index`` to their absolute offset in the merged 
     log index.  For each of the log entry offsets in the ``src_index``, the 
     following translation will occur:
+    ::
+
         <Offset in merged log index> = <Offset in src_index> + offset
     
     Args:
         dest_index (dict):  Destination log index to merge ``src_index`` into
         src_index (dict):   Source log index to merge into destination log index
         offset (int):       Offset of ``src_index`` into ``dest_index``
+
     """
     return_val = dest_index
 

@@ -564,6 +564,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             and ``n2`` here are a wlan_exp node objects and the LTG traffic in
             each flow will go from ``n1`` to ``n2``.
             ::
+
                 import wlan_exp.ltg as ltg
                 
                 # Configure a CBR LTG addressed to a single node
@@ -573,13 +574,12 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 ltg_id = n1.ltg_configure(ltg.FlowConfigCBR(dest_addr=n2.wlan_mac_address, payload_length=1000, interval=0), auto_start=True)
 
                 # Configure a random traffic source
-                ltg_id = n1.ltg_configure(
-                    ltg.FlowConfigRandomRandom(dest_addr=n2.wlan_mac_address,
+                ltg_id = n1.ltg_configure(ltg.FlowConfigRandomRandom(dest_addr=n2.wlan_mac_address,
                                                min_payload_length=100,
                                                max_payload_length=500,
                                                min_interval=0,
                                                max_interval=0.1),
-                    auto_start=True)
+                                            auto_start=True)
         
         """
         traffic_flow.enforce_min_resolution(self.scheduler_resolution)
@@ -1986,6 +1986,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             
         Example:
         ::
+
             # Ensure node has null BSS state
             n.configure_bss(None)
 

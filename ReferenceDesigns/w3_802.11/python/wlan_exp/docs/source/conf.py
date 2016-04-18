@@ -136,6 +136,8 @@ pygments_style = 'sphinx'
 
 autodoc_member_order = 'bysource'
 
+# Supress warnings about .rst files not mentioned in TOC
+exclude_patterns = ['globals.rst']
 
 # -- Options for HTML output ----------------------------------------------
 

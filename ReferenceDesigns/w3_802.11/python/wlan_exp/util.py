@@ -193,11 +193,10 @@ def rate_info_to_str(rate_info):
         output (str):  String representation of the rate
 
     Example:
-    ::
-    >>> import wlan_exp.util as util
-    >>> r = util.get_rate_info(mcs=3, phy_mode='HTMF')
-    >>> print(util.rate_info_to_str(r))
-    26.0 Mbps (HTMF 16-QAM 1/2)
+        >>> import wlan_exp.util as util
+        >>> r = util.get_rate_info(mcs=3, phy_mode='HTMF')
+        >>> print(util.rate_info_to_str(r))
+        26.0 Mbps (HTMF 16-QAM 1/2)
     
     """
     msg = ""
@@ -236,11 +235,10 @@ def get_channel_info(channel):
      * ``channel``: Integer channel index
      * ``freq``: Integer channel center frequency, in MHz
 
-     Example:
-     ::
-    >>> import wlan_exp.util as util
-    >>> util.get_channel_info(5)
-    {'freq': 2432, 'channel': 5}
+    Examples:
+        >>> import wlan_exp.util as util
+        >>> util.get_channel_info(5)
+        {'freq': 2432, 'channel': 5}
     
     """
     channel_info = {
@@ -509,15 +507,9 @@ def filter_nodes(nodes, mac_high=None, mac_low=None, serial_number=None, warn=Tr
     if the parameter warn is True.
 
     Examples:
-    ::
-        # Find AP DCF nodes
-        filter_nodes(nodes, mac_high='AP', mac_low='DCF')
-        
-        # Find AP nodes where low can be DCF/NOMAC
-        filter_nodes(nodes, mac_high='AP')
-        
-        # Find AP DCF nodes with serial numbers 'W3-a-00001' and 'W3-a-00002'
-        filter_nodes(nodes, mac_high='ap', mac_low='dcf', serial_numbers=['w3-a-00001','w3-a-00002'])
+        >>> filter_nodes(nodes, mac_high='AP', mac_low='DCF')
+        >>> filter_nodes(nodes, mac_high='AP')
+        >>> filter_nodes(nodes, mac_high='AP', mac_low='DCF', serial_numbers=['w3-a-00001','w3-a-00002'])
     
     """
     ret_nodes         = []
@@ -1027,11 +1019,6 @@ def mac_addr_desc(mac_addr, desc_map=None):
     compared to addr_value. If the result is non-zero the corresponding 
     descprition will be returned.  This will only return the first description 
     in the [desc_map, mac_addr_desc_map] list.
-
-    Example:
-    ::
-    desc_map = [ (0x000102030405, 0xFFFFFFFFFFFF, 'My Custom MAC Addr'),
-                 (0x000203040506, 0xFFFFFFFFFFFF, 'My Other MAC Addr') ]
 
     """
     # Cast to python int in case input is still numpy uint64
