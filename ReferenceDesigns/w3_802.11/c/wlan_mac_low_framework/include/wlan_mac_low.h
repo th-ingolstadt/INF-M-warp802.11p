@@ -294,7 +294,7 @@
                     ((antMask               & 0xF) <<  4) | \
                     ((preWait_postRxTimer1  & 0x1) <<  8) | \
                     ((preWait_postRxTimer2  & 0x1) <<  9) | \
-                    ((postWait_postTxTimer1 & 0x1) << 10) | \
+                    ((preWait_postTxTimer1  & 0x1) << 10) | \
                     ((req_zeroNAV           & 0x1) << 11) | \
                     ((phy_mode              & 0x7) << 12)))
 
