@@ -194,10 +194,10 @@ def rate_info_to_str(rate_info):
 
     Example:
     ::
-        >>> import wlan_exp.util as util
-        >>> r = util.get_rate_info(mcs=3, phy_mode='HTMF')
-        >>> print(util.rate_info_to_str(r))
-        26.0 Mbps (HTMF 16-QAM 1/2)
+    >>> import wlan_exp.util as util
+    >>> r = util.get_rate_info(mcs=3, phy_mode='HTMF')
+    >>> print(util.rate_info_to_str(r))
+    26.0 Mbps (HTMF 16-QAM 1/2)
     
     """
     msg = ""
@@ -238,9 +238,9 @@ def get_channel_info(channel):
 
      Example:
      ::
-        >>> import wlan_exp.util as util
-        >>> util.get_channel_info(5)
-        {'freq': 2432, 'channel': 5}
+    >>> import wlan_exp.util as util
+    >>> util.get_channel_info(5)
+    {'freq': 2432, 'channel': 5}
     
     """
     channel_info = {
@@ -1015,8 +1015,7 @@ def mac_addr_desc(mac_addr, desc_map=None):
     mappings of different MAC addresses will also be used.
 
     Args:
-        mac_address (int):  Unsigned 48-bit integer representation of the MAC 
-            address
+        mac_address (int):  64-bit integer representing 48-bit MAC address
         desc_map (list of tuple, optional): list of tuple or tuple of the form
             (addr_mask, addr_value, descritpion)
 
@@ -1031,8 +1030,8 @@ def mac_addr_desc(mac_addr, desc_map=None):
 
     Example:
     ::
-        desc_map = [ (0x000102030405, 0xFFFFFFFFFFFF, 'My Custom MAC Addr'),
-                     (0x000203040506, 0xFFFFFFFFFFFF, 'My Other MAC Addr') ]
+    desc_map = [ (0x000102030405, 0xFFFFFFFFFFFF, 'My Custom MAC Addr'),
+                 (0x000203040506, 0xFFFFFFFFFFFF, 'My Other MAC Addr') ]
 
     """
     # Cast to python int in case input is still numpy uint64
@@ -1045,7 +1044,7 @@ def mac_addr_desc(mac_addr, desc_map=None):
     else:
         desc_map = list(desc_map) + mac_addr_desc_map
 
-    for (mask, req, desc) in desc_map:
+    for (req, mask, desc) in desc_map:
         if( (mac_addr & mask) == req):
             desc_out += desc
             break
