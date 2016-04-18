@@ -112,8 +112,8 @@ rx_h_db( real(rx_h) == 0) = handles.mag_plot_lims(3) - 5;
 
 %Update the text box summary of the log contents
 num_rx = numel(rx_t);
-num_rx_good = sum(rx_fcs == 0);
-num_rx_bad = sum(rx_fcs ~= 0);
+num_rx_good = sum(rx_fcs == 1);
+num_rx_bad = sum(rx_fcs ~= 1);
 
 info_txt = '';
 info_txt = [info_txt sprintf('Log file: %s\n', log_filename)];
@@ -130,8 +130,8 @@ handles.rx_h_phase = angle(rx_h);
 handles.rx_h_phase(:, [1:6 33 58:63]) = NaN;
 
 %Populate the table of Rx entries for user selection
-idx_good = (rx_fcs == 0);
-idx_bad = (rx_fcs ~= 0);
+idx_good = (rx_fcs == 1);
+idx_bad = (rx_fcs ~= 1);
 
 entry_table_data_all = [rx_t rx_pwr rx_g_rf_db rx_g_bb_db rx_fcs];
 entry_table_data_good = entry_table_data_all(idx_good, :);

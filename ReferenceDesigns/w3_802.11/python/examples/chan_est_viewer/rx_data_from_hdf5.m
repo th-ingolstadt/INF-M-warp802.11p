@@ -27,7 +27,7 @@ rx_entries = h5read(hdf5_filename, dataset_name);
 rx_t = double(rx_entries.timestamp);
 rx_g_bb = double(rx_entries.bb_gain);
 rx_g_rf = double(rx_entries.rf_gain);
-rx_fcs = double(rx_entries.fcs_result);
+rx_fcs = double((bitand(rx_entries.flags,1) == 1));
 rx_h = double(rx_entries.chan_est);
 rx_pwr = double(rx_entries.power);
 
