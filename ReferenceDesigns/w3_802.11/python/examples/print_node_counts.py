@@ -68,7 +68,6 @@ def initialize_experiment():
         node.set_radio_channel(CHANNEL)
         node.counts_configure_txrx(promisc_counts=PROMISCUOUS_COUNTS)
         node.reset(txrx_counts=True)
-        node.set_low_to_high_rx_filter(mac_header='ALL_MPDU', fcs='GOOD')
 
 
 def run_experiment():
