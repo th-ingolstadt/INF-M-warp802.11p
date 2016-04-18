@@ -646,7 +646,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     //     ACKs are only sent for non-control frames addressed to this node
     if(unicast_to_me && !WLAN_IS_CTRL_FRAME(rx_header)) {
         // Auto TX Delay is in units of 100ns. This delay runs from RXEND of the preceding reception.
-        //     wlan_mac_tx_ctrl_B_params(pktBuf, antMask, req_zeroNAV, preWait_postRxTimer1, preWait_postRxTimer2, postWait_postTxTimer1)
+        //     wlan_mac_tx_ctrl_B_params(pktBuf, antMask, req_zeroNAV, preWait_postRxTimer1, preWait_postRxTimer2, preWait_postTxTimer1)
         wlan_mac_tx_ctrl_B_params(TX_PKT_BUF_ACK_CTS, tx_ant_mask, 0, 1, 0, 0, PHY_MODE_NONHT);
 
         // ACKs are transmitted with a nominal Tx power used for all control packets
@@ -729,7 +729,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     } else if(unicast_to_me && (rx_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_RTS)){
         // We need to send a CTS
         //     Auto TX Delay is in units of 100ns. This delay runs from RXEND of the preceding reception.
-        //     wlan_mac_tx_ctrl_B_params(pktBuf, antMask, req_zeroNAV, preWait_postRxTimer1, preWait_postRxTimer2, postWait_postTxTimer1)
+        //     wlan_mac_tx_ctrl_B_params(pktBuf, antMask, req_zeroNAV, preWait_postRxTimer1, preWait_postRxTimer2, preWait_postTxTimer1)
         //
         wlan_mac_tx_ctrl_B_params(TX_PKT_BUF_ACK_CTS, tx_ant_mask, 1, 1, 0, 0, PHY_MODE_NONHT);
 

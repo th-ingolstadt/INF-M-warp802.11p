@@ -284,11 +284,11 @@
 //     b[7:4]: Tx ant mask
 //     b[8]: Pre-Wait for PostRx Timer 1
 //     b[9]: Pre-Wait for PostRx Timer 2
-//     b[10]: Post-Wait for PostTx Timer 1
+//     b[10]: Pre-Wait for PostTx Timer 1
 //     b[11]: Require NAV=0 at Tx time (otherwise skip Tx)
 //     b[14:12]: PHY mode
 //
-#define wlan_mac_tx_ctrl_B_params(pktBuf, antMask, req_zeroNAV, preWait_postRxTimer1, preWait_postRxTimer2, postWait_postTxTimer1, phy_mode) \
+#define wlan_mac_tx_ctrl_B_params(pktBuf, antMask, req_zeroNAV, preWait_postRxTimer1, preWait_postRxTimer2, preWait_postTxTimer1, phy_mode) \
                 Xil_Out32(WLAN_MAC_REG_TX_CTRL_B_PARAMS, \
                     ((pktBuf                & 0xF)        | \
                     ((antMask               & 0xF) <<  4) | \
