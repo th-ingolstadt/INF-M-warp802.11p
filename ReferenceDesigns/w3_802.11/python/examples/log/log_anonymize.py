@@ -33,10 +33,11 @@ Description:
 import sys
 import os
 import time
+import struct
 
 import wlan_exp.log.util as log_util
 import wlan_exp.log.util_hdf as hdf_util
-
+import wlan_exp.log.entry_types as entry_types
 
 #-----------------------------------------------------------------------------
 # Global Variables
@@ -63,9 +64,9 @@ def do_replace_addr(addr):
     if(addr == (0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF)):
         do_replace = False
 
-    # Don't replace multicast IP v4 addresses (01-00-5E-xx-xx-xx)
+    # Don't replace multicast IP v4 addresses (01-00-5E-00-00-00 to -7F-FF-FF)
     #   http://technet.microsoft.com/en-us/library/cc957928.aspx
-    if(addr[0:3] == (0x01, 0x00, 0x5E) and (addr[4] <= 0x7F)):
+    if(addr[0:3] == (0x01, 0x00, 0x5E) and (addr[3] <= 0x7F)):
         do_replace = False
 
     # Don't replace multicast IP v6 addresses (33-33-xx-xx-xx-xx)
@@ -135,47 +136,19 @@ def log_anonymize(filename):
     start_time = time.time()
 
     #----------------------------------
-    # Station Info entries
-    #
-    try:
-        print("    Anonmyizing {0} STATION_INFO entries".format(len(log_index['STATION_INFO'])))
-
-        for idx in log_index['STATION_INFO']:
-            # 6-byte address at offsets 8
-                o = 8
-                addr_to_replace(tuple(log_bytes[idx+o:idx+o+6]), idx+o, addr_idx_map)
-    except KeyError:
-        pass
-
-    if print_time:
-        print("        Time = {0:.3f}s".format(time.time() - start_time))
-
-    #----------------------------------
-    # Tx/Rx Counts entries
-    #
-    try:
-        print("    Anonmyizing {0} TXRX_COUNTS entries".format(len(log_index['TXRX_COUNTS'])))
-
-        for idx in log_index['TXRX_COUNTS']:
-            # 6-byte addresses at offsets 16
-                o = 16
-                addr_to_replace(tuple(log_bytes[idx+o:idx+o+6]), idx+o, addr_idx_map)
-    except KeyError:
-        pass
-
-    if print_time:
-        print("        Time = {0:.3f}s".format(time.time() - start_time))
-
-    #----------------------------------
     # Rx DSSS entries
     #
     try:
         print("    Anonmyizing {0} RX_DSSS entries".format(len(log_index['RX_DSSS'])))
 
+        pyld_start = struct.calcsize(''.join(
+                entry_types.entry_rx_dsss.get_field_struct_formats()[:-1])
+        )
+
         for idx in log_index['RX_DSSS']:
-            # 6-byte addresses at offsets 28, 34, 40
-            for o in (28, 34, 40):
-                addr_to_replace(tuple(log_bytes[idx+o:idx+o+6]), idx+o, addr_idx_map)
+            # 6-byte addresses at offsets 4, 10, 16 in the mac_payload
+            for o in (4, 10, 16):
+                addr_to_replace(tuple(log_bytes[idx+pyld_start+o:idx+pyld_start+o+6]), idx+pyld_start+o, addr_idx_map)
     except KeyError:
         pass
 
@@ -188,10 +161,14 @@ def log_anonymize(filename):
     try:
         print("    Anonmyizing {0} RX_OFDM entries".format(len(log_index['RX_OFDM'])))
 
+        pyld_start = struct.calcsize(''.join(
+                entry_types.entry_rx_ofdm.get_field_struct_formats()[:-1])
+        )
+
         for idx in log_index['RX_OFDM']:
-            # 6-byte addresses at offsets 284, 290, 296
-            for o in (284, 290, 296):
-                addr_to_replace(tuple(log_bytes[idx+o:idx+o+6]), idx+o, addr_idx_map)
+            # 6-byte addresses at offsets 4, 10, 16 in the mac_payload
+            for o in (4, 10, 16):
+                addr_to_replace(tuple(log_bytes[idx+pyld_start+o:idx+pyld_start+o+6]), idx+pyld_start+o, addr_idx_map)
     except KeyError:
         pass
 
@@ -204,10 +181,14 @@ def log_anonymize(filename):
     try:
         print("    Anonmyizing {0} TX_HIGH entries".format(len(log_index['TX_HIGH'])))
 
+        pyld_start = struct.calcsize(''.join(
+                entry_types.entry_tx_high.get_field_struct_formats()[:-1])
+        )
+
         for idx in log_index['TX_HIGH']:
-            # 6-byte addresses at offsets 44, 50, 56
-            for o in (44, 50, 56):
-                addr_to_replace(tuple(log_bytes[idx+o:idx+o+6]), idx+o, addr_idx_map)
+            # 6-byte addresses at offsets 4, 10, 16 in the mac_payload
+            for o in (4, 10, 16):
+                addr_to_replace(tuple(log_bytes[idx+pyld_start+o:idx+pyld_start+o+6]), idx+pyld_start+o, addr_idx_map)
     except KeyError:
         pass
 
@@ -220,10 +201,14 @@ def log_anonymize(filename):
     try:
         print("    Anonmyizing {0} TX_LOW entries".format(len(log_index['TX_LOW'])))
 
+        pyld_start = struct.calcsize(''.join(
+                entry_types.entry_tx_low.get_field_struct_formats()[:-1])
+        )
+
         for idx in log_index['TX_LOW']:
             # 6-byte addresses at offsets 40, 46, 52
-            for o in (40, 46, 52):
-                addr_to_replace(tuple(log_bytes[idx+o:idx+o+6]), idx+o, addr_idx_map)
+            for o in (4, 10, 16):
+                addr_to_replace(tuple(log_bytes[idx+pyld_start+o:idx+pyld_start+o+6]), idx+pyld_start+o, addr_idx_map)
     except KeyError:
         pass
 
@@ -274,33 +259,6 @@ def log_anonymize(filename):
     # Step 4: Other annonymization steps
     #
     print("Anonmyizing file step 4 ...")
-
-    print("    Replace STATION_INFO hostnames")
-
-    # Station info entries contain "hostname", the DHCP client hostname field
-    #   Replace these with a string version of the new anonymous MAC addr
-    try:
-        for idx in log_index['STATION_INFO']:
-            # 6-byte MAC addr (already anonymized) at offset 8
-            # 20 character ASCII string at offset 16
-            addr_o = 8
-            name_o = 16
-            addr = log_bytes[idx+addr_o : idx+addr_o+6]
-
-            new_name   = "AnonNode {0:02x}_{1:02x}".format(addr[4], addr[5])
-            new_name   = new_name + '\x00' * (20 - len(new_name))
-            log_bytes[idx+name_o : idx+name_o+20] = bytearray(new_name.encode("UTF-8"))
-    except KeyError:
-        pass
-
-    print("    Remove all CMD_INFO entries")
-
-    # Command info entries contain command arguments that could possibly
-    #   contain sensitive information.  Replace with NULL entries.
-    try:
-        log_util.overwrite_entries_with_null_entry(log_bytes, log_index['CMD_INFO'])
-    except:
-        pass
 
     print("    Remove all payloads")
 
