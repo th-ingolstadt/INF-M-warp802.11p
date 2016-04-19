@@ -288,7 +288,10 @@ class WlanExpLogEntryType(object):
             doc_str = ''
 
             if fmt == 'wiki':
-                doc_str += '||=  Field Name  =||=  Data Type  =||=  Description  =||\n'
+                doc_str += '{{{{{{#!th align=center\nField Name\n}}}}}}\n'
+                doc_str += '{{{{{{#!th align=center\nData Type\n}}}}}}\n'
+                doc_str += '{{{{{{#!th align=center\Description\n}}}}}}\n'
+                doc_str += '|----------------'
 
                 for fd in field_list:
                     import re
@@ -297,18 +300,21 @@ class WlanExpLogEntryType(object):
                     #   Braces with numeric contents need escape (![) to disable Trac interpretting as changeset number
                     fd_desc = fd[2]
                     fd_desc = re.sub('(\[[\d:,]+\])', '!\\1', fd_desc) # do this first, so other wiki tags inserted below aren't escaped
+                    #fd_desc = fd_desc.replace('\n', '[[BR]]')
 
                     try:
                         consts = self.consts[fd[0]]
-                        fd_desc += '\n\nConstants:\n{0}'.format(consts)
+                        fd_desc += '\n\nConstants defined for this field:\n'
+                        for c in consts.keys():
+                            fd_desc += ' * {{{{{{\'{0}\'}}}}}}\n'.format(c)
                     except:
                         # Field didn't have constants defined
                         pass
 
-                    fd_desc = fd_desc.replace('\n', '[[BR]]')
-
-
-                    doc_str += '|| {0} ||  {1}  || {2} ||\n'.format(fd[0], fd[1], fd_desc)
+                    doc_str += '{{{{{{#!td align=left\n{0}\n}}}}}}\n'.format(fd[0])
+                    doc_str += '{{{{{{#!td align=center\n{0}\n}}}}}}\n'.format(fd[1])
+                    doc_str += '{{{{{{#!td align=left\n{0}\n}}}}}}\n'.format(fd_desc)
+                    doc_str += '|----------------'
 
             elif fmt == 'txt':
                 doc_str += 'Field Name\t\t\t| Data Type\t| Description\n'
