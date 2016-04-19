@@ -16,7 +16,8 @@ Data Type
 {{{#!th align=center
 Description
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 timestamp
 }}}
 {{{#!td align=center
@@ -25,7 +26,8 @@ uint64
 {{{#!td align=left
 Value of MAC Time in microseconds when log entry created
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 node_type
 }}}
 {{{#!td align=center
@@ -38,7 +40,8 @@ Node type as 4 byte value: [b0 b1 b2 b3]:
  b2: CPU High application: 0x1 = AP, 0x2 = STA, 0x3 = IBSS
  b3: CPU Low application: 0x1 = DCF, 0x2 = NOMAC
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 node_id
 }}}
 {{{#!td align=center
@@ -47,7 +50,8 @@ uint32
 {{{#!td align=left
 Node ID, as set during wlan_exp init
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 hw_generation
 }}}
 {{{#!td align=center
@@ -56,7 +60,8 @@ uint32
 {{{#!td align=left
 WARP hardware generation: 3 for WARP v3
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 serial_num
 }}}
 {{{#!td align=center
@@ -65,7 +70,8 @@ uint32
 {{{#!td align=left
 Serial number of WARP board
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 fpga_dna
 }}}
 {{{#!td align=center
@@ -74,7 +80,8 @@ uint64
 {{{#!td align=left
 DNA value of node FPGA
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 version
 }}}
 {{{#!td align=center
@@ -83,7 +90,8 @@ uint32
 {{{#!td align=left
 wlan_exp version, as packed values [(u8)major (u8)minor (u16)rev]
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 wlan_scheduler_resolution
 }}}
 {{{#!td align=center
@@ -92,7 +100,8 @@ uint32
 {{{#!td align=left
 Minimum interval in microseconds of the WLAN scheduler
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 wlan_mac_addr
 }}}
 {{{#!td align=center
@@ -101,7 +110,8 @@ uint64
 {{{#!td align=left
 Node MAC address, 6 bytes in lower 48-bits of u64
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 wlan_max_tx_power_dbm
 }}}
 {{{#!td align=center
@@ -110,7 +120,8 @@ int32
 {{{#!td align=left
 Maximum transmit power
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 wlan_min_tx_power_dbm
 }}}
 {{{#!td align=center
@@ -120,6 +131,7 @@ int32
 Minimum transmit power
 }}}
 |----------------
+
 
 ----
 
@@ -137,7 +149,8 @@ Data Type
 {{{#!th align=center
 Description
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 timestamp
 }}}
 {{{#!td align=center
@@ -146,7 +159,8 @@ uint64
 {{{#!td align=left
 Value of MAC Time in microseconds when log entry created
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 info_type
 }}}
 {{{#!td align=center
@@ -155,7 +169,8 @@ uint16
 {{{#!td align=left
 Exp info type (arbitrary value supplied by application
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 info_len
 }}}
 {{{#!td align=center
@@ -164,7 +179,8 @@ uint16
 {{{#!td align=left
 Exp info length (describes arbitrary payload supplied by application
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 info_payload
 }}}
 {{{#!td align=center
@@ -174,6 +190,7 @@ uint32
 Exp info payload
 }}}
 |----------------
+
 
 ----
 
@@ -191,7 +208,8 @@ Data Type
 {{{#!th align=center
 Description
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 timestamp
 }}}
 {{{#!td align=center
@@ -200,7 +218,8 @@ uint64
 {{{#!td align=left
 Value of MAC Time in microseconds when log entry created
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 node_id
 }}}
 {{{#!td align=center
@@ -209,7 +228,8 @@ uint32
 {{{#!td align=left
 wlan_exp node ID
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 serial_num
 }}}
 {{{#!td align=center
@@ -218,7 +238,8 @@ uint32
 {{{#!td align=left
 Node serial number
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 temp_current
 }}}
 {{{#!td align=center
@@ -227,7 +248,8 @@ uint32
 {{{#!td align=left
 Current FPGA die temperature
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 temp_min
 }}}
 {{{#!td align=center
@@ -236,7 +258,8 @@ uint32
 {{{#!td align=left
 Minimum FPGA die temperature since FPGA configuration or sysmon reset
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 temp_max
 }}}
 {{{#!td align=center
@@ -246,6 +269,7 @@ uint32
 Maximum FPGA die temperature since FPGA configuration or sysmon reset
 }}}
 |----------------
+
 
 ----
 
@@ -263,7 +287,8 @@ Data Type
 {{{#!th align=center
 Description
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 timestamp
 }}}
 {{{#!td align=center
@@ -272,7 +297,8 @@ uint64
 {{{#!td align=left
 Value of MAC Time in microseconds when log entry created (before any time change is applied)
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 time_id
 }}}
 {{{#!td align=center
@@ -281,7 +307,8 @@ uint32
 {{{#!td align=left
 Random ID value included in wlan_exp TIME_INFO command; used to find common entries across nodes
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 reason
 }}}
 {{{#!td align=center
@@ -296,7 +323,8 @@ Constants defined for this field:
  * {{{'WLAN_EXP_ADD_LOG'}}}
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mac_timestamp
 }}}
 {{{#!td align=center
@@ -305,7 +333,8 @@ uint64
 {{{#!td align=left
 New value of MAC Time in microseconds 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 system_timestamp
 }}}
 {{{#!td align=center
@@ -314,7 +343,8 @@ uint64
 {{{#!td align=left
 Value of System Time in microseconds
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 host_timestamp
 }}}
 {{{#!td align=center
@@ -324,6 +354,7 @@ uint64
 Host time in microseconds-since-epoch; 0xFFFFFFFFFFFFFFFF if unknown
 }}}
 |----------------
+
 
 ----
 
@@ -341,7 +372,8 @@ Data Type
 {{{#!th align=center
 Description
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 timestamp
 }}}
 {{{#!td align=center
@@ -350,7 +382,8 @@ uint64
 {{{#!td align=left
 Value of MAC Time in microseconds at PHY RX_START
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 timestamp_frac
 }}}
 {{{#!td align=center
@@ -359,7 +392,8 @@ uint8
 {{{#!td align=left
 Fractional timestamp (units of 6.25ns)
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 phy_samp_rate
 }}}
 {{{#!td align=center
@@ -368,7 +402,8 @@ uint8
 {{{#!td align=left
 PHY Sampling Rate Mode
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 length
 }}}
 {{{#!td align=center
@@ -377,7 +412,8 @@ uint16
 {{{#!td align=left
 Length of payload in bytes
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 cfo_est
 }}}
 {{{#!td align=center
@@ -386,7 +422,8 @@ int32
 {{{#!td align=left
 Time-domain CFO estimate from Rx PHY; Fix32_31 value, CFO as fraction of sampling frequency
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mcs
 }}}
 {{{#!td align=center
@@ -395,7 +432,8 @@ uint8
 {{{#!td align=left
 MCS index, in ![0:7]
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 phy_mode
 }}}
 {{{#!td align=center
@@ -410,7 +448,8 @@ Constants defined for this field:
  * {{{'DSSS'}}}
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 ant_mode
 }}}
 {{{#!td align=center
@@ -419,7 +458,8 @@ uint8
 {{{#!td align=left
 Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D]
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 power
 }}}
 {{{#!td align=center
@@ -428,7 +468,8 @@ int8
 {{{#!td align=left
 Rx power in dBm
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 padding0
 }}}
 {{{#!td align=center
@@ -437,7 +478,8 @@ uint8
 {{{#!td align=left
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 pkt_type
 }}}
 {{{#!td align=center
@@ -457,7 +499,8 @@ Constants defined for this field:
  * {{{'DATA'}}}
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 channel
 }}}
 {{{#!td align=center
@@ -466,7 +509,8 @@ uint8
 {{{#!td align=left
 Channel (center frequency) index
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 padding1
 }}}
 {{{#!td align=center
@@ -475,7 +519,8 @@ uint8
 {{{#!td align=left
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 rf_gain
 }}}
 {{{#!td align=center
@@ -484,7 +529,8 @@ uint8
 {{{#!td align=left
 AGC RF gain setting: ![1,2,3] for ![0,15,30]dB gain
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 bb_gain
 }}}
 {{{#!td align=center
@@ -493,7 +539,8 @@ uint8
 {{{#!td align=left
 AGC BB gain setting: ![0:31] for approx ![0:63]dB gain
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 flags
 }}}
 {{{#!td align=center
@@ -509,7 +556,8 @@ Constants defined for this field:
  * {{{'LTG'}}}
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 chan_est
 }}}
 {{{#!td align=center
@@ -518,7 +566,8 @@ chan_est
 {{{#!td align=left
 OFDM Rx channel estimates, packed as [(uint16)I (uint16)Q] values, one per subcarrier
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mac_payload_len
 }}}
 {{{#!td align=center
@@ -527,7 +576,8 @@ uint32
 {{{#!td align=left
 Length in bytes of MAC payload recorded in log for this packet
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mac_payload
 }}}
 {{{#!td align=center
@@ -537,6 +587,7 @@ mac_payload
 First 24 bytes of MAC payload, typically the 802.11 MAC header
 }}}
 |----------------
+
 
 The following fields are populated when the log entry is part of a numpy array generated via the {{{generate_numpy_array}}} method. These fields are calculated from the underlying bytes in the raw log entries and are stored in more convenient formats tha the raw log fields. For example, these MAC address fields are 48-bit values stored in 64-bit integers. These integer addresses are much easier to use when filtering Tx/Rx log entries using numpy and pandas.
 
@@ -549,7 +600,8 @@ Data Type
 {{{#!th align=center
 Description
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 addr1
 }}}
 {{{#!td align=center
@@ -558,7 +610,8 @@ uint64
 {{{#!td align=left
 MAC Header Address 1
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 addr2
 }}}
 {{{#!td align=center
@@ -567,7 +620,8 @@ uint64
 {{{#!td align=left
 MAC Header Address 2
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 addr3
 }}}
 {{{#!td align=center
@@ -576,7 +630,8 @@ uint64
 {{{#!td align=left
 MAC Header Address 3
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mac_seq
 }}}
 {{{#!td align=center
@@ -586,6 +641,7 @@ uint16
 MAC Header Sequence Number
 }}}
 |----------------
+
 
 ----
 
@@ -603,7 +659,8 @@ Data Type
 {{{#!th align=center
 Description
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 timestamp
 }}}
 {{{#!td align=center
@@ -612,7 +669,8 @@ uint64
 {{{#!td align=left
 Value of MAC Time in microseconds at PHY RX_START
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 timestamp_frac
 }}}
 {{{#!td align=center
@@ -621,7 +679,8 @@ uint8
 {{{#!td align=left
 Fractional timestamp (units of 6.25ns)
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 phy_samp_rate
 }}}
 {{{#!td align=center
@@ -630,7 +689,8 @@ uint8
 {{{#!td align=left
 PHY Sampling Rate Mode
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 length
 }}}
 {{{#!td align=center
@@ -639,7 +699,8 @@ uint16
 {{{#!td align=left
 Length of payload in bytes
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 cfo_est
 }}}
 {{{#!td align=center
@@ -648,7 +709,8 @@ int32
 {{{#!td align=left
 Time-domain CFO estimate from Rx PHY; Fix32_31 value, CFO as fraction of sampling frequency
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mcs
 }}}
 {{{#!td align=center
@@ -657,7 +719,8 @@ uint8
 {{{#!td align=left
 MCS index, in ![0:7]
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 phy_mode
 }}}
 {{{#!td align=center
@@ -672,7 +735,8 @@ Constants defined for this field:
  * {{{'DSSS'}}}
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 ant_mode
 }}}
 {{{#!td align=center
@@ -681,7 +745,8 @@ uint8
 {{{#!td align=left
 Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D]
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 power
 }}}
 {{{#!td align=center
@@ -690,7 +755,8 @@ int8
 {{{#!td align=left
 Rx power in dBm
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 padding0
 }}}
 {{{#!td align=center
@@ -699,7 +765,8 @@ uint8
 {{{#!td align=left
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 pkt_type
 }}}
 {{{#!td align=center
@@ -719,7 +786,8 @@ Constants defined for this field:
  * {{{'DATA'}}}
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 channel
 }}}
 {{{#!td align=center
@@ -728,7 +796,8 @@ uint8
 {{{#!td align=left
 Channel (center frequency) index
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 padding1
 }}}
 {{{#!td align=center
@@ -737,7 +806,8 @@ uint8
 {{{#!td align=left
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 rf_gain
 }}}
 {{{#!td align=center
@@ -746,7 +816,8 @@ uint8
 {{{#!td align=left
 AGC RF gain setting: ![1,2,3] for ![0,15,30]dB gain
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 bb_gain
 }}}
 {{{#!td align=center
@@ -755,7 +826,8 @@ uint8
 {{{#!td align=left
 AGC BB gain setting: ![0:31] for approx ![0:63]dB gain
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 flags
 }}}
 {{{#!td align=center
@@ -771,7 +843,8 @@ Constants defined for this field:
  * {{{'LTG'}}}
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 chan_est
 }}}
 {{{#!td align=center
@@ -780,7 +853,8 @@ chan_est
 {{{#!td align=left
 OFDM Rx channel estimates, packed as [(uint16)I (uint16)Q] values, one per subcarrier
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mac_payload_len
 }}}
 {{{#!td align=center
@@ -789,7 +863,8 @@ uint32
 {{{#!td align=left
 Length in bytes of MAC payload recorded in log for this packet
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mac_payload
 }}}
 {{{#!td align=center
@@ -799,6 +874,7 @@ mac_payload
 First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG ID
 }}}
 |----------------
+
 
 The following fields are populated when the log entry is part of a numpy array generated via the {{{generate_numpy_array}}} method. These fields are calculated from the underlying bytes in the raw log entries and are stored in more convenient formats tha the raw log fields. For example, these MAC address fields are 48-bit values stored in 64-bit integers. These integer addresses are much easier to use when filtering Tx/Rx log entries using numpy and pandas.
 
@@ -811,7 +887,8 @@ Data Type
 {{{#!th align=center
 Description
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 addr1
 }}}
 {{{#!td align=center
@@ -820,7 +897,8 @@ uint64
 {{{#!td align=left
 MAC Header Address 1
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 addr2
 }}}
 {{{#!td align=center
@@ -829,7 +907,8 @@ uint64
 {{{#!td align=left
 MAC Header Address 2
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 addr3
 }}}
 {{{#!td align=center
@@ -838,7 +917,8 @@ uint64
 {{{#!td align=left
 MAC Header Address 3
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mac_seq
 }}}
 {{{#!td align=center
@@ -847,7 +927,8 @@ uint16
 {{{#!td align=left
 MAC Header Sequence Number
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 ltg_uniq_seq
 }}}
 {{{#!td align=center
@@ -856,7 +937,8 @@ uint64
 {{{#!td align=left
 Unique sequence number for LTG packet
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 ltg_flow_id
 }}}
 {{{#!td align=center
@@ -868,6 +950,7 @@ LTG Flow ID, calculated as:
   48MSB: Destination MAC address
 }}}
 |----------------
+
 
 ----
 
@@ -885,7 +968,8 @@ Data Type
 {{{#!th align=center
 Description
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 timestamp
 }}}
 {{{#!td align=center
@@ -894,7 +978,8 @@ uint64
 {{{#!td align=left
 Value of MAC Time in microseconds at PHY RX_START
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 timestamp_frac
 }}}
 {{{#!td align=center
@@ -903,7 +988,8 @@ uint8
 {{{#!td align=left
 Fractional timestamp (units of 6.25ns)
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 phy_samp_rate
 }}}
 {{{#!td align=center
@@ -912,7 +998,8 @@ uint8
 {{{#!td align=left
 PHY Sampling Rate Mode
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 length
 }}}
 {{{#!td align=center
@@ -921,7 +1008,8 @@ uint16
 {{{#!td align=left
 Length of payload in bytes
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 cfo_est
 }}}
 {{{#!td align=center
@@ -930,7 +1018,8 @@ int32
 {{{#!td align=left
 Time-domain CFO estimate from Rx PHY; Fix32_31 value, CFO as fraction of sampling frequency
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mcs
 }}}
 {{{#!td align=center
@@ -939,7 +1028,8 @@ uint8
 {{{#!td align=left
 MCS index, in ![0:7]
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 phy_mode
 }}}
 {{{#!td align=center
@@ -954,7 +1044,8 @@ Constants defined for this field:
  * {{{'DSSS'}}}
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 ant_mode
 }}}
 {{{#!td align=center
@@ -963,7 +1054,8 @@ uint8
 {{{#!td align=left
 Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D]
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 power
 }}}
 {{{#!td align=center
@@ -972,7 +1064,8 @@ int8
 {{{#!td align=left
 Rx power in dBm
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 padding0
 }}}
 {{{#!td align=center
@@ -981,7 +1074,8 @@ uint8
 {{{#!td align=left
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 pkt_type
 }}}
 {{{#!td align=center
@@ -1001,7 +1095,8 @@ Constants defined for this field:
  * {{{'DATA'}}}
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 channel
 }}}
 {{{#!td align=center
@@ -1010,7 +1105,8 @@ uint8
 {{{#!td align=left
 Channel (center frequency) index
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 padding1
 }}}
 {{{#!td align=center
@@ -1019,7 +1115,8 @@ uint8
 {{{#!td align=left
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 rf_gain
 }}}
 {{{#!td align=center
@@ -1028,7 +1125,8 @@ uint8
 {{{#!td align=left
 AGC RF gain setting: ![1,2,3] for ![0,15,30]dB gain
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 bb_gain
 }}}
 {{{#!td align=center
@@ -1037,7 +1135,8 @@ uint8
 {{{#!td align=left
 AGC BB gain setting: ![0:31] for approx ![0:63]dB gain
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 flags
 }}}
 {{{#!td align=center
@@ -1053,7 +1152,8 @@ Constants defined for this field:
  * {{{'LTG'}}}
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mac_payload_len
 }}}
 {{{#!td align=center
@@ -1062,7 +1162,8 @@ uint32
 {{{#!td align=left
 Length in bytes of MAC payload recorded in log for this packet
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mac_payload
 }}}
 {{{#!td align=center
@@ -1072,6 +1173,7 @@ mac_payload
 First 24 bytes of MAC payload, typically the 802.11 MAC header
 }}}
 |----------------
+
 
 The following fields are populated when the log entry is part of a numpy array generated via the {{{generate_numpy_array}}} method. These fields are calculated from the underlying bytes in the raw log entries and are stored in more convenient formats tha the raw log fields. For example, these MAC address fields are 48-bit values stored in 64-bit integers. These integer addresses are much easier to use when filtering Tx/Rx log entries using numpy and pandas.
 
@@ -1084,7 +1186,8 @@ Data Type
 {{{#!th align=center
 Description
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 addr1
 }}}
 {{{#!td align=center
@@ -1093,7 +1196,8 @@ uint64
 {{{#!td align=left
 MAC Header Address 1
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 addr2
 }}}
 {{{#!td align=center
@@ -1102,7 +1206,8 @@ uint64
 {{{#!td align=left
 MAC Header Address 2
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 addr3
 }}}
 {{{#!td align=center
@@ -1111,7 +1216,8 @@ uint64
 {{{#!td align=left
 MAC Header Address 3
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mac_seq
 }}}
 {{{#!td align=center
@@ -1121,6 +1227,7 @@ uint16
 MAC Header Sequence Number
 }}}
 |----------------
+
 
 ----
 
@@ -1138,7 +1245,8 @@ Data Type
 {{{#!th align=center
 Description
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 timestamp
 }}}
 {{{#!td align=center
@@ -1147,7 +1255,8 @@ uint64
 {{{#!td align=left
 Value of MAC Time in microseconds when packet was created, immediately before it was enqueued
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 time_to_accept
 }}}
 {{{#!td align=center
@@ -1156,7 +1265,8 @@ uint32
 {{{#!td align=left
 Time duration in microseconds between packet creation and packet acceptance by CPU Low
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 time_to_done
 }}}
 {{{#!td align=center
@@ -1165,7 +1275,8 @@ uint32
 {{{#!td align=left
 Time duration in microseconds between packet acceptance by CPU Low and Tx completion in CPU Low
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 uniq_seq
 }}}
 {{{#!td align=center
@@ -1174,7 +1285,8 @@ uint64
 {{{#!td align=left
 Unique sequence number for Tx packet; 12 LSB of this used for 802.11 MAC header sequence number
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mcs
 }}}
 {{{#!td align=center
@@ -1183,7 +1295,8 @@ uint8
 {{{#!td align=left
 MCS index in ![0:7]
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 phy_mode
 }}}
 {{{#!td align=center
@@ -1198,7 +1311,8 @@ Constants defined for this field:
  * {{{'DSSS'}}}
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 ant_mode
 }}}
 {{{#!td align=center
@@ -1207,7 +1321,8 @@ uint8
 {{{#!td align=left
 PHY antenna mode in [0x10, 0x20, 0x30, 0x40]
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 tx_power
 }}}
 {{{#!td align=center
@@ -1216,7 +1331,8 @@ int8
 {{{#!td align=left
 Tx power in dBm
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 num_tx
 }}}
 {{{#!td align=center
@@ -1225,7 +1341,8 @@ uint8
 {{{#!td align=left
 Number of actual PHY Tx events which were used to transmit the MPDU (first Tx + all re-Tx)
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 padding0
 }}}
 {{{#!td align=center
@@ -1234,7 +1351,8 @@ uint8
 {{{#!td align=left
 Padding
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 length
 }}}
 {{{#!td align=center
@@ -1243,7 +1361,8 @@ uint16
 {{{#!td align=left
 Length in bytes of MPDU; includes MAC header, payload and FCS
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 padding1
 }}}
 {{{#!td align=center
@@ -1252,7 +1371,8 @@ uint8
 {{{#!td align=left
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 pkt_type
 }}}
 {{{#!td align=center
@@ -1272,7 +1392,8 @@ Constants defined for this field:
  * {{{'DATA'}}}
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 queue_id
 }}}
 {{{#!td align=center
@@ -1281,7 +1402,8 @@ uint16
 {{{#!td align=left
 Tx queue ID from which the packet was retrieved
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 queue_occupancy
 }}}
 {{{#!td align=center
@@ -1290,7 +1412,8 @@ uint16
 {{{#!td align=left
 Occupancy of the Tx queue at the time the packet was created (value includes itself)
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 flags
 }}}
 {{{#!td align=center
@@ -1305,7 +1428,8 @@ Constants defined for this field:
  * {{{'LTG'}}}
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mac_payload_len
 }}}
 {{{#!td align=center
@@ -1314,7 +1438,8 @@ uint32
 {{{#!td align=left
 Length in bytes of MAC payload recorded in log for this packet
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mac_payload
 }}}
 {{{#!td align=center
@@ -1324,6 +1449,7 @@ mac_payload
 First 24 bytes of MAC payload, typically the 802.11 MAC header
 }}}
 |----------------
+
 
 The following fields are populated when the log entry is part of a numpy array generated via the {{{generate_numpy_array}}} method. These fields are calculated from the underlying bytes in the raw log entries and are stored in more convenient formats tha the raw log fields. For example, these MAC address fields are 48-bit values stored in 64-bit integers. These integer addresses are much easier to use when filtering Tx/Rx log entries using numpy and pandas.
 
@@ -1336,7 +1462,8 @@ Data Type
 {{{#!th align=center
 Description
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 addr1
 }}}
 {{{#!td align=center
@@ -1345,7 +1472,8 @@ uint64
 {{{#!td align=left
 MAC Header Address 1
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 addr2
 }}}
 {{{#!td align=center
@@ -1354,7 +1482,8 @@ uint64
 {{{#!td align=left
 MAC Header Address 2
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 addr3
 }}}
 {{{#!td align=center
@@ -1363,7 +1492,8 @@ uint64
 {{{#!td align=left
 MAC Header Address 3
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mac_seq
 }}}
 {{{#!td align=center
@@ -1373,6 +1503,7 @@ uint16
 MAC Header Sequence Number
 }}}
 |----------------
+
 
 ----
 
@@ -1390,7 +1521,8 @@ Data Type
 {{{#!th align=center
 Description
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 timestamp
 }}}
 {{{#!td align=center
@@ -1399,7 +1531,8 @@ uint64
 {{{#!td align=left
 Value of MAC Time in microseconds when packet was created, immediately before it was enqueued
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 time_to_accept
 }}}
 {{{#!td align=center
@@ -1408,7 +1541,8 @@ uint32
 {{{#!td align=left
 Time duration in microseconds between packet creation and packet acceptance by CPU Low
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 time_to_done
 }}}
 {{{#!td align=center
@@ -1417,7 +1551,8 @@ uint32
 {{{#!td align=left
 Time duration in microseconds between packet acceptance by CPU Low and Tx completion in CPU Low
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 uniq_seq
 }}}
 {{{#!td align=center
@@ -1426,7 +1561,8 @@ uint64
 {{{#!td align=left
 Unique sequence number for Tx packet; 12 LSB of this used for 802.11 MAC header sequence number
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mcs
 }}}
 {{{#!td align=center
@@ -1435,7 +1571,8 @@ uint8
 {{{#!td align=left
 MCS index in ![0:7]
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 phy_mode
 }}}
 {{{#!td align=center
@@ -1450,7 +1587,8 @@ Constants defined for this field:
  * {{{'DSSS'}}}
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 ant_mode
 }}}
 {{{#!td align=center
@@ -1459,7 +1597,8 @@ uint8
 {{{#!td align=left
 PHY antenna mode in [0x10, 0x20, 0x30, 0x40]
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 tx_power
 }}}
 {{{#!td align=center
@@ -1468,7 +1607,8 @@ int8
 {{{#!td align=left
 Tx power in dBm
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 num_tx
 }}}
 {{{#!td align=center
@@ -1477,7 +1617,8 @@ uint8
 {{{#!td align=left
 Number of actual PHY Tx events which were used to transmit the MPDU (first Tx + all re-Tx)
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 padding0
 }}}
 {{{#!td align=center
@@ -1486,7 +1627,8 @@ uint8
 {{{#!td align=left
 Padding
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 length
 }}}
 {{{#!td align=center
@@ -1495,7 +1637,8 @@ uint16
 {{{#!td align=left
 Length in bytes of MPDU; includes MAC header, payload and FCS
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 padding1
 }}}
 {{{#!td align=center
@@ -1504,7 +1647,8 @@ uint8
 {{{#!td align=left
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 pkt_type
 }}}
 {{{#!td align=center
@@ -1524,7 +1668,8 @@ Constants defined for this field:
  * {{{'DATA'}}}
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 queue_id
 }}}
 {{{#!td align=center
@@ -1533,7 +1678,8 @@ uint16
 {{{#!td align=left
 Tx queue ID from which the packet was retrieved
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 queue_occupancy
 }}}
 {{{#!td align=center
@@ -1542,7 +1688,8 @@ uint16
 {{{#!td align=left
 Occupancy of the Tx queue at the time the packet was created (value includes itself)
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 flags
 }}}
 {{{#!td align=center
@@ -1557,7 +1704,8 @@ Constants defined for this field:
  * {{{'LTG'}}}
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mac_payload_len
 }}}
 {{{#!td align=center
@@ -1566,7 +1714,8 @@ uint32
 {{{#!td align=left
 Length in bytes of MAC payload recorded in log for this packet
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mac_payload
 }}}
 {{{#!td align=center
@@ -1576,6 +1725,7 @@ mac_payload
 First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG ID
 }}}
 |----------------
+
 
 The following fields are populated when the log entry is part of a numpy array generated via the {{{generate_numpy_array}}} method. These fields are calculated from the underlying bytes in the raw log entries and are stored in more convenient formats tha the raw log fields. For example, these MAC address fields are 48-bit values stored in 64-bit integers. These integer addresses are much easier to use when filtering Tx/Rx log entries using numpy and pandas.
 
@@ -1588,7 +1738,8 @@ Data Type
 {{{#!th align=center
 Description
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 addr1
 }}}
 {{{#!td align=center
@@ -1597,7 +1748,8 @@ uint64
 {{{#!td align=left
 MAC Header Address 1
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 addr2
 }}}
 {{{#!td align=center
@@ -1606,7 +1758,8 @@ uint64
 {{{#!td align=left
 MAC Header Address 2
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 addr3
 }}}
 {{{#!td align=center
@@ -1615,7 +1768,8 @@ uint64
 {{{#!td align=left
 MAC Header Address 3
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mac_seq
 }}}
 {{{#!td align=center
@@ -1624,7 +1778,8 @@ uint16
 {{{#!td align=left
 MAC Header Sequence Number
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 ltg_uniq_seq
 }}}
 {{{#!td align=center
@@ -1633,7 +1788,8 @@ uint64
 {{{#!td align=left
 Unique sequence number for LTG packet
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 ltg_flow_id
 }}}
 {{{#!td align=center
@@ -1645,6 +1801,7 @@ LTG Flow ID, calculated as:
   48MSB: Destination MAC address
 }}}
 |----------------
+
 
 ----
 
@@ -1662,7 +1819,8 @@ Data Type
 {{{#!th align=center
 Description
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 timestamp
 }}}
 {{{#!td align=center
@@ -1671,7 +1829,8 @@ uint64
 {{{#!td align=left
 Value of MAC Time in microseconds when packet transmission actually started (PHY TX_START time)
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 uniq_seq
 }}}
 {{{#!td align=center
@@ -1680,7 +1839,8 @@ uint64
 {{{#!td align=left
 Unique sequence number of original MPDU
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mcs
 }}}
 {{{#!td align=center
@@ -1689,7 +1849,8 @@ uint8
 {{{#!td align=left
 MCS index in ![0:7]
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 phy_mode
 }}}
 {{{#!td align=center
@@ -1704,7 +1865,8 @@ Constants defined for this field:
  * {{{'DSSS'}}}
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 ant_mode
 }}}
 {{{#!td align=center
@@ -1713,7 +1875,8 @@ uint8
 {{{#!td align=left
 PHY antenna mode in [0x10, 0x20, 0x30, 0x40]
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 tx_power
 }}}
 {{{#!td align=center
@@ -1722,7 +1885,8 @@ int8
 {{{#!td align=left
 Tx power in dBm
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 tx_count
 }}}
 {{{#!td align=center
@@ -1731,7 +1895,8 @@ uint8
 {{{#!td align=left
 Transmission index for this attempt; 0 = initial Tx, 1+ = subsequent re-transmissions
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 channel
 }}}
 {{{#!td align=center
@@ -1740,7 +1905,8 @@ uint8
 {{{#!td align=left
 Channel (center frequency) index
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 length
 }}}
 {{{#!td align=center
@@ -1749,7 +1915,8 @@ uint16
 {{{#!td align=left
 Length in bytes of MPDU; includes MAC header, payload and FCS
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 num_slots
 }}}
 {{{#!td align=center
@@ -1758,7 +1925,8 @@ int16
 {{{#!td align=left
 Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0); A value of -1 in this field means no backoff occured
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 cw
 }}}
 {{{#!td align=center
@@ -1767,7 +1935,8 @@ uint16
 {{{#!td align=left
 Contention window value at time of this Tx
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 pkt_type
 }}}
 {{{#!td align=center
@@ -1787,7 +1956,8 @@ Constants defined for this field:
  * {{{'DATA'}}}
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 flags
 }}}
 {{{#!td align=center
@@ -1800,7 +1970,8 @@ Constants defined for this field:
  * {{{'ACKED'}}}
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 timestamp_frac
 }}}
 {{{#!td align=center
@@ -1809,7 +1980,8 @@ uint8
 {{{#!td align=left
 Fractional timestamp (units of 6.25ns)
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 phy_samp_rate
 }}}
 {{{#!td align=center
@@ -1818,7 +1990,8 @@ uint8
 {{{#!td align=left
 PHY Sampling Rate Mode
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mac_payload_len
 }}}
 {{{#!td align=center
@@ -1827,7 +2000,8 @@ uint32
 {{{#!td align=left
 Length in bytes of MAC payload recorded in log for this packet
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mac_payload
 }}}
 {{{#!td align=center
@@ -1837,6 +2011,7 @@ mac_payload
 First 24 bytes of MAC payload, typically the 802.11 MAC header
 }}}
 |----------------
+
 
 The following fields are populated when the log entry is part of a numpy array generated via the {{{generate_numpy_array}}} method. These fields are calculated from the underlying bytes in the raw log entries and are stored in more convenient formats tha the raw log fields. For example, these MAC address fields are 48-bit values stored in 64-bit integers. These integer addresses are much easier to use when filtering Tx/Rx log entries using numpy and pandas.
 
@@ -1849,7 +2024,8 @@ Data Type
 {{{#!th align=center
 Description
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 addr1
 }}}
 {{{#!td align=center
@@ -1858,7 +2034,8 @@ uint64
 {{{#!td align=left
 MAC Header Address 1
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 addr2
 }}}
 {{{#!td align=center
@@ -1867,7 +2044,8 @@ uint64
 {{{#!td align=left
 MAC Header Address 2
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 addr3
 }}}
 {{{#!td align=center
@@ -1876,7 +2054,8 @@ uint64
 {{{#!td align=left
 MAC Header Address 3
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mac_seq
 }}}
 {{{#!td align=center
@@ -1886,6 +2065,7 @@ uint16
 MAC Header Sequence Number
 }}}
 |----------------
+
 
 ----
 
@@ -1903,7 +2083,8 @@ Data Type
 {{{#!th align=center
 Description
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 timestamp
 }}}
 {{{#!td align=center
@@ -1912,7 +2093,8 @@ uint64
 {{{#!td align=left
 Value of MAC Time in microseconds when packet transmission actually started (PHY TX_START time)
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 uniq_seq
 }}}
 {{{#!td align=center
@@ -1921,7 +2103,8 @@ uint64
 {{{#!td align=left
 Unique sequence number of original MPDU
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mcs
 }}}
 {{{#!td align=center
@@ -1930,7 +2113,8 @@ uint8
 {{{#!td align=left
 MCS index in ![0:7]
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 phy_mode
 }}}
 {{{#!td align=center
@@ -1945,7 +2129,8 @@ Constants defined for this field:
  * {{{'DSSS'}}}
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 ant_mode
 }}}
 {{{#!td align=center
@@ -1954,7 +2139,8 @@ uint8
 {{{#!td align=left
 PHY antenna mode in [0x10, 0x20, 0x30, 0x40]
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 tx_power
 }}}
 {{{#!td align=center
@@ -1963,7 +2149,8 @@ int8
 {{{#!td align=left
 Tx power in dBm
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 tx_count
 }}}
 {{{#!td align=center
@@ -1972,7 +2159,8 @@ uint8
 {{{#!td align=left
 Transmission index for this attempt; 0 = initial Tx, 1+ = subsequent re-transmissions
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 channel
 }}}
 {{{#!td align=center
@@ -1981,7 +2169,8 @@ uint8
 {{{#!td align=left
 Channel (center frequency) index
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 length
 }}}
 {{{#!td align=center
@@ -1990,7 +2179,8 @@ uint16
 {{{#!td align=left
 Length in bytes of MPDU; includes MAC header, payload and FCS
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 num_slots
 }}}
 {{{#!td align=center
@@ -1999,7 +2189,8 @@ int16
 {{{#!td align=left
 Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0); A value of -1 in this field means no backoff occured
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 cw
 }}}
 {{{#!td align=center
@@ -2008,7 +2199,8 @@ uint16
 {{{#!td align=left
 Contention window value at time of this Tx
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 pkt_type
 }}}
 {{{#!td align=center
@@ -2028,7 +2220,8 @@ Constants defined for this field:
  * {{{'DATA'}}}
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 flags
 }}}
 {{{#!td align=center
@@ -2041,7 +2234,8 @@ Constants defined for this field:
  * {{{'ACKED'}}}
 
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 timestamp_frac
 }}}
 {{{#!td align=center
@@ -2050,7 +2244,8 @@ uint8
 {{{#!td align=left
 Fractional timestamp (units of 6.25ns)
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 phy_samp_rate
 }}}
 {{{#!td align=center
@@ -2059,7 +2254,8 @@ uint8
 {{{#!td align=left
 PHY Sampling Rate Mode
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mac_payload_len
 }}}
 {{{#!td align=center
@@ -2068,7 +2264,8 @@ uint32
 {{{#!td align=left
 Length in bytes of MAC payload recorded in log for this packet
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mac_payload
 }}}
 {{{#!td align=center
@@ -2078,6 +2275,7 @@ mac_payload
 First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG ID
 }}}
 |----------------
+
 
 The following fields are populated when the log entry is part of a numpy array generated via the {{{generate_numpy_array}}} method. These fields are calculated from the underlying bytes in the raw log entries and are stored in more convenient formats tha the raw log fields. For example, these MAC address fields are 48-bit values stored in 64-bit integers. These integer addresses are much easier to use when filtering Tx/Rx log entries using numpy and pandas.
 
@@ -2090,7 +2288,8 @@ Data Type
 {{{#!th align=center
 Description
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 addr1
 }}}
 {{{#!td align=center
@@ -2099,7 +2298,8 @@ uint64
 {{{#!td align=left
 MAC Header Address 1
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 addr2
 }}}
 {{{#!td align=center
@@ -2108,7 +2308,8 @@ uint64
 {{{#!td align=left
 MAC Header Address 2
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 addr3
 }}}
 {{{#!td align=center
@@ -2117,7 +2318,8 @@ uint64
 {{{#!td align=left
 MAC Header Address 3
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 mac_seq
 }}}
 {{{#!td align=center
@@ -2126,7 +2328,8 @@ uint16
 {{{#!td align=left
 MAC Header Sequence Number
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 ltg_uniq_seq
 }}}
 {{{#!td align=center
@@ -2135,7 +2338,8 @@ uint64
 {{{#!td align=left
 Unique sequence number for LTG packet
 }}}
-|----------------{{{#!td align=left
+|----------------
+{{{#!td align=left
 ltg_flow_id
 }}}
 {{{#!td align=center
@@ -2147,3 +2351,4 @@ LTG Flow ID, calculated as:
   48MSB: Destination MAC address
 }}}
 |----------------
+

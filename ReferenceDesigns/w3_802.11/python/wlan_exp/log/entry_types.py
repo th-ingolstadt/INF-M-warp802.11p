@@ -291,7 +291,7 @@ class WlanExpLogEntryType(object):
                 doc_str += '{{{#!th align=center\nField Name\n}}}\n'
                 doc_str += '{{{#!th align=center\nData Type\n}}}\n'
                 doc_str += '{{{#!th align=center\nDescription\n}}}\n'
-                doc_str += '|----------------'
+                doc_str += '|----------------\n'
 
                 for fd in field_list:
                     import re
@@ -314,7 +314,7 @@ class WlanExpLogEntryType(object):
                     doc_str += '{{{{{{#!td align=left\n{0}\n}}}}}}\n'.format(fd[0])
                     doc_str += '{{{{{{#!td align=center\n{0}\n}}}}}}\n'.format(fd[1])
                     doc_str += '{{{{{{#!td align=left\n{0}\n}}}}}}\n'.format(fd_desc)
-                    doc_str += '|----------------'
+                    doc_str += '|----------------\n'
 
             elif fmt == 'txt':
                 doc_str += 'Field Name\t\t\t| Data Type\t| Description\n'
