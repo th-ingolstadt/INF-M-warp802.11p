@@ -37,54 +37,15 @@ if(~exist('sim_many_waveform_mode','var'))
     % .mat files from Tx PHY sim store I/Q signal in 'wlan_tx_out' variable
     load('rx_sigs/wlan_tx_NONHT_MCS4_52B.mat');wlan_tx_out = 1.0*wlan_tx_out.';
 
-    %RX_END testing
-    
-    %Supported waveforms
-    %load('rx_sigs/rxend_testing/wlan_tx_NONHT_MCS4_52B.mat'); wlan_tx_out = 1.0*wlan_tx_out.';     %good
-    %load('rx_sigs/tx_HTMF_MCS7_20M_1420B.mat'); wlan_tx_out = 1.0 * wlan_tx_out.';           %good
-    %load('rx_sigs/rxend_testing/siggen_HTMF_MCS5_100B_BW20.mat'); wlan_tx_out = 0.2*sig;           %good
-    %wlan_tx_out = [wlan_tx_out zeros(1,100) wlan_tx_out zeros(1,100) wlan_tx_out];
-
-    
-    %Unsupported waveforms
-    %load('rx_sigs/rxend_testing/siggen_HTMF_MCS11_100B_BW20_CDD200.mat'); wlan_tx_out = 0.2*sig(1,:); %good
-    %load('rx_sigs/rxend_testing/siggen_HTMF_MCS11_100B_BW20_CDD200.mat'); wlan_tx_out = 0.14*sig(1,:) + 0.14*sig(2,:); %good
-    
-    %Frequency shift and decimate BW40 signal
-    %load('rx_sigs/rxend_testing/siggen_HTMF_MCS4_100B_BW40.mat'); x = 0.2*sig(1,:); %good
-    %load('rx_sigs/rxend_testing/siggen_HTMF_MCS11_100B_BW40_CDD200.mat'); x = 0.2*sig(1,:); %good
-    %interp_filt2 = zeros(1,43);
-    %interp_filt2([1 3 5 7 9 11 13 15 17 19 21]) = [12 -32 72 -140 252 -422 682 -1086 1778 -3284 10364];
-    %interp_filt2([23 25 27 29 31 33 35 37 39 41 43]) = interp_filt2(fliplr([1 3 5 7 9 11 13 15 17 19 21]));
-    %interp_filt2(22) = 16384;
-    %interp_filt2 = interp_filt2./max(abs(interp_filt2));
-    %x_dc = x .* exp(j*2*pi*-10e6*(1/40e6)*(0:length(x)-1));
-    %x_ds = filter(interp_filt2, 1, x_dc);
-    %x_ds = x_ds(1:2:end);
-    %wlan_tx_out = x_ds;
-    
-    %Corrupt HTSIG
-    %htsig_ind = (160+160+80) + (1:160);
-    %wlan_tx_out(htsig_ind) = [wlan_tx_out(htsig_ind(81:160)) wlan_tx_out(htsig_ind(1:80))];
-    %wlan_tx_out = [wlan_tx_out zeros(1,100) wlan_tx_out zeros(1,100) wlan_tx_out];
-
-    %Corrupt SIGNAL
-    %sig_ind = (160+160) + (1:80);
-    %wlan_tx_out(sig_ind) = randn(1,80);
-    %wlan_tx_out = [wlan_tx_out zeros(1,100) wlan_tx_out zeros(1,100) wlan_tx_out];
-    
-    %TxDCO
-    %wlan_tx_out = wlan_tx_out + complex(0.15, 0.15);
-
     %CFO
     %wlan_tx_out = wlan_tx_out .* exp(j*2*pi*-1e-4*(0:length(wlan_tx_out)-1));
+
+	%Phase offset
     %wlan_tx_out = wlan_tx_out .* exp(-j*pi/4);
         
     %AWGN
     %wlan_tx_out = wlan_tx_out + 1e-2*complex(randn(1,length(wlan_tx_out)), randn(1,length(wlan_tx_out)));
     
-    %load('tx_htmf_MCS0_40M_100B.mat');
-    %load('ieee_wgen_HTMM_MCS0_100B.mat'); wlan_tx_out = 0.3*sig.';
     sim_sig = wlan_tx_out(1:end).';
     end
 end
