@@ -884,7 +884,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('phy_mode',               'B',      'uint8',   'PHY mode'),
         ('ant_mode',               'B',      'uint8',   'PHY antenna mode in [0x10, 0x20, 0x30, 0x40]'),
         ('tx_power',               'b',      'int8',    'Tx power in dBm'),
-        ('num_tx',                 'B',      'uint8',   'Number of actual PHY Tx events which were used to transmit the MPDU (first Tx + all re-Tx)'),
+        ('num_tx',                 'B',      'uint8',   'Number of Tx attempts that were made for this packet'),
         ('padding0',               'B',      'uint8',   'Padding'),
         ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
         ('padding1',               'x',      'uint8',   ''),

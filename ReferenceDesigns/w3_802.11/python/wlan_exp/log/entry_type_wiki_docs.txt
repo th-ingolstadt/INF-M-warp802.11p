@@ -1372,7 +1372,7 @@ num_tx
 uint8
 }}}
 {{{#!td align=left
-Number of actual PHY Tx events which were used to transmit the MPDU (first Tx + all re-Tx)
+Number of Tx attempts that were made for this packet
 }}}
 |----------------
 {{{#!td align=left
@@ -1655,7 +1655,7 @@ num_tx
 uint8
 }}}
 {{{#!td align=left
-Number of actual PHY Tx events which were used to transmit the MPDU (first Tx + all re-Tx)
+Number of Tx attempts that were made for this packet
 }}}
 |----------------
 {{{#!td align=left
