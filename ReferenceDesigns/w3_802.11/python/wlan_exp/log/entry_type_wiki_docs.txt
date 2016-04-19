@@ -84,13 +84,13 @@ Entry type ID: 10
 || phy_mode ||  uint8  || PHY mode ||
 || ant_mode ||  uint8  || Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D] ||
 || power ||  int8  || Rx power in dBm ||
-|| fcs_result ||  uint8  || Checksum status, 0 = no errors ||
-|| pkt_type ||  uint8  || Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS ||
+|| padding0 ||  uint8  ||  ||
+|| pkt_type ||  uint8  || Packet type, (first frame control byte of 802.11 header) ||
 || channel ||  uint8  || Channel (center frequency) index ||
-|| padding ||  uint8  ||  ||
+|| padding1 ||  uint8  ||  ||
 || rf_gain ||  uint8  || AGC RF gain setting: ![1,2,3] for ![0,15,30]dB gain ||
 || bb_gain ||  uint8  || AGC BB gain setting: ![0:31] for approx ![0:63]dB gain ||
-|| flags ||  uint16  || Bit OR'd flags: 0x1 = Rx was duplicate of previous Rx ||
+|| flags ||  uint16  || 1-bit flags ||
 || chan_est ||  (64,2)i2  || OFDM Rx channel estimates, packed as [(uint16)I (uint16)Q] values, one per subcarrier ||
 || mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
 || mac_payload ||  24uint8  || First 24 bytes of MAC payload, typically the 802.11 MAC header ||
@@ -122,13 +122,13 @@ Entry type ID: 11
 || phy_mode ||  uint8  || PHY mode ||
 || ant_mode ||  uint8  || Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D] ||
 || power ||  int8  || Rx power in dBm ||
-|| fcs_result ||  uint8  || Checksum status, 0 = no errors ||
-|| pkt_type ||  uint8  || Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS ||
+|| padding0 ||  uint8  ||  ||
+|| pkt_type ||  uint8  || Packet type, (first frame control byte of 802.11 header) ||
 || channel ||  uint8  || Channel (center frequency) index ||
-|| padding ||  uint8  ||  ||
+|| padding1 ||  uint8  ||  ||
 || rf_gain ||  uint8  || AGC RF gain setting: ![1,2,3] for ![0,15,30]dB gain ||
 || bb_gain ||  uint8  || AGC BB gain setting: ![0:31] for approx ![0:63]dB gain ||
-|| flags ||  uint16  || Bit OR'd flags: 0x1 = Rx was duplicate of previous Rx ||
+|| flags ||  uint16  || 1-bit flags ||
 || chan_est ||  (64,2)i2  || OFDM Rx channel estimates, packed as [(uint16)I (uint16)Q] values, one per subcarrier ||
 || mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
 || mac_payload ||  44uint8  || First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG ID ||
@@ -162,13 +162,13 @@ Entry type ID: 15
 || phy_mode ||  uint8  || PHY mode ||
 || ant_mode ||  uint8  || Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D] ||
 || power ||  int8  || Rx power in dBm ||
-|| fcs_result ||  uint8  || Checksum status, 0 = no errors ||
-|| pkt_type ||  uint8  || Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS ||
+|| padding0 ||  uint8  ||  ||
+|| pkt_type ||  uint8  || Packet type, (first frame control byte of 802.11 header) ||
 || channel ||  uint8  || Channel (center frequency) index ||
-|| padding ||  uint8  ||  ||
+|| padding1 ||  uint8  ||  ||
 || rf_gain ||  uint8  || AGC RF gain setting: ![1,2,3] for ![0,15,30]dB gain ||
 || bb_gain ||  uint8  || AGC BB gain setting: ![0:31] for approx ![0:63]dB gain ||
-|| flags ||  uint16  || Bit OR'd flags: 0x1 = Rx was duplicate of previous Rx ||
+|| flags ||  uint16  || 1-bit flags ||
 || mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
 || mac_payload ||  24uint8  || First 24 bytes of MAC payload, typically the 802.11 MAC header ||
 
@@ -201,11 +201,11 @@ Entry type ID: 20
 || num_tx ||  uint8  || Number of actual PHY Tx events which were used to transmit the MPDU (first Tx + all re-Tx) ||
 || padding0 ||  uint8  || Padding ||
 || length ||  uint16  || Length in bytes of MPDU; includes MAC header, payload and FCS ||
-|| result ||  uint8  || Tx result; 0 = ACK received or not required ||
-|| pkt_type ||  uint8  || Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS ||
+|| padding1 ||  uint8  ||  ||
+|| pkt_type ||  uint8  || Packet type, (first frame control byte of 802.11 header) ||
 || queue_id ||  uint16  || Tx queue ID from which the packet was retrieved ||
 || queue_occupancy ||  uint16  || Occupancy of the Tx queue at the time the packet was created (value includes itself) ||
-|| padding ||  2uint8  ||  ||
+|| flags ||  uint16  || 1-bit flags ||
 || mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
 || mac_payload ||  24uint8  || First 24 bytes of MAC payload, typically the 802.11 MAC header ||
 
@@ -238,11 +238,11 @@ Entry type ID: 21
 || num_tx ||  uint8  || Number of actual PHY Tx events which were used to transmit the MPDU (first Tx + all re-Tx) ||
 || padding0 ||  uint8  || Padding ||
 || length ||  uint16  || Length in bytes of MPDU; includes MAC header, payload and FCS ||
-|| result ||  uint8  || Tx result; 0 = ACK received or not required ||
-|| pkt_type ||  uint8  || Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS ||
+|| padding1 ||  uint8  ||  ||
+|| pkt_type ||  uint8  || Packet type, (first frame control byte of 802.11 header) ||
 || queue_id ||  uint16  || Tx queue ID from which the packet was retrieved ||
 || queue_occupancy ||  uint16  || Occupancy of the Tx queue at the time the packet was created (value includes itself) ||
-|| padding ||  2uint8  ||  ||
+|| flags ||  uint16  || 1-bit flags ||
 || mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
 || mac_payload ||  44uint8  || First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG ID ||
 
@@ -277,7 +277,7 @@ Entry type ID: 25
 || length ||  uint16  || Length in bytes of MPDU; includes MAC header, payload and FCS ||
 || num_slots ||  int16  || Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0); A value of -1 in this field means no backoff occured ||
 || cw ||  uint16  || Contention window value at time of this Tx ||
-|| pkt_type ||  uint8  || Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS ||
+|| pkt_type ||  uint8  || Packet type, (first frame control byte of 802.11 header) ||
 || flags ||  uint8  || B0: 1 = ACKed, 0 = Not ACKed ||
 || timestamp_frac ||  uint8  || Fractional timestamp (units of 6.25ns) ||
 || phy_samp_rate ||  uint8  || PHY Sampling Rate Mode ||
@@ -313,7 +313,7 @@ Entry type ID: 26
 || length ||  uint16  || Length in bytes of MPDU; includes MAC header, payload and FCS ||
 || num_slots ||  int16  || Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0); A value of -1 in this field means no backoff occured ||
 || cw ||  uint16  || Contention window value at time of this Tx ||
-|| pkt_type ||  uint8  || Packet type: 1 = Other Data, 2 = Encapsulated Ethernet, 3 = LTG, 4 = Protected Data, 11 = Management, 21 = Control Ack, 22 = Control RTS, 23 = Control CTS ||
+|| pkt_type ||  uint8  || Packet type, (first frame control byte of 802.11 header) ||
 || flags ||  uint8  || B0: 1 = ACKed, 0 = Not ACKed ||
 || timestamp_frac ||  uint8  || Fractional timestamp (units of 6.25ns) ||
 || phy_samp_rate ||  uint8  || PHY Sampling Rate Mode ||
