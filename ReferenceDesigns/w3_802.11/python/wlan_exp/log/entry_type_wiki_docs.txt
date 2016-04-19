@@ -462,6 +462,13 @@ uint8
 }}}
 {{{#!td align=left
 Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D]
+
+Constants defined for this field:
+ * {{{'RF_A': 1}}}
+ * {{{'RF_C': 3}}}
+ * {{{'RF_B': 2}}}
+ * {{{'RF_D': 4}}}
+
 }}}
 |----------------
 {{{#!td align=left
@@ -749,6 +756,13 @@ uint8
 }}}
 {{{#!td align=left
 Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D]
+
+Constants defined for this field:
+ * {{{'RF_A': 1}}}
+ * {{{'RF_C': 3}}}
+ * {{{'RF_B': 2}}}
+ * {{{'RF_D': 4}}}
+
 }}}
 |----------------
 {{{#!td align=left
@@ -1058,6 +1072,13 @@ uint8
 }}}
 {{{#!td align=left
 Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D]
+
+Constants defined for this field:
+ * {{{'RF_A': 1}}}
+ * {{{'RF_C': 3}}}
+ * {{{'RF_B': 2}}}
+ * {{{'RF_D': 4}}}
+
 }}}
 |----------------
 {{{#!td align=left
@@ -1325,6 +1346,13 @@ uint8
 }}}
 {{{#!td align=left
 PHY antenna mode in [0x10, 0x20, 0x30, 0x40]
+
+Constants defined for this field:
+ * {{{'RF_A': 16}}}
+ * {{{'RF_C': 48}}}
+ * {{{'RF_B': 32}}}
+ * {{{'RF_D': 64}}}
+
 }}}
 |----------------
 {{{#!td align=left
@@ -1601,6 +1629,13 @@ uint8
 }}}
 {{{#!td align=left
 PHY antenna mode in [0x10, 0x20, 0x30, 0x40]
+
+Constants defined for this field:
+ * {{{'RF_A': 16}}}
+ * {{{'RF_C': 48}}}
+ * {{{'RF_B': 32}}}
+ * {{{'RF_D': 64}}}
+
 }}}
 |----------------
 {{{#!td align=left
@@ -1879,6 +1914,13 @@ uint8
 }}}
 {{{#!td align=left
 PHY antenna mode in [0x10, 0x20, 0x30, 0x40]
+
+Constants defined for this field:
+ * {{{'RF_A': 16}}}
+ * {{{'RF_C': 48}}}
+ * {{{'RF_B': 32}}}
+ * {{{'RF_D': 64}}}
+
 }}}
 |----------------
 {{{#!td align=left
@@ -1898,7 +1940,7 @@ tx_count
 uint8
 }}}
 {{{#!td align=left
-Transmission index for this attempt; 0 = initial Tx, 1+ = subsequent re-transmissions
+Transmission index for this attempt, starting at 0 (0 = initial Tx, 1+ = subsequent attempts)
 }}}
 |----------------
 {{{#!td align=left
@@ -2143,6 +2185,13 @@ uint8
 }}}
 {{{#!td align=left
 PHY antenna mode in [0x10, 0x20, 0x30, 0x40]
+
+Constants defined for this field:
+ * {{{'RF_A': 16}}}
+ * {{{'RF_C': 48}}}
+ * {{{'RF_B': 32}}}
+ * {{{'RF_D': 64}}}
+
 }}}
 |----------------
 {{{#!td align=left
@@ -2162,7 +2211,7 @@ tx_count
 uint8
 }}}
 {{{#!td align=left
-Transmission index for this attempt; 0 = initial Tx, 1+ = subsequent re-transmissions
+Transmission index for this attempt, starting at 0 (0 = initial Tx, 1+ = subsequent attempts)
 }}}
 |----------------
 {{{#!td align=left

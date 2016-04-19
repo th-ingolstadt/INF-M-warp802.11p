@@ -848,6 +848,12 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('flags',                  'H',      'uint16',  '1-bit flags')])
 
     entry_rx_common.consts = util.consts_dict({
+        'ant_mode'      : util.consts_dict({
+                'RF_A': 0x01,
+                'RF_B': 0x02,
+                'RF_C': 0x03,
+                'RF_D': 0x04,
+            }),
         'pkt_type'      : common_pkt_type,
         'phy_mode'      : util.phy_modes,
         'flags'         : util.consts_dict({
@@ -888,6 +894,12 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('flags',                  'H',      'uint16',  '1-bit flags')])
 
     entry_tx_common.consts = util.consts_dict({
+        'ant_mode'      : util.consts_dict({
+                'RF_A': 0x10,
+                'RF_B': 0x20,
+                'RF_C': 0x30,
+                'RF_D': 0x40,
+            }),
         'phy_mode'   : util.phy_modes,
         'pkt_type'   : common_pkt_type,
         'flags'      : util.consts_dict({
@@ -914,7 +926,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('phy_mode',               'B',      'uint8',   'PHY mode'),
         ('ant_mode',               'B',      'uint8',   'PHY antenna mode in [0x10, 0x20, 0x30, 0x40]'),
         ('tx_power',               'b',      'int8',    'Tx power in dBm'),
-        ('tx_count',               'B',      'uint8',   'Transmission index for this attempt; 0 = initial Tx, 1+ = subsequent re-transmissions'),
+        ('tx_count',               'B',      'uint8',   'Transmission index for this attempt, starting at 0 (0 = initial Tx, 1+ = subsequent attempts)'),
         ('channel',                'B',      'uint8',   'Channel (center frequency) index'),
         ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
         ('num_slots',              'h',      'int16',   'Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0); A value of -1 in this field means no backoff occured'),
@@ -925,6 +937,12 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('phy_samp_rate',          'B',      'uint8',   'PHY Sampling Rate Mode')])
 
     entry_tx_low_common.consts = util.consts_dict({
+        'ant_mode'      : util.consts_dict({
+                'RF_A': 0x10,
+                'RF_B': 0x20,
+                'RF_C': 0x30,
+                'RF_D': 0x40,
+            }),
         'phy_mode'      : util.phy_modes,
         'pkt_type'      : common_pkt_type,
         'flags'         : util.consts_dict({
