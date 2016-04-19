@@ -38,7 +38,6 @@ __all__ = ['Schedule', 'SchedulePeriodic', 'ScheduleUniformRandom',
            'FlowConfig', 'FlowConfigCBR', 'FlowConfigRandomRandom']
 
 
-
 # LTG Schedule IDs - must match corresponding values in wlan_mac_ltg.h
 LTG_SCHED_TYPE_PERIODIC                = 1
 LTG_SCHED_TYPE_UNIFORM_RAND            = 2
