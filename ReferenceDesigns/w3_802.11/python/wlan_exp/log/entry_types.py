@@ -1152,4 +1152,3 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
 
     entry_tx_low_ltg.consts = entry_tx_low_common.consts.copy()
 
-
