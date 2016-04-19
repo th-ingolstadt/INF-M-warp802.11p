@@ -34,11 +34,16 @@ node_type
 uint32
 }}}
 {{{#!td align=left
-Node type as 4 byte value: [b0 b1 b2 b3]:
- b0: Always 0x00 for 802.11 ref design nodes
- b1: Always 0x01 for 802.11 ref design nodes
- b2: CPU High application: 0x1 = AP, 0x2 = STA, 0x3 = IBSS
- b3: CPU Low application: 0x1 = DCF, 0x2 = NOMAC
+Code identifying applications in CPU High and CPU Low
+
+Constants defined for this field:
+ * {{{'AP_DCF'}}}
+ * {{{'AP_NOMAC'}}}
+ * {{{'IBSS_DCF'}}}
+ * {{{'STA_NOMAC'}}}
+ * {{{'IBSS_NOMAC'}}}
+ * {{{'STA_DCF'}}}
+
 }}}
 |----------------
 {{{#!td align=left
@@ -58,7 +63,7 @@ hw_generation
 uint32
 }}}
 {{{#!td align=left
-WARP hardware generation: 3 for WARP v3
+WARP hardware generation; always 3 for WARP v3
 }}}
 |----------------
 {{{#!td align=left
@@ -167,7 +172,7 @@ info_type
 uint16
 }}}
 {{{#!td align=left
-Exp info type (arbitrary value supplied by application
+Exp info type - arbitrary value supplied by application
 }}}
 |----------------
 {{{#!td align=left
@@ -177,7 +182,7 @@ info_len
 uint16
 }}}
 {{{#!td align=left
-Exp info length (describes arbitrary payload supplied by application
+Exp info length - length (in byte) of info_payload
 }}}
 |----------------
 {{{#!td align=left
@@ -246,7 +251,7 @@ temp_current
 uint32
 }}}
 {{{#!td align=left
-Current FPGA die temperature
+Current FPGA die temperature (deg C)
 }}}
 |----------------
 {{{#!td align=left
@@ -256,7 +261,7 @@ temp_min
 uint32
 }}}
 {{{#!td align=left
-Minimum FPGA die temperature since FPGA configuration or sysmon reset
+Minimum FPGA die temperature (deg C) since FPGA configuration or sysmon reset
 }}}
 |----------------
 {{{#!td align=left
@@ -266,7 +271,7 @@ temp_max
 uint32
 }}}
 {{{#!td align=left
-Maximum FPGA die temperature since FPGA configuration or sysmon reset
+Maximum FPGA die temperature (deg C) since FPGA configuration or sysmon reset
 }}}
 |----------------
 
@@ -1964,7 +1969,7 @@ flags
 uint8
 }}}
 {{{#!td align=left
-B0: 1 = ACKed, 0 = Not ACKed
+1-bit Flags
 
 Constants defined for this field:
  * {{{'ACKED'}}}
@@ -2228,7 +2233,7 @@ flags
 uint8
 }}}
 {{{#!td align=left
-B0: 1 = ACKed, 0 = Not ACKed
+1-bit Flags
 
 Constants defined for this field:
  * {{{'ACKED'}}}

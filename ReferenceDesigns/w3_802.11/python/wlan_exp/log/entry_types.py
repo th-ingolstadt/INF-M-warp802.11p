@@ -920,7 +920,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('num_slots',              'h',      'int16',   'Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0); A value of -1 in this field means no backoff occured'),
         ('cw',                     'H',      'uint16',  'Contention window value at time of this Tx'),
         ('pkt_type',               'B',      'uint8',   'Packet type, (first frame control byte of 802.11 header)'),
-        ('flags',                  'B',      'uint8',   'B0: 1 = ACKed, 0 = Not ACKed'),
+        ('flags',                  'B',      'uint8',   '1-bit Flags'),
         ('timestamp_frac',         'B',      'uint8',   'Fractional timestamp (units of 6.25ns)'),
         ('phy_samp_rate',          'B',      'uint8',   'PHY Sampling Rate Mode')])
 
@@ -944,17 +944,11 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
 
     entry_node_info.description = 'Details about the node hardware and its configuration. Node info values are static after boot.'
 
-    _node_info_node_type =  'Node type as 4 byte value: [b0 b1 b2 b3]:\n'
-    _node_info_node_type += ' b0: Always 0x00 for 802.11 ref design nodes\n'
-    _node_info_node_type += ' b1: Always 0x01 for 802.11 ref design nodes\n'
-    _node_info_node_type += ' b2: CPU High application: 0x1 = AP, 0x2 = STA, 0x3 = IBSS\n'
-    _node_info_node_type += ' b3: CPU Low application: 0x1 = DCF, 0x2 = NOMAC'
-
     entry_node_info.append_field_defs([
         ('timestamp',                  'Q',  'uint64',  'Value of MAC Time in microseconds when log entry created'),
-        ('node_type',                  'I',  'uint32',  _node_info_node_type),
+        ('node_type',                  'I',  'uint32',  'Code identifying applications in CPU High and CPU Low'),
         ('node_id',                    'I',  'uint32',  'Node ID, as set during wlan_exp init'),
-        ('hw_generation',              'I',  'uint32',  'WARP hardware generation: 3 for WARP v3'),
+        ('hw_generation',              'I',  'uint32',  'WARP hardware generation; always 3 for WARP v3'),
         ('serial_num',                 'I',  'uint32',  'Serial number of WARP board'),
         ('fpga_dna',                   'Q',  'uint64',  'DNA value of node FPGA'),
         ('version',                    'I',  'uint32',  'wlan_exp version, as packed values [(u8)major (u8)minor (u16)rev]'),
@@ -963,6 +957,16 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('wlan_max_tx_power_dbm',      'i',  'int32',   'Maximum transmit power'),
         ('wlan_min_tx_power_dbm',      'i',  'int32',   'Minimum transmit power')])
 
+    entry_node_info.consts = util.consts_dict({
+        'node_type': util.consts_dict({
+            'AP_DCF':     0x00010101,
+            'STA_DCF':    0x00010201,
+            'IBSS_DCF':   0x00010301,
+            'AP_NOMAC':   0x00010102,
+            'STA_NOMAC':  0x00010202,
+            'IBSS_NOMAC': 0x00010302,
+            })
+        })
 
     ###########################################################################
     # Experiment Info header - actual exp_info contains a "message" field that
@@ -978,8 +982,8 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
 
     entry_exp_info_hdr.append_field_defs([
         ('timestamp',              'Q',      'uint64',  'Value of MAC Time in microseconds when log entry created'),
-        ('info_type',              'H',      'uint16',  'Exp info type (arbitrary value supplied by application'),
-        ('info_len',               'H',      'uint16',  'Exp info length (describes arbitrary payload supplied by application'),
+        ('info_type',              'H',      'uint16',  'Exp info type - arbitrary value supplied by application'),
+        ('info_len',               'H',      'uint16',  'Exp info length - length (in byte) of info_payload'),
         ('info_payload',           'I',      'uint32',  'Exp info payload')])
 
 
@@ -1023,9 +1027,9 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('timestamp',              'Q',      'uint64', 'Value of MAC Time in microseconds when log entry created'),
         ('node_id',                'I',      'uint32', 'wlan_exp node ID'),
         ('serial_num',             'I',      'uint32', 'Node serial number'),
-        ('temp_current',           'I',      'uint32', 'Current FPGA die temperature'),
-        ('temp_min',               'I',      'uint32', 'Minimum FPGA die temperature since FPGA configuration or sysmon reset'),
-        ('temp_max',               'I',      'uint32', 'Maximum FPGA die temperature since FPGA configuration or sysmon reset')])
+        ('temp_current',           'I',      'uint32', 'Current FPGA die temperature (deg C)'),
+        ('temp_min',               'I',      'uint32', 'Minimum FPGA die temperature (deg C) since FPGA configuration or sysmon reset'),
+        ('temp_max',               'I',      'uint32', 'Maximum FPGA die temperature (deg C) since FPGA configuration or sysmon reset')])
 
 
     ###########################################################################
