@@ -7,14 +7,14 @@ Details about the node hardware and its configuration. Node info values are stat
 
 Entry type ID: 1
 
-{{{{{{#!th align=center
+{{{#!th align=center
 Field Name
-}}}}}}
-{{{{{{#!th align=center
+}}}
+{{{#!th align=center
 Data Type
-}}}}}}
-{{{{{{#!th align=center\Description
-}}}}}}
+}}}
+{{{#!th align=center\Description
+}}}
 |----------------{{{#!td align=left
 timestamp
 }}}
@@ -127,14 +127,14 @@ Header for generic experiment info entries created by the user application. The 
 
 Entry type ID: 2
 
-{{{{{{#!th align=center
+{{{#!th align=center
 Field Name
-}}}}}}
-{{{{{{#!th align=center
+}}}
+{{{#!th align=center
 Data Type
-}}}}}}
-{{{{{{#!th align=center\Description
-}}}}}}
+}}}
+{{{#!th align=center\Description
+}}}
 |----------------{{{#!td align=left
 timestamp
 }}}
@@ -180,14 +180,14 @@ Record of the FPGA system monitor die temperature. This entry is only created wh
 
 Entry type ID: 4
 
-{{{{{{#!th align=center
+{{{#!th align=center
 Field Name
-}}}}}}
-{{{{{{#!th align=center
+}}}
+{{{#!th align=center
 Data Type
-}}}}}}
-{{{{{{#!th align=center\Description
-}}}}}}
+}}}
+{{{#!th align=center\Description
+}}}
 |----------------{{{#!td align=left
 timestamp
 }}}
@@ -251,14 +251,14 @@ Record of a time base event at the node. This log entry is used to enable parsin
 
 Entry type ID: 6
 
-{{{{{{#!th align=center
+{{{#!th align=center
 Field Name
-}}}}}}
-{{{{{{#!th align=center
+}}}
+{{{#!th align=center
 Data Type
-}}}}}}
-{{{{{{#!th align=center\Description
-}}}}}}
+}}}
+{{{#!th align=center\Description
+}}}
 |----------------{{{#!td align=left
 timestamp
 }}}
@@ -328,14 +328,14 @@ Rx events from OFDM PHY. These log entries will only be created for packets that
 
 Entry type ID: 10
 
-{{{{{{#!th align=center
+{{{#!th align=center
 Field Name
-}}}}}}
-{{{{{{#!th align=center
+}}}
+{{{#!th align=center
 Data Type
-}}}}}}
-{{{{{{#!th align=center\Description
-}}}}}}
+}}}
+{{{#!th align=center\Description
+}}}
 |----------------{{{#!td align=left
 timestamp
 }}}
@@ -535,14 +535,14 @@ First 24 bytes of MAC payload, typically the 802.11 MAC header
 
 The following fields are populated when the log entry is part of a numpy array generated via the {{{generate_numpy_array}}} method. These fields are calculated from the underlying bytes in the raw log entries and are stored in more convenient formats tha the raw log fields. For example, these MAC address fields are 48-bit values stored in 64-bit integers. These integer addresses are much easier to use when filtering Tx/Rx log entries using numpy and pandas.
 
-{{{{{{#!th align=center
+{{{#!th align=center
 Field Name
-}}}}}}
-{{{{{{#!th align=center
+}}}
+{{{#!th align=center
 Data Type
-}}}}}}
-{{{{{{#!th align=center\Description
-}}}}}}
+}}}
+{{{#!th align=center\Description
+}}}
 |----------------{{{#!td align=left
 addr1
 }}}
@@ -588,14 +588,14 @@ LTG Rx events from OFDM PHY. These log entries will only be created for packets 
 
 Entry type ID: 11
 
-{{{{{{#!th align=center
+{{{#!th align=center
 Field Name
-}}}}}}
-{{{{{{#!th align=center
+}}}
+{{{#!th align=center
 Data Type
-}}}}}}
-{{{{{{#!th align=center\Description
-}}}}}}
+}}}
+{{{#!th align=center\Description
+}}}
 |----------------{{{#!td align=left
 timestamp
 }}}
@@ -795,14 +795,14 @@ First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG
 
 The following fields are populated when the log entry is part of a numpy array generated via the {{{generate_numpy_array}}} method. These fields are calculated from the underlying bytes in the raw log entries and are stored in more convenient formats tha the raw log fields. For example, these MAC address fields are 48-bit values stored in 64-bit integers. These integer addresses are much easier to use when filtering Tx/Rx log entries using numpy and pandas.
 
-{{{{{{#!th align=center
+{{{#!th align=center
 Field Name
-}}}}}}
-{{{{{{#!th align=center
+}}}
+{{{#!th align=center
 Data Type
-}}}}}}
-{{{{{{#!th align=center\Description
-}}}}}}
+}}}
+{{{#!th align=center\Description
+}}}
 |----------------{{{#!td align=left
 addr1
 }}}
@@ -868,14 +868,14 @@ Rx events from DSSS PHY. These log entries will only be created for packets that
 
 Entry type ID: 15
 
-{{{{{{#!th align=center
+{{{#!th align=center
 Field Name
-}}}}}}
-{{{{{{#!th align=center
+}}}
+{{{#!th align=center
 Data Type
-}}}}}}
-{{{{{{#!th align=center\Description
-}}}}}}
+}}}
+{{{#!th align=center\Description
+}}}
 |----------------{{{#!td align=left
 timestamp
 }}}
@@ -1066,14 +1066,14 @@ First 24 bytes of MAC payload, typically the 802.11 MAC header
 
 The following fields are populated when the log entry is part of a numpy array generated via the {{{generate_numpy_array}}} method. These fields are calculated from the underlying bytes in the raw log entries and are stored in more convenient formats tha the raw log fields. For example, these MAC address fields are 48-bit values stored in 64-bit integers. These integer addresses are much easier to use when filtering Tx/Rx log entries using numpy and pandas.
 
-{{{{{{#!th align=center
+{{{#!th align=center
 Field Name
-}}}}}}
-{{{{{{#!th align=center
+}}}
+{{{#!th align=center
 Data Type
-}}}}}}
-{{{{{{#!th align=center\Description
-}}}}}}
+}}}
+{{{#!th align=center\Description
+}}}
 |----------------{{{#!td align=left
 addr1
 }}}
@@ -1119,14 +1119,14 @@ Tx events in CPU High, logged for each MPDU frame created and enqueued in CPU Hi
 
 Entry type ID: 20
 
-{{{{{{#!th align=center
+{{{#!th align=center
 Field Name
-}}}}}}
-{{{{{{#!th align=center
+}}}
+{{{#!th align=center
 Data Type
-}}}}}}
-{{{{{{#!th align=center\Description
-}}}}}}
+}}}
+{{{#!th align=center\Description
+}}}
 |----------------{{{#!td align=left
 timestamp
 }}}
@@ -1316,14 +1316,14 @@ First 24 bytes of MAC payload, typically the 802.11 MAC header
 
 The following fields are populated when the log entry is part of a numpy array generated via the {{{generate_numpy_array}}} method. These fields are calculated from the underlying bytes in the raw log entries and are stored in more convenient formats tha the raw log fields. For example, these MAC address fields are 48-bit values stored in 64-bit integers. These integer addresses are much easier to use when filtering Tx/Rx log entries using numpy and pandas.
 
-{{{{{{#!th align=center
+{{{#!th align=center
 Field Name
-}}}}}}
-{{{{{{#!th align=center
+}}}
+{{{#!th align=center
 Data Type
-}}}}}}
-{{{{{{#!th align=center\Description
-}}}}}}
+}}}
+{{{#!th align=center\Description
+}}}
 |----------------{{{#!td align=left
 addr1
 }}}
@@ -1369,14 +1369,14 @@ Tx events in CPU High, logged for each MPDU frame created and enqueued in CPU Hi
 
 Entry type ID: 21
 
-{{{{{{#!th align=center
+{{{#!th align=center
 Field Name
-}}}}}}
-{{{{{{#!th align=center
+}}}
+{{{#!th align=center
 Data Type
-}}}}}}
-{{{{{{#!th align=center\Description
-}}}}}}
+}}}
+{{{#!th align=center\Description
+}}}
 |----------------{{{#!td align=left
 timestamp
 }}}
@@ -1566,14 +1566,14 @@ First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG
 
 The following fields are populated when the log entry is part of a numpy array generated via the {{{generate_numpy_array}}} method. These fields are calculated from the underlying bytes in the raw log entries and are stored in more convenient formats tha the raw log fields. For example, these MAC address fields are 48-bit values stored in 64-bit integers. These integer addresses are much easier to use when filtering Tx/Rx log entries using numpy and pandas.
 
-{{{{{{#!th align=center
+{{{#!th align=center
 Field Name
-}}}}}}
-{{{{{{#!th align=center
+}}}
+{{{#!th align=center
 Data Type
-}}}}}}
-{{{{{{#!th align=center\Description
-}}}}}}
+}}}
+{{{#!th align=center\Description
+}}}
 |----------------{{{#!td align=left
 addr1
 }}}
@@ -1639,14 +1639,14 @@ Record of actual PHY transmission. At least one TX_LOW will be logged for every 
 
 Entry type ID: 25
 
-{{{{{{#!th align=center
+{{{#!th align=center
 Field Name
-}}}}}}
-{{{{{{#!th align=center
+}}}
+{{{#!th align=center
 Data Type
-}}}}}}
-{{{{{{#!th align=center\Description
-}}}}}}
+}}}
+{{{#!th align=center\Description
+}}}
 |----------------{{{#!td align=left
 timestamp
 }}}
@@ -1825,14 +1825,14 @@ First 24 bytes of MAC payload, typically the 802.11 MAC header
 
 The following fields are populated when the log entry is part of a numpy array generated via the {{{generate_numpy_array}}} method. These fields are calculated from the underlying bytes in the raw log entries and are stored in more convenient formats tha the raw log fields. For example, these MAC address fields are 48-bit values stored in 64-bit integers. These integer addresses are much easier to use when filtering Tx/Rx log entries using numpy and pandas.
 
-{{{{{{#!th align=center
+{{{#!th align=center
 Field Name
-}}}}}}
-{{{{{{#!th align=center
+}}}
+{{{#!th align=center
 Data Type
-}}}}}}
-{{{{{{#!th align=center\Description
-}}}}}}
+}}}
+{{{#!th align=center\Description
+}}}
 |----------------{{{#!td align=left
 addr1
 }}}
@@ -1878,14 +1878,14 @@ Record of actual PHY transmission. At least one TX_LOW will be logged for every 
 
 Entry type ID: 26
 
-{{{{{{#!th align=center
+{{{#!th align=center
 Field Name
-}}}}}}
-{{{{{{#!th align=center
+}}}
+{{{#!th align=center
 Data Type
-}}}}}}
-{{{{{{#!th align=center\Description
-}}}}}}
+}}}
+{{{#!th align=center\Description
+}}}
 |----------------{{{#!td align=left
 timestamp
 }}}
@@ -2064,14 +2064,14 @@ First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG
 
 The following fields are populated when the log entry is part of a numpy array generated via the {{{generate_numpy_array}}} method. These fields are calculated from the underlying bytes in the raw log entries and are stored in more convenient formats tha the raw log fields. For example, these MAC address fields are 48-bit values stored in 64-bit integers. These integer addresses are much easier to use when filtering Tx/Rx log entries using numpy and pandas.
 
-{{{{{{#!th align=center
+{{{#!th align=center
 Field Name
-}}}}}}
-{{{{{{#!th align=center
+}}}
+{{{#!th align=center
 Data Type
-}}}}}}
-{{{{{{#!th align=center\Description
-}}}}}}
+}}}
+{{{#!th align=center\Description
+}}}
 |----------------{{{#!td align=left
 addr1
 }}}

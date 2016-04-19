@@ -288,9 +288,9 @@ class WlanExpLogEntryType(object):
             doc_str = ''
 
             if fmt == 'wiki':
-                doc_str += '{{{{{{#!th align=center\nField Name\n}}}}}}\n'
-                doc_str += '{{{{{{#!th align=center\nData Type\n}}}}}}\n'
-                doc_str += '{{{{{{#!th align=center\Description\n}}}}}}\n'
+                doc_str += '{{{#!th align=center\nField Name\n}}}\n'
+                doc_str += '{{{#!th align=center\nData Type\n}}}\n'
+                doc_str += '{{{#!th align=center\Description\n}}}\n'
                 doc_str += '|----------------'
 
                 for fd in field_list:
