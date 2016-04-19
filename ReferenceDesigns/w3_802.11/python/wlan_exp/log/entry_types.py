@@ -266,6 +266,7 @@ class WlanExpLogEntryType(object):
     def generate_entry_doc(self, fmt='wiki'):
         """Generate wiki documentation."""
         import textwrap
+        import wlan_exp.log.util as log_util
 
         field_descs = list()
         for f in self._fields:
@@ -296,7 +297,16 @@ class WlanExpLogEntryType(object):
                     #   Braces with numeric contents need escape (![) to disable Trac interpretting as changeset number
                     fd_desc = fd[2]
                     fd_desc = re.sub('(\[[\d:,]+\])', '!\\1', fd_desc) # do this first, so other wiki tags inserted below aren't escaped
+
+                    try:
+                        consts = self.consts[fd[0]]
+                        fd_desc += '\n\nConstants:\n{0}'.format(consts)
+                    except:
+                        # Field didn't have constants defined
+                        pass
+
                     fd_desc = fd_desc.replace('\n', '[[BR]]')
+
 
                     doc_str += '|| {0} ||  {1}  || {2} ||\n'.format(fd[0], fd[1], fd_desc)
 

@@ -61,7 +61,7 @@ Entry type ID: 6
 ||=  Field Name  =||=  Data Type  =||=  Description  =||
 || timestamp ||  uint64  || Value of MAC Time in microseconds when log entry created (before any time change is applied) ||
 || time_id ||  uint32  || Random ID value included in wlan_exp TIME_INFO command; used to find common entries across nodes ||
-|| reason ||  uint32  || Reason code for TIME_INFO log entry creation ||
+|| reason ||  uint32  || Reason code for TIME_INFO log entry creation[[BR]][[BR]]Constants:[[BR]]{'SYSTEM': 0, 'WLAN_EXP_SET_TIME': 1, 'WLAN_EXP_ADD_LOG': 2} ||
 || mac_timestamp ||  uint64  || New value of MAC Time in microseconds  ||
 || system_timestamp ||  uint64  || Value of System Time in microseconds ||
 || host_timestamp ||  uint64  || Host time in microseconds-since-epoch; 0xFFFFFFFFFFFFFFFF if unknown ||
@@ -81,16 +81,16 @@ Entry type ID: 10
 || length ||  uint16  || Length of payload in bytes ||
 || cfo_est ||  int32  || Time-domain CFO estimate from Rx PHY; Fix32_31 value, CFO as fraction of sampling frequency ||
 || mcs ||  uint8  || MCS index, in ![0:7] ||
-|| phy_mode ||  uint8  || PHY mode ||
+|| phy_mode ||  uint8  || PHY mode[[BR]][[BR]]Constants:[[BR]]{'NONHT': 1, 'HTMF': 2, 'DSSS': 0} ||
 || ant_mode ||  uint8  || Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D] ||
 || power ||  int8  || Rx power in dBm ||
 || padding0 ||  uint8  ||  ||
-|| pkt_type ||  uint8  || Packet type, (first frame control byte of 802.11 header) ||
+|| pkt_type ||  uint8  || Packet type, (first frame control byte of 802.11 header)[[BR]][[BR]]Constants:[[BR]]{'QOSDATA': 136, 'PROBE_RESP': 80, 'CTS': 196, 'ACK': 212, 'BEACON': 128, 'RTS': 180, 'NULLDATA': 72, 'DATA': 8} ||
 || channel ||  uint8  || Channel (center frequency) index ||
 || padding1 ||  uint8  ||  ||
 || rf_gain ||  uint8  || AGC RF gain setting: ![1,2,3] for ![0,15,30]dB gain ||
 || bb_gain ||  uint8  || AGC BB gain setting: ![0:31] for approx ![0:63]dB gain ||
-|| flags ||  uint16  || 1-bit flags ||
+|| flags ||  uint16  || 1-bit flags[[BR]][[BR]]Constants:[[BR]]{'FCS_GOOD': 1, 'DUPLICATE': 2, 'LTG_PYLD': 64, 'LTG': 128} ||
 || chan_est ||  (64,2)i2  || OFDM Rx channel estimates, packed as [(uint16)I (uint16)Q] values, one per subcarrier ||
 || mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
 || mac_payload ||  24uint8  || First 24 bytes of MAC payload, typically the 802.11 MAC header ||
@@ -119,16 +119,16 @@ Entry type ID: 11
 || length ||  uint16  || Length of payload in bytes ||
 || cfo_est ||  int32  || Time-domain CFO estimate from Rx PHY; Fix32_31 value, CFO as fraction of sampling frequency ||
 || mcs ||  uint8  || MCS index, in ![0:7] ||
-|| phy_mode ||  uint8  || PHY mode ||
+|| phy_mode ||  uint8  || PHY mode[[BR]][[BR]]Constants:[[BR]]{'NONHT': 1, 'HTMF': 2, 'DSSS': 0} ||
 || ant_mode ||  uint8  || Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D] ||
 || power ||  int8  || Rx power in dBm ||
 || padding0 ||  uint8  ||  ||
-|| pkt_type ||  uint8  || Packet type, (first frame control byte of 802.11 header) ||
+|| pkt_type ||  uint8  || Packet type, (first frame control byte of 802.11 header)[[BR]][[BR]]Constants:[[BR]]{'QOSDATA': 136, 'PROBE_RESP': 80, 'CTS': 196, 'ACK': 212, 'BEACON': 128, 'RTS': 180, 'NULLDATA': 72, 'DATA': 8} ||
 || channel ||  uint8  || Channel (center frequency) index ||
 || padding1 ||  uint8  ||  ||
 || rf_gain ||  uint8  || AGC RF gain setting: ![1,2,3] for ![0,15,30]dB gain ||
 || bb_gain ||  uint8  || AGC BB gain setting: ![0:31] for approx ![0:63]dB gain ||
-|| flags ||  uint16  || 1-bit flags ||
+|| flags ||  uint16  || 1-bit flags[[BR]][[BR]]Constants:[[BR]]{'FCS_GOOD': 1, 'DUPLICATE': 2, 'LTG_PYLD': 64, 'LTG': 128} ||
 || chan_est ||  (64,2)i2  || OFDM Rx channel estimates, packed as [(uint16)I (uint16)Q] values, one per subcarrier ||
 || mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
 || mac_payload ||  44uint8  || First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG ID ||
@@ -159,16 +159,16 @@ Entry type ID: 15
 || length ||  uint16  || Length of payload in bytes ||
 || cfo_est ||  int32  || Time-domain CFO estimate from Rx PHY; Fix32_31 value, CFO as fraction of sampling frequency ||
 || mcs ||  uint8  || MCS index, in ![0:7] ||
-|| phy_mode ||  uint8  || PHY mode ||
+|| phy_mode ||  uint8  || PHY mode[[BR]][[BR]]Constants:[[BR]]{'NONHT': 1, 'HTMF': 2, 'DSSS': 0} ||
 || ant_mode ||  uint8  || Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D] ||
 || power ||  int8  || Rx power in dBm ||
 || padding0 ||  uint8  ||  ||
-|| pkt_type ||  uint8  || Packet type, (first frame control byte of 802.11 header) ||
+|| pkt_type ||  uint8  || Packet type, (first frame control byte of 802.11 header)[[BR]][[BR]]Constants:[[BR]]{'QOSDATA': 136, 'PROBE_RESP': 80, 'CTS': 196, 'ACK': 212, 'BEACON': 128, 'RTS': 180, 'NULLDATA': 72, 'DATA': 8} ||
 || channel ||  uint8  || Channel (center frequency) index ||
 || padding1 ||  uint8  ||  ||
 || rf_gain ||  uint8  || AGC RF gain setting: ![1,2,3] for ![0,15,30]dB gain ||
 || bb_gain ||  uint8  || AGC BB gain setting: ![0:31] for approx ![0:63]dB gain ||
-|| flags ||  uint16  || 1-bit flags ||
+|| flags ||  uint16  || 1-bit flags[[BR]][[BR]]Constants:[[BR]]{'FCS_GOOD': 1, 'DUPLICATE': 2, 'LTG_PYLD': 64, 'LTG': 128} ||
 || mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
 || mac_payload ||  24uint8  || First 24 bytes of MAC payload, typically the 802.11 MAC header ||
 
@@ -195,17 +195,17 @@ Entry type ID: 20
 || time_to_done ||  uint32  || Time duration in microseconds between packet acceptance by CPU Low and Tx completion in CPU Low ||
 || uniq_seq ||  uint64  || Unique sequence number for Tx packet; 12 LSB of this used for 802.11 MAC header sequence number ||
 || mcs ||  uint8  || MCS index in ![0:7] ||
-|| phy_mode ||  uint8  || PHY mode ||
+|| phy_mode ||  uint8  || PHY mode[[BR]][[BR]]Constants:[[BR]]{'NONHT': 1, 'HTMF': 2, 'DSSS': 0} ||
 || ant_mode ||  uint8  || PHY antenna mode in [0x10, 0x20, 0x30, 0x40] ||
 || tx_power ||  int8  || Tx power in dBm ||
 || num_tx ||  uint8  || Number of actual PHY Tx events which were used to transmit the MPDU (first Tx + all re-Tx) ||
 || padding0 ||  uint8  || Padding ||
 || length ||  uint16  || Length in bytes of MPDU; includes MAC header, payload and FCS ||
 || padding1 ||  uint8  ||  ||
-|| pkt_type ||  uint8  || Packet type, (first frame control byte of 802.11 header) ||
+|| pkt_type ||  uint8  || Packet type, (first frame control byte of 802.11 header)[[BR]][[BR]]Constants:[[BR]]{'QOSDATA': 136, 'PROBE_RESP': 80, 'CTS': 196, 'ACK': 212, 'BEACON': 128, 'RTS': 180, 'NULLDATA': 72, 'DATA': 8} ||
 || queue_id ||  uint16  || Tx queue ID from which the packet was retrieved ||
 || queue_occupancy ||  uint16  || Occupancy of the Tx queue at the time the packet was created (value includes itself) ||
-|| flags ||  uint16  || 1-bit flags ||
+|| flags ||  uint16  || 1-bit flags[[BR]][[BR]]Constants:[[BR]]{'SUCCESSFUL': 1, 'LTG_PYLD': 64, 'LTG': 128} ||
 || mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
 || mac_payload ||  24uint8  || First 24 bytes of MAC payload, typically the 802.11 MAC header ||
 
@@ -232,17 +232,17 @@ Entry type ID: 21
 || time_to_done ||  uint32  || Time duration in microseconds between packet acceptance by CPU Low and Tx completion in CPU Low ||
 || uniq_seq ||  uint64  || Unique sequence number for Tx packet; 12 LSB of this used for 802.11 MAC header sequence number ||
 || mcs ||  uint8  || MCS index in ![0:7] ||
-|| phy_mode ||  uint8  || PHY mode ||
+|| phy_mode ||  uint8  || PHY mode[[BR]][[BR]]Constants:[[BR]]{'NONHT': 1, 'HTMF': 2, 'DSSS': 0} ||
 || ant_mode ||  uint8  || PHY antenna mode in [0x10, 0x20, 0x30, 0x40] ||
 || tx_power ||  int8  || Tx power in dBm ||
 || num_tx ||  uint8  || Number of actual PHY Tx events which were used to transmit the MPDU (first Tx + all re-Tx) ||
 || padding0 ||  uint8  || Padding ||
 || length ||  uint16  || Length in bytes of MPDU; includes MAC header, payload and FCS ||
 || padding1 ||  uint8  ||  ||
-|| pkt_type ||  uint8  || Packet type, (first frame control byte of 802.11 header) ||
+|| pkt_type ||  uint8  || Packet type, (first frame control byte of 802.11 header)[[BR]][[BR]]Constants:[[BR]]{'QOSDATA': 136, 'PROBE_RESP': 80, 'CTS': 196, 'ACK': 212, 'BEACON': 128, 'RTS': 180, 'NULLDATA': 72, 'DATA': 8} ||
 || queue_id ||  uint16  || Tx queue ID from which the packet was retrieved ||
 || queue_occupancy ||  uint16  || Occupancy of the Tx queue at the time the packet was created (value includes itself) ||
-|| flags ||  uint16  || 1-bit flags ||
+|| flags ||  uint16  || 1-bit flags[[BR]][[BR]]Constants:[[BR]]{'SUCCESSFUL': 1, 'LTG_PYLD': 64, 'LTG': 128} ||
 || mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
 || mac_payload ||  44uint8  || First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG ID ||
 
@@ -269,7 +269,7 @@ Entry type ID: 25
 || timestamp ||  uint64  || Value of MAC Time in microseconds when packet transmission actually started (PHY TX_START time) ||
 || uniq_seq ||  uint64  || Unique sequence number of original MPDU ||
 || mcs ||  uint8  || MCS index in ![0:7] ||
-|| phy_mode ||  uint8  || PHY mode ||
+|| phy_mode ||  uint8  || PHY mode[[BR]][[BR]]Constants:[[BR]]{'NONHT': 1, 'HTMF': 2, 'DSSS': 0} ||
 || ant_mode ||  uint8  || PHY antenna mode in [0x10, 0x20, 0x30, 0x40] ||
 || tx_power ||  int8  || Tx power in dBm ||
 || tx_count ||  uint8  || Transmission index for this attempt; 0 = initial Tx, 1+ = subsequent re-transmissions ||
@@ -277,8 +277,8 @@ Entry type ID: 25
 || length ||  uint16  || Length in bytes of MPDU; includes MAC header, payload and FCS ||
 || num_slots ||  int16  || Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0); A value of -1 in this field means no backoff occured ||
 || cw ||  uint16  || Contention window value at time of this Tx ||
-|| pkt_type ||  uint8  || Packet type, (first frame control byte of 802.11 header) ||
-|| flags ||  uint8  || B0: 1 = ACKed, 0 = Not ACKed ||
+|| pkt_type ||  uint8  || Packet type, (first frame control byte of 802.11 header)[[BR]][[BR]]Constants:[[BR]]{'QOSDATA': 136, 'PROBE_RESP': 80, 'CTS': 196, 'ACK': 212, 'BEACON': 128, 'RTS': 180, 'NULLDATA': 72, 'DATA': 8} ||
+|| flags ||  uint8  || B0: 1 = ACKed, 0 = Not ACKed[[BR]][[BR]]Constants:[[BR]]{'ACKED': 1} ||
 || timestamp_frac ||  uint8  || Fractional timestamp (units of 6.25ns) ||
 || phy_samp_rate ||  uint8  || PHY Sampling Rate Mode ||
 || mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
@@ -305,7 +305,7 @@ Entry type ID: 26
 || timestamp ||  uint64  || Value of MAC Time in microseconds when packet transmission actually started (PHY TX_START time) ||
 || uniq_seq ||  uint64  || Unique sequence number of original MPDU ||
 || mcs ||  uint8  || MCS index in ![0:7] ||
-|| phy_mode ||  uint8  || PHY mode ||
+|| phy_mode ||  uint8  || PHY mode[[BR]][[BR]]Constants:[[BR]]{'NONHT': 1, 'HTMF': 2, 'DSSS': 0} ||
 || ant_mode ||  uint8  || PHY antenna mode in [0x10, 0x20, 0x30, 0x40] ||
 || tx_power ||  int8  || Tx power in dBm ||
 || tx_count ||  uint8  || Transmission index for this attempt; 0 = initial Tx, 1+ = subsequent re-transmissions ||
@@ -313,8 +313,8 @@ Entry type ID: 26
 || length ||  uint16  || Length in bytes of MPDU; includes MAC header, payload and FCS ||
 || num_slots ||  int16  || Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0); A value of -1 in this field means no backoff occured ||
 || cw ||  uint16  || Contention window value at time of this Tx ||
-|| pkt_type ||  uint8  || Packet type, (first frame control byte of 802.11 header) ||
-|| flags ||  uint8  || B0: 1 = ACKed, 0 = Not ACKed ||
+|| pkt_type ||  uint8  || Packet type, (first frame control byte of 802.11 header)[[BR]][[BR]]Constants:[[BR]]{'QOSDATA': 136, 'PROBE_RESP': 80, 'CTS': 196, 'ACK': 212, 'BEACON': 128, 'RTS': 180, 'NULLDATA': 72, 'DATA': 8} ||
+|| flags ||  uint8  || B0: 1 = ACKed, 0 = Not ACKed[[BR]][[BR]]Constants:[[BR]]{'ACKED': 1} ||
 || timestamp_frac ||  uint8  || Fractional timestamp (units of 6.25ns) ||
 || phy_samp_rate ||  uint8  || PHY Sampling Rate Mode ||
 || mac_payload_len ||  uint32  || Length in bytes of MAC payload recorded in log for this packet ||
