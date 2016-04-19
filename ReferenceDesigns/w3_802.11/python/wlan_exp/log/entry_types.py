@@ -306,7 +306,7 @@ class WlanExpLogEntryType(object):
                         consts = self.consts[fd[0]]
                         fd_desc += '\n\nConstants defined for this field:\n'
                         for c in consts.keys():
-                            fd_desc += ' * {{{{{{\'{0}\'}}}}}}\n'.format(c)
+                            fd_desc += ' * {{{{{{\'{0}\': {1}}}}}}}\n'.format(c, consts[c])
                     except:
                         # Field didn't have constants defined
                         pass

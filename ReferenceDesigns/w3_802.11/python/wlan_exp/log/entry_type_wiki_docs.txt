@@ -37,12 +37,12 @@ uint32
 Code identifying applications in CPU High and CPU Low
 
 Constants defined for this field:
- * {{{'AP_DCF'}}}
- * {{{'AP_NOMAC'}}}
- * {{{'IBSS_DCF'}}}
- * {{{'STA_NOMAC'}}}
- * {{{'IBSS_NOMAC'}}}
- * {{{'STA_DCF'}}}
+ * {{{'AP_DCF': 65793}}}
+ * {{{'AP_NOMAC': 65794}}}
+ * {{{'IBSS_DCF': 66305}}}
+ * {{{'STA_NOMAC': 66050}}}
+ * {{{'IBSS_NOMAC': 66306}}}
+ * {{{'STA_DCF': 66049}}}
 
 }}}
 |----------------
@@ -323,9 +323,9 @@ uint32
 Reason code for TIME_INFO log entry creation
 
 Constants defined for this field:
- * {{{'SYSTEM'}}}
- * {{{'WLAN_EXP_SET_TIME'}}}
- * {{{'WLAN_EXP_ADD_LOG'}}}
+ * {{{'SYSTEM': 0}}}
+ * {{{'WLAN_EXP_SET_TIME': 1}}}
+ * {{{'WLAN_EXP_ADD_LOG': 2}}}
 
 }}}
 |----------------
@@ -448,9 +448,9 @@ uint8
 PHY mode
 
 Constants defined for this field:
- * {{{'NONHT'}}}
- * {{{'HTMF'}}}
- * {{{'DSSS'}}}
+ * {{{'NONHT': 1}}}
+ * {{{'HTMF': 2}}}
+ * {{{'DSSS': 0}}}
 
 }}}
 |----------------
@@ -494,14 +494,14 @@ uint8
 Packet type, (first frame control byte of 802.11 header)
 
 Constants defined for this field:
- * {{{'QOSDATA'}}}
- * {{{'PROBE_RESP'}}}
- * {{{'CTS'}}}
- * {{{'ACK'}}}
- * {{{'BEACON'}}}
- * {{{'RTS'}}}
- * {{{'NULLDATA'}}}
- * {{{'DATA'}}}
+ * {{{'QOSDATA': 136}}}
+ * {{{'PROBE_RESP': 80}}}
+ * {{{'CTS': 196}}}
+ * {{{'ACK': 212}}}
+ * {{{'BEACON': 128}}}
+ * {{{'RTS': 180}}}
+ * {{{'NULLDATA': 72}}}
+ * {{{'DATA': 8}}}
 
 }}}
 |----------------
@@ -555,10 +555,10 @@ uint16
 1-bit flags
 
 Constants defined for this field:
- * {{{'FCS_GOOD'}}}
- * {{{'DUPLICATE'}}}
- * {{{'LTG_PYLD'}}}
- * {{{'LTG'}}}
+ * {{{'FCS_GOOD': 1}}}
+ * {{{'DUPLICATE': 2}}}
+ * {{{'LTG_PYLD': 64}}}
+ * {{{'LTG': 128}}}
 
 }}}
 |----------------
@@ -735,9 +735,9 @@ uint8
 PHY mode
 
 Constants defined for this field:
- * {{{'NONHT'}}}
- * {{{'HTMF'}}}
- * {{{'DSSS'}}}
+ * {{{'NONHT': 1}}}
+ * {{{'HTMF': 2}}}
+ * {{{'DSSS': 0}}}
 
 }}}
 |----------------
@@ -781,14 +781,14 @@ uint8
 Packet type, (first frame control byte of 802.11 header)
 
 Constants defined for this field:
- * {{{'QOSDATA'}}}
- * {{{'PROBE_RESP'}}}
- * {{{'CTS'}}}
- * {{{'ACK'}}}
- * {{{'BEACON'}}}
- * {{{'RTS'}}}
- * {{{'NULLDATA'}}}
- * {{{'DATA'}}}
+ * {{{'QOSDATA': 136}}}
+ * {{{'PROBE_RESP': 80}}}
+ * {{{'CTS': 196}}}
+ * {{{'ACK': 212}}}
+ * {{{'BEACON': 128}}}
+ * {{{'RTS': 180}}}
+ * {{{'NULLDATA': 72}}}
+ * {{{'DATA': 8}}}
 
 }}}
 |----------------
@@ -842,10 +842,10 @@ uint16
 1-bit flags
 
 Constants defined for this field:
- * {{{'FCS_GOOD'}}}
- * {{{'DUPLICATE'}}}
- * {{{'LTG_PYLD'}}}
- * {{{'LTG'}}}
+ * {{{'FCS_GOOD': 1}}}
+ * {{{'DUPLICATE': 2}}}
+ * {{{'LTG_PYLD': 64}}}
+ * {{{'LTG': 128}}}
 
 }}}
 |----------------
@@ -1044,9 +1044,9 @@ uint8
 PHY mode
 
 Constants defined for this field:
- * {{{'NONHT'}}}
- * {{{'HTMF'}}}
- * {{{'DSSS'}}}
+ * {{{'NONHT': 1}}}
+ * {{{'HTMF': 2}}}
+ * {{{'DSSS': 0}}}
 
 }}}
 |----------------
@@ -1090,14 +1090,14 @@ uint8
 Packet type, (first frame control byte of 802.11 header)
 
 Constants defined for this field:
- * {{{'QOSDATA'}}}
- * {{{'PROBE_RESP'}}}
- * {{{'CTS'}}}
- * {{{'ACK'}}}
- * {{{'BEACON'}}}
- * {{{'RTS'}}}
- * {{{'NULLDATA'}}}
- * {{{'DATA'}}}
+ * {{{'QOSDATA': 136}}}
+ * {{{'PROBE_RESP': 80}}}
+ * {{{'CTS': 196}}}
+ * {{{'ACK': 212}}}
+ * {{{'BEACON': 128}}}
+ * {{{'RTS': 180}}}
+ * {{{'NULLDATA': 72}}}
+ * {{{'DATA': 8}}}
 
 }}}
 |----------------
@@ -1151,10 +1151,10 @@ uint16
 1-bit flags
 
 Constants defined for this field:
- * {{{'FCS_GOOD'}}}
- * {{{'DUPLICATE'}}}
- * {{{'LTG_PYLD'}}}
- * {{{'LTG'}}}
+ * {{{'FCS_GOOD': 1}}}
+ * {{{'DUPLICATE': 2}}}
+ * {{{'LTG_PYLD': 64}}}
+ * {{{'LTG': 128}}}
 
 }}}
 |----------------
@@ -1311,9 +1311,9 @@ uint8
 PHY mode
 
 Constants defined for this field:
- * {{{'NONHT'}}}
- * {{{'HTMF'}}}
- * {{{'DSSS'}}}
+ * {{{'NONHT': 1}}}
+ * {{{'HTMF': 2}}}
+ * {{{'DSSS': 0}}}
 
 }}}
 |----------------
@@ -1387,14 +1387,14 @@ uint8
 Packet type, (first frame control byte of 802.11 header)
 
 Constants defined for this field:
- * {{{'QOSDATA'}}}
- * {{{'PROBE_RESP'}}}
- * {{{'CTS'}}}
- * {{{'ACK'}}}
- * {{{'BEACON'}}}
- * {{{'RTS'}}}
- * {{{'NULLDATA'}}}
- * {{{'DATA'}}}
+ * {{{'QOSDATA': 136}}}
+ * {{{'PROBE_RESP': 80}}}
+ * {{{'CTS': 196}}}
+ * {{{'ACK': 212}}}
+ * {{{'BEACON': 128}}}
+ * {{{'RTS': 180}}}
+ * {{{'NULLDATA': 72}}}
+ * {{{'DATA': 8}}}
 
 }}}
 |----------------
@@ -1428,9 +1428,9 @@ uint16
 1-bit flags
 
 Constants defined for this field:
- * {{{'SUCCESSFUL'}}}
- * {{{'LTG_PYLD'}}}
- * {{{'LTG'}}}
+ * {{{'SUCCESSFUL': 1}}}
+ * {{{'LTG_PYLD': 64}}}
+ * {{{'LTG': 128}}}
 
 }}}
 |----------------
@@ -1587,9 +1587,9 @@ uint8
 PHY mode
 
 Constants defined for this field:
- * {{{'NONHT'}}}
- * {{{'HTMF'}}}
- * {{{'DSSS'}}}
+ * {{{'NONHT': 1}}}
+ * {{{'HTMF': 2}}}
+ * {{{'DSSS': 0}}}
 
 }}}
 |----------------
@@ -1663,14 +1663,14 @@ uint8
 Packet type, (first frame control byte of 802.11 header)
 
 Constants defined for this field:
- * {{{'QOSDATA'}}}
- * {{{'PROBE_RESP'}}}
- * {{{'CTS'}}}
- * {{{'ACK'}}}
- * {{{'BEACON'}}}
- * {{{'RTS'}}}
- * {{{'NULLDATA'}}}
- * {{{'DATA'}}}
+ * {{{'QOSDATA': 136}}}
+ * {{{'PROBE_RESP': 80}}}
+ * {{{'CTS': 196}}}
+ * {{{'ACK': 212}}}
+ * {{{'BEACON': 128}}}
+ * {{{'RTS': 180}}}
+ * {{{'NULLDATA': 72}}}
+ * {{{'DATA': 8}}}
 
 }}}
 |----------------
@@ -1704,9 +1704,9 @@ uint16
 1-bit flags
 
 Constants defined for this field:
- * {{{'SUCCESSFUL'}}}
- * {{{'LTG_PYLD'}}}
- * {{{'LTG'}}}
+ * {{{'SUCCESSFUL': 1}}}
+ * {{{'LTG_PYLD': 64}}}
+ * {{{'LTG': 128}}}
 
 }}}
 |----------------
@@ -1865,9 +1865,9 @@ uint8
 PHY mode
 
 Constants defined for this field:
- * {{{'NONHT'}}}
- * {{{'HTMF'}}}
- * {{{'DSSS'}}}
+ * {{{'NONHT': 1}}}
+ * {{{'HTMF': 2}}}
+ * {{{'DSSS': 0}}}
 
 }}}
 |----------------
@@ -1951,14 +1951,14 @@ uint8
 Packet type, (first frame control byte of 802.11 header)
 
 Constants defined for this field:
- * {{{'QOSDATA'}}}
- * {{{'PROBE_RESP'}}}
- * {{{'CTS'}}}
- * {{{'ACK'}}}
- * {{{'BEACON'}}}
- * {{{'RTS'}}}
- * {{{'NULLDATA'}}}
- * {{{'DATA'}}}
+ * {{{'QOSDATA': 136}}}
+ * {{{'PROBE_RESP': 80}}}
+ * {{{'CTS': 196}}}
+ * {{{'ACK': 212}}}
+ * {{{'BEACON': 128}}}
+ * {{{'RTS': 180}}}
+ * {{{'NULLDATA': 72}}}
+ * {{{'DATA': 8}}}
 
 }}}
 |----------------
@@ -1972,7 +1972,7 @@ uint8
 1-bit Flags
 
 Constants defined for this field:
- * {{{'ACKED'}}}
+ * {{{'ACKED': 1}}}
 
 }}}
 |----------------
@@ -2129,9 +2129,9 @@ uint8
 PHY mode
 
 Constants defined for this field:
- * {{{'NONHT'}}}
- * {{{'HTMF'}}}
- * {{{'DSSS'}}}
+ * {{{'NONHT': 1}}}
+ * {{{'HTMF': 2}}}
+ * {{{'DSSS': 0}}}
 
 }}}
 |----------------
@@ -2215,14 +2215,14 @@ uint8
 Packet type, (first frame control byte of 802.11 header)
 
 Constants defined for this field:
- * {{{'QOSDATA'}}}
- * {{{'PROBE_RESP'}}}
- * {{{'CTS'}}}
- * {{{'ACK'}}}
- * {{{'BEACON'}}}
- * {{{'RTS'}}}
- * {{{'NULLDATA'}}}
- * {{{'DATA'}}}
+ * {{{'QOSDATA': 136}}}
+ * {{{'PROBE_RESP': 80}}}
+ * {{{'CTS': 196}}}
+ * {{{'ACK': 212}}}
+ * {{{'BEACON': 128}}}
+ * {{{'RTS': 180}}}
+ * {{{'NULLDATA': 72}}}
+ * {{{'DATA': 8}}}
 
 }}}
 |----------------
@@ -2236,7 +2236,7 @@ uint8
 1-bit Flags
 
 Constants defined for this field:
- * {{{'ACKED'}}}
+ * {{{'ACKED': 1}}}
 
 }}}
 |----------------
