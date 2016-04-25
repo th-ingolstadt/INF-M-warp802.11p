@@ -16,6 +16,8 @@ import time
 
 import wlan_exp.defaults as defaults
 
+# Fix to support Python 2.x and 3.x
+if sys.version[0]=="3": long=None
 
 __all__ = ['consts_dict', 'init_nodes', 'broadcast_cmd_set_mac_time', 'broadcast_cmd_write_time_to_logs',
            'filter_nodes']
@@ -651,9 +653,10 @@ def check_bss_membership(nodes, verbose=False):
         nodes = [nodes]
 
     # Filter nodes by type
-    ap    = filter(is_ap, nodes)
-    stas  = filter(is_sta, nodes)
-    ibsss = filter(is_ibss, nodes)
+    ap    = list(filter(is_ap, nodes))
+    stas  = list(filter(is_sta, nodes))
+    ibsss = list(filter(is_ibss, nodes))
+
 
     # Check provided nodes argument
     #   (1) 1 AP and 1+ STA and 0  IBSS

@@ -21,10 +21,14 @@ Classes (see below for more information):
 
 """
 import struct
+import sys
 
 import wlan_exp.util as util
 
 __all__ = ['StationInfo', 'BSSInfo', 'TxRxCounts']
+
+# Fix to support Python 2.x and 3.x
+if sys.version[0]=="3": long=None
 
 
 #-------------------------------------------------------------------------
@@ -665,9 +669,13 @@ class BSSInfo(InfoStruct):
         #     address in the wlan_exp framework (ie all the MAC address
         #     utility functions can be used on it.)
         #
-        import ctypes
-
+        import ctypes            
         self['ssid']  = ctypes.c_char_p(self['ssid']).value
+        # If the SSID is not a string already (which happens in Python3)
+        #   then decode the bytes class assuming a UTF-8 encoding
+        if type(self['ssid']) is not str:
+            self['ssid'] = self['ssid'].decode('utf-8')
+                    
         self['bssid'] = util.byte_str_to_mac_addr(self['bssid'])
         self['bssid'] = util.mac_addr_to_str(self['bssid'])
 
@@ -733,9 +741,10 @@ class BSSConfig(InfoStruct):
         
         # Set SSID field
         if ssid is not None:
-            # Check SSID
+            # Check SSID            
+            
             if type(ssid) is not str:
-                raise ValueError("The SSID must be a string.")
+                raise ValueError("The SSID type was {0}".format(type(ssid)))
 
             if len(ssid) > 32:
                 ssid = ssid[:32]
