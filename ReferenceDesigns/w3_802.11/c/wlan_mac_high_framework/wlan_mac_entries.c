@@ -682,7 +682,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
         }
     }
 
-    if ((rx_frame_info->flags & RX_FRAME_INFO_FLAGS_FORMED_RESPONSE) && (log_entry_en_mask & ENTRY_EN_MASK_TXRX_CTRL)) {
+    if ((rx_frame_info->flags & RX_FRAME_INFO_FLAGS_CTRL_RESP_TX) && (log_entry_en_mask & ENTRY_EN_MASK_TXRX_CTRL)) {
 
         // ------------------------------------------------
         // Create CTS log entry
@@ -744,9 +744,9 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
         // ------------------------------------------------
         // Create ACK log entry
         //
-        } else if ((rx_80211_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_DATA   ) ||
-                   (rx_80211_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_QOSDATA)) {
-
+        } else {
+        	// Note: this clause will be called for any reception that led to a control frame response. Since we have dealt with the CTS case
+        	// above, the only ever control response must be an ACK transmission.
             entry_type          = ENTRY_TYPE_TX_LOW;
             packet_payload_size = sizeof(mac_header_80211_ACK) + WLAN_PHY_FCS_NBYTES;
 

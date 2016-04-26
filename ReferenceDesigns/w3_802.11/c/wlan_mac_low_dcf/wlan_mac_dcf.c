@@ -84,7 +84,7 @@ int main(){
 
     xil_printf("\f");
     xil_printf("----- Mango 802.11 Reference Design -----\n");
-    xil_printf("----- v1.5 ------------------------------\n");
+    xil_printf("----- v1.5.1 ----------------------------\n");
     xil_printf("----- wlan_mac_dcf ----------------------\n");
     xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 
@@ -1031,11 +1031,11 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
                     	// NAV is clear at the time of transmission. This code block handles the case the the support core
                     	// elected not to transmit the frame.
                     	//
-                        rx_frame_info->flags = rx_frame_info->flags & ~RX_FRAME_INFO_FLAGS_FORMED_RESPONSE;
+                        rx_frame_info->flags = rx_frame_info->flags & ~RX_FRAME_INFO_FLAGS_CTRL_RESP_TX;
                         break;
                     }
                     if ((mac_tx_ctrl_status & WLAN_MAC_TXCTRL_STATUS_MASK_TX_B_RESULT) == WLAN_MAC_TXCTRL_STATUS_TX_B_RESULT_DID_TX) {
-                    	rx_frame_info->flags |= RX_FRAME_INFO_FLAGS_FORMED_RESPONSE;
+                    	rx_frame_info->flags |= RX_FRAME_INFO_FLAGS_CTRL_RESP_TX;
                         break;
                     }
                 } else if(((mac_tx_ctrl_status & WLAN_MAC_TXCTRL_STATUS_MASK_TX_B_STATE) == WLAN_MAC_TXCTRL_STATUS_TX_B_STATE_PRE_TX_WAIT) &&
@@ -1050,7 +1050,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
                     num_resp_failures++;
 
                     if(num_resp_failures > 2){
-                    	rx_frame_info->flags = rx_frame_info->flags & ~RX_FRAME_INFO_FLAGS_FORMED_RESPONSE;
+                    	rx_frame_info->flags = rx_frame_info->flags & ~RX_FRAME_INFO_FLAGS_CTRL_RESP_TX;
 
                         wlan_mac_reset_tx_ctrl_B(1);
                         wlan_mac_reset_tx_ctrl_B(0);
@@ -1061,7 +1061,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         break;
     }
 
-    if(rx_frame_info->flags & RX_FRAME_INFO_FLAGS_FORMED_RESPONSE) {
+    if(rx_frame_info->flags & RX_FRAME_INFO_FLAGS_CTRL_RESP_TX) {
     	rx_frame_info->resp_low_tx_details.tx_start_timestamp_ctrl 		= wlan_mac_low_get_tx_start_timestamp();
     	rx_frame_info->resp_low_tx_details.tx_start_timestamp_frac_ctrl = wlan_mac_low_get_tx_start_timestamp_frac();
     }

@@ -431,7 +431,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "AP: Associate\n");
 
-            if (active_bss_info->station_info_list.length < wlan_mac_high_get_max_num_station_infos()) {
+            if ((active_bss_info != NULL) &&(active_bss_info->station_info_list.length < wlan_mac_high_get_max_num_station_infos())) {
 
                 // Get MAC Address
                 wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[2], &mac_addr[0]);

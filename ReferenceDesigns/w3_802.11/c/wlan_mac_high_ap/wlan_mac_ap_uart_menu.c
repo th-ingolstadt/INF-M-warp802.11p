@@ -284,7 +284,7 @@ void print_station_status(){
 
 	u64 timestamp;
 
-	if(uart_mode == UART_MODE_INTERACTIVE){
+	if((active_bss_info != NULL) && (uart_mode == UART_MODE_INTERACTIVE)){
 		timestamp = get_system_time_usec();
 		xil_printf("\f");
 
@@ -334,21 +334,25 @@ void print_queue_status(){
 	xil_printf("\nQueue Status:\n");
 	xil_printf(" FREE || MCAST|");
 
-	curr_entry = active_bss_info->station_info_list.first;
-	while(curr_entry != NULL){
-		curr_station_info = (station_info_t*)(curr_entry->data);
-		xil_printf("%6d|", curr_station_info->ID);
-		curr_entry = dl_entry_next(curr_entry);
+	if(active_bss_info != NULL){
+		curr_entry = active_bss_info->station_info_list.first;
+		while(curr_entry != NULL){
+			curr_station_info = (station_info_t*)(curr_entry->data);
+			xil_printf("%6d|", curr_station_info->ID);
+			curr_entry = dl_entry_next(curr_entry);
+		}
 	}
 	xil_printf("\n");
 
-	xil_printf("%6d||%6d|",queue_num_free(),queue_num_queued(MCAST_QID));
 
-	curr_entry = active_bss_info->station_info_list.first;
-	while(curr_entry != NULL){
-		curr_station_info = (station_info_t*)(curr_entry->data);
-		xil_printf("%6d|", queue_num_queued(STATION_ID_TO_QUEUE_ID(curr_station_info->ID)));
-		curr_entry = dl_entry_next(curr_entry);
+	xil_printf("%6d||%6d|",queue_num_free(),queue_num_queued(MCAST_QID));
+	if(active_bss_info != NULL){
+		curr_entry = active_bss_info->station_info_list.first;
+		while(curr_entry != NULL){
+			curr_station_info = (station_info_t*)(curr_entry->data);
+			xil_printf("%6d|", queue_num_queued(STATION_ID_TO_QUEUE_ID(curr_station_info->ID)));
+			curr_entry = dl_entry_next(curr_entry);
+		}
 	}
 	xil_printf("\n");
 
