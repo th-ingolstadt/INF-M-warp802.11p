@@ -156,15 +156,15 @@
  PORT ddr3_sodimm_dqs_n = ddr3_sodimm_dqs_n, DIR = IO, VEC = [7:0]
 # Debug pins
 # PORT wlan_phy_rx_pkt_det_in = net_wlan_phy_rx_pkt_det_in, DIR = I
- PORT debughdr = dbg_gpio_b3 & dbg_gpio_b2 & dbg_gpio_b1 & dbg_gpio_b0 & mac_nav_active & mac_backoff_active & mac_idle_for_difs & dbg_tx_a_pending & dbg_rssi_det & mac_phy_rx_fcs_good_ind & dbg_lts_timeout & dbg_pkt_det_dsss & dbg_pkt_det_ofdm & dbg_dsss_rx_active & dbg_ofdm_rx_active & dbg_tx_running, DIR = O, VEC = [15:0]
+ PORT debughdr = dbg_gpio_b3 & dbg_gpio_b2 & dbg_gpio_b1 & dbg_gpio_b0 & mac_nav_active & mac_backoff_a_active & mac_idle_for_difs & dbg_tx_a_pending & dbg_rssi_det & mac_phy_rx_fcs_good_ind & dbg_lts_timeout & dbg_pkt_det_dsss & dbg_pkt_det_ofdm & dbg_dsss_rx_active & dbg_ofdm_rx_active & dbg_tx_running, DIR = O, VEC = [15:0]
 
 
 # ##############################################################################
 # WLAN Sysgen Peripherals
 # ##############################################################################
-BEGIN wlan_phy_tx_pmd_2xclk_axiw
+BEGIN wlan_phy_tx_pmd_axiw
  PARAMETER INSTANCE = wlan_phy_tx
- PARAMETER HW_VER = 3.00.h
+ PARAMETER HW_VER = 4.00.h
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -176,7 +176,7 @@ BEGIN wlan_phy_tx_pmd_2xclk_axiw
  BUS_INTERFACE S_AXI = mb_low_axi_periph
  PORT axi_aclk = clk_160MHz
  PORT sysgen_clk = clk_160MHz
- PORT dac_samp_ce = RF_AD_samp_ce
+ PORT samp_ce = RF_AD_samp_ce
  PORT rfa_dac_i = RFA_TX_I
  PORT rfa_dac_q = RFA_TX_Q
  PORT rfb_dac_i = RFB_TX_I
@@ -194,19 +194,18 @@ BEGIN wlan_phy_tx_pmd_2xclk_axiw
  PORT phy_tx_gain_a = mac_phy_tx_gain_a
  PORT phy_tx_gain_b = mac_phy_tx_gain_b
  PORT phy_tx_pkt_buf = mac_phy_tx_pkt_buf
+ PORT phy_tx_phy_mode = mac_phy_tx_phy_mode
  PORT phy_tx_start = mac_phy_tx_start
  PORT phy_tx_done = mac_phy_tx_done
  PORT phy_tx_started = mac_phy_tx_started
  PORT phy_tx_ant_mask = mac_phy_tx_ant_mask
- PORT mac_timestamp_lsb = mac_tx_start_timestamp_lsb
- PORT mac_timestamp_msb = mac_tx_start_timestamp_msb
 # Debug ports
  PORT dbg_tx_running = dbg_tx_running
 END
 
-BEGIN wlan_phy_rx_pmd_2xclk_axiw
+BEGIN wlan_phy_rx_pmd_axiw
  PARAMETER INSTANCE = wlan_phy_rx
- PARAMETER HW_VER = 4.00.e
+ PARAMETER HW_VER = 4.00.s
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -221,7 +220,7 @@ BEGIN wlan_phy_rx_pmd_2xclk_axiw
 # PORT pkt_det_in = net_wlan_phy_rx_pkt_det_in
  PORT pkt_det_in = net_gnd
  PORT rx_sigs_invalid = rx_sigs_invalid
- PORT adc_rx_clk = agc_iq_valid_out
+ PORT rx_iq_samp_ce = agc_iq_valid_out
  PORT rfa_rx_i = agc_rfa_i
  PORT rfa_rx_q = agc_rfa_q
  PORT rfa_rssi = RFA_RSSI_D_REG
@@ -235,8 +234,9 @@ BEGIN wlan_phy_rx_pmd_2xclk_axiw
  PORT rfb_g_rf = agc_rfb_g_rf
  PORT rfb_g_bb = agc_rfb_g_bb
  PORT agc_done = agc_done
- PORT phy_rx_block_pktdet = phy_rx_block_pktdet
 # MAC <-> PHY ports
+ PORT phy_rx_reset = phy_rx_reset
+ PORT phy_rx_block_pktdet = phy_rx_block_pktdet
  PORT phy_cca_ind_busy = mac_phy_cca_ind_busy
  PORT phy_rx_data_byte = mac_phy_rx_data_byte
  PORT phy_rx_data_bytenum = mac_phy_rx_data_bytenum
@@ -245,11 +245,11 @@ BEGIN wlan_phy_rx_pmd_2xclk_axiw
  PORT phy_rx_end_ind = mac_phy_rx_end_ind
  PORT phy_rx_end_rxerror = mac_phy_rx_end_rxerror
  PORT phy_rx_fcs_good_ind = mac_phy_rx_fcs_good_ind
- PORT phy_rx_params_ind = mac_phy_rx_params_ind
- PORT phy_rx_params_length = mac_phy_rx_params_length
- PORT phy_rx_params_mcs = mac_phy_rx_params_mcs
- PORT phy_rx_params_phy_mode = mac_phy_rx_params_phy_mode
- PORT phy_rx_params_unsupported = mac_phy_rx_params_unsupported
+ PORT phy_rx_phy_hdr_ind = mac_phy_rx_phy_hdr_ind
+ PORT phy_rx_phy_hdr_length = mac_phy_rx_phy_hdr_length
+ PORT phy_rx_phy_hdr_mcs = mac_phy_rx_phy_hdr_mcs
+ PORT phy_rx_phy_hdr_phy_mode = mac_phy_rx_phy_hdr_phy_mode
+ PORT phy_rx_phy_hdr_unsupported = mac_phy_rx_phy_hdr_unsupported
  PORT phy_rx_start_ind = mac_phy_rx_start_ind
  PORT phy_rx_start_phy_sel = phy_rx_start_phy_sel
 # Debug ports
@@ -265,7 +265,7 @@ END
 
 BEGIN wlan_mac_hw_axiw
  PARAMETER INSTANCE = wlan_mac_hw
- PARAMETER HW_VER = 2.00.f
+ PARAMETER HW_VER = 2.01.e
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -286,14 +286,16 @@ BEGIN wlan_mac_hw_axiw
  PORT phy_rx_fcs_good_ind = mac_phy_rx_fcs_good_ind
  PORT phy_rx_start_ind = mac_phy_rx_start_ind
  PORT phy_rx_start_phy_sel = phy_rx_start_phy_sel
- PORT phy_rx_params_ind = mac_phy_rx_params_ind
- PORT phy_rx_params_length = mac_phy_rx_params_length
- PORT phy_rx_params_mcs = mac_phy_rx_params_mcs
- PORT phy_rx_params_phy_mode = mac_phy_rx_params_phy_mode
- PORT phy_rx_params_unsupported = mac_phy_rx_params_unsupported
+ PORT phy_rx_reset = phy_rx_reset
+ PORT phy_rx_phy_hdr_ind = mac_phy_rx_phy_hdr_ind
+ PORT phy_rx_phy_hdr_length = mac_phy_rx_phy_hdr_length
+ PORT phy_rx_phy_hdr_mcs = mac_phy_rx_phy_hdr_mcs
+ PORT phy_rx_phy_hdr_phy_mode = mac_phy_rx_phy_hdr_phy_mode
+ PORT phy_rx_phy_hdr_unsupported = mac_phy_rx_phy_hdr_unsupported
  PORT phy_tx_done = mac_phy_tx_done
  PORT phy_tx_started = mac_phy_tx_started
  PORT phy_tx_pkt_buf = mac_phy_tx_pkt_buf
+ PORT phy_tx_phy_mode = mac_phy_tx_phy_mode
  PORT phy_tx_start = mac_phy_tx_start
  PORT phy_tx_gain_a = mac_phy_tx_gain_a
  PORT phy_tx_gain_b = mac_phy_tx_gain_b
@@ -302,15 +304,13 @@ BEGIN wlan_mac_hw_axiw
  PORT mac_time_usec_lsb = mac_time_usec_lsb
  PORT mac_time_usec_msb = mac_time_usec_msb
  PORT mac_time_usec_frac = mac_time_usec_frac
- PORT tx_start_timestamp_lsb = mac_tx_start_timestamp_lsb
- PORT tx_start_timestamp_msb = mac_tx_start_timestamp_msb
- PORT dbg_backoff_active = mac_backoff_active
+ PORT dbg_backoff_a_active = mac_backoff_a_active
  PORT dbg_idle_for_difs = mac_idle_for_difs
  PORT dbg_nav_active = mac_nav_active
  PORT dbg_tx_a_pending = dbg_tx_a_pending
 END
 
-BEGIN wlan_agc_2xclk_axiw
+BEGIN wlan_agc_axiw
  PARAMETER INSTANCE = wlan_agc
  PARAMETER HW_VER = 2.00.b
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
@@ -352,7 +352,7 @@ END
 # Radio Control Logic
 # ##############################################################################
 BEGIN w3_clock_controller_axi
- PARAMETER INSTANCE = w3_clock_controller_0
+ PARAMETER INSTANCE = w3_clock_controller
  PARAMETER HW_VER = 4.00.a
  PARAMETER C_DPHASE_TIMEOUT = 0
  PARAMETER C_BASEADDR = 0x22100000
@@ -396,7 +396,7 @@ BEGIN w3_clock_controller_axi
 END
 
 BEGIN w3_ad_controller_axi
- PARAMETER INSTANCE = w3_ad_controller_0
+ PARAMETER INSTANCE = w3_ad_controller
  PARAMETER HW_VER = 3.02.a
  PARAMETER C_BASEADDR = 0x22200000
  PARAMETER C_HIGHADDR = 0x2220FFFF
@@ -450,7 +450,7 @@ BEGIN w3_ad_bridge
 END
 
 BEGIN radio_controller_axi
- PARAMETER INSTANCE = radio_controller_0
+ PARAMETER INSTANCE = radio_controller
  PARAMETER HW_VER = 3.01.a
  PARAMETER C_BASEADDR = 0x22300000
  PARAMETER C_HIGHADDR = 0x2230FFFF
@@ -522,17 +522,17 @@ BEGIN proc_sys_reset
 END
 
 BEGIN clock_generator
- PARAMETER INSTANCE = clock_generator_MPMC_Clocks
+ PARAMETER INSTANCE = clock_generator_dram_clocks
  PARAMETER C_EXT_RESET_HIGH = 1
  PARAMETER HW_VER = 4.03.a
 # 80MHz clock input (driven by other clock generator)
  PARAMETER C_CLKIN_FREQ = 80000000
-# MPMC DRAM clock (2x bus)
+# MIG DRAM clock (2x bus)
  PARAMETER C_CLKOUT0_FREQ = 320000000
  PARAMETER C_CLKOUT0_PHASE = 0
  PARAMETER C_CLKOUT0_GROUP = MMCM0
  PARAMETER C_CLKOUT0_BUF = TRUE
-# MPMC DRAM clock (2x bus, variable phase)
+# MIG DRAM clock (2x bus, variable phase)
  PARAMETER C_CLKOUT1_FREQ = 320000000
  PARAMETER C_CLKOUT1_PHASE = 0
  PARAMETER C_CLKOUT1_GROUP = MMCM0
@@ -542,9 +542,9 @@ BEGIN clock_generator
  PORT CLKIN = clk_80MHz
  PORT PSCLK = clk_80MHz
  PORT RST = mmcm_inputs_invalid
- PORT LOCKED = clk_gen_mpmc_clks_locked
- PORT CLKOUT0 = clk_mpmc_320MHz_clk_mem
- PORT CLKOUT1 = clk_mpmc_320MHz_clk_rd_base
+ PORT LOCKED = clk_gen_dram_clks_locked
+ PORT CLKOUT0 = clk_dram_320MHz_clk_mem
+ PORT CLKOUT1 = clk_dram_320MHz_clk_rd_base
  PORT PSEN = MMCM_PSEN
  PORT PSINCDEC = MMCM_PSINCDEC
  PORT PSDONE = MMCM_PSDONE
@@ -723,7 +723,7 @@ BEGIN axi_interconnect
 END
 
 BEGIN axi2axi_connector
- PARAMETER INSTANCE = axi2axi_connector_0
+ PARAMETER INSTANCE = axi2axi_connector_shared_periphs
  PARAMETER HW_VER = 1.00.a
  PARAMETER C_INTERCONNECT_S_AXI_MASTERS = mb_low.M_AXI_DC & mb_high.M_AXI_DC
  PARAMETER C_S_AXI_RNG00_BASEADDR = 0x80000000
@@ -810,7 +810,7 @@ BEGIN w3_iic_eeprom_axi
 END
 
 BEGIN axi_sysmon_adc
- PARAMETER INSTANCE = axi_sysmon_adc_0
+ PARAMETER INSTANCE = axi_sysmon
  PARAMETER HW_VER = 2.00.a
  PARAMETER C_INCLUDE_INTR = 1
  PARAMETER C_BASEADDR = 0x83000000
@@ -1502,8 +1502,8 @@ BEGIN axi_v6_ddrx
  PARAMETER C_INTERCONNECT_S_AXI_B_REGISTER = 7
  BUS_INTERFACE S_AXI = mb_shared_axi
  PORT clk = clk_160MHz
- PORT clk_mem = clk_mpmc_320MHz_clk_mem
- PORT clk_rd_base = clk_mpmc_320MHz_clk_rd_base
+ PORT clk_mem = clk_dram_320MHz_clk_mem
+ PORT clk_rd_base = clk_dram_320MHz_clk_rd_base
  PORT clk_ref = clk_200MHz
  PORT pd_PSEN = MMCM_PSEN
  PORT pd_PSINCDEC = MMCM_PSINCDEC
@@ -1560,7 +1560,7 @@ BEGIN util_reduced_logic
  PARAMETER HW_VER = 1.00.a
  PARAMETER C_OPERATION = AND
  PARAMETER C_SIZE = 3
- PORT Op1 = clk_gen_proc_bus_clks_locked & clk_gen_async_clks_locked & clk_gen_mpmc_clks_locked
+ PORT Op1 = clk_gen_proc_bus_clks_locked & clk_gen_async_clks_locked & clk_gen_dram_clks_locked
  PORT Res = clk_gen_all_locked
 END
 
