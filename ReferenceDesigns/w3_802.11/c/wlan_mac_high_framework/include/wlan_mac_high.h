@@ -56,11 +56,15 @@
  * --------------------------|-----------------------------
  *                           |
  *   BSS Info DL_ENTRY      -->      BSS Info Buffer
- *        ( 9 KB)            |          (60 KB)
+ *      ( 4.5 KB)            |          (27 KB)
+ * --------------------------|-----------------------------
+ *                           |
+ *  Counts TxRx DL_ENTRY    -->    Counts TxRx Buffer
+ *      ( 4.5 KB)            |          (48 KB)
  * --------------------------|-----------------------------
  *                           |
  *       Eth Tx BD           |      User Scratch Space
- *        (64 B)             |          (14336 KB)
+ *        (64 B)             |          (14321 KB)
  * --------------------------|-----------------------------
  *                           |
  *       Eth Rx BD           |          Event Log
@@ -126,26 +130,51 @@
 /********************************************************************
  * BSS Info
  *
- * The BSS Info consists of two pieces:
+ * The BSS Info storage consists of two pieces:
  *     (1) dl_entry structs that live in the aux. BRAM and
- *     (2) bss_info buffers with the actual content that live in DRAM
+ *     (2) bss_info_t buffers with the actual content that live in DRAM
  *
  * The below definitions carve out the sizes of memory for these two pieces. The default
- * value of 9 kB for the dl_entry memory space was chosen. Because each dl_entry has a
- * size of 12 bytes, this space allows for a potential of 768 dl_entry structs describing
- * bss_info elements.
+ * value of 4.5 kB for the dl_entry memory space was chosen. Because each dl_entry has a
+ * size of 12 bytes, this space allows for a potential of 384 dl_entry structs describing
+ * bss_info_t elements.
  *
- * Each bss_info struct is a total of 80 bytes in size. So, 768 bss_info structs require
- * 60 kB of memory. This is why BSS_INFO_BUFFER_SIZE is set to 60 kB.
+ * Each bss_info struct is a total of 72 bytes in size. So, 384 bss_info_t structs require
+ * 27 kB of memory. This is why BSS_INFO_BUFFER_SIZE is set to 27 kB.
  *
  ********************************************************************/
 #define BSS_INFO_DL_ENTRY_MEM_BASE         (TX_QUEUE_DL_ENTRY_MEM_BASE + TX_QUEUE_DL_ENTRY_MEM_SIZE)
-#define BSS_INFO_DL_ENTRY_MEM_SIZE         (9 * 1024)
+#define BSS_INFO_DL_ENTRY_MEM_SIZE         (4608)
 #define BSS_INFO_DL_ENTRY_MEM_HIGH          high_addr_calc(BSS_INFO_DL_ENTRY_MEM_BASE, BSS_INFO_DL_ENTRY_MEM_SIZE)
 
 #define BSS_INFO_BUFFER_BASE               (TX_QUEUE_BUFFER_BASE + TX_QUEUE_BUFFER_SIZE)
-#define BSS_INFO_BUFFER_SIZE               (60 * 1024)
+#define BSS_INFO_BUFFER_SIZE			   ((BSS_INFO_DL_ENTRY_MEM_SIZE/sizeof(dl_entry))*sizeof(bss_info_t))
 #define BSS_INFO_BUFFER_HIGH                high_addr_calc(BSS_INFO_BUFFER_BASE, BSS_INFO_BUFFER_SIZE)
+
+
+/********************************************************************
+ * Counts Tx/Rx
+ *
+ * The Counts Tx/Rx storage consists of two pieces:
+ *     (1) dl_entry structs that live in the aux. BRAM and
+ *     (2) counts_txrx_t buffers with the actual content that live in DRAM
+ *
+ * The below definitions carve out the sizes of memory for these two pieces. The default
+ * value of 4.5 kB for the dl_entry memory space was chosen. Because each dl_entry has a
+ * size of 12 bytes, this space allows for a potential of 384 dl_entry structs describing
+ * counts_txrx_t elements.
+ *
+ * Each counts_txrx struct is a total of 128 bytes in size. So, 384 counts_txrx_t structs require
+ * 48 kB of memory. This is why COUNTS_TXRX_BUFFER_SIZE is set to 48 kB.
+ *
+ ********************************************************************/
+#define COUNTS_TXRX_DL_ENTRY_MEM_BASE      (BSS_INFO_DL_ENTRY_MEM_BASE + BSS_INFO_DL_ENTRY_MEM_SIZE)
+#define COUNTS_TXRX_DL_ENTRY_MEM_SIZE      (4608)
+#define COUNTS_TXRX_DL_ENTRY_MEM_HIGH       high_addr_calc(COUNTS_TXRX_DL_ENTRY_MEM_BASE, COUNTS_TXRX_DL_ENTRY_MEM_SIZE)
+
+#define COUNTS_TXRX_BUFFER_BASE            (BSS_INFO_BUFFER_BASE + BSS_INFO_BUFFER_SIZE)
+#define COUNTS_TXRX_BUFFER_SIZE			   ((COUNTS_TXRX_DL_ENTRY_MEM_SIZE/sizeof(dl_entry))*sizeof(counts_txrx_t))
+#define COUNTS_TXRX_BUFFER_HIGH            high_addr_calc(COUNTS_TXRX_BUFFER_BASE, COUNTS_TXRX_BUFFER_SIZE)
 
 
 
@@ -157,7 +186,7 @@
  * XAXIDMA_BD_MINIMUM_ALIGNMENT), so we set ETH_TX_BD_SIZE to 64.
  *
  ********************************************************************/
-#define ETH_TX_BD_BASE                     (BSS_INFO_DL_ENTRY_MEM_BASE + BSS_INFO_DL_ENTRY_MEM_SIZE)
+#define ETH_TX_BD_BASE                     (COUNTS_TXRX_DL_ENTRY_MEM_BASE + COUNTS_TXRX_DL_ENTRY_MEM_SIZE)
 #define ETH_TX_BD_SIZE                     (64)
 #define ETH_TX_BD_HIGH                      high_addr_calc(ETH_TX_BD_BASE, ETH_TX_BD_SIZE)
 
@@ -172,7 +201,7 @@
  *
  ********************************************************************/
 #define ETH_RX_BD_BASE                     (ETH_TX_BD_BASE + ETH_TX_BD_SIZE)
-#define ETH_RX_BD_SIZE                     (AUX_BRAM_SIZE - (TX_QUEUE_DL_ENTRY_MEM_SIZE + BSS_INFO_DL_ENTRY_MEM_SIZE + ETH_TX_BD_SIZE))
+#define ETH_RX_BD_SIZE                     (AUX_BRAM_SIZE - (TX_QUEUE_DL_ENTRY_MEM_SIZE + BSS_INFO_DL_ENTRY_MEM_SIZE + COUNTS_TXRX_DL_ENTRY_MEM_SIZE + ETH_TX_BD_SIZE))
 #define ETH_RX_BD_HIGH                      high_addr_calc(ETH_RX_BD_BASE, ETH_RX_BD_SIZE)
 
 
@@ -184,8 +213,8 @@
  * We do not use the below definitions in any part of the reference design.
  *
  ********************************************************************/
-#define USER_SCRATCH_BASE                  (BSS_INFO_BUFFER_BASE + BSS_INFO_BUFFER_SIZE)
-#define USER_SCRATCH_SIZE                  (14336 * 1024)
+#define USER_SCRATCH_BASE                  (COUNTS_TXRX_BUFFER_BASE + COUNTS_TXRX_BUFFER_SIZE)
+#define USER_SCRATCH_SIZE                  (14321 * 1024)
 #define USER_SCRATCH_HIGH                   high_addr_calc(USER_SCRATCH_BASE, USER_SCRATCH_SIZE)
 
 
@@ -198,7 +227,7 @@
  *
  ********************************************************************/
 #define EVENT_LOG_BASE                     (USER_SCRATCH_BASE + USER_SCRATCH_SIZE)
-#define EVENT_LOG_SIZE                     (DRAM_SIZE - (CPU_HIGH_DDR_LINKER_DATA_SIZE + TX_QUEUE_BUFFER_SIZE + BSS_INFO_BUFFER_SIZE + USER_SCRATCH_SIZE))
+#define EVENT_LOG_SIZE                     (DRAM_SIZE - (CPU_HIGH_DDR_LINKER_DATA_SIZE + TX_QUEUE_BUFFER_SIZE + BSS_INFO_BUFFER_SIZE + COUNTS_TXRX_DL_ENTRY_MEM_SIZE + USER_SCRATCH_SIZE))
 #define EVENT_LOG_HIGH                      high_addr_calc(EVENT_LOG_BASE, EVENT_LOG_SIZE)
 
 
@@ -244,7 +273,6 @@
 
 #define ADD_STATION_INFO_ANY_ID                            0                                  ///< Special argument to function that adds station_info structs
 
-#define WLAN_MAC_HIGH_MAX_PROMISC_COUNTS                   50                                 ///< Maximum number of promiscuous counts
 #define WLAN_MAC_HIGH_MAX_STATION_INFOS                    20                                 ///< Maximum number of station_info structs in any given list
 
 
@@ -271,51 +299,6 @@ typedef enum {INTERRUPTS_DISABLED, INTERRUPTS_ENABLED} interrupt_state_t;
 
 
 /******************** Global Structure/Enum Definitions **********************/
-
-/********************************************************************
- * @brief Frame Counts Structure
- *
- * This struct contains counts about the communications link. It is intended to
- * be instantiated multiple times in the broader counts_txrx struct so that
- * different packet types can be individually tracked.
- *
- ********************************************************************/
-typedef struct{
-    u64        rx_num_bytes;                ///< # of successfully received bytes (de-duplicated)
-    u64        tx_num_bytes_success;        ///< # of successfully transmitted bytes (high-level MPDUs)
-    u64        tx_num_bytes_total;          ///< Total # of transmitted bytes (high-level MPDUs)
-    u32        rx_num_packets;              ///< # of successfully received packets (de-duplicated)
-    u32        tx_num_packets_success;      ///< # of successfully transmitted packets (high-level MPDUs)
-    u32        tx_num_packets_total;        ///< Total # of transmitted packets (high-level MPDUs)
-    u32        tx_num_attempts;             ///< # of low-level attempts (including retransmissions)
-} frame_counts_txrx_t;
-
-
-
-/********************************************************************
- * @brief Counts Structure
- *
- * This struct contains counts about the communications link.  Additionally,
- * counting differnt parameters can be decoupled from station_info structs
- * entirely to enable promiscuous counts about unassociated devices seen in
- * the network.
- *
- * NOTE:  The reason that the reference design uses a #define for fields in
- *     two different structs is so that fields that must be in two different
- *     structs stay in sync and so there is not another level of indirection
- *     by using nested structs.
- *
- ********************************************************************/
-typedef struct{
-    u8                    addr[MAC_ADDR_LEN];           ///< HW Address
-    u8                    is_associated;                ///< Is this device associated with me?
-    u8                    padding;
-    frame_counts_txrx_t   data;                         ///< Counts about data types
-    frame_counts_txrx_t   mgmt;                         ///< Counts about management types
-    u64                   latest_txrx_timestamp;        ///< Timestamp of the last frame reception
-} counts_txrx_t;
-
-CASSERT(sizeof(counts_txrx_t) == 96, counts_txrx_alignment_check);
 
 /********************************************************************
  * @brief Rate Selection Information
@@ -360,11 +343,6 @@ typedef struct{
 typedef struct{
 
     STATION_INFO_COMMON_FIELDS
-
-    counts_txrx_t*        counts;                               ///< Counts Information Structure
-                                                                ///< @note This is a pointer to the counts structure
-                                                                ///< because counts can survive outside of the context
-                                                                ///< of associated station_info structs.
     rate_selection_info_t rate_info;
 
 } station_info_t;
@@ -455,17 +433,14 @@ u8                 wlan_mac_high_is_pkt_ltg(void* mac_payload, u16 length);
 inline void        wlan_mac_high_set_debug_gpio(u8 val);
 inline void        wlan_mac_high_clear_debug_gpio(u8 val);
 
-station_info_t*    wlan_mac_high_add_station_info(dl_list* station_info_list, dl_list* counts_tbl, u8* addr, u16 requested_ID, tx_params_t* tx_params, u8 ht_capable);
-int                wlan_mac_high_remove_station_info(dl_list* station_info_list, dl_list* counts_tbl, u8* addr);
+station_info_t*    wlan_mac_high_add_station_info(dl_list* station_info_list, u8* addr, u16 requested_ID, tx_params_t* tx_params, u8 ht_capable);
+int                wlan_mac_high_remove_station_info(dl_list* station_info_list, u8* addr);
 
 u8                 wlan_mac_high_is_station_info_list_member(dl_list* station_info_list, station_info_t* station_info);
 u32                wlan_mac_high_set_max_num_station_infos(u32 num_station_infos);
 u32                wlan_mac_high_get_max_num_station_infos();
 int                wlan_mac_high_update_station_info_rate(station_info_t* station_info, u8 mcs, u8 phy_mode);
 
-counts_txrx_t*     wlan_mac_high_add_counts(dl_list* counts_tbl, station_info_t* station_info, u8* addr);
-void               wlan_mac_high_reset_counts(dl_list* counts_tbl);
-void               wlan_mac_high_update_tx_counts(tx_frame_info_t* tx_frame_info, station_info_t* station_info);
 int                wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, bss_info_t* bss_info, tx_params_t* tx_params_ptr, u8 flags);
 int                wlan_mac_high_update_beacon_tx_params(tx_params_t* tx_params_ptr);
 
@@ -474,7 +449,6 @@ void               wlan_mac_high_print_station_infos(dl_list* assoc_tbl);
 
 // Common functions that must be implemented by users of the framework
 // TODO: Make these into callback. We should not require these implementations
-dl_list*          get_counts();
 dl_list*          get_station_info_list();
 u8*          	  get_wlan_mac_addr();
 

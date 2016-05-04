@@ -88,9 +88,6 @@ void poll_tx_queues();
 void purge_all_data_tx_queue();
 bss_info_t * 	   active_bss_info_getter();
 
-void reset_station_counts();
-dl_list * get_counts();
-
 int  sta_disassociate();
 u32  configure_bss(bss_config_t* bss_config);
 

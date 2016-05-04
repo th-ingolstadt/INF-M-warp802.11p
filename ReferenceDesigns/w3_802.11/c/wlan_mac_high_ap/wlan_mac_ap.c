@@ -103,7 +103,6 @@ tx_params_t default_multicast_data_tx_params;
 // to elevate to State 4 in the active_bss_info.
 bss_info_t*	              active_bss_info;
 
-dl_list		                      counts_table;
 dl_list		                      station_info_state_2;
 
 // Tx queue variables;
@@ -144,7 +143,7 @@ int main(){
 
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
-	xil_printf("----- v1.5.1 ----------------------------\n");
+	xil_printf("----- v1.5.2 ----------------------------\n");
 	xil_printf("----- wlan_mac_ap -----------------------\n");
 
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
@@ -198,9 +197,6 @@ int main(){
 	default_multicast_mgmt_tx_params.phy.mcs          = 0;
 	default_multicast_mgmt_tx_params.phy.phy_mode     = PHY_MODE_NONHT;
 	default_multicast_mgmt_tx_params.phy.antenna_mode = WLAN_DEFAULT_TX_ANTENNA;
-
-	// Setup the counts lists
-	dl_list_init(&counts_table);
 
 	// Set the maximum associations
 	wlan_mac_high_set_max_num_station_infos(MAX_NUM_ASSOC);
@@ -956,10 +952,6 @@ void purge_all_data_tx_queue(){
  * This function is called when CPU Low indicates it has completed the Tx process for a packet previously
  * submitted by CPU High.
  *
- * CPU High has two responsibilities post-Tx:
- *  - Cleanup any resources dedicated to the packet
- *  - Update any counts and log info to reflect the Tx result
- *
  * @param tx_frame_info* tx_frame_info
  *  - Pointer to the frame info which was just transmitted
  * @param wlan_mac_low_tx_details* tx_low_details
@@ -993,9 +985,9 @@ void mpdu_transmit_done(tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_
 	// Log the TX MPDU
 	wlan_exp_log_create_tx_high_entry(tx_frame_info);
 
-	// Update the counts for the node to which the packet was just transmitted
-	if(tx_frame_info->ID != 0) {
-		wlan_mac_high_update_tx_counts(tx_frame_info, station_info);
+	if((station_info!= NULL) && ((tx_frame_info->tx_result) == TX_MPDU_RESULT_SUCCESS)){
+		// Update the latest_activity_timestamp for the station because we had a successful TX (i.e. a successful ACK Rx)
+		station_info->rx_latest_activity_timestamp = get_system_time_usec();
 	}
 
 
@@ -1382,7 +1374,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 	dl_entry*	        associated_station_entry = NULL;
 	station_info_t*     associated_station       = NULL;
-	counts_txrx_t*      station_counts           = NULL;
 
 	u8                  unicast_to_me;
 	u8                  to_multicast;
@@ -1449,8 +1440,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 			associated_station->rx_latest_activity_timestamp = get_system_time_usec();
 
-			station_counts = associated_station->counts;
-
 			// Sequence number is 12 MSB of seq_control field
 			rx_seq         = ((rx_80211_header->sequence_control) >> 4) & 0xFFF;
 
@@ -1466,20 +1455,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 				goto mpdu_rx_process_end;
 			} else {
 				associated_station->rx_latest_seq = rx_seq;
-			}
-		} else {
-			station_counts = wlan_mac_high_add_counts(&counts_table, NULL, rx_80211_header->address_2);
-		}
-
-        // Update receive counts
-		if(station_counts != NULL){
-			station_counts->latest_txrx_timestamp = get_system_time_usec();
-			if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA){
-				((station_counts)->data.rx_num_packets)++;
-				((station_counts)->data.rx_num_bytes) += (length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));
-			} else if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_MGMT) {
-				((station_counts)->mgmt.rx_num_packets)++;
-				((station_counts)->mgmt.rx_num_bytes) += (length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));
 			}
 		}
 
@@ -1750,7 +1725,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 								// This station wasn't already authenticated/associated (state 4), so manually add it to the state 2 list.
 								//     - Set ht_capable argument to WLAN_DEFAULT_USE_HT.  This will be updated with the correct value when the
 								//       node moves from the state 2 list during association.
-								wlan_mac_high_add_station_info(&station_info_state_2, &counts_table, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, WLAN_DEFAULT_USE_HT);
+								wlan_mac_high_add_station_info(&station_info_state_2, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, WLAN_DEFAULT_USE_HT);
 							}
 
 							// Create a successful authentication response frame
@@ -1863,7 +1838,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 						if (wlan_mac_high_find_station_info_ADDR(&station_info_state_2, rx_80211_header->address_2) != NULL){
 
 							xil_printf("Authenticated, Unassociated Stations:\n");
-							wlan_mac_high_remove_station_info(&station_info_state_2, &counts_table, rx_80211_header->address_2);
+							wlan_mac_high_remove_station_info(&station_info_state_2, rx_80211_header->address_2);
 
 							// NOTE:  This function handles both the case that the station is already in the association
 							//   table and the case that the association needs to be added to the association table
@@ -1874,7 +1849,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 							// Add the station info
 							//     - Set ht_capable argument to WLAN_DEFAULT_USE_HT.  This will be updated below with the
 							//       correct value from the tagged parameters in the association request.
-							associated_station = wlan_mac_high_add_station_info(&active_bss_info->station_info_list, &counts_table, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, WLAN_DEFAULT_USE_HT);
+							associated_station = wlan_mac_high_add_station_info(&active_bss_info->station_info_list, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, WLAN_DEFAULT_USE_HT);
 
 							ap_update_hex_display(active_bss_info->station_info_list.length);
 						}
@@ -1972,7 +1947,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 
 					if(active_bss_info != NULL){
 						xil_printf("Authenticated, Associated Stations:\n");
-						wlan_mac_high_remove_station_info(&active_bss_info->station_info_list, &counts_table, rx_80211_header->address_2);
+						wlan_mac_high_remove_station_info(&active_bss_info->station_info_list, rx_80211_header->address_2);
 
 						ap_update_hex_display(active_bss_info->station_info_list.length);
 					}
@@ -2044,23 +2019,6 @@ void mpdu_dequeue(tx_queue_element_t* packet){
 
 }
 
-
-
-/*****************************************************************************/
-/**
- * @brief Reset Station Counts
- *
- * Reset all counts being kept for all stations
- *
- * @param  None
- * @return None
- *****************************************************************************/
-void reset_station_counts(){
-	wlan_mac_high_reset_counts(&counts_table);
-}
-
-
-
 /*****************************************************************************/
 /**
  * @brief Deauthenticate given station in the Association Table
@@ -2123,7 +2081,7 @@ u32  deauthenticate_station( station_info_t* station_info ) {
 
 	// Remove this STA from association list
 	xil_printf("Authenticated, Associated Stations:\n");
-	wlan_mac_high_remove_station_info(&active_bss_info->station_info_list, &counts_table, station_info->addr);
+	wlan_mac_high_remove_station_info(&active_bss_info->station_info_list, station_info->addr);
 
 	ap_update_hex_display(active_bss_info->station_info_list.length);
 
@@ -2296,7 +2254,7 @@ u32	configure_bss(bss_config_t* bss_config){
 					purge_queue(STATION_ID_TO_QUEUE_ID(curr_station_info->ID));
 
 					// Remove the associations
-					wlan_mac_high_remove_station_info(&active_bss_info->station_info_list, &counts_table, curr_station_info->addr);
+					wlan_mac_high_remove_station_info(&active_bss_info->station_info_list, curr_station_info->addr);
 
 					// Update the hex display to show station was removed
 					ap_update_hex_display(active_bss_info->station_info_list.length);
@@ -2494,7 +2452,6 @@ dl_list * get_station_info_list(){
 		return NULL;
 	}
 }
-dl_list    * get_counts()           { return &counts_table;   }
 u8         * get_wlan_mac_addr()    { return (u8 *)&wlan_mac_addr;      }
 bss_info_t * active_bss_info_getter(){ return active_bss_info; }
 

@@ -146,7 +146,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             if (flags & CMD_PARAM_NODE_RESET_FLAG_TXRX_COUNTS) {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_counts, "Reseting Counts\n");
-                reset_station_counts();
+                counts_txrx_zero_all();
             }
 
             if (flags & CMD_PARAM_NODE_RESET_FLAG_LTG) {

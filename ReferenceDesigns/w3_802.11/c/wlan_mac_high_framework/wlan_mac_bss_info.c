@@ -515,11 +515,10 @@ bss_info_t* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan){
  * @return None
  */
 void wlan_mac_high_reset_network_list(){
-	dl_list  * bss_info_list = wlan_mac_high_get_bss_info_list();
-	dl_entry * next_dl_entry = bss_info_list->first;
+	dl_entry * next_dl_entry = bss_info_list.first;
 	dl_entry * curr_dl_entry;
     bss_info_t * curr_bss_info;
-    int		   iter = bss_info_list->length;
+    int		   iter = bss_info_list.length;
 
 	while( (next_dl_entry != NULL) && (iter-- > 0) ){
 		curr_dl_entry = next_dl_entry;
@@ -528,7 +527,7 @@ void wlan_mac_high_reset_network_list(){
 
 		if( (curr_bss_info->flags & BSS_FLAGS_KEEP) == 0){
 			wlan_mac_high_clear_bss_info(curr_bss_info);
-			dl_entry_remove(bss_info_list, curr_dl_entry);
+			dl_entry_remove(&bss_info_list, curr_dl_entry);
 			bss_info_checkin(curr_dl_entry);
 		}
 	}
@@ -553,7 +552,7 @@ void wlan_mac_high_clear_bss_info(bss_info_t * info){
 			curr_station_info_entry = next_station_info_entry;
 			next_station_info_entry = dl_entry_next(curr_station_info_entry);
 			curr_station_info       = (station_info_t*)(curr_station_info_entry->data);
-			wlan_mac_high_remove_station_info(&info->station_info_list, get_counts(), curr_station_info->addr);
+			wlan_mac_high_remove_station_info(&info->station_info_list, curr_station_info->addr);
 		}
 
 		// Clear the bss_info

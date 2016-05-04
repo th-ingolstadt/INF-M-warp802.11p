@@ -151,6 +151,8 @@ typedef struct{
     dl_list station_info_list;
 } bss_info_t;
 
+CASSERT(sizeof(bss_info_t) == 72, bss_info_t_alignment_check);
+
 
 
 /********************************************************************

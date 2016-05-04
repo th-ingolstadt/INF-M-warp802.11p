@@ -107,15 +107,12 @@ void disable_associations();
 void remove_inactive_station_infos();
 void association_timestamp_adjust(s64 timestamp_diff);
 
-void reset_station_counts();
-
 u32  deauthenticate_station( station_info_t* station_info );
 void deauthenticate_all_stations();
 void handle_cpu_low_reboot();
 u32  configure_bss(bss_config_t* bss_config);
 void mpdu_dequeue(tx_queue_element_t* packet);
 
-dl_list * get_counts();
 void up_button();
 
 void uart_rx(u8 rxByte);

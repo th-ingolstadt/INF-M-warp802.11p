@@ -36,6 +36,7 @@
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_scan.h"
 #include "wlan_mac_bss_info.h"
+#include "wlan_mac_counts_txrx.h"
 
 // WLAN Exp includes
 #include "wlan_exp_common.h"
@@ -74,7 +75,6 @@
 /*********************** Global Variable Definitions *************************/
 
 // Declared in wlan_mac_high.c
-extern u8                  promiscuous_counts_enabled;
 extern u8                  low_param_rx_ant_mode;
 extern u8				   low_param_channel;
 
@@ -116,7 +116,6 @@ dl_entry *    find_station_info(u8 * mac_addr);
 void          zero_station_info(void * dest);
 void          copy_station_info_to_dest(void * source, void * dest, u8* mac_addr);
 
-dl_entry *    find_counts_txrx(u8 * mac_addr);
 void          zero_counts_txrx(void * dest);
 void          copy_counts_txrx_to_dest(void * source, void * dest, u8* mac_addr);
 
@@ -1136,9 +1135,9 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Configure the LOG based on the flag bit / mask
             if (mask & CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC) {
                 if (flags & CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC) {
-                    promiscuous_counts_enabled = 1;
+                    //FIXME: No longer supported. Remove from wlan_exp control.
                 } else {
-                    promiscuous_counts_enabled = 0;
+                	//FIXME: No longer supported. Remove from wlan_exp control.
                 }
             }
 
@@ -1171,10 +1170,10 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             resp_sent = process_buffer_cmds(socket_index, from, command, response,
                                             cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_resp_len,
                                             print_type_counts, "counts",
-                                            get_counts(),
+                                            wlan_mac_high_get_counts_txrx_list(),
                                             sizeof(wlan_exp_counts_txrx_t),
                                             &wlan_exp_get_id_in_counts,
-                                            &find_counts_txrx,
+                                            &wlan_mac_high_find_counts_txrx_addr, 					//FIXME. This doesn't seem right.
                                             &copy_counts_txrx_to_dest,
                                             &zero_counts_txrx);
         }
@@ -3582,20 +3581,6 @@ void copy_station_info_to_dest(void * source, void * dest, u8* mac_addr) {
     }
 }
 
-
-
-dl_entry * find_counts_txrx(u8 * mac_addr) {
-    dl_list * source_list = get_counts();
-
-    if( source_list != NULL){
-        return wlan_mac_high_find_counts_ADDR(source_list, mac_addr);
-    } else {
-        return NULL;
-    }
-}
-
-
-
 void zero_counts_txrx(void * dest) {
 
     wlan_exp_counts_txrx_t * counts = (wlan_exp_counts_txrx_t *)(dest);
@@ -3899,6 +3884,7 @@ u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr) {
 
 
 u32  wlan_exp_get_id_in_counts(u8 * mac_addr) {
+#if 0
     u32            id;
     dl_list      * counts;
     dl_entry     * entry;
@@ -3922,6 +3908,10 @@ u32  wlan_exp_get_id_in_counts(u8 * mac_addr) {
     }
 
     return id;
+#else
+    //FIXME
+    return WLAN_EXP_AID_DEFAULT;
+#endif
 }
 
 

@@ -19,9 +19,8 @@
 #include "wlan_exp_transport.h"
 
 #include "wlan_mac_bss_info.h"
+#include "wlan_mac_counts_txrx.h"
 #include "wlan_mac_high.h"
-
-
 
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_EXP_NODE_H_
@@ -198,6 +197,8 @@
 // ****************************************************************************
 // WLAN Exp Defines
 //
+// FIXME - What are these? If they are needed, we should at least remove "AID" and make them
+// more generic.
 #define WLAN_EXP_AID_NONE                                  0x00000000
 #define WLAN_EXP_AID_ALL                                   0xFFFFFFFF
 #define WLAN_EXP_AID_ME                                    0xFFFFFFFE

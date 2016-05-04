@@ -40,6 +40,7 @@
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_bss_info.h"
 #include "wlan_mac_scan.h"
+#include "wlan_mac_counts_txrx.h"
 
 
 //
@@ -68,7 +69,6 @@ void uart_rx(u8 rxByte){ };
 extern tx_params_t                          default_unicast_data_tx_params;
 
 extern bss_info_t*                          active_bss_info;
-extern dl_list                              counts_table;
 
 /*************************** Variable Definitions ****************************/
 
@@ -90,7 +90,6 @@ static volatile u32                         traffic_blast_ltg_id = LTG_ID_INVALI
 void print_main_menu();
 
 void print_station_status();
-void print_all_observed_counts();
 
 void check_join_status();
 
@@ -167,7 +166,7 @@ void uart_rx(u8 rxByte){
 				// '2' - Print Counts
 				//
 				case ASCII_2:
-					print_all_observed_counts();
+					counts_txrx_print_all();
 				break;
 
 				// ----------------------------------------
@@ -258,7 +257,7 @@ void uart_rx(u8 rxByte){
 				// 'r' - Reset station counts
 				//
 				case ASCII_r:
-					reset_station_counts();
+					counts_txrx_zero_all();
 				break;
 
 				// ----------------------------------------
@@ -417,7 +416,6 @@ void print_main_menu(){
 void print_station_status(){
 
     u64            timestamp;
-    counts_txrx_t  	* curr_counts;
     dl_entry     	* access_point_entry  = NULL;
     station_info_t  * access_point        = NULL;
 
@@ -434,21 +432,7 @@ void print_station_status(){
             if(active_bss_info != NULL){
                 xil_printf(" MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n",
                             access_point->addr[0],access_point->addr[1],access_point->addr[2],access_point->addr[3],access_point->addr[4],access_point->addr[5]);
-
-                curr_counts = access_point->counts;
-
                 xil_printf("     - Last heard from         %d ms ago\n",((u32)(timestamp - (access_point->rx_latest_activity_timestamp)))/1000);
-                xil_printf("     - # of queued MPDUs:      %d\n", queue_num_queued(UNICAST_QID));
-                xil_printf("     - # Tx High Data MPDUs:   %d (%d successful)\n", curr_counts->data.tx_num_packets_total, curr_counts->data.tx_num_packets_success);
-                xil_printf("     - # Tx High Data bytes:   %d (%d successful)\n", (u32)(curr_counts->data.tx_num_bytes_total), (u32)(curr_counts->data.tx_num_bytes_success));
-                xil_printf("     - # Tx Low Data Attempts: %d\n", curr_counts->data.tx_num_attempts);
-                xil_printf("     - # Tx High Mgmt MPDUs:   %d (%d successful)\n", curr_counts->mgmt.tx_num_packets_total, curr_counts->mgmt.tx_num_packets_success);
-                xil_printf("     - # Tx High Mgmt bytes:   %d (%d successful)\n", (u32)(curr_counts->mgmt.tx_num_bytes_total), (u32)(curr_counts->mgmt.tx_num_bytes_success));
-                xil_printf("     - # Tx Low Mgmt Attempts: %d\n", curr_counts->mgmt.tx_num_attempts);
-                xil_printf("     - # Rx Data MPDUs:        %d\n", curr_counts->data.rx_num_packets);
-                xil_printf("     - # Rx Data Bytes:        %d\n", curr_counts->data.rx_num_bytes);
-                xil_printf("     - # Rx Mgmt MPDUs:        %d\n", curr_counts->mgmt.rx_num_packets);
-                xil_printf("     - # Rx Mgmt Bytes:        %d\n", curr_counts->mgmt.rx_num_bytes);
             }
 
         xil_printf("---------------------------------------------------\n");
@@ -456,38 +440,6 @@ void print_station_status(){
         xil_printf("[r] - reset counts\n\n");
     }
 }
-
-
-
-void print_all_observed_counts(){
-    dl_entry       * curr_counts_entry;
-    counts_txrx_t  * curr_counts;
-
-    curr_counts_entry = counts_table.first;
-
-    xil_printf("\nAll Counts:\n");
-    while(curr_counts_entry != NULL){
-        curr_counts = (counts_txrx_t*)(curr_counts_entry->data);
-        xil_printf("---------------------------------------------------\n");
-        xil_printf("%02x:%02x:%02x:%02x:%02x:%02x\n", curr_counts->addr[0], curr_counts->addr[1], curr_counts->addr[2],
-                                                      curr_counts->addr[3], curr_counts->addr[4], curr_counts->addr[5]);
-        xil_printf("     - Last timestamp:         %d usec\n", (u32)curr_counts->latest_txrx_timestamp);
-        xil_printf("     - Associated?             %d\n", curr_counts->is_associated);
-        xil_printf("     - # Tx High Data MPDUs:   %d (%d successful)\n", curr_counts->data.tx_num_packets_total, curr_counts->data.tx_num_packets_success);
-        xil_printf("     - # Tx High Data bytes:   %d (%d successful)\n", (u32)(curr_counts->data.tx_num_bytes_total), (u32)(curr_counts->data.tx_num_bytes_success));
-        xil_printf("     - # Tx Low Data Attempts: %d\n", curr_counts->data.tx_num_attempts);
-        xil_printf("     - # Tx High Mgmt MPDUs:   %d (%d successful)\n", curr_counts->mgmt.tx_num_packets_total, curr_counts->mgmt.tx_num_packets_success);
-        xil_printf("     - # Tx High Mgmt bytes:   %d (%d successful)\n", (u32)(curr_counts->mgmt.tx_num_bytes_total), (u32)(curr_counts->mgmt.tx_num_bytes_success));
-        xil_printf("     - # Tx Low Mgmt Attempts: %d\n", curr_counts->mgmt.tx_num_attempts);
-        xil_printf("     - # Rx Data MPDUs:        %d\n", curr_counts->data.rx_num_packets);
-        xil_printf("     - # Rx Data Bytes:        %d\n", curr_counts->data.rx_num_bytes);
-        xil_printf("     - # Rx Mgmt MPDUs:        %d\n", curr_counts->mgmt.rx_num_packets);
-        xil_printf("     - # Rx Mgmt Bytes:        %d\n", curr_counts->mgmt.rx_num_bytes);
-        curr_counts_entry = dl_entry_next(curr_counts_entry);
-    }
-}
-
-
 
 void check_join_status() {
 	// If node is no longer in the join process:

@@ -43,6 +43,7 @@
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_addr_filter.h"
 #include "wlan_mac_bss_info.h"
+#include "wlan_mac_counts_txrx.h"
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
 #include "wlan_mac_scan.h"
@@ -135,9 +136,6 @@ u32                          ipc_msg_from_low_payload[MAILBOX_BUFFER_MAX_NUM_WOR
 volatile static u32          num_malloc;                   ///< Tracking variable for number of times malloc has been called
 volatile static u32          num_free;                     ///< Tracking variable for number of times free has been called
 volatile static u32          num_realloc;                  ///< Tracking variable for number of times realloc has been called
-
-// Counts Flags
-volatile u8                  promiscuous_counts_enabled;   ///< Are promiscuous counts collected (1 = Yes / 0 = No)
 
 
 /*************************** Functions Prototypes ****************************/
@@ -315,7 +313,7 @@ void wlan_mac_high_init(){
 	}
 
 	//DRAM Check
-	Status = (DRAM_BASE <= TX_QUEUE_BUFFER_BASE) && (TX_QUEUE_BUFFER_HIGH < BSS_INFO_BUFFER_BASE) && (BSS_INFO_BUFFER_HIGH < USER_SCRATCH_BASE) && (USER_SCRATCH_HIGH < EVENT_LOG_BASE) && (EVENT_LOG_HIGH <= DRAM_HIGH);
+	Status = (DRAM_BASE <= TX_QUEUE_BUFFER_BASE) && (TX_QUEUE_BUFFER_HIGH < BSS_INFO_BUFFER_BASE) && (BSS_INFO_BUFFER_HIGH < COUNTS_TXRX_BUFFER_BASE) && (COUNTS_TXRX_BUFFER_HIGH < USER_SCRATCH_BASE) && (USER_SCRATCH_HIGH < EVENT_LOG_BASE) && (EVENT_LOG_HIGH <= DRAM_HIGH);
 	if(Status != 1){
 		xil_printf("Error: Overlap detected in DRAM. Check address assignments\n");
 	}
@@ -372,9 +370,6 @@ void wlan_mac_high_init(){
 	low_param_random_seed	= 0xFFFFFFFF;
 
 	cpu_low_reg_read_buffer        = NULL;
-
-	// Enable promiscuous counts by default
-	promiscuous_counts_enabled     = 1;
 
 	// ***************************************************
 	// Initialize Transmit Packet Buffers
@@ -523,6 +518,7 @@ void wlan_mac_high_init(){
 	}
 
 	bss_info_init(dram_present);
+	counts_txrx_init(dram_present);
 	wlan_eth_init();
 	wlan_mac_schedule_init();
 	wlan_mac_ltg_sched_init();
@@ -773,57 +769,6 @@ dl_entry* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr){
 
 	return NULL;
 }
-
-
-
-/**
- * @brief Find Counts within a doubly-linked list from an hardware address
- *
- * Given a doubly-linked list of counts structures, this function will return
- * the pointer to a particular entry whose hardware address matches the argument
- * to this function.
- *
- * @param dl_list* list
- *  - Doubly-linked list of counts structures
- * @param u8* addr
- *  - 6-byte hardware address to search for
- * @return dl_entry*
- *  - Returns the pointer to the entry in the doubly-linked list that has the provided hardware address.
- *  - Returns NULL if no counts pointer is found that matches the search criteria
- *
- */
-dl_entry* wlan_mac_high_find_counts_ADDR(dl_list* list, u8* addr){
-	dl_entry*           curr_counts_entry;
-	counts_txrx_t*      curr_counts;
-	int					iter = list->length;
-
-	curr_counts_entry = list->first;
-
-
-	while( (curr_counts_entry != NULL) && (iter-- > 0) ){
-
-		curr_counts = (counts_txrx_t*)(curr_counts_entry->data);
-
-		if(wlan_addr_eq(curr_counts->addr, addr)){
-			// Move this counts entry to the front of the list to increase the performance of finding it again.
-			//
-			// NOTE: this performance increase makes the basic assumption that finding a MAC address in
-			// this list will be tied to wanting to find it again in the future. Busy traffic will naturally
-			// float to the front of the list and make them easier to find again.
-			//
-
-			dl_entry_remove(list, curr_counts_entry);
-			dl_entry_insertBeginning(list, curr_counts_entry);
-
-			return curr_counts_entry;
-		} else {
-			curr_counts_entry = dl_entry_next(curr_counts_entry);
-		}
-	}
-	return NULL;
-}
-
-
 
 /**
  * @brief GPIO Interrupt Handler
@@ -1707,6 +1652,9 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 							//Before calling the user's callback, we'll pass this reception off to the BSS info subsystem so it can scrape for BSS metadata
 							bss_info_rx_process((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)));
 
+							//We will also pass this reception off to the Tx/Rx counts subsystem
+							counts_txrx_rx_process((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)));
+
 							// Call the RX callback function to process the received packet
 							mpdu_rx_callback((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)));
 
@@ -1756,6 +1704,9 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 						//We can now attempt to dequeue any pending transmissions before we fully process
 						//this done message.
 						tx_poll_callback();
+
+						//We will pass this completed transmission off to the Tx/Rx counts subsystem
+						counts_txrx_tx_process((void*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)));
 
 						temp_1  = (4*(msg->num_payload_words)) / sizeof(wlan_mac_low_tx_details_t);
 						mpdu_tx_done_callback(tx_frame_info, (wlan_mac_low_tx_details_t*)(msg->payload_ptr), temp_1);
@@ -2362,8 +2313,6 @@ inline void wlan_mac_high_clear_debug_gpio(u8 val){
  *
  * @param  dl_list* station_info_list
  *     - Station Info list pointer
- * @param  dl_list* counts_tbl
- *     - Counts table pointer
  * @param  u8* addr
  *     - Address of station to add to the dl_list
  * @param  u16 requested_ID
@@ -2378,14 +2327,15 @@ inline void wlan_mac_high_clear_debug_gpio(u8 val){
  *
  * @note   This function will not perform any filtering on the addr field
  */
-station_info_t * wlan_mac_high_add_station_info(dl_list* station_info_list, dl_list* counts_tbl, u8* addr, u16 requested_ID, tx_params_t* tx_params, u8 ht_capable){
+station_info_t * wlan_mac_high_add_station_info(dl_list* station_info_list, u8* addr, u16 requested_ID, tx_params_t* tx_params, u8 ht_capable){
 	dl_entry*           entry;
 	station_info_t*     station_info;
-	counts_txrx_t*      station_counts;
 	dl_entry*           curr_station_info_entry;
 	station_info_t*     station_info_temp;
 	u16                 curr_ID;
 	int                 iter;
+	counts_txrx_t*		counts_txrx;
+	dl_entry*			counts_entry;
 
 	curr_ID = 0;
 
@@ -2435,23 +2385,11 @@ station_info_t * wlan_mac_high_add_station_info(dl_list* station_info_list, dl_l
 			return NULL;
 		}
 
-        // Get the counts for this address
-		station_counts = wlan_mac_high_add_counts(counts_tbl, station_info, addr);
-		if(station_counts == NULL){
-			wlan_mac_high_free(entry);
-			wlan_mac_high_free(station_info);
-			return NULL;
-		}
-
 		bzero(&(station_info->rate_info),sizeof(rate_selection_info_t));
 		station_info->rate_info.rate_selection_scheme = RATE_SELECTION_SCHEME_STATIC;
 
 		// Populate the entry
 		entry->data = (void*)station_info;
-
-		// Populate the station with default information
-		station_info->counts = station_counts;
-		station_info->counts->is_associated = 1;
 
 		memcpy(station_info->addr, addr, MAC_ADDR_LEN);
 
@@ -2554,6 +2492,12 @@ station_info_t * wlan_mac_high_add_station_info(dl_list* station_info_list, dl_l
 			}
 		}
 
+		counts_entry = wlan_mac_high_find_counts_txrx_addr(station_info->addr);
+		if(counts_entry != NULL){
+			counts_txrx = (counts_txrx_t*)(counts_entry->data);
+			(counts_txrx->flags) |= COUNTS_TXRX_FLAGS_KEEP;
+		}
+
 		// Print our station_infos on the UART
 		wlan_mac_high_print_station_infos(station_info_list);
 		return station_info;
@@ -2569,18 +2513,17 @@ station_info_t * wlan_mac_high_add_station_info(dl_list* station_info_list, dl_l
  *
  * @param  dl_list* station_info_list
  *     - Pointer to list of Station Info structs
- * @param  dl_list* counts_tbl
- *     - Counts table pointer
  * @param  u8* addr
  *     - Address of station to remove from the provided list
  * @return int
  *     -  0  - Successfully removed the station
  *     - -1  - Failed to remove station
  */
-int wlan_mac_high_remove_station_info(dl_list* station_info_list, dl_list* counts_tbl, u8* addr){
+int wlan_mac_high_remove_station_info(dl_list* station_info_list, u8* addr){
 	dl_entry* 		entry;
 	station_info_t* station_info;
-	dl_entry* 		counts_entry;
+	dl_entry*		counts_entry;
+	counts_txrx_t*	counts_txrx;
 
 	entry = wlan_mac_high_find_station_info_ADDR(station_info_list, addr);
 
@@ -2592,18 +2535,14 @@ int wlan_mac_high_remove_station_info(dl_list* station_info_list, dl_list* count
 	} else {
 		station_info = (station_info_t*)(entry->data);
 
+		counts_entry = wlan_mac_high_find_counts_txrx_addr(station_info->addr);
+		if(counts_entry != NULL){
+			counts_txrx = (counts_txrx_t*)(counts_entry->data);
+			(counts_txrx->flags) &= ~COUNTS_TXRX_FLAGS_KEEP;
+		}
+
 		// Remove station from the list;
 		dl_entry_remove(station_info_list, entry);
-
-		if (promiscuous_counts_enabled) {
-			station_info->counts->is_associated = 0;
-		} else {
-			//Remove station's counts from counts table
-			counts_entry = wlan_mac_high_find_counts_ADDR(counts_tbl, addr);
-			dl_entry_remove(counts_tbl, counts_entry);
-			wlan_mac_high_free(counts_entry);
-			wlan_mac_high_free(station_info->counts);
-		}
 
 		wlan_mac_high_free(entry);
 		wlan_mac_high_free(station_info);
@@ -2766,208 +2705,6 @@ void wlan_mac_high_print_station_infos(dl_list* station_info_list){
 	}
 	xil_printf("|------------------------|\n");
 }
-
-
-
-/**
- * @brief Add counts
- *
- * Function will add a counts structure to the counts table for the given address
- *
- * @param  dl_list* counts_tbl
- *     - Counts table pointer
- * @param  station_info * station
- *     - Station info pointer
- * @param  u8* addr
- *     - Address of station for which we will add counts
- * @return counts_txrx *
- *     - Pointer to the counts structure in the counts table
- *     - NULL
- */
-counts_txrx_t * wlan_mac_high_add_counts(dl_list* counts_tbl, station_info_t* station_info, u8* addr){
-	dl_entry     * station_counts_entry;
-	dl_entry     * curr_counts_entry;
-	dl_entry     * oldest_counts_entry = NULL;
-
-	counts_txrx_t  * station_counts      = NULL;
-	counts_txrx_t  * curr_counts         = NULL;
-	counts_txrx_t  * oldest_counts       = NULL;
-	u32			   iter;
-
-	if(station_info == NULL){
-		if (!promiscuous_counts_enabled) {
-			// This counts struct isn't being added to an associated station. Furthermore,
-			// Promiscuous counts are now allowed, so we will return NULL to the calling function.
-			return NULL;
-		}
-	}
-
-	station_counts_entry = wlan_mac_high_find_counts_ADDR(counts_tbl, addr);
-
-	if(station_counts_entry == NULL){
-		// Note: This memory allocation has no corresponding free. It is by definition a memory leak.
-		// The reason for this is that it allows the node to monitor counts on surrounding devices.
-		// In a busy environment, this promiscuous counts gathering can be disabled by commenting
-		// out the ALLOW_PROMISC_COUNTS or disabled via the WLAN Exp framework.
-
-		if(counts_tbl->length >= WLAN_MAC_HIGH_MAX_PROMISC_COUNTS){
-			// There are too many counts being tracked. We'll get rid of the oldest that isn't currently associated.
-			curr_counts_entry = counts_tbl->first;
-			iter = counts_tbl->length;
-
-			while( (curr_counts_entry != NULL) && (iter-- > 0) ){
-				curr_counts = (counts_txrx_t*)(curr_counts_entry->data);
-
-				if( (oldest_counts_entry == NULL) ){
-					if(curr_counts->is_associated == 0){
-						oldest_counts_entry = curr_counts_entry;
-						oldest_counts       = (counts_txrx_t*)(oldest_counts_entry->data);
-					}
-				} else if(((curr_counts->latest_txrx_timestamp) < (oldest_counts->latest_txrx_timestamp))){
-					if(curr_counts->is_associated == 0){
-						oldest_counts_entry = curr_counts_entry;
-						oldest_counts       = (counts_txrx_t*)(oldest_counts_entry->data);
-					}
-				}
-				curr_counts_entry = dl_entry_next(curr_counts_entry);
-			}
-
-			if(oldest_counts_entry == NULL){
-				xil_printf("ERROR: Could not find deletable oldest counts.\n");
-				xil_printf("    Ensure that WLAN_MAC_HIGH_MAX_PROMISC_COUNTS > max_associations\n");
-				xil_printf("    if allowing promiscuous counts\n");
-			} else {
-				dl_entry_remove(counts_tbl, oldest_counts_entry);
-				wlan_mac_high_free(oldest_counts_entry);
-				wlan_mac_high_free(oldest_counts);
-			}
-		}
-
-		station_counts_entry = wlan_mac_high_malloc(sizeof(dl_entry));
-
-		if(station_counts_entry == NULL){
-			return NULL;
-		}
-
-		station_counts = wlan_mac_high_calloc(sizeof(counts_txrx_t));
-
-		if(station_counts == NULL){
-			wlan_mac_high_free(station_counts_entry);
-			return NULL;
-		}
-
-		station_counts_entry->data = (void*)station_counts;
-
-		memcpy(station_counts->addr, addr, MAC_ADDR_LEN);
-
-		dl_entry_insertEnd(counts_tbl, station_counts_entry);
-
-	} else {
-		station_counts = (counts_txrx_t*)(station_counts_entry->data);
-	}
-	if(station_info != NULL){
-		station_info->counts = station_counts;
-	}
-
-	return station_counts;
-}
-
-
-
-/**
- * @brief Reset counts
- *
- * Function will remove all the counts in the counts table except those for associated nodes
- *
- * @param  dl_list* counts_tbl
- *     - Counts table pointer
- * @return None
- */
-void wlan_mac_high_reset_counts(dl_list* counts_tbl){
-	counts_txrx_t* curr_counts       = NULL;
-	dl_entry     * next_counts_entry = NULL;
-	dl_entry     * curr_counts_entry = NULL;
-	u32			   iter;
-
-	next_counts_entry = counts_tbl->first;
-	iter = counts_tbl->length;
-
-	// Remove all counts entries from the counts table
-	//
-	// NOTE:  Cannot use a for loop for this iteration b/c we are removing
-	//   elements from the list.
-	while ((next_counts_entry != NULL) && (iter-- > 0)) {
-
-		curr_counts_entry = next_counts_entry;
-		next_counts_entry = dl_entry_next(curr_counts_entry);
-
-		curr_counts = (counts_txrx_t*)(curr_counts_entry->data);
-
-		// Zero counts structures
-		bzero((void*)(&(curr_counts->data)), sizeof(frame_counts_txrx_t));
-		bzero((void*)(&(curr_counts->mgmt)), sizeof(frame_counts_txrx_t));
-
-		// Zero latest txrx timestamp
-		curr_counts->latest_txrx_timestamp = 0;
-
-		// Do not remove the entry if it is associated
-		if(curr_counts->is_associated == 0){
-			dl_entry_remove(counts_tbl, curr_counts_entry);
-			wlan_mac_high_free(curr_counts);
-			wlan_mac_high_free(curr_counts_entry);
-		}
-	}
-}
-
-
-
-/**
- * @brief Update transmit counts
- *
- * Function will update the transmit counts for the given MPDU
- *
- * @param  tx_frame_info * tx_mpdu
- *     - Pointer to the TX MPDU that we will use to update the counts
- * @return None
- */
-void wlan_mac_high_update_tx_counts(tx_frame_info_t* tx_frame_info, station_info_t* station_info) {
-	mac_header_80211    * header            = (mac_header_80211*)((u8*)tx_frame_info + PHY_TX_PKT_BUF_MPDU_OFFSET);
-	frame_counts_txrx_t * frame_counts      = NULL;
-
-	if(station_info != NULL){
-		switch((header->frame_control_1) & MAC_FRAME_CTRL1_MASK_TYPE){
-			case MAC_FRAME_CTRL1_TYPE_DATA:
-				frame_counts = &(station_info->counts->data);
-			break;
-			case MAC_FRAME_CTRL1_TYPE_MGMT:
-				frame_counts = &(station_info->counts->mgmt);
-			break;
-			default:
-				//This frame is neither data nor management, so we will not
-				//update any counts
-				return;
-			break;
-		}
-
-		// Update transmission counts
-		if(frame_counts != NULL){
-			station_info->counts->latest_txrx_timestamp = get_system_time_usec();
-
-			(frame_counts->tx_num_packets_total)++;
-			(frame_counts->tx_num_bytes_total) += (tx_frame_info->length);
-			(frame_counts->tx_num_attempts)    += (tx_frame_info->num_tx_attempts);
-
-			if((tx_frame_info->tx_result) == TX_MPDU_RESULT_SUCCESS){
-				(frame_counts->tx_num_packets_success)++;
-				(frame_counts->tx_num_bytes_success) += tx_frame_info->length;
-
-				// Update the latest_activity_timestamp for the station because we had a successful TX (i.e. a successful ACK Rx)
-				station_info->rx_latest_activity_timestamp = get_system_time_usec();
-			}
-		}
-	}
-}
-
 
 
 /**

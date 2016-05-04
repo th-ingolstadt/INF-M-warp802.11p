@@ -48,6 +48,7 @@
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_ap.h"
 #include "wlan_mac_bss_info.h"
+#include "wlan_mac_counts_txrx.h"
 
 
 
@@ -56,8 +57,6 @@
 
 /*********************** Global Variable Definitions *************************/
 
-
-extern dl_list                    counts_table;
 extern tx_params_t                default_unicast_data_tx_params;
 extern bss_info_t*                active_bss_info;
 
@@ -151,7 +150,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             if (flags & CMD_PARAM_NODE_RESET_FLAG_TXRX_COUNTS) {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_counts, "Reseting Counts\n");
-                reset_station_counts();
+                counts_txrx_zero_all();
             }
 
             if (flags & CMD_PARAM_NODE_RESET_FLAG_LTG) {
@@ -449,7 +448,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 // Add association
                 //     - Set ht_capable argument to zero.  This will be set correctly by the code below based on the
                 //       flags of the command.
-                curr_station_info = wlan_mac_high_add_station_info(&active_bss_info->station_info_list, &counts_table, &mac_addr[0], ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, 0);
+                curr_station_info = wlan_mac_high_add_station_info(&active_bss_info->station_info_list, &mac_addr[0], ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, 0);
 
                 // Update the new station_info flags field
                 //  Only override the defaults set by the framework add_station_info if the wlan_exp command explicitly included a flag

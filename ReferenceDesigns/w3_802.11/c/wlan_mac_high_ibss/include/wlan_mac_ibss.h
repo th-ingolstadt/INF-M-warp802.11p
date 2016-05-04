@@ -78,9 +78,6 @@ void process_scan_state_change(scan_state_t scan_state);
 void poll_tx_queues();
 void purge_all_data_tx_queue();
 
-void reset_station_counts();
-
-dl_list * get_counts();
 
 void uart_rx(u8 rxByte);
 
