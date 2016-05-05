@@ -92,24 +92,27 @@ info_field_defs = {
     'TXRX_COUNTS' : [
         ('retrieval_timestamp',         'Q',      'uint64',  'Value of System Time in microseconds when structure retrieved from the node'),
         ('mac_addr',                    '6s',     '6uint8',  'MAC address of remote node whose counts are recorded here'),
-        ('associated',                  'B',      'uint8',   'Boolean indicating whether remote node is currently associated with this node'),
+        ('flags',                       'B',      'uint8',   'Flags for counts'),
         ('padding',                     'x',      'uint8',   ''),
-        ('data_num_rx_bytes',           'Q',      'uint64',  'Total number of bytes received in DATA packets from remote node'),
+        ('data_num_rx_bytes',           'Q',      'uint64',  'Number of non-duplicate bytes received in DATA packets from remote node'),
+        ('data_num_rx_bytes_total',     'Q',      'uint64',  'Total number of bytes received in DATA packets from remote node'),
         ('data_num_tx_bytes_success',   'Q',      'uint64',  'Total number of bytes successfully transmitted in DATA packets to remote node'),
         ('data_num_tx_bytes_total',     'Q',      'uint64',  'Total number of bytes transmitted (successfully or not) in DATA packets to remote node'),
-        ('data_num_rx_packets',         'I',      'uint32',  'Total number of DATA packets received from remote node'),
+        ('data_num_rx_packets',         'I',      'uint32',  'Number of non-duplicate DATA packets received from remote node'),
+        ('data_num_rx_packets_total',   'I',      'uint32',  'Total number of DATA packets received from remote node'),
         ('data_num_tx_packets_success', 'I',      'uint32',  'Total number of DATA packets successfully transmitted to remote node'),
         ('data_num_tx_packets_total',   'I',      'uint32',  'Total number of DATA packets transmitted (successfully or not) to remote node'),
-        ('data_num_tx_attempts',        'I',      'uint32',  'Total number of attempts of DATA packets to remote node (includes re-transmissions)'),
-        ('mgmt_num_rx_bytes',           'Q',      'uint64',  'Total number of bytes received in management packets from remote node'),
+        ('data_num_tx_attempts',        'Q',      'uint64',  'Total number of attempts of DATA packets to remote node (includes re-transmissions)'),
+        ('mgmt_num_rx_bytes',           'Q',      'uint64',  'Number of bytes non-duplicate received in management packets from remote node'),
+        ('mgmt_num_rx_bytes_total',     'Q',      'uint64',  'Total number of bytes received in management packets from remote node'),
         ('mgmt_num_tx_bytes_success',   'Q',      'uint64',  'Total number of bytes successfully transmitted in management packets to remote node'),
         ('mgmt_num_tx_bytes_total',     'Q',      'uint64',  'Total number of bytes transmitted (successfully or not) in management packets to remote node'),
-        ('mgmt_num_rx_packets',         'I',      'uint32',  'Total number of management packets received from remote node'),
+        ('mgmt_num_rx_packets',         'I',      'uint32',  'Number of non-duplicate management packets received from remote node'),
+        ('mgmt_num_rx_packets_total',   'I',      'uint32',  'Total number of management packets received from remote node'),
         ('mgmt_num_tx_packets_success', 'I',      'uint32',  'Total number of management packets successfully transmitted to remote node'),
         ('mgmt_num_tx_packets_total',   'I',      'uint32',  'Total number of management packets transmitted (successfully or not) to remote node'),
-        ('mgmt_num_tx_attempts',        'I',      'uint32',  'Total number of attempts management packets to remote node (includes re-transmissions)'),
+        ('mgmt_num_tx_attempts',        'Q',      'uint64',  'Total number of attempts management packets to remote node (includes re-transmissions)'),
         ('latest_txrx_timestamp',       'Q',      'uint64',  'Value of Sytem Time in microseconds of last transmission / reception')]
-
 }
 
 
@@ -361,6 +364,7 @@ class InfoStruct(dict):
 
         except struct.error as err:
             print("Error unpacking {0} buffer with len {1}: {2}".format(self.name, len(buf), err))
+            
 
 
     # -------------------------------------------------------------------------
