@@ -1173,7 +1173,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                                             wlan_mac_high_get_counts_txrx_list(),
                                             sizeof(wlan_exp_counts_txrx_t),
                                             &wlan_exp_get_id_in_counts,
-                                            &wlan_mac_high_find_counts_txrx_addr, 					//FIXME. This doesn't seem right.
+                                            &wlan_mac_high_find_counts_txrx_addr,
                                             &copy_counts_txrx_to_dest,
                                             &zero_counts_txrx);
         }
@@ -3586,15 +3586,15 @@ void zero_counts_txrx(void * dest) {
     wlan_exp_counts_txrx_t * counts = (wlan_exp_counts_txrx_t *)(dest);
 
     // Do not zero out timestamp
-    bzero((void *)(&counts->counts), sizeof(counts_txrx_t));
+    bzero((void *)(&counts->counts), sizeof(wlan_exp_counts_txrx_lite_t));
 }
 
 
 
 void copy_counts_txrx_to_dest(void * source, void * dest, u8* mac_addr) {
 
-    counts_txrx_t          * curr_source    = (counts_txrx_t *)(source);
-    wlan_exp_counts_txrx_t * curr_dest      = (wlan_exp_counts_txrx_t *)(dest);
+	wlan_exp_counts_txrx_lite_t	* curr_source    = (wlan_exp_counts_txrx_lite_t *)(source);
+    wlan_exp_counts_txrx_t 		* curr_dest      = (wlan_exp_counts_txrx_t *)(dest);
 
     // Set the timestamp using system time
     curr_dest->timestamp = get_system_time_usec();
@@ -3602,22 +3602,19 @@ void copy_counts_txrx_to_dest(void * source, void * dest, u8* mac_addr) {
     // Fill in zeroed entry if source is NULL
     //   - All fields are zero except last_txrx_timestamp which is CMD_PARAM_NODE_TIME_RSVD_VAL_64
     if (source == NULL) {
-        curr_source = wlan_mac_high_malloc(sizeof(counts_txrx_t));
+        curr_source = wlan_mac_high_malloc(sizeof(wlan_exp_counts_txrx_lite_t));
 
         if (curr_source != NULL) {
-            bzero(curr_source, sizeof(counts_txrx_t));
+            bzero(curr_source, sizeof(wlan_exp_counts_txrx_lite_t));
 
             // Add in MAC address
             memcpy(curr_source->addr, mac_addr, MAC_ADDR_LEN);
-
-            // Set latest_txrx_timestamp to reserved value
-            curr_source->latest_txrx_timestamp = CMD_PARAM_NODE_TIME_RSVD_VAL_64;
         }
     }
 
     // Copy the source information to the destination
     if (curr_source != NULL) {
-        memcpy((void *)(&curr_dest->counts), (void *)(curr_source), sizeof(counts_txrx_t));
+        memcpy((void *)(&curr_dest->counts), (void *)(curr_source), sizeof(wlan_exp_counts_txrx_lite_t));
     } else {
         wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_counts, "Could not copy counts_txrx to entry\n");
     }
@@ -3884,34 +3881,22 @@ u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr) {
 
 
 u32  wlan_exp_get_id_in_counts(u8 * mac_addr) {
-#if 0
     u32            id;
-    dl_list      * counts;
     dl_entry     * entry;
 
     if (wlan_addr_eq(mac_addr, zero_addr)) {
         id = WLAN_EXP_AID_ALL;
     } else {
-        counts = get_counts();
+		entry = wlan_mac_high_find_counts_txrx_addr(mac_addr);
 
-        if(counts != NULL){
-            entry = wlan_mac_high_find_counts_ADDR(counts, mac_addr);
-
-            if (entry != NULL) {
-                id = WLAN_EXP_AID_DEFAULT;            // Only returns the default AID if found
-            } else {
-                id = WLAN_EXP_AID_NONE;
-            }
-        } else {
-            id = WLAN_EXP_AID_NONE;
-        }
+		if (entry != NULL) {
+			id = WLAN_EXP_AID_DEFAULT;            // Only returns the default AID if found
+		} else {
+			id = WLAN_EXP_AID_NONE;
+		}
     }
 
     return id;
-#else
-    //FIXME
-    return WLAN_EXP_AID_DEFAULT;
-#endif
 }
 
 

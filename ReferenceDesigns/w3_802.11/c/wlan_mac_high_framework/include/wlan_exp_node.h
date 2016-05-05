@@ -331,11 +331,16 @@ CASSERT(sizeof(wlan_exp_bss_info_t) == 56, wlan_exp_bss_info_alignment_check);
 //
 //     Only used to communicate with WLAN Exp Host.
 //
-typedef struct{
-    u64                 timestamp;               // Timestamp of the log entry
-    counts_txrx_t       counts;                  // Framework's counts struct
-} wlan_exp_counts_txrx_t;
 
+typedef struct{
+	COUNTS_TXRX_COMMON_FIELDS
+} wlan_exp_counts_txrx_lite_t;
+
+typedef struct{
+    u64                 		timestamp;                 // Timestamp of the log entry
+    wlan_exp_counts_txrx_lite_t counts;                    // Framework's counts struct
+} wlan_exp_counts_txrx_t;
+CASSERT(sizeof(wlan_exp_counts_txrx_t) == 136, wlan_exp_counts_txrx_alignment_check);
 
 
 /*************************** Function Prototypes *****************************/

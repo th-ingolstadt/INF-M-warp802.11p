@@ -52,7 +52,7 @@ typedef struct{
     u32        rx_num_packets_total;        ///< # of successfully received packets (including duplicates)
     u32        tx_num_packets_success;      ///< # of successfully transmitted packets (high-level MPDUs)
     u32        tx_num_packets_total;        ///< Total # of transmitted packets (high-level MPDUs)
-    u32        tx_num_attempts;             ///< # of low-level attempts (including retransmissions)
+    u64        tx_num_attempts;             ///< # of low-level attempts (including retransmissions)
 } frame_counts_txrx_t;
 
 
@@ -71,23 +71,27 @@ typedef struct{
  *     by using nested structs.
  *
  ********************************************************************/
-//FIXME: Update Python Definitions
+
+#define COUNTS_TXRX_COMMON_FIELDS                                                                  						\
+		u8                    addr[MAC_ADDR_LEN];            /* HW Address */											\
+		u8                    flags;                         /* Bit flags */											\
+		u8                    padding0;																					\
+		 /*----- 8-byte boundary ------*/																				\
+		frame_counts_txrx_t   data;                          /* Counts about data types	*/								\
+		 /*----- 8-byte boundary ------*/																				\
+		frame_counts_txrx_t   mgmt;                          /* Counts about management types */						\
+		 /*----- 8-byte boundary ------*/																				\
+		u64                   latest_txrx_timestamp;         /* Timestamp of the last frame reception	*/				\
+
+
 typedef struct{
-    u8                    addr[MAC_ADDR_LEN];           ///< HW Address
-    u8                    flags;                        ///< Bit flags
-    u8                    padding0;
-    //----- 8-byte boundary ------
-    frame_counts_txrx_t   data;                         ///< Counts about data types
-    //----- 8-byte boundary ------
-    frame_counts_txrx_t   mgmt;                         ///< Counts about management types
-    //----- 8-byte boundary ------
-    u64                   latest_txrx_timestamp;        ///< Timestamp of the last frame reception
+    COUNTS_TXRX_COMMON_FIELDS
     u16					  rx_latest_seq;				///< Sequence number of the last MPDU reception FIXME: Remove from wlan_exp
 														///< @note This is a tracking variable used to de-duplicating receptions
     u8					  padding1[6];
 } counts_txrx_t;
 
-CASSERT(sizeof(counts_txrx_t) == 128, counts_txrx_alignment_check);
+CASSERT(sizeof(counts_txrx_t) == 136, counts_txrx_alignment_check);
 
 /*************************** Function Prototypes *****************************/
 

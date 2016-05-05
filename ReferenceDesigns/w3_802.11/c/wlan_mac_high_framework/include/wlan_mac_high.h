@@ -60,11 +60,11 @@
  * --------------------------|-----------------------------
  *                           |
  *  Counts TxRx DL_ENTRY    -->    Counts TxRx Buffer
- *      ( 4.5 KB)            |          (48 KB)
+ *      ( 4.5 KB)            |          (51 KB)
  * --------------------------|-----------------------------
  *                           |
  *       Eth Tx BD           |      User Scratch Space
- *        (64 B)             |          (14321 KB)
+ *        (64 B)             |          (14318 KB)
  * --------------------------|-----------------------------
  *                           |
  *       Eth Rx BD           |          Event Log
@@ -165,7 +165,7 @@
  * counts_txrx_t elements.
  *
  * Each counts_txrx struct is a total of 128 bytes in size. So, 384 counts_txrx_t structs require
- * 48 kB of memory. This is why COUNTS_TXRX_BUFFER_SIZE is set to 48 kB.
+ * 51 kB of memory. This is why COUNTS_TXRX_BUFFER_SIZE is set to 51 kB.
  *
  ********************************************************************/
 #define COUNTS_TXRX_DL_ENTRY_MEM_BASE      (BSS_INFO_DL_ENTRY_MEM_BASE + BSS_INFO_DL_ENTRY_MEM_SIZE)
@@ -214,7 +214,7 @@
  *
  ********************************************************************/
 #define USER_SCRATCH_BASE                  (COUNTS_TXRX_BUFFER_BASE + COUNTS_TXRX_BUFFER_SIZE)
-#define USER_SCRATCH_SIZE                  (14321 * 1024)
+#define USER_SCRATCH_SIZE                  (14318 * 1024)
 #define USER_SCRATCH_HIGH                   high_addr_calc(USER_SCRATCH_BASE, USER_SCRATCH_SIZE)
 
 
@@ -227,7 +227,7 @@
  *
  ********************************************************************/
 #define EVENT_LOG_BASE                     (USER_SCRATCH_BASE + USER_SCRATCH_SIZE)
-#define EVENT_LOG_SIZE                     (DRAM_SIZE - (CPU_HIGH_DDR_LINKER_DATA_SIZE + TX_QUEUE_BUFFER_SIZE + BSS_INFO_BUFFER_SIZE + COUNTS_TXRX_DL_ENTRY_MEM_SIZE + USER_SCRATCH_SIZE))
+#define EVENT_LOG_SIZE                     (DRAM_SIZE - (CPU_HIGH_DDR_LINKER_DATA_SIZE + TX_QUEUE_BUFFER_SIZE + BSS_INFO_BUFFER_SIZE + COUNTS_TXRX_BUFFER_SIZE + USER_SCRATCH_SIZE))
 #define EVENT_LOG_HIGH                      high_addr_calc(EVENT_LOG_BASE, EVENT_LOG_SIZE)
 
 

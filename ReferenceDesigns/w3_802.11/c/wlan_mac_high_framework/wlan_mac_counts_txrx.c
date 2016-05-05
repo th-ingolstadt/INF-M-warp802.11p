@@ -197,9 +197,13 @@ inline void counts_txrx_rx_process(void* pkt_buf_addr) {
 		curr_dl_entry = wlan_mac_high_find_counts_txrx_addr(rx_80211_header->address_2);
 
 		if(curr_dl_entry != NULL){
-			perform_duplicate_check = 1;
 			curr_counts_txrx = (counts_txrx_t*)(curr_dl_entry->data);
 
+			if( (curr_counts_txrx->data.rx_num_packets_total > 0) || (curr_counts_txrx->mgmt.rx_num_packets_total > 0)  ){
+				//We have received at least one DATA or MGMT packet from this device, so we should perform a
+				//duplicate check
+				perform_duplicate_check = 1;
+			}
 			// Remove entry from counts_txrx_list; Will be added back at the bottom of the function
 			// This serves to sort the list and keep the most recently updated entries at the tail.
 			dl_entry_remove(&counts_txrx_list, curr_dl_entry);
