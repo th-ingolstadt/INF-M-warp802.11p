@@ -161,7 +161,7 @@ int w3_node_init() {
         break;
     }
 
-#if WARPLAB_CONFIG_4RF
+#if WLAN_4RF_EN
     // Turn on clocks to FMC
     clk_config_outputs(CLK_BASEADDR, CLK_OUTPUT_ON, (CLK_SAMP_OUTSEL_FMC | CLK_RFREF_OUTSEL_FMC));
 
