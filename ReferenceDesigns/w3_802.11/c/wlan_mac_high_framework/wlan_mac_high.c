@@ -43,7 +43,7 @@
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_addr_filter.h"
 #include "wlan_mac_bss_info.h"
-#include "wlan_mac_counts_txrx.h"
+#include "wlan_mac_station_info.h"
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
 #include "wlan_mac_scan.h"
@@ -74,7 +74,6 @@ extern int                   __stack;                      ///< End of the stack
 // Constants
 const  u8                    bcast_addr[MAC_ADDR_LEN]    = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
 const  u8                    zero_addr[MAC_ADDR_LEN]     = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
-volatile static u32          max_num_station_infos;
 
 // HW structures
 static XGpio                 Gpio;                         ///< General-purpose GPIO instance
@@ -86,16 +85,16 @@ XAxiCdma                     cdma_inst;                    ///< Central DMA inst
 u8                           uart_rx_buffer[UART_BUFFER_SIZE];       ///< Buffer for received byte from UART
 
 // Callback function pointers
-volatile function_ptr_t      pb_u_callback;                ///< User callback for "up" pushbutton
-volatile function_ptr_t      pb_m_callback;                ///< User callback for "middle" pushbutton
-volatile function_ptr_t      pb_d_callback;                ///< User callback for "down" pushbutton
-volatile function_ptr_t      uart_callback;                ///< User callback for UART reception
-volatile function_ptr_t      mpdu_tx_done_callback;        ///< User callback for lower-level message that MPDU transmission is complete
-volatile function_ptr_t      mpdu_rx_callback;             ///< User callback for lower-level message that MPDU reception is ready for processing
-volatile function_ptr_t      tx_poll_callback;             ///< User callback when higher-level framework is ready to send a packet to low
-volatile function_ptr_t		 beacon_tx_done_callback;	   ///< User callback for low-level message that a Beacon transmission is complete
-volatile function_ptr_t      mpdu_tx_dequeue_callback;     ///< User callback for higher-level framework dequeuing a packet
-volatile function_ptr_t      cpu_low_reboot_callback;     ///< User callback for CPU_LOW boot
+volatile function_ptr_t      		pb_u_callback;                ///< User callback for "up" pushbutton
+volatile function_ptr_t      		pb_m_callback;                ///< User callback for "middle" pushbutton
+volatile function_ptr_t      		pb_d_callback;                ///< User callback for "down" pushbutton
+volatile function_ptr_t      		uart_callback;                ///< User callback for UART reception
+volatile function_ptr_t      		mpdu_tx_done_callback;        ///< User callback for lower-level message that MPDU transmission is complete
+volatile function_ptr_t      		mpdu_rx_callback;             ///< User callback for lower-level message that MPDU reception is ready for processing
+volatile function_ptr_t      		tx_poll_callback;             ///< User callback when higher-level framework is ready to send a packet to low
+volatile function_ptr_t		 		beacon_tx_done_callback;	   ///< User callback for low-level message that a Beacon transmission is complete
+volatile function_ptr_t      		mpdu_tx_dequeue_callback;     ///< User callback for higher-level framework dequeuing a packet
+volatile function_ptr_t      		cpu_low_reboot_callback;     ///< User callback for CPU_LOW boot
 
 // CPU_LOW parameters that MAC High Framework tracks and is responsible for re-applying
 //  in the event of a CPU_LOW reboot.
@@ -307,13 +306,13 @@ void wlan_mac_high_init(){
 
 	// Sanity check memory map of aux. BRAM and DRAM
 	//Aux. BRAM Check
-	Status = (AUX_BRAM_BASE <= TX_QUEUE_DL_ENTRY_MEM_BASE) && (TX_QUEUE_DL_ENTRY_MEM_HIGH < BSS_INFO_DL_ENTRY_MEM_BASE) && (BSS_INFO_DL_ENTRY_MEM_HIGH < ETH_TX_BD_BASE) && (ETH_TX_BD_HIGH < ETH_RX_BD_BASE) && (ETH_RX_BD_HIGH <= AUX_BRAM_HIGH);
+	Status = (AUX_BRAM_BASE <= TX_QUEUE_DL_ENTRY_MEM_BASE) && (TX_QUEUE_DL_ENTRY_MEM_HIGH < BSS_INFO_DL_ENTRY_MEM_BASE) && (BSS_INFO_DL_ENTRY_MEM_HIGH < STATION_INFO_DL_ENTRY_MEM_BASE ) && (STATION_INFO_DL_ENTRY_MEM_HIGH < ETH_TX_BD_BASE) && (ETH_TX_BD_HIGH < ETH_RX_BD_BASE) && (ETH_RX_BD_HIGH <= AUX_BRAM_HIGH);
 	if(Status != 1){
 		xil_printf("Error: Overlap detected in Aux. BRAM. Check address assignments\n");
 	}
 
 	//DRAM Check
-	Status = (DRAM_BASE <= TX_QUEUE_BUFFER_BASE) && (TX_QUEUE_BUFFER_HIGH < BSS_INFO_BUFFER_BASE) && (BSS_INFO_BUFFER_HIGH < COUNTS_TXRX_BUFFER_BASE) && (COUNTS_TXRX_BUFFER_HIGH < USER_SCRATCH_BASE) && (USER_SCRATCH_HIGH < EVENT_LOG_BASE) && (EVENT_LOG_HIGH <= DRAM_HIGH);
+	Status = (DRAM_BASE <= TX_QUEUE_BUFFER_BASE) && (TX_QUEUE_BUFFER_HIGH < BSS_INFO_BUFFER_BASE) && (BSS_INFO_BUFFER_HIGH < STATION_INFO_BUFFER_BASE) && (STATION_INFO_BUFFER_HIGH < USER_SCRATCH_BASE) && (USER_SCRATCH_HIGH < EVENT_LOG_BASE) && (EVENT_LOG_HIGH <= DRAM_HIGH);
 	if(Status != 1){
 		xil_printf("Error: Overlap detected in DRAM. Check address assignments\n");
 	}
@@ -355,8 +354,6 @@ void wlan_mac_high_init(){
 	set_mailbox_rx_callback((function_ptr_t)wlan_mac_high_ipc_rx);
 
 	interrupt_state = INTERRUPTS_DISABLED;
-
-	max_num_station_infos    = WLAN_MAC_HIGH_MAX_STATION_INFOS;
 
 	num_malloc  = 0;
 	num_realloc = 0;
@@ -518,7 +515,7 @@ void wlan_mac_high_init(){
 	}
 
 	bss_info_init(dram_present);
-	counts_txrx_init(dram_present);
+	station_info_init(dram_present);
 	wlan_eth_init();
 	wlan_mac_schedule_init();
 	wlan_mac_ltg_sched_init();
@@ -692,83 +689,6 @@ void wlan_mac_high_uart_rx_handler(void* CallBackRef, unsigned int EventData){
 
 
 
-/**
- * @brief Find Station Information within a doubly-linked list from a station ID
- *
- * Given a doubly-linked list of station_info structures, this function will return
- * the pointer to a particular entry whose station ID field matches the argument
- * to this function.
- *
- * @param dl_list* list
- *  - Doubly-linked list of station_info structures
- * @param u32 id
- *  - ID to search for
- * @return curr_station_info_entry*
- *  - Returns the pointer to the entry in the doubly-linked list that has the
- *    provided AID.
- *  - Returns NULL if no station_info pointer is found that matches the search
- *    criteria
- *
- */
-dl_entry* wlan_mac_high_find_station_info_ID(dl_list* list, u32 id){
-	dl_entry*			curr_station_info_entry;
-	station_info_t* 	station_info;
-
-	curr_station_info_entry = list->first;
-	int iter = list->length;
-
-	while( (curr_station_info_entry != NULL) && (iter-- > 0) ){
-		station_info = (station_info_t*)(curr_station_info_entry->data);
-
-		if(station_info->ID == id){
-			return curr_station_info_entry;
-		} else {
-			curr_station_info_entry = dl_entry_next(curr_station_info_entry);
-		}
-	}
-
-	return NULL;
-}
-
-
-
-/**
- * @brief Find Station Information within a doubly-linked list from an hardware address
- *
- * Given a doubly-linked list of station_info structures, this function will return
- * the pointer to a particular entry whose hardware address matches the argument
- * to this function.
- *
- * @param dl_list* list
- *  - Doubly-linked list of station_info structures
- * @param u8* addr
- *  - 6-byte hardware address to search for
- * @return dl_entry*
- *  - Returns the pointer to the entry in the doubly-linked list that has the
- *    provided hardware address.
- *  - Returns NULL if no station_info pointer is found that matches the search
- *    criteria
- *
- */
-dl_entry* wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr){
-	dl_entry* 		curr_station_info_entry;
-	station_info_t* station_info;
-	int iter = list->length;
-
-	curr_station_info_entry = list->first;
-
-	while( (curr_station_info_entry != NULL) && (iter-- > 0) ){
-		station_info = (station_info_t*)(curr_station_info_entry->data);
-
-		if(wlan_addr_eq(station_info->addr, addr)){
-			return curr_station_info_entry;
-		} else {
-			curr_station_info_entry = dl_entry_next(curr_station_info_entry);
-		}
-	}
-
-	return NULL;
-}
 
 /**
  * @brief GPIO Interrupt Handler
@@ -1632,9 +1552,13 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 		break;
 
 		//---------------------------------------------------------------------
-		case IPC_MBOX_RX_MPDU_READY:
+		case IPC_MBOX_RX_MPDU_READY: {
 			// CPU Low has received an MPDU addressed to this node or to the broadcast address
 			//
+
+			station_info_t* 		station_info;
+			u32						mpdu_rx_process_flags;
+
 			rx_pkt_buf = msg->arg0;
 			if(rx_pkt_buf < NUM_RX_PKT_BUFS){
 				rx_frame_info = (rx_frame_info_t*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
@@ -1652,12 +1576,22 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 							//Before calling the user's callback, we'll pass this reception off to the BSS info subsystem so it can scrape for BSS metadata
 							bss_info_rx_process((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)));
 
-							//We will also pass this reception off to the Tx/Rx counts subsystem
-							counts_txrx_rx_process((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)));
+							//We will also pass this reception off to the Station Info subsystem
+							station_info = station_info_rx_process((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)));
 
 							// Call the RX callback function to process the received packet
-							mpdu_rx_callback((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)));
+							// FIXME: Add log entry pointer to callback arg
+							mpdu_rx_process_flags = mpdu_rx_callback((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), station_info);
 
+#if	WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
+							if( (mpdu_rx_process_flags & MAC_RX_CALLBACK_RETURN_FLAG_NO_COUNTS) == 0 ){
+								if(mpdu_rx_process_flags & MAC_RX_CALLBACK_RETURN_FLAG_DUP){
+									station_info_rx_process_counts((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), station_info, RX_PROCESS_COUNTS_OPTION_FLAG_IS_DUPLICATE);
+								} else {
+									station_info_rx_process_counts((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), station_info, 0);
+								}
+							}
+#endif
 							// Free up the rx_pkt_buf
 							rx_frame_info->rx_pkt_buf_state = RX_PKT_BUF_LOW_CTRL;
 
@@ -1680,7 +1614,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 			} else {
 				xil_printf("Error: IPC_MBOX_RX_MPDU_READY with invalid pkt buf index %d\n ", rx_pkt_buf);
 			}
-		break;
+		} break;
 
 		//---------------------------------------------------------------------
 		case IPC_MBOX_TX_MPDU_DONE:
@@ -1705,8 +1639,8 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 						//this done message.
 						tx_poll_callback();
 
-						//We will pass this completed transmission off to the Tx/Rx counts subsystem
-						counts_txrx_tx_process((void*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)));
+						//We will pass this completed transmission off to the Station Info subsystem
+						station_info_tx_process((void*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)));
 
 						temp_1  = (4*(msg->num_payload_words)) / sizeof(wlan_mac_low_tx_details_t);
 						mpdu_tx_done_callback(tx_frame_info, (wlan_mac_low_tx_details_t*)(msg->payload_ptr), temp_1);
@@ -2302,410 +2236,6 @@ inline void wlan_mac_high_clear_debug_gpio(u8 val){
 	debug_gpio_state &= ~(val & 0xF);
 	XGpio_DiscreteWrite(&Gpio, GPIO_OUTPUT_CHANNEL, debug_gpio_state);
 }
-
-
-
-/**
- * @brief Add Station Info
- *
- * Function will add a station_info to the provided dl_list for the given address using the
- * requested station ID
- *
- * @param  dl_list* station_info_list
- *     - Station Info list pointer
- * @param  u8* addr
- *     - Address of station to add to the dl_list
- * @param  u16 requested_ID
- *     - Requested ID for the new station.  A value of 'ADD_STATION_INFO_ANY_ID' will use the next available AID.
- * @param  tx_params_t tx_params
- *     - Transmit parameters for the new station.
- * @param  u8 ht_capable
- *     - Is this station HT capable?  (This will set the station info HT_CAPABLE flag)
- * @return station_info *
- *     - Pointer to the station_info in the dl_list
- *     - NULL
- *
- * @note   This function will not perform any filtering on the addr field
- */
-station_info_t * wlan_mac_high_add_station_info(dl_list* station_info_list, u8* addr, u16 requested_ID, tx_params_t* tx_params, u8 ht_capable){
-	dl_entry*           entry;
-	station_info_t*     station_info;
-	dl_entry*           curr_station_info_entry;
-	station_info_t*     station_info_temp;
-	u16                 curr_ID;
-	int                 iter;
-	counts_txrx_t*		counts_txrx;
-	dl_entry*			counts_entry;
-
-	curr_ID = 0;
-
-	if (requested_ID != ADD_STATION_INFO_ANY_ID) {
-		// This call is requesting a particular ID.
-		entry = wlan_mac_high_find_station_info_ID(station_info_list, requested_ID);
-
-		if (entry != NULL) {
-			station_info = (station_info_t*)(entry->data);
-			// Found a station_info with this requested AID. Check if
-			// the address matches the argument to this function call
-			if(wlan_addr_eq(station_info->addr, addr)){
-				// Already have this exact station_info, so just return a pointer to it.
-				return station_info;
-			} else {
-				// The requested ID is already in use and it is used by a different
-				// address. We cannot add this station_info.
-				return NULL;
-			}
-		}
-	}
-
-	entry = wlan_mac_high_find_station_info_ADDR(station_info_list, addr);
-
-	if(entry != NULL){
-		station_info = (station_info_t*)(entry->data);
-		// This addr is already tied to an list entry. We'll just pass this call
-		// the pointer to that entry back to the calling function without creating a new entry
-
-		return station_info;
-	} else {
-
-		// First check that we have room in the station_info table to add the entry
-		if(station_info_list->length >= max_num_station_infos) {
-			return NULL;
-		}
-
-		// This addr is new, so we'll have to add an entry into the list
-		entry = wlan_mac_high_malloc(sizeof(dl_entry));
-		if(entry == NULL){
-			return NULL;
-		}
-
-		station_info = wlan_mac_high_malloc(sizeof(station_info_t));
-		if(station_info == NULL){
-			free(entry);
-			return NULL;
-		}
-
-		bzero(&(station_info->rate_info),sizeof(rate_selection_info_t));
-		station_info->rate_info.rate_selection_scheme = RATE_SELECTION_SCHEME_STATIC;
-
-		// Populate the entry
-		entry->data = (void*)station_info;
-
-		memcpy(station_info->addr, addr, MAC_ADDR_LEN);
-
-		station_info->ID          = 0;
-		station_info->hostname[0] = 0;
-		station_info->flags       = 0;
-
-		// Initialize the latest activity timestamp
-		//     NOTE:  This is so we don't run into a race condition when we try to check the timeout
-		//
-		station_info->rx_latest_activity_timestamp = get_system_time_usec();
-
-		// Set the last received sequence number to something invalid so we don't accidentally
-		// de-duplicate the next reception if that sequence number is 0.
-		station_info->rx_latest_seq = 0xFFFF; //Sequence numbers are only 12 bits long. This is intentionally invalid.
-
-		// Do not allow WARP nodes to time out
-		if(wlan_mac_addr_is_warp(addr)){
-			station_info->flags |= STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
-		}
-
-		// Set the HT_CAPABLE flag base on input parameter
-		if (ht_capable) {
-			station_info->flags |= STATION_INFO_FLAG_HT_CAPABLE;
-		}
-
-		// Set the TX parameters
-		//     1) Do a blind copy of the TX parameters from the input argument.
-		//     2) Update the (mcs, phy_mode) parameters.  This will adjust the TX rate of the station
-		//        was not HT_CAPABLE and a HT rate was requested.
-		//
-		station_info->tx = *tx_params;
-
-		wlan_mac_high_update_station_info_rate(station_info, tx_params->phy.mcs, tx_params->phy.phy_mode);
-
-		// Set up the station ID
-		if(requested_ID == ADD_STATION_INFO_ANY_ID){
-			// Find the minimum AID that can be issued to this station.
-			curr_station_info_entry = station_info_list->first;
-			iter = station_info_list->length;
-
-			while((curr_station_info_entry != NULL) && (iter-- > 0)){
-
-				station_info_temp = (station_info_t*)(curr_station_info_entry->data);
-
-				if((station_info_temp->ID - curr_ID) > 1){
-					// There is a hole in the list and we can re-issue a previously issued station ID.
-					station_info->ID = station_info_temp->ID - 1;
-
-					// Add this station into the list just before the curr_station_info
-					dl_entry_insertBefore(station_info_list, curr_station_info_entry, entry);
-
-					break;
-				} else {
-					curr_ID = station_info_temp->ID;
-				}
-
-				curr_station_info_entry = dl_entry_next(curr_station_info_entry);
-			}
-
-			if(station_info->ID == 0){
-				// There was no hole in the list, so we just issue a new AID larger than the last AID in the table.
-
-				if(station_info_list->length == 0){
-					// This is the first entry in the list;
-					station_info->ID = 1;
-				} else {
-					curr_station_info_entry = station_info_list->last;
-					station_info_temp = (station_info_t*)(curr_station_info_entry->data);
-					station_info->ID = (station_info_temp->ID)+1;
-				}
-
-				// Add this station into the list at the end
-				dl_entry_insertEnd(station_info_list, entry);
-			}
-		} else {
-			// Find the right place in the dl_list to insert this station_info with the requested AID
-			curr_station_info_entry = station_info_list->first;
-			iter = station_info_list->length;
-
-			while( (curr_station_info_entry != NULL) && (iter-- > 0)){
-
-				station_info_temp = (station_info_t*)(curr_station_info_entry->data);
-
-				if(station_info_temp->ID > requested_ID){
-					station_info->ID = requested_ID;
-					// Add this station into the list just before the curr_station_info
-					dl_entry_insertBefore(station_info_list, curr_station_info_entry, entry);
-				}
-
-				curr_station_info_entry = dl_entry_next(curr_station_info_entry);
-			}
-
-			if(station_info->ID == 0){
-				// There was no hole in the list, so we insert it at the end
-				station_info->ID = requested_ID;
-
-				// Add this station into the list at the end
-				dl_entry_insertEnd(station_info_list, entry);
-			}
-		}
-
-		counts_entry = wlan_mac_high_find_counts_txrx_addr(station_info->addr);
-		if(counts_entry != NULL){
-			counts_txrx = (counts_txrx_t*)(counts_entry->data);
-			(counts_txrx->flags) |= COUNTS_TXRX_FLAGS_KEEP;
-		}
-
-		// Print our station_infos on the UART
-		wlan_mac_high_print_station_infos(station_info_list);
-		return station_info;
-	}
-}
-
-
-
-/**
- * @brief Remove Station Info
- *
- * Function will remove the station_info from the provided list for the given address
- *
- * @param  dl_list* station_info_list
- *     - Pointer to list of Station Info structs
- * @param  u8* addr
- *     - Address of station to remove from the provided list
- * @return int
- *     -  0  - Successfully removed the station
- *     - -1  - Failed to remove station
- */
-int wlan_mac_high_remove_station_info(dl_list* station_info_list, u8* addr){
-	dl_entry* 		entry;
-	station_info_t* station_info;
-	dl_entry*		counts_entry;
-	counts_txrx_t*	counts_txrx;
-
-	entry = wlan_mac_high_find_station_info_ADDR(station_info_list, addr);
-
-	if(entry == NULL){
-		// This addr doesn't refer to any station currently in the list,
-		// so there is nothing to remove. We'll return an error to let the calling
-		// function know that something is wrong.
-		return -1;
-	} else {
-		station_info = (station_info_t*)(entry->data);
-
-		counts_entry = wlan_mac_high_find_counts_txrx_addr(station_info->addr);
-		if(counts_entry != NULL){
-			counts_txrx = (counts_txrx_t*)(counts_entry->data);
-			(counts_txrx->flags) &= ~COUNTS_TXRX_FLAGS_KEEP;
-		}
-
-		// Remove station from the list;
-		dl_entry_remove(station_info_list, entry);
-
-		wlan_mac_high_free(entry);
-		wlan_mac_high_free(station_info);
-		wlan_mac_high_print_station_infos(station_info_list);
-
-		return 0;
-	}
-}
-
-
-
-/**
- * @brief Is the provided station a valid member of the provided list
- *
- * Function will check that the provided station is part of the dl_list provided as the first argument
- *
- * @param  dl_list* station_info_list
- *     - Pointer to list of Station Info structs
- * @param  station_info * station
- *     - Station info pointer to check
- * @return u8
- *     - 0  - Station is not a member of the provided list
- *     - 1  - Station is a member of the provided list
- */
-u8 wlan_mac_high_is_station_info_list_member(dl_list* station_info_list, station_info_t* station_info){
-	dl_entry*	  	curr_station_info_entry;
-	station_info_t* station_info_temp;
-	int			  	iter = station_info_list->length;
-
-	curr_station_info_entry = station_info_list->first;
-
-	while( (curr_station_info_entry != NULL) && (iter-- > 0) ){
-
-		station_info_temp = (station_info_t*)(curr_station_info_entry->data);
-
-		if(station_info == station_info_temp){
-			return 1;
-		}
-
-		curr_station_info_entry = dl_entry_next(curr_station_info_entry);
-		station_info_temp = (station_info_t*)(curr_station_info_entry->data);
-	}
-
-	return 0;
-}
-
-
-
-/**
- * @brief Set the maximum number of station_infos that can be a member of any list
- *
- * Function will set the maximum number of station_infos that can be a part of any dl_list.
- *
- * @param  u32 num_station_infos
- *     - Number of station_info structs (must be less than WLAN_MAC_HIGH_MAX_STATION_INFOS)
- * @return u32
- *     - Maximum number of station_info structs
- */
-u32 wlan_mac_high_set_max_num_station_infos(u32 num_station_infos) {
-
-	if (num_station_infos < WLAN_MAC_HIGH_MAX_STATION_INFOS) {
-		max_num_station_infos = num_station_infos;
-	} else {
-		max_num_station_infos = WLAN_MAC_HIGH_MAX_STATION_INFOS;
-	}
-
-    return max_num_station_infos;
-}
-
-
-
-/**
- * @brief Get the maximum number of station_infos that can be a member of any list
- *
- * Function will get the maximum number of station_infos that can be a part of any dl_list
- *
- * @return u32
- *     - Maximum number of station_infos
- */
-u32 wlan_mac_high_get_max_num_station_infos() {
-    return max_num_station_infos;
-}
-
-
-
-/**
- * @brief Update station_info TX rate
- *
- * Function will update the TX rate based on the passed in parameters.  This function will
- * honor the ht_capable flag of the station info.  If the station is not ht_capable, then
- * the function will map the (mcs, phy_mode) to the nearest NONHT MCS:
- *     Requested HT MCS: 0 1 2 3 4 5 6 7
- *     Actual NONHT MCS: 0 2 3 4 5 6 7 7
- *
- * @return int     - Status
- *                     -  0 - Rate set was rate given
- *                     - -1 - Rate set was adjusted from given rate
- *
- */
-int wlan_mac_high_update_station_info_rate(station_info_t* station_info, u8 mcs, u8 phy_mode) {
-	int status          = 0;
-	u8  tmp_mcs;
-
-	if (station_info->flags & STATION_INFO_FLAG_HT_CAPABLE) {
-		station_info->tx.phy.phy_mode = phy_mode;
-		station_info->tx.phy.mcs      = mcs;
-	} else {
-		if (phy_mode == PHY_MODE_HTMF) {
-			// Requested rate was HT, adjust the MCS corresponding to the table above
-			if ((mcs == 0) || (mcs == 7)) {
-				tmp_mcs = mcs;
-			} else {
-				tmp_mcs = mcs + 1;
-			}
-
-			status = -1;
-		} else {
-			// Requested rate was non-HT, so do not adjust MCS
-			tmp_mcs = mcs;
-		}
-
-		station_info->tx.phy.phy_mode = PHY_MODE_NONHT;
-		station_info->tx.phy.mcs      = tmp_mcs;
-	}
-
-	return status;
-}
-
-
-
-/**
- * @brief Print Station Info Structs
- *
- * Function will print the station_info structs in the provided table
- *
- * @param  dl_list* station_info_list
- *     - Pointer to the station_info dl_list
- * @return None
- */
-void wlan_mac_high_print_station_infos(dl_list* station_info_list){
-	dl_entry* 		curr_station_info_entry;
-	station_info_t* station_info;
-	u64            	timestamp           = get_mac_time_usec();
-	int			   	iter = station_info_list->length;
-
-	xil_printf("\n(MAC time = %d usec)\n",timestamp);
-	xil_printf("|-ID-|----- MAC ADDR ----|\n");
-
-	curr_station_info_entry = station_info_list->first;
-
-	while( (curr_station_info_entry != NULL) && (iter-- > 0) ){
-
-		station_info       = (station_info_t*)(curr_station_info_entry->data);
-
-		xil_printf("| %02x | %02x:%02x:%02x:%02x:%02x:%02x |\n", station_info->ID,
-				station_info->addr[0],station_info->addr[1],station_info->addr[2],station_info->addr[3],station_info->addr[4],station_info->addr[5]);
-
-		curr_station_info_entry = dl_entry_next(curr_station_info_entry);
-		station_info      	 	= (station_info_t*)(curr_station_info_entry->data);
-	}
-	xil_printf("|------------------------|\n");
-}
-
 
 /**
  * @brief Configure Beacon Transmissions

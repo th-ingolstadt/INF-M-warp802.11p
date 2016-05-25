@@ -36,7 +36,7 @@
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_scan.h"
 #include "wlan_mac_bss_info.h"
-#include "wlan_mac_counts_txrx.h"
+#include "wlan_mac_station_info.h"
 
 // WLAN Exp includes
 #include "wlan_exp_common.h"
@@ -1167,6 +1167,8 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - size            - uint32  - Number of payload bytes in this packet
             //   - byte[]          - uint8[] - Array of payload bytes
             //
+#if 0
+        	//Fixme: update to pull from station_info_t
             resp_sent = process_buffer_cmds(socket_index, from, command, response,
                                             cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_resp_len,
                                             print_type_counts, "counts",
@@ -1176,6 +1178,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                                             &wlan_mac_high_find_counts_txrx_addr,
                                             &copy_counts_txrx_to_dest,
                                             &zero_counts_txrx);
+#endif
         }
         break;
 
@@ -3537,7 +3540,7 @@ dl_entry * find_station_info(u8 * mac_addr) {
     dl_list * source_list = get_station_info_list();
 
     if (source_list != NULL) {
-        return wlan_mac_high_find_station_info_ADDR(source_list, mac_addr);
+        return station_info_find_by_addr(mac_addr, source_list);
     } else {
         return NULL;
     }
@@ -3608,7 +3611,8 @@ void copy_counts_txrx_to_dest(void * source, void * dest, u8* mac_addr) {
             bzero(curr_source, sizeof(wlan_exp_counts_txrx_lite_t));
 
             // Add in MAC address
-            memcpy(curr_source->addr, mac_addr, MAC_ADDR_LEN);
+            // memcpy(curr_source->addr, mac_addr, MAC_ADDR_LEN);
+            // FIXME: Counts no longer have addresses since they are a subfield of station_info_t
         }
     }
 
@@ -3862,7 +3866,7 @@ u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr) {
             if (wlan_addr_eq(mac_addr, active_bss_info->bssid)) {
                 id = WLAN_EXP_AID_ME;
             } else {
-                entry = wlan_mac_high_find_station_info_ADDR(&(active_bss_info->station_info_list), mac_addr);
+                entry = station_info_find_by_addr(mac_addr, &(active_bss_info->station_info_list));
 
                 if (entry != NULL) {
                 	station_info = (station_info_t*)(entry->data);
@@ -3881,13 +3885,14 @@ u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr) {
 
 
 u32  wlan_exp_get_id_in_counts(u8 * mac_addr) {
-    u32            id;
-    dl_entry     * entry;
+    u32         	id;
+    dl_entry* 		entry;
+    bss_info_t* 	active_bss_info = ((bss_info_t*)wlan_exp_active_bss_info_getter_callback());
 
     if (wlan_addr_eq(mac_addr, zero_addr)) {
         id = WLAN_EXP_AID_ALL;
     } else {
-		entry = wlan_mac_high_find_counts_txrx_addr(mac_addr);
+		entry = station_info_find_by_addr(mac_addr, &(active_bss_info->station_info_list));
 
 		if (entry != NULL) {
 			id = WLAN_EXP_AID_DEFAULT;            // Only returns the default AID if found
@@ -4050,7 +4055,7 @@ u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                             "Set Tx rate on AID %d to MCS %d , PHY Mode %d\n", curr_station_info->ID, mcs, phy_mode);
 
-                    if (wlan_mac_high_update_station_info_rate(curr_station_info, mcs, phy_mode) != 0) {
+                    if (station_info_update_rate(curr_station_info, mcs, phy_mode) != 0) {
                         status = CMD_PARAM_WARNING;
                     }
 
@@ -4058,7 +4063,7 @@ u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                             "Set Tx rate on AID %d to MCS %d , PHY Mode %d\n", curr_station_info->ID, mcs, phy_mode);
 
-                    if (wlan_mac_high_update_station_info_rate(curr_station_info, mcs, phy_mode) != 0) {
+                    if (station_info_update_rate(curr_station_info, mcs, phy_mode) != 0) {
                         status = CMD_PARAM_WARNING;
                     }
 

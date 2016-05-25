@@ -92,7 +92,7 @@
 #define BSS_INFO_COMMON_FIELDS                                                                               \
         u8              bssid[MAC_ADDR_LEN];               /* BSS ID - 48 bit HW address */                  \
         chan_spec_t     chan_spec;                         /* Channel Specification */                       \
-        u64             latest_beacon_rx_time;	           /* Timestamp - Last interaction with BSS */       \
+        u64             latest_beacon_rx_time;	           /* Timestamp - Last interaction with BSS FIXME - rename to timestamp */       \
         char            ssid[SSID_LEN_MAX + 1];            /* SSID of the BSS - 33 bytes */                  \
         s8              latest_beacon_rx_power;            /* Last observed Rx Power (dBm) */                \
         u16             padding0;                                                                            \
@@ -137,8 +137,6 @@ typedef struct __attribute__((__packed__)){
 
 CASSERT(sizeof(chan_spec_t) == 2, chan_spec_t_alignment_check);
 
-
-
 /********************************************************************
  * @brief Basic Service Set (BSS) Information Structure
  *
@@ -148,7 +146,7 @@ typedef struct{
     BSS_INFO_COMMON_FIELDS
 
     u32     flags;
-    dl_list station_info_list;
+    dl_list station_info_list; //FIXME: Rename to "members"
 } bss_info_t;
 
 CASSERT(sizeof(bss_info_t) == 72, bss_info_t_alignment_check);

@@ -55,6 +55,7 @@
 #define WLAN_MAC_REG_TX_TIMESTAMP_MSB                      XPAR_WLAN_MAC_HW_MEMMAP_TX_START_TIMESTAMP_MSB
 #define WLAN_MAC_REG_TXRX_TIMESTAMPS_FRAC                  XPAR_WLAN_MAC_HW_MEMMAP_TXRX_START_TIMESTAMPS_FRAC
 #define WLAN_MAC_REG_NAV_VALUE                             XPAR_WLAN_MAC_HW_MEMMAP_NAV_VALUE
+#define WLAN_MAC_REG_TX_CTRL_STATUS						   XPAR_WLAN_MAC_HW_MEMMAP_TX_CTRL_STATUS
 
 // RW:
 #define WLAN_MAC_REG_TX_START                              XPAR_WLAN_MAC_HW_MEMMAP_TX_START
@@ -146,7 +147,7 @@
 #define WLAN_MAC_TXCTRL_STATUS_TX_C_STATE_DO_TX       (3 << 16) //PHY Tx started, waiting on TX_DONE - TX_TIME
 #define WLAN_MAC_TXCTRL_STATUS_TX_C_STATE_DONE        (4 << 16) //TX_DONE occurred - 1 cycle
 
-#define wlan_mac_get_tx_ctrl_status() (Xil_In32(XPAR_WLAN_MAC_HW_MEMMAP_TX_CTRL_STATUS))
+#define wlan_mac_get_tx_ctrl_status() (Xil_In32(WLAN_MAC_REG_TX_CTRL_STATUS))
 
 // WLAN MAC HW - STATUS register bit masks
 #define WLAN_MAC_STATUS_MASK_TX_A_PENDING                  0x00000001     // b[0]
@@ -179,7 +180,7 @@
 #define WLAN_MAC_PHY_RX_PHY_HDR_MASK_RX_ERROR               0xE0000000     // b[31:29]
 
 #define WLAN_MAC_PHY_RX_PHY_HDR_PHY_SEL_DSSS                0x00000000
-#define WLAN_MAC_PHY_RX_PHY_HDR_PHY_SEL_OFDM                0x20000000
+#define WLAN_MAC_PHY_RX_PHY_HDR_PHY_SEL_OFDM                0x10000000
 
 #define WLAN_MAC_PHY_RX_PHY_HDR_PHY_MODE_11AG               0x1
 #define WLAN_MAC_PHY_RX_PHY_HDR_PHY_MODE_11N                0x2

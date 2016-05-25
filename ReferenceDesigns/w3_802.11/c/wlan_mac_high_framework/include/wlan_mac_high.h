@@ -18,6 +18,84 @@
 #ifndef WLAN_MAC_HIGH_H_
 #define WLAN_MAC_HIGH_H_
 
+#include "xil_types.h"
+#include "wlan_mac_common.h"
+
+//-----------------------------------------------
+// Size Options
+//
+
+//---------- COMPILATION TOGGLES ----------
+//  The following toggles directly affect the size of the .text section after compilation.
+//  They also implicitly affect DRAM usage since DRAM is used for the storage of
+//  station_info_t structs as well as Tx/Rx logs.
+
+
+#define WLAN_SW_CONFIG_ENABLE_WLAN_EXP      1       //Top-level switch for compiling wlan_exp. Setting to 0 implicitly removes
+                                                    // logging code if set to 0 since there would be no way to retrieve the log.
+													//FIXME
+
+#define WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS   1       //Top-level switch for compiling counts_txrx.  Setting to 0 removes counts
+                                                    // from station_info_t struct definition and disables counts retrieval via
+                                                    // wlan_exp.
+													//FIXME
+
+#define WLAN_SW_CONFIG_ENABLE_LOGGING       1       //Top-level switch for compiling Tx/Rx logging. Setting to 0 will not cause
+                                                    // the design to not log any entries to DRAM. It will also disable any log
+                                                    // retrieval capabilities in wlan_exp. Note: this is logically distinct from
+                                                    // COMPILE_WLAN_EXP. (COMPILE_WLAN_EXP 1, COMPILE_LOGGING 0)  still allows
+                                                    // wlan_exp control over a node but no logging capabilities.
+													//FIXME
+
+#define WLAN_SW_CONFIG_ENABLE_LTG           1       //Top-level switch for compiling LTG functionality. Setting to 0 will remove
+                                                    // all LTG-related code from the design as well we disable any wlan_exp
+                                                    // commands that control LTGs.
+													//FIXME
+
+//---------- USAGE TOGGLES ----------
+// The following toggles affect the number of dl_entry structs that need to be stored
+// in the AUX. BRAM. Disabling these options allows significant reduction in the
+// AUX BRAM SIZE PARAMETERS definitions below.
+
+#define WLAN_SW_CONFIG_ENABLE_PROMISCUOUS_STATION_INFO  1   //When set to 0, station_info_t structs will only be created
+                                                            // explicitly by the top-level application (e.g. an AP adds an
+                                                            // associatiated STA). Setting this to 0 would allow a significant
+                                                            // reduction in WLAN_OPTIONS_SIZE_KB_STATION_INFO below, since
+                                                            // the maximum number of station_info_t structs can be bounded
+                                                            // by the maximum number of associations for an AP. Note: an IBSS
+                                                            // node cannot bound the maximum number of station_info_t structs
+															//FIXME
+
+#define WLAN_SW_CONFIG_ENABLE_PROMISCUOUS_BSS_INFO      1   //When set to 0, bss_info_t structs will only be created
+                                                            // explicitly by the top-level application (i.e. a call to the
+                                                            // application's configure_bss() function). Note: this will break
+                                                            // the framework's ability to perform an active/passive scan. It
+                                                            // should only be set to 0 if the node is an AP or a STA whose
+                                                            // association will be manipulation directly via configure_bss().
+															//FIXME
+
+//---------- AUX BRAM SIZE PARAMETERS ----------
+// These options affect the usage of the AUX. BRAM memory. By disabling USAGE TOGGLES options
+// above, these definitions can be reduced and still guarantee safe performance of the node.
+
+#define WLAN_OPTIONS_AUX_SIZE_KB_STATION_INFO   4608    //dl_entry structs will fill WLAN_OPTIONS_AUX_SIZE_KB_STATION_INFO
+                                                                    // kilobytes of memory. This parameter directly controls the number
+                                                                    // of station_info_t structs that can be created. Note:
+                                                                    // WLAN_OPTIONS_COMPILE_COUNTS_TXRX will affect the size of the
+                                                                    // station_info_t structs in DRAM, but will not change the number
+                                                                    // of station_info_t structs that can exists because that number
+                                                                    // is constrained by the size of dl_entry and
+                                                                    // WLAN_OPTIONS_AUX_SIZE_KB_STATION_INFO
+
+#define WLAN_OPTIONS_AUX_SIZE_KB_BSS_INFO       4608    //dl_entry structs will fill WLAN_OPTIONS_AUX_SIZE_KB_BSS_INFO
+                                                                    // kilobytes of memory. This parameter directly controls the number
+                                                                    // of bss_info_t structs that can be created.
+
+#define WLAN_OPTIONS_AUX_SIZE_KB_RX_ETH_BD      <some_number_kB>    //The XAxiDma_BdRing for Ethernet receptions will fill
+                                                                    // WLAN_OPTIONS_AUX_SIZE_KB_RX_ETH_BD kilobytes of memory. This
+                                                                    // parameter has a soft performance implication on the number of
+                                                                    // bursty Ethernet receptions the design can handle.
+																	//FIXME
 
 //-----------------------------------------------
 // Boot memory defines
@@ -59,7 +137,7 @@
  *      ( 4.5 KB)            |          (27 KB)
  * --------------------------|-----------------------------
  *                           |
- *  Counts TxRx DL_ENTRY    -->    Counts TxRx Buffer
+ *  Station Info DL_ENTRY   -->    Station Info Buffer
  *      ( 4.5 KB)            |          (51 KB)
  * --------------------------|-----------------------------
  *                           |
@@ -144,7 +222,7 @@
  *
  ********************************************************************/
 #define BSS_INFO_DL_ENTRY_MEM_BASE         (TX_QUEUE_DL_ENTRY_MEM_BASE + TX_QUEUE_DL_ENTRY_MEM_SIZE)
-#define BSS_INFO_DL_ENTRY_MEM_SIZE         (4608)
+#define BSS_INFO_DL_ENTRY_MEM_SIZE         (WLAN_OPTIONS_AUX_SIZE_KB_BSS_INFO)
 #define BSS_INFO_DL_ENTRY_MEM_HIGH          high_addr_calc(BSS_INFO_DL_ENTRY_MEM_BASE, BSS_INFO_DL_ENTRY_MEM_SIZE)
 
 #define BSS_INFO_BUFFER_BASE               (TX_QUEUE_BUFFER_BASE + TX_QUEUE_BUFFER_SIZE)
@@ -153,28 +231,27 @@
 
 
 /********************************************************************
- * Counts Tx/Rx
+ * Station Info
  *
- * The Counts Tx/Rx storage consists of two pieces:
+ * The Station Info storage consists of two pieces:
  *     (1) dl_entry structs that live in the aux. BRAM and
- *     (2) counts_txrx_t buffers with the actual content that live in DRAM
+ *     (2) station_info_t buffers with the actual content that live in DRAM
  *
  * The below definitions carve out the sizes of memory for these two pieces. The default
  * value of 4.5 kB for the dl_entry memory space was chosen. Because each dl_entry has a
  * size of 12 bytes, this space allows for a potential of 384 dl_entry structs describing
- * counts_txrx_t elements.
+ * station_info_t elements.
  *
- * Each counts_txrx struct is a total of 128 bytes in size. So, 384 counts_txrx_t structs require
- * 51 kB of memory. This is why COUNTS_TXRX_BUFFER_SIZE is set to 51 kB.
+ * FIXME: Update all comments for new flexible sizes
  *
  ********************************************************************/
-#define COUNTS_TXRX_DL_ENTRY_MEM_BASE      (BSS_INFO_DL_ENTRY_MEM_BASE + BSS_INFO_DL_ENTRY_MEM_SIZE)
-#define COUNTS_TXRX_DL_ENTRY_MEM_SIZE      (4608)
-#define COUNTS_TXRX_DL_ENTRY_MEM_HIGH       high_addr_calc(COUNTS_TXRX_DL_ENTRY_MEM_BASE, COUNTS_TXRX_DL_ENTRY_MEM_SIZE)
+#define STATION_INFO_DL_ENTRY_MEM_BASE     (BSS_INFO_DL_ENTRY_MEM_BASE + BSS_INFO_DL_ENTRY_MEM_SIZE)
+#define STATION_INFO_DL_ENTRY_MEM_SIZE     (WLAN_OPTIONS_AUX_SIZE_KB_STATION_INFO)
+#define STATION_INFO_DL_ENTRY_MEM_HIGH      high_addr_calc(STATION_INFO_DL_ENTRY_MEM_BASE, STATION_INFO_DL_ENTRY_MEM_SIZE)
 
-#define COUNTS_TXRX_BUFFER_BASE            (BSS_INFO_BUFFER_BASE + BSS_INFO_BUFFER_SIZE)
-#define COUNTS_TXRX_BUFFER_SIZE			   ((COUNTS_TXRX_DL_ENTRY_MEM_SIZE/sizeof(dl_entry))*sizeof(counts_txrx_t))
-#define COUNTS_TXRX_BUFFER_HIGH            high_addr_calc(COUNTS_TXRX_BUFFER_BASE, COUNTS_TXRX_BUFFER_SIZE)
+#define STATION_INFO_BUFFER_BASE          (BSS_INFO_BUFFER_BASE + BSS_INFO_BUFFER_SIZE)
+#define STATION_INFO_BUFFER_SIZE		  ((STATION_INFO_DL_ENTRY_MEM_SIZE/sizeof(dl_entry))*sizeof(station_info_t))
+#define STATION_INFO_BUFFER_HIGH           high_addr_calc(STATION_INFO_BUFFER_BASE, STATION_INFO_BUFFER_SIZE)
 
 
 
@@ -186,7 +263,7 @@
  * XAXIDMA_BD_MINIMUM_ALIGNMENT), so we set ETH_TX_BD_SIZE to 64.
  *
  ********************************************************************/
-#define ETH_TX_BD_BASE                     (COUNTS_TXRX_DL_ENTRY_MEM_BASE + COUNTS_TXRX_DL_ENTRY_MEM_SIZE)
+#define ETH_TX_BD_BASE                     (STATION_INFO_DL_ENTRY_MEM_BASE + STATION_INFO_DL_ENTRY_MEM_SIZE)
 #define ETH_TX_BD_SIZE                     (64)
 #define ETH_TX_BD_HIGH                      high_addr_calc(ETH_TX_BD_BASE, ETH_TX_BD_SIZE)
 
@@ -201,7 +278,7 @@
  *
  ********************************************************************/
 #define ETH_RX_BD_BASE                     (ETH_TX_BD_BASE + ETH_TX_BD_SIZE)
-#define ETH_RX_BD_SIZE                     (AUX_BRAM_SIZE - (TX_QUEUE_DL_ENTRY_MEM_SIZE + BSS_INFO_DL_ENTRY_MEM_SIZE + COUNTS_TXRX_DL_ENTRY_MEM_SIZE + ETH_TX_BD_SIZE))
+#define ETH_RX_BD_SIZE                     (AUX_BRAM_SIZE - (TX_QUEUE_DL_ENTRY_MEM_SIZE + BSS_INFO_DL_ENTRY_MEM_SIZE + STATION_INFO_DL_ENTRY_MEM_SIZE + ETH_TX_BD_SIZE))
 #define ETH_RX_BD_HIGH                      high_addr_calc(ETH_RX_BD_BASE, ETH_RX_BD_SIZE)
 
 
@@ -209,12 +286,12 @@
 /********************************************************************
  * User Scratch Space
  *
- * We have set aside 14MB of space for users to use the DRAM in their applications.
+ * We have set aside 10MB of space for users to use the DRAM in their applications.
  * We do not use the below definitions in any part of the reference design.
  *
  ********************************************************************/
-#define USER_SCRATCH_BASE                  (COUNTS_TXRX_BUFFER_BASE + COUNTS_TXRX_BUFFER_SIZE)
-#define USER_SCRATCH_SIZE                  (14318 * 1024)
+#define USER_SCRATCH_BASE                  (STATION_INFO_BUFFER_BASE + STATION_INFO_BUFFER_SIZE)
+#define USER_SCRATCH_SIZE                  (10000 * 1024)
 #define USER_SCRATCH_HIGH                   high_addr_calc(USER_SCRATCH_BASE, USER_SCRATCH_SIZE)
 
 
@@ -227,7 +304,7 @@
  *
  ********************************************************************/
 #define EVENT_LOG_BASE                     (USER_SCRATCH_BASE + USER_SCRATCH_SIZE)
-#define EVENT_LOG_SIZE                     (DRAM_SIZE - (CPU_HIGH_DDR_LINKER_DATA_SIZE + TX_QUEUE_BUFFER_SIZE + BSS_INFO_BUFFER_SIZE + COUNTS_TXRX_BUFFER_SIZE + USER_SCRATCH_SIZE))
+#define EVENT_LOG_SIZE                     (DRAM_SIZE - (CPU_HIGH_DDR_LINKER_DATA_SIZE + TX_QUEUE_BUFFER_SIZE + BSS_INFO_BUFFER_SIZE + STATION_INFO_BUFFER_SIZE + USER_SCRATCH_SIZE))
 #define EVENT_LOG_HIGH                      high_addr_calc(EVENT_LOG_BASE, EVENT_LOG_SIZE)
 
 
@@ -271,10 +348,13 @@
 
 #define NUM_VALID_RATES                                    12                                 ///< Number of supported rates
 
-#define ADD_STATION_INFO_ANY_ID                            0                                  ///< Special argument to function that adds station_info structs
 
-#define WLAN_MAC_HIGH_MAX_STATION_INFOS                    20                                 ///< Maximum number of station_info structs in any given list
-
+//-----------------------------------------------
+// Callback Return Flags
+//
+#define MAC_RX_CALLBACK_RETURN_FLAG_DUP							0x00000001
+#define MAC_RX_CALLBACK_RETURN_FLAG_NO_COUNTS					0x00000002
+#define MAC_RX_CALLBACK_RETURN_FLAG_NO_LOG_ENTRY				0x00000004
 
 
 /***************************** Include Files *********************************/
@@ -300,60 +380,6 @@ typedef enum {INTERRUPTS_DISABLED, INTERRUPTS_ENABLED} interrupt_state_t;
 
 /******************** Global Structure/Enum Definitions **********************/
 
-/********************************************************************
- * @brief Rate Selection Information
- *
- * This structure contains information about the rate selection scheme.
- *
- ********************************************************************/
-typedef struct{
-    u16 rate_selection_scheme;
-} rate_selection_info_t;
-
-#define RATE_SELECTION_SCHEME_STATIC                       0
-
-
-
-/********************************************************************
- * @brief Station Information Structure
- *
- * This struct contains information about associated stations (or, in the
- * case of a station, information about the associated access point).
- *
- * NOTE:  The reason that the reference design uses a #define for fields in
- *     two different structs is so that fields that must be in two different
- *     structs stay in sync and so there is not another level of indirection
- *     by using nested structs.
- *
- ********************************************************************/
-#define STATION_INFO_HOSTNAME_MAXLEN                       19
-
-#define STATION_INFO_COMMON_FIELDS                                                                  						\
-        u8          addr[MAC_ADDR_LEN];                         /* HW Address */                         					\
-        u16         ID;                                         /* Identification Index for this station */     			\
-        char        hostname[STATION_INFO_HOSTNAME_MAXLEN+1];   /* Hostname from DHCP requests */        					\
-        u32         flags;                                      /* 1-bit flags */                        					\
-        u64         rx_latest_activity_timestamp;               /* Timestamp of most recent activity */  					\
-        u16   		rx_latest_seq;                              /* Sequence number of the last MPDU reception */    		\
-        u8			reserved0;																								\
-        u8			reserved1;																								\
-        tx_params_t tx;                                         /* Transmission Parameters Structure */
-
-
-typedef struct{
-
-    STATION_INFO_COMMON_FIELDS
-    rate_selection_info_t rate_info;
-
-} station_info_t;
-
-
-#define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK              0x0001              ///< Mask for flag in station_info -- disable association check
-#define STATION_INFO_FLAG_DOZE                             0x0002              ///< Mask to sleeping stations (if STA supports PS)
-#define STATION_INFO_FLAG_HT_CAPABLE                       0x0004              ///< STA is capable of HT Tx and Rx
-
-
-
 /***************************** Global Constants ******************************/
 
 extern const  u8 bcast_addr[MAC_ADDR_LEN];
@@ -371,8 +397,6 @@ inline interrupt_state_t     wlan_mac_high_interrupt_stop();
 void               wlan_mac_high_uart_rx_handler(void *CallBackRef, unsigned int EventData);
 void               wlan_mac_high_gpio_handler(void *InstancePtr);
 
-dl_entry*          wlan_mac_high_find_station_info_ID(dl_list* list, u32 id);
-dl_entry*          wlan_mac_high_find_station_info_ADDR(dl_list* list, u8* addr);
 dl_entry*          wlan_mac_high_find_counts_ADDR(dl_list* list, u8* addr);
 
 u32                wlan_mac_high_get_user_io_state();
@@ -383,7 +407,7 @@ void               wlan_mac_high_set_pb_d_callback(function_ptr_t callback);
 void               wlan_mac_high_set_uart_rx_callback(function_ptr_t callback);
 void               wlan_mac_high_set_mpdu_tx_done_callback(function_ptr_t callback);
 void               wlan_mac_high_set_beacon_tx_done_callback(function_ptr_t callback);
-void               wlan_mac_high_set_mpdu_rx_callback(function_ptr_t callback);
+void 			   wlan_mac_high_set_mpdu_rx_callback(function_ptr_t callback);
 void               wlan_mac_high_set_poll_tx_queues_callback(function_ptr_t callback);
 void               wlan_mac_high_set_mpdu_dequeue_callback(function_ptr_t callback);
 void 			   wlan_mac_high_set_cpu_low_reboot_callback(function_ptr_t callback);
@@ -433,13 +457,6 @@ u8                 wlan_mac_high_is_pkt_ltg(void* mac_payload, u16 length);
 inline void        wlan_mac_high_set_debug_gpio(u8 val);
 inline void        wlan_mac_high_clear_debug_gpio(u8 val);
 
-station_info_t*    wlan_mac_high_add_station_info(dl_list* station_info_list, u8* addr, u16 requested_ID, tx_params_t* tx_params, u8 ht_capable);
-int                wlan_mac_high_remove_station_info(dl_list* station_info_list, u8* addr);
-
-u8                 wlan_mac_high_is_station_info_list_member(dl_list* station_info_list, station_info_t* station_info);
-u32                wlan_mac_high_set_max_num_station_infos(u32 num_station_infos);
-u32                wlan_mac_high_get_max_num_station_infos();
-int                wlan_mac_high_update_station_info_rate(station_info_t* station_info, u8 mcs, u8 phy_mode);
 
 int                wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, bss_info_t* bss_info, tx_params_t* tx_params_ptr, u8 flags);
 int                wlan_mac_high_update_beacon_tx_params(tx_params_t* tx_params_ptr);
@@ -449,7 +466,7 @@ void               wlan_mac_high_print_station_infos(dl_list* assoc_tbl);
 
 // Common functions that must be implemented by users of the framework
 // TODO: Make these into callback. We should not require these implementations
-dl_list*          get_station_info_list();
+dl_list*          get_station_info_list(); //FIXME -- needs a rename. The framework prom. station_info getter will be named this
 u8*          	  get_wlan_mac_addr();
 
 #endif /* WLAN_MAC_HIGH_H_ */

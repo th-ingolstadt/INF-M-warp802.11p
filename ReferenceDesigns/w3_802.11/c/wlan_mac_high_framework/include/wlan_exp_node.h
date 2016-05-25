@@ -19,7 +19,7 @@
 #include "wlan_exp_transport.h"
 
 #include "wlan_mac_bss_info.h"
-#include "wlan_mac_counts_txrx.h"
+#include "wlan_mac_station_info.h"
 #include "wlan_mac_high.h"
 
 /*************************** Constant Definitions ****************************/
@@ -299,12 +299,13 @@ typedef struct {
 //
 //     Only used to communicate with WLAN Exp Host.
 //
+// FIXME: Update Python
 typedef struct __attribute__((__packed__)){
     // All station_info_t common fields
     STATION_INFO_COMMON_FIELDS
 } wlan_exp_station_info_t;
 
-CASSERT(sizeof(wlan_exp_station_info_t) == 52, wlan_exp_station_info_alignment_check);
+CASSERT(sizeof(wlan_exp_station_info_t) == 64, wlan_exp_station_info_alignment_check);
 
 
 #define STATION_INFO_ENTRY_NO_CHANGE             0
@@ -340,7 +341,7 @@ typedef struct{
     u64                 		timestamp;                 // Timestamp of the log entry
     wlan_exp_counts_txrx_lite_t counts;                    // Framework's counts struct
 } wlan_exp_counts_txrx_t;
-CASSERT(sizeof(wlan_exp_counts_txrx_t) == 136, wlan_exp_counts_txrx_alignment_check);
+CASSERT(sizeof(wlan_exp_counts_txrx_t) == 120, wlan_exp_counts_txrx_alignment_check);
 
 
 /*************************** Function Prototypes *****************************/

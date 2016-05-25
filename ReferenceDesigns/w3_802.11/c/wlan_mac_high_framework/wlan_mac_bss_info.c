@@ -535,7 +535,7 @@ void wlan_mac_high_reset_network_list(){
 
 void wlan_mac_high_clear_bss_info(bss_info_t * info){
 	int            iter;
-	station_info_t * curr_station_info;
+	//station_info_t * curr_station_info;
 	dl_entry       * next_station_info_entry;
 	dl_entry       * curr_station_info_entry;
 
@@ -547,13 +547,15 @@ void wlan_mac_high_clear_bss_info(bss_info_t * info){
 		if (((info->flags & BSS_FLAGS_KEEP) == 0) && (next_station_info_entry != NULL)) {
             xil_printf("WARNING:  BSS info not flagged to be kept but contained station_info entries.\n");
 		}
-
+//FIXME: Check to make sure there aren't any station_info_t structs hanging around on this bss_info
+#if 0
 		while ((next_station_info_entry != NULL) && (iter-- > 0)) {
 			curr_station_info_entry = next_station_info_entry;
 			next_station_info_entry = dl_entry_next(curr_station_info_entry);
 			curr_station_info       = (station_info_t*)(curr_station_info_entry->data);
 			wlan_mac_high_remove_station_info(&info->station_info_list, curr_station_info->addr);
 		}
+#endif
 
 		// Clear the bss_info
         bzero(info, sizeof(bss_info_t));

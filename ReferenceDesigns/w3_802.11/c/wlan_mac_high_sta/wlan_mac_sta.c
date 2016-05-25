@@ -512,11 +512,6 @@ void purge_all_data_tx_queue(){
  *****************************************************************************/
 void mpdu_transmit_done(tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details, u16 num_tx_low_details) {
 	u32                   	 i;
-	station_info_t*          station_info 				   = NULL;
-
-
-	if(active_bss_info != NULL) station_info = (station_info_t*)(active_bss_info->station_info_list.first->data);
-
 	// Additional variables (Future Use)
 	// void*                  mpdu                    = (u8*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
 	// u8*                    mpdu_ptr_u8             = (u8*)mpdu;
@@ -530,11 +525,6 @@ void mpdu_transmit_done(tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_
 
 	// Log the TX MPDU
 	wlan_exp_log_create_tx_high_entry(tx_frame_info);
-
-	if((station_info!= NULL) && ((tx_frame_info->tx_result) == TX_MPDU_RESULT_SUCCESS)){
-		// Update the latest_activity_timestamp for the station because we had a successful TX (i.e. a successful ACK Rx)
-		station_info->rx_latest_activity_timestamp = get_system_time_usec();
-	}
 
 	// Send log entry to wlan_exp controller immediately (not currently supported)
 	//
@@ -623,13 +613,15 @@ int ethernet_receive(tx_queue_element_t* curr_tx_queue_element, u8* eth_dest, u8
  *
  * This callback function will process all the received MPDUs.
  *
- * This function must implement the state machine that will allow a station to join the AP.
- *
- * @param  void * pkt_buf_addr
+ * @param  void* pkt_buf_addr
  *     - Packet buffer address;  Contains the contents of the MPDU as well as other packet information from CPU low
- * @return None
+ * @param  station_info_t * station_info
+ *     - Pointer to metadata about the station from which this frame was received
+ * @return u32 flags
+ *
+ * FIXME: add log entry
  *****************************************************************************/
-void mpdu_rx_process(void* pkt_buf_addr) {
+u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info) {
 
 	rx_frame_info_t*    	rx_frame_info            = (rx_frame_info_t*)pkt_buf_addr;
 	void*               	mac_payload              = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
@@ -639,9 +631,6 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 	u16                 	rx_seq;
 	rx_common_entry*    	rx_event_log_entry       = NULL;
 
-	dl_entry*	        	associated_station_entry;
-	station_info_t*     	ap_station_info          = NULL;
-
 	u8                  	unicast_to_me;
 	u8                  	to_multicast;
 	u8                  	is_associated            = 0;
@@ -649,8 +638,9 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 	bss_info_t*				curr_bss_info;
 	volatile bss_info_t*	attempt_bss_info;
 	u8						pre_llc_offset			 = 0;
+	u32						return_val				 = 0;
 
-	u16 				length   = rx_frame_info->phy_details.length;
+	u16 					length   = rx_frame_info->phy_details.length;
 
 
 	// Log the reception
@@ -669,33 +659,31 @@ void mpdu_rx_process(void* pkt_buf_addr) {
     // If the packet is good (ie good FCS) and it is destined for me, then process it
 	if( (rx_frame_info->flags & RX_FRAME_INFO_FLAGS_FCS_GOOD)){
 
-		// Update the association information
-		if(active_bss_info != NULL){
-			associated_station_entry = wlan_mac_high_find_station_info_ADDR(&(active_bss_info->station_info_list), (rx_80211_header->address_2));
-		} else {
-			associated_station_entry = NULL;
-		}
 
-		if(associated_station_entry != NULL) {
-			ap_station_info = (station_info_t*)(associated_station_entry->data);
+		// Sequence number is 12 MSB of seq_control field
+		rx_seq         = ((rx_80211_header->sequence_control) >> 4) & 0xFFF;
 
-			// Update station information
-			ap_station_info->rx_latest_activity_timestamp = get_system_time_usec();
-
-			is_associated  = 1;
-			rx_seq         = ((rx_80211_header->sequence_control)>>4)&0xFFF;
-
-			// Check if this was a duplicate reception
-			//   - Received seq num matched previously received seq num for this STA
-			if( ((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY) && (ap_station_info->rx_latest_seq == rx_seq) ) {
+		// Check if this was a duplicate reception
+		//	 - Packet has the RETRY bit set to 1 in the second frame control byte
+		//   - Received seq num matched previously received seq num for this STA
+		if( station_info != NULL ){
+			if( ((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY) && (station_info->latest_rx_seq == rx_seq) ) {
 				if(rx_event_log_entry != NULL){
 					rx_event_log_entry->flags |= RX_FLAGS_DUPLICATE;
+					return_val |= MAC_RX_CALLBACK_RETURN_FLAG_DUP;
 				}
+			} else {
+				station_info->latest_rx_seq = rx_seq;
+			}
+		}
 
+		if( active_bss_info != NULL && station_info_is_member(&active_bss_info->station_info_list, station_info) ) {
+
+			is_associated  = 1;
+
+			if( return_val & MAC_RX_CALLBACK_RETURN_FLAG_DUP ) {
 				// Finish the function
 				goto mpdu_rx_process_end;
-			} else {
-				ap_station_info->rx_latest_seq = rx_seq;
 			}
 		}
 
@@ -815,7 +803,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 					//   - Start and active scan to find the AP if an SSID is defined
 					//
 					if(active_bss_info != NULL){
-						if(wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr) && (wlan_mac_high_find_station_info_ADDR(&(active_bss_info->station_info_list), rx_80211_header->address_2) != NULL)){
+						if(wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr) && is_associated){
 
 							//
 							// TODO:  (Optional) Log association state change
@@ -870,7 +858,7 @@ void mpdu_rx_process(void* pkt_buf_addr) {
 	// Finish any processing for the RX MPDU process
 	mpdu_rx_process_end:
 
-    return;
+    return return_val;
 }
 
 /*****************************************************************************/
@@ -1119,8 +1107,11 @@ u32	configure_bss(bss_config_t* bss_config){
 				// Purge any data for the AP
 				purge_queue(UNICAST_QID);
 
+				// Lower the KEEP flag
+				curr_station_info->flags &= ~STATION_INFO_FLAG_KEEP;
+
 				// Remove the association
-				wlan_mac_high_remove_station_info( &active_bss_info->station_info_list, curr_station_info->addr );
+				station_info_remove( &active_bss_info->station_info_list, curr_station_info->addr );
 
 				// Update the hex display to show STA is not currently associated
 				sta_update_hex_display(0);
@@ -1192,10 +1183,13 @@ u32	configure_bss(bss_config_t* bss_config){
 					//     - Set ht_capable argument to the HT_CAPABLE capability of the BSS.  Given that the STA does not know
 					//       the HT capabilities of the AP, it is reasonable to assume that they are the same as the BSS.
 					//
-					ap_station_info = wlan_mac_high_add_station_info(&(active_bss_info->station_info_list), active_bss_info->bssid, 0, &default_unicast_data_tx_params,
+					ap_station_info = station_info_add(&(active_bss_info->station_info_list), active_bss_info->bssid, 0, &default_unicast_data_tx_params,
 																	 (active_bss_info->capabilities & BSS_CAPABILITIES_HT_CAPABLE));
 
 					if (ap_station_info != NULL) {
+
+						ap_station_info->flags |= STATION_INFO_FLAG_KEEP;
+
 						//
 						// TODO:  (Optional) Log association state change
 						//
@@ -1239,7 +1233,7 @@ u32	configure_bss(bss_config_t* bss_config){
 
 				// Get the AP station info
 				if (ap_station_info == NULL) {
-					dl_entry * entry = wlan_mac_high_find_station_info_ADDR(&(active_bss_info->station_info_list), active_bss_info->bssid);
+					dl_entry * entry = station_info_find_by_addr(active_bss_info->bssid, &(active_bss_info->station_info_list));
 
 					if (entry != NULL) {
 						ap_station_info = (station_info_t*)(entry->data);
@@ -1255,7 +1249,7 @@ u32	configure_bss(bss_config_t* bss_config){
 					}
 
 					// Update the rate based on the flags that were set
-					wlan_mac_high_update_station_info_rate(ap_station_info, default_unicast_data_tx_params.phy.mcs, default_unicast_data_tx_params.phy.phy_mode);
+					station_info_update_rate(ap_station_info, default_unicast_data_tx_params.phy.mcs, default_unicast_data_tx_params.phy.phy_mode);
 				}
 			}
 

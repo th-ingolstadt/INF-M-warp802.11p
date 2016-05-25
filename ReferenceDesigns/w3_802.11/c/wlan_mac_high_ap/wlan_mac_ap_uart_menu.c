@@ -38,7 +38,7 @@
 #include "ascii_characters.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_bss_info.h"
-#include "wlan_mac_counts_txrx.h"
+#include "wlan_mac_station_info.h"
 
 
 //
@@ -157,10 +157,10 @@ void uart_rx(u8 rxByte){
 				break;
 
 				// ----------------------------------------
-				// '3' - Print Counts
+				// '3' - Print Station Infos with Counts
 				//
 				case ASCII_3:
-					counts_txrx_print_all();
+					station_info_print(NULL , STATION_INFO_PRINT_OPTION_FLAG_INCLUDE_COUNTS);
 				break;
 
 				// ----------------------------------------
@@ -298,7 +298,7 @@ void print_station_status(){
 			xil_printf(" AID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", curr_station_info->ID,
 					curr_station_info->addr[0],curr_station_info->addr[1],curr_station_info->addr[2],curr_station_info->addr[3],curr_station_info->addr[4],curr_station_info->addr[5]);
 
-			xil_printf("     - Last heard from         %d ms ago\n",((u32)(timestamp - (curr_station_info->rx_latest_activity_timestamp)))/1000);
+			xil_printf("     - Last heard from         %d ms ago\n",((u32)(timestamp - (curr_station_info->latest_rx_timestamp)))/1000);
 			xil_printf("     - # of queued MPDUs:      %d\n", queue_num_queued(STATION_ID_TO_QUEUE_ID(curr_station_info->ID)));
 			curr_entry = dl_entry_next(curr_entry);
 		}

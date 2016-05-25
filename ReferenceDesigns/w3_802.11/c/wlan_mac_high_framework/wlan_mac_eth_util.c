@@ -33,6 +33,7 @@
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_eth_util.h"
+#include "wlan_mac_station_info.h"
 
 
 /*********************** Global Variable Definitions *************************/

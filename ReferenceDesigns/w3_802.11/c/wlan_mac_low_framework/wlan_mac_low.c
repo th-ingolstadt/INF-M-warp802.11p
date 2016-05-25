@@ -1093,6 +1093,9 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 				// Insert sequence number here
 				tx_80211_header->sequence_control = ((tx_80211_header->sequence_control) & 0xF) | ( (unique_seq&0xFFF)<<4 );
 
+				// Insert unique sequence into tx_frame_info
+				tx_frame_info->unique_seq = unique_seq;
+
 				if((tx_frame_info->flags) & TX_MPDU_FLAGS_FILL_UNIQ_SEQ){
 					// Fill unique sequence number into LTG payload
 					pkt_id             = (ltg_packet_id_t*)((u8*)tx_80211_header + sizeof(mac_header_80211));

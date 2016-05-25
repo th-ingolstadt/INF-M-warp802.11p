@@ -40,7 +40,7 @@
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_bss_info.h"
 #include "wlan_mac_scan.h"
-#include "wlan_mac_counts_txrx.h"
+#include "wlan_mac_station_info.h"
 
 
 //
@@ -163,10 +163,10 @@ void uart_rx(u8 rxByte){
 				break;
 
 				// ----------------------------------------
-				// '2' - Print Counts
+				// '2' - Print Station Info with Counts
 				//
 				case ASCII_2:
-					counts_txrx_print_all();
+					station_info_print(NULL , STATION_INFO_PRINT_OPTION_FLAG_INCLUDE_COUNTS);
 				break;
 
 				// ----------------------------------------
@@ -432,7 +432,7 @@ void print_station_status(){
             if(active_bss_info != NULL){
                 xil_printf(" MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n",
                             access_point->addr[0],access_point->addr[1],access_point->addr[2],access_point->addr[3],access_point->addr[4],access_point->addr[5]);
-                xil_printf("     - Last heard from         %d ms ago\n",((u32)(timestamp - (access_point->rx_latest_activity_timestamp)))/1000);
+                xil_printf("     - Last heard from         %d ms ago\n",((u32)(timestamp - (access_point->latest_rx_timestamp)))/1000);
             }
 
         xil_printf("---------------------------------------------------\n");

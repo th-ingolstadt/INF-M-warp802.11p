@@ -48,7 +48,7 @@
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_ap.h"
 #include "wlan_mac_bss_info.h"
-#include "wlan_mac_counts_txrx.h"
+#include "wlan_mac_station_info.h"
 
 
 
@@ -235,7 +235,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 // If parameter is not the magic number to disassociate all stations
                 if (id != WLAN_EXP_AID_ALL) {
                     // Find the station_info entry
-                    curr_entry = wlan_mac_high_find_station_info_ADDR( get_station_info_list(), &mac_addr[0]);
+                    curr_entry = station_info_find_by_addr( &mac_addr[0], get_station_info_list() );
 
                     if (curr_entry != NULL) {
                         curr_station_info = (station_info_t*)(curr_entry->data);
@@ -430,7 +430,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "AP: Associate\n");
 
-            if ((active_bss_info != NULL) &&(active_bss_info->station_info_list.length < wlan_mac_high_get_max_num_station_infos())) {
+            if ((active_bss_info != NULL) &&(active_bss_info->station_info_list.length < MAX_NUM_ASSOC)) {
 
                 // Get MAC Address
                 wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[2], &mac_addr[0]);
@@ -448,11 +448,14 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 // Add association
                 //     - Set ht_capable argument to zero.  This will be set correctly by the code below based on the
                 //       flags of the command.
-                curr_station_info = wlan_mac_high_add_station_info(&active_bss_info->station_info_list, &mac_addr[0], ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, 0);
+                curr_station_info = station_info_add(&active_bss_info->station_info_list, &mac_addr[0], ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, 0);
 
                 // Update the new station_info flags field
                 //  Only override the defaults set by the framework add_station_info if the wlan_exp command explicitly included a flag
                 station_flags = curr_station_info->flags;
+
+                // Raise the KEEP flag to prevent the MAC High Framework from removing the struct
+                station_flags |= STATION_INFO_FLAG_KEEP;
 
                 if (mask & CMD_PARAM_AP_ASSOCIATE_FLAG_DISABLE_INACTIVITY_TIMEOUT) {
                     if (flags & CMD_PARAM_AP_ASSOCIATE_FLAG_DISABLE_INACTIVITY_TIMEOUT) {
@@ -474,7 +477,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 curr_station_info->flags = station_flags;
 
                 // Update the rate based on the flags that were set
-                wlan_mac_high_update_station_info_rate(curr_station_info, default_unicast_data_tx_params.phy.mcs, default_unicast_data_tx_params.phy.phy_mode);
+                station_info_update_rate(curr_station_info, default_unicast_data_tx_params.phy.mcs, default_unicast_data_tx_params.phy.phy_mode);
 
                 // Re-enable interrupts
                 wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
