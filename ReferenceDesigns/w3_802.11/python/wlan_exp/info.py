@@ -58,10 +58,10 @@ info_field_defs = {
         ('id',                             'H',      'uint16',  'Identification Index for this station'),
         ('host_name',                      '20s',    '20uint8', 'String hostname (19 chars max), taken from DHCP DISCOVER packets'),
         ('flags',                          'I',      'uint32',  'Station flags'),
-        ('rx_latest_activity_timestamp',   'Q',      'uint64',  'Value of System Time in microseconds of last successful Rx from device'),
-        ('rx_latest_seq',                  'H',      'uint16',  'Sequence number of last packet received from device'),
-        ('padding0',                       'x',      'uint8',   ''),
-        ('padding1',                       'x',      'uint8',   ''),
+        ('latest_rx_timestamp',            'Q',      'uint64',  'Value of System Time in microseconds of last successful Rx from device'),
+        ('latest_txrx_timestamp',          'Q',      'uint64',  'Value of System Time in microseconds of last successful Rx from device or Tx to device'),
+        ('latest_rx_seq',                  'H',      'uint16',  'Sequence number of last packet received from device'),
+        ('padding',                        '6s',     '6uint8',   ''),
         ('tx_phy_mcs',                     'B',      'uint8',   'Current PHY MCS index in [0:7] for new transmissions to device'),
         ('tx_phy_mode',                    'B',      'uint8',   'Current PHY mode for new transmissions to deivce'),
         ('tx_phy_antenna_mode',            'B',      'uint8',   'Current PHY antenna mode in [1:4] for new transmissions to device'),
@@ -92,8 +92,7 @@ info_field_defs = {
     'TXRX_COUNTS' : [
         ('retrieval_timestamp',         'Q',      'uint64',  'Value of System Time in microseconds when structure retrieved from the node'),
         ('mac_addr',                    '6s',     '6uint8',  'MAC address of remote node whose counts are recorded here'),
-        ('flags',                       'B',      'uint8',   'Flags for counts'),
-        ('padding',                     'x',      'uint8',   ''),
+        ('padding',                     'H',      'uint16',  ''),
         ('data_num_rx_bytes',           'Q',      'uint64',  'Number of non-duplicate bytes received in DATA packets from remote node'),
         ('data_num_rx_bytes_total',     'Q',      'uint64',  'Total number of bytes received in DATA packets from remote node'),
         ('data_num_tx_bytes_success',   'Q',      'uint64',  'Total number of bytes successfully transmitted in DATA packets to remote node'),
@@ -111,17 +110,17 @@ info_field_defs = {
         ('mgmt_num_rx_packets_total',   'I',      'uint32',  'Total number of management packets received from remote node'),
         ('mgmt_num_tx_packets_success', 'I',      'uint32',  'Total number of management packets successfully transmitted to remote node'),
         ('mgmt_num_tx_packets_total',   'I',      'uint32',  'Total number of management packets transmitted (successfully or not) to remote node'),
-        ('mgmt_num_tx_attempts',        'Q',      'uint64',  'Total number of attempts management packets to remote node (includes re-transmissions)'),
-        ('latest_txrx_timestamp',       'Q',      'uint64',  'Value of Sytem Time in microseconds of last transmission / reception')]
+        ('mgmt_num_tx_attempts',        'Q',      'uint64',  'Total number of attempts management packets to remote node (includes re-transmissions)')]
 }
 
 
 info_consts_defs = {
     'STATION_INFO' : util.consts_dict({
         'flags'         : util.consts_dict({
-            'DISABLE_ASSOC_CHECK'      : 0x00000001,
-            'DOZE'                     : 0x00000002,
-            'HT_CAPABLE'               : 0x00000004
+            'KEEP'                     : 0x00000001,
+            'DISABLE_ASSOC_CHECK'      : 0x00000002,
+            'DOZE'                     : 0x00000004,
+            'HT_CAPABLE'               : 0x00000008
         }),
         'tx_phy_mode'   : util.phy_modes,
         'tx_mac_flags'  : util.consts_dict()
