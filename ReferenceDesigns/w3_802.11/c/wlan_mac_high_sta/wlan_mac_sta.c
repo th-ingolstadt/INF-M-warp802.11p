@@ -39,6 +39,7 @@
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_bss_info.h"
+#include "wlan_mac_station_info.h"
 #include "wlan_mac_scan.h"
 #include "wlan_mac_sta_join.h"
 #include "wlan_mac_sta.h"
@@ -203,7 +204,6 @@ int main() {
 
 	// Initialize callbacks
 	wlan_mac_util_set_eth_rx_callback(           (void *) ethernet_receive);
-	wlan_mac_high_set_mpdu_tx_done_callback(     (void *) mpdu_transmit_done);
 	wlan_mac_high_set_mpdu_rx_callback(          (void *) mpdu_rx_process);
 	wlan_mac_high_set_uart_rx_callback(          (void *) uart_rx);
 	wlan_mac_high_set_poll_tx_queues_callback(   (void *) poll_tx_queues);
@@ -489,52 +489,6 @@ void purge_all_data_tx_queue(){
 	purge_queue(UNICAST_QID);         // Unicast Queue
 }
 
-
-
-
-/*****************************************************************************/
-/**
- * @brief Callback to handle a packet after it was transmitted by the lower-level MAC
- *
- * This function is called when CPU Low indicates it has completed the Tx process for a packet previously
- * submitted by CPU High.
- *
- * CPU High has two responsibilities post-Tx:
- *  - Cleanup any resources dedicated to the packet
- *
- * @param tx_frame_info* tx_frame_info
- *  - Pointer to the frame info which was just transmitted
- * @param wlan_mac_low_tx_details* tx_low_details
- *  - Pointer to the array of data recorded by the lower-level MAC about each re-transmission of the MPDU
- * @param u16 num_tx_low_details
- *  - number of elements in array pointed to by previous argument
- * @return None
- *****************************************************************************/
-void mpdu_transmit_done(tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details, u16 num_tx_low_details) {
-	u32                   	 i;
-	// Additional variables (Future Use)
-	// void*                  mpdu                    = (u8*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
-	// u8*                    mpdu_ptr_u8             = (u8*)mpdu;
-	// mac_header_80211*      tx_80211_header         = (mac_header_80211*)((void *)mpdu_ptr_u8);
-
-	// Log all of the TX Low transmissions
-	for (i = 0; i < num_tx_low_details; i++) {
-		// Log the TX low
-		wlan_exp_log_create_tx_low_entry(tx_frame_info, &tx_low_details[i], i);
-	}
-
-	// Log the TX MPDU
-	wlan_exp_log_create_tx_high_entry(tx_frame_info);
-
-	// Send log entry to wlan_exp controller immediately (not currently supported)
-	//
-	// if (tx_high_event_log_entry != NULL) {
-    //     wn_transmit_log_entry((void *)tx_high_event_log_entry);
-	// }
-}
-
-
-
 /*****************************************************************************/
 /**
  * @brief Callback to handle insertion of an Ethernet reception into the corresponding wireless Tx queue
@@ -563,7 +517,7 @@ int ethernet_receive(tx_queue_element_t* curr_tx_queue_element, u8* eth_dest, u8
 	// Check associations
 	//     Is there an AP to send the packet to?
 	if(active_bss_info != NULL){
-		ap_station_info = (station_info_t*)((active_bss_info->station_info_list.first)->data);
+		ap_station_info = (station_info_t*)((active_bss_info->members.first)->data);
 
 		// Send the packet to the AP
 		if(queue_num_queued(UNICAST_QID) < max_queue_size){
@@ -613,15 +567,18 @@ int ethernet_receive(tx_queue_element_t* curr_tx_queue_element, u8* eth_dest, u8
  *
  * This callback function will process all the received MPDUs.
  *
+ * This function must implement the state machine that will allow a station to join the AP.
+ *
  * @param  void* pkt_buf_addr
  *     - Packet buffer address;  Contains the contents of the MPDU as well as other packet information from CPU low
  * @param  station_info_t * station_info
  *     - Pointer to metadata about the station from which this frame was received
+ * @param  rx_common_entry* rx_event_log_entry
+ * 	   - Pointer to the log entry created for this reception by the MAC High Framework
  * @return u32 flags
  *
- * FIXME: add log entry
  *****************************************************************************/
-u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info) {
+u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_entry* rx_event_log_entry) {
 
 	rx_frame_info_t*    	rx_frame_info            = (rx_frame_info_t*)pkt_buf_addr;
 	void*               	mac_payload              = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
@@ -629,7 +586,6 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info) {
 	mac_header_80211*   	rx_80211_header          = (mac_header_80211*)((void *)mac_payload_ptr_u8);
 
 	u16                 	rx_seq;
-	rx_common_entry*    	rx_event_log_entry       = NULL;
 
 	u8                  	unicast_to_me;
 	u8                  	to_multicast;
@@ -642,9 +598,6 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info) {
 
 	u16 					length   = rx_frame_info->phy_details.length;
 
-
-	// Log the reception
-	rx_event_log_entry = wlan_exp_log_create_rx_entry(rx_frame_info);
 
 	// If this function was passed a CTRL frame (e.g., CTS, ACK), then we should just quit.
 	// The only reason this occured was so that it could be logged in the line above.
@@ -677,7 +630,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info) {
 			}
 		}
 
-		if( active_bss_info != NULL && station_info_is_member(&active_bss_info->station_info_list, station_info) ) {
+		if( active_bss_info != NULL && station_info_is_member(&active_bss_info->members, station_info) ) {
 
 			is_associated  = 1;
 
@@ -904,7 +857,7 @@ void ltg_event(u32 id, void* callback_arg){
 			break;
 		}
 
-		ap_station_info = (station_info_t*)((active_bss_info->station_info_list.first)->data);
+		ap_station_info = (station_info_t*)((active_bss_info->members.first)->data);
 
 		// Send a Data packet to AP
 		if(queue_num_queued(UNICAST_QID) < max_queue_size){
@@ -961,7 +914,7 @@ int  sta_disassociate( void ) {
 	if(active_bss_info != NULL){
 
 		// Get the AP station info
-		ap_station_info_entry = active_bss_info->station_info_list.first;
+		ap_station_info_entry = active_bss_info->members.first;
 		ap_station_info       = (station_info_t*)ap_station_info_entry->data;
 
 		//
@@ -1101,7 +1054,7 @@ u32	configure_bss(bss_config_t* bss_config){
 			// This will not result in any OTA transmissions to the stations.
 
 			if (active_bss_info != NULL) {
-				curr_station_info_entry = active_bss_info->station_info_list.first;
+				curr_station_info_entry = active_bss_info->members.first;
 				curr_station_info = (station_info_t*)(curr_station_info_entry->data);
 
 				// Purge any data for the AP
@@ -1111,7 +1064,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				curr_station_info->flags &= ~STATION_INFO_FLAG_KEEP;
 
 				// Remove the association
-				station_info_remove( &active_bss_info->station_info_list, curr_station_info->addr );
+				station_info_remove( &active_bss_info->members, curr_station_info->addr );
 
 				// Update the hex display to show STA is not currently associated
 				sta_update_hex_display(0);
@@ -1183,7 +1136,7 @@ u32	configure_bss(bss_config_t* bss_config){
 					//     - Set ht_capable argument to the HT_CAPABLE capability of the BSS.  Given that the STA does not know
 					//       the HT capabilities of the AP, it is reasonable to assume that they are the same as the BSS.
 					//
-					ap_station_info = station_info_add(&(active_bss_info->station_info_list), active_bss_info->bssid, 0, &default_unicast_data_tx_params,
+					ap_station_info = station_info_add(&(active_bss_info->members), active_bss_info->bssid, 0, &default_unicast_data_tx_params,
 																	 (active_bss_info->capabilities & BSS_CAPABILITIES_HT_CAPABLE));
 
 					if (ap_station_info != NULL) {
@@ -1233,7 +1186,7 @@ u32	configure_bss(bss_config_t* bss_config){
 
 				// Get the AP station info
 				if (ap_station_info == NULL) {
-					dl_entry * entry = station_info_find_by_addr(active_bss_info->bssid, &(active_bss_info->station_info_list));
+					dl_entry * entry = station_info_find_by_addr(active_bss_info->bssid, &(active_bss_info->members));
 
 					if (entry != NULL) {
 						ap_station_info = (station_info_t*)(entry->data);
@@ -1347,7 +1300,7 @@ void up_button(){
  *****************************************************************************/
 dl_list * get_station_info_list(){
 	if(active_bss_info != NULL){
-		return &(active_bss_info->station_info_list);
+		return &(active_bss_info->members);
 	} else {
 		return NULL;
 	}

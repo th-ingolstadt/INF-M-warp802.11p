@@ -36,10 +36,10 @@
 #define STATION_INFO_TIMEOUT_USEC                           600000000
 
 /********************************************************************
- * @brief Frame Counts Structure
+ * @brief Tx/Rx Counts Sub-structure
  *
  * This struct contains counts about the communications link. It is intended to
- * be instantiated multiple times in the broader counts_txrx struct so that
+ * be instantiated multiple times in the broader txrx_counts_t struct so that
  * different packet types can be individually tracked.
  *
  ********************************************************************/
@@ -53,37 +53,31 @@ typedef struct{
     u32        tx_num_packets_success;      ///< # of successfully transmitted packets (high-level MPDUs)
     u32        tx_num_packets_total;        ///< Total # of transmitted packets (high-level MPDUs)
     u64        tx_num_attempts;             ///< # of low-level attempts (including retransmissions)
-} frame_counts_txrx_t;
-CASSERT(sizeof(frame_counts_txrx_t) == 56, frame_counts_txrx_alignment_check);
+} txrx_counts_sub_t;
+CASSERT(sizeof(txrx_counts_sub_t) == 56,txrx_counts_sub_alignment_check);
 
 
 /********************************************************************
- * @brief Counts Structure
+ * @brief Station Counts Structure
  *
  * This struct contains counts about the communications link.  Additionally,
  * counting different parameters can be decoupled from station_info structs
  * entirely to enable promiscuous counts about unassociated devices seen in
  * the network.
  *
- * NOTE:  The reason that the reference design uses a #define for fields in
- *     two different structs is so that fields that must be in two different
- *     structs stay in sync and so there is not another level of indirection
- *     by using nested structs.
- *
  ********************************************************************/
-
-#define COUNTS_TXRX_COMMON_FIELDS                                                                  						\
-		frame_counts_txrx_t   data;                          /* Counts about data types	*/								\
+#define STATION_TXRX_COUNTS_COMMON_FIELDS                                                                  						\
+		txrx_counts_sub_t   data;                          /* Counts about data types	*/							\
 		 /*----- 8-byte boundary ------*/																				\
-		frame_counts_txrx_t   mgmt;                          /* Counts about management types */						\
+		txrx_counts_sub_t   mgmt;                          /* Counts about management types */						\
 		 /*----- 8-byte boundary ------*/																				\
 
 
 typedef struct{
-    COUNTS_TXRX_COMMON_FIELDS
-} counts_txrx_t;
+	STATION_TXRX_COUNTS_COMMON_FIELDS
+} station_txrx_counts_t;
 
-CASSERT(sizeof(counts_txrx_t) == 112, counts_txrx_alignment_check);
+CASSERT(sizeof(station_txrx_counts_t) == 112, station_txrx_counts_alignment_check);
 
 
 /********************************************************************
@@ -128,9 +122,9 @@ typedef struct{
 typedef struct{
     STATION_INFO_COMMON_FIELDS
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
-    counts_txrx_t      txrx_counts;                              	   /* Tx/Rx Counts */
+    station_txrx_counts_t		txrx_counts;                        			/* Tx/Rx Counts */
 #endif
-    rate_selection_info_t rate_info;
+    rate_selection_info_t		rate_info;
 
 } station_info_t;
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
@@ -164,12 +158,16 @@ void   					station_info_rx_process_counts(void* pkt_buf_addr, station_info_t* s
 #endif
 
 void             station_info_print(dl_list* list, u32 option_flags);
-void             counts_txrx_zero_all();
+
+#if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
+void             txrx_counts_zero_all();
+void 			 station_info_clear_txrx_counts(station_txrx_counts_t* txrx_counts);
+#endif
+
 void             station_info_timestamp_check();
 
 station_info_t*  station_info_create(u8* addr);
 void             station_info_reset_all();
-void 			 station_info_clear_counts_txrx(counts_txrx_t* counts_txrx);
 void 			 station_info_clear(station_info_t* station_info);
 
 inline dl_list*  station_info_get_list();

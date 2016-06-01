@@ -150,7 +150,9 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             if (flags & CMD_PARAM_NODE_RESET_FLAG_TXRX_COUNTS) {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_counts, "Reseting Counts\n");
-                counts_txrx_zero_all();
+#if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
+                txrx_counts_zero_all();
+#endif
             }
 
             if (flags & CMD_PARAM_NODE_RESET_FLAG_LTG) {
@@ -430,7 +432,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "AP: Associate\n");
 
-            if ((active_bss_info != NULL) &&(active_bss_info->station_info_list.length < MAX_NUM_ASSOC)) {
+            if ((active_bss_info != NULL) &&(active_bss_info->members.length < MAX_NUM_ASSOC)) {
 
                 // Get MAC Address
                 wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[2], &mac_addr[0]);
@@ -448,7 +450,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 // Add association
                 //     - Set ht_capable argument to zero.  This will be set correctly by the code below based on the
                 //       flags of the command.
-                curr_station_info = station_info_add(&active_bss_info->station_info_list, &mac_addr[0], ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, 0);
+                curr_station_info = station_info_add(&active_bss_info->members, &mac_addr[0], ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, 0);
 
                 // Update the new station_info flags field
                 //  Only override the defaults set by the framework add_station_info if the wlan_exp command explicitly included a flag
@@ -490,7 +492,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                     //
 
                     // Update the hex display
-                    ap_update_hex_display(active_bss_info->station_info_list.length);
+                    ap_update_hex_display(active_bss_info->members.length);
 
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Associated with node: ");
                 } else {

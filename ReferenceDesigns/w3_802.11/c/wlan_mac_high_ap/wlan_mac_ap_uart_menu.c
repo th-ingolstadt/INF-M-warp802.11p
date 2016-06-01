@@ -199,7 +199,9 @@ void uart_rx(u8 rxByte){
 				// 'r' - Reset station counts
 				//
 				case ASCII_r:
-					counts_txrx_zero_all();
+#if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
+					txrx_counts_zero_all();
+#endif
 				break;
 
 				// ----------------------------------------
@@ -287,7 +289,7 @@ void print_station_status(){
 		timestamp = get_system_time_usec();
 		xil_printf("\f");
 
-		curr_entry = active_bss_info->station_info_list.first;
+		curr_entry = active_bss_info->members.first;
 
 		while(curr_entry != NULL){
 			curr_station_info = (station_info_t*)(curr_entry->data);
@@ -319,7 +321,7 @@ void print_queue_status(){
 	xil_printf(" FREE || MCAST|");
 
 	if(active_bss_info != NULL){
-		curr_entry = active_bss_info->station_info_list.first;
+		curr_entry = active_bss_info->members.first;
 		while(curr_entry != NULL){
 			curr_station_info = (station_info_t*)(curr_entry->data);
 			xil_printf("%6d|", curr_station_info->ID);
@@ -331,7 +333,7 @@ void print_queue_status(){
 
 	xil_printf("%6d||%6d|",queue_num_free(),queue_num_queued(MCAST_QID));
 	if(active_bss_info != NULL){
-		curr_entry = active_bss_info->station_info_list.first;
+		curr_entry = active_bss_info->members.first;
 		while(curr_entry != NULL){
 			curr_station_info = (station_info_t*)(curr_entry->data);
 			xil_printf("%6d|", queue_num_queued(STATION_ID_TO_QUEUE_ID(curr_station_info->ID)));

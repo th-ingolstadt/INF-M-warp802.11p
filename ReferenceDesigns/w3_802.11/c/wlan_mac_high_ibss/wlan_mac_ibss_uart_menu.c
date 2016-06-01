@@ -37,7 +37,7 @@
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_bss_info.h"
-#include "wlan_mac_counts_txrx.h"
+#include "wlan_mac_station_info.h"
 
 
 //
@@ -155,10 +155,10 @@ void uart_rx(u8 rxByte){
 				break;
 
 				// ----------------------------------------
-				// '3' - Print Counts
+				// '3' - Print Station Infos with Counts
 				//
 				case ASCII_3:
-					counts_txrx_print_all();
+					station_info_print(NULL , STATION_INFO_PRINT_OPTION_FLAG_INCLUDE_COUNTS);
 				break;
 
 				// ----------------------------------------
@@ -197,7 +197,7 @@ void uart_rx(u8 rxByte){
 				// 'r' - Reset station counts
 				//
 				case ASCII_r:
-					counts_txrx_zero_all();
+					txrx_counts_zero_all();
 				break;
 
 				// ----------------------------------------
@@ -280,7 +280,7 @@ void print_station_status() {
 		xil_printf("\f");
 
 		if(active_bss_info != NULL){
-			curr_entry = active_bss_info->station_info_list.first;
+			curr_entry = active_bss_info->members.first;
 
 			while(curr_entry != NULL){
 				curr_station_info = (station_info_t*)(curr_entry->data);
@@ -291,7 +291,7 @@ void print_station_status() {
 				xil_printf(" ID: %02x -- MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n", curr_station_info->ID,
 						curr_station_info->addr[0],curr_station_info->addr[1],curr_station_info->addr[2],curr_station_info->addr[3],curr_station_info->addr[4],curr_station_info->addr[5]);
 
-				xil_printf("     - Last heard from         %d ms ago\n",((u32)(timestamp - (curr_station_info->rx_latest_activity_timestamp)))/1000);
+				xil_printf("     - Last heard from         %d ms ago\n",((u32)(timestamp - (curr_station_info->latest_rx_timestamp)))/1000);
 				xil_printf("     - # of queued MPDUs:      %d\n", queue_num_queued(STATION_ID_TO_QUEUE_ID(curr_station_info->ID)));
 
 				curr_entry = dl_entry_next(curr_entry);
@@ -313,7 +313,7 @@ void print_queue_status(){
 	xil_printf(" FREE || MCAST|");
 
 	if(active_bss_info != NULL){
-		curr_entry = active_bss_info->station_info_list.first;
+		curr_entry = active_bss_info->members.first;
 		while(curr_entry != NULL){
 			curr_station_info = (station_info_t*)(curr_entry->data);
 			xil_printf("%6d|", curr_station_info->ID);
@@ -325,7 +325,7 @@ void print_queue_status(){
 	xil_printf("%6d||%6d|",queue_num_free(),queue_num_queued(MCAST_QID));
 
 	if(active_bss_info != NULL){
-		curr_entry = active_bss_info->station_info_list.first;
+		curr_entry = active_bss_info->members.first;
 		while(curr_entry != NULL){
 			curr_station_info = (station_info_t*)(curr_entry->data);
 			xil_printf("%6d|", queue_num_queued(STATION_ID_TO_QUEUE_ID(curr_station_info->ID)));

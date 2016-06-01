@@ -97,11 +97,14 @@ inline station_info_t* station_info_tx_process(void* pkt_buf_addr) {
 	mac_header_80211* 		tx_80211_header   = (mac_header_80211*)((u8*)tx_frame_info + PHY_TX_PKT_BUF_MPDU_OFFSET);
 	dl_entry*				curr_dl_entry;
 	station_info_t*			curr_station_info;
-	counts_txrx_t*			curr_counts_txrx;
-	frame_counts_txrx_t*	frame_counts_txrx;
+#if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
+	station_txrx_counts_t*	curr_txrx_counts;
+	txrx_counts_sub_t*		txrx_counts_sub;
 	u8						pkt_type;
 
+
 	pkt_type = (tx_80211_header->frame_control_1 & MAC_FRAME_CTRL1_MASK_TYPE);
+#endif
 
 	curr_dl_entry = station_info_find_by_addr(tx_80211_header->address_1, NULL);
 
@@ -154,8 +157,8 @@ inline station_info_t* station_info_tx_process(void* pkt_buf_addr) {
 		curr_station_info->latest_rx_timestamp = get_system_time_usec();
 	}
 
-
-	curr_counts_txrx = &(curr_station_info->txrx_counts);
+#if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
+	curr_txrx_counts = &(curr_station_info->txrx_counts);
 
 	switch(pkt_type){
 		default:
@@ -163,21 +166,22 @@ inline station_info_t* station_info_tx_process(void* pkt_buf_addr) {
 			return curr_station_info;
 		break;
 		case MAC_FRAME_CTRL1_TYPE_DATA:
-			frame_counts_txrx = &(curr_counts_txrx->data);
+			txrx_counts_sub = &(curr_txrx_counts->data);
 		break;
 		case MAC_FRAME_CTRL1_TYPE_MGMT:
-			frame_counts_txrx = &(curr_counts_txrx->mgmt);
+			txrx_counts_sub = &(curr_txrx_counts->mgmt);
 		break;
 	}
 
-	(frame_counts_txrx->tx_num_packets_total)++;
-	(frame_counts_txrx->tx_num_bytes_total) += (tx_frame_info->length);
-	(frame_counts_txrx->tx_num_attempts)    += (tx_frame_info->num_tx_attempts);
+	(txrx_counts_sub->tx_num_packets_total)++;
+	(txrx_counts_sub->tx_num_bytes_total) += (tx_frame_info->length);
+	(txrx_counts_sub->tx_num_attempts)    += (tx_frame_info->num_tx_attempts);
 
 	if((tx_frame_info->tx_result) == TX_MPDU_RESULT_SUCCESS){
-		(frame_counts_txrx->tx_num_packets_success)++;
-		(frame_counts_txrx->tx_num_bytes_success) += tx_frame_info->length;
+		(txrx_counts_sub->tx_num_packets_success)++;
+		(txrx_counts_sub->tx_num_bytes_success) += tx_frame_info->length;
 	}
+#endif
 
 	// Add Station Info into station_info_list
 	dl_entry_insertEnd(&station_info_list, curr_dl_entry);
@@ -258,8 +262,8 @@ void station_info_rx_process_counts(void* pkt_buf_addr, station_info_t* station_
 	rx_frame_info_t*    	rx_frame_info   	     = (rx_frame_info_t*)pkt_buf_addr;
 	void*               	mac_payload              = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
 	mac_header_80211*   	rx_80211_header          = (mac_header_80211*)((void *)mac_payload);
-	counts_txrx_t*			curr_counts_txrx;
-	frame_counts_txrx_t*	frame_counts_txrx;
+	station_txrx_counts_t*	curr_txrx_counts;
+	txrx_counts_sub_t*		txrx_counts_sub;
 	u8						pkt_type;
 	u16 					length   = rx_frame_info->phy_details.length;
 
@@ -272,7 +276,7 @@ void station_info_rx_process_counts(void* pkt_buf_addr, station_info_t* station_
 		// control frames will not be considered for counts either since the CTS
 		// and ACK frames have no addr2 field.
 
-		curr_counts_txrx = &(station_info->txrx_counts);
+		curr_txrx_counts = &(station_info->txrx_counts);
 
 		switch(pkt_type){
 			default:
@@ -280,20 +284,20 @@ void station_info_rx_process_counts(void* pkt_buf_addr, station_info_t* station_
 				return;
 			break;
 			case MAC_FRAME_CTRL1_TYPE_DATA:
-				frame_counts_txrx = &(curr_counts_txrx->data);
+				txrx_counts_sub = &(curr_txrx_counts->data);
 			break;
 			case MAC_FRAME_CTRL1_TYPE_MGMT:
-				frame_counts_txrx = &(curr_counts_txrx->mgmt);
+				txrx_counts_sub = &(curr_txrx_counts->mgmt);
 			break;
 		}
 
-		(frame_counts_txrx->rx_num_packets_total)++;
-		(frame_counts_txrx->rx_num_bytes_total) += (length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));
+		(txrx_counts_sub->rx_num_packets_total)++;
+		(txrx_counts_sub->rx_num_bytes_total) += (length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));
 
 		if( (option_flags & RX_PROCESS_COUNTS_OPTION_FLAG_IS_DUPLICATE) == 0){
 			//Unique reception
-			(frame_counts_txrx->rx_num_packets)++;
-			(frame_counts_txrx->rx_num_bytes) += (length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));
+			(txrx_counts_sub->rx_num_packets)++;
+			(txrx_counts_sub->rx_num_bytes) += (length - WLAN_PHY_FCS_NBYTES - sizeof(mac_header_80211));
 		}
 	}
 }
@@ -307,7 +311,9 @@ void	station_info_print(dl_list* list, u32 option_flags){
 	dl_list*			local_list;
 	dl_entry* 			curr_dl_entry;
 	station_info_t* 	curr_station_info;
-	counts_txrx_t*		curr_counts_txrx;
+#if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
+	station_txrx_counts_t*		curr_txrx_counts;
+#endif
 
 	if(list != NULL){
 		local_list = list;
@@ -338,25 +344,25 @@ void	station_info_print(dl_list* list, u32 option_flags){
 
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
 		if(option_flags & STATION_INFO_PRINT_OPTION_FLAG_INCLUDE_COUNTS){
-			curr_counts_txrx = &(curr_station_info->txrx_counts);
-			xil_printf("  Data   Rx Num Bytes:           %d\n", (u32)(curr_counts_txrx->data.rx_num_bytes));
-			xil_printf("  Data   Rx Num Bytes Total:     %d\n", (u32)(curr_counts_txrx->data.rx_num_bytes_total));
-			xil_printf("  Data   Tx Num Bytes Success:   %d\n", (u32)(curr_counts_txrx->data.tx_num_bytes_success));
-			xil_printf("  Data   Tx Num Bytes Total:     %d\n", (u32)(curr_counts_txrx->data.tx_num_bytes_total));
-			xil_printf("  Data   Rx Num Packets:         %d\n", (u32)(curr_counts_txrx->data.rx_num_packets));
-			xil_printf("  Data   Rx Num Packets Total:   %d\n", (u32)(curr_counts_txrx->data.rx_num_packets_total));
-			xil_printf("  Data   Tx Num Packets Success: %d\n", (u32)(curr_counts_txrx->data.tx_num_packets_success));
-			xil_printf("  Data   Tx Num Packets Total:   %d\n", (u32)(curr_counts_txrx->data.tx_num_packets_total));
-			xil_printf("  Data   Tx Num Attempts:        %d\n", (u32)(curr_counts_txrx->data.tx_num_attempts));
-			xil_printf("  Mgmt.  Rx Num Bytes:           %d\n", (u32)(curr_counts_txrx->mgmt.rx_num_bytes));
-			xil_printf("  Mgmt.  Rx Num Bytes Total:     %d\n", (u32)(curr_counts_txrx->mgmt.rx_num_bytes_total));
-			xil_printf("  Mgmt.  Tx Num Bytes Success:   %d\n", (u32)(curr_counts_txrx->mgmt.tx_num_bytes_success));
-			xil_printf("  Mgmt.  Tx Num Bytes Total:     %d\n", (u32)(curr_counts_txrx->mgmt.tx_num_bytes_total));
-			xil_printf("  Mgmt.  Rx Num Packets:         %d\n", (u32)(curr_counts_txrx->mgmt.rx_num_packets));
-			xil_printf("  Mgmt.  Rx Num Packets Total:   %d\n", (u32)(curr_counts_txrx->mgmt.rx_num_packets_total));
-			xil_printf("  Mgmt.  Tx Num Packets Success: %d\n", (u32)(curr_counts_txrx->mgmt.tx_num_packets_success));
-			xil_printf("  Mgmt.  Tx Num Packets Total:   %d\n", (u32)(curr_counts_txrx->mgmt.tx_num_packets_total));
-			xil_printf("  Mgmt.  Tx Num Attempts:        %d\n", (u32)(curr_counts_txrx->mgmt.tx_num_attempts));
+			curr_txrx_counts = &(curr_station_info->txrx_counts);
+			xil_printf("  Data   Rx Num Bytes:           %d\n", (u32)(curr_txrx_counts->data.rx_num_bytes));
+			xil_printf("  Data   Rx Num Bytes Total:     %d\n", (u32)(curr_txrx_counts->data.rx_num_bytes_total));
+			xil_printf("  Data   Tx Num Bytes Success:   %d\n", (u32)(curr_txrx_counts->data.tx_num_bytes_success));
+			xil_printf("  Data   Tx Num Bytes Total:     %d\n", (u32)(curr_txrx_counts->data.tx_num_bytes_total));
+			xil_printf("  Data   Rx Num Packets:         %d\n", (u32)(curr_txrx_counts->data.rx_num_packets));
+			xil_printf("  Data   Rx Num Packets Total:   %d\n", (u32)(curr_txrx_counts->data.rx_num_packets_total));
+			xil_printf("  Data   Tx Num Packets Success: %d\n", (u32)(curr_txrx_counts->data.tx_num_packets_success));
+			xil_printf("  Data   Tx Num Packets Total:   %d\n", (u32)(curr_txrx_counts->data.tx_num_packets_total));
+			xil_printf("  Data   Tx Num Attempts:        %d\n", (u32)(curr_txrx_counts->data.tx_num_attempts));
+			xil_printf("  Mgmt.  Rx Num Bytes:           %d\n", (u32)(curr_txrx_counts->mgmt.rx_num_bytes));
+			xil_printf("  Mgmt.  Rx Num Bytes Total:     %d\n", (u32)(curr_txrx_counts->mgmt.rx_num_bytes_total));
+			xil_printf("  Mgmt.  Tx Num Bytes Success:   %d\n", (u32)(curr_txrx_counts->mgmt.tx_num_bytes_success));
+			xil_printf("  Mgmt.  Tx Num Bytes Total:     %d\n", (u32)(curr_txrx_counts->mgmt.tx_num_bytes_total));
+			xil_printf("  Mgmt.  Rx Num Packets:         %d\n", (u32)(curr_txrx_counts->mgmt.rx_num_packets));
+			xil_printf("  Mgmt.  Rx Num Packets Total:   %d\n", (u32)(curr_txrx_counts->mgmt.rx_num_packets_total));
+			xil_printf("  Mgmt.  Tx Num Packets Success: %d\n", (u32)(curr_txrx_counts->mgmt.tx_num_packets_success));
+			xil_printf("  Mgmt.  Tx Num Packets Total:   %d\n", (u32)(curr_txrx_counts->mgmt.tx_num_packets_total));
+			xil_printf("  Mgmt.  Tx Num Attempts:        %d\n", (u32)(curr_txrx_counts->mgmt.tx_num_attempts));
 		}
 #endif
 
@@ -373,11 +379,11 @@ void station_info_reset_all_counts_txrx(){
 	//This function will return all counts to 0.
 
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
-	int       			iter;
-	u32       			i;
-	dl_entry* 			curr_dl_entry;
-	station_info_t* 	curr_station_info;
-	counts_txrx_t* 		curr_counts_txrx;
+	int       					iter;
+	u32       					i;
+	dl_entry* 					curr_dl_entry;
+	station_info_t* 			curr_station_info;
+	station_txrx_counts_t* 		curr_txrx_counts;
 
 	i = 0;
 	iter          = station_info_list.length;
@@ -386,10 +392,10 @@ void station_info_reset_all_counts_txrx(){
 
 	while ((curr_dl_entry != NULL) && (iter-- > 0)) {
 		curr_station_info = (station_info_t*)(curr_dl_entry->data);
-		curr_counts_txrx = &(curr_station_info->txrx_counts);
+		curr_txrx_counts = &(curr_station_info->txrx_counts);
 
-		bzero(&(curr_counts_txrx->data), sizeof(frame_counts_txrx_t));
-		bzero(&(curr_counts_txrx->mgmt), sizeof(frame_counts_txrx_t));
+		bzero(&(curr_txrx_counts->data), sizeof(txrx_counts_sub_t));
+		bzero(&(curr_txrx_counts->mgmt), sizeof(txrx_counts_sub_t));
 
 		curr_dl_entry = dl_entry_prev(curr_dl_entry);
 		i++;
@@ -610,6 +616,7 @@ void station_info_reset_all(){
 	}
 }
 
+#if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
 /**
  * @brief Zero all Counts
  *
@@ -618,26 +625,27 @@ void station_info_reset_all(){
  * @param  None
  * @return None
  */
-void counts_txrx_zero_all(){
-	dl_entry * 		next_dl_entry = station_info_list.first;
-	dl_entry * 		curr_dl_entry;
-	station_info_t* curr_station_info;
-	counts_txrx_t*	curr_counts_txrx;
-    int		   		iter = station_info_list.length;
+void txrx_counts_zero_all(){
+	dl_entry * 				next_dl_entry = station_info_list.first;
+	dl_entry * 				curr_dl_entry;
+	station_info_t* 		curr_station_info;
+	station_txrx_counts_t*	curr_txrx_counts;
+    int		   				iter = station_info_list.length;
 
 	while( (next_dl_entry != NULL) && (iter-- > 0) ){
 		curr_dl_entry = next_dl_entry;
 		next_dl_entry = dl_entry_next(curr_dl_entry);
 		curr_station_info = (station_info_t*)(curr_dl_entry->data);
-		curr_counts_txrx = &(curr_station_info->txrx_counts);
-		station_info_clear_counts_txrx(curr_counts_txrx);
+		curr_txrx_counts = &(curr_station_info->txrx_counts);
+		station_info_clear_txrx_counts(curr_txrx_counts);
 	}
+
 }
 
-
-void station_info_clear_counts_txrx(counts_txrx_t* counts_txrx){
-	bzero(counts_txrx, sizeof(counts_txrx_t));
+void station_info_clear_txrx_counts(station_txrx_counts_t* txrx_counts){
+	bzero(txrx_counts, sizeof(station_txrx_counts_t));
 }
+#endif
 
 void station_info_clear(station_info_t* station_info){
 	if (station_info != NULL){

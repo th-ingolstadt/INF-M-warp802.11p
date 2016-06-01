@@ -15,7 +15,10 @@
 
 /***************************** Include Files *********************************/
 
+#include "wlan_mac_high.h"
 #include "wlan_mac_scan.h"
+#include "wlan_mac_entries.h"
+#include "wlan_mac_station_info.h"
 
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_IBSS_H_
@@ -70,8 +73,7 @@ void association_timestamp_adjust(s64 timestamp_diff);
 
 int  ethernet_receive(tx_queue_element_t* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length);
 
-void mpdu_rx_process(void* pkt_buf_addr);
-void mpdu_transmit_done(tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details, u16 num_tx_low_details);
+u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_entry* rx_event_log_entry);
 bss_info_t* active_bss_info_getter();
 void beacon_transmit_done( tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details );
 void process_scan_state_change(scan_state_t scan_state);

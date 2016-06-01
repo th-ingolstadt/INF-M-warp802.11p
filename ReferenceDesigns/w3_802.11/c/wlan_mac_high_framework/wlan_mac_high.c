@@ -89,7 +89,8 @@ volatile function_ptr_t      		pb_u_callback;                ///< User callback 
 volatile function_ptr_t      		pb_m_callback;                ///< User callback for "middle" pushbutton
 volatile function_ptr_t      		pb_d_callback;                ///< User callback for "down" pushbutton
 volatile function_ptr_t      		uart_callback;                ///< User callback for UART reception
-volatile function_ptr_t      		mpdu_tx_done_callback;        ///< User callback for lower-level message that MPDU transmission is complete
+volatile function_ptr_t      		mpdu_tx_high_done_callback;   ///< User callback for lower-level message that MPDU transmission is complete
+volatile function_ptr_t      		mpdu_tx_low_done_callback;    ///< User callback for lower-level message that MPDU transmission is complete
 volatile function_ptr_t      		mpdu_rx_callback;             ///< User callback for lower-level message that MPDU reception is ready for processing
 volatile function_ptr_t      		tx_poll_callback;             ///< User callback when higher-level framework is ready to send a packet to low
 volatile function_ptr_t		 		beacon_tx_done_callback;	   ///< User callback for low-level message that a Beacon transmission is complete
@@ -340,16 +341,17 @@ void wlan_mac_high_init(){
 	// ***************************************************
     // Initialize callbacks and global state variables
 	// ***************************************************
-	pb_u_callback            = (function_ptr_t)wlan_null_callback;
-	pb_m_callback            = (function_ptr_t)wlan_null_callback;
-	pb_d_callback            = (function_ptr_t)wlan_null_callback;
-	uart_callback            = (function_ptr_t)wlan_null_callback;
-	mpdu_rx_callback         = (function_ptr_t)wlan_null_callback;
-	mpdu_tx_done_callback    = (function_ptr_t)wlan_null_callback;
-	beacon_tx_done_callback	 = (function_ptr_t)wlan_null_callback;
-	tx_poll_callback         = (function_ptr_t)wlan_null_callback;
-	mpdu_tx_dequeue_callback = (function_ptr_t)wlan_null_callback;
-	cpu_low_reboot_callback  = (function_ptr_t)wlan_null_callback;
+	pb_u_callback            		= (function_ptr_t)wlan_null_callback;
+	pb_m_callback            		= (function_ptr_t)wlan_null_callback;
+	pb_d_callback            		= (function_ptr_t)wlan_null_callback;
+	uart_callback            		= (function_ptr_t)wlan_null_callback;
+	mpdu_rx_callback         		= (function_ptr_t)wlan_null_callback;
+	mpdu_tx_high_done_callback    	= (function_ptr_t)wlan_null_callback;
+	mpdu_tx_low_done_callback    	= (function_ptr_t)wlan_null_callback;
+	beacon_tx_done_callback	 		= (function_ptr_t)wlan_null_callback;
+	tx_poll_callback         		= (function_ptr_t)wlan_null_callback;
+	mpdu_tx_dequeue_callback 		= (function_ptr_t)wlan_null_callback;
+	cpu_low_reboot_callback  		= (function_ptr_t)wlan_null_callback;
 
 	set_mailbox_rx_callback((function_ptr_t)wlan_mac_high_ipc_rx);
 
@@ -811,10 +813,11 @@ void wlan_mac_high_set_uart_rx_callback(function_ptr_t callback){
 
 
 /**
- * @brief Set MPDU Transmission Complete Callback
+ * @brief Set MPDU Transmission Complete Callback (High-level)
  *
  * Tells the framework which function should be called when
- * the lower-level CPU confirms that an MPDU has been transmitted.
+ * the lower-level CPU confirms that a high-level MPDU transmission has
+ * completed.
  *
  * @param function_ptr_t callback
  *  - Pointer to callback function
@@ -827,8 +830,24 @@ void wlan_mac_high_set_uart_rx_callback(function_ptr_t callback){
  * tx_frame_info metadata.
  *
  */
-void wlan_mac_high_set_mpdu_tx_done_callback(function_ptr_t callback){
-	mpdu_tx_done_callback = callback;
+void wlan_mac_high_set_mpdu_tx_high_done_callback(function_ptr_t callback){
+	mpdu_tx_high_done_callback = callback;
+}
+
+/**
+ * @brief Set MPDU Transmission Complete Callback (Low-level)
+ *
+ * Tells the framework which function should be called when
+ * the lower-level CPU confirms that a low-level MPDU transmission has
+ * completed.
+ *
+ * @param function_ptr_t callback
+ *  - Pointer to callback function
+ * @return None
+ *
+ */
+void wlan_mac_high_set_mpdu_tx_low_done_callback(function_ptr_t callback){
+	mpdu_tx_low_done_callback = callback;
 }
 
 
@@ -1522,11 +1541,10 @@ void wlan_mac_high_ipc_rx(){
  */
 void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 
-	u8                  rx_pkt_buf;
-	u8					tx_pkt_buf;
-    u32                 temp_1;
-	rx_frame_info_t*    rx_frame_info;
-	tx_frame_info_t*    tx_frame_info;
+	u8                  		rx_pkt_buf;
+	u8							tx_pkt_buf;
+	rx_frame_info_t*    		rx_frame_info;
+	tx_frame_info_t*    		tx_frame_info;
 
     // Determine what type of message this is
 	switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)) {
@@ -1558,6 +1576,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 
 			station_info_t* 		station_info;
 			u32						mpdu_rx_process_flags;
+			rx_common_entry* 		rx_event_log_entry;
 
 			rx_pkt_buf = msg->arg0;
 			if(rx_pkt_buf < NUM_RX_PKT_BUFS){
@@ -1579,9 +1598,11 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 							//We will also pass this reception off to the Station Info subsystem
 							station_info = station_info_rx_process((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)));
 
+							//Log this RX event
+							rx_event_log_entry = wlan_exp_log_create_rx_entry(rx_frame_info);
+
 							// Call the RX callback function to process the received packet
-							// FIXME: Add log entry pointer to callback arg
-							mpdu_rx_process_flags = mpdu_rx_callback((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), station_info);
+							mpdu_rx_process_flags = mpdu_rx_callback((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), station_info, rx_event_log_entry);
 
 #if	WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
 							if( (mpdu_rx_process_flags & MAC_RX_CALLBACK_RETURN_FLAG_NO_COUNTS) == 0 ){
@@ -1617,10 +1638,16 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 		} break;
 
 		//---------------------------------------------------------------------
-		case IPC_MBOX_TX_MPDU_DONE:
+		case IPC_MBOX_TX_MPDU_DONE: {
 			// CPU Low has finished the Tx process for the previously submitted-accepted frame
 			//     CPU High should do any necessary post-processing, then recycle the packet buffer
             //
+
+		    u32                 		num_tx_low_details, i;
+		    wlan_mac_low_tx_details_t* 	tx_low_details;
+		    tx_high_entry*				tx_high_event_log_entry;
+		    tx_low_entry*				tx_low_event_log_entry;
+
 			tx_pkt_buf = msg->arg0;
 			if(tx_pkt_buf < NUM_TX_PKT_BUFS){
 				tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
@@ -1642,8 +1669,21 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 						//We will pass this completed transmission off to the Station Info subsystem
 						station_info_tx_process((void*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)));
 
-						temp_1  = (4*(msg->num_payload_words)) / sizeof(wlan_mac_low_tx_details_t);
-						mpdu_tx_done_callback(tx_frame_info, (wlan_mac_low_tx_details_t*)(msg->payload_ptr), temp_1);
+						num_tx_low_details  = (4*(msg->num_payload_words)) / sizeof(wlan_mac_low_tx_details_t);
+						tx_low_details = (wlan_mac_low_tx_details_t*)(msg->payload_ptr);
+
+						// Log the low-level transmissions and call the application callback for each one
+						//  Note: eventually, this step will be separated from IPC_MBOX_TX_MPDU_DONE
+						for(i = 0; i < num_tx_low_details; i++) {
+							// Log the TX low
+							tx_low_event_log_entry = wlan_exp_log_create_tx_low_entry(tx_frame_info, &tx_low_details[i], i);
+							mpdu_tx_low_done_callback(tx_frame_info, &(tx_low_details[i]), tx_low_event_log_entry);
+						}
+
+						// Log the high-level transmission and call the application callback
+						tx_high_event_log_entry = wlan_exp_log_create_tx_high_entry(tx_frame_info);
+						mpdu_tx_high_done_callback(tx_frame_info, tx_high_event_log_entry);
+
 						tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 					break;
 					// Something has gone wrong - TX_DONE message disagrees
@@ -1668,7 +1708,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 			}
 
 
-		break;
+		} break;
 
 
 		//---------------------------------------------------------------------

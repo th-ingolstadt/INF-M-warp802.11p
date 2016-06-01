@@ -146,7 +146,7 @@ typedef struct{
     BSS_INFO_COMMON_FIELDS
 
     u32     flags;
-    dl_list station_info_list; //FIXME: Rename to "members"
+    dl_list members;
 } bss_info_t;
 
 CASSERT(sizeof(bss_info_t) == 72, bss_info_t_alignment_check);

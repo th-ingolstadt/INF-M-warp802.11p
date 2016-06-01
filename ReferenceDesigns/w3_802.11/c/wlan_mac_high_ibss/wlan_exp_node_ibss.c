@@ -36,7 +36,7 @@
 #include "wlan_mac_bss_info.h"
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_ibss.h"
-#include "wlan_mac_counts_txrx.h"
+#include "wlan_mac_station_info.h"
 
 
 /*************************** Constant Definitions ****************************/
@@ -136,7 +136,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             if (flags & CMD_PARAM_NODE_RESET_FLAG_TXRX_COUNTS) {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_counts, "Reseting Counts\n");
-                counts_txrx_zero_all();
+                txrx_counts_zero_all();
             }
 
             if (flags & CMD_PARAM_NODE_RESET_FLAG_LTG) {
@@ -215,7 +215,7 @@ void wlan_exp_ibss_tx_cmd_add_association(u8* mac_addr) {
         //     - Set ht_capable argument to the HT_CAPABLE capability of the BSS.  Given that the node does not know
         //       the HT capabilities of the new station, it is reasonable to assume that they are the same as the BSS.
         //
-        wlan_mac_high_add_station_info(&(active_bss_info->station_info_list), mac_addr, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params,
+        station_info_add(&(active_bss_info->members), mac_addr, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params,
                                        (active_bss_info->capabilities & BSS_CAPABILITIES_HT_CAPABLE));
     }
 }

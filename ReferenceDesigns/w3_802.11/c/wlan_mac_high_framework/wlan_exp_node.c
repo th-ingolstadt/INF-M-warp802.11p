@@ -115,7 +115,7 @@ u32           process_buffer_cmds(int socket_index, void * from, cmd_resp * comm
 dl_entry *    find_station_info(u8 * mac_addr);
 void          zero_station_info(void * dest);
 void          copy_station_info_to_dest(void * source, void * dest, u8* mac_addr);
-
+dl_entry *    find_counts_txrx(u8 * mac_addr);
 void          zero_counts_txrx(void * dest);
 void          copy_counts_txrx_to_dest(void * source, void * dest, u8* mac_addr);
 
@@ -1167,18 +1167,17 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - size            - uint32  - Number of payload bytes in this packet
             //   - byte[]          - uint8[] - Array of payload bytes
             //
-#if 0
-        	//Fixme: update to pull from station_info_t
+
             resp_sent = process_buffer_cmds(socket_index, from, command, response,
                                             cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_resp_len,
                                             print_type_counts, "counts",
-                                            wlan_mac_high_get_counts_txrx_list(),
-                                            sizeof(wlan_exp_counts_txrx_t),
+                                            station_info_get_list(),
+                                            sizeof(wlan_exp_station_txrx_counts_t),
                                             &wlan_exp_get_id_in_counts,
-                                            &wlan_mac_high_find_counts_txrx_addr,
+                                            &find_counts_txrx,
                                             &copy_counts_txrx_to_dest,
                                             &zero_counts_txrx);
-#endif
+
         }
         break;
 
@@ -3584,20 +3583,26 @@ void copy_station_info_to_dest(void * source, void * dest, u8* mac_addr) {
     }
 }
 
+dl_entry * find_counts_txrx(u8 * mac_addr) {
+
+	return station_info_find_by_addr(mac_addr, NULL);
+
+}
+
 void zero_counts_txrx(void * dest) {
 
-    wlan_exp_counts_txrx_t * counts = (wlan_exp_counts_txrx_t *)(dest);
+	wlan_exp_station_txrx_counts_t* counts = (wlan_exp_station_txrx_counts_t *)(dest);
 
     // Do not zero out timestamp
-    bzero((void *)(&counts->counts), sizeof(wlan_exp_counts_txrx_lite_t));
+    bzero((void *)(&counts->counts), sizeof(wlan_exp_station_txrx_counts_lite_t));
 }
 
 
 
-void copy_counts_txrx_to_dest(void * source, void * dest, u8* mac_addr) {
+void copy_counts_txrx_to_dest(void* source, void* dest, u8* mac_addr) {
 
-	wlan_exp_counts_txrx_lite_t	* curr_source    = (wlan_exp_counts_txrx_lite_t *)(source);
-    wlan_exp_counts_txrx_t 		* curr_dest      = (wlan_exp_counts_txrx_t *)(dest);
+	station_info_t* 					curr_source    = (station_info_t*)(source);
+    wlan_exp_station_txrx_counts_t* 	curr_dest      = (wlan_exp_station_txrx_counts_t*)(dest);
 
     // Set the timestamp using system time
     curr_dest->timestamp = get_system_time_usec();
@@ -3605,20 +3610,29 @@ void copy_counts_txrx_to_dest(void * source, void * dest, u8* mac_addr) {
     // Fill in zeroed entry if source is NULL
     //   - All fields are zero except last_txrx_timestamp which is CMD_PARAM_NODE_TIME_RSVD_VAL_64
     if (source == NULL) {
-        curr_source = wlan_mac_high_malloc(sizeof(wlan_exp_counts_txrx_lite_t));
+        curr_source = wlan_mac_high_malloc(sizeof(station_info_t));
 
         if (curr_source != NULL) {
-            bzero(curr_source, sizeof(wlan_exp_counts_txrx_lite_t));
+            bzero(curr_source, sizeof(station_info_t));
 
             // Add in MAC address
-            // memcpy(curr_source->addr, mac_addr, MAC_ADDR_LEN);
-            // FIXME: Counts no longer have addresses since they are a subfield of station_info_t
+            memcpy(curr_source->addr, mac_addr, MAC_ADDR_LEN);
         }
     }
 
     // Copy the source information to the destination
     if (curr_source != NULL) {
-        memcpy((void *)(&curr_dest->counts), (void *)(curr_source), sizeof(wlan_exp_counts_txrx_lite_t));
+
+    	//Copy the address out of the station_info_t
+    	memcpy(curr_dest->addr, curr_source->addr, 6);
+
+#if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
+    	//Copy the counts out of the station_info_t
+        memcpy((void *)(&curr_dest->counts), (void *)(&curr_source->txrx_counts), sizeof(wlan_exp_station_txrx_counts_lite_t));
+#else
+        //There are no counts anywhere in the station_info_t struct, so we will return all zeroes.
+        bzero((void *)(&curr_dest->counts), sizeof(counts_txrx_t));
+#endif
     } else {
         wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_counts, "Could not copy counts_txrx to entry\n");
     }
@@ -3866,7 +3880,7 @@ u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr) {
             if (wlan_addr_eq(mac_addr, active_bss_info->bssid)) {
                 id = WLAN_EXP_AID_ME;
             } else {
-                entry = station_info_find_by_addr(mac_addr, &(active_bss_info->station_info_list));
+                entry = station_info_find_by_addr(mac_addr, &(active_bss_info->members));
 
                 if (entry != NULL) {
                 	station_info = (station_info_t*)(entry->data);
@@ -3892,7 +3906,7 @@ u32  wlan_exp_get_id_in_counts(u8 * mac_addr) {
     if (wlan_addr_eq(mac_addr, zero_addr)) {
         id = WLAN_EXP_AID_ALL;
     } else {
-		entry = station_info_find_by_addr(mac_addr, &(active_bss_info->station_info_list));
+		entry = station_info_find_by_addr(mac_addr, &(active_bss_info->members));
 
 		if (entry != NULL) {
 			id = WLAN_EXP_AID_DEFAULT;            // Only returns the default AID if found

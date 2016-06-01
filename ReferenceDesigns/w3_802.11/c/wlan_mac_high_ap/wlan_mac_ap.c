@@ -40,6 +40,7 @@
 #include "wlan_mac_dl_list.h"
 #include "ascii_characters.h"
 #include "wlan_mac_bss_info.h"
+#include "wlan_mac_station_info.h"
 #include "wlan_mac_mgmt_tags.h"
 #include "wlan_mac_scan.h"
 #include "wlan_mac_ap.h"
@@ -206,7 +207,6 @@ int main(){
 
 	// Initialize callbacks
 	wlan_mac_util_set_eth_rx_callback(          (void*)ethernet_receive);
-	wlan_mac_high_set_mpdu_tx_done_callback(    (void*)mpdu_transmit_done);
 	wlan_mac_high_set_beacon_tx_done_callback(  (void*)beacon_transmit_done);
 	wlan_mac_high_set_mpdu_rx_callback(         (void*)mpdu_rx_process);
 	wlan_mac_high_set_pb_u_callback(            (void*)up_button);
@@ -692,7 +692,7 @@ void update_tim_tag_all(u32 sched_id){
 		//Since we know that the WLAN MAC High Framework keeps the dl_list of
 		//associated stations in increasing AID order, we can use this final
 		//station's AID to define the size of the TIM tag.
-		curr_station_entry = active_bss_info->station_info_list.last;
+		curr_station_entry = active_bss_info->members.last;
 
 		if(curr_station_entry != NULL){
 			station_info = (station_info_t*)(curr_station_entry->data);
@@ -721,7 +721,7 @@ void update_tim_tag_all(u32 sched_id){
 		if(queue_num_queued(MCAST_QID)>0){
 			tim_control |= 0x01; //Raise the multicast bit in the TIM control field
 		}
-		curr_station_entry = active_bss_info->station_info_list.first;
+		curr_station_entry = active_bss_info->members.first;
 		while(curr_station_entry != NULL){
 			station_info = (station_info_t*)(curr_station_entry->data);
 
@@ -847,11 +847,11 @@ void poll_tx_queues(){
 					if(pause_data_queue == 0){
 						curr_station_info_entry = next_station_info_entry;
 
-						for(i = 0; i < (active_bss_info->station_info_list.length + 1); i++) {
+						for(i = 0; i < (active_bss_info->members.length + 1); i++) {
 							// Loop through all associated stations' queues and the broadcast queue
 							if(curr_station_info_entry == NULL){
 								// Check the broadcast queue
-								next_station_info_entry = active_bss_info->station_info_list.first;
+								next_station_info_entry = active_bss_info->members.first;
 
 								if( (num_dozed_stations == 0)
 										|| (get_system_time_usec() < gl_power_save_configuration.dtim_timestamp)
@@ -868,8 +868,8 @@ void poll_tx_queues(){
 
 							} else {
 								curr_station_info = (station_info_t*)(curr_station_info_entry->data);
-								if( station_info_is_member(&active_bss_info->station_info_list, curr_station_info) ){
-									if(curr_station_info_entry == active_bss_info->station_info_list.last){
+								if( station_info_is_member(&active_bss_info->members, curr_station_info) ){
+									if(curr_station_info_entry == active_bss_info->members.last){
 										// We've reached the end of the table, so we wrap around to the beginning
 										next_station_info_entry = NULL;
 									} else {
@@ -928,11 +928,11 @@ void purge_all_data_tx_queue(){
 
 	if(active_bss_info == NULL) return;
 
-	int			  iter = active_bss_info->station_info_list.length;
+	int			  iter = active_bss_info->members.length;
 
 	// Purge all data transmit queues
 	purge_queue(MCAST_QID);                                    		// Broadcast Queue
-	curr_station_info_entry = active_bss_info->station_info_list.first;
+	curr_station_info_entry = active_bss_info->members.first;
 
 	while( (curr_station_info_entry != NULL) && (iter-- > 0)){
 		curr_station_info = (station_info_t*)(curr_station_info_entry->data);
@@ -940,52 +940,6 @@ void purge_all_data_tx_queue(){
 		curr_station_info_entry = dl_entry_next(curr_station_info_entry);
 	}
 }
-
-
-
-/*****************************************************************************/
-/**
- * @brief Callback to handle a packet after it was transmitted by the lower-level MAC
- *
- * This function is called when CPU Low indicates it has completed the Tx process for a packet previously
- * submitted by CPU High.
- *
- * @param tx_frame_info* tx_frame_info
- *  - Pointer to the frame info which was just transmitted
- * @param wlan_mac_low_tx_details* tx_low_details
- *  - Pointer to the array of data recorded by the lower-level MAC about each re-transmission of the MPDU
- * @param u16 num_tx_low_details
- *  - number of elements in array pointed to by previous argument
- * @return None
- *****************************************************************************/
-void mpdu_transmit_done(tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details, u16 num_tx_low_details) {
-	u32                    i;
-
-	// Additional variables (Future Use)
-	// void*                  mpdu                    = (u8*)tx_mpdu + PHY_TX_PKT_BUF_MPDU_OFFSET;
-	// u8*                    mpdu_ptr_u8             = (u8*)mpdu;
-	// mac_header_80211*      tx_80211_header         = (mac_header_80211*)((void *)mpdu_ptr_u8);
-
-	// Log all of the TX Low transmissions
-
-	//xil_printf("------------\n"); //DEBUG
-	for(i = 0; i < num_tx_low_details; i++) {
-		// Log the TX low
-		wlan_exp_log_create_tx_low_entry(tx_frame_info, &tx_low_details[i], i);
-	}
-
-	// Log the TX MPDU
-	wlan_exp_log_create_tx_high_entry(tx_frame_info);
-
-
-	// Send log entry to wlan_exp controller immediately (not currently supported)
-	//
-	// if (tx_high_event_log_entry != NULL) {
-    //     wn_transmit_log_entry((void *)tx_high_event_log_entry);
-	// }
-}
-
-
 
 /*****************************************************************************/
 /**
@@ -1028,7 +982,7 @@ void ltg_event(u32 id, void* callback_arg){
 				if(is_multicast){
 					queue_sel = MCAST_QID;
 				} else {
-					station_info_entry = station_info_find_by_addr(addr_da, &active_bss_info->station_info_list);
+					station_info_entry = station_info_find_by_addr(addr_da, &active_bss_info->members);
 					if(station_info_entry != NULL){
 						station_info = (station_info_t*)(station_info_entry->data);
 						queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
@@ -1046,7 +1000,7 @@ void ltg_event(u32 id, void* callback_arg){
 				if(is_multicast){
 					queue_sel = MCAST_QID;
 				} else {
-					station_info_entry = station_info_find_by_addr(addr_da, &active_bss_info->station_info_list);
+					station_info_entry = station_info_find_by_addr(addr_da, &active_bss_info->members);
 					if(station_info_entry != NULL){
 						station_info = (station_info_t*)(station_info_entry->data);
 						queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
@@ -1057,8 +1011,8 @@ void ltg_event(u32 id, void* callback_arg){
 			break;
 
 			case LTG_PYLD_TYPE_ALL_ASSOC_FIXED:
-				if(active_bss_info->station_info_list.length > 0){
-					station_info_entry = active_bss_info->station_info_list.first;
+				if(active_bss_info->members.length > 0){
+					station_info_entry = active_bss_info->members.first;
 					station_info = (station_info_t*)station_info_entry->data;
 					addr_da = station_info->addr;
 					queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
@@ -1213,7 +1167,7 @@ int ethernet_receive(tx_queue_element_t* curr_tx_queue_element, u8* eth_dest, u8
 	} else {
 		// Check associations
 		//     Is this packet meant for a station we are associated with?
-		entry = station_info_find_by_addr(eth_dest, &active_bss_info->station_info_list);
+		entry = station_info_find_by_addr(eth_dest, &active_bss_info->members);
 
 		if( entry != NULL ) {
 			station_info = (station_info_t*)(entry->data);
@@ -1289,7 +1243,7 @@ void remove_inactive_station_infos() {
 
 	if(active_bss_info == NULL) return;
 
-	next_station_info_entry = active_bss_info->station_info_list.first;
+	next_station_info_entry = active_bss_info->members.first;
 
 	while(next_station_info_entry != NULL) {
 		curr_station_info_entry = next_station_info_entry;
@@ -1343,11 +1297,12 @@ void remove_inactive_station_infos() {
  *     - Packet buffer address;  Contains the contents of the MPDU as well as other packet information from CPU low
  * @param  station_info_t * station_info
  *     - Pointer to metadata about the station from which this frame was received
+ * @param  rx_common_entry* rx_event_log_entry
+ * 	   - Pointer to the log entry created for this reception by the MAC High Framework
  * @return u32 flags
  *
- * FIXME: add log entry
  *****************************************************************************/
-u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info) {
+u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_entry* rx_event_log_entry) {
 
 	rx_frame_info_t*    		rx_frame_info            = (rx_frame_info_t*)pkt_buf_addr;
 	void*               		mac_payload              = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
@@ -1359,7 +1314,6 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info) {
 	u16                 		rx_seq;
 	tx_queue_element_t* 		curr_tx_queue_element;
 	tx_queue_buffer_t*  		curr_tx_queue_buffer;
-	rx_common_entry*    		rx_event_log_entry;
 	char                		ssid[SSID_LEN_MAX];
 	u8                  		ssid_length				  = 0;
 	u8							sta_is_ht_capable		  = 0;
@@ -1382,9 +1336,6 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info) {
 	// Set the additional info field to NULL
 	rx_frame_info->additional_info = (u32)NULL;
 
-	// Log the reception FIXME: move to framework
-	rx_event_log_entry = wlan_exp_log_create_rx_entry(rx_frame_info);
-
 	// If this function was passed a CTRL frame (e.g., CTS, ACK), then we should just quit.
 	// The only reason this occured was so that it could be logged in the line above.
 	if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_CTRL){
@@ -1392,7 +1343,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info) {
 	}
 
 	// Determine if this STA is currently associated to the active_bss_info
-	sta_is_associated = station_info_is_member(&active_bss_info->station_info_list, station_info);
+	sta_is_associated = station_info_is_member(&active_bss_info->members, station_info);
 	sta_is_authenticated = (sta_is_associated || station_info_is_member(&authenticated_unassociated_stations, station_info));
 
 	// Determine destination of packet
@@ -1511,7 +1462,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info) {
 							} else {
 								// Packet is not a multicast packet.  Check if it is destined for one of our stations
 								if(active_bss_info != NULL){
-									associated_station_entry = station_info_find_by_addr(rx_80211_header->address_3, &active_bss_info->station_info_list);
+									associated_station_entry = station_info_find_by_addr(rx_80211_header->address_3, &active_bss_info->members);
 								}
 								if(associated_station_entry != NULL){
 									//TODO: Needs fix for QoS case to handle u16 offset of QoS Control
@@ -1850,9 +1801,9 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info) {
 							// Add the station info
 							//     - Set ht_capable argument to WLAN_DEFAULT_USE_HT.  This will be updated below with the
 							//       correct value from the tagged parameters in the association request.
-							station_info_add(&active_bss_info->station_info_list, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, WLAN_DEFAULT_USE_HT);
+							station_info_add(&active_bss_info->members, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, WLAN_DEFAULT_USE_HT);
 
-							ap_update_hex_display(active_bss_info->station_info_list.length);
+							ap_update_hex_display(active_bss_info->members.length);
 						}
 
 						if(station_info != NULL) {
@@ -1954,12 +1905,12 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info) {
 						//  in neither the fully associated list or the authenticated-only list
 
 						xil_printf("Authenticated, Associated Stations:\n");
-						station_info_remove(&active_bss_info->station_info_list, rx_80211_header->address_2);
+						station_info_remove(&active_bss_info->members, rx_80211_header->address_2);
 
 						xil_printf("Authenticated, Unassociated Stations:\n");
 						station_info_remove(&authenticated_unassociated_stations, rx_80211_header->address_2);
 
-						ap_update_hex_display(active_bss_info->station_info_list.length);
+						ap_update_hex_display(active_bss_info->members.length);
 					}
 				break;
 
@@ -2014,7 +1965,7 @@ void mpdu_dequeue(tx_queue_element_t* packet){
 	if(active_bss_info != NULL){
 		//The below line assumes that each dequeued MPDU will explicitly have a 0-valued ID field for
 		//frames that aren't tied to a particular STA (e.g. management frames).
-		curr_station_entry = station_info_find_by_id(tx_frame_info->ID, &(active_bss_info->station_info_list));
+		curr_station_entry = station_info_find_by_id(tx_frame_info->ID, &(active_bss_info->members));
 		if(curr_station_entry != NULL){
 			curr_station = (station_info_t*)(curr_station_entry->data);
 			if(queue_num_queued(STATION_ID_TO_QUEUE_ID(curr_station->ID)) > 1){
@@ -2095,9 +2046,9 @@ u32  deauthenticate_station( station_info_t* station_info ) {
 	// Remove the "keep" flag for this station_info so the framework can cleanup later.
 	station_info->flags &= ~STATION_INFO_FLAG_KEEP;
 
-	station_info_remove(&active_bss_info->station_info_list, station_info->addr);
+	station_info_remove(&active_bss_info->members, station_info->addr);
 
-	ap_update_hex_display(active_bss_info->station_info_list.length);
+	ap_update_hex_display(active_bss_info->members.length);
 
 	return aid;
 }
@@ -2122,10 +2073,10 @@ void deauthenticate_all_stations(){
 
 	if(active_bss_info == NULL) return;
 
-	iter = active_bss_info->station_info_list.length;
+	iter = active_bss_info->members.length;
 	curr_interrupt_state = wlan_mac_high_interrupt_stop();
 
-	next_station_info_entry = active_bss_info->station_info_list.first;
+	next_station_info_entry = active_bss_info->members.first;
 
 	// Deauthenticate all stations and remove from the association table
 	//
@@ -2255,8 +2206,8 @@ u32	configure_bss(bss_config_t* bss_config){
 
 			if (active_bss_info != NULL) {
 				// Remove all associations
-				next_station_info_entry = active_bss_info->station_info_list.first;
-				iter = active_bss_info->station_info_list.length;
+				next_station_info_entry = active_bss_info->members.first;
+				iter = active_bss_info->members.length;
 
 				while ((next_station_info_entry != NULL) && (iter-- > 0)) {
 					curr_station_info_entry = next_station_info_entry;
@@ -2271,10 +2222,10 @@ u32	configure_bss(bss_config_t* bss_config){
 					curr_station_info->flags &= ~STATION_INFO_FLAG_KEEP;
 
 					// Remove the associations
-					station_info_remove(&active_bss_info->station_info_list, curr_station_info->addr);
+					station_info_remove(&active_bss_info->members, curr_station_info->addr);
 
 					// Update the hex display to show station was removed
-					ap_update_hex_display(active_bss_info->station_info_list.length);
+					ap_update_hex_display(active_bss_info->members.length);
 				}
 
 				// Remove the bss_info from the network list
@@ -2339,7 +2290,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				}
 
 				// Set hex display
-				ap_update_hex_display(active_bss_info->station_info_list.length);
+				ap_update_hex_display(active_bss_info->members.length);
 			}
 		}
 
@@ -2464,14 +2415,13 @@ void up_button(){
  *****************************************************************************/
 dl_list * get_station_info_list(){
 	if(active_bss_info != NULL){
-		return &(active_bss_info->station_info_list);
+		return &(active_bss_info->members);
 	} else {
 		return NULL;
 	}
 }
 u8         * get_wlan_mac_addr()    { return (u8 *)&wlan_mac_addr;      }
 bss_info_t * active_bss_info_getter(){ return active_bss_info; }
-
 
 
 /*****************************************************************************/

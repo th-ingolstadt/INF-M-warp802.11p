@@ -257,7 +257,9 @@ void uart_rx(u8 rxByte){
 				// 'r' - Reset station counts
 				//
 				case ASCII_r:
-					counts_txrx_zero_all();
+#if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
+					txrx_counts_zero_all();
+#endif
 				break;
 
 				// ----------------------------------------
@@ -420,7 +422,7 @@ void print_station_status(){
     station_info_t  * access_point        = NULL;
 
     if(active_bss_info != NULL){
-        access_point_entry = active_bss_info->station_info_list.first;
+        access_point_entry = active_bss_info->members.first;
         access_point = ((station_info_t*)(access_point_entry->data));
     }
 

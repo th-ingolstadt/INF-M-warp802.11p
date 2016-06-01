@@ -33,24 +33,23 @@
 
 #define WLAN_SW_CONFIG_ENABLE_WLAN_EXP      1       //Top-level switch for compiling wlan_exp. Setting to 0 implicitly removes
                                                     // logging code if set to 0 since there would be no way to retrieve the log.
-													//FIXME
+													//FIXME: Incomplete implementation
 
 #define WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS   1       //Top-level switch for compiling counts_txrx.  Setting to 0 removes counts
                                                     // from station_info_t struct definition and disables counts retrieval via
                                                     // wlan_exp.
-													//FIXME
 
 #define WLAN_SW_CONFIG_ENABLE_LOGGING       1       //Top-level switch for compiling Tx/Rx logging. Setting to 0 will not cause
                                                     // the design to not log any entries to DRAM. It will also disable any log
                                                     // retrieval capabilities in wlan_exp. Note: this is logically distinct from
                                                     // COMPILE_WLAN_EXP. (COMPILE_WLAN_EXP 1, COMPILE_LOGGING 0)  still allows
                                                     // wlan_exp control over a node but no logging capabilities.
-													//FIXME
+													//FIXME: Incomplete implementation
 
 #define WLAN_SW_CONFIG_ENABLE_LTG           1       //Top-level switch for compiling LTG functionality. Setting to 0 will remove
                                                     // all LTG-related code from the design as well we disable any wlan_exp
                                                     // commands that control LTGs.
-													//FIXME
+													//FIXME: Incomplete implementation
 
 //---------- USAGE TOGGLES ----------
 // The following toggles affect the number of dl_entry structs that need to be stored
@@ -405,7 +404,8 @@ void               wlan_mac_high_set_pb_u_callback(function_ptr_t callback);
 void               wlan_mac_high_set_pb_m_callback(function_ptr_t callback);
 void               wlan_mac_high_set_pb_d_callback(function_ptr_t callback);
 void               wlan_mac_high_set_uart_rx_callback(function_ptr_t callback);
-void               wlan_mac_high_set_mpdu_tx_done_callback(function_ptr_t callback);
+void               wlan_mac_high_set_mpdu_tx_high_done_callback(function_ptr_t callback);
+void               wlan_mac_high_set_mpdu_tx_low_done_callback(function_ptr_t callback);
 void               wlan_mac_high_set_beacon_tx_done_callback(function_ptr_t callback);
 void 			   wlan_mac_high_set_mpdu_rx_callback(function_ptr_t callback);
 void               wlan_mac_high_set_poll_tx_queues_callback(function_ptr_t callback);

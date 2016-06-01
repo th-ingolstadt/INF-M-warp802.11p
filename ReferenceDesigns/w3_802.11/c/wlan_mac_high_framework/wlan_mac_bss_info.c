@@ -149,8 +149,8 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 					// Clear any old information from the BSS info
 					wlan_mac_high_clear_bss_info(curr_bss_info);
 
-					// Initialize the associated stations list
-					dl_list_init(&(curr_bss_info->station_info_list));
+					// Initialize the members stations list
+					dl_list_init(&(curr_bss_info->members));
 
 					// Copy BSSID into bss_info struct
 					memcpy(curr_bss_info->bssid, rx_80211_header->address_3, MAC_ADDR_LEN);
@@ -333,7 +333,7 @@ dl_entry* bss_info_checkout(){
 		dl_entry_remove(&bss_info_free,bss_info_free.first);
 
 		curr_bss_info = (bss_info_t*)(bsi->data);
-		dl_list_init(&(curr_bss_info->station_info_list));
+		dl_list_init(&(curr_bss_info->members));
 		return bsi;
 	} else {
 		return NULL;
@@ -477,7 +477,7 @@ bss_info_t* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan){
 		wlan_mac_high_clear_bss_info(curr_bss_info);
 
 		// Initialize the associated stations list
-		dl_list_init(&(curr_bss_info->station_info_list));
+		dl_list_init(&(curr_bss_info->members));
 
 		// Copy the BSS ID to the entry
 		memcpy(curr_bss_info->bssid, bssid, MAC_ADDR_LEN);
@@ -541,8 +541,8 @@ void wlan_mac_high_clear_bss_info(bss_info_t * info){
 
 	if (info != NULL){
         // Remove any station infos
-		iter                    = info->station_info_list.length;
-		next_station_info_entry = info->station_info_list.first;
+		iter                    = info->members.length;
+		next_station_info_entry = info->members.first;
 
 		if (((info->flags & BSS_FLAGS_KEEP) == 0) && (next_station_info_entry != NULL)) {
             xil_printf("WARNING:  BSS info not flagged to be kept but contained station_info entries.\n");

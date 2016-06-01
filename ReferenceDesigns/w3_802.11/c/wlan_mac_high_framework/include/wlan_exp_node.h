@@ -334,14 +334,16 @@ CASSERT(sizeof(wlan_exp_bss_info_t) == 56, wlan_exp_bss_info_alignment_check);
 //
 
 typedef struct{
-	COUNTS_TXRX_COMMON_FIELDS
-} wlan_exp_counts_txrx_lite_t;
+	STATION_TXRX_COUNTS_COMMON_FIELDS
+} wlan_exp_station_txrx_counts_lite_t;
 
 typedef struct{
-    u64                 		timestamp;                 // Timestamp of the log entry
-    wlan_exp_counts_txrx_lite_t counts;                    // Framework's counts struct
-} wlan_exp_counts_txrx_t;
-CASSERT(sizeof(wlan_exp_counts_txrx_t) == 120, wlan_exp_counts_txrx_alignment_check);
+    u64                 				timestamp;                 // Timestamp of the log entry
+    u8									addr[6];				   // MAC address associated with this counts struct
+    u16									reserved;
+    wlan_exp_station_txrx_counts_lite_t counts;                    // Framework's counts struct
+} wlan_exp_station_txrx_counts_t;
+CASSERT(sizeof(wlan_exp_station_txrx_counts_t) == 128, wlan_exp_station_txrx_counts_alignment_check);
 
 
 /*************************** Function Prototypes *****************************/
