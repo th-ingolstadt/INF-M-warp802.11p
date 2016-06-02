@@ -1298,7 +1298,7 @@ void up_button(){
  * @param  None
  * @return None
  *****************************************************************************/
-dl_list * get_station_info_list(){
+dl_list * get_bss_member_list(){
 	if(active_bss_info != NULL){
 		return &(active_bss_info->members);
 	} else {

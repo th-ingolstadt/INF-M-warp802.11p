@@ -237,7 +237,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 // If parameter is not the magic number to disassociate all stations
                 if (id != WLAN_EXP_AID_ALL) {
                     // Find the station_info entry
-                    curr_entry = station_info_find_by_addr( &mac_addr[0], get_station_info_list() );
+                    curr_entry = station_info_find_by_addr( &mac_addr[0], get_bss_member_list() );
 
                     if (curr_entry != NULL) {
                         curr_station_info = (station_info_t*)(curr_entry->data);

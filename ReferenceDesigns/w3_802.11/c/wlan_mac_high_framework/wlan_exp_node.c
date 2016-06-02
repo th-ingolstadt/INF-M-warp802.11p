@@ -2566,7 +2566,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
 
         //---------------------------------------------------------------------
-        case CMDID_NODE_GET_STATION_INFO: {
+        case CMDID_NODE_GET_BSS_MEMBERS: {
             // NODE_GET_STATION_INFO Packet Format:
             //   - cmd_args_32[0]   - buffer id
             //   - cmd_args_32[1]   - flags
@@ -2585,7 +2585,36 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             resp_sent = process_buffer_cmds(socket_index, from, command, response,
                                             cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_resp_len,
                                             print_type_node, "station info",
-                                            get_station_info_list(),
+                                            get_bss_member_list(),
+                                            sizeof(wlan_exp_station_info_t),
+                                            &wlan_exp_get_id_in_associated_stations,
+                                            &find_station_info,
+                                            &copy_station_info_to_dest,
+                                            &zero_station_info);
+        }
+        break;
+
+        //---------------------------------------------------------------------
+        case CMDID_NODE_GET_STATION_INFO_LIST: {
+            // NODE_GET_STATION_INFO Packet Format:
+            //   - cmd_args_32[0]   - buffer id
+            //   - cmd_args_32[1]   - flags
+            //   - cmd_args_32[2]   - start_address of transfer
+            //   - cmd_args_32[3]   - size of transfer (in bytes)
+            //   - cmd_args_32[4:5] - MAC Address (All 0xFF means all entries)
+            //
+            // Always returns a valid WLAN Exp Buffer (either 1 or more packets)
+            //   - buffer_id       - uint32  - buffer_id
+            //   - flags           - uint32  - 0
+            //   - bytes_remaining - uint32  - Number of bytes remaining in the transfer
+            //   - start_byte      - uint32  - Byte index of the first byte in this packet
+            //   - size            - uint32  - Number of payload bytes in this packet
+            //   - byte[]          - uint8[] - Array of payload bytes
+            //
+            resp_sent = process_buffer_cmds(socket_index, from, command, response,
+                                            cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_resp_len,
+                                            print_type_node, "station info",
+                                            station_info_get_list(),
                                             sizeof(wlan_exp_station_info_t),
                                             &wlan_exp_get_id_in_associated_stations,
                                             &find_station_info,
@@ -3536,7 +3565,7 @@ void transfer_log_data(u32 socket_index, void * from,
  *
  *****************************************************************************/
 dl_entry * find_station_info(u8 * mac_addr) {
-    dl_list * source_list = get_station_info_list();
+    dl_list * source_list = get_bss_member_list();
 
     if (source_list != NULL) {
         return station_info_find_by_addr(mac_addr, source_list);
@@ -3964,7 +3993,7 @@ int process_tx_power(u32 cmd, u32 aid, int tx_power) {
 
     // For Writes
     if (cmd == CMD_PARAM_WRITE_VAL) {
-        curr_list  = get_station_info_list();
+        curr_list  = get_bss_member_list();
 
         if (curr_list != NULL) {
             if (curr_list->length == 0) { return tx_power; }
@@ -4001,7 +4030,7 @@ int process_tx_power(u32 cmd, u32 aid, int tx_power) {
     // For Reads
     } else {
         if (aid != WLAN_EXP_AID_ALL) {
-            curr_list  = get_station_info_list();
+            curr_list  = get_bss_member_list();
 
             if (curr_list != NULL) {
                 iter       = curr_list->length;
@@ -4053,7 +4082,7 @@ u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 
 
     // For Writes
     if (cmd == CMD_PARAM_WRITE_VAL) {
-        curr_list  = get_station_info_list();
+        curr_list  = get_bss_member_list();
 
         if (curr_list != NULL) {
             if (curr_list->length == 0) { return CMD_PARAM_SUCCESS; }
@@ -4102,7 +4131,7 @@ u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 
     // For Reads
     } else {
         if (aid != WLAN_EXP_AID_ALL) {
-            curr_list  = get_station_info_list();
+            curr_list  = get_bss_member_list();
 
             if (curr_list != NULL) {
                 iter       = curr_list->length;
@@ -4153,7 +4182,7 @@ u32 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 
     // For Writes
     if (cmd == CMD_PARAM_WRITE_VAL) {
-        curr_list  = get_station_info_list();
+        curr_list  = get_bss_member_list();
 
         if (curr_list != NULL) {
             if (curr_list->length == 0) { return ant_mode; }
@@ -4190,7 +4219,7 @@ u32 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
     // For Reads
     } else {
         if (aid != WLAN_EXP_AID_ALL) {
-            curr_list  = get_station_info_list();
+            curr_list  = get_bss_member_list();
 
             if (curr_list != NULL) {
                 iter       = curr_list->length;

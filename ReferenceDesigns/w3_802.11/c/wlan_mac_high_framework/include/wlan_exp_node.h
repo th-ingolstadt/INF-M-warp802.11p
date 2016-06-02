@@ -179,8 +179,9 @@
 //-----------------------------------------------
 // Association Commands
 //
-#define CMDID_NODE_GET_STATION_INFO                        0x007001
+#define CMDID_NODE_GET_BSS_MEMBERS                         0x007001
 #define CMDID_NODE_GET_BSS_INFO                            0x007002
+#define CMDID_NODE_GET_STATION_INFO_LIST                   0x007003
 
 #define CMDID_NODE_DISASSOCIATE                            0x007010
 #define CMDID_NODE_ASSOCIATE                               0x007011
