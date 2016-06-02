@@ -452,7 +452,7 @@ class TxRxCounts(InfoStruct):
         # Clean up the values
         #   - Convert the MAC Address to a colon delimited string
         self['mac_addr'] = util.byte_str_to_mac_addr(self['mac_addr'])
-        self['mac_addr'] = util.mac_addr_to_str(self['mac_addr'])
+        #self['mac_addr'] = util.mac_addr_to_str(self['mac_addr'])
 
 
 # End Class
@@ -515,7 +515,7 @@ class StationInfo(InfoStruct):
             self['host_name'] = ctypes.c_char_p(self['host_name']).value
 
         self['mac_addr'] = util.byte_str_to_mac_addr(self['mac_addr'])
-        self['mac_addr'] = util.mac_addr_to_str(self['mac_addr'])
+        #self['mac_addr'] = util.mac_addr_to_str(self['mac_addr'])
 
 
 # End Class

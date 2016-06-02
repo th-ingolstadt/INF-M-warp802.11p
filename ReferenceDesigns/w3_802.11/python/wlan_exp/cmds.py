@@ -200,8 +200,9 @@ CMD_PARAM_NODE_SCAN_DISABLE                      = 0x00000000
 
 
 # Association commands and defined values
-CMDID_GET_STATION_INFO                           = 0x007001
+CMDID_GET_BSS_MEMBERS                            = 0x007001
 CMDID_GET_BSS_INFO                               = 0x007002
+CMDID_GET_STATION_INFO_LIST                      = 0x007003
 
 CMDID_NODE_DISASSOCIATE                          = 0x007010
 CMDID_NODE_ADD_ASSOCIATION                       = 0x007011
@@ -1618,16 +1619,37 @@ class NodeDisassociate(message.Cmd):
 # End Class
 
 
-class NodeGetStationInfo(message.BufferCmd):
-    """Command to get the station info for a given node."""
+class NodeGetBSSMembers(message.BufferCmd):
+    """Command to get BSS Members."""
     def __init__(self, node=None):
-        super(NodeGetStationInfo, self).__init__()
-        self.command = _CMD_GROUP_NODE + CMDID_GET_STATION_INFO
+        super(NodeGetBSSMembers, self).__init__()
+        self.command = _CMD_GROUP_NODE + CMDID_GET_BSS_MEMBERS
 
-        if node is not None:
-            mac_address = node.wlan_mac_address
-        else:
-            mac_address = CMD_PARAM_GET_ALL_ASSOCIATED
+        mac_address = CMD_PARAM_GET_ALL_ASSOCIATED
+
+        _add_mac_address_to_cmd(self, mac_address)
+
+
+    def process_resp(self, resp):
+        # Contains a Buffer of all station infos.  Need to convert to a list
+        #   of StationInfo()
+        import wlan_exp.info as info
+
+        index   = 0
+        data    = resp.get_bytes()
+        ret_val = info.deserialize_info_buffer(data[index:], "StationInfo()")
+
+        return ret_val
+
+# End Class
+
+class NodeGetStationInfoList(message.BufferCmd):
+    """Command to get list of all Station Infos."""
+    def __init__(self, node=None):
+        super(NodeGetStationInfoList, self).__init__()
+        self.command = _CMD_GROUP_NODE + CMDID_GET_STATION_INFO_LIST
+
+        mac_address = CMD_PARAM_GET_ALL_ASSOCIATED
 
         _add_mac_address_to_cmd(self, mac_address)
 

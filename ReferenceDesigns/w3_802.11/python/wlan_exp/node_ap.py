@@ -161,6 +161,7 @@ class WlanExpNodeAp(node.WlanExpNode):
         """
         ret_val  = []
         ret_list = True
+        is_member = False
 
         if device_list is not None:
             # Convert device_list to a list if it is not already one; set flag to not return a list
@@ -170,9 +171,14 @@ class WlanExpNodeAp(node.WlanExpNode):
 
             for device in device_list:
                 # Check the station info to see if device is there
-                my_station_info = self.get_station_info(device)
+                
+                bss_member_list = self.get_bss_members()
+                
+                for bss_member in bss_member_list:
+                    if bss_member['mac_addr'] == device.wlan_mac_address:
+                        is_member = True
 
-                if my_station_info is not None:
+                if is_member is True:
                     ret_val.append(True)
                 else:
                     ret_val.append(False)

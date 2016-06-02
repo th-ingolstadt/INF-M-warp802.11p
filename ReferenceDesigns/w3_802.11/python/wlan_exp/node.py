@@ -2042,9 +2042,13 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """
         raise NotImplementedError()
 
-
     def get_station_info(self, device_list=None):
-        """Get the station info from the node.
+        
+        ret_val = self.get_bss_members()
+        return ret_val
+        
+    def get_bss_members(self):
+        """Get the BSS members from the node.
 
         The StationInfo() returned by this method can be accessed like a 
         dictionary and has the following fields:
@@ -2059,17 +2063,17 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             | host_name                   |  String hostname (19 chars max), taken from DHCP DISCOVER packets                                  |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | flags                       |  Station flags.  Value containts 1 bit fields:                                                     |
+            |                             |      * 0x0001 - 'KEEP'                                                                             |
+            |                             |      * 0x0002 - 'DISABLE_ASSOC_CHECK'                                                              |
+            |                             |      * 0x0004 - 'DOZE'                                                                             |
+            |                             |      * 0x0008 - 'HT_CAPABLE'                                                                       |
             |                             |                                                                                                    |
-            |                             |      * 0x0001 - 'DISABLE_ASSOC_CHECK'                                                              |
-            |                             |      * 0x0002 - 'DOZE'                                                                             |
-            |                             |      * 0x0004 - 'HT_CAPABLE'                                                                       |
-            |                             |                                                                                                    |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | latest_activity_timestamp   |  Value of System Time in microseconds of last successful Rx from device                            |
+            | latest_rx_timestamp         |  Value of System Time in microseconds of last successful Rx from device                            |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | rx_last_seq                 |  Sequence number of last packet received from device                                               |
+            | latest_txrx_timestamp       |  Value of System Time in microseconds of last Tx or successful Rx from device                      |            
             +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | rx_last_power               |  Rx power in dBm of last packet received from device                                               |
+            | latest_rx_seq               |  Sequence number of last packet received from device                                               |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | tx_phy_mcs                  |  Current PHY MCS index in [0:7] for new transmissions to device                                    |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
@@ -2085,42 +2089,66 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             |                             |                                                                                                    |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
         
-        Args:
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
-                802.11 devices or single 802.11 device for which to get the 
-                station info
-
         Returns:
             station_infos (list of StationInfo):  
-                List of StationInfo() known to the node
+                List of StationInfo() BSS members known to the node
 
-        If the ``device_list`` is a single device, then only a station info or
-        None is returned.  If the ``device_list`` is a list of devices, then a
-        list of station infos will be returned in the same order as the
-        devices in the list.  If any of the station info are not there,
-        None will be inserted in the list.  If the ``device_list`` is not
-        specified, then all the station infos on the node will be returned.
         """
-        ret_val = []
-        if not device_list is None:
-            if (type(device_list) is list):
-                for device in device_list:
-                    info = self.send_cmd(cmds.NodeGetStationInfo(device))
-                    if (len(info) == 1):
-                        ret_val.append(info)
-                    else:
-                        ret_val.append(None)
-            else:
-                ret_val = self.send_cmd(cmds.NodeGetStationInfo(device_list))
-                if (len(ret_val) == 1):
-                    ret_val = ret_val[0]
-                else:
-                    ret_val = None
-        else:
-            ret_val = self.send_cmd(cmds.NodeGetStationInfo())
+        ret_val = self.send_cmd(cmds.NodeGetBSSMembers())
 
         return ret_val
 
+
+    def get_station_info_list(self):
+        """Get the all Station Infos from node.
+
+        The StationInfo() returned by this method can be accessed like a 
+        dictionary and has the following fields:
+        
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | Field                       | Description                                                                                        |
+            +=============================+====================================================================================================+
+            | mac_addr                    |  MAC address of station                                                                            |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | id                          |  Identification Index for this station                                                             |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | host_name                   |  String hostname (19 chars max), taken from DHCP DISCOVER packets                                  |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | flags                       |  Station flags.  Value containts 1 bit fields:                                                     |
+            |                             |      * 0x0001 - 'KEEP'                                                                             |
+            |                             |      * 0x0002 - 'DISABLE_ASSOC_CHECK'                                                              |
+            |                             |      * 0x0004 - 'DOZE'                                                                             |
+            |                             |      * 0x0008 - 'HT_CAPABLE'                                                                       |
+            |                             |                                                                                                    |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | latest_rx_timestamp         |  Value of System Time in microseconds of last successful Rx from device                            |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | latest_txrx_timestamp       |  Value of System Time in microseconds of last Tx or successful Rx from device                      |            
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | latest_rx_seq               |  Sequence number of last packet received from device                                               |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | tx_phy_mcs                  |  Current PHY MCS index in [0:7] for new transmissions to device                                    |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | tx_phy_mode                 |  Current PHY mode for new transmissions to deivce                                                  |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | tx_phy_antenna_mode         |  Current PHY antenna mode in [1:4] for new transmissions to device                                 |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | tx_phy_power                |  Current Tx power in dBm for new transmissions to device                                           |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | tx_mac_flags                |  Flags for Tx MAC config for new transmissions to device.  Value contains 1 bit flags:             |
+            |                             |                                                                                                    |
+            |                             |      * None defined                                                                                |
+            |                             |                                                                                                    |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+        
+        Returns:
+            station_infos (list of StationInfo):  
+                List of all StationInfo() known to the node
+
+        """
+        ret_val = self.send_cmd(cmds.NodeGetStationInfoList())
+
+        return ret_val
 
     def get_bss_info(self):
         """Get the node's BSS info 
