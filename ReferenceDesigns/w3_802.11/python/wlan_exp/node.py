@@ -436,15 +436,14 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         """
         self.send_cmd(cmds.CountsConfigure(promisc_counts))
 
-    def counts_get_txrx(self, device_list=None, return_zeroed_counts_if_none=False):
-        """DEPRECATED: Old name for current get_txrx_counts method"""
-        
+    def counts_get_txrx(self, *args, **kwargs):
+        """DEPRECATED: Old name for current get_txrx_counts method
+        """       
         print("WARNING: the counts_get_txrx() method has been renamed get_txrx_counts!\n")
         print(" The old method will be removed in a future release. Please update your script\n")
-        print(" to use  get_txrx_counts().")
-        
-        return self.get_txrx_counts(device_list=device_list, return_zeroed_counts_if_none=return_zeroed_counts_if_none)
-        
+        print(" to use get_txrx_counts\n")
+        return self.get_txrx_counts(*args, **kwargs)
+
     def get_txrx_counts(self, device_list=None, return_zeroed_counts_if_none=False):
         """Get the Tx/Rx counts data structurs from the node.
 
