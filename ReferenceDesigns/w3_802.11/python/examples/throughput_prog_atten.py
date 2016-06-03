@@ -159,15 +159,15 @@ for idx,atten in enumerate(attens):
     n_ap.ltg_start(ap_ltg_id)
 
     # Record the initial Tx/Rx counts
-    sta_rx_counts_start = n_sta.counts_get_txrx(n_ap)
-    ap_rx_counts_start  = n_ap.counts_get_txrx(n_sta)
+    sta_rx_counts_start = n_sta.get_txrx_counts(n_ap)
+    ap_rx_counts_start  = n_ap.get_txrx_counts(n_sta)
     
     # Wait for the TRIAL_TIME
     time.sleep(TRIAL_TIME)
     
     # Record the ending Tx/Rx counts
-    sta_rx_counts_end = n_sta.counts_get_txrx(n_ap)
-    ap_rx_counts_end  = n_ap.counts_get_txrx(n_sta)
+    sta_rx_counts_end = n_sta.get_txrx_counts(n_ap)
+    ap_rx_counts_end  = n_ap.get_txrx_counts(n_sta)
     
     n_ap.ltg_stop(ap_ltg_id)
     n_ap.queue_tx_data_purge_all()

@@ -29,7 +29,7 @@ class WlanExpNodeIBSS(node.WlanExpNode):
     #-------------------------------------------------------------------------
     # Node Commands
     #-------------------------------------------------------------------------
-    def counts_get_txrx(self, device_list=None, return_zeroed_counts_if_none=True):
+    def get_txrx_counts(self, device_list=None, return_zeroed_counts_if_none=True):
         """Get the counts from the node.
 
         .. note:: This function has the same implementation as WlanExpNode but 
@@ -96,7 +96,7 @@ class WlanExpNodeIBSS(node.WlanExpNode):
         inserted in the list.  If the device_list is not specified, then all 
         the counts on the node will be returned.
         """
-        return super(WlanExpNodeIBSS, self).counts_get_txrx(device_list, return_zeroed_counts_if_none)
+        return super(WlanExpNodeIBSS, self).get_txrx_counts(device_list, return_zeroed_counts_if_none)
 
 
     def configure_bss(self, bssid=False, ssid=None, channel=None, beacon_interval=False, ht_capable=None):

@@ -12,4 +12,4 @@ IBSS Node Methods
 .................
 
 .. automethod:: wlan_exp.node_ibss.WlanExpNodeIBSS.configure_bss
-.. automethod:: wlan_exp.node_ibss.WlanExpNodeIBSS.counts_get_txrx
+.. automethod:: wlan_exp.node_ibss.WlanExpNodeIBSS.get_txrx_counts

@@ -207,15 +207,15 @@ for experiment in experiment_params:
     #       example, to see the packets transmitted from Node 1 to Node 2, get 
     #       the TX/RX counts from Node 1 for Node 2.  
     #
-    node2_txrx_counts_for_node1_start = node2.counts_get_txrx(node1)
-    node1_txrx_counts_for_node2_start = node1.counts_get_txrx(node2)
+    node2_txrx_counts_for_node1_start = node2.get_txrx_counts(node1)
+    node1_txrx_counts_for_node2_start = node1.get_txrx_counts(node2)
 
     # Wait for the TRIAL_TIME
     time.sleep(TRIAL_TIME)
 
     # Record the ending Tx/Rx counts
-    node2_txrx_counts_for_node1_end = node2.counts_get_txrx(node1)
-    node1_txrx_counts_for_node2_end = node1.counts_get_txrx(node2)
+    node2_txrx_counts_for_node1_end = node2.get_txrx_counts(node1)
+    node1_txrx_counts_for_node2_end = node1.get_txrx_counts(node2)
 
     # Stop the AP LTG flow and purge any remaining transmissions in the queue so that nodes are in a known, good state
     if (experiment['node1_ltg_en']):

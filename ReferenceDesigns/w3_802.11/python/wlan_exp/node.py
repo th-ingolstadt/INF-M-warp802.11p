@@ -437,7 +437,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         self.send_cmd(cmds.CountsConfigure(promisc_counts))
 
 
-    def counts_get_txrx(self, device_list=None, return_zeroed_counts_if_none=False):
+    def get_txrx_counts(self, device_list=None, return_zeroed_counts_if_none=False):
         """Get the Tx/Rx counts data structurs from the node.
 
         Args:
@@ -463,9 +463,9 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             +-----------------------------+-----------------------------------------------------------------------------------------------------+
             | mac_addr                    |  MAC address of remote node whose statics are recorded here                                         |
             +-----------------------------+-----------------------------------------------------------------------------------------------------+
-            | associated                  |  Boolean indicating whether remote node is currently associated with this node                      |
+            | data_num_rx_bytes           |  Total number of bytes received in DATA packets from remote node (only non-duplicates)              |
             +-----------------------------+-----------------------------------------------------------------------------------------------------+
-            | data_num_rx_bytes           |  Total number of bytes received in DATA packets from remote node                                    |
+            | data_num_rx_bytes_total     |  Total number of bytes received in DATA packets from remote node (including duplicates)             |
             +-----------------------------+-----------------------------------------------------------------------------------------------------+
             | data_num_tx_bytes_success   |  Total number of bytes successfully transmitted in DATA packets to remote node                      |
             +-----------------------------+-----------------------------------------------------------------------------------------------------+
@@ -479,21 +479,23 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             +-----------------------------+-----------------------------------------------------------------------------------------------------+
             | data_num_tx_attempts        |  Total number of low-level attempts of DATA packets to remote node (includes re-transmissions)      |
             +-----------------------------+-----------------------------------------------------------------------------------------------------+
-            | mgmt_num_rx_bytes           |  Total number of bytes received in management packets from remote node                              |
+            | mgmt_num_rx_bytes           |  Total number of bytes received in management packets from remote node (only non-duplicates)        |
+            +-----------------------------+-----------------------------------------------------------------------------------------------------+
+            | mgmt_num_rx_bytes_total     |  Total number of bytes received in management packets from remote node (including duplicates)       |            
             +-----------------------------+-----------------------------------------------------------------------------------------------------+
             | mgmt_num_tx_bytes_success   |  Total number of bytes successfully transmitted in management packets to remote node                |
             +-----------------------------+-----------------------------------------------------------------------------------------------------+
             | mgmt_num_tx_bytes_total     |  Total number of bytes transmitted (successfully or not) in management packets to remote node       |
             +-----------------------------+-----------------------------------------------------------------------------------------------------+
-            | mgmt_num_rx_packets         |  Total number of management packets received from remote node                                       |
+            | mgmt_num_rx_packets         |  Total number of management packets received from remote node (only non-duplicates)                 |
+            +-----------------------------+-----------------------------------------------------------------------------------------------------+
+            | mgmt_num_rx_packets_total   |  Total number of management packets received from remote node (including duplicates)                |
             +-----------------------------+-----------------------------------------------------------------------------------------------------+
             | mgmt_num_tx_packets_success |  Total number of management packets successfully transmitted to remote node                         |
             +-----------------------------+-----------------------------------------------------------------------------------------------------+
             | mgmt_num_tx_packets_total   |  Total number of management packets transmitted (successfully or not) to remote node                |
             +-----------------------------+-----------------------------------------------------------------------------------------------------+
             | mgmt_num_tx_attempts        |  Total number of low-level attempts of management packets to remote node (includes re-transmissions)|
-            +-----------------------------+-----------------------------------------------------------------------------------------------------+
-            | latest_txrx_timestamp       |  System Time value of last transmission / reception                                                 |
             +-----------------------------+-----------------------------------------------------------------------------------------------------+
 
 

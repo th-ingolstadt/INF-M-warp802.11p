@@ -82,7 +82,7 @@ def run_experiment():
         # For each of the APs, get the counts
         for node in nodes:
             station_info = node.get_station_info()
-            counts       = node.counts_get_txrx()
+            counts       = node.get_txrx_counts()
             print_counts(node, counts, station_info)
 
         print(92*"*")

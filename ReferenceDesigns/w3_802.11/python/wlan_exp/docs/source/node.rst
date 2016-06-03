@@ -142,7 +142,7 @@ maximum is reached, then the oldest counts structure of an unassociated node
 will be overwritten.
 
 .. automethod:: wlan_exp.node.WlanExpNode.counts_configure_txrx
-.. automethod:: wlan_exp.node.WlanExpNode.counts_get_txrx
+.. automethod:: wlan_exp.node.WlanExpNode.get_txrx_counts
 
 
 Local Traffic Generator (LTG)
