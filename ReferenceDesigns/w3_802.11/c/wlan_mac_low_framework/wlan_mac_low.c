@@ -1677,19 +1677,121 @@ inline u32 wlan_mac_low_wlan_chan_to_rc_chan(u32 mac_channel) {
         case 11:
             return_value = mac_channel;
         break;
+
         // 5GHz channels
-        case 36: // 5180MHz
+        case 36: // 5180 MHz
             return_value = 1;
         break;
-        case 40: // 5200MHz
+        case 38: // 5190 MHz
             return_value = 2;
         break;
-        case 44: // 5220MHz
+        case 40: // 5200 MHz
             return_value = 3;
         break;
-        case 48: // 5240MHz
+        case 44: // 5220 MHz
             return_value = 4;
         break;
+        case 46: // 5230 MHz
+            return_value = 5;
+        break;
+        case 48: // 5240 MHz
+            return_value = 6;
+        break;
+#if 0 // Disable these channels by default
+        case 52: // 5260 MHz
+            return_value = 7;
+        break;
+        case 54: // 5270 MHz
+            return_value = 8;
+        break;
+        case 56: // 5280 MHz
+            return_value = 9;
+        break;
+        case 60: // 5300 MHz
+            return_value = 10;
+        break;
+        case 62: // 5310 MHz
+            return_value = 11;
+        break;
+        case 64: // 5320 MHz
+            return_value = 12;
+        break;
+        case 100: // 5500 MHz
+            return_value = 13;
+        break;
+        case 102: // 5510 MHz
+            return_value = 14;
+        break;
+        case 104: // 5520 MHz
+            return_value = 15;
+        break;
+        case 108: // 5540 MHz
+            return_value = 16;
+        break;
+        case 110: // 5550 MHz
+            return_value = 17;
+        break;
+        case 112: // 5560 MHz
+            return_value = 18;
+        break;
+        case 116: // 5580 MHz
+            return_value = 19;
+        break;
+        case 118: // 5590 MHz
+            return_value = 20;
+        break;
+        case 120: // 5600 MHz
+            return_value = 21;
+        break;
+        case 124: // 5620 MHz
+            return_value = 22;
+        break;
+        case 126: // 5630 MHz
+            return_value = 23;
+        break;
+        case 128: // 5640 MHz
+            return_value = 24;
+        break;
+        case 132: // 5660 MHz
+            return_value = 25;
+        break;
+        case 134: // 5670 MHz
+            return_value = 26;
+        break;
+        case 136: // 5680 MHz
+            return_value = 27;
+        break;
+        case 140: // 5700 MHz
+            return_value = 28;
+        break;
+        case 142: // 5710 MHz
+            return_value = 29;
+        break;
+        case 144: // 5720 MHz
+            return_value = 30;
+        break;
+        case 149: // 5745 MHz
+            return_value = 31;
+        break;
+        case 151: // 5755 MHz
+            return_value = 32;
+        break;
+        case 153: // 5765 MHz
+            return_value = 33;
+        break;
+        case 157: // 5785 MHz
+            return_value = 34;
+        break;
+        case 159: // 5795 MHz
+            return_value = 35;
+        break;
+        case 161: // 5805 MHz
+            return_value = 36;
+        break;
+        case 165: // 5825 MHz
+            return_value = 37;
+        break;
+#endif
     }
 
     return return_value;
