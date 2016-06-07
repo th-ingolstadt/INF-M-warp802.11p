@@ -3660,7 +3660,7 @@ void copy_counts_txrx_to_dest(void* source, void* dest, u8* mac_addr) {
         memcpy((void *)(&curr_dest->counts), (void *)(&curr_source->txrx_counts), sizeof(wlan_exp_station_txrx_counts_lite_t));
 #else
         //There are no counts anywhere in the station_info_t struct, so we will return all zeroes.
-        bzero((void *)(&curr_dest->counts), sizeof(counts_txrx_t));
+        bzero((void *)(&curr_dest->counts), sizeof(station_txrx_counts_t));
 #endif
     } else {
         wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_counts, "Could not copy counts_txrx to entry\n");

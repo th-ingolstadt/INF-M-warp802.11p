@@ -43,6 +43,7 @@ volatile static u32          schedule_count;
 
 static wlan_sched_state_t    wlan_sched_coarse;
 static wlan_sched_state_t    wlan_sched_fine;
+static dl_list				 disabled_list;
 
 #if WLAN_SCHED_EXEC_MONITOR
 static u64                   last_exec_timestamp;
@@ -80,10 +81,12 @@ int wlan_mac_schedule_init(){
 	monitor_threshold        = WLAN_SCHED_EXEC_MONITOR_DEFAULT_THRESHOLD;
 #endif
 
-	dl_list_init(&(wlan_sched_coarse.list));
+	dl_list_init(&(wlan_sched_coarse.enabled_list));
 	wlan_sched_coarse.next = NULL;
-	dl_list_init(&(wlan_sched_fine.list));
+	dl_list_init(&(wlan_sched_fine.enabled_list));
 	wlan_sched_fine.next = NULL;
+
+	dl_list_init(&disabled_list);
 
 	// Initialize the timer
 	// The driver for the timer does not handle a reboot of CPU_HIGH
@@ -200,6 +203,7 @@ u32 wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls,
 	curr_system_time     = get_system_time_usec();
 
 	// Initialize the schedule struct
+	sched_ptr->enabled	 = 1;
 	sched_ptr->id        = id;
 	sched_ptr->delay_us  = delay;
 	sched_ptr->num_calls = num_calls;
@@ -211,23 +215,23 @@ u32 wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls,
 		// ------------------------------------------------
 		case SCHEDULE_COARSE:
 			// Start timer if the list goes from 0 -> 1 event
-			if (wlan_sched_coarse.list.length == 0) {
+			if (wlan_sched_coarse.enabled_list.length == 0) {
 				XTmrCtr_SetResetValue(&timer_instance, TIMER_CNTR_SLOW, (SLOW_TIMER_DUR_US * TIMER_CLKS_PER_US));
 				XTmrCtr_Start(&timer_instance, TIMER_CNTR_SLOW);
 			}
 
-			dl_entry_insertBeginning(&(wlan_sched_coarse.list), entry_ptr);
+			dl_entry_insertBeginning(&(wlan_sched_coarse.enabled_list), entry_ptr);
 		break;
 
 		// ------------------------------------------------
 		case SCHEDULE_FINE:
 			// Start timer if the list goes from 0 -> 1 event
-			if(wlan_sched_fine.list.length == 0){
+			if(wlan_sched_fine.enabled_list.length == 0){
 				XTmrCtr_SetResetValue(&timer_instance, TIMER_CNTR_FAST, (FAST_TIMER_DUR_US * TIMER_CLKS_PER_US));
 				XTmrCtr_Start(&timer_instance, TIMER_CNTR_FAST);
 			}
 
-			dl_entry_insertBeginning(&(wlan_sched_fine.list), entry_ptr);
+			dl_entry_insertBeginning(&(wlan_sched_fine.enabled_list), entry_ptr);
 		break;
 
 		// ------------------------------------------------
@@ -240,6 +244,94 @@ u32 wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls,
 	return id;
 }
 
+
+dl_entry* wlan_mac_schedule_disable_id(u8 scheduler_sel, u32 sched_id){
+	dl_entry* sched_entry;
+	dl_list* enabled_list;
+	u8 timer_sel;
+
+	switch(scheduler_sel){
+		case SCHEDULE_COARSE:
+			enabled_list = &(wlan_sched_coarse.enabled_list);
+			timer_sel = TIMER_CNTR_SLOW;
+		break;
+
+		case SCHEDULE_FINE:
+			enabled_list = &(wlan_sched_fine.enabled_list);
+			timer_sel = TIMER_CNTR_FAST;
+		break;
+
+		default:
+			return NULL;
+		break;
+	}
+
+	sched_entry = wlan_mac_schedule_find(scheduler_sel, sched_id);
+
+	if(sched_entry != NULL){
+		if( ((wlan_sched*)(sched_entry->data))->num_calls != 0 ){
+			dl_entry_remove(enabled_list, sched_entry);
+			dl_entry_insertEnd(&disabled_list, sched_entry);
+			((wlan_sched*)(sched_entry->data))->enabled = 0;
+		} else {
+			// wlan_mac_schedule_disable_id() is not supported for a schedule whose num_calls
+			// is 0. The most common occurence of this scenario is trying to disable a schedule
+			// from the final execution of a callback of that schedule.
+			return NULL;
+		}
+	}
+
+	// Stop the timer if there are no more events
+	//     NOTE:  Will be restarted when an event is added or re-enabled
+	if (enabled_list->length == 0) {
+		XTmrCtr_Stop(&timer_instance, timer_sel);
+	}
+
+	return sched_entry;
+}
+
+int wlan_mac_schedule_enable(u8 scheduler_sel, dl_entry* sched_entry){
+
+	dl_list* enabled_list;
+	u8 timer_sel;
+	u32 reset_value;
+
+	if(sched_entry == NULL){
+		return -1;
+	}
+	switch(scheduler_sel){
+		case SCHEDULE_COARSE:
+			enabled_list = &(wlan_sched_coarse.enabled_list);
+			timer_sel = TIMER_CNTR_SLOW;
+			reset_value = (SLOW_TIMER_DUR_US * TIMER_CLKS_PER_US);
+		break;
+
+		case SCHEDULE_FINE:
+			enabled_list = &(wlan_sched_fine.enabled_list);
+			timer_sel = TIMER_CNTR_FAST;
+			reset_value = (FAST_TIMER_DUR_US * TIMER_CLKS_PER_US);
+		break;
+
+		default:
+			return -1;
+		break;
+	}
+
+	dl_entry_remove(&disabled_list, sched_entry);
+	dl_entry_insertEnd(enabled_list, sched_entry);
+
+	((wlan_sched*)(sched_entry->data))->enabled = 1;
+	((wlan_sched*)(sched_entry->data))->target_us = get_system_time_usec() + ((wlan_sched*)(sched_entry->data))->delay_us;
+
+	// Start timer if the list goes from 0 -> 1 event
+	if(wlan_sched_fine.enabled_list.length == 1){
+		XTmrCtr_SetResetValue(&timer_instance, timer_sel, reset_value);
+		XTmrCtr_Start(&timer_instance, timer_sel);
+	}
+
+	return 0;
+
+}
 
 
 /*****************************************************************************/
@@ -279,14 +371,14 @@ void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
 						// the execution of schedule_handler.
 						wlan_sched_coarse.next = dl_entry_next(curr_entry_ptr);
 					}
-					dl_entry_remove(&(wlan_sched_coarse.list), curr_entry_ptr);
+					dl_entry_remove(&(wlan_sched_coarse.enabled_list), curr_entry_ptr);
 					wlan_mac_high_free(curr_entry_ptr);
 					wlan_mac_high_free(curr_sched_ptr);
 				}
 
 				// Stop the timer if there are no more events
 				//     NOTE:  Will be restarted when new event is added
-				if (wlan_sched_coarse.list.length == 0) {
+				if (wlan_sched_coarse.enabled_list.length == 0) {
 					XTmrCtr_Stop(&timer_instance, TIMER_CNTR_SLOW);
 				}
 			break;
@@ -301,14 +393,14 @@ void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
 						// the execution of schedule_handler.
 						wlan_sched_fine.next = dl_entry_next(curr_entry_ptr);
 					}
-					dl_entry_remove(&(wlan_sched_fine.list), curr_entry_ptr);
+					dl_entry_remove(&(wlan_sched_fine.enabled_list), curr_entry_ptr);
 					wlan_mac_high_free(curr_entry_ptr);
 					wlan_mac_high_free(curr_sched_ptr);
 				}
 
 				// Stop the timer if there are no more events
 				//     NOTE:  Will be restarted when new event is added
-				if (wlan_sched_fine.list.length == 0){
+				if (wlan_sched_fine.enabled_list.length == 0){
 					XTmrCtr_Stop(&timer_instance, TIMER_CNTR_FAST);
 				}
 			break;
@@ -464,7 +556,7 @@ void schedule_handler(void * callback_ref, u8 timer_number){
 	}
 
 	// Get the first entry of the schedule dl_list
-	wlan_sched_state->next = wlan_sched_state->list.first;
+	wlan_sched_state->next = wlan_sched_state->enabled_list.first;
 
 	// Update the appropriate scheduler
 	while (wlan_sched_state->next != NULL) {
@@ -489,15 +581,20 @@ void schedule_handler(void * callback_ref, u8 timer_number){
 				(curr_sched_ptr->num_calls)--;
 			}
 
-			if(curr_sched_ptr->num_calls == 0){
-				// Remove event (stops timer if necessary)
-				wlan_mac_remove_schedule(scheduler, sched_id);
-			} else {
-				// Update scheduled event for next execution
-				curr_sched_ptr->target_us = curr_system_time + (u64)(curr_sched_ptr->delay_us);
-			}
-
 			sched_callback(sched_id);
+
+			// The update of the target or removal of the schedule occurs after the callback so that the callback
+			// has the opportunity to "save" the schedule. It can do this by updating "num_calls" or by calling
+			// wlan_mac_schedule_disable
+			if(curr_sched_ptr->enabled == 1){
+				if(curr_sched_ptr->num_calls == 0){
+					// Remove event (stops timer if necessary)
+					wlan_mac_remove_schedule(scheduler, sched_id);
+				} else {
+					// Update scheduled event for next execution
+					curr_sched_ptr->target_us = curr_system_time + (u64)(curr_sched_ptr->delay_us);
+				}
+			}
 		}
 	}
 }
@@ -524,9 +621,9 @@ dl_entry* wlan_mac_schedule_find(u8 scheduler_sel, u32 id){
 
 	// Set the schedule list to check based on the scheduler
 	if (scheduler_sel == SCHEDULE_FINE) {
-		sched_list = &(wlan_sched_fine.list);
+		sched_list = &(wlan_sched_fine.enabled_list);
 	} else {
-		sched_list = &(wlan_sched_coarse.list);
+		sched_list = &(wlan_sched_coarse.enabled_list);
 	}
 
 	// Initialize the loop variables

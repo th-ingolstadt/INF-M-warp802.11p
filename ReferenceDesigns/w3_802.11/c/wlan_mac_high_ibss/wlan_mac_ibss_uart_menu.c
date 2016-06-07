@@ -197,7 +197,9 @@ void uart_rx(u8 rxByte){
 				// 'r' - Reset station counts
 				//
 				case ASCII_r:
+#if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
 					txrx_counts_zero_all();
+#endif
 				break;
 
 				// ----------------------------------------

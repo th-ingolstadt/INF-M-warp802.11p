@@ -71,6 +71,10 @@ static u8                    eth_encap_mode;
 static u32                   num_rx_bd;
 static u32                   num_tx_bd;
 
+// Global representing the schedule ID and pointer
+static u32					 rx_schedule_id;
+static dl_entry* 			 rx_schedule_dl_entry;
+
 // Ethernet Station MAC Address
 //
 //   The station code's implementation of encapsulation and de-encapsulation has an important
@@ -109,7 +113,7 @@ int      init_rx_bd(XAxiDma_Bd * bd_ptr, tx_queue_element_t * tqe_ptr, u32 max_t
 int      wlan_eth_dma_send(u8* pkt_ptr, u32 length);
 int      wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_ptr, u32 eth_rx_len);
 void     eth_rx_interrupt_handler(void *callbarck_arg);
-void     wlan_process_all_eth_pkts();
+void     wlan_process_all_eth_pkts(u32 schedule_id);
 void     wlan_process_eth_rx(XAxiDma_BdRing * rx_ring_ptr, XAxiDma_Bd * bd_ptr);
 
 
@@ -139,6 +143,9 @@ int wlan_eth_init() {
     bd_set_to_process_ptr  = NULL;
     bd_set_count           = 0;
     max_pkts               = 2;                       // Value in [1 .. XAXIDMA_ALL_BDS]
+
+    rx_schedule_id = SCHEDULE_ID_RESERVED_MAX;
+    rx_schedule_dl_entry = NULL;
 
 #if PERF_MON_ETH_BD
     bd_high_water_mark     = 0;
@@ -466,7 +473,7 @@ void eth_rx_interrupt_handler(void *callbarck_arg) {
         // Process all Ethernet packets
         //     NOTE:  Interrupt will be re-enabled in this function when finished processing
         //         all Ethernet packets.
-        wlan_process_all_eth_pkts();
+        wlan_process_all_eth_pkts(SCHEDULE_ID_RESERVED_MAX);
 
     } else {
         // Acknowledge the error interrupt
@@ -501,13 +508,18 @@ void eth_rx_interrupt_handler(void *callbarck_arg) {
  *
  * NOTE:  This function must be able to handle the case where bd_set_count = 0.
  */
-void wlan_process_all_eth_pkts() {
+void wlan_process_all_eth_pkts(u32 schedule_id) {
     u32                 num_pkt_processed   = 0;
     XAxiDma_BdRing    * rx_ring_ptr         = XAxiDma_GetRxRing(&eth_dma_instance);
 
 #if PERF_MON_ETH_PROCESS_ALL_RX
     wlan_mac_high_set_debug_gpio(0x2);
 #endif
+
+    if(schedule_id != SCHEDULE_ID_RESERVED_MAX){
+    	// This function was called from the context of the scheduler. We should disable the schedule
+    	rx_schedule_dl_entry = wlan_mac_schedule_disable_id(SCHEDULE_FINE, schedule_id);
+    }
 
     while (bd_set_count > 0) {
         // Process Ethernet packet
@@ -534,9 +546,15 @@ void wlan_process_all_eth_pkts() {
     wlan_eth_dma_update();
 
     if (bd_set_count > 0) {
-        // Set up scheduled event for processing next packets
-        //     NOTE:  All global variables have been updated
-        wlan_mac_schedule_event_repeated(SCHEDULE_FINE, 0, 1, (void*)wlan_process_all_eth_pkts);
+
+    	if(rx_schedule_dl_entry == NULL){
+			// Set up scheduled event for processing next packets
+			//     NOTE:  All global variables have been updated
+			wlan_mac_schedule_event_repeated(SCHEDULE_FINE, 0, SCHEDULE_REPEAT_FOREVER, (void*)wlan_process_all_eth_pkts);
+    	} else {
+    		// We have already previously configured this schedule, so we should just enable it again
+    		wlan_mac_schedule_enable(SCHEDULE_FINE, rx_schedule_dl_entry);
+    	}
 
     } else {
         // Finished all available Eth Rx - re-enable interrupt

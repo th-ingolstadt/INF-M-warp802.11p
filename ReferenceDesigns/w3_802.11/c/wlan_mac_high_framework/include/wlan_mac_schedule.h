@@ -71,6 +71,7 @@
 // Schedule structure for scheduled events
 typedef struct {
     u32            id;
+    u8			   enabled;
     u32            delay_us;
     u32            num_calls;
     u64            target_us;
@@ -78,7 +79,7 @@ typedef struct {
 } wlan_sched;
 
 typedef struct {
-	dl_list		list;
+	dl_list		enabled_list;
 	dl_entry*	next;
 } wlan_sched_state_t;
 
@@ -90,6 +91,8 @@ dl_entry *    	wlan_mac_schedule_find(u8 scheduler_sel, u32 id);
 int     	 	wlan_mac_schedule_setup_interrupt(XIntc* intc);
 
 u32      		wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls, void(*callback)());
+dl_entry* 		wlan_mac_schedule_disable_id(u8 scheduler_sel, u32 sched_id);
+int 			wlan_mac_schedule_enable(u8 scheduler_sel, dl_entry* sched_entry);
 void     		wlan_mac_remove_schedule(u8 scheduler_sel, u32 id);
 
 #endif /* WLAN_MAC_SCHEDULE_H_ */

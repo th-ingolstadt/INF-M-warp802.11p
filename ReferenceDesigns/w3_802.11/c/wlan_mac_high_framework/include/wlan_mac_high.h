@@ -51,33 +51,11 @@
                                                     // commands that control LTGs.
 													//FIXME: Incomplete implementation
 
-//---------- USAGE TOGGLES ----------
-// The following toggles affect the number of dl_entry structs that need to be stored
-// in the AUX. BRAM. Disabling these options allows significant reduction in the
-// AUX BRAM SIZE PARAMETERS definitions below.
-
-#define WLAN_SW_CONFIG_ENABLE_PROMISCUOUS_STATION_INFO  1   //When set to 0, station_info_t structs will only be created
-                                                            // explicitly by the top-level application (e.g. an AP adds an
-                                                            // associatiated STA). Setting this to 0 would allow a significant
-                                                            // reduction in WLAN_OPTIONS_SIZE_KB_STATION_INFO below, since
-                                                            // the maximum number of station_info_t structs can be bounded
-                                                            // by the maximum number of associations for an AP. Note: an IBSS
-                                                            // node cannot bound the maximum number of station_info_t structs
-															//FIXME
-
-#define WLAN_SW_CONFIG_ENABLE_PROMISCUOUS_BSS_INFO      1   //When set to 0, bss_info_t structs will only be created
-                                                            // explicitly by the top-level application (i.e. a call to the
-                                                            // application's configure_bss() function). Note: this will break
-                                                            // the framework's ability to perform an active/passive scan. It
-                                                            // should only be set to 0 if the node is an AP or a STA whose
-                                                            // association will be manipulation directly via configure_bss().
-															//FIXME
-
 //---------- AUX BRAM SIZE PARAMETERS ----------
 // These options affect the usage of the AUX. BRAM memory. By disabling USAGE TOGGLES options
 // above, these definitions can be reduced and still guarantee safe performance of the node.
 
-#define WLAN_OPTIONS_AUX_SIZE_KB_STATION_INFO   4608    //dl_entry structs will fill WLAN_OPTIONS_AUX_SIZE_KB_STATION_INFO
+#define WLAN_OPTIONS_AUX_SIZE_KB_STATION_INFO   4608   	 			// dl_entry structs will fill WLAN_OPTIONS_AUX_SIZE_KB_STATION_INFO
                                                                     // kilobytes of memory. This parameter directly controls the number
                                                                     // of station_info_t structs that can be created. Note:
                                                                     // WLAN_OPTIONS_COMPILE_COUNTS_TXRX will affect the size of the
@@ -86,15 +64,15 @@
                                                                     // is constrained by the size of dl_entry and
                                                                     // WLAN_OPTIONS_AUX_SIZE_KB_STATION_INFO
 
-#define WLAN_OPTIONS_AUX_SIZE_KB_BSS_INFO       4608    //dl_entry structs will fill WLAN_OPTIONS_AUX_SIZE_KB_BSS_INFO
+#define WLAN_OPTIONS_AUX_SIZE_KB_BSS_INFO       4608    			// dl_entry structs will fill WLAN_OPTIONS_AUX_SIZE_KB_BSS_INFO
                                                                     // kilobytes of memory. This parameter directly controls the number
                                                                     // of bss_info_t structs that can be created.
 
-#define WLAN_OPTIONS_AUX_SIZE_KB_RX_ETH_BD      <some_number_kB>    //The XAxiDma_BdRing for Ethernet receptions will fill
-                                                                    // WLAN_OPTIONS_AUX_SIZE_KB_RX_ETH_BD kilobytes of memory. This
-                                                                    // parameter has a soft performance implication on the number of
-                                                                    // bursty Ethernet receptions the design can handle.
-																	//FIXME
+#define WLAN_OPTIONS_AUX_SIZE_KB_RX_ETH_BD      15296  // The XAxiDma_BdRing for Ethernet receptions will fill
+													   // WLAN_OPTIONS_AUX_SIZE_KB_RX_ETH_BD kilobytes of memory. This
+													   // parameter has a soft performance implication on the number of
+												 	   // bursty Ethernet receptions the design can handle.
+
 
 //-----------------------------------------------
 // Boot memory defines
@@ -125,27 +103,27 @@
  * --------------------------------------------------------
  *                           |
  *                           |  CPU High Data Linker Space
- *                           |          (1024 KB)
+ *                           |
  *   Tx Queue DL_ENTRY       |-----------------------------
- *        (40 KB)            |
+ *                           |
  *                          -->      Tx Queue Buffer
- *                           |          (14000 KB)
+ *                           |
  * --------------------------|-----------------------------
  *                           |
  *   BSS Info DL_ENTRY      -->      BSS Info Buffer
- *      ( 4.5 KB)            |          (27 KB)
+ *                           |
  * --------------------------|-----------------------------
  *                           |
  *  Station Info DL_ENTRY   -->    Station Info Buffer
- *      ( 4.5 KB)            |          (51 KB)
+ *                           |
  * --------------------------|-----------------------------
  *                           |
  *       Eth Tx BD           |      User Scratch Space
- *        (64 B)             |          (14318 KB)
+ *                           |
  * --------------------------|-----------------------------
  *                           |
  *       Eth Rx BD           |          Event Log
- *        (Rest)             |          (Rest)
+ *                           |
  * --------------------------|-----------------------------
  *
  ********************************************************************/
@@ -246,6 +224,7 @@
  ********************************************************************/
 #define STATION_INFO_DL_ENTRY_MEM_BASE     (BSS_INFO_DL_ENTRY_MEM_BASE + BSS_INFO_DL_ENTRY_MEM_SIZE)
 #define STATION_INFO_DL_ENTRY_MEM_SIZE     (WLAN_OPTIONS_AUX_SIZE_KB_STATION_INFO)
+#define STATION_INFO_DL_ENTRY_MEM_NUM      (STATION_INFO_DL_ENTRY_MEM_SIZE/sizeof(dl_entry))
 #define STATION_INFO_DL_ENTRY_MEM_HIGH      high_addr_calc(STATION_INFO_DL_ENTRY_MEM_BASE, STATION_INFO_DL_ENTRY_MEM_SIZE)
 
 #define STATION_INFO_BUFFER_BASE          (BSS_INFO_BUFFER_BASE + BSS_INFO_BUFFER_SIZE)
@@ -277,7 +256,7 @@
  *
  ********************************************************************/
 #define ETH_RX_BD_BASE                     (ETH_TX_BD_BASE + ETH_TX_BD_SIZE)
-#define ETH_RX_BD_SIZE                     (AUX_BRAM_SIZE - (TX_QUEUE_DL_ENTRY_MEM_SIZE + BSS_INFO_DL_ENTRY_MEM_SIZE + STATION_INFO_DL_ENTRY_MEM_SIZE + ETH_TX_BD_SIZE))
+#define ETH_RX_BD_SIZE                     (WLAN_OPTIONS_AUX_SIZE_KB_RX_ETH_BD)
 #define ETH_RX_BD_HIGH                      high_addr_calc(ETH_RX_BD_BASE, ETH_RX_BD_SIZE)
 
 

@@ -42,13 +42,14 @@
 
 #define MAX_NUM_ASSOC                                      10        /// Maximum number of associations allowed
 #define MAX_NUM_AUTH                                       10        /// Maximum number of authentications allowed
+CASSERT( (MAX_NUM_ASSOC ) <= STATION_INFO_DL_ENTRY_MEM_NUM, insufficient_WLAN_OPTIONS_AUX_SIZE_KB_STATION_INFO_for_max_associations );
 
 
 //-----------------------------------------------
 // Tx queue IDs
 #define MCAST_QID                                          0
 #define MANAGEMENT_QID                                     1
-#define STATION_ID_TO_QUEUE_ID(x)                                    ((x) + 1)   /// Map association ID to Tx queue ID; min AID is 1
+#define STATION_ID_TO_QUEUE_ID(x)                        ((x) + 1)   /// Map association ID to Tx queue ID; min AID is 1
 #define QID_TO_AID(x)                                    ((x) - 1)
 
 
