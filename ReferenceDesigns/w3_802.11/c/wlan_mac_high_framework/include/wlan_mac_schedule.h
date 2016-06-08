@@ -87,7 +87,7 @@ typedef struct {
 /*************************** Function Prototypes *****************************/
 
 int     		wlan_mac_schedule_init();
-dl_entry *    	wlan_mac_schedule_find(u8 scheduler_sel, u32 id);
+dl_entry *    	wlan_mac_schedule_find(dl_list* sched_list, u32 id);
 int     	 	wlan_mac_schedule_setup_interrupt(XIntc* intc);
 
 u32      		wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls, void(*callback)());

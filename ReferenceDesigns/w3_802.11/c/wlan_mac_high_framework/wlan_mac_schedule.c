@@ -73,7 +73,7 @@ int wlan_mac_schedule_init(){
 	int status;
 
 	// Initialize internal variables
-	schedule_count           = 0;
+	schedule_count           = 1;
 
 #if WLAN_SCHED_EXEC_MONITOR
 	last_exec_timestamp      = 0;
@@ -191,13 +191,20 @@ u32 wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls,
 	// Attach the schedule struct to this dl_entry
 	entry_ptr->data = sched_ptr;
 
-	// Get Schedule ID from global counter
-	id = (schedule_count++);
+	do{
+		// Get Schedule ID from global counter
+		id = (schedule_count++);
 
-	// Check if we hit the section of reserved IDs; Wrap back to 0 and start again
-	//     NOTE:  Given the extremely large ID space, we do not check if the ID is
-	//         currently in use.
-	if ((id >= SCHEDULE_ID_RESERVED_MIN) && (id <= SCHEDULE_ID_RESERVED_MAX)) { id = 0; }
+		// Check if we hit the section of reserved IDs; Wrap back to 0 and start again
+		//     NOTE:  Given the extremely large ID space, we do not check if the ID is
+		//         currently in use.
+		if ((id >= SCHEDULE_ID_RESERVED_MIN) && (id <= SCHEDULE_ID_RESERVED_MAX)) { id = 1; }
+
+		// Check to make sure that this id has not been issued to any currently
+		// scheduled events
+	} while( (wlan_mac_schedule_find(&wlan_sched_coarse.enabled_list, id) != NULL) ||
+			 (wlan_mac_schedule_find(&wlan_sched_fine.enabled_list, id) != NULL) ||
+			 (wlan_mac_schedule_find(&disabled_list, id) != NULL));
 
 	// Get the current system time
 	curr_system_time     = get_system_time_usec();
@@ -266,7 +273,7 @@ dl_entry* wlan_mac_schedule_disable_id(u8 scheduler_sel, u32 sched_id){
 		break;
 	}
 
-	sched_entry = wlan_mac_schedule_find(scheduler_sel, sched_id);
+	sched_entry = wlan_mac_schedule_find(enabled_list, sched_id);
 
 	if(sched_entry != NULL){
 		if( ((wlan_sched*)(sched_entry->data))->num_calls != 0 ){
@@ -351,9 +358,23 @@ void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
 	dl_entry     * curr_entry_ptr;
 	wlan_sched   * curr_sched_ptr;
 
+	dl_list* enabled_list;
 
+	switch(scheduler_sel){
+		case SCHEDULE_COARSE:
+			enabled_list = &(wlan_sched_coarse.enabled_list);
+		break;
 
-	curr_entry_ptr = wlan_mac_schedule_find(scheduler_sel, id);
+		case SCHEDULE_FINE:
+			enabled_list = &(wlan_sched_fine.enabled_list);
+		break;
+
+		default:
+			return;
+		break;
+	}
+
+	curr_entry_ptr = wlan_mac_schedule_find(enabled_list, id);
 
 	if (curr_entry_ptr != NULL) {
 
@@ -605,26 +626,18 @@ void schedule_handler(void * callback_ref, u8 timer_number){
 /**
  * Find schedule that corresponds to a given ID
  *
- * @param   scheduler_sel   - SCHEDULE_COARSE or SCHEDULE_FINE
+ * @param   dl_list*        - List to search through; typically the fine, coarse, and deactivated lists
  * @param   id              - ID of the scheduler that should be returned
  *
  * @return  dl_entry*       - Pointer to the list entry that contains the schedule
  *
  *****************************************************************************/
-dl_entry* wlan_mac_schedule_find(u8 scheduler_sel, u32 id){
+dl_entry* wlan_mac_schedule_find(dl_list* sched_list, u32 id){
 	int            iter;
-	dl_list      * sched_list;
 
 	dl_entry     * curr_dl_entry;
 	dl_entry     * next_dl_entry;
 	wlan_sched   * curr_wlan_sched;
-
-	// Set the schedule list to check based on the scheduler
-	if (scheduler_sel == SCHEDULE_FINE) {
-		sched_list = &(wlan_sched_fine.enabled_list);
-	} else {
-		sched_list = &(wlan_sched_coarse.enabled_list);
-	}
 
 	// Initialize the loop variables
 	iter          = sched_list->length;
