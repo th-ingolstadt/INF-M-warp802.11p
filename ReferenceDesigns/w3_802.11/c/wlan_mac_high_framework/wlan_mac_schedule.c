@@ -196,8 +196,6 @@ u32 wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls,
 		id = (schedule_count++);
 
 		// Check if we hit the section of reserved IDs; Wrap back to 0 and start again
-		//     NOTE:  Given the extremely large ID space, we do not check if the ID is
-		//         currently in use.
 		if ((id >= SCHEDULE_ID_RESERVED_MIN) && (id <= SCHEDULE_ID_RESERVED_MAX)) { id = 1; }
 
 		// Check to make sure that this id has not been issued to any currently
