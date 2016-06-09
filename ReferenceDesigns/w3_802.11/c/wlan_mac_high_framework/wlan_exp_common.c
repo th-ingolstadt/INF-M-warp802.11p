@@ -13,6 +13,8 @@
  *  @author Erik Welsh (welsh [at] mangocomm.com)
  */
 
+
+
 /***************************** Include Files *********************************/
 
 // Xilinx / Standard library includes
@@ -32,7 +34,7 @@
 // WLAN Exp includes
 #include "wlan_exp_common.h"
 
-
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
 /*************************** Constant Definitions ****************************/
 
@@ -132,10 +134,6 @@ void wlan_exp_set_print_level(u8 level) {
         break;
     }
 }
-
-
-
-#ifdef USE_WLAN_EXP
 
 
 /********************************************************************
@@ -436,4 +434,4 @@ void print_wlan_exp_parameters(wlan_exp_tag_parameter *param, int num_params) {
 }
 
 #endif
-#endif    // End USE_WLAN_EXP
+#endif    // End WLAN_SW_CONFIG_ENABLE_WLAN_EXP

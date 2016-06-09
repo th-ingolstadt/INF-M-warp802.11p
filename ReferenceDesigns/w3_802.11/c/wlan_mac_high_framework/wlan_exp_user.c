@@ -33,7 +33,7 @@
 
 
 
-#ifdef USE_WLAN_EXP
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
 /*************************** Constant Definitions ****************************/
 
@@ -203,4 +203,4 @@ int process_user_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 }
 
 
-#endif        // End USE_WLAN_EXP
+#endif        // End WLAN_SW_CONFIG_ENABLE_WLAN_EXP

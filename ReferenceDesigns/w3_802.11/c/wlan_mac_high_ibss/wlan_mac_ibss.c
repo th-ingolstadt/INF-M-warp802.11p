@@ -114,7 +114,7 @@ static	beacon_txrx_configure_t	  gl_beacon_txrx_config;
 
 /*************************** Functions Prototypes ****************************/
 
-#ifdef USE_WLAN_EXP
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 int  wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len);
 #endif
 
@@ -212,8 +212,11 @@ int main() {
 	// Set the Ethernet ecapsulation mode
 	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_IBSS);
 
-#ifdef USE_WLAN_EXP
     wlan_mac_hw_info_t * hw_info;
+    // Get the hardware info that has been collected from CPU low
+    hw_info = get_mac_hw_info();
+
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
     // NOTE:  To use the WLAN Experiments Framework, it must be initialized after
     //        CPU low has populated the hw_info structure in the MAC High framework.
@@ -229,9 +232,6 @@ int main() {
     wlan_exp_set_beacon_ts_update_mode_callback(    (void *) ibss_set_beacon_ts_update_mode);
     wlan_exp_set_process_config_bss_callback(       (void *) configure_bss);
     wlan_exp_set_active_bss_info_getter_callback(   (void *) active_bss_info_getter);
-
-    // Get the hardware info that has been collected from CPU low
-    hw_info = get_mac_hw_info();
 
     // Initialize WLAN Exp
     wlan_exp_node_init(hw_info->serial_number, hw_info->fpga_dna,
@@ -352,7 +352,7 @@ int main() {
 
 
 	while(1){
-#ifdef USE_WLAN_EXP
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 		// The wlan_exp Ethernet handling is not interrupt based. Periodic polls of the wlan_exp
 		//     transport are required to service new commands. All other node activity (wired/wireless Tx/Rx,
 		//     scheduled events, user interaction, etc) are handled via interrupt service routines
@@ -1489,7 +1489,7 @@ void ibss_update_hex_display(u8 val) {
 
 
 
-#ifdef USE_WLAN_EXP
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
 // ****************************************************************************
 // Define MAC Specific User Commands

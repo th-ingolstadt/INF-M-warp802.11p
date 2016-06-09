@@ -831,8 +831,8 @@ void wlan_exp_log_get_txrx_entry_sizes( u32 entry_type, u16 packet_payload_size,
     u32  log_bytes_to_log;
     u32  extra_entry_payload;
 
-    u32  tmp_entry_size;
-    u32  tmp_entry_payload_size;
+    u32  tmp_entry_size = 0;
+    u32  tmp_entry_payload_size = 0;
     u32  tmp_min_entry_payload_size;
 
     // Set the base entry size based on the entry type
@@ -933,9 +933,11 @@ void wlan_exp_log_get_txrx_entry_sizes( u32 entry_type, u16 packet_payload_size,
 
 
         default:
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
             wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_event_log, "Unknown entry type:  %d", entry_type);
             tmp_entry_size             = 0;
             tmp_entry_payload_size     = 0;
+#endif
         break;
     }
 
@@ -1111,17 +1113,16 @@ void print_entry(u32 entry_number, u32 entry_type, void * entry){
  *
  * @return  None
  *
- * @note    Can only add a node info entry to the log if the WLAN EXP
- *          framework is enabled.
  *
  *****************************************************************************/
 void add_node_info_entry() {
 
-#ifdef USE_WLAN_EXP
 
     node_info_entry * entry;
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
     u32               temp0;
     u32               entry_words = sizeof(node_info_entry) >> 2;
+#endif
 
     // For this entry, we do not use the wlan_exp_log_create_entry wrapper because this entry should never be
     // filtered due to assumptions on the log structure (ie the first entry in the log will always be a NODE_INFO
@@ -1131,6 +1132,10 @@ void add_node_info_entry() {
 
     if (entry != NULL) {
         entry->timestamp = get_mac_time_usec();
+
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
+        //FIXME: The node info entry is tied to wlan_exp in a way that is unnecessary. The fields here
+        // should not be encoded as wlan_exp_get_parameters()
 
         // Add the node parameters
         temp0 = node_get_parameter_values((u32 *)&(entry->node_type), entry_words);
@@ -1142,14 +1147,17 @@ void add_node_info_entry() {
         //       before normal operation.
         //
         if ((temp0 != (entry_words - 2)) && (temp0 != 0)) {
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
             wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_event_log, "Node info size mismatch: size = %d, param size = %d\n", entry_words, temp0);
+#endif
         }
+
+#endif //WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
 #ifdef _DEBUG_
         print_entry(0, ENTRY_TYPE_NODE_INFO, entry);
 #endif
     }
-#endif
 }
 
 
@@ -1208,22 +1216,33 @@ void add_time_info_entry(u64 timestamp, u64 mac_time, u64 system_time, u64 host_
  *                                 XST_SUCCESS - Command completed successfully
  *                                 XST_FAILURE - There was an error in the command
  *
- * @note    Can only add a node info entry to the log if the WLAN EXP
- *          framework is enabled.
  *
  *****************************************************************************/
 u32 add_temperature_to_log() {
 
-#ifdef USE_WLAN_EXP
+
     temperature_entry  * entry;
     u32                  entry_size        = sizeof(temperature_entry);
+    wlan_mac_hw_info_t * hw_info;
+
+    hw_info = get_mac_hw_info();
 
     entry = (temperature_entry *)wlan_exp_log_create_entry(ENTRY_TYPE_TEMPERATURE, entry_size);
 
     if (entry != NULL) {
         entry->timestamp     = get_mac_time_usec();
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
         entry->id            = node_get_node_id();
-        entry->serial_number = node_get_serial_number();
+#else
+        // FIXME: The notion of a "node ID" is very wlan_exp-centric. The temperature log entry
+        // should not have this field. I'd argue it doesn't need any identifying fields; the identity
+        // of the the source of this temperature reading is unambiguous based upon which log file
+        // it is in.
+        entry->id            = 0;
+#endif
+
+        // FIXME: serial number unnecessary for the same reason as above.
+        entry->serial_number = hw_info->serial_number;
         entry->curr_temp     = get_current_temp();
         entry->min_temp      = get_min_temp();
         entry->max_temp      = get_max_temp();
@@ -1235,7 +1254,6 @@ u32 add_temperature_to_log() {
 
         return XST_SUCCESS;
     }
-#endif
 
     return XST_FAILURE;
 }

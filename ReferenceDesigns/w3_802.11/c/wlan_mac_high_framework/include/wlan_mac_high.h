@@ -33,7 +33,6 @@
 
 #define WLAN_SW_CONFIG_ENABLE_WLAN_EXP      1       //Top-level switch for compiling wlan_exp. Setting to 0 implicitly removes
                                                     // logging code if set to 0 since there would be no way to retrieve the log.
-													//FIXME: Incomplete implementation
 
 #define WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS   1       //Top-level switch for compiling counts_txrx.  Setting to 0 removes counts
                                                     // from station_info_t struct definition and disables counts retrieval via
@@ -42,8 +41,8 @@
 #define WLAN_SW_CONFIG_ENABLE_LOGGING       1       //Top-level switch for compiling Tx/Rx logging. Setting to 0 will not cause
                                                     // the design to not log any entries to DRAM. It will also disable any log
                                                     // retrieval capabilities in wlan_exp. Note: this is logically distinct from
-                                                    // COMPILE_WLAN_EXP. (COMPILE_WLAN_EXP 1, COMPILE_LOGGING 0)  still allows
-                                                    // wlan_exp control over a node but no logging capabilities.
+                                                    // WLAN_SW_CONFIG_ENABLE_WLAN_EXP. (WLAN_SW_CONFIG_ENABLE_WLAN_EXP 1, COMPILE_LOGGING 0)
+													// still allows wlan_exp control over a node but no logging capabilities.
 													//FIXME: Incomplete implementation
 
 #define WLAN_SW_CONFIG_ENABLE_LTG           1       //Top-level switch for compiling LTG functionality. Setting to 0 will remove

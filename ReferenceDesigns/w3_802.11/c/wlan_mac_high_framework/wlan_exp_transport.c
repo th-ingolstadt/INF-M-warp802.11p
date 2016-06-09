@@ -40,7 +40,7 @@
 
 
 
-#ifdef USE_WLAN_EXP
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
 
 /*************************** Constant Definitions ****************************/

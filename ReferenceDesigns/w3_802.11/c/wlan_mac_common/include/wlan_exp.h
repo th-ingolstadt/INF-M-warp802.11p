@@ -25,14 +25,6 @@
 
 
 // **********************************************************************
-// WLAN Experiment Framework Enable
-//
-//     NOTE:  To disable the WLAN Experiment Framework, comment out the USE_WLAN_EXP define.
-//
-#define USE_WLAN_EXP
-
-
-// **********************************************************************
 // Version Information
 //
 

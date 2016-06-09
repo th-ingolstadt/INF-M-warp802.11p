@@ -14,6 +14,8 @@
  */
 /***************************** Include Files *********************************/
 
+
+
 // Xilinx / Standard library includes
 #include <xparameters.h>
 #include <xil_io.h>
@@ -45,7 +47,7 @@
 #include "wlan_exp_user.h"
 
 
-#ifdef USE_WLAN_EXP
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
 /*************************** Constant Definitions ****************************/
 
@@ -3827,7 +3829,7 @@ int node_get_parameters(u32 * buffer, u32 max_resp_len, u8 transmit) {
 
 /*****************************************************************************/
 /**
- * @ brief Get the tag parameter values from a the node tag parameters
+ * @ brief Get the tag parameter values from the node tag parameters
  *
  * This function will populate a buffer with just the tag parameter values from the
  * node tag parameter structure.
@@ -4293,4 +4295,4 @@ void print_wlan_exp_node_info(wlan_exp_node_info * info) {
 
 #endif
 
-#endif        // End USE_WLAN_EXP
+#endif        // End WLAN_SW_CONFIG_ENABLE_WLAN_EXP

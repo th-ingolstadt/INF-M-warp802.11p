@@ -20,7 +20,7 @@
 #include "wlan_exp_node.h"
 #include "wlan_exp_node_sta.h"
 
-#ifdef USE_WLAN_EXP
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
 // Xilinx includes
 #include <xparameters.h>

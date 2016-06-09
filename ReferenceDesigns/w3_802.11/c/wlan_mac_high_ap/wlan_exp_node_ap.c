@@ -15,6 +15,8 @@
 
 /***************************** Include Files *********************************/
 
+
+
 #include "wlan_exp_common.h"
 #include "wlan_exp.h"
 #include "wlan_mac_high.h"
@@ -22,8 +24,7 @@
 #include "wlan_exp_node.h"
 #include "wlan_exp_node_ap.h"
 
-
-#ifdef USE_WLAN_EXP
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
 // Xilinx includes
 #include <xparameters.h>
@@ -533,3 +534,4 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
 
 #endif
+

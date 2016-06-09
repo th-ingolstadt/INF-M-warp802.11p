@@ -231,7 +231,7 @@ void wlan_mac_high_cpu_ddr_linker_data_init(u8 dram_present) {
     }
 
 
-#ifdef USE_WLAN_EXP
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
     // Check if DRAM is present
     if (!dram_present) {
         xil_printf("!!! ERROR: WLAN Exp requires DDR for Ethernet communication. !!!\n");
@@ -1742,7 +1742,9 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 					cpu_low_reboot_callback();
 				case CPU_STATUS_REASON_RESPONSE:
 					// Set the CPU_LOW wlan_exp type
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 					wlan_exp_node_set_type_low(ipc_msg_from_low_payload[1]);
+#endif
 				default:
 
 				break;

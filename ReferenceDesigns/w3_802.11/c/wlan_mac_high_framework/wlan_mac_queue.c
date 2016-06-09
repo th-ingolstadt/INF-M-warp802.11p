@@ -213,7 +213,9 @@ void purge_queue(u16 queue_sel){
 	num_queued = queue_num_queued(queue_sel);
 
 	if (num_queued > 0) {
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 		wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_queue, "Purging %d packets from queue %d\n", num_queued, queue_sel);
+#endif
 
 		// NOTE:  There is an interesting condition that can occur if an LTG is running (ie creating new TX queue
 		//     entries) and purge_queue is called.  In this case, you have one process removing elements from the
@@ -269,8 +271,10 @@ void enqueue_after_tail(u16 queue_sel, tx_queue_element_t* tqe){
 		tx_queues = wlan_mac_high_realloc(tx_queues, ((queue_sel + 1) * sizeof(dl_list)));
 
 		if(tx_queues == NULL){
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 			wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_queue, "Could not reallocate %d bytes for queue %d\n",
 			                ((queue_sel + 1) * sizeof(dl_list)), queue_sel);
+#endif
 		}
 
 		for(i = num_tx_queues; i <= queue_sel; i++){
