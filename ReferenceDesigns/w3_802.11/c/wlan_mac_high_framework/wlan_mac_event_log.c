@@ -64,6 +64,8 @@
 #include "wlan_exp_node.h"
 
 
+#if WLAN_SW_CONFIG_ENABLE_LOGGING
+
 /*************************** Constant Definitions ****************************/
 
 
@@ -1016,6 +1018,7 @@ void print_event_log_size(){
     xil_printf("EVENT LOG: (%10d us) %10d of %10d bytes used\n", (u32)timestamp, size, log_size);
 }
 
+#endif //WLAN_SW_CONFIG_ENABLE_LOGGING
 
 
 

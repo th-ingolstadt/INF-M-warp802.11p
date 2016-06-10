@@ -178,8 +178,10 @@ int wlan_exp_node_init(u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wl
     int  status              = XST_SUCCESS;
     int  link_status;
 
+#if WLAN_SW_CONFIG_ENABLE_LOGGING
     u64  mac_timestamp;
     u64  system_timestamp;
+#endif
 
     u8   default_ip_addr[IP_ADDR_LEN];
 
@@ -229,6 +231,7 @@ int wlan_exp_node_init(u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wl
     node_init_parameters((u32*) &node_info);
 
 
+#if WLAN_SW_CONFIG_ENABLE_LOGGING
     // ------------------------------------------
     // By default, enable all subtype logging
     wlan_exp_log_set_entry_en_mask(ENTRY_EN_MASK_TXRX_CTRL | ENTRY_EN_MASK_TXRX_MPDU);
@@ -245,7 +248,7 @@ int wlan_exp_node_init(u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wl
     system_timestamp = get_system_time_usec();
 
     add_time_info_entry(mac_timestamp, mac_timestamp, system_timestamp, TIME_INFO_ENTRY_TIME_RSVD_VAL_64, TIME_INFO_ENTRY_SYSTEM, 0, 0);
-
+#endif
 
     // ------------------------------------------
     // Initialize the System Monitor
@@ -879,6 +882,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
         //---------------------------------------------------------------------
         case CMDID_LOG_CONFIG: {
+#if WLAN_SW_CONFIG_ENABLE_LOGGING
             // NODE_LOG_CONFIG Packet Format:
             //   - cmd_args_32[0]  - flags
             //                     [ 0] - Logging Enabled = 1; Logging Disabled = 0;
@@ -945,12 +949,14 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+#endif //WLAN_SW_CONFIG_ENABLE_LOGGING
         }
         break;
 
 
         //---------------------------------------------------------------------
         case CMDID_LOG_GET_STATUS: {
+#if WLAN_SW_CONFIG_ENABLE_LOGGING
             // NODE_LOG_GET_INFO Packet Format:
             //   - resp_args_32[0] - Next empty entry index
             //   - resp_args_32[1] - Oldest empty entry index
@@ -987,12 +993,14 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Send response of current info
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+#endif //WLAN_SW_CONFIG_ENABLE_LOGGING
         }
         break;
 
 
         //---------------------------------------------------------------------
         case CMDID_LOG_GET_CAPACITY: {
+#if WLAN_SW_CONFIG_ENABLE_LOGGING
             // NODE_LOG_GET_CAPACITY Packet Format:
             //   - resp_args_32[0] - Max log size
             //   - resp_args_32[1] - Current log size
@@ -1003,12 +1011,14 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Send response of current info
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+#endif //WLAN_SW_CONFIG_ENABLE_LOGGING
         }
         break;
 
 
         //---------------------------------------------------------------------
         case CMDID_LOG_GET_ENTRIES: {
+#if WLAN_SW_CONFIG_ENABLE_LOGGING
             // NODE_LOG_GET_ENTRIES Packet Format:
             //   - Note:  All u32 parameters in cmd_args_32 are byte swapped so use Xil_Ntohl()
             //
@@ -1055,12 +1065,14 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                               id, flags, start_index, size);
 
             resp_sent = RESP_SENT;
+#endif //WLAN_SW_CONFIG_ENABLE_LOGGING
         }
         break;
 
 
         //---------------------------------------------------------------------
         case CMDID_LOG_ADD_EXP_INFO_ENTRY: {
+#if WLAN_SW_CONFIG_ENABLE_LOGGING
             // Add EXP_INFO entry to the log
             //
             // Message format:
@@ -1101,14 +1113,17 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     memcpy((void *)(&exp_info->info_payload[0]), (void *)(&cmd_args_32[2]), size);
                 }
             }
+#endif //WLAN_SW_CONFIG_ENABLE_LOGGING
         }
         break;
 
 
         //---------------------------------------------------------------------
         case CMDID_LOG_ENABLE_ENTRY: {
+#if WLAN_SW_CONFIG_ENABLE_LOGGING
             wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_event_log, "Enable Event not supported\n");
             // TODO:  THIS FUNCTION IS NOT COMPLETE
+#endif
         }
         break;
 
@@ -1607,13 +1622,14 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     host_timestamp = (((u64)temp_hi) << 32) + ((u64)temp_lo);
 
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Host time = 0x%08x 0x%08x\n", temp_hi, temp_lo);
-
+#if WLAN_SW_CONFIG_ENABLE_LOGGING
                     // Add a time info log entry
                     if (msg_cmd == CMD_PARAM_WRITE_VAL) {
                         add_time_info_entry(mac_timestamp, new_mac_time, system_timestamp, host_timestamp, TIME_INFO_ENTRY_WLAN_EXP_SET_TIME, id, WLAN_EXP_TRUE);
                     } else {
                         add_time_info_entry(mac_timestamp, new_mac_time, system_timestamp, host_timestamp, TIME_INFO_ENTRY_WLAN_EXP_ADD_LOG, id, WLAN_EXP_TRUE);
                     }
+#endif //WLAN_SW_CONFIG_ENABLE_LOGGING
 
                     // If this was a write, then update the time value so we can return it to the host
                     //   This is done after the log entry to the fields are correct in the entry.
@@ -3265,7 +3281,7 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
 }
 
 
-
+#if WLAN_SW_CONFIG_ENABLE_LOGGING
 /*****************************************************************************/
 /**
  * Transfer Log Data
@@ -3548,7 +3564,7 @@ void transfer_log_data(u32 socket_index, void * from,
         header_offset    = (header_offset + WLAN_EXP_ETH_BUFFER_SIZE) % header_buffer_size;
     }
 }
-
+#endif //WLAN_SW_CONFIG_ENABLE_LOGGING
 
 
 

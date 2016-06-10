@@ -294,8 +294,10 @@ int main(){
 	set_hex_pwm_min_max(2, 400);
 	enable_hex_pwm();
 
+#if WLAN_SW_CONFIG_ENABLE_LOGGING
 	// Reset the event log
 	event_log_reset();
+#endif //WLAN_SW_CONFIG_ENABLE_LOGGING
 
 	// If the DIP switch allows it, set up BSS description
 	if ((wlan_mac_high_get_user_io_state() & GPIO_MASK_DS_3) == 0) {
@@ -773,8 +775,11 @@ void beacon_transmit_done( tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_detai
 	poll_tx_queues(); //We just entered a window where we are allowing multicast packets to dequeue. We should
 					  //poll the Tx queues and see if there are any ready to be dequeued.
 
+#if WLAN_SW_CONFIG_ENABLE_LOGGING
 	// Log the TX low
+	//  FIXME: Move to framework
 	wlan_exp_log_create_tx_low_entry(tx_frame_info, tx_low_details, 0);
+#endif
 }
 
 

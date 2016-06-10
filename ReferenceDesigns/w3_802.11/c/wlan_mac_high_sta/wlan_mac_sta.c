@@ -265,8 +265,10 @@ int main() {
 	// Schedule all events
 	//     None at this time
 
+#if WLAN_SW_CONFIG_ENABLE_LOGGING
 	// Reset the event log
 	event_log_reset();
+#endif
 
 	// Print Station information to the terminal
     xil_printf("------------------------\n");

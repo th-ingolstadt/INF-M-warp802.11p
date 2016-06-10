@@ -138,11 +138,13 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             // Disable interrupts so no packets interrupt the reset
             prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
+#if WLAN_SW_CONFIG_ENABLE_LOGGING
             // Configure the LOG based on the flag bits
             if (flags & CMD_PARAM_NODE_RESET_FLAG_LOG) {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_event_log, "Reset log\n");
                 event_log_reset();
             }
+#endif //WLAN_SW_CONFIG_ENABLE_LOGGING
 
             if (flags & CMD_PARAM_NODE_RESET_FLAG_TXRX_COUNTS) {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_counts, "Reseting Counts\n");

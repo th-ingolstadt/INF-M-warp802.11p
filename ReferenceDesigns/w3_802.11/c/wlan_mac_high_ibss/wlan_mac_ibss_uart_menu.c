@@ -165,9 +165,11 @@ void uart_rx(u8 rxByte){
 				// 'e' - Print event log size
 				//
 				case ASCII_e:
+#if WLAN_SW_CONFIG_ENABLE_LOGGING
 					event_log_config_logging(EVENT_LOG_LOGGING_DISABLE);
 					print_event_log_size();
 					event_log_config_logging(EVENT_LOG_LOGGING_ENABLE);
+#endif //WLAN_SW_CONFIG_ENABLE_LOGGING
 				break;
 
 				// ----------------------------------------

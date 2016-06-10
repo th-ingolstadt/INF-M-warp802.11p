@@ -43,7 +43,6 @@
                                                     // retrieval capabilities in wlan_exp. Note: this is logically distinct from
                                                     // WLAN_SW_CONFIG_ENABLE_WLAN_EXP. (WLAN_SW_CONFIG_ENABLE_WLAN_EXP 1, COMPILE_LOGGING 0)
 													// still allows wlan_exp control over a node but no logging capabilities.
-													//FIXME: Incomplete implementation
 
 #define WLAN_SW_CONFIG_ENABLE_LTG           1       //Top-level switch for compiling LTG functionality. Setting to 0 will remove
                                                     // all LTG-related code from the design as well we disable any wlan_exp

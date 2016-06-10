@@ -258,8 +258,11 @@ int main() {
 	// Initialize interrupts
 	wlan_mac_high_interrupt_init();
 
+#if WLAN_SW_CONFIG_ENABLE_LOGGING
 	// Reset the event log
 	event_log_reset();
+#endif //WLAN_SW_CONFIG_ENABLE_LOGGING
+
 
 	// Print Station information to the terminal
     xil_printf("------------------------\n");
@@ -370,7 +373,10 @@ int main() {
  *****************************************************************************/
 void beacon_transmit_done( tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details ){
 	// Log the TX low
+#if WLAN_SW_CONFIG_ENABLE_LOGGING
+	//FIXME: Move to framework
 	wlan_exp_log_create_tx_low_entry(tx_frame_info, tx_low_details, 0);
+#endif //WLAN_SW_CONFIG_ENABLE_LOGGING
 }
 
 

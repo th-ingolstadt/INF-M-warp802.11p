@@ -48,6 +48,7 @@
 #include "wlan_mac_high.h"
 #include "wlan_mac_ltg.h"
 
+#if WLAN_SW_CONFIG_ENABLE_LOGGING
 
 
 /*************************** Constant Definitions ****************************/
@@ -1258,4 +1259,4 @@ u32 add_temperature_to_log() {
     return XST_FAILURE;
 }
 
-
+#endif //WLAN_SW_CONFIG_ENABLE_LOGGING
