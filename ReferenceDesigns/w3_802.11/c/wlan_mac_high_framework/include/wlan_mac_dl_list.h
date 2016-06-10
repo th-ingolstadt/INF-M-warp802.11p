@@ -26,8 +26,8 @@
 //-----------------------------------------------
 // Macros
 //
-#define dl_entry_next(x)                                (((dl_entry*)x)->next)
-#define dl_entry_prev(x)                                (((dl_entry*)x)->prev)
+#define dl_entry_next(x)                                (((dl_entry*)(x))->next)
+#define dl_entry_prev(x)                                (((dl_entry*)(x))->prev)
 
 
 

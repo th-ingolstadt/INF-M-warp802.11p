@@ -130,9 +130,9 @@
 #define ETH_PHY_SPEED_100_MBPS                             100
 #define ETH_PHY_SPEED_1000_MBPS                            1000
 
-#define ETH_PHY_SPEED_TO_MBPS(speed)                       ((speed == ETH_PHY_REG_17_0_SPEED_1000_MBPS) ? ETH_PHY_SPEED_1000_MBPS : \
-                                                            (speed == ETH_PHY_REG_17_0_SPEED_100_MBPS)  ? ETH_PHY_SPEED_100_MBPS  : \
-                                                            (speed == ETH_PHY_REG_17_0_SPEED_10_MBPS)   ? ETH_PHY_SPEED_10_MBPS   : 0 )
+#define ETH_PHY_SPEED_TO_MBPS(speed)                       (((speed) == ETH_PHY_REG_17_0_SPEED_1000_MBPS) ? ETH_PHY_SPEED_1000_MBPS : \
+                                                            ((speed) == ETH_PHY_REG_17_0_SPEED_100_MBPS)  ? ETH_PHY_SPEED_100_MBPS  : \
+                                                            ((speed) == ETH_PHY_REG_17_0_SPEED_10_MBPS)   ? ETH_PHY_SPEED_10_MBPS   : 0 )
 
 
 // Message types

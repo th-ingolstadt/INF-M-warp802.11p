@@ -139,16 +139,6 @@ typedef struct{
 } ipc_reg_read_write_t;
 
 
-//-----------------------------------------------
-// Macro to initialize IPC config payload structures
-//
-#define init_ipc_config(x,y,z) {                                        \
-                                    x = (z*) y;                         \
-                                    memset((void*)x, 0xFF, sizeof(z));  \
-                               }
-
-
-
 /*************************** Function Prototypes *****************************/
 
 int           init_mailbox();

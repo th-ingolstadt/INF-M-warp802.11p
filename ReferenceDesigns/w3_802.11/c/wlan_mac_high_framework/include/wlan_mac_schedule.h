@@ -60,10 +60,10 @@
 
 //-----------------------------------------------
 // Macros
-//
-#define wlan_mac_schedule_event(scheduler_sel, delay, callback)      \
-                   wlan_mac_schedule_event_repeated(scheduler_sel, delay, 1, callback)
 
+// Helper for run-once scheduled event that wraps wlan_mac_schedule_event_repeated() with "num_calls" = 1
+#define wlan_mac_schedule_event(scheduler_sel, delay, callback)      \
+                   wlan_mac_schedule_event_repeated((scheduler_sel), (delay), 1, (callback))
 
 
 /*********************** Global Structure Definitions ************************/
