@@ -209,34 +209,18 @@
 
 /**************************** Macro Definitions ******************************/
 
-#define REG_CLEAR_BITS(addr, mask) Xil_Out32(addr, (Xil_In32(addr) & ~mask))
-#define REG_SET_BITS(addr, mask)   Xil_Out32(addr, (Xil_In32(addr) | mask))
+#define REG_CLEAR_BITS(addr, mask) Xil_Out32(addr, (Xil_In32(addr) & ~(mask)))
+#define REG_SET_BITS(addr, mask)   Xil_Out32(addr, (Xil_In32(addr) | (mask)))
 
 
 // Macros to calculate the SIGNAL / L-SIG field in the PHY preamble (IEEE 802.11-2012 18.3.4)
 #define WLAN_TX_SIGNAL_CALC(rate, length) (((rate) & 0xF) | (((length) & 0xFFF) << 5) | (WLAN_TX_SIGNAL_PARITY_CALC(rate,length)))
-#define WLAN_TX_SIGNAL_PARITY_CALC(rate, length) ((0x1 & (ones_in_chars[rate] + ones_in_chars[length & 0xFF] + ones_in_chars[(length) >> 8])) << 17)
-
-//-----------------------------------------------
-// Fast Divide Macros
-//
-#define U16REC1(A, M, S) (u16)((((u32)(A) * (u32)(M)) >> 16u) >> (S))
-#define U16REC2(A, M, S) (u16)((((((u32)(A) * (u32)(M)) >> 16u) + (A)) >> 1u) >> (S))
-
-#define U16DIVBY24(A)  U16REC1(A, 0xAAABu, 4u)
-#define U16DIVBY36(A)  U16REC1(A, 0xE38Fu, 5u)
-#define U16DIVBY48(A)  U16REC1(A, 0xAAABu, 5u)
-#define U16DIVBY72(A)  U16REC1(A, 0xE38Fu, 6u)
-#define U16DIVBY96(A)  U16REC1(A, 0xAAABu, 6u)
-#define U16DIVBY144(A) U16REC1(A, 0xE38Fu, 7u)
-#define U16DIVBY192(A) U16REC1(A, 0xAAABu, 7u)
-#define U16DIVBY216(A) U16REC2(A, 0x2F69u, 7u)
-
+#define WLAN_TX_SIGNAL_PARITY_CALC(rate, length) ((0x1 & (ones_in_chars[(rate)] + ones_in_chars[(length) & 0xFF] + ones_in_chars[(length) >> 8])) << 17)
 
 //-----------------------------------------------
 // PHY Macros
 //
-#define wlan_phy_select_rx_antenna(d) Xil_Out32(WLAN_RX_REG_CFG, ((Xil_In32(WLAN_RX_REG_CFG) & ~WLAN_RX_REG_CFG_ANT_SEL_MASK) | ((d & 0x3) << 15)))
+#define wlan_phy_select_rx_antenna(d) Xil_Out32(WLAN_RX_REG_CFG, ((Xil_In32(WLAN_RX_REG_CFG) & ~WLAN_RX_REG_CFG_ANT_SEL_MASK) | (((d) & 0x3) << 15)))
 
 #define wlan_phy_enable_req_both_pkt_det()  Xil_Out32(WLAN_RX_REG_CFG, (Xil_In32(WLAN_RX_REG_CFG) |  WLAN_RX_REG_CFG_REQ_BOTH_PKT_DET))
 #define wlan_phy_disable_req_both_pkt_det() Xil_Out32(WLAN_RX_REG_CFG, (Xil_In32(WLAN_RX_REG_CFG) & ~WLAN_RX_REG_CFG_REQ_BOTH_PKT_DET))
@@ -276,8 +260,8 @@
 //     [23:16] - FFT window offset - number of samples of CP to use on average (must be in [0,CP_LENGTH))
 //     [31:24] - FFT scaling - UFix6_0 value; see Xilinx FFT datasheet for scaling details
 //
-#define wlan_phy_rx_set_fft_window_offset(d) Xil_Out32(WLAN_RX_FFT_CFG, ((Xil_In32(WLAN_RX_FFT_CFG) & 0xFF00FFFF) | ((d & 0xFF) << 16)))
-#define wlan_phy_rx_set_fft_scaling(d)       Xil_Out32(WLAN_RX_FFT_CFG, ((Xil_In32(WLAN_RX_FFT_CFG) & 0x00FFFFFF) | ((d & 0xFF) << 24)))
+#define wlan_phy_rx_set_fft_window_offset(d) Xil_Out32(WLAN_RX_FFT_CFG, ((Xil_In32(WLAN_RX_FFT_CFG) & 0xFF00FFFF) | (((d) & 0xFF) << 16)))
+#define wlan_phy_rx_set_fft_scaling(d)       Xil_Out32(WLAN_RX_FFT_CFG, ((Xil_In32(WLAN_RX_FFT_CFG) & 0x00FFFFFF) | (((d) & 0xFF) << 24)))
 
 #define wlan_phy_tx_config_fft(scaling, num_sc, cp_len) Xil_Out32(WLAN_TX_REG_FFT_CFG, \
 		(((scaling) & 0x3F) << 24) | \
@@ -294,9 +278,9 @@
 //
 // NOTE: The final << 1 accounts for the fact that this register actually returns the summed RSSI divided by 2
 //
-#define wlan_phy_rx_get_pkt_rssi(ant) (((ant == 0) ?  (Xil_In32(WLAN_RX_PKT_RSSI_AB)        & 0xFFFF) : \
-                                        (ant == 1) ? ((Xil_In32(WLAN_RX_PKT_RSSI_AB) >> 16) & 0xFFFF) : \
-                                        (ant == 2) ?  (Xil_In32(WLAN_RX_PKT_RSSI_CD)        & 0xFFFF) : \
+#define wlan_phy_rx_get_pkt_rssi(ant) ((((ant) == 0) ?  (Xil_In32(WLAN_RX_PKT_RSSI_AB)        & 0xFFFF) : \
+                                        ((ant) == 1) ? ((Xil_In32(WLAN_RX_PKT_RSSI_AB) >> 16) & 0xFFFF) : \
+                                        ((ant) == 2) ?  (Xil_In32(WLAN_RX_PKT_RSSI_CD)        & 0xFFFF) : \
                                        ((Xil_In32(WLAN_RX_PKT_RSSI_CD) >> 16) & 0xFFFF)) << 1)
 
 // AGC gains register fields:
@@ -313,14 +297,14 @@
 //     [30:29] - RF D RFG
 //        [31] - 0
 //
-#define wlan_phy_rx_get_agc_RFG(ant) (((ant == 0) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >>  5) : \
-                                       (ant == 1) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >> 13) : \
-                                       (ant == 2) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >> 21) : \
+#define wlan_phy_rx_get_agc_RFG(ant) ((((ant) == 0) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >>  5) : \
+                                       ((ant) == 1) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >> 13) : \
+                                       ((ant) == 2) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >> 21) : \
                                        (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >> 29)) & 0x3)
 
-#define wlan_phy_rx_get_agc_BBG(ant) (((ant == 0) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >>  0) : \
-                                       (ant == 1) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >>  8) : \
-                                       (ant == 2) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >> 16) : \
+#define wlan_phy_rx_get_agc_BBG(ant) ((((ant) == 0) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >>  0) : \
+                                       ((ant) == 1) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >>  8) : \
+                                       ((ant) == 2) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >> 16) : \
                                        (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >> 24)) & 0x1F)
 
 #define wlan_phy_DSSS_rx_enable()  Xil_Out32(WLAN_RX_REG_CFG, Xil_In32(WLAN_RX_REG_CFG) | WLAN_RX_REG_CFG_DSSS_RX_EN)
@@ -331,7 +315,7 @@
 #define wlan_phy_rx_get_cfo_est() Xil_In32(WLAN_RX_CFO_EST_TIME_DOMAIN)
 
 #define wlan_phy_rx_pktDet_RSSI_cfg(sum_len, sum_thresh, min_dur) \
-    Xil_Out32(WLAN_RX_PKTDET_RSSI_CFG, ((sum_len & 0x1F) | ((sum_thresh & 0x7FFF) << 5) | ((min_dur & 0x1F) << 20)))
+    Xil_Out32(WLAN_RX_PKTDET_RSSI_CFG, (((sum_len) & 0x1F) | (((sum_thresh) & 0x7FFF) << 5) | (((min_dur) & 0x1F) << 20)))
 
 // WLAN_RX_DSSS_CFG register fields:
 //     [11: 0] - Correlation threshold as UFix12_4
@@ -339,7 +323,7 @@
 //     [31:24] - Rx timeout - max bits to SFD
 //
 #define wlan_phy_DSSS_rx_config(code_corr, despread_dly, sfd_timeout) \
-    Xil_Out32(WLAN_RX_DSSS_CFG, ((code_corr & 0xFFFF) | ((despread_dly & 0x1F) << 12) | ((sfd_timeout & 0xFF) << 24)))
+    Xil_Out32(WLAN_RX_DSSS_CFG, (((code_corr) & 0xFFFF) | (((despread_dly) & 0x1F) << 12) | (((sfd_timeout) & 0xFF) << 24)))
 
 // WLAN_RX_PKT_DET_DSSS_CFG register fields:
 //     [ 7: 0] - Correlation threshold as UFix8_6
@@ -348,7 +332,7 @@
 //     [31:25] - Detection timeout - timeout bit count
 //
 #define wlan_phy_rx_pktDet_autoCorr_dsss_cfg(corr_thresh, energy_thresh, timeout_ones, timeout_count) \
-    Xil_Out32(WLAN_RX_PKT_DET_DSSS_CFG, ((corr_thresh & 0xFF) | ((energy_thresh & 0x3FF) << 8) | ((timeout_ones & 0x7F) << 18) | ((timeout_count & 0x7F) << 25)))
+    Xil_Out32(WLAN_RX_PKT_DET_DSSS_CFG, (((corr_thresh) & 0xFF) | (((energy_thresh) & 0x3FF) << 8) | (((timeout_ones) & 0x7F) << 18) | (((timeout_count) & 0x7F) << 25)))
 
 // WLAN_RX_PKT_DET_OFDM_CFG register fields:
 //     [ 7: 0] - Correlation threshold as UFix8_8
@@ -357,12 +341,12 @@
 //     [31:26] - Post detection reset block (also used by DSSS det)
 //
 #define wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(corr_thresh, energy_thresh, min_dur, post_wait) \
-    Xil_Out32(WLAN_RX_PKT_DET_OFDM_CFG, ((corr_thresh & 0xFF) | ((energy_thresh & 0x3FFF) << 8) | ((min_dur & 0xF) << 22) | ((post_wait & 0x3F) << 26)))
+    Xil_Out32(WLAN_RX_PKT_DET_OFDM_CFG, (((corr_thresh) & 0xFF) | (((energy_thresh) & 0x3FFF) << 8) | (((min_dur) & 0xF) << 22) | (((post_wait) & 0x3F) << 26)))
 
 #define wlan_phy_rx_lts_corr_thresholds(corr_thresh_low_snr, corr_thresh_high_snr) \
-    Xil_Out32(WLAN_RX_LTS_THRESH, (corr_thresh_low_snr & 0xFFFF) | ((corr_thresh_high_snr & 0xFFFF) << 16))
+    Xil_Out32(WLAN_RX_LTS_THRESH, ((corr_thresh_low_snr) & 0xFFFF) | (((corr_thresh_high_snr) & 0xFFFF) << 16))
 
-#define wlan_phy_rx_lts_corr_config(snr_thresh, corr_timeout) Xil_Out32(WLAN_RX_LTS_CFG, (corr_timeout & 0xFF) | ((snr_thresh & 0xFFFF) << 8))
+#define wlan_phy_rx_lts_corr_config(snr_thresh, corr_timeout) Xil_Out32(WLAN_RX_LTS_CFG, ((corr_timeout) & 0xFF) | (((snr_thresh) & 0xFFFF) << 8))
 
 #define wlan_phy_rx_chan_est_smoothing(coef_a, coef_b) Xil_Out32(WLAN_RX_CHAN_EST_SMOOTHING, (((coef_b) & 0xFFF) << 12) | ((coef_a) & 0xFFF))
 
@@ -388,23 +372,23 @@
 // AGC Macros
 //
 #define wlan_agc_set_AGC_timing(capt_rssi_1, capt_rssi_2, capt_v_db, agc_done) \
-    Xil_Out32(WLAN_AGC_REG_TIMING_AGC, ((capt_rssi_1 & 0xFF) | ( (capt_rssi_2 & 0xFF) << 8) | \
-                                        ((capt_v_db & 0xFF) << 16) | ( (agc_done & 0xFF) << 24)))
+    Xil_Out32(WLAN_AGC_REG_TIMING_AGC, (((capt_rssi_1) & 0xFF) | ( ((capt_rssi_2) & 0xFF) << 8) | \
+                                        (((capt_v_db) & 0xFF) << 16) | ( ((agc_done) & 0xFF) << 24)))
 
-#define wlan_agc_set_DCO_timing(start_dco, en_iir_filt) Xil_Out32(WLAN_AGC_REG_TIMING_DCO, (start_dco & 0xFF) | ( (en_iir_filt & 0xFF)<<8))
+#define wlan_agc_set_DCO_timing(start_dco, en_iir_filt) Xil_Out32(WLAN_AGC_REG_TIMING_DCO, ((start_dco) & 0xFF) | ( ((en_iir_filt) & 0xFF)<<8))
 
-#define wlan_agc_set_target(target_pwr) Xil_Out32(WLAN_AGC_REG_TARGET, (target_pwr & 0x3F))
+#define wlan_agc_set_target(target_pwr) Xil_Out32(WLAN_AGC_REG_TARGET, ((target_pwr) & 0x3F))
 
 #define wlan_agc_set_config(thresh32, thresh21, avg_len, v_db_adj, init_g_bb) \
-    Xil_Out32(WLAN_AGC_REG_CONFIG, (((thresh32  & 0xFF) <<  0) | \
-                                    ((thresh21  & 0xFF) <<  8) | \
-                                    ((avg_len   & 0x03) << 16) | \
-                                    ((v_db_adj  & 0x3F) << 18) | \
-                                    ((init_g_bb & 0x1F) << 24)))
+    Xil_Out32(WLAN_AGC_REG_CONFIG, ((((thresh32)  & 0xFF) <<  0) | \
+                                    (((thresh21)  & 0xFF) <<  8) | \
+                                    (((avg_len)   & 0x03) << 16) | \
+                                    (((v_db_adj)  & 0x3F) << 18) | \
+                                    (((init_g_bb) & 0x1F) << 24)))
 
-#define wlan_agc_set_RSSI_pwr_calib(g3, g2, g1) Xil_Out32(WLAN_AGC_REG_RSSI_PWR_CALIB, ((g3 & 0xFF) | ((g2 & 0xFF) << 8) | ((g1 & 0xFF) << 16)))
+#define wlan_agc_set_RSSI_pwr_calib(g3, g2, g1) Xil_Out32(WLAN_AGC_REG_RSSI_PWR_CALIB, (((g3) & 0xFF) | (((g2) & 0xFF) << 8) | (((g1) & 0xFF) << 16)))
 
-#define wlan_agc_set_reset_timing(rxhp,g_rf, g_bb) Xil_Out32(WLAN_AGC_TIMING_RESET, ((rxhp & 0xFF) | ((g_rf & 0xFF) << 8) | ((g_bb & 0xFF) << 16)))
+#define wlan_agc_set_reset_timing(rxhp,g_rf, g_bb) Xil_Out32(WLAN_AGC_TIMING_RESET, (((rxhp) & 0xFF) | (((g_rf) & 0xFF) << 8) | (((g_bb) & 0xFF) << 16)))
 
 /*********************** Global Variable Definitions *************************/
 

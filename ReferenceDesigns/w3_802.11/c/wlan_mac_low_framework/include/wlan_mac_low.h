@@ -95,10 +95,10 @@
 #define wlan_mac_set_postRx_timer1(d)                     (Xil_Out32(WLAN_MAC_REG_POST_RX_TIMERS, ((Xil_In32(WLAN_MAC_REG_POST_RX_TIMERS) & ~WLAN_MAC_POST_RX_TIMERS_MASK_TIMER1_COUNTTO) | ((d)         & WLAN_MAC_POST_RX_TIMERS_MASK_TIMER1_COUNTTO))))
 #define wlan_mac_set_postRx_timer2(d)                     (Xil_Out32(WLAN_MAC_REG_POST_RX_TIMERS, ((Xil_In32(WLAN_MAC_REG_POST_RX_TIMERS) & ~WLAN_MAC_POST_RX_TIMERS_MASK_TIMER2_COUNTTO) | (((d) << 16) & WLAN_MAC_POST_RX_TIMERS_MASK_TIMER2_COUNTTO))))
 
-#define wlan_mac_postTx_timer1_en(d)                      (Xil_Out32(WLAN_MAC_REG_POST_TX_TIMERS, ((Xil_In32(WLAN_MAC_REG_POST_TX_TIMERS) & ~WLAN_MAC_POST_TX_TIMERS_MASK_TIMER1_EN) | (d ? WLAN_MAC_POST_TX_TIMERS_MASK_TIMER1_EN : 0))))
-#define wlan_mac_postTx_timer2_en(d)                      (Xil_Out32(WLAN_MAC_REG_POST_TX_TIMERS, ((Xil_In32(WLAN_MAC_REG_POST_TX_TIMERS) & ~WLAN_MAC_POST_TX_TIMERS_MASK_TIMER2_EN) | (d ? WLAN_MAC_POST_TX_TIMERS_MASK_TIMER2_EN : 0))))
-#define wlan_mac_postRx_timer1_en(d)                      (Xil_Out32(WLAN_MAC_REG_POST_RX_TIMERS, ((Xil_In32(WLAN_MAC_REG_POST_RX_TIMERS) & ~WLAN_MAC_POST_RX_TIMERS_MASK_TIMER1_EN) | (d ? WLAN_MAC_POST_RX_TIMERS_MASK_TIMER1_EN : 0))))
-#define wlan_mac_postRx_timer2_en(d)                      (Xil_Out32(WLAN_MAC_REG_POST_RX_TIMERS, ((Xil_In32(WLAN_MAC_REG_POST_RX_TIMERS) & ~WLAN_MAC_POST_RX_TIMERS_MASK_TIMER2_EN) | (d ? WLAN_MAC_POST_RX_TIMERS_MASK_TIMER2_EN : 0))))
+#define wlan_mac_postTx_timer1_en(d)                      (Xil_Out32(WLAN_MAC_REG_POST_TX_TIMERS, ((Xil_In32(WLAN_MAC_REG_POST_TX_TIMERS) & ~WLAN_MAC_POST_TX_TIMERS_MASK_TIMER1_EN) | ((d) ? WLAN_MAC_POST_TX_TIMERS_MASK_TIMER1_EN : 0))))
+#define wlan_mac_postTx_timer2_en(d)                      (Xil_Out32(WLAN_MAC_REG_POST_TX_TIMERS, ((Xil_In32(WLAN_MAC_REG_POST_TX_TIMERS) & ~WLAN_MAC_POST_TX_TIMERS_MASK_TIMER2_EN) | ((d) ? WLAN_MAC_POST_TX_TIMERS_MASK_TIMER2_EN : 0))))
+#define wlan_mac_postRx_timer1_en(d)                      (Xil_Out32(WLAN_MAC_REG_POST_RX_TIMERS, ((Xil_In32(WLAN_MAC_REG_POST_RX_TIMERS) & ~WLAN_MAC_POST_RX_TIMERS_MASK_TIMER1_EN) | ((d) ? WLAN_MAC_POST_RX_TIMERS_MASK_TIMER1_EN : 0))))
+#define wlan_mac_postRx_timer2_en(d)                      (Xil_Out32(WLAN_MAC_REG_POST_RX_TIMERS, ((Xil_In32(WLAN_MAC_REG_POST_RX_TIMERS) & ~WLAN_MAC_POST_RX_TIMERS_MASK_TIMER2_EN) | ((d) ? WLAN_MAC_POST_RX_TIMERS_MASK_TIMER2_EN : 0))))
 
 
 // WLAN MAC HW - TX_CTRL_STATUS register bit masks
@@ -259,13 +259,13 @@
 //
 #define wlan_mac_tx_ctrl_A_params(pktBuf, antMask, preTx_backoff_slots, preWait_postRxTimer1, preWait_postTxTimer1, postWait_postTxTimer2, phy_mode) \
                 Xil_Out32(WLAN_MAC_REG_TX_CTRL_A_PARAMS, \
-                    ((pktBuf                & 0xF   )        | \
-                    ((antMask               & 0xF   ) <<  4) | \
-                    ((preTx_backoff_slots   & 0xFFFF) <<  8) | \
-                    ((preWait_postRxTimer1  & 0x1   ) << 24) | \
-                    ((preWait_postTxTimer1  & 0x1   ) << 25) | \
-                    ((postWait_postTxTimer2 & 0x1   ) << 26) | \
-                    ((phy_mode              & 0x7   ) << 27)))
+                    (((pktBuf)                & 0xF   )        | \
+                    (((antMask)               & 0xF   ) <<  4) | \
+                    (((preTx_backoff_slots)   & 0xFFFF) <<  8) | \
+                    (((preWait_postRxTimer1)  & 0x1   ) << 24) | \
+                    (((preWait_postTxTimer1)  & 0x1   ) << 25) | \
+                    (((postWait_postTxTimer2) & 0x1   ) << 26) | \
+                    (((phy_mode)              & 0x7   ) << 27)))
 
 // TX_CTRL_A_GAINS
 //     b[0:5]  : RFA Tx gain
@@ -275,10 +275,10 @@
 //
 #define wlan_mac_tx_ctrl_A_gains(rf_a, rf_b, rf_c, rf_d) \
                 Xil_Out32(WLAN_MAC_REG_TX_CTRL_A_GAINS, \
-                        ((rf_a & 0x3F)        | \
-                        ((rf_b & 0x3F) <<  6) | \
-                        ((rf_c & 0x3F) << 12) | \
-                        ((rf_d & 0x3F) << 18)))
+                        (((rf_a) & 0x3F)        | \
+                        (((rf_b) & 0x3F) <<  6) | \
+                        (((rf_c) & 0x3F) << 12) | \
+                        (((rf_d) & 0x3F) << 18)))
 
 // TX_CTRL_B_PARAMS:
 //     b[3:0]: Pkt buf
@@ -291,13 +291,13 @@
 //
 #define wlan_mac_tx_ctrl_B_params(pktBuf, antMask, req_zeroNAV, preWait_postRxTimer1, preWait_postRxTimer2, preWait_postTxTimer1, phy_mode) \
                 Xil_Out32(WLAN_MAC_REG_TX_CTRL_B_PARAMS, \
-                    ((pktBuf                & 0xF)        | \
-                    ((antMask               & 0xF) <<  4) | \
-                    ((preWait_postRxTimer1  & 0x1) <<  8) | \
-                    ((preWait_postRxTimer2  & 0x1) <<  9) | \
-                    ((preWait_postTxTimer1  & 0x1) << 10) | \
-                    ((req_zeroNAV           & 0x1) << 11) | \
-                    ((phy_mode              & 0x7) << 12)))
+                    (((pktBuf)                & 0xF)        | \
+                    (((antMask)               & 0xF) <<  4) | \
+                    (((preWait_postRxTimer1)  & 0x1) <<  8) | \
+                    (((preWait_postRxTimer2)  & 0x1) <<  9) | \
+                    (((preWait_postTxTimer1)  & 0x1) << 10) | \
+                    (((req_zeroNAV)           & 0x1) << 11) | \
+                    (((phy_mode)              & 0x7) << 12)))
 
 // TX_CTRL_B_GAINS
 //     b[0:5]  : RFA Tx gain
@@ -307,10 +307,10 @@
 //
 #define wlan_mac_tx_ctrl_B_gains(rf_a, rf_b, rf_c, rf_d) \
                 Xil_Out32(WLAN_MAC_REG_TX_CTRL_B_GAINS, \
-                        ((rf_a & 0x3F)        | \
-                        ((rf_b & 0x3F) <<  6) | \
-                        ((rf_c & 0x3F) << 12) | \
-                        ((rf_d & 0x3F) << 18)))
+                        (((rf_a) & 0x3F)        | \
+                        (((rf_b) & 0x3F) <<  6) | \
+                        (((rf_c) & 0x3F) << 12) | \
+                        (((rf_d) & 0x3F) << 18)))
 
 // TX_CTRL_C_PARAMS:
 //     b[3:0]: Pkt buf
@@ -321,11 +321,11 @@
 //
 #define wlan_mac_tx_ctrl_C_params(pktBuf, antMask, req_backoff, phy_mode, num_slots) \
                 Xil_Out32(WLAN_MAC_REG_TX_CTRL_C_PARAMS, \
-                    ((pktBuf           & 0xF)        | \
-                    ((antMask          & 0xF) <<  4) | \
-                    ((req_backoff      & 0x1) <<  8) | \
-                    ((phy_mode         & 0x7) <<  9) | \
-                    ((num_slots     & 0xFFFF) << 12)))
+                    (((pktBuf)           & 0xF)        | \
+                    (((antMask)          & 0xF) <<  4) | \
+                    (((req_backoff)      & 0x1) <<  8) | \
+                    (((phy_mode)         & 0x7) <<  9) | \
+                    (((num_slots)     & 0xFFFF) << 12)))
 
 // TX_CTRL_C_GAINS
 //     b[0:5]  : RFA Tx gain
@@ -335,10 +335,10 @@
 //
 #define wlan_mac_tx_ctrl_C_gains(rf_a, rf_b, rf_c, rf_d) \
                 Xil_Out32(WLAN_MAC_REG_TX_CTRL_C_GAINS, \
-                        ((rf_a & 0x3F)        | \
-                        ((rf_b & 0x3F) <<  6) | \
-                        ((rf_c & 0x3F) << 12) | \
-                        ((rf_d & 0x3F) << 18)))
+                        (((rf_a) & 0x3F)        | \
+                        (((rf_b) & 0x3F) <<  6) | \
+                        (((rf_c) & 0x3F) << 12) | \
+                        (((rf_d) & 0x3F) << 18)))
 
 
 #define WLAN_MAC_START_REG_MASK_START_TX_A	0x1
