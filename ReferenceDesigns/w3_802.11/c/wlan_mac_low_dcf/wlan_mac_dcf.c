@@ -131,8 +131,7 @@ int main(){
 
 
     // wlan_mac_low_init() has placed a mutex lock on TX_PKT_BUF_ACK_CTS and
-    // TX_PKT_BUF_RTS already. We should set their packet buffer states to
-    // CURRENT.
+    // TX_PKT_BUF_RTS already. We should set their packet buffer states to LOW_CTRL
     ((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK_CTS))->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
     ((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_RTS))->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
 
@@ -321,7 +320,7 @@ inline int send_beacon(u8 tx_pkt_buf){
 					else {i++;}
 				}
 
-				// We've locked the beacon template packet buffer. We should set its state to CURRENT
+				// We've locked the beacon template packet buffer. We should set its state to LOW_CTRL
 				// so CPU_HIGH can know that we are just about to transmit it.
 				tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
 
@@ -507,12 +506,12 @@ inline int send_beacon(u8 tx_pkt_buf){
 			//	The status was set to HIGH_CTRL because CPU_HIGH is in the process of stopping beacon
 			//	transmissions. If so, we should expect configure_beacon_txrx() that will prevent
 			//	future calls to this function on TBTT intervals. In this case, we will return a
-			//	"success" to the calling function. We successfully did not sent this beacon because
+			//	"success" to the calling function. We successfully did not send this beacon because
 			//	we were informed by CPU_HIGH that we should stop.
 			return_status = 0;
 		break;
 		case TX_PKT_BUF_LOW_CTRL:
-			xil_printf("ERROR (send_beacon): unexpected packet buffer status of CURRENT\n");
+			xil_printf("ERROR (send_beacon): unexpected packet buffer status of TX_PKT_BUF_LOW_CTRL\n");
 		case TX_PKT_BUF_DONE:
 			//	CPU_HIGH is lagging behind. The previous beacon we sent is still being processed
 			//  and hasn't been returned to us. We will exit this context rather than block and try
