@@ -100,7 +100,7 @@ void queue_state_change(u32 QID, u8 queue_len);
 inline void update_tim_tag_aid(u8 aid, u8 bit_val_in);
 void update_tim_tag_all(u32 sched_id);
 
-void beacon_transmit_done( tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details );
+void beacon_transmit_done( tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details, tx_low_entry* tx_low_event_log_entry );
 
 void poll_tx_queues();
 void purge_all_data_tx_queue();

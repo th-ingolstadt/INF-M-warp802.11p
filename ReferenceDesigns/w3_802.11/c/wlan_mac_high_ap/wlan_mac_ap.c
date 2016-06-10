@@ -771,18 +771,13 @@ void update_tim_tag_all(u32 sched_id){
 /**
  *
  *****************************************************************************/
-void beacon_transmit_done( tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details ){
+void beacon_transmit_done( tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details, tx_low_entry* tx_low_event_log_entry ){
 
 	gl_power_save_configuration.dtim_timestamp = get_system_time_usec() + gl_power_save_configuration.dtim_mcast_allow_window;
 
 	poll_tx_queues(); //We just entered a window where we are allowing multicast packets to dequeue. We should
 					  //poll the Tx queues and see if there are any ready to be dequeued.
 
-#if WLAN_SW_CONFIG_ENABLE_LOGGING
-	// Log the TX low
-	//  FIXME: Move to framework
-	wlan_exp_log_create_tx_low_entry(tx_frame_info, tx_low_details, 0);
-#endif
 }
 
 

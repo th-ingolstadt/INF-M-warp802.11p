@@ -74,7 +74,6 @@ int  ethernet_receive(tx_queue_element_t* curr_tx_queue_element, u8* eth_dest, u
 
 u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_entry* rx_event_log_entry);
 bss_info_t* active_bss_info_getter();
-void beacon_transmit_done( tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details );
 void process_scan_state_change(scan_state_t scan_state);
 void poll_tx_queues();
 void purge_all_data_tx_queue();

@@ -199,7 +199,6 @@ int main() {
 
 	// Initialize callbacks
 	wlan_mac_util_set_eth_rx_callback(          (void *) ethernet_receive);
-	wlan_mac_high_set_beacon_tx_done_callback(  (void *) beacon_transmit_done);
 	wlan_mac_high_set_mpdu_rx_callback(         (void *) mpdu_rx_process);
 	wlan_mac_high_set_uart_rx_callback(         (void *) uart_rx);
 	wlan_mac_high_set_poll_tx_queues_callback(  (void *) poll_tx_queues);
@@ -367,20 +366,6 @@ int main() {
 	// Unreachable, but non-void return keeps the compiler happy
 	return -1;
 }
-
-/*****************************************************************************/
-/**
- *
- *****************************************************************************/
-void beacon_transmit_done( tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details ){
-	// Log the TX low
-#if WLAN_SW_CONFIG_ENABLE_LOGGING
-	//FIXME: Move to framework
-	wlan_exp_log_create_tx_low_entry(tx_frame_info, tx_low_details, 0);
-#endif //WLAN_SW_CONFIG_ENABLE_LOGGING
-}
-
-
 
 /*****************************************************************************/
 /**
