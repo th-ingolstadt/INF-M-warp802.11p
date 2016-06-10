@@ -8,12 +8,12 @@
  *              See LICENSE.txt included in the design archive or
  *              at http://mangocomm.com/802.11/license
  *
- *  @author Chris Hunter (chunter [at] mangocomm.com)
- *  @author Patrick Murphy (murphpo [at] mangocomm.com)
- *  @author Erik Welsh (welsh [at] mangocomm.com)
+ *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
 /***************************** Include Files *********************************/
+
+#include "wlan_mac_high_sw_config.h"
 
 #include "stdlib.h"
 #include "xparameters.h"
@@ -21,7 +21,9 @@
 #include "xaxidma.h"
 #include "xintc.h"
 
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 #include "WARP_ip_udp.h"
+#endif //WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
 #include "wlan_mac_common.h"
 #include "wlan_mac_pkt_buf_util.h"
@@ -336,7 +338,7 @@ int init_rx_bd(XAxiDma_Bd * bd_ptr, tx_queue_element_t * tqe_ptr, u32 max_transf
     //     NOTE:  This pointer is offset by the size of a MAC header and LLC header, which results
     //         in the Ethernet payload being copied to its post-encapsulated location. This
     //         speeds up the encapsulation process by skipping any re-copying of Ethernet payloads
-    buf_addr = (u32)((void*)((tx_queue_buffer_t*)(tqe_ptr->data))->frame + sizeof(mac_header_80211) + sizeof(llc_header_t) - sizeof(ethernet_header));
+    buf_addr = (u32)((void*)((tx_queue_buffer_t*)(tqe_ptr->data))->frame + sizeof(mac_header_80211) + sizeof(llc_header_t) - sizeof(ethernet_header_t));
     status   = XAxiDma_BdSetBufAddr(bd_ptr, buf_addr);
     if (status != XST_SUCCESS) { xil_printf("XAxiDma_BdSetBufAddr failed (addr 0x08x)! Err = %d\n", buf_addr, status); return -1; }
 
@@ -725,19 +727,19 @@ void wlan_process_eth_rx(XAxiDma_BdRing * rx_ring_ptr, XAxiDma_Bd * bd_ptr) {
  *     returns length of encapsulated packet (in bytes)
  */
 int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_ptr, u32 eth_rx_len) {
-    ethernet_header        * eth_hdr;
-    ipv4_header            * ip_hdr;
-    arp_ipv4_packet        * arp;
-    udp_header             * udp;
+	ethernet_header_t        * eth_hdr;
+    ipv4_header_t            * ip_hdr;
+    arp_ipv4_packet_t        * arp;
+    udp_header_t             * udp;
     dhcp_packet            * dhcp;
     llc_header_t           * llc_hdr;
     u32                      mpdu_tx_len;
 
     // Calculate actual wireless Tx len (eth payload - eth header + wireless header)
-    mpdu_tx_len = eth_rx_len - sizeof(ethernet_header) + sizeof(llc_header_t) + sizeof(mac_header_80211) + WLAN_PHY_FCS_NBYTES;
+    mpdu_tx_len = eth_rx_len - sizeof(ethernet_header_t) + sizeof(llc_header_t) + sizeof(mac_header_80211) + WLAN_PHY_FCS_NBYTES;
 
     // Helper pointers to interpret/fill fields in the new MPDU
-    eth_hdr = (ethernet_header*)eth_start_ptr;
+    eth_hdr = (ethernet_header_t*)eth_start_ptr;
     llc_hdr = (llc_header_t*)(mpdu_start_ptr + sizeof(mac_header_80211));
 
     // Copy the src/dest addresses from the received Eth packet to temp space
@@ -756,7 +758,7 @@ int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_
             switch(eth_hdr->ethertype) {
                 case ETH_TYPE_ARP:
                     llc_hdr->type = LLC_TYPE_ARP;
-                    arp = (arp_ipv4_packet*)((void*)eth_hdr + sizeof(ethernet_header));
+                    arp = (arp_ipv4_packet_t*)((void*)eth_hdr + sizeof(ethernet_header_t));
                 break;
 
                 case ETH_TYPE_IP:
@@ -782,7 +784,7 @@ int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_
                     llc_hdr->type = LLC_TYPE_ARP;
 
                     // Overwrite ARP request source MAC address field with the station's wireless MAC address.
-                    arp = (arp_ipv4_packet*)((void*)eth_hdr + sizeof(ethernet_header));
+                    arp = (arp_ipv4_packet_t*)((void*)eth_hdr + sizeof(ethernet_header_t));
                     memcpy(arp->sender_haddr, get_mac_hw_addr_wlan(), 6);
                 break;
 
@@ -790,10 +792,10 @@ int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_
                     llc_hdr->type = LLC_TYPE_IP;
 
                     // Check if IPv4 packet is a DHCP Discover in a UDP frame
-                    ip_hdr = (ipv4_header*)((void*)eth_hdr + sizeof(ethernet_header));
+                    ip_hdr = (ipv4_header_t*)((void*)eth_hdr + sizeof(ethernet_header_t));
 
-                    if (ip_hdr->protocol == IP_PROTOCOL_UDP) {
-                        udp = (udp_header*)((void*)ip_hdr + 4*((u8)(ip_hdr->version_ihl) & 0xF));
+                    if (ip_hdr->protocol == IPV4_PROT_UDP) {
+                        udp = (udp_header_t*)((void*)ip_hdr + 4*((u8)(ip_hdr->version_ihl) & 0xF));
 
                         // Check if this is a DHCP Discover packet, which contains the source hardware
                         // address deep inside the packet (in addition to its usual location in the Eth
@@ -805,7 +807,7 @@ int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_
                             // Disable the checksum since this will change the bytes in the packet
                             udp->checksum = 0;
 
-                            dhcp = (dhcp_packet*)((void*)udp + sizeof(udp_header));
+                            dhcp = (dhcp_packet*)((void*)udp + sizeof(udp_header_t));
 
                             if (Xil_Ntohl(dhcp->magic_cookie) == DHCP_MAGIC_COOKIE) {
                                 // Assert the DHCP Discover's BROADCAST flag; this signals to any DHCP
@@ -1010,11 +1012,11 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
     mac_header_80211       * rx80211_hdr;
     llc_header_t           * llc_hdr;
 
-    ethernet_header        * eth_hdr;
-    ipv4_header            * ip_hdr;
-    udp_header             * udp;
+    ethernet_header_t        * eth_hdr;
+    ipv4_header_t            * ip_hdr;
+    udp_header_t             * udp;
 
-    arp_ipv4_packet        * arp;
+    arp_ipv4_packet_t        * arp;
     dhcp_packet            * dhcp;
 
     u8                       continue_loop;
@@ -1033,10 +1035,10 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
     // Get helper pointers to various byte offsets in the packet payload
     rx80211_hdr = (mac_header_80211*)((void *)mpdu);
     llc_hdr     = (llc_header_t*)((void *)mpdu + sizeof(mac_header_80211) + pre_llc_offset);
-    eth_hdr     = (ethernet_header*)((void *)mpdu + sizeof(mac_header_80211) + sizeof(llc_header_t) + pre_llc_offset - sizeof(ethernet_header));
+    eth_hdr     = (ethernet_header_t*)((void *)mpdu + sizeof(mac_header_80211) + sizeof(llc_header_t) + pre_llc_offset - sizeof(ethernet_header_t));
 
     // Calculate length of de-encapsulated Ethernet packet
-    len_to_send = length - min_pkt_len - pre_llc_offset - WLAN_PHY_FCS_NBYTES + sizeof(ethernet_header);
+    len_to_send = length - min_pkt_len - pre_llc_offset - WLAN_PHY_FCS_NBYTES + sizeof(ethernet_header_t);
 
     // Perform de-encapsulation of wireless packet
     switch(eth_encap_mode) {
@@ -1062,14 +1064,14 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
                     //     This hostname is purely for convenience- the hostname is easier to
                     //          recognize than the STA MAC address. The hostname can be blank
                     //          without affecting any AP functionality.
-                    ip_hdr = (ipv4_header*)((void*)eth_hdr + sizeof(ethernet_header));
+                    ip_hdr = (ipv4_header_t*)((void*)eth_hdr + sizeof(ethernet_header_t));
 
-                    if (ip_hdr->protocol == IP_PROTOCOL_UDP) {
-                        udp = (udp_header*)((void*)ip_hdr + 4*((u8)(ip_hdr->version_ihl) & 0xF));
+                    if (ip_hdr->protocol == IPV4_PROT_UDP) {
+                        udp = (udp_header_t*)((void*)ip_hdr + 4*((u8)(ip_hdr->version_ihl) & 0xF));
 
                         if ((Xil_Ntohs(udp->src_port) == UDP_SRC_PORT_BOOTPC) ||
                             (Xil_Ntohs(udp->src_port) == UDP_SRC_PORT_BOOTPS)) {
-                            dhcp = (dhcp_packet*)((void*)udp + sizeof(udp_header));
+                            dhcp = (dhcp_packet*)((void*)udp + sizeof(udp_header_t));
 
                             if (Xil_Ntohl(dhcp->magic_cookie) == DHCP_MAGIC_COOKIE) {
                                 eth_mid_ptr = (u8*)((void*)dhcp + sizeof(dhcp_packet));
@@ -1159,7 +1161,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
 
                     // If the ARP packet is addressed to this STA wireless address, replace the ARP dest address
                     // with the connected wired device's MAC address
-                    arp = (arp_ipv4_packet *)((void*)eth_hdr + sizeof(ethernet_header));
+                    arp = (arp_ipv4_packet_t *)((void*)eth_hdr + sizeof(ethernet_header_t));
                     if (wlan_addr_eq(arp->target_haddr, get_mac_hw_addr_wlan())) {
                         memcpy(arp->target_haddr, eth_sta_mac_addr, 6);
                     }
@@ -1167,7 +1169,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
 
                 case ETH_TYPE_IP:
                     eth_hdr->ethertype = ETH_TYPE_IP;
-                    ip_hdr = (ipv4_header*)((void*)eth_hdr + sizeof(ethernet_header));
+                    ip_hdr = (ipv4_header_t*)((void*)eth_hdr + sizeof(ethernet_header_t));
                 break;
 
                 default:
@@ -1198,7 +1200,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
 
                     // If the ARP packet is addressed to this STA wireless address, replace the ARP dest address
                     // with the connected wired device's MAC address
-                    arp = (arp_ipv4_packet*)((void*)eth_hdr + sizeof(ethernet_header));
+                    arp = (arp_ipv4_packet_t*)((void*)eth_hdr + sizeof(ethernet_header_t));
                     if (wlan_addr_eq(arp->target_haddr, get_mac_hw_addr_wlan())) {
                         memcpy(arp->target_haddr, eth_sta_mac_addr, 6);
                     }
@@ -1206,7 +1208,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
 
                 case ETH_TYPE_IP:
                     eth_hdr->ethertype = ETH_TYPE_IP;
-                    ip_hdr = (ipv4_header*)((void*)eth_hdr + sizeof(ethernet_header));
+                    ip_hdr = (ipv4_header_t*)((void*)eth_hdr + sizeof(ethernet_header_t));
                 break;
 
                 default:

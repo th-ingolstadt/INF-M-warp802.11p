@@ -8,13 +8,13 @@
  *              See LICENSE.txt included in the design archive or
  *              at http://mangocomm.com/802.11/license
  *
- *  @author Chris Hunter (chunter [at] mangocomm.com)
- *  @author Patrick Murphy (murphpo [at] mangocomm.com)
- *  @author Erik Welsh (welsh [at] mangocomm.com)
+ *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
 
 /***************************** Include Files *********************************/
+#include "wlan_mac_high_sw_config.h"
+
 #include "wlan_exp_common.h"
 
 

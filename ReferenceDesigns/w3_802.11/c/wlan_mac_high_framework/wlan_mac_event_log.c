@@ -40,12 +40,11 @@
  * calling functions to interpret the bytes within the log correctly.
  *
  *
- *  @author Chris Hunter (chunter [at] mangocomm.com)
- *  @author Patrick Murphy (murphpo [at] mangocomm.com)
- *  @author Erik Welsh (welsh [at] mangocomm.com)
+ *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
 /***************************** Include Files *********************************/
+#include "wlan_mac_high_sw_config.h"
 
 // SDK includes
 #include "stdio.h"
@@ -322,6 +321,8 @@ int event_log_config_logging( u32 enable ) {
  *
  *****************************************************************************/
 u32  event_log_get_data(u32 start_index, u32 size, void * buffer, u8 copy_data) {
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
+	//TODO: Using the log without wlan_exp requires a different retrieval method
 
     u32 start_address;
     u64 end_address;
@@ -361,6 +362,9 @@ u32  event_log_get_data(u32 start_index, u32 size, void * buffer, u8 copy_data) 
     }
 
     return num_bytes;
+#else
+    return 0;
+#endif //WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 }
 
 

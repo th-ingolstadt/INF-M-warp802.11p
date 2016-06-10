@@ -8,14 +8,14 @@
  *                See LICENSE.txt included in the design archive or
  *                at http://mangocomm.com/802.11/license
  *
- *  @author Chris Hunter (chunter [at] mangocomm.com)
- *  @author Patrick Murphy (murphpo [at] mangocomm.com)
- *  @author Erik Welsh (welsh [at] mangocomm.com)
+ *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
 
 
 /***************************** Include Files *********************************/
+#include "wlan_mac_high_sw_config.h"
+
 // Include xil_types so function prototypes can use u8/u16/u32 data types
 #include "xil_types.h"
 #include "warp_hw_ver.h"
@@ -266,6 +266,7 @@ typedef struct {
 
 
 /*************************** Function Prototypes *****************************/
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
 // Initialization Functions
 
@@ -296,5 +297,7 @@ int           wlan_exp_get_parameters(wlan_exp_tag_parameter * parameters, u32 n
 #ifdef _DEBUG_
 void          print_wlan_exp_parameters(wlan_exp_tag_parameter *param, int num_params);
 #endif
+
+#endif //WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
 #endif /* WLAN_EXP_COMMON_H_ */

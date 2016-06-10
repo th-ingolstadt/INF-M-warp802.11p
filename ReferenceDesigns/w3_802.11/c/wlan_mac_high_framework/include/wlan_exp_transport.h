@@ -8,20 +8,22 @@
  *                See LICENSE.txt included in the design archive or
  *                at http://mangocomm.com/802.11/license
  *
- *  @author Chris Hunter (chunter [at] mangocomm.com)
- *  @author Patrick Murphy (murphpo [at] mangocomm.com)
- *  @author Erik Welsh (welsh [at] mangocomm.com)
+ *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
 
 /***************************** Include Files *********************************/
 
+#include "wlan_mac_high_sw_config.h"
+
 // WLAN Exp includes
 #include "wlan_exp_common.h"
 
 // WARP UDP transport includes
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 #include <WARP_ip_udp.h>
 #include <WARP_ip_udp_device.h>
+#endif //WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
 
 /*************************** Constant Definitions ****************************/
@@ -220,8 +222,9 @@ typedef struct {
     int                      socket_unicast;               // Unicast receive socket index
     int                      socket_broadcast;             // Broadcast receive socket index
     int                      socket_async;                 // Asynchronous send socket index
-
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
     struct sockaddr          async_sockaddr;               // Address structure for Asynchronous send socket
+#endif //WLAN_SW_CONFIG_ENABLE_WLAN_EXP
     cmd_resp                 async_cmd_resp;               // Command / Response structure for Asynchronous send socket
 
     transport_info           info;                         // Transport info structure
@@ -230,6 +233,7 @@ typedef struct {
 
 
 /*************************** Function Prototypes *****************************/
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
 // Transport functions
 int  transport_init(u32 eth_dev_num, void * node_info, u8 * ip_addr, u8 * hw_addr, u16 unicast_port, u16 broadcast_port);
@@ -259,6 +263,6 @@ u16  transport_get_ethernet_status(u32 eth_dev_num);
 
 int  transport_get_parameters(u32 eth_dev_num, u32* buffer, u32 max_resp_len, u8 network);
 
-
+#endif //WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
 #endif /* TRANSPORT_H_ */

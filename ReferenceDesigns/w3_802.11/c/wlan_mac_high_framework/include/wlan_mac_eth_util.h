@@ -8,12 +8,12 @@
  *              See LICENSE.txt included in the design archive or
  *              at http://mangocomm.com/802.11/license
  *
- *  @author Chris Hunter (chunter [at] mangocomm.com)
- *  @author Patrick Murphy (murphpo [at] mangocomm.com)
- *  @author Erik Welsh (welsh [at] mangocomm.com)
+ *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
 /***************************** Include Files *********************************/
+
+#include "wlan_mac_high_sw_config.h"
 
 #include "xintc.h"
 
@@ -90,6 +90,9 @@
 #define LLC_TYPE_WLAN_LTG                                  0x9090              // Non-standard type for LTG packets
 
 
+#define ETH_ADDR_SIZE                                      6                   // Length of Ethernet MAC address (in bytes)
+#define IP_ADDR_SIZE                                       4                   // Length of IP address (in bytes)
+
 
 /*********************** Global Structure Definitions ************************/
 
@@ -121,6 +124,45 @@ typedef struct{
 	u8  padding[192];
 	u32 magic_cookie;
 } dhcp_packet;
+
+typedef struct {
+    u8                       dest_mac_addr[ETH_ADDR_SIZE];                      // Destination MAC address
+    u8                       src_mac_addr[ETH_ADDR_SIZE];                       // Source MAC address
+    u16                      ethertype;                                        // EtherType
+} ethernet_header_t;
+
+typedef struct {
+    u8                       version_ihl;                                      // [7:4] Version; [3:0] Internet Header Length
+    u8                       dscp_ecn;                                         // [7:2] Differentiated Services Code Point; [1:0] Explicit Congestion Notification
+    u16                      total_length;                                     // Total Length (includes header and data - in bytes)
+    u16                      identification;                                   // Identification
+    u16                      fragment_offset;                                  // [15:14] Flags;   [13:0] Fragment offset
+    u8                       ttl;                                              // Time To Live
+    u8                       protocol;                                         // Protocol
+    u16                      header_checksum;                                  // IP header checksum
+    u32                      src_ip_addr;                                      // Source IP address (big endian)
+    u32                      dest_ip_addr;                                     // Destination IP address (big endian)
+} ipv4_header_t;
+
+typedef struct {
+    u16                      htype;                                            // Hardware Type
+    u16                      ptype;                                            // Protocol Type
+    u8                       hlen;                                             // Length of Hardware address
+    u8                       plen;                                             // Length of Protocol address
+    u16                      oper;                                             // Operation
+    u8                       sender_haddr[ETH_ADDR_SIZE];                       // Sender hardware address
+    u8                       sender_paddr[IP_ADDR_SIZE];                        // Sender protocol address
+    u8                       target_haddr[ETH_ADDR_SIZE];                       // Target hardware address
+    u8                       target_paddr[IP_ADDR_SIZE];                        // Target protocol address
+} arp_ipv4_packet_t;
+
+typedef struct {
+    u16                      src_port;                                         // Source port number
+    u16                      dest_port;                                        // Destination port number
+    u16                      length;                                           // Length of UDP header and UDP data (in bytes)
+    u16                      checksum;                                         // Checksum
+} udp_header_t;
+
 
 
 /*************************** Function Prototypes *****************************/

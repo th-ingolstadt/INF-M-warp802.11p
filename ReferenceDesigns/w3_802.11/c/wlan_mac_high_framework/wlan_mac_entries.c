@@ -16,13 +16,13 @@
  *    3) Update the print function so that it is easy to print the log to the
  *    terminal
  *
- *  @author Chris Hunter (chunter [at] mangocomm.com)
- *  @author Patrick Murphy (murphpo [at] mangocomm.com)
- *  @author Erik Welsh (welsh [at] mangocomm.com)
+ *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
 
 /***************************** Include Files *********************************/
+
+#include "wlan_mac_high_sw_config.h"
 
 // SDK includes
 #include "stdio.h"

@@ -8,12 +8,11 @@
  *                See LICENSE.txt included in the design archive or
  *                at http://mangocomm.com/802.11/license
  *
- *  @author Chris Hunter (chunter [at] mangocomm.com)
- *  @author Patrick Murphy (murphpo [at] mangocomm.com)
- *  @author Erik Welsh (welsh [at] mangocomm.com)
+ *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
 /***************************** Include Files *********************************/
+#include "wlan_mac_high_sw_config.h"
 
 // Xilinx SDK includes
 #include "xparameters.h"
@@ -25,7 +24,6 @@
 #include "xintc.h"
 
 // WLAN includes
-#include "WARP_ip_udp.h"
 #include "wlan_mac_time_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"

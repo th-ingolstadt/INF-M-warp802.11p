@@ -8,13 +8,13 @@
  *                See LICENSE.txt included in the design archive or
  *                at http://mangocomm.com/802.11/license
  *
- *  @author Chris Hunter (chunter [at] mangocomm.com)
- *  @author Patrick Murphy (murphpo [at] mangocomm.com)
- *  @author Erik Welsh (welsh [at] mangocomm.com)
+ *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
 
 /***************************** Include Files *********************************/
+#include "wlan_mac_high_sw_config.h"
+
 #include "wlan_exp_common.h"
 #include "wlan_exp_transport.h"
 
@@ -348,6 +348,7 @@ CASSERT(sizeof(wlan_exp_station_txrx_counts_t) == 128, wlan_exp_station_txrx_cou
 
 
 /*************************** Function Prototypes *****************************/
+#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
 // Initialization Commands
 int  wlan_exp_node_init           (u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wlan_exp_hw_addr, u8 *wlan_hw_addr);
@@ -382,6 +383,8 @@ void node_info_set_max_counts     (u32 max_counts);
 
 u32  node_get_node_id             (void);
 u32  node_get_serial_number       (void);
+
+#endif //WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
 
 #endif /* WLAN_EXP_NODE_H_ */
