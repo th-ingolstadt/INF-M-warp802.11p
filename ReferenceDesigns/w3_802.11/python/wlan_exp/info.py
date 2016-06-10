@@ -362,7 +362,7 @@ class InfoStruct(dict):
                 self[name] = data_tuple[i]
 
         except struct.error as err:
-            print("Error unpacking {0} buffer with len {1}: {2}".format(self.name, len(buf), err))
+            print("Error unpacking buffer with len {0}: {1}".format(len(buf), err))
             
 
 
