@@ -75,9 +75,11 @@ static volatile u8                          uart_mode            = UART_MODE_MAI
 static volatile u32                         schedule_id;
 static volatile u8                          print_scheduled      = 0;
 
+#if WLAN_SW_CONFIG_ENABLE_LTG
 static          ltg_pyld_all_assoc_fixed    traffic_blast_pyld;
 static          ltg_sched_periodic_params   traffic_blast_sched;
 static volatile u32                         traffic_blast_ltg_id = LTG_ID_INVALID;
+#endif //WLAN_SW_CONFIG_ENABLE_LTG
 
 
 /*************************** Functions Prototypes ****************************/
@@ -117,8 +119,9 @@ void stop_periodic_print();
  *
  *****************************************************************************/
 void uart_rx(u8 rxByte){
-
+#if WLAN_SW_CONFIG_ENABLE_LTG
 	void*                       ltg_state;
+#endif //WLAN_SW_CONFIG_ENABLE_LTG
 
 	// ----------------------------------------------------
 	// Return to the Main Menu
@@ -127,7 +130,9 @@ void uart_rx(u8 rxByte){
 		uart_mode = UART_MODE_MAIN;
 		stop_periodic_print();
 		print_main_menu();
+#if WLAN_SW_CONFIG_ENABLE_LTG
 		ltg_sched_remove(LTG_REMOVE_ALL);
+#endif //WLAN_SW_CONFIG_ENABLE_LTG
 		return;
 	}
 
@@ -204,6 +209,7 @@ void uart_rx(u8 rxByte){
 #endif
 				break;
 
+#if WLAN_SW_CONFIG_ENABLE_LTG
 				// ----------------------------------------
 				// 'b' - Enable / Disable "Traffic Blaster"
 				//     The "Traffic Blaster" will create a backlogged LTG with a payload of
@@ -246,6 +252,7 @@ void uart_rx(u8 rxByte){
 						case 1:   ltg_sched_stop(traffic_blast_ltg_id);  break;
 					}
 				break;
+#endif //WLAN_SW_CONFIG_ENABLE_LTG
 			}
 		break;
 

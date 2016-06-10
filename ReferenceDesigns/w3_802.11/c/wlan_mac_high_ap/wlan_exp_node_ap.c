@@ -155,9 +155,10 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_counts, "Reseting Counts\n");
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
                 txrx_counts_zero_all();
-#endif
+#endif //WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
             }
 
+#if WLAN_SW_CONFIG_ENABLE_LTG
             if (flags & CMD_PARAM_NODE_RESET_FLAG_LTG) {
                 status = ltg_sched_remove(LTG_REMOVE_ALL);
 
@@ -168,6 +169,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_ltg, "Removing All LTGs\n");
                 }
             }
+#endif //WLAN_SW_CONFIG_ENABLE_LTG
 
             if (flags & CMD_PARAM_NODE_RESET_FLAG_TX_DATA_QUEUE) {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_queue, "Purging all data transmit queues\n");

@@ -204,7 +204,9 @@ int main() {
 	wlan_mac_high_set_mpdu_rx_callback(         (void *) mpdu_rx_process);
 	wlan_mac_high_set_uart_rx_callback(         (void *) uart_rx);
 	wlan_mac_high_set_poll_tx_queues_callback(  (void *) poll_tx_queues);
+#if WLAN_SW_CONFIG_ENABLE_LTG
 	wlan_mac_ltg_sched_set_callback(            (void *) ltg_event);
+#endif //WLAN_SW_CONFIG_ENABLE_LTG
 	wlan_mac_scan_set_tx_probe_request_callback((void *) send_probe_req);
 	wlan_mac_scan_set_state_change_callback(    (void *) process_scan_state_change);
 	wlan_mac_high_set_cpu_low_reboot_callback(  (void *) handle_cpu_low_reboot);
@@ -959,7 +961,7 @@ void remove_inactive_station_infos() {
 }
 
 
-
+#if WLAN_SW_CONFIG_ENABLE_LTG
 /*****************************************************************************/
 /**
  * @brief Callback to handle new Local Traffic Generator event
@@ -1139,6 +1141,7 @@ void ltg_event(u32 id, void* callback_arg){
 		} while(continue_loop == 1);
 	}
 }
+#endif //WLAN_SW_CONFIG_ENABLE_LTG
 
 /*****************************************************************************/
 /**

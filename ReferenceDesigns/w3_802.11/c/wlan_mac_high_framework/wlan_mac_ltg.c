@@ -33,6 +33,8 @@
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_schedule.h"
 
+#if WLAN_SW_CONFIG_ENABLE_LTG
+
 /*************************** Constant Definitions ****************************/
 
 /*********************** Global Variable Definitions *************************/
@@ -720,4 +722,6 @@ void * ltg_payload_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
 }
 
 
-#endif
+#endif //WLAN_SW_CONFIG_ENABLE_WLAN_EXP
+
+#endif //WLAN_SW_CONFIG_ENABLE_LTG

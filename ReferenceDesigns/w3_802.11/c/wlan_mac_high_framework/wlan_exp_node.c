@@ -1206,6 +1206,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
         //---------------------------------------------------------------------
         case CMDID_LTG_CONFIG: {
+#if WLAN_SW_CONFIG_ENABLE_LTG
             // NODE_LTG_START Packet Format:
             //   - cmd_args_32[0]      - Flags
             //                           [0] - Auto-start the LTG flow
@@ -1270,12 +1271,14 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+#endif //WLAN_SW_CONFIG_ENABLE_LTG
         }
         break;
 
 
         //---------------------------------------------------------------------
         case CMDID_LTG_START: {
+#if WLAN_SW_CONFIG_ENABLE_LTG
             // NODE_LTG_START Packet Format:
             //   - cmd_args_32[0]      - LTG ID
             //
@@ -1306,12 +1309,14 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+#endif
         }
         break;
 
 
         //---------------------------------------------------------------------
         case CMDID_LTG_STOP: {
+#if WLAN_SW_CONFIG_ENABLE_LTG
             // NODE_LTG_STOP Packet Format:
             //   - cmd_args_32[0]      - LTG ID
             //
@@ -1342,12 +1347,14 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+#endif
         }
         break;
 
 
         //---------------------------------------------------------------------
         case CMDID_LTG_REMOVE: {
+#if WLAN_SW_CONFIG_ENABLE_LTG
             // NODE_LTG_REMOVE Packet Format:
             //   - cmd_args_32[0]      - LTG ID
             //
@@ -1378,12 +1385,14 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+#endif //WLAN_SW_CONFIG_ENABLE_LTG
         }
         break;
 
 
         //---------------------------------------------------------------------
         case CMDID_LTG_STATUS: {
+#if WLAN_SW_CONFIG_ENABLE_LTG
             // NODE_LTG_STATUS Packet Format:
             //   - cmd_args_32[0]      - LTG ID
             //
@@ -1424,6 +1433,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+#endif //WLAN_SW_CONFIG_ENABLE_LTG
         }
         break;
 

@@ -128,7 +128,9 @@ void uart_rx(u8 rxByte){
 		uart_mode = UART_MODE_MAIN;
 		stop_periodic_print();
 		print_main_menu();
+#if WLAN_SW_CONFIG_ENABLE_LTG
 		ltg_sched_remove(LTG_REMOVE_ALL);
+#endif //WLAN_SW_CONFIG_ENABLE_LTG
 		traffic_blast_ltg_id = LTG_ID_INVALID;
 		return;
 	}
@@ -218,6 +220,7 @@ void uart_rx(u8 rxByte){
 				//     The "Traffic Blaster" will create a backlogged LTG with a payload of
 				//     1400 bytes that will be sent to all associated nodes.
 				//
+#if WLAN_SW_CONFIG_ENABLE_LTG
 				case ASCII_b:
 					// Check if an LTG has been created and create a new one if not
 					if (traffic_blast_ltg_id == LTG_ID_INVALID) {
@@ -255,6 +258,7 @@ void uart_rx(u8 rxByte){
 						case 1:   ltg_sched_stop(traffic_blast_ltg_id);  break;
 					}
 				break;
+#endif //WLAN_SW_CONFIG_ENABLE_LTG
 			}
 		break;
 

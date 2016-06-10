@@ -44,7 +44,7 @@
                                                     // WLAN_SW_CONFIG_ENABLE_WLAN_EXP. (WLAN_SW_CONFIG_ENABLE_WLAN_EXP 1, COMPILE_LOGGING 0)
 													// still allows wlan_exp control over a node but no logging capabilities.
 
-#define WLAN_SW_CONFIG_ENABLE_LTG           1       //Top-level switch for compiling LTG functionality. Setting to 0 will remove
+#define WLAN_SW_CONFIG_ENABLE_LTG           0       //Top-level switch for compiling LTG functionality. Setting to 0 will remove
                                                     // all LTG-related code from the design as well we disable any wlan_exp
                                                     // commands that control LTGs.
 													//FIXME: Incomplete implementation

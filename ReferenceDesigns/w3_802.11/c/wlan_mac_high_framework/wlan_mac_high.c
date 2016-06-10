@@ -524,7 +524,9 @@ void wlan_mac_high_init(){
 	station_info_init(dram_present);
 	wlan_eth_init();
 	wlan_mac_schedule_init();
+#if WLAN_SW_CONFIG_ENABLE_LTG
 	wlan_mac_ltg_sched_init();
+#endif //WLAN_SW_CONFIG_ENABLE_LTG
 	wlan_mac_addr_filter_init();
 	wlan_mac_scan_init();
 

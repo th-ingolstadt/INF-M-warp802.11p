@@ -214,7 +214,9 @@ int main(){
 	wlan_mac_high_set_uart_rx_callback(         (void*)uart_rx);
 	wlan_mac_high_set_poll_tx_queues_callback(  (void*)poll_tx_queues);
 	wlan_mac_high_set_mpdu_dequeue_callback(    (void*)mpdu_dequeue);
+#if WLAN_SW_CONFIG_ENABLE_LTG
 	wlan_mac_ltg_sched_set_callback(            (void*)ltg_event);
+#endif //WLAN_SW_CONFIG_ENABLE_LTG
 	queue_set_state_change_callback(            (void*)queue_state_change);
 	wlan_mac_scan_set_tx_probe_request_callback((void*)send_probe_req);
 	wlan_mac_scan_set_state_change_callback(    (void*)process_scan_state_change);
@@ -945,7 +947,7 @@ void purge_all_data_tx_queue(){
 		curr_station_info_entry = dl_entry_next(curr_station_info_entry);
 	}
 }
-
+#if WLAN_SW_CONFIG_ENABLE_LTG
 /*****************************************************************************/
 /**
  * @brief Callback to handle new Local Traffic Generator event
@@ -1104,7 +1106,7 @@ void ltg_event(u32 id, void* callback_arg){
 		} while(continue_loop == 1);
 	}
 }
-
+#endif //WLAN_SW_CONFIG_ENABLE_LTG
 
 
 /*****************************************************************************/
