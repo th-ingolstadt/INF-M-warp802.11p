@@ -946,7 +946,9 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         'phy_mode'      : util.phy_modes,
         'pkt_type'      : common_pkt_type,
         'flags'         : util.consts_dict({
-            'ACKED'          : 0x01
+            'RECEIVED_RESPONSE'          : 0x01,
+            'LTG'                        : 0x40,
+            'LTG_PYLD'                   : 0x80
         })
     })
 
