@@ -1569,7 +1569,8 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 					//   - Look at the tagged parameters
 					//   - Depending on the parameters, send a probe response
 					//
-					if(wlan_addr_eq(rx_80211_header->address_3, bcast_addr)) {
+					if(wlan_addr_eq(rx_80211_header->address_3, bcast_addr) ||
+							wlan_addr_eq(rx_80211_header->address_3, wlan_mac_addr)) {
 						mac_payload_ptr_u8 += sizeof(mac_header_80211);
 
 						// Loop through tagged parameters
