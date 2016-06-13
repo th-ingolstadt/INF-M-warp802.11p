@@ -181,8 +181,14 @@ typedef struct __attribute__ ((__packed__)){
 
     u16                      ssrc;
     u16                      slrc;
+
+    u8						 flags;
+    u8						 reserved[3];
+
 } wlan_mac_low_tx_details_t;
-CASSERT(sizeof(wlan_mac_low_tx_details_t) == 40, wlan_mac_low_tx_details_t_alignment_check);
+CASSERT(sizeof(wlan_mac_low_tx_details_t) == 44, wlan_mac_low_tx_details_t_alignment_check);
+
+#define TX_DETAILS_FLAGS_RECEIVED_RESPONSE				   1
 
 
 // tx_details_type defines
@@ -270,6 +276,7 @@ CASSERT(sizeof(tx_frame_info_t) == 48, tx_frame_info_alignment_check);
 #define TX_POWER_MIN_DBM                                  (-9)
 
 // Defines for tx_result field
+// FIXME: Rename TX_MPDU_ to TX_FRAME_
 #define TX_MPDU_RESULT_SUCCESS                             0
 #define TX_MPDU_RESULT_FAILURE                             1
 
@@ -309,6 +316,7 @@ typedef struct __attribute__ ((__packed__)){
     u32                      	  	additional_info;              ///< Field to hold MAC-specific info, such as a pointer to a station_info
     //----- 8-byte boundary ------
     wlan_mac_low_tx_details_t     	resp_low_tx_details;			///< Tx Low Details for a control resonse (e.g. ACK or CTS)
+    u32								reserved3;
     //----- 8-byte boundary ------
     u64                      	  	timestamp;                    ///< MAC timestamp at time of reception
     //----- 8-byte boundary ------
@@ -318,7 +326,7 @@ typedef struct __attribute__ ((__packed__)){
 // Therefore, the code will check the size of the structure using a compile-time assertion.  This check
 // will need to be updated if fields are added to the structure
 //
-CASSERT(sizeof(rx_frame_info_t) == 336, rx_frame_info_alignment_check);
+CASSERT(sizeof(rx_frame_info_t) == 344, rx_frame_info_alignment_check);
 
 
 // Defines for flags field

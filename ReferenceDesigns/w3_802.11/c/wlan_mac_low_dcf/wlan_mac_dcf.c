@@ -1359,7 +1359,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
         }
 
 
-
+        low_tx_details[low_tx_details_num].flags						= 0;
         low_tx_details[low_tx_details_num].phy_params_mpdu.mcs          = tx_frame_info->params.phy.mcs;
         low_tx_details[low_tx_details_num].phy_params_mpdu.phy_mode     = tx_frame_info->params.phy.phy_mode;
         low_tx_details[low_tx_details_num].phy_params_mpdu.power        = tx_frame_info->params.phy.power;
@@ -1461,6 +1461,8 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                             (rx_status & POLL_MAC_STATUS_GOOD) &&
                             (rx_status & POLL_MAC_ADDR_MATCH)) {
 
+                        	low_tx_details[low_tx_details_num].flags |= TX_DETAILS_FLAGS_RECEIVED_RESPONSE;
+
                             tx_wait_state = TX_WAIT_ACK;
 
                             // We received the CTS, so we can reset our SSRC
@@ -1485,6 +1487,8 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                                    (rx_status & POLL_MAC_TYPE_ACK) &&
                                    (rx_status & POLL_MAC_STATUS_GOOD) &&
                                    (rx_status & POLL_MAC_ADDR_MATCH)) {
+
+                        		low_tx_details[low_tx_details_num].flags |= TX_DETAILS_FLAGS_RECEIVED_RESPONSE;
 
                                 // Update contention window
                                 switch(tx_mode) {

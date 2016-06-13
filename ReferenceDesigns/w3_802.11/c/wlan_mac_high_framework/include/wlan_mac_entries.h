@@ -336,9 +336,9 @@ typedef struct{
     u32                 mac_payload_log_len;     // Number of payload bytes actually recorded in log entry
     u32                 mac_payload[MIN_MAC_PAYLOAD_LOG_LEN/4];
 } tx_low_entry;
-#define TX_LOW_FLAGS_SUCCESSFUL     0x01
-#define TX_LOW_FLAGS_LTG_PYLD		0x40
-#define TX_LOW_FLAGS_LTG	    	0x80
+#define TX_LOW_FLAGS_RECEIVED_RESPONSE      0x01
+#define TX_LOW_FLAGS_LTG_PYLD				0x40
+#define TX_LOW_FLAGS_LTG	    			0x80
 
 
 

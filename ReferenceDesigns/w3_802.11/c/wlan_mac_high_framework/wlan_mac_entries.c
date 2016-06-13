@@ -281,11 +281,14 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, 
             tx_low_event_log_entry->flags                  = 0;
             tx_low_event_log_entry->pkt_type                = MAC_FRAME_CTRL1_SUBTYPE_RTS;
             tx_low_event_log_entry->flags                   = 0;
-            if(tx_low_details->tx_details_type == TX_DETAILS_RTS_MPDU){
-            	tx_low_event_log_entry->flags					|= TX_LOW_FLAGS_SUCCESSFUL;
+
+            if(tx_low_details->flags & TX_DETAILS_FLAGS_RECEIVED_RESPONSE){
+            	tx_low_event_log_entry->flags					|= TX_LOW_FLAGS_RECEIVED_RESPONSE;
             } else {
-            	tx_low_event_log_entry->flags					&= ~TX_LOW_FLAGS_SUCCESSFUL;
+            	tx_low_event_log_entry->flags					&= ~TX_LOW_FLAGS_RECEIVED_RESPONSE;
             }
+
+
             tx_low_event_log_entry->timestamp_send_frac    = tx_low_details->tx_start_timestamp_frac_ctrl;
             tx_low_event_log_entry->phy_samp_rate          = tx_frame_info->phy_samp_rate;
         }
@@ -349,11 +352,10 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, 
             	tx_low_event_log_entry->flags &= ~TX_LOW_FLAGS_LTG;
             }
 
-            // Set the flags in the log entry
-            if(((tx_low_count + 1) == (tx_frame_info->num_tx_attempts)) && (tx_frame_info->tx_result == TX_MPDU_RESULT_SUCCESS)){
-                tx_low_event_log_entry->flags |= TX_LOW_FLAGS_SUCCESSFUL;
+            if(tx_low_details->flags & TX_DETAILS_FLAGS_RECEIVED_RESPONSE){
+            	tx_low_event_log_entry->flags					|= TX_LOW_FLAGS_RECEIVED_RESPONSE;
             } else {
-                tx_low_event_log_entry->flags &= ~TX_LOW_FLAGS_SUCCESSFUL;
+            	tx_low_event_log_entry->flags					&= ~TX_LOW_FLAGS_RECEIVED_RESPONSE;
             }
 
             tx_low_event_log_entry->timestamp_send_frac    = tx_low_details->tx_start_timestamp_frac_mpdu;
@@ -736,8 +738,9 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
                 tx_low_event_log_entry->num_slots               = rx_frame_info->resp_low_tx_details.num_slots;
                 tx_low_event_log_entry->cw                      = rx_frame_info->resp_low_tx_details.cw;
                 tx_low_event_log_entry->pkt_type                = MAC_FRAME_CTRL1_SUBTYPE_CTS;
+                // Note: an Rx MPDU in response to this CTS will not be flagged as TX_LOW_FLAGS_RECEIVED_RESPONSE since there is no timeout after
+                //  a CTS transmission.
                 tx_low_event_log_entry->flags                   = 0;
-                tx_low_event_log_entry->flags					|= TX_LOW_FLAGS_SUCCESSFUL;
                 tx_low_event_log_entry->timestamp_send_frac     = rx_frame_info->resp_low_tx_details.tx_start_timestamp_frac_ctrl;
                 tx_low_event_log_entry->phy_samp_rate           = rx_frame_info->phy_samp_rate; // TODO: Makes assumption that response uses same PHY BW as Rx
             }
@@ -800,7 +803,6 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
                 tx_low_event_log_entry->cw                      = rx_frame_info->resp_low_tx_details.cw;
                 tx_low_event_log_entry->pkt_type                = MAC_FRAME_CTRL1_SUBTYPE_ACK;
                 tx_low_event_log_entry->flags                   = 0;
-                tx_low_event_log_entry->flags					|= TX_LOW_FLAGS_SUCCESSFUL;
                 tx_low_event_log_entry->timestamp_send_frac     = rx_frame_info->resp_low_tx_details.tx_start_timestamp_frac_ctrl;
                 tx_low_event_log_entry->phy_samp_rate           = rx_frame_info->phy_samp_rate; // TODO: Makes assumption that response uses same PHY BW as Rx
                 tx_low_event_log_entry->flags                   = 0;
