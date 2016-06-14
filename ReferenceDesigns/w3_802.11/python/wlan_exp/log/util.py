@@ -651,57 +651,66 @@ def overwrite_payloads(log_data, byte_offsets, payload_offsets=None):
 # End def
 
 
+def calc_tx_time_log(tx_low_entries):
+    """Wrapper for calc_tx_time() that accepts an array of TX_LOW log entries instead of discrete mcs/length/etc arguments
+
+    Args:
+        tx_low_enetries: List (typically a Numpy array) of TX_LOW log entries
+    """
+    return calc_tx_time(mcs=tx_low_entries['mcs'], 
+                        phy_mode=tx_low_entries['phy_mode'],
+                        payload_length=tx_low_entries['length'],
+                        phy_samp_rate=tx_low_entries['phy_samp_rate'])
 
 def calc_tx_time(mcs, phy_mode, payload_length, phy_samp_rate):
     """Calculates the duration of an 802.11 transmission given its rate and 
     payload length.
 
     Args:
-        mcs (list of int):            List of modulation and coding scheme (MCS) index
-        phy_mode (list of str, int):  Liist of PHY mode (from util.phy_modes)
-        payload_length (list of int): List of number of bytes in the payload
-        phy_sample_rate (int):        Sample rate of the PHY 
+        mcs (int or list of ints):             Modulation and coding scheme (MCS) index
+        phy_mode (str, int or list of strs or ints):   PHY mode (from util.phy_modes)
+        payload_length (int or list of ints):  Nnumber of bytes in the payload
+        phy_sample_rate (int or list of ints): PHY sample rate; only (10, 20, 40) are valid
 
     This method accounts only for PHY overhead (preamble, SIGNAL field, etc.). 
     It does *not* account for MAC overhead. The payload_length argument must 
     include any MAC fields (typically a 24-byte MAC header plus 4 byte FCS).
 
-    This method does not check that mcs, phy_mode and payload_length are the 
-    same length
+    All 4 arguments are required. The dimensions of the 4 arguments must match. To calculate
+    the duration of a single packet, call this method with scalaer integer arguments. To 
+    calculate the duration of many packets, call this method with iterables (typically
+    Numpy arrays) of integer values. When calling this method with arrays the lengths
+    of the 4 arrays must be equal.
     """
     import numpy as np
     import wlan_exp.util as util    
     
-    # TODO: This code exploits the fact that the definitions of PHY sampling 
-    #     rate for Tx vs. Rx are the same
+    # Check for valid phy_samp_rate values
+    if(not np.all( (phy_samp_rate == 10) + (phy_samp_rate == 20) + (phy_samp_rate == 40) )):
+        raise AttributeError('Invalid phy_samp_rate - all phy_samp_rate values must be 10, 20 or 40')
 
-    # Determine constants based on PHY sample rate    
-    #     - Times in microseconds
-    if phy_samp_rate is 40:
-        T_PREAMBLE = 8
-        T_SIG = 2
-        T_SYM = 2
-        T_EXT = 6         
-    elif phy_samp_rate is 20:
-        T_PREAMBLE = 16
-        T_SIG = 4
-        T_SYM = 4
-        T_EXT = 6
-    elif phy_samp_rate is 10:
-        T_PREAMBLE = 32
-        T_SIG = 8
-        T_SYM = 8
-        T_EXT = 6
-    else:
-        raise AttributeError("phy_samp_rate {0} not in [10, 20, 40]".format(phy_samp_rate))
-        
+    # Convert samp rates to lut indexes
+    #  Integer division by 15 is shortcut to map (10, 20, 40) to (0, 1, 2)
+    samp_rate_idx = (phy_samp_rate // 15)
+
+    # Lookup tables of waveform section durations in microseconds, indexed by samp_rate
+    lut_T_PREAMBLE = (8, 16, 32)
+    lut_T_SIG = (2, 4, 8)
+    lut_T_SYM = (2, 4, 8)
+    lut_T_EXT = (6, 6, 6)
+
+    T_PREAMBLE = np.choose(samp_rate_idx, lut_T_PREAMBLE)
+    T_SIG = np.choose(samp_rate_idx, lut_T_SIG)
+    T_SYM = np.choose(samp_rate_idx, lut_T_SYM)
+    T_EXT = np.choose(samp_rate_idx, lut_T_EXT)
+
     # (mcs, phy_mode) encodes number of data bits per symbol
     try:
         # LUT implementation (~2 sec for 150K entries)
         #   - Construct NDBPS lookup table to be used during processing
         # 
         # TODO:  This implementation is dependent on the MCS range that is 
-        #     not defined in wlan_exp.util.  This function will need ot be 
+        #     not defined in wlan_exp.util.  This function will need to be 
         #     updated if more MCS values are defined.
         ndbps_lut = {}
         
@@ -710,7 +719,7 @@ def calc_tx_time(mcs, phy_mode, payload_length, phy_samp_rate):
             
             for p in util.phy_modes.values():
                 try:
-                    phy_mode_lut[p] = util.get_rate_info(m, p, phy_samp_rate)['NDBPS']
+                    phy_mode_lut[p] = util.get_rate_info(m, p, 20)['NDBPS']
                 except:
                     # Do nothing for undefined values
                     pass
