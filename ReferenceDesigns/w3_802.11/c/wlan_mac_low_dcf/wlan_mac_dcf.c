@@ -68,6 +68,8 @@ volatile u8                            gl_green_led_index;
 
 volatile beacon_txrx_configure_t	   gl_beacon_txrx_configure;
 
+volatile static u8					   gl_waiting_for_response;
+
 
 /*************************** Functions Prototypes ****************************/
 
@@ -92,6 +94,8 @@ int main(){
     xil_printf("------------------------\n");
 
     gl_mpdu_pkt_buf = PKT_BUF_INVALID;
+    gl_waiting_for_response = 0;
+
 
     gl_beacon_txrx_configure.beacon_tx_mode = NO_BEACON_TX;
     gl_beacon_txrx_configure.ts_update_mode = NEVER_UPDATE;
@@ -143,6 +147,7 @@ int main(){
 
     while(1){
         // Poll PHY RX start
+    	gl_waiting_for_response = 0;
         wlan_mac_low_poll_frame_rx();
 
         // Poll IPC rx
@@ -463,6 +468,7 @@ inline int send_beacon(u8 tx_pkt_buf){
 					} else {
 						// Poll the MAC Rx state to check if a packet was received while our Tx was deferring
 						if (mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_STARTED) {
+							gl_waiting_for_response = 0;
 							rx_status = wlan_mac_low_poll_frame_rx();
 							// Check if the new reception met the conditions to cancel the already-submitted transmission
 							if (((rx_status & POLL_MAC_CANCEL_TX) != 0)) {
@@ -843,6 +849,17 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
 
     // Received packet had good checksum
     if(rx_frame_info->flags & RX_FRAME_INFO_FLAGS_FCS_GOOD) {
+    	if(unicast_to_me &&
+    			(gl_waiting_for_response == 0) &&
+    			( (return_value & POLL_MAC_TYPE_CTS) || (return_value & POLL_MAC_TYPE_ACK) )){
+    		REG_SET_BITS(WLAN_RX_DEBUG_GPIO, 0x8);
+    		rx_frame_info->flags |= RX_FRAME_INFO_UNEXPECTED_RESPONSE;
+    		REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0x8);
+    	} else {
+    		rx_frame_info->flags &= ~RX_FRAME_INFO_UNEXPECTED_RESPONSE;
+    	}
+
+
         // Increment green LEDs
         gl_green_led_index = (gl_green_led_index + 1) % NUM_LEDS;
         userio_write_leds_green(USERIO_BASEADDR, (1<<gl_green_led_index));
@@ -1130,6 +1147,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
     int curr_tx_pow;
 
     u32 low_tx_details_num;
+    u8	tx_has_started;
 
     tx_wait_state_t     tx_wait_state;
     tx_mode_t           tx_mode;
@@ -1181,6 +1199,8 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
 
     // Retry loop
     while(1) {
+    	tx_has_started = 0;
+
         (tx_frame_info->num_tx_attempts)++;
 
         // Check if the higher-layer MAC requires this transmission have a post-Tx timeout
@@ -1389,13 +1409,22 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
             mac_hw_status = wlan_mac_get_status();
 
             // Fill in the timestamp if indicated by the flags, only possible after Tx PHY has started
-            if ((tx_frame_info->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP) {
-                if (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE) {
+            if (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE) {
+
+            	tx_has_started = 1;
+
+            	if(req_timeout){
+            		gl_waiting_for_response = 1; //FIXME
+            	}
+
+            	if ((tx_frame_info->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP) {
                     // Insert the TX START timestamp
                     *((u32*)((u8*)header + 24)) =  Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_LSB);
                     *((u32*)((u8*)header + 28)) =  Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_MSB);
                 }
             }
+
+
 
             // Transmission is complete
             if( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_DONE ) {
@@ -1443,6 +1472,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                         // Start a post-Tx backoff using the updated contention window
                         n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
                         wlan_mac_dcf_hw_start_backoff(n_slots);
+                        gl_waiting_for_response = 0;
                         return 0;
                     break;
 
@@ -1452,6 +1482,8 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
 
                         // Handle the new reception
                         rx_status       = wlan_mac_low_poll_frame_rx();
+                        gl_waiting_for_response = 0;
+
                         gl_mpdu_pkt_buf = PKT_BUF_INVALID;
 
                         // Check if the reception is an ACK addressed to this node, received with a valid checksum
@@ -1505,7 +1537,6 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                                 // Start a post-Tx backoff using the updated contention window
                                 n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
                                 wlan_mac_dcf_hw_start_backoff(n_slots);
-
                                 return TX_MPDU_RESULT_SUCCESS;
 
                         } else {
@@ -1547,7 +1578,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                             //     NOTE:  Use >= here to handle unlikely case of retryLimit values changing mid-Tx
                             if ((short_retry_count >= gl_dot11ShortRetryLimit) ||
                                 (long_retry_count >= gl_dot11LongRetryLimit )) {
-
+                            	gl_waiting_for_response = 0;
                                 return TX_MPDU_RESULT_FAILURE;
                             }
                             if(poll_tbtt_return == BEACON_DEFERRED) {
@@ -1561,6 +1592,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                     //---------------------------------------------------------------------
                     case WLAN_MAC_TXCTRL_STATUS_TX_A_RESULT_TIMEOUT:
                         // Tx required timeout, timeout expired with no receptions
+                    	gl_waiting_for_response = 0;
 
                         gl_mpdu_pkt_buf = PKT_BUF_INVALID;
 
@@ -1599,7 +1631,6 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                         // Now we evaluate the SRC and LRC to see if either has reached its maximum
                         if ((short_retry_count == gl_dot11ShortRetryLimit) ||
                             (long_retry_count  == gl_dot11LongRetryLimit )) {
-
                             return TX_MPDU_RESULT_FAILURE;
                         }
                         if(poll_tbtt_return == BEACON_DEFERRED) {
@@ -1611,13 +1642,13 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                 }
 
             // else for if(mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_DONE)
-            } else {
-                // Poll the MAC Rx state to check if a packet was received while our Tx was deferring
+            } else if (tx_has_started == 0) {
             	//  This is the same MAC status check performed in the framework wlan_mac_low_poll_frame_rx()
             	//  It is critical to check the Rx status here using the same status register read that was
             	//  used in the Tx state checking above. Skipping this and calling wlan_mac_low_poll_frame_rx()
             	//  directly leads to a race between the Tx status checking above and Rx status checking
                 if (mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_STARTED) {
+                	gl_waiting_for_response = 0;
                     rx_status = wlan_mac_low_poll_frame_rx();
                 } else if(poll_tbtt_return != BEACON_DEFERRED) {
                 	poll_tbtt_return = poll_tbtt();
@@ -1625,7 +1656,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
             } // END if(Tx A state machine done)
         } while( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_PENDING );
     } // end retransmission loop
-
+    gl_waiting_for_response = 0;
     return 0;
 }
 
