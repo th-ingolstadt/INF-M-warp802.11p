@@ -68,7 +68,6 @@ extern tx_params_t                          default_unicast_data_tx_params;
 
 extern bss_info_t*                          active_bss_info;
 
-
 /*************************** Variable Definitions ****************************/
 
 static volatile u8                          uart_mode            = UART_MODE_MAIN;
@@ -189,6 +188,7 @@ void uart_rx(u8 rxByte){
 				case ASCII_m:
 					wlan_mac_high_display_mallinfo();
 				break;
+
 			}
 		break;
 

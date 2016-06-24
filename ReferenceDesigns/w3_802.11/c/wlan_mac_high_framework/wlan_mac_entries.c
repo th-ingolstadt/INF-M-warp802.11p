@@ -288,7 +288,6 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, 
             	tx_low_event_log_entry->flags					&= ~TX_LOW_FLAGS_RECEIVED_RESPONSE;
             }
 
-
             tx_low_event_log_entry->timestamp_send_frac    = tx_low_details->tx_start_timestamp_frac_ctrl;
             tx_low_event_log_entry->phy_samp_rate          = tx_frame_info->phy_samp_rate;
         }
@@ -639,11 +638,20 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
             	rx_event_log_entry->flags	   &= ~RX_FLAGS_LTG_PYLD;
             	rx_event_log_entry->flags	   &= ~RX_FLAGS_LTG;
             }
+
+
             if( (rx_frame_info->flags & RX_FRAME_INFO_FLAGS_FCS_GOOD) ){
             	rx_event_log_entry->flags	   |= RX_FLAGS_FCS_GOOD;
             } else {
             	rx_event_log_entry->flags	   &= ~RX_FLAGS_FCS_GOOD;
             }
+
+            if( (rx_frame_info->flags & RX_FRAME_INFO_UNEXPECTED_RESPONSE) ){
+            	rx_event_log_entry->flags	   |= RX_FLAGS_UNEXPECTED_RESPONSE;
+            } else {
+            	rx_event_log_entry->flags	   &= ~RX_FLAGS_UNEXPECTED_RESPONSE;
+            }
+
             rx_event_log_entry->pkt_type       = rx_80211_header->frame_control_1;
             rx_event_log_entry->chan_num       = rx_frame_info->channel;
             rx_event_log_entry->rf_gain        = rx_frame_info->rf_gain;

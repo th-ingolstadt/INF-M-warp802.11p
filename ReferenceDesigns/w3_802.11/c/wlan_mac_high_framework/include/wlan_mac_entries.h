@@ -229,10 +229,12 @@ typedef struct{
     u8                  bb_gain;                 // Baseband gain of the received packet
     u16                 flags;                   // 1-bit flags
 } rx_common_entry;
-#define RX_FLAGS_FCS_GOOD   	0x0001
-#define RX_FLAGS_DUPLICATE		0x0002
-#define RX_FLAGS_LTG_PYLD		0x0040
-#define RX_FLAGS_LTG			0x0080
+#define RX_FLAGS_FCS_GOOD   			0x0001
+#define RX_FLAGS_DUPLICATE				0x0002
+#define RX_FLAGS_UNEXPECTED_RESPONSE	0x0004
+#define RX_FLAGS_LTG_PYLD				0x0040
+#define RX_FLAGS_LTG					0x0080
+
 
 
 

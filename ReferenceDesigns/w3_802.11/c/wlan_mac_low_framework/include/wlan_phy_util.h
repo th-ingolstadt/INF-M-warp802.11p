@@ -58,6 +58,7 @@
 // Empirically measured a 2.2usec latency from RC PHY start to observable waveform
 #define TX_RC_PHYSTART_DLY 0
 #define TX_PHY_DLY_100NSEC (((TX_RC_PHYSTART_DLY)/4) + 22)
+//#define TX_PHY_DLY_100NSEC (((TX_RC_PHYSTART_DLY)/4) + 22 + 30)
 
 // RX PHY-level constants
 #define PHY_RX_RSSI_SUM_LEN       4

@@ -205,13 +205,42 @@ void uart_rx(u8 rxByte){
 				break;
 
 				// ----------------------------------------
+				// 's' - Scan
+				//
+				case ASCII_s:
+					xil_printf("\f");
+
+					// Check if node is currently in a scan
+					is_scanning = wlan_mac_scan_is_scanning();
+
+					// Stop the current scan to update the scan parameters
+					if (is_scanning) {
+						xil_printf("Stopping Scan\n");
+						wlan_mac_scan_stop();
+					} else {
+						xil_printf("Starting Scan\n");
+
+						// Get current scan parameters
+						scan_params = wlan_mac_scan_get_parameters();
+
+						// Free the current scan SSID, it will be replaced
+						if (scan_params->ssid != NULL) {
+							wlan_mac_high_free(scan_params->ssid);
+						}
+
+						// Set to passive scan
+						scan_params->ssid = strndup("", SSID_LEN_MAX);
+
+						wlan_mac_scan_start();
+					}
+				break;
+				// ----------------------------------------
 				// 'j' - Join
 				//
 				case ASCII_j:
 					uart_mode = UART_MODE_JOIN;
 
 					xil_printf("\f");
-					xil_printf("Scanning for networks:\n");
 
 					// Check if node is currently in a scan
 					is_scanning = wlan_mac_scan_is_scanning();
@@ -220,26 +249,6 @@ void uart_rx(u8 rxByte){
 					if (is_scanning) {
 						wlan_mac_scan_stop();
 					}
-
-					// Get current scan parameters
-					scan_params = wlan_mac_scan_get_parameters();
-
-					// Free the current scan SSID, it will be replaced
-					if (scan_params->ssid != NULL) {
-						wlan_mac_high_free(scan_params->ssid);
-					}
-
-					// Set to passive scan
-					scan_params->ssid = strndup("", SSID_LEN_MAX);
-
-					// Start the scan
-					wlan_mac_scan_start();
-
-					// Wait for one complete scan
-					while (wlan_mac_scan_get_num_scans() > 0) { }
-
-					// Stop the scan
-					wlan_mac_scan_stop();
 
 					// Print results of the scan
 					print_bss_info();
@@ -417,6 +426,7 @@ void print_main_menu(){
 	xil_printf("\n");
 	xil_printf("[a]   - Display Network List\n");
 	xil_printf("[j]   - Join a network\n");
+	xil_printf("[s]   - Toggle active scan\n");
 	xil_printf("**********************************************************\n");
 }
 
@@ -454,6 +464,10 @@ void check_join_status() {
 	// If node is no longer in the join process:
 	//     - Check BSS info
 	//     - Return to Main Menu
+
+	//FIXME: remove
+	xil_printf("wlan_mac_sta_is_joining() = %d\n", wlan_mac_sta_is_joining());
+
 	if (wlan_mac_sta_is_joining() == 0) {
 		// Stop the scheduled event
 		wlan_mac_remove_schedule(SCHEDULE_COARSE, check_join_status_id);

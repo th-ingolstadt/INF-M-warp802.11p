@@ -1112,7 +1112,10 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 				// If a frame_tx_callback is not provided, the wlan_null_callback will always
 				// return 0 (ie TX_MPDU_RESULT_SUCCESS).
 				//
+
+				REG_SET_BITS(WLAN_RX_DEBUG_GPIO, 0x8); //FIXME
 				status = frame_tx_callback(tx_pkt_buf, low_tx_details);
+				REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0x8); //FIXME
 
 				//Record the total time this MPDU spent in the Tx state machine
 				tx_frame_info->delay_done = (u32)(get_mac_time_usec() - (tx_frame_info->timestamp_create + (u64)(tx_frame_info->delay_accept)));
@@ -1792,6 +1795,24 @@ inline u32 wlan_mac_low_wlan_chan_to_rc_chan(u32 mac_channel) {
         case 165: // 5825 MHz
             return_value = 37;
         break;
+        case 172: // 5860 MHz
+            return_value = 38;
+        break;
+        case 174: // 5870 MHz
+        	return_value = 39;
+		break;
+        case 175: // 5875 MHz
+        	return_value = 40;
+		break;
+        case 176: // 5880 MHz
+        	return_value = 41;
+		break;
+        case 177: // 5885 MHz
+        	return_value = 42;
+		break;
+        case 178: // 5890 MHz
+        	return_value = 43;
+		break;
 #endif
     }
 

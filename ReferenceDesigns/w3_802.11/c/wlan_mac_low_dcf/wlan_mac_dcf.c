@@ -70,7 +70,6 @@ volatile beacon_txrx_configure_t	   gl_beacon_txrx_configure;
 
 volatile static u8					   gl_waiting_for_response;
 
-
 /*************************** Functions Prototypes ****************************/
 
 int process_low_param(u8 mode, u32* payload);
@@ -374,6 +373,7 @@ inline int send_beacon(u8 tx_pkt_buf){
 								   tx_frame_info->params.phy.mcs,
 								   tx_frame_info->length);
 
+
 				wlan_mac_tx_ctrl_C_start(1);
 				wlan_mac_tx_ctrl_C_start(0);
 
@@ -415,6 +415,7 @@ inline int send_beacon(u8 tx_pkt_buf){
 				low_tx_details.slrc        = gl_stationLongRetryCount;
 				low_tx_details.src         = 0;
 				low_tx_details.lrc         = 0;
+				low_tx_details.flags	   = 0;
 
 				// The pre-Tx backoff may not occur for the initial transmission attempt. If the medium has been idle for >DIFS when
 				//  the first Tx occurs the DCF state machine will not start a backoff. The upper-level MAC should compare the num_slots value
@@ -810,6 +811,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     }
 
     // Check if this reception is an ACK
+    //FIXME: we could add a unicast to me check here. It should be redundant. Then again, the POLL_MAC_TYPE_CTS does have the unicast requirement
     if((rx_header->frame_control_1) == MAC_FRAME_CTRL1_SUBTYPE_ACK){
         return_value |= POLL_MAC_TYPE_ACK;
     }
@@ -852,9 +854,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     	if(unicast_to_me &&
     			(gl_waiting_for_response == 0) &&
     			( (return_value & POLL_MAC_TYPE_CTS) || (return_value & POLL_MAC_TYPE_ACK) )){
-    		REG_SET_BITS(WLAN_RX_DEBUG_GPIO, 0x8);
     		rx_frame_info->flags |= RX_FRAME_INFO_UNEXPECTED_RESPONSE;
-    		REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0x8);
     	} else {
     		rx_frame_info->flags &= ~RX_FRAME_INFO_UNEXPECTED_RESPONSE;
     	}

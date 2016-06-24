@@ -77,6 +77,7 @@ int wlan_verify_channel(u32 channel) {
     //     Channel number follows 802.11 conventions:
     //         https://en.wikipedia.org/wiki/List_of_WLAN_channels
     //
+#if 1
     switch (channel) {
         // 2.4GHz channels
         case 1:
@@ -101,6 +102,72 @@ int wlan_verify_channel(u32 channel) {
             return_value = XST_FAILURE;
         break;
     }
+#else
+    switch (channel) {
+            // 2.4GHz channels
+            case 1:
+            case 2:
+            case 3:
+            case 4:
+            case 5:
+            case 6:
+            case 7:
+            case 8:
+            case 9:
+            case 10:
+            case 11:
+            // 5GHz channels
+            case 36: // 5180 MHz
+            case 38: // 5190 MHz
+            case 40: // 5200 MHz
+            case 44: // 5220 MHz
+            case 46: // 5230 MHz
+            case 48: // 5240 MHz
+            case 52: // 5260 MHz
+            case 54: // 5270 MHz
+            case 56: // 5280 MHz
+            case 60: // 5300 MHz
+            case 62: // 5310 MHz
+            case 64: // 5320 MHz
+            case 100: // 5500 MHz
+            case 102: // 5510 MHz
+            case 104: // 5520 MHz
+            case 108: // 5540 MHz
+            case 110: // 5550 MHz
+            case 112: // 5560 MHz
+            case 116: // 5580 MHz
+            case 118: // 5590 MHz
+            case 120: // 5600 MHz
+            case 124: // 5620 MHz
+            case 126: // 5630 MHz
+            case 128: // 5640 MHz
+            case 132: // 5660 MHz
+            case 134: // 5670 MHz
+            case 136: // 5680 MHz
+            case 140: // 5700 MHz
+            case 142: // 5710 MHz
+            case 144: // 5720 MHz
+            case 149: // 5745 MHz
+            case 151: // 5755 MHz
+            case 153: // 5765 MHz
+            case 157: // 5785 MHz
+            case 159: // 5795 MHz
+            case 161: // 5805 MHz
+            case 165: // 5825 MHz
+            case 172: // 5860 MHz
+            case 174: // 5870 MHz
+            case 175: // 5875 MHz
+            case 176: // 5880 MHz
+            case 177: // 5885 MHz
+            case 178: // 5890 MHz
+                return_value = XST_SUCCESS;
+            break;
+            default:
+            	xil_printf("ERROR (wlan_verify_channel): Channel %d invalid\n", channel);
+                return_value = XST_FAILURE;
+            break;
+        }
+#endif
 
     return return_value;
 }

@@ -333,6 +333,7 @@ CASSERT(sizeof(rx_frame_info_t) == 344, rx_frame_info_alignment_check);
 #define RX_FRAME_INFO_FLAGS_CTRL_RESP_TX                         0x1
 #define RX_FRAME_INFO_FLAGS_RETRY                                0x2
 #define RX_FRAME_INFO_FLAGS_FCS_GOOD                             0x4
+#define RX_FRAME_INFO_UNEXPECTED_RESPONSE						 0x8
 
 
 /*************************** Function Prototypes *****************************/
