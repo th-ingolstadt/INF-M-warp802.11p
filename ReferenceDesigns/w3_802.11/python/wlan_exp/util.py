@@ -220,6 +220,7 @@ def rate_info_to_str(rate_info):
 #: or 5GHz bands. Use the ``get_channel_info`` method to lookup the actual center
 #: frequency for a given channel index.
 wlan_channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 36, 40, 44, 48]
+#wlan_channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 36, 38, 40, 44, 46, 48, 52, 54, 56, 60, 62, 64, 100, 102, 104, 108, 110, 112, 116, 118, 120, 124, 126, 128, 132, 134, 136, 140, 142, 144, 149, 151, 153, 157, 159, 161, 165, 172, 174, 175, 176, 177, 178]
 
 
 def get_channel_info(channel):
@@ -243,6 +244,7 @@ def get_channel_info(channel):
         {'freq': 2432, 'channel': 5}
     
     """
+    
     channel_info = {
          1 : {'channel' :   1, 'freq': 2412},
          2 : {'channel' :   2, 'freq': 2417},
@@ -255,10 +257,49 @@ def get_channel_info(channel):
          9 : {'channel' :   9, 'freq': 2452},
         10 : {'channel' :  10, 'freq': 2457},
         11 : {'channel' :  11, 'freq': 2462},
-        36 : {'channel' :  36, 'freq': 5180},
-        40 : {'channel' :  40, 'freq': 5200},
-        44 : {'channel' :  44, 'freq': 5220},
-        48 : {'channel' :  48, 'freq': 5240}}
+        36 : {'channel' :   36, 'freq': 5180},
+        38 : {'channel' :   38, 'freq': 5190},
+        40 : {'channel' :   40, 'freq': 5200},
+        44 : {'channel' :   44, 'freq': 5220},
+        46 : {'channel' :   46, 'freq': 5230},
+        48 : {'channel' :   48, 'freq': 5240},
+        52 : {'channel' :   52, 'freq': 5260},
+        54 : {'channel' :   54, 'freq': 5270},
+        56 : {'channel' :   56, 'freq': 5280},
+        60 : {'channel' :   60, 'freq': 5300},
+        62 : {'channel' :   62, 'freq': 5310},
+        64 : {'channel' :   64, 'freq': 5320},
+        100 : {'channel' :   100, 'freq': 5500},
+        102 : {'channel' :   102, 'freq': 5510},
+        104 : {'channel' :   104, 'freq': 5520},
+        108 : {'channel' :   108, 'freq': 5540},
+        110 : {'channel' :   110, 'freq': 5550},
+        112 : {'channel' :   112, 'freq': 5560},
+        116 : {'channel' :   116, 'freq': 5580},
+        118 : {'channel' :   118, 'freq': 5590},
+        120 : {'channel' :   120, 'freq': 5600},
+        124 : {'channel' :   124, 'freq': 5620},
+        126 : {'channel' :   126, 'freq': 5630},
+        128 : {'channel' :   128, 'freq': 5640},
+        132 : {'channel' :   132, 'freq': 5660},
+        134 : {'channel' :   134, 'freq': 5670},
+        136 : {'channel' :   136, 'freq': 5680},
+        140 : {'channel' :   140, 'freq': 5700},
+        142 : {'channel' :   142, 'freq': 5710},
+        144 : {'channel' :   144, 'freq': 5720},
+        149 : {'channel' :   149, 'freq': 5745},
+        151 : {'channel' :   151, 'freq': 5755},
+        153 : {'channel' :   153, 'freq': 5765},
+        157 : {'channel' :   157, 'freq': 5785},
+        159 : {'channel' :   159, 'freq': 5795},
+        161 : {'channel' :   161, 'freq': 5805},
+        165 : {'channel' :   165, 'freq': 5825},    
+        172 : {'channel' :   172, 'freq': 5860},
+        174 : {'channel' :   174, 'freq': 5870},
+        175 : {'channel' :   175, 'freq': 5875},
+        176 : {'channel' :   176, 'freq': 5880},
+        177 : {'channel' :   177, 'freq': 5885},
+        178 : {'channel' :   178, 'freq': 5890}}
 
     # Check input arguments
     if (channel not in wlan_channels):

@@ -857,10 +857,11 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         'pkt_type'      : common_pkt_type,
         'phy_mode'      : util.phy_modes,
         'flags'         : util.consts_dict({
-            'FCS_GOOD'       : 0x0001,
-            'DUPLICATE'      : 0x0002,
-            'LTG_PYLD'       : 0x0040,
-            'LTG'            : 0x0080
+            'FCS_GOOD'                 : 0x0001,
+            'DUPLICATE'                : 0x0002,
+            'UNEXPECTED_RESPONSE'      : 0x0004,
+            'LTG_PYLD'                 : 0x0040,
+            'LTG'                      : 0x0080
         })
     })
 
