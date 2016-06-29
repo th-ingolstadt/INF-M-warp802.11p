@@ -243,8 +243,15 @@
 //
 #define INTC_DEVICE_ID                                     XPAR_INTC_0_DEVICE_ID              ///< XParameters rename of interrupt controller device ID
 #define UARTLITE_DEVICE_ID                                 XPAR_UARTLITE_0_DEVICE_ID          ///< XParameters rename for UART
-#define GPIO_DEVICE_ID                                     XPAR_MB_HIGH_SW_GPIO_DEVICE_ID     ///< XParameters rename of device ID of GPIO
-#define INTC_GPIO_INTERRUPT_ID                             XPAR_INTC_0_GPIO_0_VEC_ID          ///< XParameters rename of GPIO interrupt ID
+#define GPIO_USERIO_DEVICE_ID                              XPAR_MB_HIGH_SW_GPIO_DEVICE_ID     ///< XParameters rename of device ID of GPIO
+
+//-----------------------------------------------
+// Interrupt IDs
+//
+//  These macros define the index of each interrupt signal in the axi_intc input
+//  The defines below rename macros from xparameters.h to remove instance-name-specific
+//    strings from the application code
+#define INTC_GPIO_USERIO_INTERRUPT_ID                      XPAR_MB_HIGH_INTC_MB_HIGH_SW_GPIO_IP2INTC_IRPT_INTR               ///< XParameters rename of GPIO interrupt ID
 #define UARTLITE_INT_IRQ_ID                                XPAR_INTC_0_UARTLITE_0_VEC_ID      ///< XParameters rename of UART interrupt ID
 #define TMRCTR_INTERRUPT_ID                                XPAR_INTC_0_TMRCTR_0_VEC_ID        ///< XParameters rename of timer interrupt ID
 
@@ -259,9 +266,8 @@
 
 #define TX_BUFFER_NUM                                      2                                  ///< Number of PHY transmit buffers to use. This should remain 2 (ping/pong buffering).
 
-#define GPIO_OUTPUT_CHANNEL                                1                                  ///< Channel used as output for GPIO
-#define GPIO_INPUT_CHANNEL                                 2                                  ///< Channel used as input for GPIO
-#define GPIO_INPUT_INTERRUPT                               XGPIO_IR_CH2_MASK                  ///< Mask for enabling interrupts on GPIO input
+#define GPIO_USERIO_INPUT_CHANNEL                          1                                  ///< Channel used as input user IO inputs (buttons, DIP switch)
+#define GPIO_USERIO_INPUT_IR_CH_MASK                       XGPIO_IR_CH1_MASK                  ///< Mask for enabling interrupts on GPIO input
 
 #define GPIO_MASK_DRAM_INIT_DONE                           0x00000100                         ///< Mask for GPIO -- DRAM initialization bit
 #define GPIO_MASK_PB_U                                     0x00000040                         ///< Mask for GPIO -- "Up" Pushbutton
@@ -320,7 +326,7 @@ inline int                   wlan_mac_high_interrupt_restore_state(interrupt_sta
 inline interrupt_state_t     wlan_mac_high_interrupt_stop();
 
 void               wlan_mac_high_uart_rx_handler(void *CallBackRef, unsigned int EventData);
-void               wlan_mac_high_gpio_handler(void *InstancePtr);
+void               wlan_mac_high_userio_gpio_handler(void *InstancePtr);
 
 dl_entry*          wlan_mac_high_find_counts_ADDR(dl_list* list, u8* addr);
 

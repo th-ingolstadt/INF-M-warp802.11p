@@ -35,8 +35,6 @@
 //-----------------------------------------------
 // Peripheral defines
 //
-#define USERIO_BASEADDR                                    XPAR_W3_USERIO_BASEADDR
-
 
 
 //-----------------------------------------------

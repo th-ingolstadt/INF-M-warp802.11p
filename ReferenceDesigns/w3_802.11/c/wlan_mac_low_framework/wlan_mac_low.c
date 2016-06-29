@@ -20,13 +20,13 @@
 #include <string.h>
 
 // WARP Includes
-#include "w3_userio.h"
 #include "w3_ad_controller.h"
 #include "w3_clock_controller.h"
 #include "w3_iic_eeprom.h"
 #include "radio_controller.h"
 
 // WLAN includes
+#include "wlan_mac_userio_util.h"
 #include "wlan_mac_time_util.h"
 #include "wlan_mac_mailbox_util.h"
 #include "wlan_mac_802_11_defs.h"
@@ -46,7 +46,6 @@
 
 
 /*********************** Global Variable Definitions *************************/
-
 
 /*************************** Functions Prototypes ****************************/
 
@@ -1113,9 +1112,9 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 				// return 0 (ie TX_MPDU_RESULT_SUCCESS).
 				//
 
-				REG_SET_BITS(WLAN_RX_DEBUG_GPIO, 0x8); //FIXME
+				wlan_mac_set_dbg_hdr_out(0x8); //FIXME
 				status = frame_tx_callback(tx_pkt_buf, low_tx_details);
-				REG_CLEAR_BITS(WLAN_RX_DEBUG_GPIO, 0x8); //FIXME
+				wlan_mac_clear_dbg_hdr_out(0x8); //FIXME
 
 				//Record the total time this MPDU spent in the Tx state machine
 				tx_frame_info->delay_done = (u32)(get_mac_time_usec() - (tx_frame_info->timestamp_create + (u64)(tx_frame_info->delay_accept)));

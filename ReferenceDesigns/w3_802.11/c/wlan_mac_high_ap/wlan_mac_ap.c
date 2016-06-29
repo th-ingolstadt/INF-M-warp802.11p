@@ -321,7 +321,7 @@ int main(){
 	}
 
     // Print AP information to the terminal
-    xil_printf("------------------------\n");
+
     xil_printf("WLAN MAC AP boot complete: \n");
     xil_printf("  Serial Number : W3-a-%05d\n", hw_info->serial_number);
 

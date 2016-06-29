@@ -75,7 +75,8 @@ const  u8                    bcast_addr[MAC_ADDR_LEN]    = { 0xFF, 0xFF, 0xFF, 0
 const  u8                    zero_addr[MAC_ADDR_LEN]     = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 // HW structures
-static XGpio                 Gpio;                         ///< General-purpose GPIO instance
+static XGpio                 Gpio_userio;                  ///< GPIO driver instnace for user IO inputs
+
 XIntc                        InterruptController;          ///< Interrupt Controller instance
 XUartLite                    UartLite;                     ///< UART Device instance
 XAxiCdma                     cdma_inst;                    ///< Central DMA instance
@@ -456,19 +457,16 @@ void wlan_mac_high_init(){
 	}
 	XAxiCdma_IntrDisable(&cdma_inst, XAXICDMA_XR_IRQ_ALL_MASK);
 
-	// Initialize the GPIO driver
-	Status = XGpio_Initialize(&Gpio, GPIO_DEVICE_ID);
+	// Initialize the GPIO driver instances
+	Status = XGpio_Initialize(&Gpio_userio, GPIO_USERIO_DEVICE_ID);
 
 	if (Status != XST_SUCCESS) {
 		wlan_printf(PL_ERROR, "ERROR: Could not initialize GPIO\n");
 		return;
 	}
 	// Set direction of GPIO channels
-	XGpio_SetDataDirection(&Gpio, GPIO_INPUT_CHANNEL, 0xFFFFFFFF);
-	XGpio_SetDataDirection(&Gpio, GPIO_OUTPUT_CHANNEL, 0);
-
-	// Clear any existing state in debug GPIO
-	wlan_mac_high_clear_debug_gpio(0xFF);
+	//  User IO GPIO instance has 1 channel, all inputs
+	XGpio_SetDataDirection(&Gpio_userio, GPIO_USERIO_INPUT_CHANNEL, 0xFFFFFFFF);
 
 	// Initialize the UART driver
 	Status = XUartLite_Initialize(&UartLite, UARTLITE_DEVICE_ID);
@@ -482,7 +480,7 @@ void wlan_mac_high_init(){
 	timestamp = get_system_time_usec();
 
 	while((get_system_time_usec() - timestamp) < 100000){
-		if((XGpio_DiscreteRead(&Gpio, GPIO_INPUT_CHANNEL)&GPIO_MASK_DRAM_INIT_DONE)){
+		if((XGpio_DiscreteRead(&Gpio_userio, GPIO_USERIO_INPUT_CHANNEL) & GPIO_MASK_DRAM_INIT_DONE)) {
 			xil_printf("------------------------\nDRAM SODIMM Detected\n");
 			if(wlan_mac_high_memory_test()==0){
 				dram_present = 1;
@@ -557,15 +555,18 @@ int wlan_mac_high_interrupt_init(){
 	// ***************************************************
 	// Connect interrupt devices "owned" by wlan_mac_high
 	// ***************************************************
-	Result = XIntc_Connect(&InterruptController, INTC_GPIO_INTERRUPT_ID, (XInterruptHandler)wlan_mac_high_gpio_handler, &Gpio);
+
+	// GPIO for User IO inputs
+	Result = XIntc_Connect(&InterruptController, INTC_GPIO_USERIO_INTERRUPT_ID, (XInterruptHandler)wlan_mac_high_userio_gpio_handler, &Gpio_userio);
 	if (Result != XST_SUCCESS) {
 		wlan_printf(PL_ERROR, "Failed to set up GPIO interrupt\n");
 		return Result;
 	}
-	XIntc_Enable(&InterruptController, INTC_GPIO_INTERRUPT_ID);
-	XGpio_InterruptEnable(&Gpio, GPIO_INPUT_INTERRUPT);
-	XGpio_InterruptGlobalEnable(&Gpio);
+	XIntc_Enable(&InterruptController, INTC_GPIO_USERIO_INTERRUPT_ID);
+	XGpio_InterruptEnable(&Gpio_userio, GPIO_USERIO_INPUT_IR_CH_MASK);
+	XGpio_InterruptGlobalEnable(&Gpio_userio);
 
+	// UART
 	Result = XIntc_Connect(&InterruptController, UARTLITE_INT_IRQ_ID, (XInterruptHandler)XUartLite_InterruptHandler, &UartLite);
 	if (Result != XST_SUCCESS) {
 		wlan_printf(PL_ERROR, "Failed to set up UART interrupt\n");
@@ -694,13 +695,10 @@ void wlan_mac_high_uart_rx_handler(void* CallBackRef, unsigned int EventData){
 #endif
 }
 
-
-
-
 /**
- * @brief GPIO Interrupt Handler
+ * @brief User IO GPIO Interrupt Handler
  *
- * Handles GPIO interrupts that occur from the GPIO core's input
+ * Handles GPIO interrupts that occur from the user IO GPIO core's input
  * channel. Depending on the signal, this function will execute
  * one of several different user-provided callbacks.
  *
@@ -713,7 +711,7 @@ void wlan_mac_high_uart_rx_handler(void* CallBackRef, unsigned int EventData){
  * @see wlan_mac_high_set_pb_d_callback()
  *
  */
-void wlan_mac_high_gpio_handler(void *InstancePtr){
+void wlan_mac_high_userio_gpio_handler(void *InstancePtr){
 	XGpio *GpioPtr;
 	u32 gpio_read;
 
@@ -723,15 +721,15 @@ void wlan_mac_high_gpio_handler(void *InstancePtr){
 
 	GpioPtr = (XGpio *)InstancePtr;
 
-	XGpio_InterruptDisable(GpioPtr, GPIO_INPUT_INTERRUPT);
-	gpio_read = XGpio_DiscreteRead(GpioPtr, GPIO_INPUT_CHANNEL);
+	XGpio_InterruptDisable(GpioPtr, GPIO_USERIO_INPUT_IR_CH_MASK);
+	gpio_read = XGpio_DiscreteRead(GpioPtr, GPIO_USERIO_INPUT_CHANNEL);
 
 	if(gpio_read & GPIO_MASK_PB_U) pb_u_callback();
 	if(gpio_read & GPIO_MASK_PB_M) pb_m_callback();
 	if(gpio_read & GPIO_MASK_PB_D) pb_d_callback();
 
-	(void)XGpio_InterruptClear(GpioPtr, GPIO_INPUT_INTERRUPT);
-	XGpio_InterruptEnable(GpioPtr, GPIO_INPUT_INTERRUPT);
+	(void)XGpio_InterruptClear(GpioPtr, GPIO_USERIO_INPUT_IR_CH_MASK);
+	XGpio_InterruptEnable(GpioPtr, GPIO_USERIO_INPUT_IR_CH_MASK);
 
 #ifdef _ISR_PERF_MON_EN_
 	wlan_mac_high_clear_debug_gpio(ISR_PERF_MON_GPIO_MASK);
@@ -739,10 +737,10 @@ void wlan_mac_high_gpio_handler(void *InstancePtr){
 	return;
 }
 
-u32 wlan_mac_high_get_user_io_state(){
-	return XGpio_DiscreteRead(&Gpio, GPIO_INPUT_CHANNEL);
-}
 
+u32 wlan_mac_high_get_user_io_state(){
+	return XGpio_DiscreteRead(&Gpio_userio, GPIO_USERIO_INPUT_CHANNEL);
+}
 
 
 /**
@@ -2278,32 +2276,6 @@ u8 wlan_mac_high_is_pkt_ltg(void* mac_payload, u16 length){
 }
 
 
-
-/**
- * @brief Set the debug GPIO (inline function)
- *
- * @param  u8 val
- *     - Value to set the debug GPIO
- * @return None
- */
-inline void wlan_mac_high_set_debug_gpio(u8 val){
-	debug_gpio_state |= (val & 0xF);
-	XGpio_DiscreteWrite(&Gpio, GPIO_OUTPUT_CHANNEL, debug_gpio_state);
-}
-
-
-
-/**
- * @brief Clear the debug GPIO (inline function)
- *
- * @param  u8 val
- *     - Value to clear the debug GPIO
- * @return None
- */
-inline void wlan_mac_high_clear_debug_gpio(u8 val){
-	debug_gpio_state &= ~(val & 0xF);
-	XGpio_DiscreteWrite(&Gpio, GPIO_OUTPUT_CHANNEL, debug_gpio_state);
-}
 
 /**
  * @brief Configure Beacon Transmissions
