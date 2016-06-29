@@ -424,18 +424,6 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     #--------------------------------------------
     # Counts Commands
     #--------------------------------------------
-    def counts_configure_txrx(self, promisc_counts=None):
-        """Configure counts collection on the node.
-
-        Args:
-            promisc_counts (bool, optional): Enable promiscuous counts 
-                collection. When promiscuous counts are enbaled the node will 
-                create a counts data structure for every unique MAC address it 
-                observes in all Tx and Rx packets, independent of the 
-                association state of the node or the transmitting device.
-        """
-        self.send_cmd(cmds.CountsConfigure(promisc_counts))
-
     def counts_get_txrx(self, *args, **kwargs):
         """DEPRECATED: Old name for current get_txrx_counts method
         """       

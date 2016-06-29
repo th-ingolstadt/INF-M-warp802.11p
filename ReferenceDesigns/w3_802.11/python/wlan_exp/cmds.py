@@ -179,7 +179,6 @@ CMD_PARAM_LOG_CONFIG_FLAG_TXRX_CTRL              = 0x00000010
 
 
 # Counts commands and defined values
-CMDID_COUNTS_CONFIG_TXRX                         = 0x004000
 CMDID_COUNTS_GET_TXRX                            = 0x004001
 
 CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC             = 0x00000001
@@ -389,33 +388,6 @@ class LogAddExpInfoEntry(message.Cmd):
 #--------------------------------------------
 # Counts Commands
 #--------------------------------------------
-class CountsConfigure(message.Cmd):
-    """Command to configure the Counts collection.
-
-    Attributes (default state on the node is in CAPS):
-        promisc_counts       -- Enable promiscuous counts collection (TRUE/False)
-    """
-    def __init__(self, promisc_counts=None):
-        super(CountsConfigure, self).__init__()
-        self.command = _CMD_GROUP_NODE + CMDID_COUNTS_CONFIG_TXRX
-
-        flags = 0
-        mask  = 0
-
-        if promisc_counts is not None:
-            mask += CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC
-            if promisc_counts:
-                flags += CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC
-
-        self.add_args(flags)
-        self.add_args(mask)
-
-    def process_resp(self, resp):
-        pass
-
-# End Class
-
-
 class CountsGetTxRx(message.BufferCmd):
     """Command to get the counts from the node for a given node."""
     def __init__(self, node=None, return_zeroed_counts_if_none=False):
