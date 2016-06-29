@@ -146,7 +146,7 @@ void mailbox_int_handler(void * callback_ref){
     XMbox *   mbox_ptr = (XMbox *)callback_ref;
 
 #ifdef _ISR_PERF_MON_EN_
-    wlan_mac_high_set_debug_gpio(ISR_PERF_MON_GPIO_MASK);
+    wlan_mac_set_dbg_hdr_out(ISR_PERF_MON_GPIO_MASK);
 #endif
 
     // Stop the interrupt controller
@@ -169,7 +169,7 @@ void mailbox_int_handler(void * callback_ref){
     XIntc_Start(intc_ptr, XIN_REAL_MODE);
 
 #ifdef _ISR_PERF_MON_EN_
-    wlan_mac_high_clear_debug_gpio(ISR_PERF_MON_GPIO_MASK);
+    wlan_mac_clear_dbg_hdr_out(ISR_PERF_MON_GPIO_MASK);
 #endif
 }
 

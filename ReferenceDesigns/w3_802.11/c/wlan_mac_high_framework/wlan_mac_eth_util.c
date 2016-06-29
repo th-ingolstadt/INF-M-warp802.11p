@@ -42,7 +42,7 @@
 
 // Performance monitoring using SW GPIO
 //     - Each of these defines if 1 will enable performance monitoring using the
-//       wlan_mac_high_set_debug_gpio() / wlan_mac_high_clear_debug_gpio() functions.
+//       wlan_mac_set_dbg_hdr_out() / wlan_mac_clear_dbg_hdr_out() functions.
 //     - All of the times are approximate because GPIO functions take time to
 //       execute and might increase the time you are trying to measure.
 //
@@ -444,7 +444,7 @@ void eth_rx_interrupt_handler(void *callbarck_arg) {
     XAxiDma_BdRing    * rx_ring_ptr = (XAxiDma_BdRing *) callbarck_arg;
 
 #ifdef _ISR_PERF_MON_EN_
-    wlan_mac_high_set_debug_gpio(ISR_PERF_MON_GPIO_MASK);
+    wlan_mac_set_dbg_hdr_out(ISR_PERF_MON_GPIO_MASK);
 #endif
 
     irq_status = XAxiDma_BdRingGetIrq(rx_ring_ptr);
@@ -485,7 +485,7 @@ void eth_rx_interrupt_handler(void *callbarck_arg) {
     }
 
 #ifdef _ISR_PERF_MON_EN_
-    wlan_mac_high_clear_debug_gpio(ISR_PERF_MON_GPIO_MASK);
+    wlan_mac_clear_dbg_hdr_out(ISR_PERF_MON_GPIO_MASK);
 #endif
     return;
 }
@@ -515,7 +515,7 @@ void wlan_process_all_eth_pkts(u32 schedule_id) {
     XAxiDma_BdRing    * rx_ring_ptr         = XAxiDma_GetRxRing(&eth_dma_instance);
 
 #if PERF_MON_ETH_PROCESS_ALL_RX
-    wlan_mac_high_set_debug_gpio(0x2);
+    wlan_mac_set_dbg_hdr_out(0x2);
 #endif
 
     if(schedule_id != SCHEDULE_ID_RESERVED_MAX){
@@ -567,7 +567,7 @@ void wlan_process_all_eth_pkts(u32 schedule_id) {
     }
 
 #if PERF_MON_ETH_PROCESS_ALL_RX
-    wlan_mac_high_clear_debug_gpio(0x02);
+    wlan_mac_clear_dbg_hdr_out(0x02);
 #endif
 }
 
@@ -614,7 +614,7 @@ void wlan_process_eth_rx(XAxiDma_BdRing * rx_ring_ptr, XAxiDma_Bd * bd_ptr) {
     u8                  eth_src[6];
 
 #if PERF_MON_ETH_PROCESS_RX
-    wlan_mac_high_set_debug_gpio(0x4);
+    wlan_mac_set_dbg_hdr_out(0x4);
 #endif
 
     // Check arguments
@@ -673,7 +673,7 @@ void wlan_process_eth_rx(XAxiDma_BdRing * rx_ring_ptr, XAxiDma_Bd * bd_ptr) {
     // wlan_eth_dma_update();
 
 #if PERF_MON_ETH_PROCESS_RX
-    wlan_mac_high_clear_debug_gpio(0x4);
+    wlan_mac_clear_dbg_hdr_out(0x4);
 #endif
 }
 
@@ -874,7 +874,7 @@ void wlan_eth_dma_update() {
     dl_entry*           tx_queue_entry;
 
 #if PERF_MON_ETH_UPDATE_DMA
-    wlan_mac_high_set_debug_gpio(0x2);
+    wlan_mac_set_dbg_hdr_out(0x2);
 #endif
 
     // Get the Rx ring pointer and the number of free Rx buffer descriptors
@@ -885,7 +885,7 @@ void wlan_eth_dma_update() {
     if (bd_count == 0) {
 
 #if PERF_MON_ETH_UPDATE_DMA
-        wlan_mac_high_set_debug_gpio(0x2);
+        wlan_mac_set_dbg_hdr_out(0x2);
 #endif
 
         return;
@@ -922,7 +922,7 @@ void wlan_eth_dma_update() {
         while ((tx_queue_entry != NULL) && (iter-- > 0)) {
 
 #if PERF_MON_ETH_UPDATE_DMA
-            wlan_mac_high_set_debug_gpio(0x4);
+            wlan_mac_set_dbg_hdr_out(0x4);
 #endif
 
             // Initialize the Rx buffer descriptor
@@ -947,7 +947,7 @@ void wlan_eth_dma_update() {
             bd_queue_pairs_processed++;
 
 #if PERF_MON_ETH_UPDATE_DMA
-            wlan_mac_high_clear_debug_gpio(0x4);
+            wlan_mac_clear_dbg_hdr_out(0x4);
 #endif
         }
 
@@ -967,7 +967,7 @@ void wlan_eth_dma_update() {
     }
 
 #if PERF_MON_ETH_UPDATE_DMA
-    wlan_mac_high_clear_debug_gpio(0x2);
+    wlan_mac_clear_dbg_hdr_out(0x2);
 #endif
 }
 

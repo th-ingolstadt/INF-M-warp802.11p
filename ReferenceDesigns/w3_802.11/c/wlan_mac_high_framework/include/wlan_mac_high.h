@@ -386,9 +386,6 @@ inline int         wlan_mac_high_is_dequeue_allowed();
 int                wlan_mac_high_get_empty_tx_packet_buffer();
 u8                 wlan_mac_high_is_pkt_ltg(void* mac_payload, u16 length);
 
-inline void        wlan_mac_high_set_debug_gpio(u8 val);
-inline void        wlan_mac_high_clear_debug_gpio(u8 val);
-
 
 int                wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, bss_info_t* bss_info, tx_params_t* tx_params_ptr, u8 flags);
 int                wlan_mac_high_update_beacon_tx_params(tx_params_t* tx_params_ptr);

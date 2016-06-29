@@ -464,7 +464,7 @@ void timer_interrupt_handler(void * instance_ptr){
 	u32            csr_reg;
 
 #ifdef _ISR_PERF_MON_EN_
-	wlan_mac_high_set_debug_gpio(ISR_PERF_MON_GPIO_MASK);
+	wlan_mac_set_dbg_hdr_out(ISR_PERF_MON_GPIO_MASK);
 #endif
 
 	// Verify inputs are valid
@@ -504,7 +504,7 @@ void timer_interrupt_handler(void * instance_ptr){
 	}
 
 #ifdef _ISR_PERF_MON_EN_
-	wlan_mac_high_clear_debug_gpio(ISR_PERF_MON_GPIO_MASK);
+	wlan_mac_clear_dbg_hdr_out(ISR_PERF_MON_GPIO_MASK);
 #endif
 }
 

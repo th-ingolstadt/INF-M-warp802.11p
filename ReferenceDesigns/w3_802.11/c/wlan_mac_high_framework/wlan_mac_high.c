@@ -686,12 +686,12 @@ inline interrupt_state_t wlan_mac_high_interrupt_stop(){
  */
 void wlan_mac_high_uart_rx_handler(void* CallBackRef, unsigned int EventData){
 #ifdef _ISR_PERF_MON_EN_
-	wlan_mac_high_set_debug_gpio(ISR_PERF_MON_GPIO_MASK);
+	wlan_mac_set_dbg_hdr_out(ISR_PERF_MON_GPIO_MASK);
 #endif
 	XUartLite_Recv(&UartLite, uart_rx_buffer, UART_BUFFER_SIZE);
 	uart_callback(uart_rx_buffer[0]);
 #ifdef _ISR_PERF_MON_EN_
-	wlan_mac_high_clear_debug_gpio(ISR_PERF_MON_GPIO_MASK);
+	wlan_mac_clear_dbg_hdr_out(ISR_PERF_MON_GPIO_MASK);
 #endif
 }
 
@@ -716,7 +716,7 @@ void wlan_mac_high_userio_gpio_handler(void *InstancePtr){
 	u32 gpio_read;
 
 #ifdef _ISR_PERF_MON_EN_
-	wlan_mac_high_set_debug_gpio(ISR_PERF_MON_GPIO_MASK);
+	wlan_mac_set_dbg_hdr_out(ISR_PERF_MON_GPIO_MASK);
 #endif
 
 	GpioPtr = (XGpio *)InstancePtr;
@@ -732,7 +732,7 @@ void wlan_mac_high_userio_gpio_handler(void *InstancePtr){
 	XGpio_InterruptEnable(GpioPtr, GPIO_USERIO_INPUT_IR_CH_MASK);
 
 #ifdef _ISR_PERF_MON_EN_
-	wlan_mac_high_clear_debug_gpio(ISR_PERF_MON_GPIO_MASK);
+	wlan_mac_clear_dbg_hdr_out(ISR_PERF_MON_GPIO_MASK);
 #endif
 	return;
 }
