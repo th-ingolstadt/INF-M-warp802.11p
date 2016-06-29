@@ -1129,42 +1129,6 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 //-----------------------------------------------------------------------------
 // Counts Commands
 //-----------------------------------------------------------------------------
-
-
-        //---------------------------------------------------------------------
-        case CMDID_COUNTS_CONFIG_TXRX: {
-            // NODE_COUNTS_CONFIG_TXRX Packet Format:
-            //   - cmd_args_32[0]  - flags
-            //                     [ 0] - Promiscuous counts collected = 1
-            //                            Promiscuous counts not collected = 0
-            //   - cmd_args_32[1]  - mask for flags
-            //
-            //   - resp_args_32[0] - CMD_PARAM_SUCCESS
-            //                     - CMD_PARAM_ERROR
-            u32    status    = CMD_PARAM_SUCCESS;
-            u32    flags     = Xil_Ntohl(cmd_args_32[0]);
-            u32    mask      = Xil_Ntohl(cmd_args_32[1]);
-
-            wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_counts, "Configure flags = 0x%08x  mask = 0x%08x\n", flags, mask);
-
-            // Configure the LOG based on the flag bit / mask
-            if (mask & CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC) {
-                if (flags & CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC) {
-                    //FIXME: No longer supported. Remove from wlan_exp control.
-                } else {
-                	//FIXME: No longer supported. Remove from wlan_exp control.
-                }
-            }
-
-            // Send response of status
-            resp_args_32[resp_index++] = Xil_Htonl(status);
-
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
-            resp_hdr->num_args = resp_index;
-        }
-        break;
-
-
         //---------------------------------------------------------------------
         case CMDID_COUNTS_GET_TXRX: {
             // NODE_GET_COUNTS Packet Format:

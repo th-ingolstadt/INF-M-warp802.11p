@@ -153,7 +153,6 @@
 //-----------------------------------------------
 // Counts Commands
 //
-#define CMDID_COUNTS_CONFIG_TXRX                           0x004000
 #define CMDID_COUNTS_GET_TXRX                              0x004001
 
 #define CMD_PARAM_COUNTS_CONFIG_FLAG_PROMISC               0x00000001
