@@ -161,6 +161,7 @@
 #define WLAN_MAC_STATUS_MASK_NAV_BUSY                      0x00004000     // b[14]
 #define WLAN_MAC_STATUS_MASK_CCA_BUSY                      0x00008000     // b[15]
 #define WLAN_MAC_STATUS_MASK_TU_LATCH                      0x00010000     // b[16]
+#define WLAN_MAC_STATUS_MASK_RX_PHY_WRITING_PAYLOAD        0x00020000     // b[17]
 
 #define wlan_mac_get_status() (Xil_In32(WLAN_MAC_REG_STATUS))
 
