@@ -1581,8 +1581,12 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 								//-----------------------------------------------------
 								case TAG_SSID_PARAMS:
 									// SSID parameter set
-									if((active_bss_info != NULL) && ((mac_payload_ptr_u8[1]==0) || (memcmp(mac_payload_ptr_u8+2, (u8*)active_bss_info->ssid, mac_payload_ptr_u8[1])==0))) {
-										// Broadcast SSID or my SSID - send unicast probe response
+									if((active_bss_info != NULL) && 
+									   ((mac_payload_ptr_u8[1]==0) || // Wildcard SSID is zero-length
+									    ((mac_payload_ptr_u8[1] == strnlen(active_bss_info->ssid, SSID_LEN_MAX)) && // Check for equal lengths first
+										(memcmp(mac_payload_ptr_u8+2, (u8*)active_bss_info->ssid, mac_payload_ptr_u8[1])==0)))) {
+										// Send response if Probe Request contained wildcard SSID
+										//  or SSID matching the SSID of this AP's BSS
 										send_response = 1;
 									}
 								break;
