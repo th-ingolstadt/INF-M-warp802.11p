@@ -155,8 +155,8 @@
  PORT ddr3_sodimm_dqs_p = ddr3_sodimm_dqs_p, DIR = IO, VEC = [7:0]
  PORT ddr3_sodimm_dqs_n = ddr3_sodimm_dqs_n, DIR = IO, VEC = [7:0]
 # Debug pins
-# PORT wlan_phy_rx_pkt_det_in = net_wlan_phy_rx_pkt_det_in, DIR = I
- PORT debughdr = dbg_gpio_b3 & dbg_gpio_b2 & dbg_gpio_b1 & dbg_gpio_b0 & mac_nav_active & mac_backoff_a_active & mac_idle_for_difs & dbg_tx_a_pending & dbg_rssi_det & mac_phy_rx_fcs_good_ind & dbg_lts_timeout & dbg_pkt_det_dsss & dbg_pkt_det_ofdm & dbg_dsss_rx_active & dbg_ofdm_rx_active & dbg_tx_running, DIR = O, VEC = [15:0]
+ PORT debughdr = mac_nav_active & mac_backoff_a_active & mac_idle_for_difs & dbg_tx_a_pending & dbg_rssi_det & mac_phy_rx_fcs_good_ind & dbg_lts_timeout & dbg_pkt_det_dsss & dbg_pkt_det_ofdm & dbg_dsss_rx_active & dbg_ofdm_rx_active & dbg_tx_running, DIR = O, VEC = [11:0]
+ PORT dbg_hdr_gpio = dbg_hdr_gpio, DIR = IO, VEC = [3:0]
 
 
 # ##############################################################################
@@ -259,13 +259,13 @@ BEGIN wlan_phy_rx_pmd_axiw
  PORT dbg_pkt_det_ofdm = dbg_pkt_det_ofdm
  PORT dbg_payload = dbg_ofdm_rx_active
  PORT dbg_rssi_det = dbg_rssi_det
- PORT dbg_gpio = 0b0 & 0b0 & 0b0 & 0b0 & phy_dbg_gpio_b3 & phy_dbg_gpio_b2 & phy_dbg_gpio_b1 & phy_dbg_gpio_b0
+# PORT dbg_gpio = 0b0 & 0b0 & 0b0 & 0b0 & phy_dbg_gpio_b3 & phy_dbg_gpio_b2 & phy_dbg_gpio_b1 & phy_dbg_gpio_b0
  PORT dbg_signal_err_disp = dbg_signal_err_disp
 END
 
 BEGIN wlan_mac_hw_axiw
  PARAMETER INSTANCE = wlan_mac_hw
- PARAMETER HW_VER = 2.01.e
+ PARAMETER HW_VER = 2.01.f
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -739,8 +739,9 @@ END
 
 BEGIN w3_userio_axi
  PARAMETER INSTANCE = w3_userio
- PARAMETER HW_VER = 1.01.a
+ PARAMETER HW_VER = 1.02.a
  PARAMETER INCLUDE_DNA_READ_LOGIC = 0
+ PARAMETER C_DBG_HDR_WIDTH = 4
  PARAMETER C_BASEADDR = 0x80000000
  PARAMETER C_HIGHADDR = 0x80000FFF
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
@@ -769,6 +770,7 @@ BEGIN w3_userio_axi
  PORT usr_rfb_led_red = RFB_statLED_Rx
  PORT usr_rfb_led_green = RFB_statLED_Tx
  PORT usr_leds_red = dbg_signal_err_disp
+ PORT dbg_hdr = dbg_hdr_gpio
 END
 
 BEGIN wlan_mac_time_hw_axiw
@@ -1140,16 +1142,13 @@ BEGIN axi_gpio
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 8
  PARAMETER C_INTERCONNECT_S_AXI_R_REGISTER = 8
  PARAMETER C_INTERCONNECT_S_AXI_B_REGISTER = 8
- PARAMETER C_IS_DUAL = 1
- PARAMETER C_GPIO_WIDTH = 4
- PARAMETER C_GPIO2_WIDTH = 9
- PARAMETER C_ALL_INPUTS_2 = 1
+ PARAMETER C_IS_DUAL = 0
+ PARAMETER C_GPIO_WIDTH = 9
+ PARAMETER C_ALL_INPUTS = 1
  PARAMETER C_INTERRUPT_PRESENT = 1
  BUS_INTERFACE S_AXI = mb_high_axi_periph
  PORT S_AXI_ACLK = clk_160MHz
- PORT GPIO_IO_O = cpuh_gpio_b3 & cpuh_gpio_b2 & cpuh_gpio_b1 & cpuh_gpio_b0
- PORT GPIO_IO_I = net_gnd
- PORT GPIO2_IO_I = dram_init_done & 0b0 & userio_pb_u & userio_pb_m & userio_pb_d & userio_dipsw_b0 & userio_dipsw_b1 & userio_dipsw_b2 & userio_dipsw_b3
+ PORT GPIO_IO_I = dram_init_done & 0b0 & userio_pb_u & userio_pb_m & userio_pb_d & userio_dipsw_b0 & userio_dipsw_b1 & userio_dipsw_b2 & userio_dipsw_b3
  PORT IP2INTC_Irpt = mb_high_sw_gpio_IP2INTC_Irpt
 END
 
@@ -1544,15 +1543,6 @@ BEGIN mdm
  BUS_INTERFACE MBDEBUG_1 = mb_high_debug
  PORT Debug_SYS_Rst = sys_reset_debug_rst
  PORT S_AXI_ACLK = clk_160MHz
-END
-
-BEGIN util_vector_logic
- PARAMETER INSTANCE = dbg_outputs_OR
- PARAMETER HW_VER = 1.00.a
- PARAMETER C_OPERATION = or
- PORT OP1 = phy_dbg_gpio_b0 & phy_dbg_gpio_b1 & phy_dbg_gpio_b2 & phy_dbg_gpio_b3
- PORT OP2 = cpuh_gpio_b0 & cpuh_gpio_b1 & cpuh_gpio_b2 & cpuh_gpio_b3
- PORT RES = dbg_gpio_b0 & dbg_gpio_b1 & dbg_gpio_b2 & dbg_gpio_b3
 END
 
 BEGIN util_reduced_logic
