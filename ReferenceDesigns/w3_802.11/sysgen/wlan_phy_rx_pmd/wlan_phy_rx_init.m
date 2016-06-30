@@ -35,7 +35,7 @@ if(~exist('sim_many_waveform_mode','var'))
     
     %Output of PHY Tx simulation
     % .mat files from Tx PHY sim store I/Q signal in 'wlan_tx_out' variable
-    load('rx_sigs/wlan_tx_NONHT_MCS4_52B.mat');wlan_tx_out = 1.0*wlan_tx_out.';
+    load('rx_sigs/wlan_tx_NONHT_MCS0_52B.mat');wlan_tx_out = wlan_tx_out.';
 
     %CFO
     %wlan_tx_out = wlan_tx_out .* exp(j*2*pi*-1e-4*(0:length(wlan_tx_out)-1));
@@ -174,7 +174,7 @@ PHY_CONFIG_PKT_DET_MIN_DURR = 4; %UFix4_0 duration
 PHY_CONFIG_PKT_DET_RESET_EXT_DUR = hex2dec('3F');
 
 CS_CONFIG_CS_RSSI_THRESH = 300 * PHY_CONFIG_RSSI_SUM_LEN;
-CS_CONFIG_POSTRX_EXTENSION = 120; %6usec as 120 20MHz samples
+CS_CONFIG_POSTRX_EXTENSION = 20; %6usec as 120 20MHz samples
 
 SOFT_DEMAP_SCALE_BPSK = 15;
 SOFT_DEMAP_SCALE_QPSK = 15;
@@ -234,7 +234,7 @@ REG_RX_Config = ...
     2^15 * 0 + ... %Manual ant sel when sel div disabled (2-bits, 00=RFA)
     2^17 * 2 + ... %Max SIGNAL.LENGTH value, in kB (UFix4_0)
     2^21 * 0 + ... %Require auto-corr and RSSI pkt det
-    2^22 * 1 + ... %Rate-Length Busy holds pkt det high %%WAS 0 HERE BUT 1 IN HW!
+    2^22 * 0 + ... %Rate-Length Busy holds pkt det high
     2^23 * 1 + ... %DSSS asserts CCA busy
     2^24 * 1 + ... %Enable 11n Rx support
     0;
