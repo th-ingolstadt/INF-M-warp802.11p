@@ -1668,7 +1668,10 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 					//
 					if((active_bss_info != NULL) && ((authentication_frame*)mac_payload_ptr_u8)->auth_sequence == AUTH_SEQ_REQ){
 
-						if(allow_auth && ( (authenticated_unassociated_stations.length-(sta_is_authenticated && (1-sta_is_associated))) < MAX_NUM_AUTH ) ){
+						// Only send response if we are allowing authentication and there is room in the authenticated_unassociated_stations list.
+						//	Note: the station from which this MAC_FRAME_CTRL1_SUBTYPE_AUTH was received may already be in the authenticated_unassociated_stations
+						//	list, so this should be accounted for when comparing the list length to MAX_NUM_AUTH
+						if(allow_auth && ( (authenticated_unassociated_stations.length-(sta_is_authenticated && (!sta_is_associated))) < MAX_NUM_AUTH ) ){
 
 							//Only proceed if:
 							// (1) The authentication type was AUTH_ALGO_OPEN_SYSTEM
