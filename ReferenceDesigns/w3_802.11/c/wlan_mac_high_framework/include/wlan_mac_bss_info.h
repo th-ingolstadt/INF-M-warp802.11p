@@ -92,7 +92,7 @@
 #define BSS_INFO_COMMON_FIELDS                                                                               \
         u8              bssid[MAC_ADDR_LEN];               /* BSS ID - 48 bit HW address */                  \
         chan_spec_t     chan_spec;                         /* Channel Specification */                       \
-        u64             latest_beacon_rx_time;	           /* Timestamp - Last interaction with BSS FIXME - rename to timestamp */       \
+        u64             latest_beacon_rx_time;	           /* Timestamp - Last interaction with BSS */       \
         char            ssid[SSID_LEN_MAX + 1];            /* SSID of the BSS - 33 bytes */                  \
         s8              latest_beacon_rx_power;            /* Last observed Rx Power (dBm) */                \
         u16             padding0;                                                                            \

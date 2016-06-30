@@ -197,7 +197,7 @@
 // ****************************************************************************
 // WLAN Exp Defines
 //
-// FIXME - What are these? If they are needed, we should at least remove "AID" and make them
+// TODO - What are these? If they are needed, we should at least remove "AID" and make them
 // more generic.
 #define WLAN_EXP_AID_NONE                                  0x00000000
 #define WLAN_EXP_AID_ALL                                   0xFFFFFFFF
@@ -299,7 +299,6 @@ typedef struct {
 //
 //     Only used to communicate with WLAN Exp Host.
 //
-// FIXME: Update Python
 typedef struct __attribute__((__packed__)){
     // All station_info_t common fields
     STATION_INFO_COMMON_FIELDS

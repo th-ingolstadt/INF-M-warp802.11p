@@ -429,7 +429,7 @@ inline int send_beacon(u8 tx_pkt_buf){
 					// Poll the DCF core status register
 					mac_hw_status = wlan_mac_get_status();
 
-					if((tx_frame_info->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP){
+					if((tx_frame_info->flags) & TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP){
 						if( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE ){
 							// Insert the TX START timestamp
 							*((u32*)((u8*)header + 24)) =  Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_LSB);
@@ -811,7 +811,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     }
 
     // Check if this reception is an ACK
-    //FIXME: we could add a unicast to me check here. It should be redundant. Then again, the POLL_MAC_TYPE_CTS does have the unicast requirement
+    //TODO: we could add a unicast to me check here. It should be redundant. Then again, the POLL_MAC_TYPE_CTS does have the unicast requirement
     if((rx_header->frame_control_1) == MAC_FRAME_CTRL1_SUBTYPE_ACK){
         return_value |= POLL_MAC_TYPE_ACK;
     }
@@ -1184,7 +1184,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
     }
 
 
-	if((tx_frame_info->flags) & TX_MPDU_FLAGS_FILL_DURATION){
+	if((tx_frame_info->flags) & TX_FRAME_INFO_FLAGS_FILL_DURATION){
 		// ACK_N_DBPS is used to calculate duration of the ACK waveform which might be received in response to this transmission
 		//  The ACK duration is used to calculate the DURATION field in the MAC header
 		//  The selection of ACK rate for a given DATA rate is specified in IEEE 802.11-2012 9.7.6.5.2
@@ -1204,7 +1204,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
         (tx_frame_info->num_tx_attempts)++;
 
         // Check if the higher-layer MAC requires this transmission have a post-Tx timeout
-        req_timeout = ((tx_frame_info->flags) & TX_MPDU_FLAGS_REQ_TO) != 0;
+        req_timeout = ((tx_frame_info->flags) & TX_FRAME_INFO_FLAGS_REQ_TO) != 0;
 
         // Write the SIGNAL field (interpreted by the PHY during Tx waveform generation)
         // This is the SIGNAL field for the MPDU we will eventually transmit. It's possible
@@ -1414,10 +1414,10 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
             	tx_has_started = 1;
 
             	if(req_timeout){
-            		gl_waiting_for_response = 1; //FIXME
+            		gl_waiting_for_response = 1;
             	}
 
-            	if ((tx_frame_info->flags) & TX_MPDU_FLAGS_FILL_TIMESTAMP) {
+            	if ((tx_frame_info->flags) & TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP) {
                     // Insert the TX START timestamp
                     *((u32*)((u8*)header + 24)) =  Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_LSB);
                     *((u32*)((u8*)header + 28)) =  Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_MSB);
@@ -1537,7 +1537,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                                 // Start a post-Tx backoff using the updated contention window
                                 n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
                                 wlan_mac_dcf_hw_start_backoff(n_slots);
-                                return TX_MPDU_RESULT_SUCCESS;
+                                return TX_FRAME_INFO_RESULT_SUCCESS;
 
                         } else {
                             // Received a packet immediately after transmitting, but it wasn't the ACK we wanted
@@ -1579,7 +1579,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                             if ((short_retry_count >= gl_dot11ShortRetryLimit) ||
                                 (long_retry_count >= gl_dot11LongRetryLimit )) {
                             	gl_waiting_for_response = 0;
-                                return TX_MPDU_RESULT_FAILURE;
+                                return TX_FRAME_INFO_RESULT_FAILURE;
                             }
                             if(poll_tbtt_return == BEACON_DEFERRED) {
 								poll_tbtt_return = poll_tbtt();
@@ -1631,7 +1631,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                         // Now we evaluate the SRC and LRC to see if either has reached its maximum
                         if ((short_retry_count == gl_dot11ShortRetryLimit) ||
                             (long_retry_count  == gl_dot11LongRetryLimit )) {
-                            return TX_MPDU_RESULT_FAILURE;
+                            return TX_FRAME_INFO_RESULT_FAILURE;
                         }
                         if(poll_tbtt_return == BEACON_DEFERRED) {
 							poll_tbtt_return = poll_tbtt();

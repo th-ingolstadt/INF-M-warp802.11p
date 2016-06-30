@@ -136,14 +136,6 @@
  *     (1) dl_entry structs that live in the aux. BRAM and
  *     (2) bss_info_t buffers with the actual content that live in DRAM
  *
- * The below definitions carve out the sizes of memory for these two pieces. The default
- * value of 4.5 kB for the dl_entry memory space was chosen. Because each dl_entry has a
- * size of 12 bytes, this space allows for a potential of 384 dl_entry structs describing
- * bss_info_t elements.
- *
- * Each bss_info struct is a total of 72 bytes in size. So, 384 bss_info_t structs require
- * 27 kB of memory. This is why BSS_INFO_BUFFER_SIZE is set to 27 kB.
- *
  ********************************************************************/
 #define BSS_INFO_DL_ENTRY_MEM_BASE         (TX_QUEUE_DL_ENTRY_MEM_BASE + TX_QUEUE_DL_ENTRY_MEM_SIZE)
 #define BSS_INFO_DL_ENTRY_MEM_SIZE         (WLAN_OPTIONS_AUX_SIZE_KB_BSS_INFO)
@@ -160,13 +152,6 @@
  * The Station Info storage consists of two pieces:
  *     (1) dl_entry structs that live in the aux. BRAM and
  *     (2) station_info_t buffers with the actual content that live in DRAM
- *
- * The below definitions carve out the sizes of memory for these two pieces. The default
- * value of 4.5 kB for the dl_entry memory space was chosen. Because each dl_entry has a
- * size of 12 bytes, this space allows for a potential of 384 dl_entry structs describing
- * station_info_t elements.
- *
- * FIXME: Update all comments for new flexible sizes
  *
  ********************************************************************/
 #define STATION_INFO_DL_ENTRY_MEM_BASE     (BSS_INFO_DL_ENTRY_MEM_BASE + BSS_INFO_DL_ENTRY_MEM_SIZE)
@@ -197,9 +182,9 @@
 /********************************************************************
  * Ethernet RX Buffer Descriptors
  *
- * Since it is the last section we are defining in the aux. BRAM, we allow the ETH_RX
- * to fill up the rest of the BRAM. This remaining space allows for a total of 239 Eth
- * Rx DMA BDs.
+ * The last section we are defining in the aux. BRAM is for ETH_RX.
+ * Like TX, each BD is 64 bytes. Unlike TX, we need more than a single
+ * BD to be able to handle bursty Ethernet receptions.
  *
  ********************************************************************/
 #define ETH_RX_BD_BASE                     (ETH_TX_BD_BASE + ETH_TX_BD_SIZE)

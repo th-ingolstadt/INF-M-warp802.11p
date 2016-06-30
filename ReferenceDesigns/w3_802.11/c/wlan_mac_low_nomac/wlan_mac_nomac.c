@@ -303,7 +303,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
 
 
 	// NoMAC Tx is always "successful"
-    return TX_MPDU_RESULT_SUCCESS;
+    return TX_FRAME_INFO_RESULT_SUCCESS;
 }
 
 

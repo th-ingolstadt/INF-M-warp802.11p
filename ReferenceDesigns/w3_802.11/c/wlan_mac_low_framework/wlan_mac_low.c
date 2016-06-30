@@ -336,20 +336,20 @@ void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
     }
 
     // Set post Rx extension
-    //  Number of sample periods post-Rx the PHY waits before asserting Rx END - must be long enough for worst-case
-    //   decoding latency and should result in RX_END asserting 6 usec after the last sample was received
+    //  Number of sample periods post-Rx the PHY waits before asserting Rx END. The additional
+    //   -3 usec accounts for latency through the Rx RF chain.
     switch(phy_samp_rate){
     	case PHY_40M:
     		// 6us Extension
-    		wlan_phy_rx_set_extension(6*40);
+    		wlan_phy_rx_set_extension((6-3)*40);
 		break;
     	case PHY_20M:
     		// 6us Extension
-    		wlan_phy_rx_set_extension(6*20);
+    		wlan_phy_rx_set_extension((6-3)*20);
     	break;
     	case PHY_10M:
     		// 6us Extension
-    		wlan_phy_rx_set_extension(6*10);
+    		wlan_phy_rx_set_extension((6-3)*10);
     	break;
     }
 
@@ -1096,7 +1096,7 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 				// Insert unique sequence into tx_frame_info
 				tx_frame_info->unique_seq = unique_seq;
 
-				if((tx_frame_info->flags) & TX_MPDU_FLAGS_FILL_UNIQ_SEQ){
+				if((tx_frame_info->flags) & TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ){
 					// Fill unique sequence number into LTG payload
 					pkt_id             = (ltg_packet_id_t*)((u8*)tx_80211_header + sizeof(mac_header_80211));
 					pkt_id->unique_seq = unique_seq;
@@ -1112,19 +1112,17 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 				// return 0 (ie TX_MPDU_RESULT_SUCCESS).
 				//
 
-				wlan_mac_set_dbg_hdr_out(0x8); //FIXME
 				status = frame_tx_callback(tx_pkt_buf, low_tx_details);
-				wlan_mac_clear_dbg_hdr_out(0x8); //FIXME
 
 				//Record the total time this MPDU spent in the Tx state machine
 				tx_frame_info->delay_done = (u32)(get_mac_time_usec() - (tx_frame_info->timestamp_create + (u64)(tx_frame_info->delay_accept)));
 
 				low_tx_details_size = (tx_frame_info->num_tx_attempts)*sizeof(wlan_mac_low_tx_details_t);
 
-				if(status == TX_MPDU_RESULT_SUCCESS){
-					tx_frame_info->tx_result = TX_MPDU_RESULT_SUCCESS;
+				if(status == TX_FRAME_INFO_RESULT_SUCCESS){
+					tx_frame_info->tx_result = TX_FRAME_INFO_RESULT_SUCCESS;
 				} else {
-					tx_frame_info->tx_result = TX_MPDU_RESULT_FAILURE;
+					tx_frame_info->tx_result = TX_FRAME_INFO_RESULT_FAILURE;
 				}
 
 				tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_DONE;

@@ -154,7 +154,7 @@ inline station_info_t* station_info_tx_process(void* pkt_buf_addr) {
 	// cannot be executed on the transmission of a multicast frame.
 	// TODO: This structure doesn't work with NOMAC, where there is
 	//   no ACK Rx on a successful unicast Data Tx.
-	if(((tx_frame_info->tx_result) == TX_MPDU_RESULT_SUCCESS)){
+	if(((tx_frame_info->tx_result) == TX_FRAME_INFO_RESULT_SUCCESS)){
 		curr_station_info->latest_rx_timestamp = get_system_time_usec();
 	}
 
@@ -178,7 +178,7 @@ inline station_info_t* station_info_tx_process(void* pkt_buf_addr) {
 	(txrx_counts_sub->tx_num_bytes_total) += (tx_frame_info->length);
 	(txrx_counts_sub->tx_num_attempts)    += (tx_frame_info->num_tx_attempts);
 
-	if((tx_frame_info->tx_result) == TX_MPDU_RESULT_SUCCESS){
+	if((tx_frame_info->tx_result) == TX_FRAME_INFO_RESULT_SUCCESS){
 		(txrx_counts_sub->tx_num_packets_success)++;
 		(txrx_counts_sub->tx_num_bytes_success) += tx_frame_info->length;
 	}
@@ -723,7 +723,7 @@ dl_entry* wlan_mac_high_find_station_info_ID(dl_list* list, u32 id){
  *     - Pointer to the station_info in the dl_list
  *     - NULL
  *
- *	FIXME: This argument list is pretty hacky and should be refactored. I'm leaving it alone in this commit so I don't change too many things at once.
+ *	TODO: This argument list should be reconsidered
  *
  * @note   This function will not perform any filtering on the addr field
  */
@@ -802,7 +802,7 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 
 		// Do not allow WARP nodes to time out
 		if(wlan_mac_addr_is_warp(addr)){
-			// FIXME: This doesn't belong here. This is an AP specific behavior.
+			// TODO: This doesn't belong here. This is an AP specific behavior.
 			station_info->flags |= STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
 		}
 

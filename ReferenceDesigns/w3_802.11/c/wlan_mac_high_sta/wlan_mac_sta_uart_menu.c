@@ -465,9 +465,6 @@ void check_join_status() {
 	//     - Check BSS info
 	//     - Return to Main Menu
 
-	//FIXME: remove
-	xil_printf("wlan_mac_sta_is_joining() = %d\n", wlan_mac_sta_is_joining());
-
 	if (wlan_mac_sta_is_joining() == 0) {
 		// Stop the scheduled event
 		wlan_mac_remove_schedule(SCHEDULE_COARSE, check_join_status_id);

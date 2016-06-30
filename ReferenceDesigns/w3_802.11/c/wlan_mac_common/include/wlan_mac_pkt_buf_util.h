@@ -276,15 +276,14 @@ CASSERT(sizeof(tx_frame_info_t) == 48, tx_frame_info_alignment_check);
 #define TX_POWER_MIN_DBM                                  (-9)
 
 // Defines for tx_result field
-// FIXME: Rename TX_MPDU_ to TX_FRAME_
-#define TX_MPDU_RESULT_SUCCESS                             0
-#define TX_MPDU_RESULT_FAILURE                             1
+#define TX_FRAME_INFO_RESULT_SUCCESS                             0
+#define TX_FRAME_INFO_RESULT_FAILURE                             1
 
 // Defines for flags field
-#define TX_MPDU_FLAGS_REQ_TO                               0x01
-#define TX_MPDU_FLAGS_FILL_TIMESTAMP                       0x02
-#define TX_MPDU_FLAGS_FILL_DURATION                        0x04
-#define TX_MPDU_FLAGS_FILL_UNIQ_SEQ                        0x20
+#define TX_FRAME_INFO_FLAGS_REQ_TO                               0x01
+#define TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP                       0x02
+#define TX_FRAME_INFO_FLAGS_FILL_DURATION                        0x04
+#define TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ                        0x20
 
 
 //-----------------------------------------------

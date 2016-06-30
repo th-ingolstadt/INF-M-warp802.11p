@@ -476,7 +476,7 @@ tx_high_entry * wlan_exp_log_create_tx_high_entry(tx_frame_info_t* tx_frame_info
         	tx_high_event_log_entry->flags				  &= ~TX_LOW_FLAGS_LTG_PYLD;
         	tx_high_event_log_entry->flags				  &= ~TX_LOW_FLAGS_LTG;
         }
-        if(tx_frame_info->tx_result == TX_MPDU_RESULT_SUCCESS){
+        if(tx_frame_info->tx_result == TX_FRAME_INFO_RESULT_SUCCESS){
         	tx_high_event_log_entry->flags				  |= TX_HIGH_FLAGS_SUCCESSFUL;
         } else {
         	tx_high_event_log_entry->flags				  &= ~TX_HIGH_FLAGS_SUCCESSFUL;
@@ -1145,7 +1145,7 @@ void add_node_info_entry() {
         entry->timestamp = get_mac_time_usec();
 
 #if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
-        //FIXME: The node info entry is tied to wlan_exp in a way that is unnecessary. The fields here
+        //TODO: The node info entry is tied to wlan_exp in a way that is unnecessary. The fields here
         // should not be encoded as wlan_exp_get_parameters()
 
         // Add the node parameters
@@ -1245,14 +1245,14 @@ u32 add_temperature_to_log() {
 #if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
         entry->id            = node_get_node_id();
 #else
-        // FIXME: The notion of a "node ID" is very wlan_exp-centric. The temperature log entry
+        // TODO: The notion of a "node ID" is very wlan_exp-centric. The temperature log entry
         // should not have this field. I'd argue it doesn't need any identifying fields; the identity
         // of the the source of this temperature reading is unambiguous based upon which log file
         // it is in.
         entry->id            = 0;
 #endif
 
-        // FIXME: serial number unnecessary for the same reason as above.
+        // TODO: serial number unnecessary for the same reason as above.
         entry->serial_number = hw_info->serial_number;
         entry->curr_temp     = get_current_temp();
         entry->min_temp      = get_min_temp();

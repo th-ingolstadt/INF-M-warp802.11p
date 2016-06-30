@@ -131,10 +131,9 @@ typedef struct{
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
 CASSERT(sizeof(station_info_t) == 184, station_info_alignment_check);
 #else
-CASSERT(sizeof(station_info_t) == 72, station_info_alignment_check); //FIXME: Also fix station_info in wlan_exp
+CASSERT(sizeof(station_info_t) == 72, station_info_alignment_check);
 #endif
 
-//FIXME: Adjust Python side to match
 #define STATION_INFO_FLAG_KEEP                             0x00000001			   ///< Prevent MAC High Framework from deleting this station_infO
 #define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK              0x00000002              ///< Mask for flag in station_info -- disable association check
 #define STATION_INFO_FLAG_DOZE                             0x00000004              ///< Mask to sleeping stations (if STA supports PS)
