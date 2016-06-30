@@ -1594,7 +1594,7 @@ inline u32 wlan_mac_hw_rx_finish() {
     do{
         mac_hw_status = wlan_mac_get_status();
         if(i++>1000000) {xil_printf("Stuck in wlan_mac_hw_rx_finish! 0x%08x\n", mac_hw_status);}
-    } while(mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_WRITING_PAYLOAD);
+    } while(mac_hw_status & (WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_WRITING_PAYLOAD));
 
     // Check RX_END_ERROR and FCS
     if( (mac_hw_status & WLAN_MAC_STATUS_MASK_RX_FCS_GOOD) &&
