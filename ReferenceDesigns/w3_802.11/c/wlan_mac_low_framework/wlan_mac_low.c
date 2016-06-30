@@ -341,15 +341,15 @@ void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
     switch(phy_samp_rate){
     	case PHY_40M:
     		// 6us Extension
-    		wlan_phy_rx_set_extension((6-3)*40);
+    		wlan_phy_rx_set_extension((6*40) - 128);
 		break;
     	case PHY_20M:
     		// 6us Extension
-    		wlan_phy_rx_set_extension((6-3)*20);
+    		wlan_phy_rx_set_extension((6*20) - 64);
     	break;
     	case PHY_10M:
     		// 6us Extension
-    		wlan_phy_rx_set_extension((6-3)*10);
+    		wlan_phy_rx_set_extension((6*10) - 32);
     	break;
     }
 
