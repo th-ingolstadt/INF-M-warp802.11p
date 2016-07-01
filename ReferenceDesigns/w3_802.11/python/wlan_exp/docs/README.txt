@@ -10,7 +10,7 @@ Requirements:
 How to build:
   - For a WLAN Exp installation in: 
         <installation directory>\Mango_802.11_RefDes_v<version>\Python_Reference
-    where <version> is the version of the reference design, e.g. 1.5.1, and the 
+    where <version> is the version of the reference design, e.g. 1.5.2, and the 
     <installation directory> is where the 802.11 reference design was unzipped.
     This directory will be referred to below as <WLAN_EXP_BASE_DIR>.
 
