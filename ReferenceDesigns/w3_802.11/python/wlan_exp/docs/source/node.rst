@@ -141,7 +141,6 @@ there is a maximum number of counts implemented in the C code.  When that
 maximum is reached, then the oldest counts structure of an unassociated node 
 will be overwritten.
 
-.. automethod:: wlan_exp.node.WlanExpNode.counts_configure_txrx
 .. automethod:: wlan_exp.node.WlanExpNode.get_txrx_counts
 
 
