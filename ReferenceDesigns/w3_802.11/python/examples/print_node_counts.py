@@ -66,7 +66,6 @@ def initialize_experiment():
     # Set the promiscuous counts mode
     for node in nodes:
         node.set_radio_channel(CHANNEL)
-        node.counts_configure_txrx(promisc_counts=PROMISCUOUS_COUNTS)
         node.reset(txrx_counts=True)
 
 
