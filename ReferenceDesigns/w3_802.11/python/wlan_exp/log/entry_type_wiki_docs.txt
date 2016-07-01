@@ -566,6 +566,7 @@ Constants defined for this field:
  * {{{'DUPLICATE': 2}}}
  * {{{'LTG_PYLD': 64}}}
  * {{{'LTG': 128}}}
+ * {{{'UNEXPECTED_RESPONSE': 4}}}
 
 }}}
 |----------------
@@ -860,6 +861,7 @@ Constants defined for this field:
  * {{{'DUPLICATE': 2}}}
  * {{{'LTG_PYLD': 64}}}
  * {{{'LTG': 128}}}
+ * {{{'UNEXPECTED_RESPONSE': 4}}}
 
 }}}
 |----------------
@@ -1176,6 +1178,7 @@ Constants defined for this field:
  * {{{'DUPLICATE': 2}}}
  * {{{'LTG_PYLD': 64}}}
  * {{{'LTG': 128}}}
+ * {{{'UNEXPECTED_RESPONSE': 4}}}
 
 }}}
 |----------------
@@ -2014,7 +2017,9 @@ uint8
 1-bit Flags
 
 Constants defined for this field:
- * {{{'ACKED': 1}}}
+ * {{{'RECEIVED_RESPONSE': 1}}}
+ * {{{'LTG_PYLD': 128}}}
+ * {{{'LTG': 64}}}
 
 }}}
 |----------------
@@ -2285,7 +2290,9 @@ uint8
 1-bit Flags
 
 Constants defined for this field:
- * {{{'ACKED': 1}}}
+ * {{{'RECEIVED_RESPONSE': 1}}}
+ * {{{'LTG_PYLD': 128}}}
+ * {{{'LTG': 64}}}
 
 }}}
 |----------------
