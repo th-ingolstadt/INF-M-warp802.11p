@@ -356,9 +356,8 @@ void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
     // Set Tx duration extension, in units of sample periods
 	switch(phy_samp_rate){
 		case PHY_40M:
-			// 364 20MHz sample periods.
-			// The extra 3 usec properly delays the assertion of TX END to match the assertion of RX END at the receiving node.
-			wlan_phy_tx_set_extension(364);
+			// 224 40MHz sample periods -- aligns TX_END to RX_END
+			wlan_phy_tx_set_extension(224);
 
 			// Set extension from last samp output to RF Tx -> Rx transition
 			//     This delay allows the Tx pipeline to finish driving samples into DACs
@@ -369,9 +368,8 @@ void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
 			wlan_phy_tx_set_rx_invalid_extension(300);
 		break;
 		case PHY_20M:
-			// 182 20MHz sample periods.
-			// The extra 3 usec properly delays the assertion of TX END to match the assertion of RX END at the receiving node.
-			wlan_phy_tx_set_extension(182);
+			// 112 20MHz sample periods -- aligns TX_END to RX_END
+			wlan_phy_tx_set_extension(112);
 
 			// Set extension from last samp output to RF Tx -> Rx transition
 			//     This delay allows the Tx pipeline to finish driving samples into DACs
@@ -382,7 +380,8 @@ void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
 			wlan_phy_tx_set_rx_invalid_extension(150);
 		break;
 		case PHY_10M:
-			wlan_phy_tx_set_extension(91);
+			// 56 10MHz sample periods -- aligns TX_END to RX_END
+			wlan_phy_tx_set_extension(56);
 
 			// Set extension from last samp output to RF Tx -> Rx transition
 			//     This delay allows the Tx pipeline to finish driving samples into DACs
