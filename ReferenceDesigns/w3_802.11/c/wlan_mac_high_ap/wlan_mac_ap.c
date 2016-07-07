@@ -572,7 +572,7 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 		return;
 	}
 
-	if((tx_frame_info->tx_pkt_buf_state != TX_PKT_BUF_READY) || (lock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS)){
+	if( ((tx_frame_info->tx_pkt_buf_state != TX_PKT_BUF_READY) && (tx_frame_info->tx_pkt_buf_state != TX_PKT_BUF_HIGH_CTRL) ) || (lock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS)){
 		//Note: The order of operations in the above if() clause is important. If the tx_pkt_buf_state is not ready.
 		//then we should not even attempt to lock the beacon template packet buffer. This behavior is ensured if
 		//the tx_pkt_buf_state is checked on on the left-hand side of the || because the || operation is a sequence
@@ -655,7 +655,7 @@ void update_tim_tag_all(u32 sched_id){
 
 	mgmt_tag_tim_update_schedule_id = SCHEDULE_ID_RESERVED_MAX;
 
-	if((tx_frame_info->tx_pkt_buf_state != TX_PKT_BUF_READY) || (lock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS)){
+	if( ((tx_frame_info->tx_pkt_buf_state != TX_PKT_BUF_READY) && (tx_frame_info->tx_pkt_buf_state != TX_PKT_BUF_HIGH_CTRL) ) || (lock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS)){
 		//Note: The order of operations in the above if() clause is important. If the tx_pkt_buf_state is not ready.
 		//then we should not even attempt to lock the beacon template packet buffer. This behavior is ensured if
 		//the tx_pkt_buf_state is checked on on the left-hand side of the || because the || operation is a sequence
