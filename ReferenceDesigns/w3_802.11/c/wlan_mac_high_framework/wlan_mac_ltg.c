@@ -243,7 +243,7 @@ int ltg_sched_start_l(dl_entry* curr_tg_dl_entry){
 
 		case LTG_SCHED_TYPE_UNIFORM_RAND:
 			random_timestamp = (rand()%(((ltg_sched_uniform_rand_params*)(curr_tg->params))->max_interval_count - ((ltg_sched_uniform_rand_params*)(curr_tg->params))->min_interval_count))+((ltg_sched_uniform_rand_params*)(curr_tg->params))->min_interval_count;
-			curr_tg->target = num_ltg_checks + (random_timestamp/FAST_TIMER_DUR_US);
+			curr_tg->target = num_ltg_checks + random_timestamp;
 
 			if(((ltg_sched_uniform_rand_params*)(curr_tg->params))->duration_count != LTG_DURATION_FOREVER){
 				curr_tg->stop_target = num_ltg_checks + ((ltg_sched_periodic_params*)(curr_tg->params))->duration_count;
@@ -298,7 +298,7 @@ void ltg_sched_check(){
 						break;
 						case LTG_SCHED_TYPE_UNIFORM_RAND:
 							random_timestamp = (rand()%(((ltg_sched_uniform_rand_params*)(curr_tg->params))->max_interval_count - ((ltg_sched_uniform_rand_params*)(curr_tg->params))->min_interval_count))+((ltg_sched_uniform_rand_params*)(curr_tg->params))->min_interval_count;
-							curr_tg->target = num_ltg_checks + (random_timestamp/FAST_TIMER_DUR_US);
+							curr_tg->target = num_ltg_checks + random_timestamp;
 						break;
 						default:
 							ltg_sched_stop_l(curr_tg_dl_entry);
