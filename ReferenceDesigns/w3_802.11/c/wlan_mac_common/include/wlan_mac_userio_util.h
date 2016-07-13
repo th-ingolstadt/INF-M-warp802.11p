@@ -28,6 +28,7 @@
 
 // Wrapper macros for debug header IO
 #define wlan_mac_set_dbg_hdr_dir(dir, pin_mask) userio_set_dbg_hdr_io_dir(USERIO_BASEADDR, (dir), (pin_mask))
+#define wlan_mac_set_dbg_hdr_ctrlsrc(src, pin_mask) userio_set_dbg_hdr_out_ctrlsrc(USERIO_BASEADDR, (src), (pin_mask))
 #define wlan_mac_set_dbg_hdr_out(pin_mask) 	 	userio_set_dbg_hdr_out(USERIO_BASEADDR, (pin_mask))
 #define wlan_mac_clear_dbg_hdr_out(pin_mask) 	userio_clear_dbg_hdr_out(USERIO_BASEADDR, (pin_mask))
 #define wlan_mac_write_dbg_hdr_out(val) 	 	userio_write_dbg_hdr_out(USERIO_BASEADDR, (val))
