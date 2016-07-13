@@ -385,7 +385,6 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 
 int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_common* common, u16 status, u16 AID, bss_info_t* bss_info) {
 	u32 packetLen_bytes;
-	u8* txBufferPtr_u8;
 
 	ht_capabilities* ht_capabilities_element;
 	ht_information* ht_information_element;
@@ -393,10 +392,8 @@ int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_commo
 
 	mgmt_tag_template_t* mgmt_tag_template;
 
-	txBufferPtr_u8 = (u8*)pkt_buf;
-
 	mac_header_80211* assoc_80211_header;
-	assoc_80211_header = (mac_header_80211*)(txBufferPtr_u8);
+	assoc_80211_header = (mac_header_80211*)(pkt_buf);
 
 	assoc_80211_header->frame_control_1 = MAC_FRAME_CTRL1_SUBTYPE_ASSOC_RESP;
 	assoc_80211_header->frame_control_2 = 0;
@@ -416,21 +413,19 @@ int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_commo
 	association_resp_mgmt_header->status_code = status;
 	association_resp_mgmt_header->association_id = 0xC000 | AID;
 
-	txBufferPtr_u8 = (u8 *)((void *)(txBufferPtr_u8) + sizeof(mac_header_80211) + sizeof(association_response_frame));
+	mgmt_tag_template = (mgmt_tag_template_t *)( (void *)(pkt_buf) + sizeof(mac_header_80211) + sizeof(association_response_frame) );
 
-	//http://my.safaribooksonline.com/book/networking/wireless/0596100523/4dot-802dot11-framing-in-detail/wireless802dot112-chp-4-sect-3
-	//Top bit is whether or not the rate is mandatory (basic). Bottom 7 bits is in units of "number of 500kbps"
-	txBufferPtr_u8[0] = 1; //Tag 1: Supported Rates
-	txBufferPtr_u8[1] = 8; //tag length... doesn't include the tag itself and the tag length
-	txBufferPtr_u8[2] = RATE_BASIC | (0x0C); 	//6Mbps  (BPSK,   1/2)
-	txBufferPtr_u8[3] = (0x12);				 	//9Mbps  (BPSK,   3/4)
-	txBufferPtr_u8[4] = RATE_BASIC | (0x18); 	//12Mbps (QPSK,   1/2)
-	txBufferPtr_u8[5] = (0x24); 				//18Mbps (QPSK,   3/4)
-	txBufferPtr_u8[6] = RATE_BASIC | (0x30); 	//24Mbps (16-QAM, 1/2)
-	txBufferPtr_u8[7] = (0x48); 				//36Mbps (16-QAM, 3/4)
-	txBufferPtr_u8[8] = (0x60); 				//48Mbps  (64-QAM, 2/3)
-	txBufferPtr_u8[9] = (0x6C); 				//54Mbps  (64-QAM, 3/4)
-	txBufferPtr_u8+=(8+2); //Move up to next tag
+	mgmt_tag_template->header.tag_element_id = MGMT_TAG_SUPPORTED_RATES;
+	mgmt_tag_template->header.tag_length = 8;
+	mgmt_tag_template->data[0] = RATE_BASIC | (0x0C);   //6Mbps  (BPSK,   1/2)
+	mgmt_tag_template->data[1] = (0x12);                    //9Mbps  (BPSK,   3/4)
+	mgmt_tag_template->data[2] = RATE_BASIC | (0x18);   //12Mbps (QPSK,   1/2)
+	mgmt_tag_template->data[3] = (0x24);                //18Mbps (QPSK,   3/4)
+	mgmt_tag_template->data[4] = RATE_BASIC | (0x30);   //24Mbps (16-QAM, 1/2)
+	mgmt_tag_template->data[5] = (0x48);                //36Mbps (16-QAM, 3/4)
+	mgmt_tag_template->data[6] = (0x60);                //48Mbps  (64-QAM, 2/3)
+	mgmt_tag_template->data[7] = (0x6C);                //54Mbps  (64-QAM, 3/4)
+	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
 	if ((bss_info->capabilities) & BSS_CAPABILITIES_HT_CAPABLE) {
 		//Insert HT Capabilities and HT Information tags
@@ -486,29 +481,7 @@ int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_commo
 		mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 	}
 
-/*
-	txBufferPtr_u8[0] = 1; //Tag 1: Supported Rates
-	txBufferPtr_u8[1] = 8; //tag length... doesn't include the tag itself and the tag length
-	txBufferPtr_u8[2] = RATE_BASIC | (0x02); 	//1Mbps
-	txBufferPtr_u8[3] = RATE_BASIC | (0x04);	//2Mbps
-	txBufferPtr_u8[4] = RATE_BASIC | (0x0b); 	//5.5Mbps
-	txBufferPtr_u8[5] = RATE_BASIC | (0x16); 	//11Mbps
-	txBufferPtr_u8[6] = (0x24); 				//18Mbps
-	txBufferPtr_u8[7] = (0x30); 				//24Mbps
-	txBufferPtr_u8[8] = (0x48); 				//36Mbps
-	txBufferPtr_u8[9] = (0x6C); 				//54Mbps
-	txBufferPtr_u8+=(8+2); //Move up to next tag
-
-	txBufferPtr_u8[0] = 50; //Tag 50: Extended Supported Rates
-	txBufferPtr_u8[1] = 3; //tag length... doesn't include the tag itself and the tag length
-	txBufferPtr_u8[2] = (0x0c); 	//6Mbps
-	txBufferPtr_u8[3] = (0x12);		//9Mbps
-	txBufferPtr_u8[4] = (0x18); 	//12Mbps
-	txBufferPtr_u8[5] = (0x60); 	//48Mbps
-	txBufferPtr_u8+=(4+2); //Move up to next tag
-*/
-
-	packetLen_bytes = (txBufferPtr_u8 - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
+	packetLen_bytes = ((u8*)mgmt_tag_template - (u8*)(pkt_buf)) + WLAN_PHY_FCS_NBYTES;
 
 	return packetLen_bytes;
 }
