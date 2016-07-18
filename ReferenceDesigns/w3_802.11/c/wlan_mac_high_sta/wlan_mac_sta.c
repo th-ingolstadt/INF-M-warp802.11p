@@ -693,7 +693,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 						if (bss_info_entry != NULL) {
 							curr_bss_info = (bss_info_t*)(bss_info_entry->data);
 							attempt_bss_info = wlan_mac_sta_get_attempt_bss_info();
-							if(wlan_addr_eq(attempt_bss_info && curr_bss_info->bssid, attempt_bss_info->bssid)) wlan_mac_sta_join_return_to_idle();
+							if(attempt_bss_info && wlan_addr_eq(curr_bss_info->bssid, attempt_bss_info->bssid)) wlan_mac_sta_join_return_to_idle();
 							xil_printf("Join process association failed for BSS %s\n", ((bss_info_t*)(bss_info_entry->data))->ssid);
 						}
 
@@ -1022,7 +1022,7 @@ u32	configure_bss(bss_config_t* bss_config){
 		}
 		if (bss_config->update_mask & BSS_FIELD_MASK_CHAN) {
 			if (wlan_verify_channel(
-					wlan_mac_high_bss_channel_spec_to_radio_chan(active_bss_info->chan_spec)) != XST_SUCCESS) {
+					wlan_mac_high_bss_channel_spec_to_radio_chan(bss_config->chan_spec)) != XST_SUCCESS) {
 				return_status |= BSS_CONFIG_FAILURE_CHANNEL_INVALID;
 			}
 		}

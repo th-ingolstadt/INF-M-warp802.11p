@@ -960,7 +960,6 @@ u8	station_info_is_member(dl_list* app_station_info_list, station_info_t* statio
 		}
 
 		curr_station_info_entry = dl_entry_next(curr_station_info_entry);
-		station_info_temp = (station_info_t*)(curr_station_info_entry->data);
 	}
 
 	return 0;
