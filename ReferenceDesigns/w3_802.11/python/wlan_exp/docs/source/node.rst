@@ -110,6 +110,9 @@ is used for Tx and Rx of individual packet types.
 .. automethod:: wlan_exp.node.WlanExpNode.set_rx_ant_mode
 .. automethod:: wlan_exp.node.WlanExpNode.get_rx_ant_mode
 
+.. automethod:: wlan_exp.node.WlanExpNode.set_tx_ant_mode
+.. automethod:: wlan_exp.node.WlanExpNode.get_tx_ant_mode
+
 .. automethod:: wlan_exp.node.WlanExpNode.set_tx_ant_mode_unicast
 .. automethod:: wlan_exp.node.WlanExpNode.get_tx_ant_mode_unicast
 
