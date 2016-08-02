@@ -363,8 +363,8 @@
 // BACKOFF_COUNTER
 //     b[15:0]: A Backoff count
 //     b[31:16]: C Backoff count
-#define wlan_mac_get_backoff_count_A() (Xil_In32(WLAN_MAC_REG_BACKOFF_COUNTERS) & 0x000000FF)
-#define wlan_mac_get_backoff_count_C() ((Xil_In32(WLAN_MAC_REG_BACKOFF_COUNTERS) & 0x0000FF00) >> 16)
+#define wlan_mac_get_backoff_count_A()  (Xil_In32(WLAN_MAC_REG_BACKOFF_COUNTERS) & 0x0000FFFF)
+#define wlan_mac_get_backoff_count_C() ((Xil_In32(WLAN_MAC_REG_BACKOFF_COUNTERS) & 0xFFFF0000) >> 16)
 
 // RX_PHY_PARAMS Register:
 //     b[15:0] : Length
