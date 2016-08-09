@@ -295,6 +295,7 @@ def get_channel_info(channel):
         161 : {'channel' :   161, 'freq': 5805},
         165 : {'channel' :   165, 'freq': 5825},    
         172 : {'channel' :   172, 'freq': 5860},
+        173 : {'channel' :   173, 'freq': 5865},
         174 : {'channel' :   174, 'freq': 5870},
         175 : {'channel' :   175, 'freq': 5875},
         176 : {'channel' :   176, 'freq': 5880},

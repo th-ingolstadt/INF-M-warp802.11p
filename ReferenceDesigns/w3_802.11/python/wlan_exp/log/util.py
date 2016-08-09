@@ -664,7 +664,7 @@ def calc_tx_time_log(tx_low_entries):
 
 def calc_tx_time(mcs, phy_mode, payload_length, phy_samp_rate):
     """Calculates the duration of an 802.11 transmission given its rate and 
-    payload length.
+    payload length. Returns duration of PHY transmission in microseconds.
 
     Args:
         mcs (int or list of ints):             Modulation and coding scheme (MCS) index
