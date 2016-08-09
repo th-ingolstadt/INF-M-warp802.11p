@@ -30,6 +30,7 @@
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_schedule.h"
+#include "wlan_mac_mgmt_tags.h"
 
 /*********************** Global Variable Definitions *************************/
 
@@ -108,17 +109,24 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 	mac_header_80211*   rx_80211_header          = (mac_header_80211*)((void *)mac_payload_ptr_u8);
 	dl_entry*			curr_dl_entry;
 	bss_info_t*			curr_bss_info;
+	u8                  unicast_to_me;
+	u8                  to_multicast;
 	u8					update_rx_power 		 = 0;
 	u8					update_timestamp 		 = 0;
 
 	u16 				length					 = rx_frame_info->phy_details.length;
 
-	if ((rx_frame_info->flags & RX_FRAME_INFO_FLAGS_FCS_GOOD)) {
+	// Determine destination of packet
+	unicast_to_me = wlan_addr_eq(rx_80211_header->address_1, get_mac_hw_addr_wlan());
+	to_multicast  = wlan_addr_mcast(rx_80211_header->address_1);
+
+	if ((rx_frame_info->flags & RX_FRAME_INFO_FLAGS_FCS_GOOD) && (unicast_to_me || to_multicast) ) {
 		switch(rx_80211_header->frame_control_1) {
 			case (MAC_FRAME_CTRL1_SUBTYPE_BEACON):
 				update_rx_power = 1;
 				update_timestamp = 1;
 			case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP):
+			case (MAC_FRAME_CTRL1_SUBTYPE_ASSOC_RESP):
 
 				curr_dl_entry = wlan_mac_high_find_bss_info_BSSID(rx_80211_header->address_3);
 
@@ -161,16 +169,24 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 				// Move the packet pointer to after the header
 				mac_payload_ptr_u8 += sizeof(mac_header_80211);
 
-				// Set capabilities to zero
-				//     - Capabilities of the BSS will be filled in below
-				curr_bss_info->capabilities = 0;
+				if((rx_80211_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_BEACON) || (rx_80211_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP)){
+					// Set capabilities to zero
+					//     - Capabilities of the BSS will be filled in below
+					curr_bss_info->capabilities = 0;
 
-				// Copy beacon capabilities into bss_info struct
-				//     - Only a subset of beacon capabilities are recorded
-				curr_bss_info->capabilities |= (((beacon_probe_frame*)mac_payload_ptr_u8)->capabilities & BSS_CAPABILITIES_BEACON_MASK);
+					// Copy beacon capabilities into bss_info struct
+					//     - Only a subset of beacon capabilities are recorded
+					curr_bss_info->capabilities |= (((beacon_probe_frame*)mac_payload_ptr_u8)->capabilities & BSS_CAPABILITIES_BEACON_MASK);
 
-				// Copy beacon interval into bss_info struct
-				curr_bss_info->beacon_interval = ((beacon_probe_frame*)mac_payload_ptr_u8)->beacon_interval;
+					// Copy beacon interval into bss_info struct
+					curr_bss_info->beacon_interval = ((beacon_probe_frame*)mac_payload_ptr_u8)->beacon_interval;
+
+					// Move the packet pointer to after the beacon/probe frame
+					mac_payload_ptr_u8 += sizeof(beacon_probe_frame);
+				} else {
+					// This must be an association response
+					mac_payload_ptr_u8 += sizeof(association_response_frame);
+				}
 
 				// Copy the channel on which this packet was received into the bss_info struct
 				//     - chan_spec will be overwritten later in this function if a HT
@@ -178,8 +194,6 @@ inline void bss_info_rx_process(void* pkt_buf_addr) {
 				curr_bss_info->chan_spec.chan_pri = rx_frame_info->channel;
 				curr_bss_info->chan_spec.chan_type = CHAN_TYPE_BW20;
 
-				// Move the packet pointer to after the beacon/probe frame
-				mac_payload_ptr_u8 += sizeof(beacon_probe_frame);
 
 				// Parse the tagged parameters
 				while( (((u32)mac_payload_ptr_u8) - ((u32)mac_payload)) < (length - WLAN_PHY_FCS_NBYTES)) {
