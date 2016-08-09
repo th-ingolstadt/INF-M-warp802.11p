@@ -1667,6 +1667,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 		    wlan_mac_low_tx_details_t* 	tx_low_details;
 		    tx_high_entry*				tx_high_event_log_entry = NULL;
 		    tx_low_entry*				tx_low_event_log_entry = NULL;
+		    station_info_t*				station_info;
 
 			tx_pkt_buf = msg->arg0;
 			if(tx_pkt_buf < NUM_TX_PKT_BUFS){
@@ -1687,7 +1688,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 						tx_poll_callback();
 
 						//We will pass this completed transmission off to the Station Info subsystem
-						station_info_tx_process((void*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)));
+						station_info = station_info_tx_process((void*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)));
 
 						num_tx_low_details  = (4*(msg->num_payload_words)) / sizeof(wlan_mac_low_tx_details_t);
 						tx_low_details = (wlan_mac_low_tx_details_t*)(msg->payload_ptr);
@@ -1699,14 +1700,14 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 #if WLAN_SW_CONFIG_ENABLE_LOGGING
 							tx_low_event_log_entry = wlan_exp_log_create_tx_low_entry(tx_frame_info, &tx_low_details[i], i);
 #endif //WLAN_SW_CONFIG_ENABLE_LOGGING
-							mpdu_tx_low_done_callback(tx_frame_info, &(tx_low_details[i]), tx_low_event_log_entry);
+							mpdu_tx_low_done_callback(tx_frame_info, &(tx_low_details[i]), station_info, tx_low_event_log_entry);
 						}
 
 #if WLAN_SW_CONFIG_ENABLE_LOGGING
 						// Log the high-level transmission and call the application callback
 						tx_high_event_log_entry = wlan_exp_log_create_tx_high_entry(tx_frame_info);
 #endif //WLAN_SW_CONFIG_ENABLE_LOGGING
-						mpdu_tx_high_done_callback(tx_frame_info, tx_high_event_log_entry);
+						mpdu_tx_high_done_callback(tx_frame_info, station_info, tx_high_event_log_entry);
 
 						tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 					break;
