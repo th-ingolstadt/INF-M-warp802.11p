@@ -825,7 +825,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     ###########################################################################
     # Rx Common
     #
-    entry_rx_common = WlanExpLogEntryType(name='RX_ALL', entry_type_id=None)
+    entry_rx_common = WlanExpLogEntryType(name='RX_COMMON_FIELDS', entry_type_id=None)
 
     entry_rx_common.description  = 'These log entries will only be created for packets that are passed to the high-level MAC code in CPU High. If '
     entry_rx_common.description += 'the low-level MAC filter drops the packet, it will not be logged. For full "monitor mode" ensure the low-level '
@@ -871,7 +871,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     ###########################################################################
     # Tx CPU High Common
     #
-    entry_tx_common = WlanExpLogEntryType(name='TX_ALL', entry_type_id=None)
+    entry_tx_common = WlanExpLogEntryType(name='TX_HIGH_COMMON_FIELDS', entry_type_id=None)
 
     entry_tx_common.description  = 'Tx events in CPU High, logged for each MPDU frame created and enqueued in CPU High. See TX_LOW for log entries of '
     entry_tx_common.description += 'actual Tx events, including re-transmissions. The time values in this log entry can be used to determine time in queue '
@@ -916,7 +916,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     ###########################################################################
     # Tx CPU Low Common
     #
-    entry_tx_low_common = WlanExpLogEntryType(name='TX_LOW_ALL', entry_type_id=None)
+    entry_tx_low_common = WlanExpLogEntryType(name='TX_LOW_COMMON_FIELDS', entry_type_id=None)
 
     entry_tx_low_common.description  = 'Record of actual PHY transmission. At least one TX_LOW will be logged for every TX entry. Multiple TX_LOW entries '
     entry_tx_low_common.description += 'may be created for the same TX entry if the low-level MAC re-transmitted the frame. The uniq_seq fields can be match '
