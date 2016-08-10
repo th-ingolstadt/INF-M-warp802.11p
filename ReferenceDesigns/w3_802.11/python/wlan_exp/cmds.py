@@ -91,6 +91,7 @@ CMD_PARAM_NODE_RESET_FLAG_NETWORK_LIST           = 0x00000020
 
 CMD_PARAM_NODE_CONFIG_FLAG_DSSS_ENABLE           = 0x00000001
 CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TIME_UPDATE    = 0x00000002
+CMD_PARAM_NODE_CONFIG_FLAG_ETH_PORTAL            = 0x00000004
 CMD_PARAM_NODE_CONFIG_SET_WLAN_EXP_PRINT_LEVEL   = 0x80000000
 
 ERROR_CONFIG_BSS_BSSID_INVALID                   = 0x000001
@@ -601,7 +602,7 @@ class NodeConfigure(message.Cmd):
         beacon_mac_time_update (bool) -- Whether MAC time is updated from beacons
         print_level (int) -- Controls verbosity of wlan_exp prints to the node's UART
     """
-    def __init__(self, dsss_enable=None, beacon_mac_time_update=None, print_level=None):
+    def __init__(self, dsss_enable=None, beacon_mac_time_update=None, portal_enable=None, print_level=None):
         super(NodeConfigure, self).__init__()
         self.command = _CMD_GROUP_NODE + CMDID_NODE_CONFIGURE
 
@@ -618,6 +619,11 @@ class NodeConfigure(message.Cmd):
             mask += CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TIME_UPDATE
             if beacon_mac_time_update:
                 flags += CMD_PARAM_NODE_CONFIG_FLAG_BEACON_TIME_UPDATE
+                
+        if portal_enable is not None:
+            mask += CMD_PARAM_NODE_CONFIG_FLAG_ETH_PORTAL
+            if portal_enable:
+                flags += CMD_PARAM_NODE_CONFIG_FLAG_ETH_PORTAL
 
         if print_level is not None:
             if (type(print_level) is str):

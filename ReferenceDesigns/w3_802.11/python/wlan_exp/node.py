@@ -844,6 +844,15 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 updates from received beacons
         """
         self.send_cmd(cmds.NodeConfigure(beacon_mac_time_update=enable))
+        
+    def enable_ethernet_portal(self, enable):
+        """Enable / Disable Ethernet Portal
+        
+        Args:
+            enable (bool):  ``True`` enables and ``False`` disables Ethernet
+                portal functionality
+        """
+        self.send_cmd(cmds.NodeConfigure(portal_enable=enable))
 
 
     def set_radio_channel(self, channel):
