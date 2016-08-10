@@ -646,7 +646,7 @@ void wlan_process_eth_rx(XAxiDma_BdRing * rx_ring_ptr, XAxiDma_Bd * bd_ptr) {
     // Encapsulate the Ethernet packet
     mpdu_tx_len    = wlan_eth_encap(mpdu_start_ptr, eth_dest, eth_src, eth_start_ptr, eth_rx_len);
 
-    if (gl_portal_en || (mpdu_tx_len == 0)) {
+    if ((gl_portal_en == 0) || (mpdu_tx_len == 0)) {
         // Encapsulation failed (Probably because of an unknown ETHERTYPE value)
         //     Don't pass the invalid frame to the MAC - just cleanup and return
         packet_is_queued = 0;
@@ -1032,7 +1032,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
 
     u32                      min_pkt_len = sizeof(mac_header_80211) + sizeof(llc_header_t);
 
-    if(gl_portal_en) return 0;
+    if(gl_portal_en == 0) return 0;
 
     if(length < (min_pkt_len + pre_llc_offset + WLAN_PHY_FCS_NBYTES)){
         xil_printf("Error in wlan_mpdu_eth_send: length of %d is too small... must be at least %d\n", length, min_pkt_len);
