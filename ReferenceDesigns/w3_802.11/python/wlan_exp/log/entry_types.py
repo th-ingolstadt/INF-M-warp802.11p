@@ -114,25 +114,27 @@ class WlanExpLogEntryType(object):
     consts              = None # Container for user-defined, entry-specific constants
 
     def __init__(self, name=None, entry_type_id=None):
-        # Require valid name
-        if name is not None:
+        
+        self.name = name
+        self.entry_type_id = entry_type_id
+
+        # Check if this new WlanExpLogEntryType instannce should be added to the global log_entry_types dictionary
+        #  The log_entry_types dictionary is used to map entry type IDs (integers) and names (strings) by the log
+        #   processing utilities. The code below prints warnings if any IDs or names are duplicated. Only entry types
+        #   with not-None type IDs and names are added to the dictionary. Types with null IDs or names can still be used
+        #   as containers for common field sets shared by multiple entry types (i.e. tx_common for TX_HIGH and TX_HIGH_LTG)
+        if (name is not None) and (entry_type_id is not None):
+            if type(entry_type_id) is not int:
+                raise Exception("ERROR: Invalid entry_type_id {0} - WlanExpLogEntryType entry_type_id must be int".format(entry_type_id))
+
             if(name in log_entry_types.keys()):
                 print("WARNING: replacing exisitng WlanExpLogEntryType with name {0}".format(name))
-            self.name = name
-            log_entry_types[name] = self
-        else:
-            raise Exception("ERROR: new WlanExpLogEntryType instance must have valid name")
 
-        # Entry type ID is optional
-        if entry_type_id is not None:
-            # entry_type_id must be int
-            if type(entry_type_id) is not int:
-                raise Exception("ERROR: WlanExpLogEntryType entry_type_id must be int")
-            else:
-                if(entry_type_id in log_entry_types.keys()):
-                    print("WARNING: replacing exisitng WlanExpLogEntryType with ID {0}".format(entry_type_id))
-                self.entry_type_id = entry_type_id
-                log_entry_types[entry_type_id] = self
+            if(entry_type_id in log_entry_types.keys()):
+                print("WARNING: replacing exisitng WlanExpLogEntryType with ID {0}".format(entry_type_id))
+
+            log_entry_types[str(name)] = self
+            log_entry_types[entry_type_id] = self
 
         # Initialize fields to empty lists
         self._fields             = []
