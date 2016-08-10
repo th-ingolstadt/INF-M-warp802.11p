@@ -178,6 +178,6 @@ inline int    eth_get_num_rx_bd();
 int           wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset);
 
 void          wlan_eth_dma_update();
-
+void 	      wlan_eth_portal_en(u8 enable);
 
 #endif /* WLAN_MAC_ETH_UTIL_H_ */

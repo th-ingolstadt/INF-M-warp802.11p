@@ -2358,8 +2358,6 @@ int wlan_mac_high_update_beacon_tx_params(tx_params_t* tx_params_ptr) {
 	return 0;
 }
 
-
-
 #ifdef _DEBUG_
 
 /**

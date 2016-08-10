@@ -375,6 +375,7 @@ u8                 wlan_mac_high_is_pkt_ltg(void* mac_payload, u16 length);
 int                wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, bss_info_t* bss_info, tx_params_t* tx_params_ptr, u8 flags);
 int                wlan_mac_high_update_beacon_tx_params(tx_params_t* tx_params_ptr);
 
+
 void               wlan_mac_high_print_station_infos(dl_list* assoc_tbl);
 
 

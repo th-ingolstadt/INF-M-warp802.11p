@@ -37,6 +37,7 @@
 #include "wlan_mac_scan.h"
 #include "wlan_mac_bss_info.h"
 #include "wlan_mac_station_info.h"
+#include "wlan_mac_eth_util.h"
 
 // WLAN Exp includes
 #include "wlan_exp_common.h"
@@ -1486,6 +1487,18 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Set debug print level
             if (debug_level & CMD_PARAM_NODE_CONFIG_SET_WLAN_EXP_PRINT_LEVEL) {
                 wlan_exp_set_print_level(debug_level & 0xFF);
+            }
+
+            // Set Eth A portal behavior
+            if (mask & CMD_PARAM_NODE_CONFIG_FLAG_ETH_PORTAL) {
+            	if (flags & CMD_PARAM_NODE_CONFIG_FLAG_ETH_PORTAL) {
+            		wlan_eth_portal_en(1);
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Enable ETH A Portal\n");
+				} else {
+					wlan_eth_portal_en(0);
+					wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Disable ETH A Portal\n");
+				}
+
             }
 
             // Send response of status
