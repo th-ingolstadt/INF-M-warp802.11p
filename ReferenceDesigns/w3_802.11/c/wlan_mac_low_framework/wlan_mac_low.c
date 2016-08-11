@@ -270,16 +270,16 @@ void wlan_mac_low_init_finish(){
 
 void wlan_mac_low_send_status(u8 cpu_status_reason){
 	wlan_ipc_msg_t ipc_msg_to_high;
-	u32            ipc_msg_to_high_payload[2+sizeof(compilation_details_t)];
+	u32            ipc_msg_to_high_payload[2+(sizeof(compilation_details_t)/sizeof(u32))];
 
 	// Send a message to other processor to say that this processor is initialized and ready
 	ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CPU_STATUS);
 	ipc_msg_to_high.arg0			  = cpu_status_reason;
-	ipc_msg_to_high.num_payload_words = 2+sizeof(compilation_details_t);
+	ipc_msg_to_high.num_payload_words = 2+(sizeof(compilation_details_t)/sizeof(u32));
 	ipc_msg_to_high.payload_ptr       = &(ipc_msg_to_high_payload[0]);
 	ipc_msg_to_high_payload[0]        = cpu_low_status;
 	ipc_msg_to_high_payload[1]        = cpu_low_type;
-	memcpy(&(ipc_msg_to_high_payload[2]), &cpu_low_compilation_details, sizeof(compilation_details_t));
+	memcpy((u8*)&(ipc_msg_to_high_payload[2]), (u8*)&cpu_low_compilation_details, sizeof(compilation_details_t));
 
 	write_mailbox_msg(&ipc_msg_to_high);
 }

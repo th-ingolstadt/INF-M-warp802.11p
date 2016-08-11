@@ -1768,7 +1768,9 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 				case CPU_STATUS_REASON_RESPONSE:
 					// Set the CPU_LOW wlan_exp type
 #if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
-					wlan_exp_node_set_type_low(ipc_msg_from_low_payload[1], (compilation_details_t*)ipc_msg_from_low_payload[2]);
+
+
+					wlan_exp_node_set_type_low(ipc_msg_from_low_payload[1], (compilation_details_t*)&ipc_msg_from_low_payload[2]);
 #endif
 				default:
 

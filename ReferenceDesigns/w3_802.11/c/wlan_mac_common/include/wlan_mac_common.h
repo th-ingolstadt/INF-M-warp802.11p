@@ -212,11 +212,11 @@ typedef struct {
 // Compilation Details
 //
 typedef struct __attribute__((__packed__)){
-	char	compilation_date[11];
-    char	compilation_time[8];
-    u8		padding;
+	char	compilation_date[12];
+    char	compilation_time[9];
+    u8		padding[3];
 } compilation_details_t;
-CASSERT(sizeof(compilation_details_t) == 20, compilation_details_t_alignment_check);
+CASSERT(sizeof(compilation_details_t) == 24, compilation_details_t_alignment_check);
 
 //-----------------------------------------------
 // Beacon Tx/Rx Configuration Struct

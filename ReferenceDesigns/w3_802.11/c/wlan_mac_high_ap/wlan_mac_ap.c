@@ -151,8 +151,8 @@ int main(){
 	xil_printf("----- wlan_mac_ap -----------------------\n");
 
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
-	memcpy(compilation_details.compilation_date, __DATE__, 11);
-	memcpy(compilation_details.compilation_time, __TIME__, 8);
+	strncpy(compilation_details.compilation_date, __DATE__, 12);
+	strncpy(compilation_details.compilation_time, __TIME__, 9);
 
 	// Heap Initialization
 	//    The heap must be initialized before any use of malloc. This explicit
@@ -335,8 +335,8 @@ int main(){
 	// Finally enable all interrupts to start handling wireless and wired traffic
 	wlan_mac_high_interrupt_restore_state(INTERRUPTS_ENABLED);
 
-
 	while(1) {
+
 #if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
 		// The wlan_exp Ethernet handling is not interrupt based. Periodic polls of the wlan_exp

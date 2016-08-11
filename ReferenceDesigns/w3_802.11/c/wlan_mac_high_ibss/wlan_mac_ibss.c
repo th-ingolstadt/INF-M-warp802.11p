@@ -138,8 +138,8 @@ int main() {
 	xil_printf("----- v1.5.3 ----------------------------\n");
 	xil_printf("----- wlan_mac_ibss ---------------------\n");
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
-	memcpy(compilation_details.compilation_date, __DATE__, 11);
-	memcpy(compilation_details.compilation_time, __TIME__, 8);
+	strncpy(compilation_details.compilation_date, __DATE__, 12);
+	strncpy(compilation_details.compilation_time, __TIME__, 9);
 
 	// Heap Initialization
 	//    The heap must be initialized before any use of malloc. This explicit
