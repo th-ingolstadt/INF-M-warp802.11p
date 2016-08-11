@@ -353,12 +353,16 @@ void wlan_exp_node_set_type_design(u32 type_design){
  * It is typically the responsibility of the high-level application to call
  * this setter.
  *
- * @param   type_high      - CPU_HIGH Type from wlan_exp.h
+ * @param   type_high           - CPU_HIGH Type from wlan_exp.h
+ * @param	compilation_details - compilation_details_t pointer from high-level app
  *
  ******************************************************************************/
-void wlan_exp_node_set_type_high(u32 type_high){
+void wlan_exp_node_set_type_high(u32 type_high, compilation_details_t* compilation_details){
 	node_info.node_type &= ~WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_MASK;
 	node_info.node_type |= (type_high&WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_MASK);
+
+	memcpy(&(node_info.cpu_high_compilation_details), compilation_details, sizeof(compilation_details_t));
+
 }
 
 /*****************************************************************************/
@@ -369,12 +373,16 @@ void wlan_exp_node_set_type_high(u32 type_high){
  * The MAC High Framework will call this function after receiving an IPC message
  * from CPU_LOW indicating its wlan_exp type.
  *
- * @param   type_low      - CPU_LOW Type from wlan_exp.h
+ * @param   type_low            - CPU_LOW Type from wlan_exp.h
+ * @param	compilation_details - compilation_details_t pointer from low-level app
  *
  ******************************************************************************/
-void wlan_exp_node_set_type_low(u32 type_low){
+void wlan_exp_node_set_type_low(u32 type_low, compilation_details_t* compilation_details){
 	node_info.node_type &= ~WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW_MASK;
 	node_info.node_type |= (type_low&WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW_MASK);
+
+	memcpy(&(node_info.cpu_low_compilation_details), compilation_details, sizeof(compilation_details_t));
+
 }
 
 /*****************************************************************************/

@@ -208,6 +208,15 @@ typedef struct {
     u32            ltg_id;
 } ltg_packet_id_t;
 
+//-----------------------------------------------
+// Compilation Details
+//
+typedef struct __attribute__((__packed__)){
+	char	compilation_date[11];
+    char	compilation_time[8];
+    u8		padding;
+} compilation_details_t;
+CASSERT(sizeof(compilation_details_t) == 20, compilation_details_t_alignment_check);
 
 //-----------------------------------------------
 // Beacon Tx/Rx Configuration Struct

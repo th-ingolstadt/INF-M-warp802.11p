@@ -276,6 +276,9 @@ typedef struct {
     u32                      wlan_max_tx_power_dbm;        // WLAN maximum transmit power
     u32                      wlan_min_tx_power_dbm;        // WLAN minimum transmit power
 
+    compilation_details_t	 cpu_high_compilation_details;
+    compilation_details_t	 cpu_low_compilation_details;
+
     //
     // ADD NEW TAG PARAMETERS HERE
     //
@@ -352,8 +355,8 @@ CASSERT(sizeof(wlan_exp_station_txrx_counts_t) == 128, wlan_exp_station_txrx_cou
 // Initialization Commands
 int  wlan_exp_node_init           (u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wlan_exp_hw_addr, u8 *wlan_hw_addr);
 void wlan_exp_node_set_type_design(u32 type_design);
-void wlan_exp_node_set_type_high  (u32 type_high);
-void wlan_exp_node_set_type_low   (u32 type_low);
+void wlan_exp_node_set_type_high  (u32 type_high, compilation_details_t* compilation_details);
+void wlan_exp_node_set_type_low	  (u32 type_low, compilation_details_t* compilation_details);
 
 // Callbacks
 void wlan_exp_reset_all_callbacks                     ();

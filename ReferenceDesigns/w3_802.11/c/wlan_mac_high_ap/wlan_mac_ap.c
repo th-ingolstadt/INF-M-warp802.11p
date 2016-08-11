@@ -141,8 +141,9 @@ void send_probe_req();
 /******************************** Functions **********************************/
 
 int main(){
-	ps_conf           initial_power_save_configuration;
-	bss_config_t      bss_config;
+	ps_conf           		initial_power_save_configuration;
+	bss_config_t      		bss_config;
+	compilation_details_t	compilation_details;
 
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
@@ -150,6 +151,8 @@ int main(){
 	xil_printf("----- wlan_mac_ap -----------------------\n");
 
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
+	memcpy(compilation_details.compilation_date, __DATE__, 11);
+	memcpy(compilation_details.compilation_time, __TIME__, 8);
 
 	// Heap Initialization
 	//    The heap must be initialized before any use of malloc. This explicit
@@ -252,7 +255,7 @@ int main(){
                        WLAN_EXP_ETH, hw_info->hw_addr_wlan_exp, hw_info->hw_addr_wlan);
 
     // Set CPU_HIGH Type in wlan_exp's node_info struct;
-    wlan_exp_node_set_type_high(WLAN_EXP_NODE_TYPE);
+    wlan_exp_node_set_type_high(WLAN_EXP_NODE_TYPE, &compilation_details);
 
 #endif
 

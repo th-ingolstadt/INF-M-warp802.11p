@@ -61,6 +61,7 @@ volatile static u8                rx_pkt_buf;                                   
 
 static u32                        cpu_low_status;                                   ///< Status flags that are reported to upper-level MAC
 static u32						  cpu_low_type;										///< wlan_exp CPU_LOW type that is reported to upperp-level MAC
+static compilation_details_t	  cpu_low_compilation_details;
 
 static wlan_ipc_msg_t        	  ipc_msg_from_high;                                          ///< Buffer for incoming IPC messages
 static u32                   	  ipc_msg_from_high_payload[MAILBOX_BUFFER_MAX_NUM_WORDS];    ///< Buffer for payload of incoming IPC messages
@@ -99,10 +100,11 @@ const static u16 mcs_to_n_dbps_htmf_lut[WLAN_MAC_NUM_MCS] = {26, 52, 78, 104, 15
  * This function initializes the MAC Low Framework by setting
  * up the hardware and other subsystems in the framework.
  *
- * @param   type             - Lower-level MAC type
- * @return  int              - Initialization status (0 = success)
+ * @param   type                - Lower-level MAC type
+ * @param	compilation_details - compilation_details_t struct from low-level application
+ * @return  int                 - Initialization status (0 = success)
  */
-int wlan_mac_low_init(u32 type){
+int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
     u32 		     status;
     rx_frame_info_t* rx_frame_info;
 	tx_frame_info_t* tx_frame_info;
@@ -113,6 +115,7 @@ int wlan_mac_low_init(u32 type){
     mac_param_ctrl_tx_pow    = 10;
     cpu_low_status           = 0;
     cpu_low_type			 = type;
+    cpu_low_compilation_details = compilation_details;
 
     unique_seq = 0;
 
@@ -267,15 +270,16 @@ void wlan_mac_low_init_finish(){
 
 void wlan_mac_low_send_status(u8 cpu_status_reason){
 	wlan_ipc_msg_t ipc_msg_to_high;
-	u32            ipc_msg_to_high_payload[2];
+	u32            ipc_msg_to_high_payload[2+sizeof(compilation_details_t)];
 
 	// Send a message to other processor to say that this processor is initialized and ready
 	ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CPU_STATUS);
 	ipc_msg_to_high.arg0			  = cpu_status_reason;
-	ipc_msg_to_high.num_payload_words = 2;
+	ipc_msg_to_high.num_payload_words = 2+sizeof(compilation_details_t);
 	ipc_msg_to_high.payload_ptr       = &(ipc_msg_to_high_payload[0]);
 	ipc_msg_to_high_payload[0]        = cpu_low_status;
 	ipc_msg_to_high_payload[1]        = cpu_low_type;
+	memcpy(&(ipc_msg_to_high_payload[2]), &cpu_low_compilation_details, sizeof(compilation_details_t));
 
 	write_mailbox_msg(&ipc_msg_to_high);
 }

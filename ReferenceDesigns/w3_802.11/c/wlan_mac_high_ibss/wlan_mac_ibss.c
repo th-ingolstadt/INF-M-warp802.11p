@@ -124,12 +124,13 @@ void ibss_set_beacon_ts_update_mode(u32 enable);
 /******************************** Functions **********************************/
 
 int main() {
-	u64                scan_start_timestamp;
-	u8                 locally_administered_addr[MAC_ADDR_LEN];
-	dl_list*           ssid_match_list = NULL;
-	dl_entry*          temp_dl_entry = NULL;
-	bss_info_t*          temp_bss_info = NULL;
-	bss_config_t       bss_config;
+	u64                		scan_start_timestamp;
+	u8                 		locally_administered_addr[MAC_ADDR_LEN];
+	dl_list*           		ssid_match_list = NULL;
+	dl_entry*         		temp_dl_entry = NULL;
+	bss_info_t*        		temp_bss_info = NULL;
+	bss_config_t       		bss_config;
+	compilation_details_t	compilation_details;
 
 	// Print initial message to UART
 	xil_printf("\f");
@@ -137,6 +138,8 @@ int main() {
 	xil_printf("----- v1.5.3 ----------------------------\n");
 	xil_printf("----- wlan_mac_ibss ---------------------\n");
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
+	memcpy(compilation_details.compilation_date, __DATE__, 11);
+	memcpy(compilation_details.compilation_time, __TIME__, 8);
 
 	// Heap Initialization
 	//    The heap must be initialized before any use of malloc. This explicit
@@ -238,7 +241,7 @@ int main() {
                        WLAN_EXP_ETH, hw_info->hw_addr_wlan_exp, hw_info->hw_addr_wlan);
 
     // Set CPU_HIGH Type in wlan_exp's node_info struct;
-	wlan_exp_node_set_type_high(WLAN_EXP_NODE_TYPE);
+    wlan_exp_node_set_type_high(WLAN_EXP_NODE_TYPE, &compilation_details);
 #endif
 
 	// CPU Low will pass HW information to CPU High as part of the boot process

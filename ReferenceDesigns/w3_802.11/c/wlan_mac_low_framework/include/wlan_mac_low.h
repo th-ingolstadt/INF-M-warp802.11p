@@ -422,7 +422,7 @@
 
 
 /*************************** Function Prototypes *****************************/
-int                wlan_mac_low_init(u32 type);
+int 			   wlan_mac_low_init(u32 type, compilation_details_t compilation_details);
 void               wlan_mac_low_init_finish();
 void 			   wlan_mac_low_send_status(u8 cpu_status_reason);
 void 			   set_phy_samp_rate(phy_samp_rate_t phy_samp_rate);

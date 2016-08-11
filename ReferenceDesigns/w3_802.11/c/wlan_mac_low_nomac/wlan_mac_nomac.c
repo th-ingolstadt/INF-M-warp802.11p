@@ -61,13 +61,16 @@ int  process_low_param(u8 mode, u32* payload);
 
 int main(){
 
-    wlan_mac_hw_info_t* hw_info;
+    wlan_mac_hw_info_t* 	hw_info;
+    compilation_details_t	compilation_details;
 
     xil_printf("\f");
     xil_printf("----- Mango 802.11 Reference Design -----\n");
     xil_printf("----- v1.5.3 ----------------------------\n");
     xil_printf("----- wlan_mac_nomac --------------------\n");
     xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
+    memcpy(compilation_details.compilation_date, __DATE__, 11);
+	memcpy(compilation_details.compilation_time, __TIME__, 8);
 
     xil_printf("Note: this UART is currently printing from CPU_LOW. To view prints from\n");
     xil_printf("and interact with CPU_HIGH, raise the right-most User I/O DIP switch bit.\n");
@@ -82,7 +85,7 @@ int main(){
     userio_write_leds_red(USERIO_BASEADDR, (1 << red_led_index));
 
     // Initialize the Low Framework
-    wlan_mac_low_init(WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW);
+    wlan_mac_low_init(WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW, compilation_details);
 
     // Get the node's HW address
     hw_info = get_mac_hw_info();
