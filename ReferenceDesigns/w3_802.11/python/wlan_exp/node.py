@@ -38,6 +38,10 @@ NODE_PARAM_ID_WLAN_SCHEDULER_RESOLUTION         = 6
 NODE_PARAM_ID_WLAN_MAC_ADDR                     = 7
 NODE_PARAM_ID_WLAN_MAX_TX_POWER_DBM             = 8
 NODE_PARAM_ID_WLAN_MIN_TX_POWER_DBM             = 9
+NODE_PARAM_WLAN_CPU_LOW_COMPILATION_DATE        = 10
+NODE_PARAM_WLAN_CPU_LOW_COMPILATION_TIME        = 11
+NODE_PARAM_WLAN_CPU_HIGH_COMPILATION_DATE       = 12
+NODE_PARAM_WLAN_CPU_HIGH_COMPILATION_TIME       = 13
 
 
 class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
@@ -2441,6 +2445,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     #   Allows for processing of hardware parameters
     #-------------------------------------------------------------------------
     def process_parameter(self, identifier, length, values):
+        import struct
+        
         """Extract values from the parameters"""
         if (identifier == NODE_PARAM_ID_WLAN_EXP_VERSION):
             if (length == 1):
@@ -2484,6 +2490,40 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                     self.min_tx_power_dbm = values[0]
             else:
                 raise ex.ParameterError("MIN_TX_POWER_DBM", "Incorrect length")
+                
+        elif   (identifier == NODE_PARAM_WLAN_CPU_LOW_COMPILATION_DATE):
+            if (length == 3):
+                temp = struct.pack('lll', values[0], values[1], values[2]);          
+                temp = temp[0:11]
+                self.wlan_cpu_low_compilation_date = temp
+                                                  
+            else:
+                raise ex.ParameterError("NODE_WLAN_CPU_LOW_COMPILATION_DATE", "Incorrect length")
+                
+        elif   (identifier == NODE_PARAM_WLAN_CPU_LOW_COMPILATION_TIME):
+            if (length == 3):                
+                temp = struct.pack('lll', values[0], values[1], values[2]);          
+                temp = temp[0:8]
+                self.wlan_cpu_low_compilation_time = temp
+            else:
+                raise ex.ParameterError("NODE_WLAN_CPU_LOW_COMPILATION_TIME", "Incorrect length")      
+                
+        elif   (identifier == NODE_PARAM_WLAN_CPU_HIGH_COMPILATION_DATE):
+            if (length == 3):
+                temp = struct.pack('lll', values[0], values[1], values[2]);          
+                temp = temp[0:11]
+                self.wlan_cpu_high_compilation_date = temp
+            else:
+                raise ex.ParameterError("NODE_WLAN_CPU_HIGH_COMPILATION_DATE", "Incorrect length")
+                
+        elif   (identifier == NODE_PARAM_WLAN_CPU_HIGH_COMPILATION_TIME):
+            if (length == 3):
+                temp = struct.pack('lll', values[0], values[1], values[2]);          
+                temp = temp[0:8]
+                self.wlan_cpu_high_compilation_time = temp
+            else:
+                raise ex.ParameterError("NODE_WLAN_CPU_HIGH_COMPILATION_TIME", "Incorrect length")                 
+                
 
         else:
             super(WlanExpNode, self).process_parameter(identifier, length, values)
