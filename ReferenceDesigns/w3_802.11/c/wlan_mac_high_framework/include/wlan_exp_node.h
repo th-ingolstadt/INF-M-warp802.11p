@@ -225,6 +225,11 @@
 #define NODE_PARAM_WLAN_MAX_TX_POWER_DBM                   8
 #define NODE_PARAM_WLAN_MIN_TX_POWER_DBM                   9
 
+#define NODE_PARAM_WLAN_CPU_LOW_COMPILATION_DATE           10
+#define NODE_PARAM_WLAN_CPU_LOW_COMPILATION_TIME           11
+#define NODE_PARAM_WLAN_CPU_HIGH_COMPILATION_DATE          12
+#define NODE_PARAM_WLAN_CPU_HIGH_COMPILATION_TIME          13
+
 //
 // ADD NEW TAG PARAMETERS HERE
 //
@@ -236,7 +241,7 @@
 //     NOTE:  Make sure that NODE_PARAM_MAX_PARAMETER is adjusted accordingly
 //
 
-#define NODE_PARAM_MAX_PARAMETER                           10
+#define NODE_PARAM_MAX_PARAMETER                           14
 
 
 // ****************************************************************************
@@ -247,7 +252,7 @@
 //         to the Tag Parameters, then the NODE_PARAM_FIELD_LENGTHS array must be updated
 //         to represent the appropriate length of each new field.
 //
-#define NODE_PARAM_FIELD_LENGTHS                           {1, 1, 1, 1, 2, 1, 1, 2, 1, 1}
+#define NODE_PARAM_FIELD_LENGTHS                           {1, 1, 1, 1, 2, 1, 1, 2, 1, 1, 3, 3, 3, 3}
 
 
 

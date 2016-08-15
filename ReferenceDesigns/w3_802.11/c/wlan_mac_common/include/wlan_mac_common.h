@@ -212,9 +212,9 @@ typedef struct {
 // Compilation Details
 //
 typedef struct __attribute__((__packed__)){
-	char	compilation_date[12];
-    char	compilation_time[9];
-    u8		padding[3];
+	char	compilation_date[12]; // Must be at least 12 bytes.
+    char	compilation_time[12];  // Must be at least 9 bytes. Unfortunately, wlan_exp places an additional requirement that each field in
+    							  // wlan_exp_node_info must be u32 aligned, so we increase the size to 12 bytes.
 } compilation_details_t;
 CASSERT(sizeof(compilation_details_t) == 24, compilation_details_t_alignment_check);
 
