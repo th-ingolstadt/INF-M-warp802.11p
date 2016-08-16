@@ -224,7 +224,6 @@
 #define NODE_PARAM_WLAN_MAC_ADDR                           7
 #define NODE_PARAM_WLAN_MAX_TX_POWER_DBM                   8
 #define NODE_PARAM_WLAN_MIN_TX_POWER_DBM                   9
-
 #define NODE_PARAM_WLAN_CPU_LOW_COMPILATION_DATE           10
 #define NODE_PARAM_WLAN_CPU_LOW_COMPILATION_TIME           11
 #define NODE_PARAM_WLAN_CPU_HIGH_COMPILATION_DATE          12

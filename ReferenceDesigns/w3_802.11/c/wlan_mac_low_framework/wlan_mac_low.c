@@ -137,6 +137,13 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
         return -1;
     }
 
+    // Initialize Debug Header
+    //  Allow HW to control Pins 0:11
+    wlan_mac_set_dbg_hdr_ctrlsrc(DBG_HDR_CTRLSRC_HW, 0x0FFF);
+    //  Allow SW to control Pins 12:15
+    wlan_mac_set_dbg_hdr_ctrlsrc(DBG_HDR_CTRLSRC_SW, 0xF000);
+    wlan_mac_set_dbg_hdr_dir(DBG_HDR_DIR_OUTPUT, 0xF000);
+
 	// Initialize mailbox
 	init_mailbox();
 
