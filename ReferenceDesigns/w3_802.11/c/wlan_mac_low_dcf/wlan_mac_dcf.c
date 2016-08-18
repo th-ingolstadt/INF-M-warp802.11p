@@ -692,7 +692,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         rx_frame_info->resp_low_tx_details.duration = 0;
 
         // This element remains unused during MPDU-only transmissions
-        rx_frame_info->resp_low_tx_details.phy_params_ctrl.phy_mode     = phy_details->phy_mode;
+        rx_frame_info->resp_low_tx_details.phy_params_ctrl.phy_mode     = PHY_MODE_NONHT;
         rx_frame_info->resp_low_tx_details.phy_params_ctrl.power        = wlan_mac_low_get_current_ctrl_tx_pow();
 
         switch(tx_ant_mask) {
@@ -767,7 +767,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         rx_frame_info->resp_low_tx_details.duration = cts_duration;
 
         // This element remains unused during MPDU-only transmissions
-        rx_frame_info->resp_low_tx_details.phy_params_ctrl.phy_mode     = phy_details->phy_mode;
+        rx_frame_info->resp_low_tx_details.phy_params_ctrl.phy_mode     = PHY_MODE_NONHT;
         rx_frame_info->resp_low_tx_details.phy_params_ctrl.power        = wlan_mac_low_get_current_ctrl_tx_pow();
 
         switch(tx_ant_mask) {
