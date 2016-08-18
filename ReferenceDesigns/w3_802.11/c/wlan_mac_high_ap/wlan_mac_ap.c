@@ -144,6 +144,7 @@ int main(){
 	ps_conf           		initial_power_save_configuration;
 	bss_config_t      		bss_config;
 	compilation_details_t	compilation_details;
+	bzero(&compilation_details, sizeof(compilation_details_t));
 
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");

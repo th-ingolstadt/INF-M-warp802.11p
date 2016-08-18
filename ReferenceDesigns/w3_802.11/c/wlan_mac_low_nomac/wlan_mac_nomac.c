@@ -63,6 +63,7 @@ int main(){
 
     wlan_mac_hw_info_t* 	hw_info;
     compilation_details_t	compilation_details;
+    bzero(&compilation_details, sizeof(compilation_details_t));
 
     xil_printf("\f");
     xil_printf("----- Mango 802.11 Reference Design -----\n");

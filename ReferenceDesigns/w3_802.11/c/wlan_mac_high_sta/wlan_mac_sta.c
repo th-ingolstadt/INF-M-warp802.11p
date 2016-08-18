@@ -129,6 +129,7 @@ int main() {
 
 	volatile join_parameters_t*             join_parameters;
 	compilation_details_t					compilation_details;
+	bzero(&compilation_details, sizeof(compilation_details_t));
 
 	// Print initial message to UART
 	xil_printf("\f");
