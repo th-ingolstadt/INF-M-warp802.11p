@@ -110,7 +110,7 @@ def print_counts(node, counts, station_info=None):
                     except:
                         pass
                     if ((count_id == '') or (count_id == b'')):
-                        count_id = count['mac_addr']
+                        count_id = util.mac_addr_to_str(count['mac_addr'])
 
         msg += "{0:<20} ".format(count_id)
         msg += "{0:8d} ".format(count['data_num_tx_packets_success'])
