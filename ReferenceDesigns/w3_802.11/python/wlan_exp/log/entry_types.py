@@ -979,10 +979,10 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('wlan_mac_addr',                       'Q',    'uint64',  'Node MAC address, 6 bytes in lower 48-bits of u64'),
         ('wlan_max_tx_power_dbm',               'i',    'int32',   'Maximum transmit power'),
         ('wlan_min_tx_power_dbm',               'i',    'int32',   'Minimum transmit power'),
-        ('wlan_cpu_high_compilation_date',      '12s',  '12uint8',   'CPU High Compilation Date'),
-        ('wlan_cpu_high_compilation_time',      '12s',  '12uint8',   'CPU High Compilation Time'),
-        ('wlan_cpu_low_compilation_date',       '12s',  '12uint8',   'CPU Low Compilation Date'),
-        ('wlan_cpu_low_compilation_time',       '12s',  '12uint8',   'CPU Low Compilation Time')])
+        ('wlan_cpu_high_compilation_date',      '12s',  '12S',   'CPU High Compilation Date'),
+        ('wlan_cpu_high_compilation_time',      '12s',  '12S',   'CPU High Compilation Time'),
+        ('wlan_cpu_low_compilation_date',       '12s',  '12S',   'CPU Low Compilation Date'),
+        ('wlan_cpu_low_compilation_time',       '12s',  '12S',   'CPU Low Compilation Time')])
 
     entry_node_info.consts = util.consts_dict({
         'node_type': util.consts_dict({
