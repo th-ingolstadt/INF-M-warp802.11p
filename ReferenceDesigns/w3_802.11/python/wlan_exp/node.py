@@ -2497,7 +2497,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 temp = temp[0:11]
                 if type(temp) is not str:
                     temp = temp.decode('utf-8')
-                self.wlan_cpu_low_compilation_date = temp
+                self.cpu_low_compilation_date = temp
                                                   
             else:
                 raise ex.ParameterError("NODE_WLAN_CPU_LOW_COMPILATION_DATE", "Incorrect length")
@@ -2508,7 +2508,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 temp = temp[0:8]
                 if type(temp) is not str:
                     temp = temp.decode('utf-8')
-                self.wlan_cpu_low_compilation_time = temp
+                self.cpu_low_compilation_time = temp
             else:
                 raise ex.ParameterError("NODE_WLAN_CPU_LOW_COMPILATION_TIME", "Incorrect length")      
                 
@@ -2518,7 +2518,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 temp = temp[0:11]
                 if type(temp) is not str:
                     temp = temp.decode('utf-8')
-                self.wlan_cpu_high_compilation_date = temp
+                self.cpu_high_compilation_date = temp
             else:
                 raise ex.ParameterError("NODE_WLAN_CPU_HIGH_COMPILATION_DATE", "Incorrect length")
                 
@@ -2528,7 +2528,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 temp = temp[0:8]
                 if type(temp) is not str:
                     temp = temp.decode('utf-8')
-                self.wlan_cpu_high_compilation_time = temp
+                self.cpu_high_compilation_time = temp
             else:
                 raise ex.ParameterError("NODE_WLAN_CPU_HIGH_COMPILATION_TIME", "Incorrect length")                 
                 
