@@ -130,6 +130,7 @@ rate_info = util.get_rate_info(mcs, phy_mode)
 
 # Put each node in a known, good state
 for node in [node1, node2]:
+    node.enable_ethernet_portal(enable=False)
     node.set_tx_rate_unicast(mcs, phy_mode, curr_assoc=True, new_assoc=True)
     node.reset(log=True, txrx_counts=True, ltg=True, queue_data=True) # Do not reset associations/bss_info
     bss_info = node.get_bss_info()
@@ -244,4 +245,5 @@ for experiment in experiment_params:
     node2_to_node1_xput      = node2_to_node1_num_bits / node2_to_node1_time_span
     print("    Node 2 -> Node 1:  Rate = {0:>4.1f} Mbps   Throughput = {1:>5.2f} Mbps".format(rate_info['phy_rate'], node2_to_node1_xput))
 
-
+for node in [node1, node2]:
+    node.enable_ethernet_portal(enable=True)
