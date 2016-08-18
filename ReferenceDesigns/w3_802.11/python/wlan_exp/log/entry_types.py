@@ -968,17 +968,21 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     entry_node_info.description = 'Details about the node hardware and its configuration. Node info values are static after boot.'
 
     entry_node_info.append_field_defs([
-        ('timestamp',                  'Q',  'uint64',  'Value of MAC Time in microseconds when log entry created'),
-        ('node_type',                  'I',  'uint32',  'Code identifying applications in CPU High and CPU Low'),
-        ('node_id',                    'I',  'uint32',  'Node ID, as set during wlan_exp init'),
-        ('hw_generation',              'I',  'uint32',  'WARP hardware generation; always 3 for WARP v3'),
-        ('serial_num',                 'I',  'uint32',  'Serial number of WARP board'),
-        ('fpga_dna',                   'Q',  'uint64',  'DNA value of node FPGA'),
-        ('version',                    'I',  'uint32',  'wlan_exp version, as packed values [(u8)major (u8)minor (u16)rev]'),
-        ('wlan_scheduler_resolution',  'I',  'uint32',  'Minimum interval in microseconds of the WLAN scheduler'),
-        ('wlan_mac_addr',              'Q',  'uint64',  'Node MAC address, 6 bytes in lower 48-bits of u64'),
-        ('wlan_max_tx_power_dbm',      'i',  'int32',   'Maximum transmit power'),
-        ('wlan_min_tx_power_dbm',      'i',  'int32',   'Minimum transmit power')])
+        ('timestamp',                           'Q',    'uint64',  'Value of MAC Time in microseconds when log entry created'),
+        ('node_type',                           'I',    'uint32',  'Code identifying applications in CPU High and CPU Low'),
+        ('node_id',                             'I',    'uint32',  'Node ID, as set during wlan_exp init'),
+        ('hw_generation',                       'I',    'uint32',  'WARP hardware generation; always 3 for WARP v3'),
+        ('serial_num',                          'I',    'uint32',  'Serial number of WARP board'),
+        ('fpga_dna',                            'Q',    'uint64',  'DNA value of node FPGA'),
+        ('version',                             'I',    'uint32',  'wlan_exp version, as packed values [(u8)major (u8)minor (u16)rev]'),
+        ('wlan_scheduler_resolution',           'I',    'uint32',  'Minimum interval in microseconds of the WLAN scheduler'),
+        ('wlan_mac_addr',                       'Q',    'uint64',  'Node MAC address, 6 bytes in lower 48-bits of u64'),
+        ('wlan_max_tx_power_dbm',               'i',    'int32',   'Maximum transmit power'),
+        ('wlan_min_tx_power_dbm',               'i',    'int32',   'Minimum transmit power'),
+        ('wlan_cpu_high_compilation_date',      '12s',  '12uint8',   'CPU High Compilation Date'),
+        ('wlan_cpu_high_compilation_time',      '12s',  '12uint8',   'CPU High Compilation Time'),
+        ('wlan_cpu_low_compilation_date',       '12s',  '12uint8',   'CPU Low Compilation Date'),
+        ('wlan_cpu_low_compilation_time',       '12s',  '12uint8',   'CPU Low Compilation Time')])
 
     entry_node_info.consts = util.consts_dict({
         'node_type': util.consts_dict({

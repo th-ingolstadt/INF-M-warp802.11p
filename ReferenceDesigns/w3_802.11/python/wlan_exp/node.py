@@ -2493,33 +2493,41 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 
         elif   (identifier == NODE_PARAM_WLAN_CPU_LOW_COMPILATION_DATE):
             if (length == 3):
-                temp = struct.pack('lll', values[0], values[1], values[2]);          
+                temp = struct.pack('LLL', values[0], values[1], values[2]);          
                 temp = temp[0:11]
+                if type(temp) is not str:
+                    temp = temp.decode('utf-8')
                 self.wlan_cpu_low_compilation_date = temp
                                                   
             else:
                 raise ex.ParameterError("NODE_WLAN_CPU_LOW_COMPILATION_DATE", "Incorrect length")
                 
-        elif   (identifier == NODE_PARAM_WLAN_CPU_LOW_COMPILATION_TIME):
+        elif   (identifier == NODE_PARAM_WLAN_CPU_LOW_COMPILATION_TIME):            
             if (length == 3):                
-                temp = struct.pack('lll', values[0], values[1], values[2]);          
+                temp = struct.pack('LLL', values[0], values[1], values[2]);          
                 temp = temp[0:8]
+                if type(temp) is not str:
+                    temp = temp.decode('utf-8')
                 self.wlan_cpu_low_compilation_time = temp
             else:
                 raise ex.ParameterError("NODE_WLAN_CPU_LOW_COMPILATION_TIME", "Incorrect length")      
                 
         elif   (identifier == NODE_PARAM_WLAN_CPU_HIGH_COMPILATION_DATE):
             if (length == 3):
-                temp = struct.pack('lll', values[0], values[1], values[2]);          
+                temp = struct.pack('LLL', values[0], values[1], values[2]);          
                 temp = temp[0:11]
+                if type(temp) is not str:
+                    temp = temp.decode('utf-8')
                 self.wlan_cpu_high_compilation_date = temp
             else:
                 raise ex.ParameterError("NODE_WLAN_CPU_HIGH_COMPILATION_DATE", "Incorrect length")
                 
         elif   (identifier == NODE_PARAM_WLAN_CPU_HIGH_COMPILATION_TIME):
             if (length == 3):
-                temp = struct.pack('lll', values[0], values[1], values[2]);          
+                temp = struct.pack('LLL', values[0], values[1], values[2]);          
                 temp = temp[0:8]
+                if type(temp) is not str:
+                    temp = temp.decode('utf-8')
                 self.wlan_cpu_high_compilation_time = temp
             else:
                 raise ex.ParameterError("NODE_WLAN_CPU_HIGH_COMPILATION_TIME", "Incorrect length")                 
