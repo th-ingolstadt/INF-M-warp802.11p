@@ -154,9 +154,8 @@
  PORT ddr3_sodimm_reset_n = ddr3_sodimm_reset_n, DIR = O
  PORT ddr3_sodimm_dqs_p = ddr3_sodimm_dqs_p, DIR = IO, VEC = [7:0]
  PORT ddr3_sodimm_dqs_n = ddr3_sodimm_dqs_n, DIR = IO, VEC = [7:0]
-# Debug pins
- PORT debughdr = mac_nav_active & mac_backoff_a_active & mac_idle_for_difs & dbg_tx_a_pending & dbg_rssi_det & mac_phy_rx_fcs_good_ind & dbg_lts_timeout & dbg_pkt_det_dsss & dbg_pkt_det_ofdm & dbg_dsss_rx_active & dbg_ofdm_rx_active & dbg_tx_running, DIR = O, VEC = [11:0]
- PORT dbg_hdr_gpio = dbg_hdr_gpio, DIR = IO, VEC = [3:0]
+# Debug pins (connected through w3_userio core)
+ PORT dbg_hdr = dbg_hdr, DIR = IO, VEC = [15:0]
 
 
 # ##############################################################################
@@ -259,7 +258,6 @@ BEGIN wlan_phy_rx_pmd_axiw
  PORT dbg_pkt_det_ofdm = dbg_pkt_det_ofdm
  PORT dbg_payload = dbg_ofdm_rx_active
  PORT dbg_rssi_det = dbg_rssi_det
-# PORT dbg_gpio = 0b0 & 0b0 & 0b0 & 0b0 & phy_dbg_gpio_b3 & phy_dbg_gpio_b2 & phy_dbg_gpio_b1 & phy_dbg_gpio_b0
  PORT dbg_signal_err_disp = dbg_signal_err_disp
 END
 
@@ -304,10 +302,15 @@ BEGIN wlan_mac_hw_axiw
  PORT mac_time_usec_lsb = mac_time_usec_lsb
  PORT mac_time_usec_msb = mac_time_usec_msb
  PORT mac_time_usec_frac = mac_time_usec_frac
- PORT dbg_backoff_a_active = mac_backoff_a_active
- PORT dbg_idle_for_difs = mac_idle_for_difs
- PORT dbg_nav_active = mac_nav_active
- PORT dbg_tx_a_pending = dbg_tx_a_pending
+# # Debug outputs - can be routed to debug header
+ PORT dbg_backoff_a_active = dbg_mac_backoff_a_active
+ PORT dbg_backoff_c_active = dbg_mac_backoff_c_active
+ PORT dbg_eifs_sel = dbg_mac_eifs_sel
+ PORT dbg_idle_for_difs = dbg_mac_idle_for_difs
+ PORT dbg_nav_active = dbg_mac_nav_active
+ PORT dbg_tx_a_pending = dbg_mac_tx_a_pending
+ PORT dbg_tx_b_pending = dbg_mac_tx_b_pending
+ PORT dbg_tx_c_pending = dbg_mac_tx_c_pending
 END
 
 BEGIN wlan_agc_axiw
@@ -739,9 +742,8 @@ END
 
 BEGIN w3_userio_axi
  PARAMETER INSTANCE = w3_userio
- PARAMETER HW_VER = 1.02.a
+ PARAMETER HW_VER = 1.03.a
  PARAMETER INCLUDE_DNA_READ_LOGIC = 0
- PARAMETER C_DBG_HDR_WIDTH = 4
  PARAMETER C_BASEADDR = 0x80000000
  PARAMETER C_HIGHADDR = 0x80000FFF
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
@@ -770,7 +772,8 @@ BEGIN w3_userio_axi
  PORT usr_rfb_led_red = RFB_statLED_Rx
  PORT usr_rfb_led_green = RFB_statLED_Tx
  PORT usr_leds_red = dbg_signal_err_disp
- PORT dbg_hdr = dbg_hdr_gpio
+ PORT usr_dbg_hdr_out = dbg_mac_eifs_sel & dbg_mac_tx_c_pending & dbg_mac_backoff_c_active & dbg_mac_tx_b_pending & dbg_mac_nav_active & dbg_mac_backoff_a_active & dbg_mac_idle_for_difs & dbg_mac_tx_a_pending & dbg_rssi_det & mac_phy_rx_fcs_good_ind & dbg_lts_timeout & dbg_pkt_det_dsss & dbg_pkt_det_ofdm & dbg_dsss_rx_active & dbg_ofdm_rx_active & dbg_tx_running
+ PORT dbg_hdr = dbg_hdr
 END
 
 BEGIN wlan_mac_time_hw_axiw

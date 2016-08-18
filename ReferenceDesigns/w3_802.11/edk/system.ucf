@@ -2,26 +2,25 @@
 ###  These are pulled automatically from the MIG project during implementation
 NET ddr_parity LOC = "H29" | IOSTANDARD = "LVCMOS25" | TIG; #stray PAD MIG insists on including, mapped to NC pin on FPGA
 
-NET "DEBUGHDR<0>" LOC = "AG27"  | IOSTANDARD = "LVCMOS25"; #pin 0
-NET "DEBUGHDR<1>" LOC = "AE26"  | IOSTANDARD = "LVCMOS25"; #pin 1
-NET "DEBUGHDR<2>" LOC = "AF26"  | IOSTANDARD = "LVCMOS25"; #pin 2
-NET "DEBUGHDR<3>" LOC = "AD25"  | IOSTANDARD = "LVCMOS25"; #pin 3
+NET "dbg_hdr<0>" LOC = "AG27"  | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 0
+NET "dbg_hdr<1>" LOC = "AE26"  | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 1
+NET "dbg_hdr<2>" LOC = "AF26"  | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 2
+NET "dbg_hdr<3>" LOC = "AD25"  | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 3
 
-NET "DEBUGHDR<4>" LOC = "V24"   | IOSTANDARD = "LVCMOS25"; #pin 4
-NET "DEBUGHDR<5>" LOC = "AA23"  | IOSTANDARD = "LVCMOS25"; #pin 5
-NET "DEBUGHDR<6>" LOC = "AH30"  | IOSTANDARD = "LVCMOS25"; #pin 6
-NET "DEBUGHDR<7>" LOC = "AK31"  | IOSTANDARD = "LVCMOS25"; #pin 7
+NET "dbg_hdr<4>" LOC = "V24"   | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 4
+NET "dbg_hdr<5>" LOC = "AA23"  | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 5
+NET "dbg_hdr<6>" LOC = "AH30"  | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 6
+NET "dbg_hdr<7>" LOC = "AK31"  | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 7
 
-NET "DEBUGHDR<8>" LOC = "AG28"  | IOSTANDARD = "LVCMOS25"; #pin 8
-NET "DEBUGHDR<9>" LOC = "AE27"  | IOSTANDARD = "LVCMOS25"; #pin 9
-NET "DEBUGHDR<10>" LOC = "AF28"  | IOSTANDARD = "LVCMOS25"; #pin 10
-NET "DEBUGHDR<11>" LOC = "AJ29"  | IOSTANDARD = "LVCMOS25"; #pin 11
+NET "dbg_hdr<8>" LOC = "AG28"  | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 8
+NET "dbg_hdr<9>" LOC = "AE27"  | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 9
+NET "dbg_hdr<10>" LOC = "AF28"  | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 10
+NET "dbg_hdr<11>" LOC = "AJ29"  | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 11
 
-# Bidirectional debug GPIO
-NET "dbg_hdr_gpio<0>" LOC = "AH29"  | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 12
-NET "dbg_hdr_gpio<1>" LOC = "AL30"  | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 13
-NET "dbg_hdr_gpio<2>" LOC = "AM31"  | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 14
-NET "dbg_hdr_gpio<3>" LOC = "AP32"  | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 15
+NET "dbg_hdr<12>" LOC = "AH29"  | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 12
+NET "dbg_hdr<13>" LOC = "AL30"  | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 13
+NET "dbg_hdr<14>" LOC = "AM31"  | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 14
+NET "dbg_hdr<15>" LOC = "AP32"  | IOSTANDARD = "LVCMOS25" | PULLDOWN; #pin 15
 
 #System clock (80MHz, from sampling clock buffer)
 NET samp_clk_n LOC = V23 | IOSTANDARD = LVDS_25 | DIFF_TERM = TRUE;
