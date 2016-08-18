@@ -841,7 +841,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
 
     def enable_beacon_mac_time_update(self, enable):
-        """Enable / Disable MAC time update from beacons
+        """Enable / Disable MAC time update from received beacons.
         
         Args:
             enable (bool):  ``True`` enables and ``False`` disables MAC time 
@@ -850,7 +850,13 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         self.send_cmd(cmds.NodeConfigure(beacon_mac_time_update=enable))
         
     def enable_ethernet_portal(self, enable):
-        """Enable / Disable Ethernet Portal
+        """Enable / Disable Ethernet Portal opertion of the node. When the portal is enabled the node
+        bridges its ETH A Ethernet connection to the wireless medium. When the portal is disabled the node
+        ignores all packets on ETH A and will not send any Ethernet transmissions on ETH A.
+
+        The Ethernet portal is enabled by default. Disabling the portal with this command is "sticky" - the
+        portal will remain disabled until explicity re-enabled or until the node is rebooted. Changes to BSS
+        state will not affect whether the Ethernet portal is enabled or disabled.
         
         Args:
             enable (bool):  ``True`` enables and ``False`` disables Ethernet

@@ -64,6 +64,8 @@ These ``WlanExpNode`` commands are used to interact with the node and control pa
 .. automethod:: wlan_exp.node.WlanExpNode.enable_dsss
 .. automethod:: wlan_exp.node.WlanExpNode.set_print_level
 
+.. automethod:: wlan_exp.node.WlanExpNode.enable_ethernet_portal
+
 .. automethod:: wlan_exp.node.WlanExpNode.queue_tx_data_purge_all
 
 .. automethod:: wlan_exp.node.WlanExpNode.send_user_command
