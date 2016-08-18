@@ -150,6 +150,9 @@ for node in nodes:
     node.log_configure(log_full_payloads=False)
     node.reset(log=True, txrx_counts=True, ltg=True, queue_data=True) # Do not reset associations/bss_info
     node.configure_bss(channel=CHANNEL)
+    
+    #Disable Ethernet portal to limit traffic to LTG
+    node.enable_ethernet_portal(enable=False)
 
 # Add the current time to all the nodes
 util.broadcast_cmd_write_time_to_logs(network_config)
@@ -211,5 +214,8 @@ print("\nWriting Log Files...")
 
 write_log_file(filename=STA_HDF5_FILENAME, node=n_sta, exp_name='STA: Two Node, Two Flow')
 write_log_file(filename=AP_HDF5_FILENAME, node=n_ap, exp_name='AP: Two Node, Two Flow')
+
+for node in nodes:
+    node.enable_ethernet_portal(enable=True)
 
 print("Done.")
