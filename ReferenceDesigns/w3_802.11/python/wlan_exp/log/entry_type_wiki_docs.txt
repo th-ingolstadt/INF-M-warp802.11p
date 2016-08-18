@@ -1,4 +1,4 @@
-== wlan_exp v1.5.2   Log Entry Types ==
+== wlan_exp v1.5.3   Log Entry Types ==
 
 ----
 
@@ -97,7 +97,7 @@ wlan_exp version, as packed values [(u8)major (u8)minor (u16)rev]
 }}}
 |----------------
 {{{#!td align=left
-wlan_scheduler_resolution
+scheduler_resolution
 }}}
 {{{#!td align=center
 uint32
@@ -117,7 +117,7 @@ Node MAC address, 6 bytes in lower 48-bits of u64
 }}}
 |----------------
 {{{#!td align=left
-wlan_max_tx_power_dbm
+max_tx_power_dbm
 }}}
 {{{#!td align=center
 int32
@@ -127,13 +127,53 @@ Maximum transmit power
 }}}
 |----------------
 {{{#!td align=left
-wlan_min_tx_power_dbm
+min_tx_power_dbm
 }}}
 {{{#!td align=center
 int32
 }}}
 {{{#!td align=left
 Minimum transmit power
+}}}
+|----------------
+{{{#!td align=left
+cpu_high_compilation_date
+}}}
+{{{#!td align=center
+12S
+}}}
+{{{#!td align=left
+CPU High Compilation Date
+}}}
+|----------------
+{{{#!td align=left
+cpu_high_compilation_time
+}}}
+{{{#!td align=center
+12S
+}}}
+{{{#!td align=left
+CPU High Compilation Time
+}}}
+|----------------
+{{{#!td align=left
+cpu_low_compilation_date
+}}}
+{{{#!td align=center
+12S
+}}}
+{{{#!td align=left
+CPU Low Compilation Date
+}}}
+|----------------
+{{{#!td align=left
+cpu_low_compilation_time
+}}}
+{{{#!td align=center
+12S
+}}}
+{{{#!td align=left
+CPU Low Compilation Time
 }}}
 |----------------
 
