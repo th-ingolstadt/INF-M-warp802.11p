@@ -64,8 +64,7 @@ def initialize_experiment():
     util.broadcast_cmd_set_mac_time(0, network_config)
 
     # Set the promiscuous counts mode
-    for node in nodes:
-        node.set_radio_channel(CHANNEL)
+    for node in nodes:        
         node.reset(txrx_counts=True)
 
 
