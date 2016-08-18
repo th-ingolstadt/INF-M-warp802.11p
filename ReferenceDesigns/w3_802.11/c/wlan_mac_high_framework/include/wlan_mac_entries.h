@@ -117,19 +117,21 @@
 //       the methods to add this entry type to the log are in wlan_mac_event_log.*
 //
 typedef struct{
-    u64                 timestamp;                         // Timestamp of the node info
-                                                           //   - This will reflect the oldest time of an
-                                                           //     entry for a given log wrap
-    u32                 node_type;                         // Node type
-    u32                 node_id;                           // Node ID
-    u32                 hw_generation;                     // Node hardware generation
-    u32                 serial_number;                     // Node serial number
-    u64                 fpga_dna;                          // Node FPGA DNA
-    u32                 wlan_exp_version;                  // WLAN Exp Version
-    u32                 wlan_scheduler_resolution;         // Minimum Scheduler resolution (microseconds)
-    u32                 wlan_mac_addr[2];                  // WLAN MAC Address
-    int                 wlan_max_tx_power_dbm;             // WLAN maximum transmit power (in dBm)
-    int                 wlan_min_tx_power_dbm;             // WLAN minimum transmit power (in dBm)
+    u64                 	timestamp;                         // Timestamp of the node info
+    														   //   - This will reflect the oldest time of an
+                                                           	   //     entry for a given log wrap
+    u32                 	node_type;                         // Node type
+    u32                 	node_id;                           // Node ID
+    u32                 	hw_generation;                     // Node hardware generation
+    u32                 	serial_number;                     // Node serial number
+    u64                 	fpga_dna;                          // Node FPGA DNA
+    u32                 	wlan_exp_version;                  // WLAN Exp Version
+    u32                 	wlan_scheduler_resolution;         // Minimum Scheduler resolution (microseconds)
+    u32                 	wlan_mac_addr[2];                  // WLAN MAC Address
+    int                 	wlan_max_tx_power_dbm;             // WLAN maximum transmit power (in dBm)
+    int                 	wlan_min_tx_power_dbm;             // WLAN minimum transmit power (in dBm)
+    compilation_details_t	cpu_high_compilation_details;
+    compilation_details_t	cpu_low_compilation_details;
 } node_info_entry;
 
 

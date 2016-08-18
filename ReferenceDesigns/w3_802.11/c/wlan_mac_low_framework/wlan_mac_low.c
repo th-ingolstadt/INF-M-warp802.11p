@@ -417,6 +417,7 @@ void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
 		case PHY_20M:
 			// Set ADC_CLK=DAC_CLK=40MHz, interp_rate=decim_rate=2
 			clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
+
 			ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
 			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x27);
 			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x00);
