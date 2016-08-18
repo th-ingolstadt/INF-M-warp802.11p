@@ -37,7 +37,7 @@ import wlan_exp.log.util_sample_data as sample_data_util
 # Process command line arguments
 #-----------------------------------------------------------------------------
 
-DEFAULT_LOGFILE = 'sta_two_node_two_flow_capture.hdf5'
+DEFAULT_LOGFILE = 'ap_two_node_two_flow_capture.hdf5'
 logfile_error   = False
 
 # Use log file given as command line argument, if present
@@ -183,8 +183,7 @@ if('TX_HIGH' in log_np.keys()):
 
     for addr in np.unique(tx_addrs_1):
         # Find indexes of all instances where addresses match
-        #   np.squeeze here flattens the result to a 1-D array
-        addr_idx = np.squeeze(tx_addrs_1 == addr)
+        addr_idx = tx_addrs_1 == addr
 
         # Count the number of packets (True values in index array) to this address
         tx_pkts_to_addr  = np.sum(addr_idx)
@@ -244,8 +243,7 @@ if('RX_OFDM' in log_np.keys()):
     
     for addr in np.unique(rx_addrs_2):
         # Find indexes of all instances where addresses match
-        #   np.squeeze here flattens the result to a 1-D array
-        addr_idx = np.squeeze(rx_addrs_2 == addr)
+        addr_idx = rx_addrs_2 == addr
 
         # Count the number of packets (True values in index array) from this address
         rx_pkts_from_addr  = np.sum(addr_idx)

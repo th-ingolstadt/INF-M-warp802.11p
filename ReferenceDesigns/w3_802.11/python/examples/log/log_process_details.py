@@ -146,9 +146,8 @@ for phy_mode in wlan_exp_util.phy_modes.keys():
 
     # Calculate the average time to send a packet for each rate
     for mcs in range(0, 8):
-        # Find indexes of all instances where addresses match
-        #   np.squeeze here flattens the result to a 1-D array
-        mcs_idx = np.squeeze(tx_high_entries_mcs == mcs)
+        # Find indexes of all instances where addresses match        
+        mcs_idx = tx_high_entries_mcs == mcs
 
         # Calculate the average time to send a packet
         tx_high_avg_time = 0
@@ -197,8 +196,7 @@ for tx in ['TX_HIGH', 'TX_LOW']:
 
         for addr in np.unique(tx_addrs_1):
             # Find indexes of all instances where addresses match
-            #   np.squeeze here flattens the result to a 1-D array
-            addr_idx = np.squeeze(tx_addrs_1 == addr)
+            addr_idx = tx_addrs_1 == addr
 
             # Count the number of packets (True values in index array) to this address
             tx_pkts_to_addr  = np.sum(addr_idx)
@@ -260,8 +258,7 @@ if('RX_OFDM' in log_np.keys()):
     rx_counts = dict()
     for addr in np.unique(rx_addrs_2):
         # Find indexes of all instances where addresses match
-        #   np.squeeze here flattens the result to a 1-D array
-        addr_idx = np.squeeze(rx_addrs_2 == addr)
+        addr_idx = rx_addrs_2 == addr
 
         # Count the number of packets (True values in index array) from this address
         rx_pkts_from_addr  = np.sum(addr_idx)
