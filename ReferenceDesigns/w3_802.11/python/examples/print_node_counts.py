@@ -31,7 +31,7 @@ import wlan_exp.util as util
 # Change these values to match your experiment / network setup
 NETWORK              = '10.0.0.0'
 USE_JUMBO_ETH_FRAMES = False
-NODE_SERIAL_LIST     = ['W3-a-00021']
+NODE_SERIAL_LIST     = ['W3-a-00001']
 
 nodes = []
 
