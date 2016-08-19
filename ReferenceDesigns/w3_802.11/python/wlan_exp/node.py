@@ -2060,8 +2060,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
     def get_station_info(self, device_list=None):
         
-        ret_val = self.get_bss_members()
-        return ret_val
+        raise Exception('ERROR: get_station_info() is deprecated. Use get_bss_members() or get_station_info_list()')
         
     def get_bss_members(self):
         """Get the BSS members from the node.
