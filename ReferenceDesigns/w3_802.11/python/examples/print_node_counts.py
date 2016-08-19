@@ -94,7 +94,6 @@ def print_counts(node, counts, station_info=None):
 
     msg = ""
     for count in counts:
-        count_id = count['mac_addr']
         count_id = util.mac_addr_to_str(count['mac_addr'])
 
         if not station_info is None:
