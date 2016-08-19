@@ -31,11 +31,7 @@ import wlan_exp.util as util
 # Change these values to match your experiment / network setup
 NETWORK              = '10.0.0.0'
 USE_JUMBO_ETH_FRAMES = False
-NODE_SERIAL_LIST     = ['W3-a-00001']
-
-# TOP Level script variables
-PROMISCUOUS_COUNTS   = True
-CHANNEL              = 6
+NODE_SERIAL_LIST     = ['W3-a-00021']
 
 nodes = []
 
@@ -99,6 +95,7 @@ def print_counts(node, counts, station_info=None):
     msg = ""
     for count in counts:
         count_id = count['mac_addr']
+        count_id = util.mac_addr_to_str(count['mac_addr'])
 
         if not station_info is None:
             for station in station_info:
@@ -109,7 +106,7 @@ def print_counts(node, counts, station_info=None):
                     except:
                         pass
                     if ((count_id == '') or (count_id == b'')):
-                        count_id = util.mac_addr_to_str(count['mac_addr'])
+                        count_id = util.mac_addr_to_str(count['mac_addr'])    
 
         msg += "{0:<20} ".format(count_id)
         msg += "{0:8d} ".format(count['data_num_tx_packets_success'])
