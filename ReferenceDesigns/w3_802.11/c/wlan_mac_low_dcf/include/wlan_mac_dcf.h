@@ -111,7 +111,7 @@ u32                frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details);
 void 			   handle_sample_rate_change(phy_samp_rate_t phy_samp_rate);
 void 			   handle_mactime_change(s64 time_delta_usec);
 void 			   configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure);
-int 			   frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details);
+int 			   frame_transmit(u8 pkt_buf);
 
 inline void        increment_src(u16* src_ptr);
 inline void        increment_lrc(u16* lrc_ptr);

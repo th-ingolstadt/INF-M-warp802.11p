@@ -82,10 +82,6 @@ static function_ptr_t        ipc_low_param_callback;                            
 // Unique transmit sequence number
 volatile static u64	         unique_seq;
 
-// NOTE: this statically allocated space should be larger than the maximum number of attempts
-//     dot11ShortRetryLimit+dot11LongRetryLimit-1
-static wlan_mac_low_tx_details_t  low_tx_details[50]; //TODO make a #define
-
 // Constant LUTs for MCS
 const static u16 mcs_to_n_dbps_nonht_lut[WLAN_MAC_NUM_MCS] = {24, 36, 48, 72, 96, 144, 192, 216};
 const static u16 mcs_to_n_dbps_htmf_lut[WLAN_MAC_NUM_MCS] = {26, 52, 78, 104, 156, 208, 234, 260};
@@ -920,7 +916,7 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
         break;
 
         //---------------------------------------------------------------------
-        case IPC_MBOX_TX_MPDU_READY: {
+        case IPC_MBOX_TX_PKT_BUF_READY: {
         	u8 tx_pkt_buf;
         	tx_pkt_buf = msg->arg0;
         	if(tx_pkt_buf < NUM_TX_PKT_BUFS){
@@ -1070,7 +1066,6 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
     tx_frame_info_t        * tx_frame_info;
     mac_header_80211       * tx_80211_header;
     u32                      is_locked, owner;
-    u32                      low_tx_details_size;
     wlan_ipc_msg_t           ipc_msg_to_high;
     ltg_packet_id_t*         pkt_id;
 
@@ -1123,12 +1118,10 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 				// return 0 (ie TX_MPDU_RESULT_SUCCESS).
 				//
 
-				status = frame_tx_callback(tx_pkt_buf, low_tx_details);
+				status = frame_tx_callback(tx_pkt_buf);
 
 				//Record the total time this MPDU spent in the Tx state machine
 				tx_frame_info->delay_done = (u32)(get_mac_time_usec() - (tx_frame_info->timestamp_create + (u64)(tx_frame_info->delay_accept)));
-
-				low_tx_details_size = (tx_frame_info->num_tx_attempts)*sizeof(wlan_mac_low_tx_details_t);
 
 				if(status == TX_FRAME_INFO_RESULT_SUCCESS){
 					tx_frame_info->tx_result = TX_FRAME_INFO_RESULT_SUCCESS;
@@ -1144,22 +1137,11 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 					wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_TX_MUTEX);
 					tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 				} else {
-					ipc_msg_to_high.msg_id =  IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_DONE);
+					ipc_msg_to_high.msg_id =  IPC_MBOX_MSG_ID(IPC_MBOX_TX_PKT_BUF_DONE);
 
-					//Add the per-Tx-event details to the IPC message so CPU High can add them to the log as TX_LOW entries
-					if(low_tx_details != NULL){
-						ipc_msg_to_high.payload_ptr = (u32*)low_tx_details;
+					ipc_msg_to_high.num_payload_words = 0;
+					ipc_msg_to_high.payload_ptr = NULL;
 
-						//Make sure we don't overfill the IPC mailbox with TX_LOW data; truncate the Tx details if necessary
-						if(low_tx_details_size < (MAILBOX_BUFFER_MAX_NUM_WORDS << 2)){
-							ipc_msg_to_high.num_payload_words = ( low_tx_details_size ) >> 2; // # of u32 words
-						} else {
-							ipc_msg_to_high.num_payload_words = (((MAILBOX_BUFFER_MAX_NUM_WORDS << 2) / sizeof(wlan_mac_low_tx_details_t)) * sizeof(wlan_mac_low_tx_details_t)) >> 2; // # of u32 words
-						}
-					} else {
-						ipc_msg_to_high.num_payload_words = 0;
-						ipc_msg_to_high.payload_ptr = NULL;
-					}
 					ipc_msg_to_high.arg0 = tx_pkt_buf;
 					write_mailbox_msg(&ipc_msg_to_high);
 				}
@@ -1181,6 +1163,18 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 	}
 }
 
+void wlan_mac_low_send_low_tx_details(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details){
+	wlan_ipc_msg_t           ipc_msg_to_high;
+
+	ipc_msg_to_high.payload_ptr = (u32*)low_tx_details;
+	ipc_msg_to_high.arg0 = pkt_buf;
+	ipc_msg_to_high.num_payload_words = (sizeof(wlan_mac_low_tx_details_t) / 4);
+
+	ipc_msg_to_high.msg_id =  IPC_MBOX_MSG_ID(IPC_MBOX_PHY_TX_REPORT);
+	write_mailbox_msg(&ipc_msg_to_high);
+	return;
+}
+
 
 
 /*****************************************************************************/
@@ -1198,7 +1192,7 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 void wlan_mac_low_frame_ipc_send(){
     wlan_ipc_msg_t ipc_msg_to_high;
 
-    ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_RX_MPDU_READY);
+    ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_RX_PKT_BUF_READY);
     ipc_msg_to_high.num_payload_words = 0;
     ipc_msg_to_high.arg0              = rx_pkt_buf;
 

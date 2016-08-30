@@ -214,17 +214,16 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details){
  * sent back to CPU High when this function returns.
  *
  * @param   pkt_buf          - Index of the Tx packet buffer containing the packet to transmit
- * @param   low_tx_details   - Pointer to array of metadata entries to be created for each PHY transmission of this packet
- *                             (eventually leading to TX_LOW log entries)
  * @return  int              - Transmission result
  */
-int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
+int frame_transmit(u8 pkt_buf) {
     // The pkt_buf, rate, and length arguments provided to this function specifically relate to
     // the MPDU that the WLAN MAC LOW framework wants to send.
 
     u32 mac_hw_status;
     u32 mac_tx_ctrl_status;
     u8 tx_gain;
+    wlan_mac_low_tx_details_t low_tx_details;
 
     tx_frame_info_t   * tx_frame_info       = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
     u8                  mpdu_tx_ant_mask    = 0;
@@ -270,29 +269,30 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
     wlan_mac_tx_ctrl_A_start(1);
     wlan_mac_tx_ctrl_A_start(0);
 
+    // Fill in the Tx low details
+	low_tx_details.phy_params_mpdu.mcs          = mcs;
+	low_tx_details.phy_params_mpdu.phy_mode     = phy_mode;
+	low_tx_details.phy_params_mpdu.power        = tx_frame_info->params.phy.power;
+	low_tx_details.phy_params_mpdu.antenna_mode = tx_frame_info->params.phy.antenna_mode;
+	low_tx_details.chan_num                     = wlan_mac_low_get_active_channel();
+	low_tx_details.num_slots                    = 0;
+	low_tx_details.cw                           = 0;
+
     // Wait for the PHY Tx to finish
     do{
-        // Fill in the Tx low details
-        if (low_tx_details != NULL) {
-            low_tx_details[0].phy_params_mpdu.mcs          = mcs;
-            low_tx_details[0].phy_params_mpdu.phy_mode     = phy_mode;
-            low_tx_details[0].phy_params_mpdu.power        = tx_frame_info->params.phy.power;
-            low_tx_details[0].phy_params_mpdu.antenna_mode = tx_frame_info->params.phy.antenna_mode;
-            low_tx_details[0].chan_num                     = wlan_mac_low_get_active_channel();
-            low_tx_details[0].num_slots                    = 0;
-            low_tx_details[0].cw                           = 0;
-        }
-
         // Get the MAC HW status
         mac_hw_status = wlan_mac_get_status();
         mac_tx_ctrl_status = wlan_mac_get_tx_ctrl_status();
 
         // If the MAC HW is done, fill in the remaining Tx low details and return
         if (mac_tx_ctrl_status & WLAN_MAC_TXCTRL_STATUS_MASK_TX_A_DONE) {
-            if (low_tx_details != NULL) {
-                low_tx_details[0].tx_start_timestamp_mpdu = wlan_mac_low_get_tx_start_timestamp();
-                low_tx_details[0].tx_start_timestamp_frac_mpdu = wlan_mac_low_get_tx_start_timestamp_frac();
-            }
+
+			low_tx_details.tx_start_timestamp_mpdu = wlan_mac_low_get_tx_start_timestamp();
+			low_tx_details.tx_start_timestamp_frac_mpdu = wlan_mac_low_get_tx_start_timestamp_frac();
+
+			// Send IPC message containing the details about this low-level transmission
+			wlan_mac_low_send_low_tx_details(pkt_buf, &low_tx_details);
+
 
             // Set return value based on Tx A result
             //  This is easy for NoMAC - all transmissions are immediately successful

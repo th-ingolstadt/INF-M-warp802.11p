@@ -439,6 +439,7 @@ void               wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf);
 void               wlan_mac_low_disable_new_mpdu_tx();
 void               wlan_mac_low_enable_new_mpdu_tx();
 void               wlan_mac_low_frame_ipc_send();
+void 			   wlan_mac_low_send_low_tx_details(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details);
 
 void               wlan_mac_low_set_frame_rx_callback(function_ptr_t callback);
 void               wlan_mac_low_set_frame_tx_callback(function_ptr_t callback);

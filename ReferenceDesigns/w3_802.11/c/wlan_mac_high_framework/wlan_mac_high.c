@@ -1354,7 +1354,7 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element_t* packet, int tx_pkt_buf) {
 		break;
 	}
 
-	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TX_MPDU_READY);
+	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TX_PKT_BUF_READY);
 	ipc_msg_to_low.arg0              = tx_pkt_buf;
 	ipc_msg_to_low.num_payload_words = 0;
 
@@ -1588,7 +1588,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 		break;
 
 		//---------------------------------------------------------------------
-		case IPC_MBOX_RX_MPDU_READY: {
+		case IPC_MBOX_RX_PKT_BUF_READY: {
 			// CPU Low has received an MPDU addressed to this node or to the broadcast address
 			//
 
@@ -1658,15 +1658,30 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 		} break;
 
 		//---------------------------------------------------------------------
-		case IPC_MBOX_TX_MPDU_DONE: {
+		case IPC_MBOX_PHY_TX_REPORT: {
+			wlan_mac_low_tx_details_t* 	tx_low_details;
+		    tx_low_entry*				tx_low_event_log_entry = NULL;
+
+		    //FIXME: are we currently logging the retry bit in the payload properly? Answer: no
+			tx_pkt_buf = msg->arg0;
+			if(tx_pkt_buf < NUM_TX_PKT_BUFS){
+				tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+				tx_low_details = (wlan_mac_low_tx_details_t*)(msg->payload_ptr);
+#if WLAN_SW_CONFIG_ENABLE_LOGGING
+				tx_low_event_log_entry = wlan_exp_log_create_tx_low_entry(tx_frame_info, tx_low_details, 1); //FIXME: last argument is location in retry chain. We need this in the IPC somewhere
+#endif //WLAN_SW_CONFIG_ENABLE_LOGGING
+				mpdu_tx_low_done_callback(tx_frame_info, tx_low_details, tx_low_event_log_entry);
+			}
+		}
+		break;
+
+		//---------------------------------------------------------------------
+		case IPC_MBOX_TX_PKT_BUF_DONE: {
 			// CPU Low has finished the Tx process for the previously submitted-accepted frame
 			//     CPU High should do any necessary post-processing, then recycle the packet buffer
             //
 
-		    u32                 		num_tx_low_details, i;
-		    wlan_mac_low_tx_details_t* 	tx_low_details;
 		    tx_high_entry*				tx_high_event_log_entry = NULL;
-		    tx_low_entry*				tx_low_event_log_entry = NULL;
 		    station_info_t*				station_info;
 
 			tx_pkt_buf = msg->arg0;
@@ -1689,19 +1704,6 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 
 						//We will pass this completed transmission off to the Station Info subsystem
 						station_info = station_info_tx_process((void*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)));
-
-						num_tx_low_details  = (4*(msg->num_payload_words)) / sizeof(wlan_mac_low_tx_details_t);
-						tx_low_details = (wlan_mac_low_tx_details_t*)(msg->payload_ptr);
-
-						// Log the low-level transmissions and call the application callback for each one
-						//  Note: eventually, this step will be separated from IPC_MBOX_TX_MPDU_DONE
-						for(i = 0; i < num_tx_low_details; i++) {
-							// Log the TX low
-#if WLAN_SW_CONFIG_ENABLE_LOGGING
-							tx_low_event_log_entry = wlan_exp_log_create_tx_low_entry(tx_frame_info, &tx_low_details[i], i);
-#endif //WLAN_SW_CONFIG_ENABLE_LOGGING
-							mpdu_tx_low_done_callback(tx_frame_info, &(tx_low_details[i]), station_info, tx_low_event_log_entry);
-						}
 
 #if WLAN_SW_CONFIG_ENABLE_LOGGING
 						// Log the high-level transmission and call the application callback

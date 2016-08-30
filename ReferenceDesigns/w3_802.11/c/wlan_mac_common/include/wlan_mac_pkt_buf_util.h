@@ -190,7 +190,6 @@ CASSERT(sizeof(wlan_mac_low_tx_details_t) == 44, wlan_mac_low_tx_details_t_align
 
 #define TX_DETAILS_FLAGS_RECEIVED_RESPONSE				   1
 
-
 // tx_details_type defines
 #define TX_DETAILS_MPDU                                    0
 #define TX_DETAILS_RTS_ONLY                                1

@@ -29,7 +29,7 @@
 /*************************** Function Prototypes *****************************/
 int  main();
 
-int  frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details);
+int  frame_transmit(u8 pkt_buf);
 u32  frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details);
 
 #endif /* WLAN_MAC_NOMAC_H_ */

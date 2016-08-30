@@ -70,10 +70,11 @@
 //-----------------------------------------------
 // IPC Message IDs
 //
-#define IPC_MBOX_RX_MPDU_READY                             0
-#define IPC_MBOX_TX_MPDU_READY                             1
+#define IPC_MBOX_RX_PKT_BUF_READY                          0
+#define IPC_MBOX_TX_PKT_BUF_READY 	                       1
 #define IPC_MBOX_TXRX_BEACON_CONFIGURE                     2
-#define IPC_MBOX_TX_MPDU_DONE                              3
+#define IPC_MBOX_TX_PKT_BUF_DONE                           3
+#define IPC_MBOX_PHY_TX_REPORT                             4
 #define IPC_MBOX_CPU_STATUS                                5
 #define IPC_MBOX_CONFIG_CHANNEL                            7
 #define IPC_MBOX_CONFIG_DSSS_EN                            8

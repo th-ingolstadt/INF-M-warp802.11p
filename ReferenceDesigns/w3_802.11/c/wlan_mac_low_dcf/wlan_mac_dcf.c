@@ -1119,14 +1119,9 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
  * sent back to CPU High when this function returns.
  *
  * @param   mpdu_pkt_buf     - Index of the Tx packet buffer containing the packet to transmit
- * @param   mpdu_rate        - Index of PHY rate at which packet will be transmitted
- * @param   mpdu_length      - Number of bytes in packet, including MAC header and FCS
- * @param   low_tx_details   - Pointer to array of metadata entries to be created for each PHY transmission of this packet
- *                             (eventually leading to TX_LOW log entries)
  * @return  int              - Transmission result
  */
-//int frame_transmit(u8 mpdu_pkt_buf, u8 mpdu_rate, u16 mpdu_length, wlan_mac_low_tx_details* low_tx_details) {
-int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
+int frame_transmit(u8 pkt_buf) {
     // The pkt_buf, rate, and length arguments provided to this function specifically relate to
     // the MPDU that the WLAN MAC LOW framework wants us to send. We may opt to first send an RTS
     // to reserve the medium prior to doing this. The tx_rate, tx_length, and tx_pkt_buf relate
@@ -1141,6 +1136,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
 
     u16 rts_header_duration;
     u16 cts_header_duration;
+    wlan_mac_low_tx_details_t   low_tx_details;
 
     u8 req_timeout;
 
@@ -1153,8 +1149,9 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
     u32 low_tx_details_num;
     u8	tx_has_started;
 
-    tx_wait_state_t     tx_wait_state;
-    tx_mode_t           tx_mode;
+    tx_wait_state_t     		tx_wait_state;
+    tx_mode_t           		tx_mode;
+
 
     u16					short_retry_count	= 0;
     u16					long_retry_count	= 0;
@@ -1243,42 +1240,42 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                 case 0:
                 	mac_cfg_mcs         = 0;
                     cts_header_duration = TX_TIME_CTS_R6;
-                    low_tx_details[(tx_frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = 0;
+                    low_tx_details.phy_params_ctrl.mcs = 0;
                 break;
                 case 1:
                 	mac_cfg_mcs         = 0;
                     cts_header_duration = TX_TIME_CTS_R6;
-                    low_tx_details[(tx_frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = 0;
+                    low_tx_details.phy_params_ctrl.mcs = 0;
                 break;
                 case 2:
                 	mac_cfg_mcs         = 2;
                     cts_header_duration = TX_TIME_CTS_R12;
-                    low_tx_details[(tx_frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = 2;
+                    low_tx_details.phy_params_ctrl.mcs = 2;
                 break;
                 case 3:
                 	mac_cfg_mcs         = 2;
                     cts_header_duration = TX_TIME_CTS_R12;
-                    low_tx_details[(tx_frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = 2;
+                    low_tx_details.phy_params_ctrl.mcs = 2;
                 break;
                 case 4:
                 	mac_cfg_mcs         = 4;
                     cts_header_duration = TX_TIME_CTS_R24;
-                    low_tx_details[(tx_frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = 4;
+                    low_tx_details.phy_params_ctrl.mcs = 4;
                 break;
                 case 5:
                 	mac_cfg_mcs         = 4;
                     cts_header_duration = TX_TIME_CTS_R24;
-                    low_tx_details[(tx_frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = 4;
+                    low_tx_details.phy_params_ctrl.mcs = 4;
                 break;
                 case 6:
                 	mac_cfg_mcs         = 4;
                     cts_header_duration = TX_TIME_CTS_R24;
-                    low_tx_details[(tx_frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = 4;
+                    low_tx_details.phy_params_ctrl.mcs = 4;
                 break;
                 case 7:
                 	mac_cfg_mcs         = 4;
                     cts_header_duration = TX_TIME_CTS_R24;
-                    low_tx_details[(tx_frame_info->num_tx_attempts) - 1].phy_params_ctrl.mcs = 4;
+                    low_tx_details.phy_params_ctrl.mcs = 4;
                 break;
             }
 
@@ -1289,7 +1286,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
             // We let "duration" be equal to the duration field of an RTS. This value is provided explicitly to CPU_HIGH
             // in the low_tx_details struct such that CPU_HIGH has can reconstruct the RTS in its log. This isn't critical
             // to the operation of the DCF, but is critical for the logging framework.
-            low_tx_details[(tx_frame_info->num_tx_attempts) - 1].duration = rts_header_duration;
+            low_tx_details.duration = rts_header_duration;
 
             // Construct the RTS frame in the dedicated Tx pkt buf for control frames
             mac_cfg_length = wlan_create_rts_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_RTS) + PHY_TX_PKT_BUF_MPDU_OFFSET),
@@ -1383,28 +1380,28 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
         }
 
 
-        low_tx_details[low_tx_details_num].flags						= 0;
-        low_tx_details[low_tx_details_num].phy_params_mpdu.mcs          = tx_frame_info->params.phy.mcs;
-        low_tx_details[low_tx_details_num].phy_params_mpdu.phy_mode     = tx_frame_info->params.phy.phy_mode;
-        low_tx_details[low_tx_details_num].phy_params_mpdu.power        = tx_frame_info->params.phy.power;
-        low_tx_details[low_tx_details_num].phy_params_mpdu.antenna_mode = tx_frame_info->params.phy.antenna_mode;
+        low_tx_details.flags						= 0;
+        low_tx_details.phy_params_mpdu.mcs          = tx_frame_info->params.phy.mcs;
+        low_tx_details.phy_params_mpdu.phy_mode     = tx_frame_info->params.phy.phy_mode;
+        low_tx_details.phy_params_mpdu.power        = tx_frame_info->params.phy.power;
+        low_tx_details.phy_params_mpdu.antenna_mode = tx_frame_info->params.phy.antenna_mode;
 
         // If RTS/CTS isn't used, these fields should just be ignored
-        low_tx_details[low_tx_details_num].phy_params_ctrl.power        = tx_frame_info->params.phy.power;
-        low_tx_details[low_tx_details_num].phy_params_ctrl.antenna_mode = tx_frame_info->params.phy.antenna_mode;
+        low_tx_details.phy_params_ctrl.power        = tx_frame_info->params.phy.power;
+        low_tx_details.phy_params_ctrl.antenna_mode = tx_frame_info->params.phy.antenna_mode;
 
-        low_tx_details[low_tx_details_num].chan_num    = wlan_mac_low_get_active_channel();
-        low_tx_details[low_tx_details_num].cw          = (1 << gl_cw_exp)-1; //(2^(gl_cw_exp) - 1)
-        low_tx_details[low_tx_details_num].ssrc        = gl_stationShortRetryCount;
-        low_tx_details[low_tx_details_num].slrc        = gl_stationLongRetryCount;
-        low_tx_details[low_tx_details_num].src         = short_retry_count;
-        low_tx_details[low_tx_details_num].lrc         = long_retry_count;
+        low_tx_details.chan_num    = wlan_mac_low_get_active_channel();
+        low_tx_details.cw          = (1 << gl_cw_exp)-1; //(2^(gl_cw_exp) - 1)
+        low_tx_details.ssrc        = gl_stationShortRetryCount;
+        low_tx_details.slrc        = gl_stationLongRetryCount;
+        low_tx_details.src         = short_retry_count;
+        low_tx_details.lrc         = long_retry_count;
 
         // NOTE: the pre-Tx backoff may not occur for the initial transmission attempt. If the medium has been idle for >DIFS when
         // the first Tx occurs the DCF state machine will not start a backoff. The upper-level MAC should compare the num_slots value
         // to the time delta between the accept and start times of the first transmission to determine whether the pre-Tx backoff
         // actually occurred.
-        low_tx_details[low_tx_details_num].num_slots   = n_slots;
+        low_tx_details.num_slots   = n_slots;
 
         // Wait for the MPDU Tx to finish
         do { // while(tx_status & WLAN_MAC_STATUS_MASK_TX_A_PENDING)
@@ -1413,7 +1410,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
             mac_hw_status = wlan_mac_get_status();
 
             // Fill in the timestamp if indicated by the flags, only possible after Tx PHY has started
-            if (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE) {
+            if ( (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE) && (tx_has_started == 0)) {
 
             	tx_has_started = 1;
 
@@ -1426,31 +1423,34 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                     *((u32*)((u8*)header + 24)) =  Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_LSB);
                     *((u32*)((u8*)header + 28)) =  Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_MSB);
                 }
+
+
+            	if(tx_wait_state == TX_WAIT_CTS) {
+					// This will potentially be overwritten with TX_DETAILS_RTS_MPDU should we make it that far.
+					low_tx_details.tx_details_type  = TX_DETAILS_RTS_ONLY;
+					low_tx_details.tx_start_timestamp_ctrl = wlan_mac_low_get_tx_start_timestamp();
+					low_tx_details.tx_start_timestamp_frac_ctrl = wlan_mac_low_get_tx_start_timestamp_frac();
+
+				} else if ((tx_mode == TX_MODE_LONG) && (tx_wait_state == TX_WAIT_ACK)) {
+					// NOTE: this clause will overwrite the previous TX_DETAILS_RTS_ONLY state in the event a CTS is received.
+					low_tx_details.tx_details_type  = TX_DETAILS_RTS_MPDU;
+					low_tx_details.tx_start_timestamp_mpdu = wlan_mac_low_get_tx_start_timestamp();
+					low_tx_details.tx_start_timestamp_frac_mpdu = wlan_mac_low_get_tx_start_timestamp_frac();
+
+				} else {
+					// This is a non-RTS/CTS-protected MPDU transmission
+					low_tx_details.tx_details_type  = TX_DETAILS_MPDU;
+					low_tx_details.tx_start_timestamp_mpdu = wlan_mac_low_get_tx_start_timestamp();
+					low_tx_details.tx_start_timestamp_frac_mpdu = wlan_mac_low_get_tx_start_timestamp_frac();
+				}
+
+
             }
 
 
 
             // Transmission is complete
             if( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_DONE ) {
-                if(tx_wait_state == TX_WAIT_CTS) {
-                    // This will potentially be overwritten with TX_DETAILS_RTS_MPDU should we make it that far.
-                    low_tx_details[low_tx_details_num].tx_details_type  = TX_DETAILS_RTS_ONLY;
-                    low_tx_details[low_tx_details_num].tx_start_timestamp_ctrl = wlan_mac_low_get_tx_start_timestamp();
-                    low_tx_details[low_tx_details_num].tx_start_timestamp_frac_ctrl = wlan_mac_low_get_tx_start_timestamp_frac();
-
-                } else if ((tx_mode == TX_MODE_LONG) && (tx_wait_state == TX_WAIT_ACK)) {
-                    // NOTE: this clause will overwrite the previous TX_DETAILS_RTS_ONLY state in the event a CTS is received.
-                    low_tx_details[low_tx_details_num].tx_details_type  = TX_DETAILS_RTS_MPDU;
-                    low_tx_details[low_tx_details_num].tx_start_timestamp_mpdu = wlan_mac_low_get_tx_start_timestamp();
-                    low_tx_details[low_tx_details_num].tx_start_timestamp_frac_mpdu = wlan_mac_low_get_tx_start_timestamp_frac();
-
-                } else {
-                    // This is a non-RTS/CTS-protected MPDU transmission
-                    low_tx_details[low_tx_details_num].tx_details_type  = TX_DETAILS_MPDU;
-                    low_tx_details[low_tx_details_num].tx_start_timestamp_mpdu = wlan_mac_low_get_tx_start_timestamp();
-                    low_tx_details[low_tx_details_num].tx_start_timestamp_frac_mpdu = wlan_mac_low_get_tx_start_timestamp_frac();
-                }
-
 
                 // Switch on the result of the transmission attempt
                 //  Safe to read tx_ctrl_status here - TX_A_RESULT is only valid after TX_A_DONE asserts, which just happened
@@ -1477,6 +1477,10 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                         n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
                         wlan_mac_dcf_hw_start_backoff(n_slots);
                         gl_waiting_for_response = 0;
+
+                        // Send IPC message containing the details about this low-level transmission
+                        wlan_mac_low_send_low_tx_details(pkt_buf, &low_tx_details);
+
                         return 0;
                     break;
 
@@ -1497,7 +1501,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                             (rx_status & POLL_MAC_STATUS_GOOD) &&
                             (rx_status & POLL_MAC_ADDR_MATCH)) {
 
-                        	low_tx_details[low_tx_details_num].flags |= TX_DETAILS_FLAGS_RECEIVED_RESPONSE;
+                        	low_tx_details.flags |= TX_DETAILS_FLAGS_RECEIVED_RESPONSE;
 
                             tx_wait_state = TX_WAIT_ACK;
 
@@ -1516,6 +1520,9 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                             //
                             mac_hw_status |= WLAN_MAC_STATUS_MASK_TX_A_PENDING;
 
+                            // Send IPC message containing the details about this low-level transmission
+                            wlan_mac_low_send_low_tx_details(pkt_buf, &low_tx_details);
+
                             continue;
 
                         } else if ((tx_wait_state == TX_WAIT_ACK) &&
@@ -1524,7 +1531,7 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                                    (rx_status & POLL_MAC_STATUS_GOOD) &&
                                    (rx_status & POLL_MAC_ADDR_MATCH)) {
 
-                        		low_tx_details[low_tx_details_num].flags |= TX_DETAILS_FLAGS_RECEIVED_RESPONSE;
+                        		low_tx_details.flags |= TX_DETAILS_FLAGS_RECEIVED_RESPONSE;
 
                                 // Update contention window
                                 switch(tx_mode) {
@@ -1541,11 +1548,16 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                                 // Start a post-Tx backoff using the updated contention window
                                 n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
                                 wlan_mac_dcf_hw_start_backoff(n_slots);
+
+                                // Send IPC message containing the details about this low-level transmission
+                                wlan_mac_low_send_low_tx_details(pkt_buf, &low_tx_details);
+
                                 return TX_FRAME_INFO_RESULT_SUCCESS;
 
                         } else {
                             // Received a packet immediately after transmitting, but it wasn't the ACK we wanted
                             // It could have been our ACK with a bad checksum or a different packet altogether
+
                             switch(tx_wait_state) {
                                 case TX_WAIT_ACK:
                                     // We were waiting for an ACK
@@ -1588,6 +1600,10 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                             if(poll_tbtt_return == BEACON_DEFERRED) {
 								poll_tbtt_return = poll_tbtt();
 							}
+
+                            // Send IPC message containing the details about this low-level transmission
+                            wlan_mac_low_send_low_tx_details(pkt_buf, &low_tx_details);
+
                             // Jump to next loop iteration
                             continue;
                         }
@@ -1640,6 +1656,10 @@ int frame_transmit(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details) {
                         if(poll_tbtt_return == BEACON_DEFERRED) {
 							poll_tbtt_return = poll_tbtt();
 						}
+
+                        // Send IPC message containing the details about this low-level transmission
+                        wlan_mac_low_send_low_tx_details(pkt_buf, &low_tx_details);
+
                         // Jump to next loop iteration
                         continue;
                     break;
