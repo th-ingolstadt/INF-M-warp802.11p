@@ -299,7 +299,7 @@ int frame_transmit(u8 pkt_buf) {
             switch (mac_tx_ctrl_status & WLAN_MAC_TXCTRL_STATUS_MASK_TX_A_RESULT) {
                 case WLAN_MAC_TXCTRL_STATUS_TX_A_RESULT_NONE:
                 default:
-                    return 0;
+                    return TX_FRAME_INFO_RESULT_SUCCESS;
                 break;
             }
         }
