@@ -1984,7 +1984,7 @@ void mpdu_dequeue(tx_queue_element_t* packet){
 		curr_station_entry = station_info_find_by_id(tx_frame_info->ID, &(active_bss_info->members));
 		if(curr_station_entry != NULL){
 			curr_station = (station_info_t*)(curr_station_entry->data);
-			if(queue_num_queued(STATION_ID_TO_QUEUE_ID(curr_station->ID)) > 1){
+			if(queue_num_queued(STATION_ID_TO_QUEUE_ID(curr_station->ID)) > 0){
 				//If the is more data (in addition to this packet) queued for this station, we can let it know
 				//in the frame_control_2 field.
 				header->frame_control_2 |= MAC_FRAME_CTRL2_FLAG_MORE_DATA;
