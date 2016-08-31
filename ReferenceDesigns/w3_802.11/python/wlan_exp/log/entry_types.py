@@ -929,7 +929,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('phy_mode',               'B',      'uint8',   'PHY mode'),
         ('ant_mode',               'B',      'uint8',   'PHY antenna mode in [0x10, 0x20, 0x30, 0x40]'),
         ('tx_power',               'b',      'int8',    'Tx power in dBm'),
-        ('tx_count',               'B',      'uint8',   'Transmission index for this attempt, starting at 0 (0 = initial Tx, 1+ = subsequent attempts)'),
+        ('reserved0',              'B',      'uint8',   ''),
         ('channel',                'B',      'uint8',   'Channel (center frequency) index'),
         ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
         ('num_slots',              'h',      'int16',   'Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0); A value of -1 in this field means no backoff occured'),
@@ -937,7 +937,9 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('pkt_type',               'B',      'uint8',   'Packet type, (first frame control byte of 802.11 header)'),
         ('flags',                  'B',      'uint8',   '1-bit Flags'),
         ('timestamp_frac',         'B',      'uint8',   'Fractional timestamp (units of 6.25ns)'),
-        ('phy_samp_rate',          'B',      'uint8',   'PHY Sampling Rate Mode')])
+        ('phy_samp_rate',          'B',      'uint8',   'PHY Sampling Rate Mode'),
+        ('tx_count',               'H',      'uint16',   'Transmission index for this attempt, starting at 0 (0 = initial Tx, 1+ = subsequent attempts)'),
+        ('reserved1',              'H',      'uint16',   '')])
 
     entry_tx_low_common.consts = util.consts_dict({
         'ant_mode'      : util.consts_dict({
