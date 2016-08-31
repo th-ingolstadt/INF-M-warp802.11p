@@ -328,7 +328,7 @@ typedef struct{
     u64                 timestamp_send;          // Timestamp of when packet was sent
     u64                 unique_seq;              // Unique packet sequence number
     phy_tx_params_t     phy_params;              // Transmission parameters
-    u8                  transmission_count;      // What transmission was this packet
+    u8					reserved0;
     u8                  chan_num;                // Channel on which this packet was sent
     u16                 length;                  // Length of the packet
     s16                 num_slots;               // Number of backoff slots
@@ -337,6 +337,8 @@ typedef struct{
     u8                  flags;                   // Misc. flags
     u8                  timestamp_send_frac;     // Additional fractional timestamp (160MHz clock units)
     u8                  phy_samp_rate;           // PHY Sampling Rate Mode
+    u16					transmission_count;      // What transmission was this packet
+    u16					reserved1;
     u32                 mac_payload_log_len;     // Number of payload bytes actually recorded in log entry
     u32                 mac_payload[MIN_MAC_PAYLOAD_LOG_LEN/4];
 } tx_low_entry;
