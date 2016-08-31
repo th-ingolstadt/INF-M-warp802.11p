@@ -426,6 +426,7 @@ inline int send_beacon(u8 tx_pkt_buf){
 				//  to the time delta between the accept and start times of the first transmission to determine whether the pre-Tx backoff
 				//  actually occurred.
 				low_tx_details.num_slots   = n_slots;
+				low_tx_details.attempt_number = 1;
 
 				 // Wait for the MPDU Tx to finish
 				do { // while(tx_status & WLAN_MAC_STATUS_MASK_TX_C_PENDING)
@@ -683,7 +684,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         rx_finish_state = RX_FINISH_SEND_B;
 
         rx_frame_info->resp_low_tx_details.tx_details_type      = TX_DETAILS_ACK;
-        rx_frame_info->resp_low_tx_details.phy_params_ctrl.mcs = tx_mcs;
+        rx_frame_info->resp_low_tx_details.phy_params_ctrl.mcs  = tx_mcs;
 
         // We let "duration" be equal to the duration field of an ACK. This value is provided explicitly to CPU_HIGH
         // in the low_tx_details struct such that CPU_HIGH has can reconstruct the RTS in its log. This isn't critical
