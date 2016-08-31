@@ -1524,16 +1524,16 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_RTS_THRESH, param_values=param_val)
             
         elif (param_name == 'short_retry_limit'):
-            if ((param_val < 0) or (param_val > 10)):
-                raise AttributeError("'short_retry_limit' must be in [0 .. 10].")
+            if ((param_val < 0) or (param_val > 65535)):
+                raise AttributeError("'short_retry_limit' must be in [0 .. 65535].")
                 
             self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_param('short_retry_limit')")
     
             self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_DOT11SHORTRETRY, param_values=param_val)
             
         elif (param_name == 'long_retry_limit'):
-            if ((param_val < 0) or (param_val > 10)):
-                raise AttributeError("'long_retry_limit' must be in [0 .. 10].")
+            if ((param_val < 0) or (param_val > 65535)):
+                raise AttributeError("'long_retry_limit' must be in [0 .. 65535].")
                 
             self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_param('long_retry_limit')")
     
