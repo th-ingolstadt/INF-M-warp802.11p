@@ -1401,7 +1401,8 @@ int frame_transmit(u8 pkt_buf) {
         // the first Tx occurs the DCF state machine will not start a backoff. The upper-level MAC should compare the num_slots value
         // to the time delta between the accept and start times of the first transmission to determine whether the pre-Tx backoff
         // actually occurred.
-        low_tx_details.num_slots   = n_slots;
+        low_tx_details.num_slots   	  = n_slots;
+        low_tx_details.attempt_number = tx_frame_info->num_tx_attempts;
 
         // Wait for the MPDU Tx to finish
         do { // while(tx_status & WLAN_MAC_STATUS_MASK_TX_A_PENDING)

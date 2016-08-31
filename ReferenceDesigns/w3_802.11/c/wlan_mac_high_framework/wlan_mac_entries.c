@@ -208,7 +208,7 @@ void * wlan_exp_log_create_entry(u16 entry_type_id, u16 entry_size){
  *                               NOTE: This can be NULL if an entry was not allocated
  *
  *****************************************************************************/
-tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details, u32 tx_low_count){
+tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details){
 
     tx_low_entry*     tx_low_event_log_entry  = NULL;
     void*             mac_payload;
@@ -273,7 +273,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, 
             // Copy:  MCS, PHY mode, Antenna mode, and Power
             memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details->phy_params_ctrl), sizeof(phy_tx_params_t));
 
-            tx_low_event_log_entry->transmission_count     = tx_low_count + 1;
+            tx_low_event_log_entry->transmission_count     = tx_low_details->attempt_number;
             tx_low_event_log_entry->chan_num               = tx_low_details->chan_num;
             tx_low_event_log_entry->length                 = packet_payload_size;
             tx_low_event_log_entry->num_slots              = tx_low_details->num_slots;
@@ -336,7 +336,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, 
             // Copy:  MCS, PHY mode, Antenna mode, and Power
             memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details->phy_params_mpdu), sizeof(phy_tx_params_t));
 
-            tx_low_event_log_entry->transmission_count     = tx_low_count + 1;
+            tx_low_event_log_entry->transmission_count     = tx_low_details->attempt_number;
             tx_low_event_log_entry->chan_num               = tx_low_details->chan_num;
             tx_low_event_log_entry->length                 = tx_frame_info->length;
             tx_low_event_log_entry->num_slots              = tx_low_details->num_slots;
@@ -365,7 +365,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, 
 
             // CPU Low updates the retry flag in the header for any re-transmissions
             //   Re-create the original header for the first TX_LOW by de-asserting the flag
-            if(tx_low_count == 0) {
+            if(tx_low_details->attempt_number == 1) {
                 // This is the first transmission
                 ((mac_header_80211*)(tx_low_event_log_entry->mac_payload))->frame_control_2 &= ~MAC_FRAME_CTRL2_FLAG_RETRY;
             } else {

@@ -183,7 +183,8 @@ typedef struct __attribute__ ((__packed__)){
     u16                      slrc;
 
     u8						 flags;
-    u8						 reserved[3];
+    u8						 reserved;
+    u16						 attempt_number;
 
 } wlan_mac_low_tx_details_t;
 CASSERT(sizeof(wlan_mac_low_tx_details_t) == 44, wlan_mac_low_tx_details_t_alignment_check);

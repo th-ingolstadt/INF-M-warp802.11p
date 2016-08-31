@@ -277,6 +277,7 @@ int frame_transmit(u8 pkt_buf) {
 	low_tx_details.chan_num                     = wlan_mac_low_get_active_channel();
 	low_tx_details.num_slots                    = 0;
 	low_tx_details.cw                           = 0;
+	low_tx_details.attempt_number 				= 1;
 
     // Wait for the PHY Tx to finish
     do{

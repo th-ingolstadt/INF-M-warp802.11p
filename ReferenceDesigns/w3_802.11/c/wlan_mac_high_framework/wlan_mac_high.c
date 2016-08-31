@@ -1567,7 +1567,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 
 #if WLAN_SW_CONFIG_ENABLE_LOGGING
 					// Log the TX low
-					tx_low_event_log_entry = wlan_exp_log_create_tx_low_entry(tx_frame_info, tx_low_details, 0);
+					tx_low_event_log_entry = wlan_exp_log_create_tx_low_entry(tx_frame_info, tx_low_details);
 #endif
 
 					beacon_tx_done_callback( tx_frame_info, tx_low_details, tx_low_event_log_entry );
@@ -1662,13 +1662,12 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 			wlan_mac_low_tx_details_t* 	tx_low_details;
 		    tx_low_entry*				tx_low_event_log_entry = NULL;
 
-		    //FIXME: are we currently logging the retry bit in the payload properly? Answer: no
 			tx_pkt_buf = msg->arg0;
 			if(tx_pkt_buf < NUM_TX_PKT_BUFS){
 				tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 				tx_low_details = (wlan_mac_low_tx_details_t*)(msg->payload_ptr);
 #if WLAN_SW_CONFIG_ENABLE_LOGGING
-				tx_low_event_log_entry = wlan_exp_log_create_tx_low_entry(tx_frame_info, tx_low_details, 1); //FIXME: last argument is location in retry chain. We need this in the IPC somewhere
+				tx_low_event_log_entry = wlan_exp_log_create_tx_low_entry(tx_frame_info, tx_low_details);
 #endif //WLAN_SW_CONFIG_ENABLE_LOGGING
 				mpdu_tx_low_done_callback(tx_frame_info, tx_low_details, tx_low_event_log_entry);
 			}
