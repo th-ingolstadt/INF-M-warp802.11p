@@ -14,13 +14,15 @@
 
 /***************************** Include Files *********************************/
 
-#include "wlan_mac_high_sw_config.h"
-
 // Xilinx / Standard library includes
 #include "stdio.h"
 
 // WLAN includes
+#include "wlan_mac_common.h"
+
+#if WLAN_COMPILE_FOR_CPU_HIGH
 #include "wlan_mac_high.h"
+#endif
 #include "wlan_mac_dl_list.h"
 
 
@@ -71,10 +73,14 @@ void dl_list_init(dl_list* list) {
  *
  *****************************************************************************/
 void dl_entry_insertAfter(dl_list* list, dl_entry* entry, dl_entry* new_entry){
-    interrupt_state_t   curr_interrupt_state;
+#if WLAN_COMPILE_FOR_CPU_HIGH
+	interrupt_state_t   curr_interrupt_state;
+#endif
 
     if (new_entry != NULL) {
+#if WLAN_COMPILE_FOR_CPU_HIGH
         curr_interrupt_state = wlan_mac_high_interrupt_stop();
+#endif
 
         dl_entry_prev(new_entry) = entry;
         dl_entry_next(new_entry) = dl_entry_next(entry);
@@ -87,8 +93,9 @@ void dl_entry_insertAfter(dl_list* list, dl_entry* entry, dl_entry* new_entry){
         dl_entry_next(entry) = new_entry;
 
         (list->length)++;
-
+#if WLAN_COMPILE_FOR_CPU_HIGH
         wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
+#endif
     } else {
         xil_printf("ERROR: Attempted to insert a NULL dl_entry\n");
     }
@@ -108,10 +115,14 @@ void dl_entry_insertAfter(dl_list* list, dl_entry* entry, dl_entry* new_entry){
  *
  *****************************************************************************/
 void dl_entry_insertBefore(dl_list* list, dl_entry* entry, dl_entry* new_entry) {
+#if WLAN_COMPILE_FOR_CPU_HIGH
     interrupt_state_t   curr_interrupt_state;
+#endif
 
     if (new_entry != NULL) {
+#if WLAN_COMPILE_FOR_CPU_HIGH
         curr_interrupt_state = wlan_mac_high_interrupt_stop();
+#endif
 
         dl_entry_prev(new_entry) = dl_entry_prev(entry);
         dl_entry_next(new_entry) = entry;
@@ -124,8 +135,9 @@ void dl_entry_insertBefore(dl_list* list, dl_entry* entry, dl_entry* new_entry) 
         dl_entry_prev(entry) = new_entry;
 
         (list->length)++;
-
+#if WLAN_COMPILE_FOR_CPU_HIGH
         wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
+#endif
     } else {
         xil_printf("ERROR: Attempted to insert a NULL dl_entry\n");
     }
@@ -144,11 +156,15 @@ void dl_entry_insertBefore(dl_list* list, dl_entry* entry, dl_entry* new_entry) 
  *
  *****************************************************************************/
 void dl_entry_insertBeginning(dl_list* list, dl_entry* new_entry) {
+#if WLAN_COMPILE_FOR_CPU_HIGH
     interrupt_state_t   curr_interrupt_state;
+#endif
 
     if (new_entry != NULL) {
         if(list->first == NULL){
+#if WLAN_COMPILE_FOR_CPU_HIGH
             curr_interrupt_state = wlan_mac_high_interrupt_stop();
+#endif
 
             list->first              = new_entry;
             list->last               = new_entry;
@@ -157,8 +173,9 @@ void dl_entry_insertBeginning(dl_list* list, dl_entry* new_entry) {
             dl_entry_next(new_entry) = NULL;
 
             (list->length)++;
-
+#if WLAN_COMPILE_FOR_CPU_HIGH
             wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
+#endif
         } else {
             dl_entry_insertBefore(list, list->first, new_entry);
         }
@@ -210,7 +227,9 @@ int dl_entry_move(dl_list * src_list, dl_list * dest_list, u16 num_entries){
     u32                 num_moved;
     dl_entry          * curr_dl_entry;
     dl_entry          * next_dl_entry;
+#if WLAN_COMPILE_FOR_CPU_HIGH
     interrupt_state_t   curr_interrupt_state;
+#endif
 
     // If the caller is not moving any entries or if there are no entries
     // in the source list, then just return
@@ -221,8 +240,10 @@ int dl_entry_move(dl_list * src_list, dl_list * dest_list, u16 num_entries){
     //     entry and the source list has at least one entry to move.
     //
 
+#if WLAN_COMPILE_FOR_CPU_HIGH
     // Stop the interrupts since we are modifying list state
     curr_interrupt_state = wlan_mac_high_interrupt_stop();
+#endif
 
     if (num_entries < src_list->length) {
         // There will be entries left in the source list after moving
@@ -303,9 +324,10 @@ int dl_entry_move(dl_list * src_list, dl_list * dest_list, u16 num_entries){
         src_list->last       = NULL;
         src_list->length     = 0;
     }
-
+#if WLAN_COMPILE_FOR_CPU_HIGH
     // Restore interrupts
     wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
+#endif
 
     return num_moved;
 }
@@ -323,11 +345,15 @@ int dl_entry_move(dl_list * src_list, dl_list * dest_list, u16 num_entries){
  *
  *****************************************************************************/
 void dl_entry_remove(dl_list* list, dl_entry* entry) {
+#if WLAN_COMPILE_FOR_CPU_HIGH
     interrupt_state_t   curr_interrupt_state;
+#endif
 
     if (list->length > 0) {
         if (entry != NULL) {
+#if WLAN_COMPILE_FOR_CPU_HIGH
             curr_interrupt_state = wlan_mac_high_interrupt_stop();
+#endif
 
             if(dl_entry_prev(entry) == NULL){
                 list->first = dl_entry_next(entry);
@@ -355,8 +381,9 @@ void dl_entry_remove(dl_list* list, dl_entry* entry) {
             //
             entry->next = NULL;
             entry->prev = NULL;
-
+#if WLAN_COMPILE_FOR_CPU_HIGH
             wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
+#endif
         } else {
             xil_printf("ERROR: Attempted to remove a NULL dl_entry\n");
         }

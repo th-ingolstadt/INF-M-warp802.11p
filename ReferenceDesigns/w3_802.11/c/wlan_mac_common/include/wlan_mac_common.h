@@ -17,6 +17,7 @@
 #include "xil_io.h"
 
 #include "wlan_mac_802_11_defs.h"
+#include "xparameters.h"
 
 
 /*************************** Constant Definitions ****************************/

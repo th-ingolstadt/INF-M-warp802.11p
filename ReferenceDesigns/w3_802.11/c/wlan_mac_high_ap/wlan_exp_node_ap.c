@@ -14,6 +14,7 @@
 /***************************** Include Files *********************************/
 
 #include "wlan_mac_high_sw_config.h"
+#include "wlan_mac_common.h"
 
 #include "wlan_exp_common.h"
 #include "wlan_exp.h"

@@ -12,6 +12,7 @@
  */
 
 #include "wlan_mac_high_sw_config.h"
+#include "wlan_mac_common.h"
 
 // Xilinx SDK includes
 #include "stdio.h"
