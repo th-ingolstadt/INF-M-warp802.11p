@@ -16,8 +16,8 @@
 #ifndef WLAN_MAC_DCF_H_
 #define WLAN_MAC_DCF_H_
 
-#define PKT_BUF_INVALID                                   0xFF //TODO: remove
-#define NUM_IN_FLIGHT_PKT_BUFS							  4
+#define PKT_BUF_INVALID                                   0xFF
+#define MAX_NUM_PENDING_TX_PKT_BUFS 					  4
 
 
 //-----------------------------------------------
@@ -114,7 +114,7 @@ void 			   handle_mactime_change(s64 time_delta_usec);
 void 			   configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure);
 int 			   frame_transmit(u8 pkt_buf);
 int 			   handle_tx_pkt_buf_ready(u8 pkt_buf);
-void 			   poll_tx_pkt_buf();
+void 			   poll_tx_pkt_buf_list();
 
 inline void        increment_src(u16* src_ptr);
 inline void        increment_lrc(u16* lrc_ptr);

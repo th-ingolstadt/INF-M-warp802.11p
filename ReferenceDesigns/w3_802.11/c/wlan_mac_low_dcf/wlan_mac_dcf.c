@@ -75,8 +75,8 @@ volatile static u8					   gl_waiting_for_response;
 static dl_list				   		   gl_tx_pkt_buf_ready_list_normal;
 static dl_list				   		   gl_tx_pkt_buf_ready_list_dtim_mcast;
 static dl_list				   		   gl_tx_pkt_buf_ready_list_free;
-static dl_entry						   gl_tx_pkt_buf_entry[NUM_IN_FLIGHT_PKT_BUFS];
-static u8						 	   gl_tx_pkt_buf_entry_data[NUM_IN_FLIGHT_PKT_BUFS];
+static dl_entry						   gl_tx_pkt_buf_entry[MAX_NUM_PENDING_TX_PKT_BUFS];
+static u8						 	   gl_tx_pkt_buf_entry_data[MAX_NUM_PENDING_TX_PKT_BUFS];
 
 /*************************** Functions Prototypes ****************************/
 
@@ -139,7 +139,7 @@ int main(){
     dl_list_init(&gl_tx_pkt_buf_ready_list_normal);
     dl_list_init(&gl_tx_pkt_buf_ready_list_dtim_mcast);
     dl_list_init(&gl_tx_pkt_buf_ready_list_free);
-    for(i = 0; i < NUM_IN_FLIGHT_PKT_BUFS; i++){
+    for(i = 0; i < MAX_NUM_PENDING_TX_PKT_BUFS; i++){
     	gl_tx_pkt_buf_entry[i].data = &(gl_tx_pkt_buf_entry_data[i]);
     	dl_entry_insertEnd(&gl_tx_pkt_buf_ready_list_free,&(gl_tx_pkt_buf_entry[i]));
     }
@@ -175,7 +175,7 @@ int main(){
         wlan_mac_low_poll_ipc_rx();
 
     	// Poll for new Tx Ready
-    	poll_tx_pkt_buf();
+        poll_tx_pkt_buf_list();
 
         // Poll the timestamp (for periodic transmissions like beacons)
         poll_tbtt();
@@ -1130,6 +1130,7 @@ int handle_tx_pkt_buf_ready(u8 pkt_buf){
 	int return_value = 0;
 	dl_entry* entry;
 	dl_list* list = NULL;
+	tx_frame_info_t* tx_frame_info = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
 
 	if(gl_tx_pkt_buf_ready_list_free.length > 0){
 		entry = gl_tx_pkt_buf_ready_list_free.first;
@@ -1137,13 +1138,11 @@ int handle_tx_pkt_buf_ready(u8 pkt_buf){
 
 		*((u8*)(entry->data)) = pkt_buf;
 
-		if(pkt_buf & TX_PKT_BUF_DTIM_MCAST){
+		if(tx_frame_info->flags & TX_FRAME_INFO_FLAGS_DTIM_MCAST){
 			list = &gl_tx_pkt_buf_ready_list_dtim_mcast;
 		} else {
 			list = &gl_tx_pkt_buf_ready_list_normal;
 		}
-
-
 		dl_entry_insertEnd(list, entry);
 
 	} else {
@@ -1153,7 +1152,7 @@ int handle_tx_pkt_buf_ready(u8 pkt_buf){
 	return return_value;
 }
 
-void poll_tx_pkt_buf(){
+void poll_tx_pkt_buf_list(){
 	u8 pkt_buf;
 	dl_entry* entry;
 
