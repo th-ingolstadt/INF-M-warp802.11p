@@ -1,3 +1,6 @@
+INTENTIONAL COMPILATION BREAKING TODO:
+Needs updates to Tx packet buffer handling
+
 /** @file wlan_mac_nomac.c
  *  @brief Simple MAC that does nothing but transmit and receive
  *

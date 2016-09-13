@@ -29,6 +29,7 @@
 #include "wlan_mac_time_util.h"
 #include "wlan_phy_util.h"
 #include "wlan_mac_dcf.h"
+#include "wlan_mac_dl_list.h"
 
 // WLAN Exp includes
 #include "wlan_exp.h"
@@ -70,6 +71,13 @@ volatile beacon_txrx_configure_t	   gl_beacon_txrx_configure;
 
 volatile static u8					   gl_waiting_for_response;
 
+// Variables for managing Tx packet buffer ready messages
+static dl_list				   		   gl_tx_pkt_buf_ready_list_normal;
+static dl_list				   		   gl_tx_pkt_buf_ready_list_dtim_mcast;
+static dl_list				   		   gl_tx_pkt_buf_ready_list_free;
+static dl_entry						   gl_tx_pkt_buf_entry[NUM_IN_FLIGHT_PKT_BUFS];
+static u8						 	   gl_tx_pkt_buf_entry_data[NUM_IN_FLIGHT_PKT_BUFS];
+
 /*************************** Functions Prototypes ****************************/
 
 int process_low_param(u8 mode, u32* payload);
@@ -78,7 +86,7 @@ int process_low_param(u8 mode, u32* payload);
 /******************************** Functions **********************************/
 
 int main(){
-
+	u32 i;
     wlan_mac_hw_info_t* hw_info;
     compilation_details_t	compilation_details;
     bzero(&compilation_details, sizeof(compilation_details_t));
@@ -98,6 +106,7 @@ int main(){
 
     gl_mpdu_pkt_buf = PKT_BUF_INVALID;
     gl_waiting_for_response = 0;
+
 
 
     gl_beacon_txrx_configure.beacon_tx_mode = NO_BEACON_TX;
@@ -127,12 +136,21 @@ int main(){
     hw_info = get_mac_hw_info();
     memcpy((void*)gl_eeprom_addr, hw_info->hw_addr_wlan, MAC_ADDR_LEN);
 
+    dl_list_init(&gl_tx_pkt_buf_ready_list_normal);
+    dl_list_init(&gl_tx_pkt_buf_ready_list_dtim_mcast);
+    dl_list_init(&gl_tx_pkt_buf_ready_list_free);
+    for(i = 0; i < NUM_IN_FLIGHT_PKT_BUFS; i++){
+    	gl_tx_pkt_buf_entry[i].data = &(gl_tx_pkt_buf_entry_data[i]);
+    	dl_entry_insertEnd(&gl_tx_pkt_buf_ready_list_free,&(gl_tx_pkt_buf_entry[i]));
+    }
+
     wlan_mac_low_set_frame_rx_callback((void*)frame_receive);
     wlan_mac_low_set_frame_tx_callback((void*)frame_transmit);
     wlan_mac_low_set_beacon_txrx_config_callback((void*)configure_beacon_txrx);
     wlan_mac_low_set_mactime_change_callback((void*)handle_mactime_change);
     wlan_mac_low_set_ipc_low_param_callback((void*)process_low_param);
     wlan_mac_low_set_sample_rate_change_callback((void*)handle_sample_rate_change);
+    wlan_mac_low_set_handle_tx_pkt_buf_ready((void*)handle_tx_pkt_buf_ready);
 
 
     // wlan_mac_low_init() has placed a mutex lock on TX_PKT_BUF_ACK_CTS and
@@ -155,6 +173,9 @@ int main(){
 
         // Poll IPC rx
         wlan_mac_low_poll_ipc_rx();
+
+    	// Poll for new Tx Ready
+    	poll_tx_pkt_buf();
 
         // Poll the timestamp (for periodic transmissions like beacons)
         poll_tbtt();
@@ -1105,7 +1126,53 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     return return_value;
 }
 
+int handle_tx_pkt_buf_ready(u8 pkt_buf){
+	int return_value = 0;
+	dl_entry* entry;
+	dl_list* list = NULL;
 
+	if(gl_tx_pkt_buf_ready_list_free.length > 0){
+		entry = gl_tx_pkt_buf_ready_list_free.first;
+		dl_entry_remove(&gl_tx_pkt_buf_ready_list_free, entry);
+
+		*((u8*)(entry->data)) = pkt_buf;
+
+		if(pkt_buf & TX_PKT_BUF_DTIM_MCAST){
+			list = &gl_tx_pkt_buf_ready_list_dtim_mcast;
+		} else {
+			list = &gl_tx_pkt_buf_ready_list_normal;
+		}
+
+
+		dl_entry_insertEnd(list, entry);
+
+	} else {
+		return_value = -1;
+	}
+
+	return return_value;
+}
+
+void poll_tx_pkt_buf(){
+	u8 pkt_buf;
+	dl_entry* entry;
+
+	// If poll_tx_pkt_buf() is called correctly, the below check is unnecessary.
+	// However, there is a danger here of some difficult nested frame_transmit()
+	// calls if care is not taken, so we'll explicitly make sure we aren't
+	// actively sending anything.
+	if(wlan_mac_low_is_frame_transmitting()) return;
+
+	if(gl_tx_pkt_buf_ready_list_normal.length > 0){
+		entry = gl_tx_pkt_buf_ready_list_normal.first;
+		pkt_buf = *((u8*)(entry->data));
+		dl_entry_remove(&gl_tx_pkt_buf_ready_list_normal, entry);
+		dl_entry_insertEnd(&gl_tx_pkt_buf_ready_list_free, entry);
+
+		wlan_mac_low_proc_pkt_buf(pkt_buf);
+
+	}
+}
 
 /*****************************************************************************/
 /**
@@ -1128,7 +1195,6 @@ int frame_transmit(u8 pkt_buf) {
     // to reserve the medium prior to doing this. The tx_rate, tx_length, and tx_pkt_buf relate
     // to whatever the next waveform will be. That waveform could be an RTS, or it could be the
     // MPDU itself.
-
     u8  mac_cfg_mcs;
     u16 mac_cfg_length;
     u8  mac_cfg_pkt_buf;
@@ -1603,6 +1669,10 @@ int frame_transmit(u8 pkt_buf) {
 								poll_tbtt_return = poll_tbtt();
 							}
 
+                            // Poll IPC rx
+                            // TODO: Need to handle implications of an IPC message changing something like channel
+							wlan_mac_low_poll_ipc_rx();
+
                             // Send IPC message containing the details about this low-level transmission
                             wlan_mac_low_send_low_tx_details(pkt_buf, &low_tx_details);
 
@@ -1659,6 +1729,10 @@ int frame_transmit(u8 pkt_buf) {
 							poll_tbtt_return = poll_tbtt();
 						}
 
+                        // Poll IPC rx
+                        // TODO: Need to handle implications of an IPC message changing something like channel
+						wlan_mac_low_poll_ipc_rx();
+
                         // Send IPC message containing the details about this low-level transmission
                         wlan_mac_low_send_low_tx_details(pkt_buf, &low_tx_details);
 
@@ -1676,8 +1750,13 @@ int frame_transmit(u8 pkt_buf) {
                 if (mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_STARTED) {
                 	gl_waiting_for_response = 0;
                     rx_status = wlan_mac_low_poll_frame_rx();
-                } else if(poll_tbtt_return != BEACON_DEFERRED) {
-                	poll_tbtt_return = poll_tbtt();
+                } else{
+                	if(poll_tbtt_return != BEACON_DEFERRED) {
+                		poll_tbtt_return = poll_tbtt();
+                	}
+                    // Poll IPC rx
+                    // TODO: Need to handle implications of an IPC message changing something like channel
+					wlan_mac_low_poll_ipc_rx();
                 }
             } // END if(Tx A state machine done)
         } while( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_PENDING );

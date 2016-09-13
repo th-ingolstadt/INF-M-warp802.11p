@@ -52,6 +52,7 @@
 
 /*************************** Variable Definitions ****************************/
 volatile static phy_samp_rate_t   gl_phy_samp_rate;                                 ///< Current PHY sampling rate
+volatile static u8				  gl_in_frame_transmit;
 volatile static u32               mac_param_chan;                                   ///< Current channel of the lower-level MAC
 volatile static u8                mac_param_band;                                   ///< Current band of the lower-level MAC
 volatile static u8                mac_param_dsss_en;                                ///< Enable / Disable DSSS when possible
@@ -66,9 +67,6 @@ static compilation_details_t	  cpu_low_compilation_details;
 static wlan_ipc_msg_t        	  ipc_msg_from_high;                                          ///< Buffer for incoming IPC messages
 static u32                   	  ipc_msg_from_high_payload[MAILBOX_BUFFER_MAX_NUM_WORDS];    ///< Buffer for payload of incoming IPC messages
 
-volatile static u8           allow_new_mpdu_tx;                                     ///< Toggle for allowing new MPDU Tx requests to be processed
-volatile static s8           pkt_buf_pending_tx;                                    ///< Internal state variable for knowing if an MPDU Tx request is pending
-
 // Callback function pointers
 static function_ptr_t        frame_rx_callback;                                     ///< User callback frame receptions
 static function_ptr_t        frame_tx_callback;                                     ///< User callback frame transmissions
@@ -76,6 +74,7 @@ static function_ptr_t        frame_tx_callback;                                 
 static function_ptr_t		 beacon_txrx_config_callback;
 static function_ptr_t		 mactime_change_callback;
 static function_ptr_t		 sample_rate_change_callback;
+static function_ptr_t		 handle_tx_pkt_buf_ready;
 
 static function_ptr_t        ipc_low_param_callback;                                ///< User callback for IPC_MBOX_LOW_PARAM ipc calls
 
@@ -112,6 +111,7 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
     cpu_low_status           = 0;
     cpu_low_type			 = type;
     cpu_low_compilation_details = compilation_details;
+    gl_in_frame_transmit 	 = 0;
 
     unique_seq = 0;
 
@@ -123,8 +123,7 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
     beacon_txrx_config_callback = (function_ptr_t) wlan_null_callback;
     mactime_change_callback		= (function_ptr_t) wlan_null_callback;
     sample_rate_change_callback = (function_ptr_t) wlan_null_callback;
-    allow_new_mpdu_tx        = 1;
-    pkt_buf_pending_tx       = -1; // -1 is an invalid pkt_buf index
+    handle_tx_pkt_buf_ready		= (function_ptr_t) wlan_null_callback;
 
     status = w3_node_init();
 
@@ -921,58 +920,13 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
         	tx_pkt_buf = msg->arg0;
         	if(tx_pkt_buf < NUM_TX_PKT_BUFS){
 				// Message is an indication that a Tx Pkt Buf needs processing
-				if(allow_new_mpdu_tx){
-					wlan_mac_low_proc_pkt_buf( tx_pkt_buf );
-				} else {
-					pkt_buf_pending_tx = tx_pkt_buf;
-				}
+        		handle_tx_pkt_buf_ready(tx_pkt_buf);
+        		// TODO: check return status and inform CPU_HIGH of error?
         	}
         }
         break;
     }
 }
-
-
-
-/*****************************************************************************/
-/**
- * @brief Disable New MPDU Transmissions
- *
- * This function will prevent any future MPDU transmission requests from
- * being accepted.
- *
- * @param   None
- * @return  None
- *
- */
-void wlan_mac_low_disable_new_mpdu_tx(){
-    allow_new_mpdu_tx = 0;
-}
-
-
-
-/*****************************************************************************/
-/**
- * @brief Enable New MPDU Transmissions
- *
- * This function will allow future MPDU transmission requests from
- * being accepted.
- *
- * @param   None
- * @return  None
- *
- */
-void wlan_mac_low_enable_new_mpdu_tx(){
-    if(allow_new_mpdu_tx == 0){
-        allow_new_mpdu_tx = 1;
-        if(pkt_buf_pending_tx != -1){
-            wlan_mac_low_proc_pkt_buf(pkt_buf_pending_tx);
-            pkt_buf_pending_tx = -1;
-        }
-    }
-}
-
-
 
 /*****************************************************************************/
 /**
@@ -1048,7 +1002,9 @@ void wlan_mac_low_DSSS_rx_disable() {
 	wlan_phy_DSSS_rx_disable();
 }
 
-
+inline u8 wlan_mac_low_is_frame_transmitting(){
+	return gl_in_frame_transmit;
+}
 
 /*****************************************************************************/
 /**
@@ -1117,8 +1073,9 @@ void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
 				// If a frame_tx_callback is not provided, the wlan_null_callback will always
 				// return 0 (ie TX_MPDU_RESULT_SUCCESS).
 				//
-
+				gl_in_frame_transmit = 1;
 				status = frame_tx_callback(tx_pkt_buf);
+				gl_in_frame_transmit = 0;
 
 				//Record the total time this MPDU spent in the Tx state machine
 				tx_frame_info->delay_done = (u32)(get_mac_time_usec() - (tx_frame_info->timestamp_create + (u64)(tx_frame_info->delay_accept)));
@@ -1216,6 +1173,10 @@ inline void wlan_mac_low_set_frame_rx_callback(function_ptr_t callback){
 
 inline void wlan_mac_low_set_sample_rate_change_callback(function_ptr_t callback){
 	sample_rate_change_callback = callback;
+}
+
+inline void wlan_mac_low_set_handle_tx_pkt_buf_ready(function_ptr_t callback){
+	handle_tx_pkt_buf_ready = callback;
 }
 
 inline void wlan_mac_low_set_beacon_txrx_config_callback(function_ptr_t callback){
