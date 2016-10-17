@@ -246,7 +246,7 @@ int ltg_sched_start_l(dl_entry* curr_tg_dl_entry){
 			curr_tg->target = num_ltg_checks + random_timestamp;
 
 			if(((ltg_sched_uniform_rand_params*)(curr_tg->params))->duration_count != LTG_DURATION_FOREVER){
-				curr_tg->stop_target = num_ltg_checks + ((ltg_sched_periodic_params*)(curr_tg->params))->duration_count;
+				curr_tg->stop_target = num_ltg_checks + ((ltg_sched_uniform_rand_params*)(curr_tg->params))->duration_count;
 			} else {
 				curr_tg->stop_target = LTG_DURATION_FOREVER;
 			}
