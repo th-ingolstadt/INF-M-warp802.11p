@@ -46,7 +46,7 @@ class WlanDevice(object):
     
     ht_capable            = None
 
-    def __init__(self, mac_address, name=None, ht_capable=False):
+    def __init__(self, mac_address, name=None, ht_capable=True):
         self.name = name
         self.ht_capable = ht_capable
                 
