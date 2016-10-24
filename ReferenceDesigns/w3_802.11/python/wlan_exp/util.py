@@ -219,8 +219,7 @@ def rate_info_to_str(rate_info):
 #: List of supported channels. Each value represents a 20MHz channel in the 2.4GHz
 #: or 5GHz bands. Use the ``get_channel_info`` method to lookup the actual center
 #: frequency for a given channel index.
-#wlan_channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 36, 40, 44, 48]
-wlan_channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 36, 38, 40, 44, 46, 48, 52, 54, 56, 60, 62, 64, 100, 102, 104, 108, 110, 112, 116, 118, 120, 124, 126, 128, 132, 134, 136, 140, 142, 144, 149, 151, 153, 157, 159, 161, 165, 172, 174, 175, 176, 177, 178]
+wlan_channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 36, 40, 44, 48]
 
 
 def get_channel_info(channel):

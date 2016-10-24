@@ -1070,8 +1070,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
 
     entry_rx_ofdm.append_field_defs(entry_rx_common.get_field_defs())
     entry_rx_ofdm.append_field_defs([
-#        ('chan_est',               '256B',   '(64,2)i2',    'OFDM Rx channel estimates, packed as [(uint16)I (uint16)Q] values, one per subcarrier'),
-        ('chan_est',               '512B',   '(128,2)i2',    'OFDM Rx channel estimates, packed as [(uint16)I (uint16)Q] values, one per subcarrier'),
+        ('chan_est',               '256B',   '(64,2)i2',    'OFDM Rx channel estimates, packed as [(uint16)I (uint16)Q] values, one per subcarrier'),
         ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
         ('mac_payload',            '24s',    '24uint8',     'First 24 bytes of MAC payload, typically the 802.11 MAC header')])
 
@@ -1089,8 +1088,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
 
     entry_rx_ofdm_ltg.append_field_defs(entry_rx_common.get_field_defs())
     entry_rx_ofdm_ltg.append_field_defs([
-#        ('chan_est',               '256B',   '(64,2)i2',    'OFDM Rx channel estimates, packed as [(uint16)I (uint16)Q] values, one per subcarrier'),
-        ('chan_est',               '512B',   '(128,2)i2',    'OFDM Rx channel estimates, packed as [(uint16)I (uint16)Q] values, one per subcarrier'),
+        ('chan_est',               '256B',   '(64,2)i2',    'OFDM Rx channel estimates, packed as [(uint16)I (uint16)Q] values, one per subcarrier'),
         ('mac_payload_len',        'I',      'uint32',      'Length in bytes of MAC payload recorded in log for this packet'),
         ('mac_payload',            '44s',    '44uint8',     'First 44 bytes of MAC payload: the 802.11 MAC header, LLC header, Packet ID, LTG ID')])
 
