@@ -435,7 +435,7 @@ inline u32         wlan_mac_low_poll_frame_rx();
 inline void        wlan_mac_low_poll_ipc_rx();
 
 void               wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg);
-void               wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf);
+void               wlan_mac_low_frame_transmit(u16 tx_pkt_buf);
 u8 				   wlan_mac_low_is_frame_transmitting();
 void               wlan_mac_low_frame_ipc_send();
 void 			   wlan_mac_low_send_low_tx_details(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details);

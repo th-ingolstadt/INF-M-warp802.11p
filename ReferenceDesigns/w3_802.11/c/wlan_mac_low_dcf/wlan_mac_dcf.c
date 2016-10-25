@@ -1168,7 +1168,7 @@ void poll_tx_pkt_buf_list(){
 		dl_entry_remove(&gl_tx_pkt_buf_ready_list_normal, entry);
 		dl_entry_insertEnd(&gl_tx_pkt_buf_ready_list_free, entry);
 
-		wlan_mac_low_proc_pkt_buf(pkt_buf);
+		wlan_mac_low_frame_transmit(pkt_buf);
 
 	}
 }

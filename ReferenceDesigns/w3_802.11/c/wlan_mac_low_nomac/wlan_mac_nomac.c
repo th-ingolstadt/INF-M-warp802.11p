@@ -1,6 +1,3 @@
-INTENTIONAL COMPILATION BREAKING TODO:
-Needs updates to Tx packet buffer handling
-
 /** @file wlan_mac_nomac.c
  *  @brief Simple MAC that does nothing but transmit and receive
  *
@@ -99,6 +96,7 @@ int main(){
     wlan_mac_low_set_frame_rx_callback(           (void*)frame_receive );
     wlan_mac_low_set_frame_tx_callback(           (void*)frame_transmit );
     wlan_mac_low_set_ipc_low_param_callback(      (void*)process_low_param );
+    wlan_mac_low_set_handle_tx_pkt_buf_ready(	  (void*)wlan_mac_low_frame_transmit );
     // wlan_mac_low_set_sample_rate_change_callback() not used at this time.
 
     // Finish Low Framework initialization

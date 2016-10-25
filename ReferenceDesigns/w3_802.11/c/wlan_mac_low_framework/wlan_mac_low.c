@@ -1017,7 +1017,7 @@ inline u8 wlan_mac_low_is_frame_transmitting(){
  * @return  None
  *
  */
-void wlan_mac_low_proc_pkt_buf(u16 tx_pkt_buf){
+void wlan_mac_low_frame_transmit(u16 tx_pkt_buf){
     u32                      status;
     tx_frame_info_t        * tx_frame_info;
     mac_header_80211       * tx_80211_header;
