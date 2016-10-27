@@ -35,8 +35,9 @@ if(~exist('sim_many_waveform_mode','var'))
     
     %Output of PHY Tx simulation
     % .mat files from Tx PHY sim store I/Q signal in 'wlan_tx_out' variable
-    load('rx_sigs/wlan_tx_NONHT_MCS0_52B.mat');wlan_tx_out = wlan_tx_out.';
-
+    %load('rx_sigs/wlan_tx_NONHT_MCS0_52B.mat');wlan_tx_out = wlan_tx_out.';
+    load('tx_NONHT_100B_MCS4_newPHY.mat');wlan_tx_out = sig.';
+    
     %CFO
     %wlan_tx_out = wlan_tx_out .* exp(j*2*pi*-1e-4*(0:length(wlan_tx_out)-1));
 

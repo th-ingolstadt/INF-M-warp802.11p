@@ -75,8 +75,8 @@ if(~exist('gen_waveform_mode', 'var'))
     tx_sim = struct();
     tx_sim.MAC_payload = 1:100;
     tx_sim.payload_len = length(tx_sim.MAC_payload);
-    tx_sim.PHY_mode = 2; %1=11a, 2=11n
-    tx_sim.mcs = 0;
+    tx_sim.PHY_mode = 1; %1=11a, 2=11n
+    tx_sim.mcs = 4;
     tx_sim.samp_rate = 40; %Must be in [10 20 40]
     tx_sim.num_pkts = 1;
 end
