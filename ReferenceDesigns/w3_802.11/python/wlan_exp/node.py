@@ -179,7 +179,9 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         cmd_size = size
         log_size = self.log_get_size()
 
-        if ((size + offset) > log_size):
+        # C code uses size=0xFFFFFFFF (CMD_PARAM_LOG_GET_ALL_ENTRIES) as magic value to return
+        #  all valid data from offset to end of log data array
+        if (cmd_size != cmds.CMD_PARAM_LOG_GET_ALL_ENTRIES) and ((size + offset) > log_size):
             cmd_size = log_size - offset
 
             print("WARNING:  Trying to get {0} bytes from the log at offset {1}".format(size, offset))
