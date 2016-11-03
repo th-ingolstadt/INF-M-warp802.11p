@@ -32,11 +32,21 @@ if(~exist('sim_many_waveform_mode','var'))
     %sim_sig = sim_sig .* exp(j*2*pi*1e-4*(0:length(sim_sig)-1)).';
 
     if 1
-    
+    % rx_11b_1Mb_then_3_5p5Mb: 
+    %  1Mb beacon 93180:2:1.302e5
+    %  5.5Mb data #1 1.313e5:2:1.489e5
+    %t_start = 93180;
+    %t_end   = 1.302e5;
+    %load('rx_sigs/rx_11b_1Mb_then_3_5p5Mb.mat');wlan_tx_out1 = 2*rx_iq(t_start:2:t_end).';
+
     %Output of PHY Tx simulation
     % .mat files from Tx PHY sim store I/Q signal in 'wlan_tx_out' variable
-    %load('rx_sigs/wlan_tx_NONHT_MCS0_52B.mat');wlan_tx_out = wlan_tx_out.';
-    load('tx_NONHT_100B_MCS4_newPHY.mat');wlan_tx_out = sig.';
+    %load('rx_sigs/tx_HTMF_MCS4_22B_Invalid_LSIG.mat');wlan_tx_out1 = wlan_tx_out.';
+    load('rx_sigs/wlan_tx_NONHT_MCS0_52B.mat');wlan_tx_out = wlan_tx_out.';
+    %load('tx_NONHT_100B_MCS4_newPHY.mat');wlan_tx_out = sig.';
+    %load('rx_sigs/siggen_HTMF_MCS11_100B_BW20_CDD200.mat');wlan_tx_out = 0.2*sig.';
+    %load('rx_sigs/siggen_HTMF_MCS4_100B_BW20.mat');wlan_tx_out = 0.2*sig;
+    %load('rx_sigs/siggen_HTMF_MCS4_100B_BW20.mat');wlan_tx_out = 0.2*sig;
     
     %CFO
     %wlan_tx_out = wlan_tx_out .* exp(j*2*pi*-1e-4*(0:length(wlan_tx_out)-1));
@@ -48,6 +58,7 @@ if(~exist('sim_many_waveform_mode','var'))
     %wlan_tx_out = wlan_tx_out + 1e-2*complex(randn(1,length(wlan_tx_out)), randn(1,length(wlan_tx_out)));
     
     sim_sig = wlan_tx_out(1:end).';
+    %sim_sig = [wlan_tx_out1(1:end).'; zeros(200,1); wlan_tx_out2(1:end).'];
     end
 end
 
@@ -175,7 +186,7 @@ PHY_CONFIG_PKT_DET_MIN_DURR = 4; %UFix4_0 duration
 PHY_CONFIG_PKT_DET_RESET_EXT_DUR = hex2dec('3F');
 
 CS_CONFIG_CS_RSSI_THRESH = 300 * PHY_CONFIG_RSSI_SUM_LEN;
-CS_CONFIG_POSTRX_EXTENSION = 20; %6usec as 120 20MHz samples
+CS_CONFIG_POSTRX_EXTENSION = 6*20; %6usec as 120 20MHz samples
 
 SOFT_DEMAP_SCALE_BPSK = 15;
 SOFT_DEMAP_SCALE_QPSK = 15;
@@ -217,7 +228,7 @@ REG_RX_Control = ...
     0;
 
 REG_RX_Config = ...
-    2^0  * 0 + ... %DSSS RX EN
+    2^0  * 1 + ... %DSSS RX EN
     2^1  * 1 + ... %Block inputs on INVALID input
     2^2  * 1 + ... %Swap pkt buf byte order
     2^3  * 1 + ... %Swap order of chan est u32 writes
