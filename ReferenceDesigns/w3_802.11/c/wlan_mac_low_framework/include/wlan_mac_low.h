@@ -66,6 +66,8 @@
 #define WLAN_MAC_REG_TX_CTRL_B_GAINS                       XPAR_WLAN_MAC_HW_MEMMAP_TX_CTRL_B_GAINS
 #define WLAN_MAC_REG_TX_CTRL_C_PARAMS                      XPAR_WLAN_MAC_HW_MEMMAP_TX_CTRL_C_PARAMS
 #define WLAN_MAC_REG_TX_CTRL_C_GAINS                       XPAR_WLAN_MAC_HW_MEMMAP_TX_CTRL_C_GAINS
+#define WLAN_MAC_REG_TX_CTRL_D_PARAMS                      XPAR_WLAN_MAC_HW_MEMMAP_TX_CTRL_D_PARAMS
+#define WLAN_MAC_REG_TX_CTRL_D_GAINS                       XPAR_WLAN_MAC_HW_MEMMAP_TX_CTRL_D_GAINS
 #define WLAN_MAC_REG_POST_TX_TIMERS                        XPAR_WLAN_MAC_HW_MEMMAP_POST_TX_TIMERS
 #define WLAN_MAC_REG_POST_RX_TIMERS                        XPAR_WLAN_MAC_HW_MEMMAP_POST_RX_TIMERS
 #define WLAN_MAC_REG_NAV_CHECK_ADDR_1                      XPAR_WLAN_MAC_HW_MEMMAP_NAV_MATCH_ADDR_1
@@ -109,10 +111,12 @@
 #define WLAN_MAC_TXCTRL_STATUS_MASK_TX_C_PENDING                  0x00004000     // b[14]
 #define WLAN_MAC_TXCTRL_STATUS_MASK_TX_C_DONE                     0x00008000     // b[15]
 #define WLAN_MAC_TXCTRL_STATUS_MASK_TX_C_STATE                    0x00070000     // b[18:16]
-#define WLAN_MAC_TXCTRL_STATUS_MASK_POSTTX_TIMER2_RUNNING         0x00080000     // b[19]
-#define WLAN_MAC_TXCTRL_STATUS_MASK_POSTTX_TIMER1_RUNNING         0x00100000     // b[20]
-#define WLAN_MAC_TXCTRL_STATUS_MASK_POSTRX_TIMER2_RUNNING         0x00200000     // b[21]
-#define WLAN_MAC_TXCTRL_STATUS_MASK_POSTRX_TIMER1_RUNNING         0x00400000     // b[22]
+#define WLAN_MAC_TXCTRL_STATUS_MASK_TX_D_DONE                     0x00080000     // b[19]
+#define WLAN_MAC_TXCTRL_STATUS_MASK_TX_D_STATE                    0x00700000     // b[22:20]
+#define WLAN_MAC_TXCTRL_STATUS_MASK_POSTTX_TIMER2_RUNNING         0x00800000     // b[23]
+#define WLAN_MAC_TXCTRL_STATUS_MASK_POSTTX_TIMER1_RUNNING         0x01000000     // b[24]
+#define WLAN_MAC_TXCTRL_STATUS_MASK_POSTRX_TIMER2_RUNNING         0x02000000     // b[25]
+#define WLAN_MAC_TXCTRL_STATUS_MASK_POSTRX_TIMER1_RUNNING         0x04000000     // b[26]
 
 #define WLAN_MAC_TXCTRL_STATUS_TX_A_RESULT_NONE                  (0 << 2)        // FSM idle or still running
 #define WLAN_MAC_TXCTRL_STATUS_TX_A_RESULT_TIMEOUT               (1 << 2)        // FSM completed with postTx timer expiration
@@ -143,6 +147,12 @@
 #define WLAN_MAC_TXCTRL_STATUS_TX_C_STATE_DO_TX       (3 << 16) //PHY Tx started, waiting on TX_DONE - TX_TIME
 #define WLAN_MAC_TXCTRL_STATUS_TX_C_STATE_DONE        (4 << 16) //TX_DONE occurred - 1 cycle
 
+#define WLAN_MAC_TXCTRL_STATUS_TX_D_STATE_IDLE        (0 << 16)
+#define WLAN_MAC_TXCTRL_STATUS_TX_D_STATE_START_BO    (1 << 16) //Starting backoff counter - 1 cycle
+#define WLAN_MAC_TXCTRL_STATUS_TX_D_STATE_DEFER       (2 << 16) //Waiting for zero backoff - unbounded time
+#define WLAN_MAC_TXCTRL_STATUS_TX_D_STATE_DO_TX       (3 << 16) //PHY Tx started, waiting on TX_DONE - TX_TIME
+#define WLAN_MAC_TXCTRL_STATUS_TX_D_STATE_DONE        (4 << 16) //TX_DONE occurred - 1 cycle
+
 #define wlan_mac_get_tx_ctrl_status() (Xil_In32(WLAN_MAC_REG_TX_CTRL_STATUS))
 
 // WLAN MAC HW - STATUS register bit masks
@@ -152,16 +162,19 @@
 #define WLAN_MAC_STATUS_MASK_TX_B_DONE                     0x00000008     // b[3]
 #define WLAN_MAC_STATUS_MASK_TX_C_PENDING                  0x00000010     // b[4]
 #define WLAN_MAC_STATUS_MASK_TX_C_DONE                     0x00000020     // b[5]
-#define WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE                 0x00000040     // b[6]
-#define WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE                 0x00000080     // b[7]
-#define WLAN_MAC_STATUS_MASK_RX_PHY_STARTED                0x00000100     // b[8]
-#define WLAN_MAC_STATUS_MASK_RX_FCS_GOOD                   0x00000200     // b[9]
-#define WLAN_MAC_STATUS_MASK_RX_END_ERROR                  0x00001C00     // b[12:10]
-#define WLAN_MAC_STATUS_MASK_NAV_ADDR_MATCHED              0x00002000     // b[13]
-#define WLAN_MAC_STATUS_MASK_NAV_BUSY                      0x00004000     // b[14]
-#define WLAN_MAC_STATUS_MASK_CCA_BUSY                      0x00008000     // b[15]
-#define WLAN_MAC_STATUS_MASK_TU_LATCH                      0x00010000     // b[16]
-#define WLAN_MAC_STATUS_MASK_RX_PHY_WRITING_PAYLOAD        0x00020000     // b[17]
+#define WLAN_MAC_STATUS_MASK_TX_D_PENDING                  0x00000040     // b[6]
+#define WLAN_MAC_STATUS_MASK_TX_D_DONE                     0x00000080     // b[7]
+
+#define WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE                 0x00000100     // b[8]
+#define WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE                 0x00000200     // b[9]
+#define WLAN_MAC_STATUS_MASK_RX_PHY_STARTED                0x00000400     // b[10]
+#define WLAN_MAC_STATUS_MASK_RX_FCS_GOOD                   0x00000800     // b[11]
+#define WLAN_MAC_STATUS_MASK_RX_END_ERROR                  0x00007000     // b[14:12]
+#define WLAN_MAC_STATUS_MASK_NAV_ADDR_MATCHED              0x00008000     // b[15]
+#define WLAN_MAC_STATUS_MASK_NAV_BUSY                      0x00010000     // b[16]
+#define WLAN_MAC_STATUS_MASK_CCA_BUSY                      0x00020000     // b[17]
+#define WLAN_MAC_STATUS_MASK_TU_LATCH                      0x00040000     // b[18]
+#define WLAN_MAC_STATUS_MASK_RX_PHY_WRITING_PAYLOAD        0x00080000     // b[19]
 
 #define wlan_mac_get_status() (Xil_In32(WLAN_MAC_REG_STATUS))
 
@@ -188,29 +201,42 @@
 // WLAN MAC HW - CONTROL bit masks / macros
 //
 #define WLAN_MAC_CTRL_MASK_RESET                           0x00000001
-#define WLAN_MAC_CTRL_MASK_DISABLE_NAV                     0x00000008
-#define WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_TX                  0x00000010
-#define WLAN_MAC_CTRL_MASK_RESET_TU_LATCH                  0x00000020
-#define WLAN_MAC_CTRL_MASK_CCA_IGNORE_PHY_CS               0x00000080
-#define WLAN_MAC_CTRL_MASK_CCA_IGNORE_TX_BUSY              0x00000100
-#define WLAN_MAC_CTRL_MASK_CCA_IGNORE_NAV                  0x00000200
-#define WLAN_MAC_CTRL_MASK_RESET_NAV                       0x00000400
-#define WLAN_MAC_CTRL_MASK_RESET_A_BACKOFF                 0x00000800
-#define WLAN_MAC_CTRL_MASK_RESET_C_BACKOFF                 0x00001000
-#define WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_A                 0x00002000
-#define WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_B                 0x00004000
-#define WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_C                 0x00008000
-#define WLAN_MAC_CTRL_MASK_FORCE_CCA_BUSY                  0x00010000
-#define WLAN_MAC_CTRL_MASK_PAUSE_A_BACKOFF                 0x00020000
-#define WLAN_MAC_CTRL_MASK_RESET_PHY_ACTIVE_LATCHES        0x00040000
-#define WLAN_MAC_CTRL_MASK_RESET_RX_STARTED_LATCH          0x00080000
+#define WLAN_MAC_CTRL_MASK_DISABLE_NAV                     0x00000002
+#define WLAN_MAC_CTRL_MASK_RESET_NAV                       0x00000004
+#define WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_TX                  0x00000008
+#define WLAN_MAC_CTRL_MASK_RESET_TU_LATCH                  0x00000010
+#define WLAN_MAC_CTRL_MASK_CCA_IGNORE_PHY_CS               0x00000020
+#define WLAN_MAC_CTRL_MASK_CCA_IGNORE_TX_BUSY              0x00000040
+#define WLAN_MAC_CTRL_MASK_CCA_IGNORE_NAV                  0x00000080
+#define WLAN_MAC_CTRL_MASK_FORCE_CCA_BUSY                  0x00000100
+#define WLAN_MAC_CTRL_MASK_RESET_PHY_ACTIVE_LATCHES        0x00000200
+#define WLAN_MAC_CTRL_MASK_RESET_RX_STARTED_LATCH          0x00000400
+#define WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_A                 0x00000800
+#define WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_B                 0x00001000
+#define WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_C                 0x00002000
+#define WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_C                 0x00004000
+#define WLAN_MAC_CTRL_MASK_RESET_A_BACKOFF                 0x00008000
+#define WLAN_MAC_CTRL_MASK_RESET_C_BACKOFF                 0x00010000
+#define WLAN_MAC_CTRL_MASK_RESET_D_BACKOFF                 0x00020000
+#define WLAN_MAC_CTRL_MASK_PAUSE_A_BACKOFF                 0x00040000
+#define WLAN_MAC_CTRL_MASK_PAUSE_C_BACKOFF                 0x00080000
+#define WLAN_MAC_CTRL_MASK_PAUSE_D_BACKOFF                 0x00100000
 
-#define wlan_mac_set_A_backoff_reset(x)         Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_A_BACKOFF) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_A_BACKOFF : 0))
 #define wlan_mac_reset(x)                      	Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET) | ((x) ? WLAN_MAC_CTRL_MASK_RESET : 0))
+
 #define wlan_mac_reset_tx_ctrl_A(x)             Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_A) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_A : 0))
 #define wlan_mac_reset_tx_ctrl_B(x)             Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_B) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_B : 0))
 #define wlan_mac_reset_tx_ctrl_C(x)             Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_C) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_C : 0))
+#define wlan_mac_reset_tx_ctrl_D(x)             Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_D) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_TX_CTRL_D : 0))
+
+#define wlan_mac_set_A_backoff_reset(x)         Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_A_BACKOFF) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_A_BACKOFF : 0))
+#define wlan_mac_set_C_backoff_reset(x)         Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_C_BACKOFF) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_C_BACKOFF : 0))
+#define wlan_mac_set_D_backoff_reset(x)         Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_D_BACKOFF) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_D_BACKOFF : 0))
+
 #define wlan_mac_pause_backoff_tx_ctrl_A(x)     Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_PAUSE_A_BACKOFF) | ((x) ? WLAN_MAC_CTRL_MASK_PAUSE_A_BACKOFF : 0))
+#define wlan_mac_pause_backoff_tx_ctrl_C(x)     Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_PAUSE_C_BACKOFF) | ((x) ? WLAN_MAC_CTRL_MASK_PAUSE_C_BACKOFF : 0))
+#define wlan_mac_pause_backoff_tx_ctrl_D(x)     Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_PAUSE_D_BACKOFF) | ((x) ? WLAN_MAC_CTRL_MASK_PAUSE_D_BACKOFF : 0))
+
 #define wlan_mac_reset_tu_target_latch(x)       Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_TU_LATCH) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_TU_LATCH : 0))
 #define wlan_mac_reset_rx_started(x)			Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_RX_STARTED_LATCH) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_RX_STARTED_LATCH : 0))
 
@@ -337,14 +363,45 @@
                         (((rf_c) & 0x3F) << 12) | \
                         (((rf_d) & 0x3F) << 18)))
 
+// TX_CTRL_D_PARAMS:
+//     b[3:0]: Pkt buf
+//     b[7:4]: Tx ant mask
+//     b[8]: Require pre-Tx backoff
+//     b[11:9]: PHY mode
+//     b[27:12]: Num backoff slots
+//
+#define wlan_mac_tx_ctrl_D_params(pktBuf, antMask, req_backoff, phy_mode, num_slots) \
+                Xil_Out32(WLAN_MAC_REG_TX_CTRL_D_PARAMS, \
+                    (((pktBuf)           & 0xF)        | \
+                    (((antMask)          & 0xF) <<  4) | \
+                    (((req_backoff)      & 0x1) <<  8) | \
+                    (((phy_mode)         & 0x7) <<  9) | \
+                    (((num_slots)     & 0xFFFF) << 12)))
+
+// TX_CTRL_D_GAINS
+//     b[0:5]  : RFA Tx gain
+//     b[6:11] : RFB Tx gain
+//     b[12:17]: RFC Tx gain
+//     b[18:23]: RFD Tx gain
+//
+#define wlan_mac_tx_ctrl_D_gains(rf_a, rf_b, rf_c, rf_d) \
+                Xil_Out32(WLAN_MAC_REG_TX_CTRL_D_GAINS, \
+                        (((rf_a) & 0x3F)        | \
+                        (((rf_b) & 0x3F) <<  6) | \
+                        (((rf_c) & 0x3F) << 12) | \
+                        (((rf_d) & 0x3F) << 18)))
+
 
 #define WLAN_MAC_START_REG_MASK_START_TX_A	0x1
 #define WLAN_MAC_START_REG_MASK_START_TX_B	0x2
 #define WLAN_MAC_START_REG_MASK_START_TX_C	0x4
+#define WLAN_MAC_START_REG_MASK_START_TX_D	0x8
 
 // TX_START
 //     b[0]: Tx CTRL A Start
 //     b[1]: Tx CTRL B Start
+//     b[2]: Tx CTRL C Start
+//     b[3]: Tx CTRL D Start
 //
 // NOTE:  Intrepret non-zero (x) as Tx start enable, zero (x) as Tx start disable
 //     MAC core requires rising edge on either Tx start bit; software must set then clear for each Tx
@@ -352,6 +409,7 @@
 #define wlan_mac_tx_ctrl_A_start(x) Xil_Out32(WLAN_MAC_REG_TX_START, ((Xil_In32(WLAN_MAC_REG_TX_START) & ~WLAN_MAC_START_REG_MASK_START_TX_A) | ((x) ? WLAN_MAC_START_REG_MASK_START_TX_A : 0x0)))
 #define wlan_mac_tx_ctrl_B_start(x) Xil_Out32(WLAN_MAC_REG_TX_START, ((Xil_In32(WLAN_MAC_REG_TX_START) & ~WLAN_MAC_START_REG_MASK_START_TX_B) | ((x) ? WLAN_MAC_START_REG_MASK_START_TX_B : 0x0)))
 #define wlan_mac_tx_ctrl_C_start(x) Xil_Out32(WLAN_MAC_REG_TX_START, ((Xil_In32(WLAN_MAC_REG_TX_START) & ~WLAN_MAC_START_REG_MASK_START_TX_C) | ((x) ? WLAN_MAC_START_REG_MASK_START_TX_C : 0x0)))
+#define wlan_mac_tx_ctrl_D_start(x) Xil_Out32(WLAN_MAC_REG_TX_START, ((Xil_In32(WLAN_MAC_REG_TX_START) & ~WLAN_MAC_START_REG_MASK_START_TX_D) | ((x) ? WLAN_MAC_START_REG_MASK_START_TX_D : 0x0)))
 
 // LATEST_RX_BYTE
 //     b[15:0] : Last byte index
