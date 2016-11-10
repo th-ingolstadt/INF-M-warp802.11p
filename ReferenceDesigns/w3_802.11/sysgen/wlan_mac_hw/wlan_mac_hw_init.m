@@ -71,6 +71,8 @@ REG_MAC_Tx_Ctrl_B_Params = 0;
 
 REG_MAC_Tx_Ctrl_C_Params = 0;
 
+REG_MAC_Tx_Ctrl_D_Params = 0;
+
 REG_MAC_PostRxTimers = ...
     2^0  * (10*16) + ... %b[14:0] - timer 1 value
     2^15 * (0)     + ... %b[15] - enable timer 1
