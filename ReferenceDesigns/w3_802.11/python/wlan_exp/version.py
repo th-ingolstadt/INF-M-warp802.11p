@@ -33,7 +33,7 @@ __all__ = ['wlan_exp_ver', 'wlan_exp_ver_check', 'wlan_exp_ver_str']
 # Version defines
 WLAN_EXP_MAJOR          = 1
 WLAN_EXP_MINOR          = 5
-WLAN_EXP_REVISION       = 3
+WLAN_EXP_REVISION       = 4
 WLAN_EXP_XTRA           = str('')
 WLAN_EXP_RELEASE        = True
 
