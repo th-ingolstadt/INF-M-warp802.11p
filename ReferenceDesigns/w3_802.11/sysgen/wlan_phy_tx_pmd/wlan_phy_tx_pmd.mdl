@@ -6,7 +6,7 @@ Model {
     NumRootInports	    0
     NumRootOutports	    0
     ParameterArgumentNames  ""
-    ComputedModelVersion    "1.494"
+    ComputedModelVersion    "1.496"
     NumModelReferences	    0
     NumTestPointedSignals   0
   }
@@ -30,9 +30,9 @@ Model {
   ModifiedByFormat	  "%<Auto>"
   LastModifiedBy	  "murphpo"
   ModifiedDateFormat	  "%<Auto>"
-  LastModifiedDate	  "Wed Aug 10 14:33:11 2016"
-  RTWModifiedTimeStamp	  392732896
-  ModelVersionFormat	  "1.%<AutoIncrement:494>"
+  LastModifiedDate	  "Mon Nov 14 11:25:06 2016"
+  RTWModifiedTimeStamp	  401023493
+  ModelVersionFormat	  "1.%<AutoIncrement:496>"
   ConfigurationManager	  "None"
   SampleTimeColors	  off
   SampleTimeAnnotations	  off
@@ -70,6 +70,7 @@ Model {
     $ObjectID		    1
     $ClassName		    "Simulink.SimulationData.ModelLoggingInfo"
     model_		    "wlan_phy_tx_pmd_11n"
+    signals_		    []
     overrideMode_	    [0.0]
     Array {
       Type		      "Cell"
@@ -845,7 +846,7 @@ Model {
   }
   System {
     Name		    "wlan_phy_tx_pmd"
-    Location		    [-1918, 70, -242, 1030]
+    Location		    [-1678, 227, -2, 1187]
     Open		    off
     ModelBrowserVisibility  off
     ModelBrowserWidth	    200
@@ -859,7 +860,7 @@ Model {
     ShowPageBoundaries	    off
     ZoomFactor		    "125"
     ReportName		    "simulink-default.rpt"
-    SIDHighWatermark	    "3582"
+    SIDHighWatermark	    "3585"
     Block {
       BlockType		      Reference
       Name		      " System Generator"
@@ -27023,8 +27024,8 @@ Model {
 	      Position		      [1830, 83, 1865, 177]
 	      ZOrder		      -3
 	      Floating		      off
-	      Location		      [1, 45, 1833, 1199]
-	      Open		      on
+	      Location		      [6, 45, 1838, 1199]
+	      Open		      off
 	      NumInputPorts	      "7"
 	      List {
 		ListType		AxesTitles
@@ -53783,7 +53784,7 @@ Model {
 	      System {
 		Name			"Interleave RAM"
 		Location		[2, 74, 2469, 1576]
-		Open			on
+		Open			off
 		ModelBrowserVisibility	off
 		ModelBrowserWidth	200
 		ScreenColor		"white"
@@ -54792,8 +54793,8 @@ Model {
 		  Position		  [1690, 293, 1725, 502]
 		  ZOrder		  -3
 		  Floating		  off
-		  Location		  [-1919, 45, 1, 1199]
-		  Open			  on
+		  Location		  [6, 45, 1926, 1199]
+		  Open			  off
 		  NumInputPorts		  "8"
 		  ZoomMode		  "yonly"
 		  List {
@@ -67978,16 +67979,6 @@ Model {
 	}
 	Block {
 	  BlockType		  From
-	  Name			  "From10"
-	  SID			  "3376"
-	  Position		  [85, 122, 245, 138]
-	  ZOrder		  -9
-	  ShowName		  off
-	  GotoTag		  "sim_Start_New_Tx"
-	  TagVisibility		  "global"
-	}
-	Block {
-	  BlockType		  From
 	  Name			  "From11"
 	  SID			  "2488"
 	  Position		  [900, 537, 1055, 553]
@@ -68006,16 +67997,6 @@ Model {
 	  BackgroundColor	  "lightBlue"
 	  ShowName		  off
 	  GotoTag		  "RC_IO_TX_GAIN_D"
-	  TagVisibility		  "global"
-	}
-	Block {
-	  BlockType		  From
-	  Name			  "From13"
-	  SID			  "3562"
-	  Position		  [230, 562, 390, 578]
-	  ZOrder		  -9
-	  ShowName		  off
-	  GotoTag		  "TX_IQ_SAMP_CE"
 	  TagVisibility		  "global"
 	}
 	Block {
@@ -68155,18 +68136,6 @@ Model {
 	  ShowName		  off
 	  GotoTag		  "MAC_IO_PHY_TX_PKT_BUF"
 	  TagVisibility		  "global"
-	}
-	Block {
-	  BlockType		  Logic
-	  Name			  "Logical Operator"
-	  SID			  "3377"
-	  Ports			  [2, 1]
-	  Position		  [305, 107, 335, 138]
-	  ZOrder		  -11
-	  ShowName		  off
-	  Operator		  "OR"
-	  AllPortsSameDT	  off
-	  OutDataTypeStr	  "boolean"
 	}
 	Block {
 	  BlockType		  Reference
@@ -68423,18 +68392,6 @@ Model {
 	  }
 	}
 	Block {
-	  BlockType		  DiscretePulseGenerator
-	  Name			  "Pulse\nGenerator1"
-	  SID			  "2414"
-	  Ports			  [0, 1]
-	  Position		  [215, 79, 245, 111]
-	  ZOrder		  -13
-	  ShowName		  off
-	  Period		  "1e9"
-	  PulseWidth		  "100"
-	  PhaseDelay		  "150"
-	}
-	Block {
 	  BlockType		  Reference
 	  Name			  "RC_PHY_START"
 	  SID			  "2037"
@@ -68546,46 +68503,6 @@ Model {
 	  "f('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black');port_label('input',1,'"
 	  " ');\ncolor('black');port_label('output',1,'\\fontsize{11pt}\\bf Out ','texmode','on');\nfprintf('','COMMENT: end i"
 	  "con text');"
-	}
-	Block {
-	  BlockType		  Reference
-	  Name			  "RC_TX_GAIN_B1"
-	  SID			  "3563"
-	  Ports			  [1, 1]
-	  Position		  [450, 563, 470, 577]
-	  ShowName		  off
-	  LibraryVersion	  "1.2"
-	  SourceBlock		  "xbsIndex_r4/Gateway Out"
-	  SourceType		  "Xilinx Gateway Out Block"
-	  infoedit		  "Gateway out block.  Converts Xilinx fixed-point or floating-point type inputs into ouputs of type Simu"
-	  "link integer, single, double, or fixed-point.<br><br>Hardware notes:  In hardware these blocks become top level out"
-	  "put ports or are discarded, depending on how they are configured."
-	  inherit_from_input	  off
-	  hdl_port		  off
-	  timing_constraint	  "None"
-	  locs_specified	  off
-	  LOCs			  "{}"
-	  UseAsDAC		  off
-	  DACChannel		  "'1'"
-	  xl_use_area		  off
-	  xl_area		  "[0,0,0,0,0,0,0]"
-	  has_advanced_control	  "0"
-	  sggui_pos		  "-1,-1,-1,-1"
-	  block_type		  "gatewayout"
-	  sg_icon_stat		  "20,14,1,1,white,grey,1,632ec840,right,,[ ],[ ]"
-	  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 20 20 0 0 ],[0 0 14 14 0 ],[0.88 0.88 0.88"
-	  " ]);\nplot([0 20 20 0 0 ],[0 0 14 14 0 ]);\npatch([5.55 8.44 10.44 12.44 14.44 10.44 7.55 5.55 ],[9.22 9.22 11.22 9"
-	  ".22 11.22 11.22 11.22 9.22 ],[1 1 1 ]);\npatch([7.55 10.44 8.44 5.55 7.55 ],[7.22 7.22 9.22 9.22 7.22 ],[0.964 0.96"
-	  "4 0.964 ]);\npatch([5.55 8.44 10.44 7.55 5.55 ],[5.22 5.22 7.22 7.22 5.22 ],[1 1 1 ]);\npatch([7.55 14.44 12.44 10."
-	  "44 8.44 5.55 7.55 ],[3.22 3.22 5.22 3.22 5.22 5.22 3.22 ],[0.964 0.964 0.964 ]);\nfprintf('','COMMENT: end icon gra"
-	  "phics');\nfprintf('','COMMENT: begin icon text');\ncolor('black');port_label('input',1,' ');\ncolor('black');port_l"
-	  "abel('output',1,'\\fontsize{11pt} Out ','texmode','on');\nfprintf('','COMMENT: end icon text');"
-	  Port {
-	    PortNumber		    1
-	    Name		    "Samp CE"
-	    RTWStorageClass	    "Auto"
-	    DataLoggingNameMode	    "SignalName"
-	  }
 	}
 	Block {
 	  BlockType		  Reference
@@ -68826,36 +68743,1029 @@ Model {
 	  "con text');"
 	}
 	Block {
-	  BlockType		  Scope
-	  Name			  "Tx Start vs Samp CE"
-	  SID			  "3561"
-	  Ports			  [2]
-	  Position		  [610, 414, 645, 516]
-	  ZOrder		  -16
-	  Floating		  off
-	  Location		  [188, 390, 512, 629]
-	  Open			  off
-	  NumInputPorts		  "2"
-	  List {
-	    ListType		    AxesTitles
-	    axes1		    "%<SignalLabel>"
-	    axes2		    "%<SignalLabel>"
+	  BlockType		  SubSystem
+	  Name			  "Simulation Start-Stop"
+	  SID			  "3391"
+	  Ports			  [1, 1]
+	  Position		  [410, 537, 565, 583]
+	  MinAlgLoopOccurrences	  off
+	  PropExecContextOutsideSubsystem off
+	  RTWSystemCode		  "Auto"
+	  FunctionWithSeparateData off
+	  Opaque		  off
+	  RequestExecContextInheritance	off
+	  MaskHideContents	  off
+	  System {
+	    Name		    "Simulation Start-Stop"
+	    Location		    [1272, 388, 2027, 560]
+	    Open		    on
+	    ModelBrowserVisibility  off
+	    ModelBrowserWidth	    200
+	    ScreenColor		    "white"
+	    PaperOrientation	    "landscape"
+	    PaperPositionMode	    "auto"
+	    PaperType		    "usletter"
+	    PaperUnits		    "inches"
+	    TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
+	    TiledPageScale	    1
+	    ShowPageBoundaries	    off
+	    ZoomFactor		    "100"
+	    Block {
+	      BlockType		      Inport
+	      Name		      "Sim TX_DONE"
+	      SID		      "3392"
+	      Position		      [320, 363, 350, 377]
+	      IconDisplay	      "Port number"
+	    }
+	    Block {
+	      BlockType		      Constant
+	      Name		      "Constant1"
+	      SID		      "3370"
+	      Position		      [725, 375, 830, 395]
+	      ZOrder		      -4
+	      ShowName		      off
+	      Value		      "tx_sim.num_pkts"
+	    }
+	    Block {
+	      BlockType		      Reference
+	      Name		      "Counter"
+	      SID		      "3367"
+	      Ports		      [1, 1]
+	      Position		      [530, 340, 590, 400]
+	      LibraryVersion	      "1.2"
+	      SourceBlock	      "xbsIndex_r4/Counter"
+	      SourceType	      "Xilinx Counter Block"
+	      infoedit		      "Hardware notes: Free running counters are the least expensive in hardware.  A count limited co"
+	      "unter is implemented by combining a counter with a comparator."
+	      cnt_type		      "Free Running"
+	      cnt_to		      "Inf"
+	      operation		      "Up"
+	      start_count	      "0"
+	      cnt_by_val	      "1"
+	      arith_type	      "Unsigned"
+	      n_bits		      "8"
+	      bin_pt		      "0"
+	      load_pin		      off
+	      rst		      off
+	      en		      on
+	      explicit_period	      "off"
+	      period		      "1"
+	      dbl_ovrd		      off
+	      use_behavioral_HDL      off
+	      implementation	      "Fabric"
+	      xl_use_area	      off
+	      xl_area		      "[0,0,0,0,0,0,0]"
+	      has_advanced_control    "0"
+	      sggui_pos		      "-1,-1,-1,-1"
+	      block_type	      "counter"
+	      sg_icon_stat	      "60,60,1,1,white,blue,0,b089e9c5,right,,[ ],[ ]"
+	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 60 60 0 0 ],[0 0 60 60 0 ],[0.77 0"
+	      ".82 0.91 ]);\nplot([0 60 60 0 0 ],[0 0 60 60 0 ]);\npatch([12.2 23.76 31.76 39.76 47.76 31.76 20.2 12.2 ],[38.8"
+	      "8 38.88 46.88 38.88 46.88 46.88 46.88 38.88 ],[1 1 1 ]);\npatch([20.2 31.76 23.76 12.2 20.2 ],[30.88 30.88 38.8"
+	      "8 38.88 30.88 ],[0.931 0.946 0.973 ]);\npatch([12.2 23.76 31.76 20.2 12.2 ],[22.88 22.88 30.88 30.88 22.88 ],[1"
+	      " 1 1 ]);\npatch([20.2 47.76 39.76 31.76 23.76 12.2 20.2 ],[14.88 14.88 22.88 14.88 22.88 22.88 14.88 ],[0.931 0"
+	      ".946 0.973 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('blac"
+	      "k');port_label('input',1,'en');\n\ncolor('black');disp('{\\fontsize{14}\\bf++}','texmode','on');\nfprintf('','C"
+	      "OMMENT: end icon text');"
+	    }
+	    Block {
+	      BlockType		      Reference
+	      Name		      "Delay"
+	      SID		      "3433"
+	      Ports		      [1, 1]
+	      Position		      [545, 249, 580, 281]
+	      LibraryVersion	      "1.2"
+	      SourceBlock	      "xbsIndex_r4/Delay"
+	      SourceType	      "Xilinx Delay Block"
+	      infoedit		      "Hardware notes: A delay line is a chain, each link of which is an SRL16 followed by a flip-flo"
+	      "p."
+	      rst		      off
+	      infoeditControl	      "Selection of Reset will increase slice count due to use of real FFs and instead of SRLs"
+	      en		      off
+	      latency		      "500"
+	      dbl_ovrd		      off
+	      reg_retiming	      off
+	      xl_use_area	      off
+	      xl_area		      "[0,0,0,0,0,0,0]"
+	      has_advanced_control    "0"
+	      sggui_pos		      "-1,-1,-1,-1"
+	      block_type	      "delay"
+	      sg_icon_stat	      "35,32,1,1,white,blue,0,5c475973,right,,[ ],[ ]"
+	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 35 35 0 0 ],[0 0 32 32 0 ],[0.77 0"
+	      ".82 0.91 ]);\nplot([0 35 35 0 0 ],[0 0 32 32 0 ]);\npatch([8.1 13.88 17.88 21.88 25.88 17.88 12.1 8.1 ],[20.44 "
+	      "20.44 24.44 20.44 24.44 24.44 24.44 20.44 ],[1 1 1 ]);\npatch([12.1 17.88 13.88 8.1 12.1 ],[16.44 16.44 20.44 2"
+	      "0.44 16.44 ],[0.931 0.946 0.973 ]);\npatch([8.1 13.88 17.88 12.1 8.1 ],[12.44 12.44 16.44 16.44 12.44 ],[1 1 1 "
+	      "]);\npatch([12.1 25.88 21.88 17.88 13.88 8.1 12.1 ],[8.44 8.44 12.44 8.44 12.44 12.44 8.44 ],[0.931 0.946 0.973"
+	      " ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\n\n\ncolor('black');di"
+	      "sp('z^{-500}','texmode','on');\nfprintf('','COMMENT: end icon text');"
+	    }
+	    Block {
+	      BlockType		      Reference
+	      Name		      "Delay1"
+	      SID		      "3434"
+	      Ports		      [1, 1]
+	      Position		      [745, 274, 780, 306]
+	      LibraryVersion	      "1.2"
+	      SourceBlock	      "xbsIndex_r4/Delay"
+	      SourceType	      "Xilinx Delay Block"
+	      infoedit		      "Hardware notes: A delay line is a chain, each link of which is an SRL16 followed by a flip-flo"
+	      "p."
+	      rst		      off
+	      infoeditControl	      "Selection of Reset will increase slice count due to use of real FFs and instead of SRLs"
+	      en		      off
+	      latency		      "32"
+	      dbl_ovrd		      off
+	      reg_retiming	      off
+	      xl_use_area	      off
+	      xl_area		      "[0,0,0,0,0,0,0]"
+	      has_advanced_control    "0"
+	      sggui_pos		      "-1,-1,-1,-1"
+	      block_type	      "delay"
+	      sg_icon_stat	      "35,32,1,1,white,blue,0,05c6467a,right,,[ ],[ ]"
+	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 35 35 0 0 ],[0 0 32 32 0 ],[0.77 0"
+	      ".82 0.91 ]);\nplot([0 35 35 0 0 ],[0 0 32 32 0 ]);\npatch([8.1 13.88 17.88 21.88 25.88 17.88 12.1 8.1 ],[20.44 "
+	      "20.44 24.44 20.44 24.44 24.44 24.44 20.44 ],[1 1 1 ]);\npatch([12.1 17.88 13.88 8.1 12.1 ],[16.44 16.44 20.44 2"
+	      "0.44 16.44 ],[0.931 0.946 0.973 ]);\npatch([8.1 13.88 17.88 12.1 8.1 ],[12.44 12.44 16.44 16.44 12.44 ],[1 1 1 "
+	      "]);\npatch([12.1 25.88 21.88 17.88 13.88 8.1 12.1 ],[8.44 8.44 12.44 8.44 12.44 12.44 8.44 ],[0.931 0.946 0.973"
+	      " ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\n\n\ncolor('black');di"
+	      "sp('z^{-32}','texmode','on');\nfprintf('','COMMENT: end icon text');"
+	    }
+	    Block {
+	      BlockType		      Delay
+	      Name		      "Delay2"
+	      SID		      "3374"
+	      Ports		      [1, 1]
+	      Position		      [955, 363, 990, 397]
+	      InputPortMap	      "u0"
+	      DelayLength	      "400"
+	      ExternalReset	      "None"
+	      SampleTime	      "1"
+	      Port {
+		PortNumber		1
+		Name			"Stop"
+		RTWStorageClass		"Auto"
+		DataLoggingNameMode	"SignalName"
+	      }
+	    }
+	    Block {
+	      BlockType		      Reference
+	      Name		      "Disregard Subsystem"
+	      SID		      "3432"
+	      Tag		      "discardX"
+	      Ports		      []
+	      Position		      [124, 462, 182, 520]
+	      ShowName		      off
+	      AttributesFormatString  "Disregard Subsystem\\nFor Generation"
+	      LibraryVersion	      "1.2"
+	      SourceBlock	      "xbsIndex_r4/Disregard Subsystem"
+	      SourceType	      "Xilinx Disregard Subsystem For Generation Block"
+	      infoedit		      "Place this block into a subsystem to have System Generator ignore the subsystem during code ge"
+	      "neration. This block can be used in combination with the Simulation Multiplexer block to provide an alternative"
+	      " simulation model for another subsystem (e.g., to provide a simulation model for a black box)."
+	      has_advanced_control    "0"
+	      sggui_pos		      "-1,-1,-1,-1"
+	      block_type	      "disregard"
+	      sg_icon_stat	      "58,58,-1,-1,darkgray,black,0,07734,right,,[ ],[ ]"
+	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 58 58 0 0 ],[0 0 58 58 0 ],[0.1 0."
+	      "1 0.1 ]);\nplot([0 58 58 0 0 ],[0 0 58 58 0 ]);\npatch([11.2 22.76 30.76 38.76 46.76 30.76 19.2 11.2 ],[37.88 3"
+	      "7.88 45.88 37.88 45.88 45.88 45.88 37.88 ],[0.33 0.33 0.33 ]);\npatch([19.2 30.76 22.76 11.2 19.2 ],[29.88 29.8"
+	      "8 37.88 37.88 29.88 ],[0.261 0.261 0.261 ]);\npatch([11.2 22.76 30.76 19.2 11.2 ],[21.88 21.88 29.88 29.88 21.8"
+	      "8 ],[0.33 0.33 0.33 ]);\npatch([19.2 46.76 38.76 30.76 22.76 11.2 19.2 ],[13.88 13.88 21.88 13.88 21.88 21.88 1"
+	      "3.88 ],[0.261 0.261 0.261 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text'"
+	      ");\nfprintf('','COMMENT: end icon text');"
+	    }
+	    Block {
+	      BlockType		      Reference
+	      Name		      "Gateway Out1"
+	      SID		      "3360"
+	      Ports		      [1, 1]
+	      Position		      [665, 364, 700, 376]
+	      ShowName		      off
+	      LibraryVersion	      "1.2"
+	      SourceBlock	      "xbsIndex_r4/Gateway Out"
+	      SourceType	      "Xilinx Gateway Out Block"
+	      infoedit		      "Gateway out block.  Converts Xilinx fixed-point or floating-point type inputs into ouputs of t"
+	      "ype Simulink integer, single, double, or fixed-point.<br><br>Hardware notes:  In hardware these blocks become t"
+	      "op level output ports or are discarded, depending on how they are configured."
+	      inherit_from_input      off
+	      hdl_port		      off
+	      timing_constraint	      "None"
+	      locs_specified	      off
+	      LOCs		      "{}"
+	      UseAsDAC		      off
+	      DACChannel	      "'1'"
+	      xl_use_area	      off
+	      xl_area		      "[0,0,0,0,0,0,0]"
+	      has_advanced_control    "0"
+	      sggui_pos		      "-1,-1,-1,-1"
+	      block_type	      "gatewayout"
+	      sg_icon_stat	      "35,12,1,1,white,grey,1,632ec840,right,,[ ],[ ]"
+	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 35 35 0 0 ],[0 0 12 12 0 ],[0.88 0"
+	      ".88 0.88 ]);\nplot([0 35 35 0 0 ],[0 0 12 12 0 ]);\npatch([14.775 16.22 17.22 18.22 19.22 17.22 15.775 14.775 ]"
+	      ",[7.11 7.11 8.11 7.11 8.11 8.11 8.11 7.11 ],[1 1 1 ]);\npatch([15.775 17.22 16.22 14.775 15.775 ],[6.11 6.11 7."
+	      "11 7.11 6.11 ],[0.964 0.964 0.964 ]);\npatch([14.775 16.22 17.22 15.775 14.775 ],[5.11 5.11 6.11 6.11 5.11 ],[1"
+	      " 1 1 ]);\npatch([15.775 19.22 18.22 17.22 16.22 14.775 15.775 ],[4.11 4.11 5.11 4.11 5.11 5.11 4.11 ],[0.964 0."
+	      "964 0.964 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black"
+	      "');port_label('input',1,' ');\ncolor('black');port_label('output',1,'\\fontsize{11pt} Out ','texmode','on');\nf"
+	      "printf('','COMMENT: end icon text');"
+	    }
+	    Block {
+	      BlockType		      Reference
+	      Name		      "Gateway Out2"
+	      SID		      "3437"
+	      Ports		      [1, 1]
+	      Position		      [950, 274, 985, 286]
+	      ShowName		      off
+	      LibraryVersion	      "1.2"
+	      SourceBlock	      "xbsIndex_r4/Gateway Out"
+	      SourceType	      "Xilinx Gateway Out Block"
+	      infoedit		      "Gateway out block.  Converts Xilinx fixed-point or floating-point type inputs into ouputs of t"
+	      "ype Simulink integer, single, double, or fixed-point.<br><br>Hardware notes:  In hardware these blocks become t"
+	      "op level output ports or are discarded, depending on how they are configured."
+	      inherit_from_input      off
+	      hdl_port		      off
+	      timing_constraint	      "None"
+	      locs_specified	      off
+	      LOCs		      "{}"
+	      UseAsDAC		      off
+	      DACChannel	      "'1'"
+	      xl_use_area	      off
+	      xl_area		      "[0,0,0,0,0,0,0]"
+	      has_advanced_control    "0"
+	      sggui_pos		      "-1,-1,-1,-1"
+	      block_type	      "gatewayout"
+	      sg_icon_stat	      "35,12,1,1,white,grey,1,632ec840,right,,[ ],[ ]"
+	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 35 35 0 0 ],[0 0 12 12 0 ],[0.88 0"
+	      ".88 0.88 ]);\nplot([0 35 35 0 0 ],[0 0 12 12 0 ]);\npatch([14.775 16.22 17.22 18.22 19.22 17.22 15.775 14.775 ]"
+	      ",[7.11 7.11 8.11 7.11 8.11 8.11 8.11 7.11 ],[1 1 1 ]);\npatch([15.775 17.22 16.22 14.775 15.775 ],[6.11 6.11 7."
+	      "11 7.11 6.11 ],[0.964 0.964 0.964 ]);\npatch([14.775 16.22 17.22 15.775 14.775 ],[5.11 5.11 6.11 6.11 5.11 ],[1"
+	      " 1 1 ]);\npatch([15.775 19.22 18.22 17.22 16.22 14.775 15.775 ],[4.11 4.11 5.11 4.11 5.11 5.11 4.11 ],[0.964 0."
+	      "964 0.964 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black"
+	      "');port_label('input',1,' ');\ncolor('black');port_label('output',1,'\\fontsize{11pt} Out ','texmode','on');\nf"
+	      "printf('','COMMENT: end icon text');"
+	      Port {
+		PortNumber		1
+		Name			"Start"
+		RTWStorageClass		"Auto"
+		DataLoggingNameMode	"SignalName"
+	      }
+	    }
+	    Block {
+	      BlockType		      Reference
+	      Name		      "Gateway Out3"
+	      SID		      "3421"
+	      Ports		      [1, 1]
+	      Position		      [1190, 564, 1225, 576]
+	      ShowName		      off
+	      LibraryVersion	      "1.2"
+	      SourceBlock	      "xbsIndex_r4/Gateway Out"
+	      SourceType	      "Xilinx Gateway Out Block"
+	      infoedit		      "Gateway out block.  Converts Xilinx fixed-point or floating-point type inputs into ouputs of t"
+	      "ype Simulink integer, single, double, or fixed-point.<br><br>Hardware notes:  In hardware these blocks become t"
+	      "op level output ports or are discarded, depending on how they are configured."
+	      inherit_from_input      off
+	      hdl_port		      off
+	      timing_constraint	      "None"
+	      locs_specified	      off
+	      LOCs		      "{}"
+	      UseAsDAC		      off
+	      DACChannel	      "'1'"
+	      xl_use_area	      off
+	      xl_area		      "[0,0,0,0,0,0,0]"
+	      has_advanced_control    "0"
+	      sggui_pos		      "-1,-1,-1,-1"
+	      block_type	      "gatewayout"
+	      sg_icon_stat	      "35,12,1,1,white,grey,1,632ec840,right,,[ ],[ ]"
+	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 35 35 0 0 ],[0 0 12 12 0 ],[0.88 0"
+	      ".88 0.88 ]);\nplot([0 35 35 0 0 ],[0 0 12 12 0 ]);\npatch([14.775 16.22 17.22 18.22 19.22 17.22 15.775 14.775 ]"
+	      ",[7.11 7.11 8.11 7.11 8.11 8.11 8.11 7.11 ],[1 1 1 ]);\npatch([15.775 17.22 16.22 14.775 15.775 ],[6.11 6.11 7."
+	      "11 7.11 6.11 ],[0.964 0.964 0.964 ]);\npatch([14.775 16.22 17.22 15.775 14.775 ],[5.11 5.11 6.11 6.11 5.11 ],[1"
+	      " 1 1 ]);\npatch([15.775 19.22 18.22 17.22 16.22 14.775 15.775 ],[4.11 4.11 5.11 4.11 5.11 5.11 4.11 ],[0.964 0."
+	      "964 0.964 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black"
+	      "');port_label('input',1,' ');\ncolor('black');port_label('output',1,'\\fontsize{11pt} Out ','texmode','on');\nf"
+	      "printf('','COMMENT: end icon text');"
+	      Port {
+		PortNumber		1
+		Name			"TX_DONE"
+		RTWStorageClass		"Auto"
+		DataLoggingNameMode	"SignalName"
+	      }
+	    }
+	    Block {
+	      BlockType		      Reference
+	      Name		      "Gateway Out4"
+	      SID		      "3422"
+	      Ports		      [1, 1]
+	      Position		      [1190, 579, 1225, 591]
+	      ShowName		      off
+	      LibraryVersion	      "1.2"
+	      SourceBlock	      "xbsIndex_r4/Gateway Out"
+	      SourceType	      "Xilinx Gateway Out Block"
+	      infoedit		      "Gateway out block.  Converts Xilinx fixed-point or floating-point type inputs into ouputs of t"
+	      "ype Simulink integer, single, double, or fixed-point.<br><br>Hardware notes:  In hardware these blocks become t"
+	      "op level output ports or are discarded, depending on how they are configured."
+	      inherit_from_input      off
+	      hdl_port		      off
+	      timing_constraint	      "None"
+	      locs_specified	      off
+	      LOCs		      "{}"
+	      UseAsDAC		      off
+	      DACChannel	      "'1'"
+	      xl_use_area	      off
+	      xl_area		      "[0,0,0,0,0,0,0]"
+	      has_advanced_control    "0"
+	      sggui_pos		      "-1,-1,-1,-1"
+	      block_type	      "gatewayout"
+	      sg_icon_stat	      "35,12,1,1,white,grey,1,632ec840,right,,[ ],[ ]"
+	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 35 35 0 0 ],[0 0 12 12 0 ],[0.88 0"
+	      ".88 0.88 ]);\nplot([0 35 35 0 0 ],[0 0 12 12 0 ]);\npatch([14.775 16.22 17.22 18.22 19.22 17.22 15.775 14.775 ]"
+	      ",[7.11 7.11 8.11 7.11 8.11 8.11 8.11 7.11 ],[1 1 1 ]);\npatch([15.775 17.22 16.22 14.775 15.775 ],[6.11 6.11 7."
+	      "11 7.11 6.11 ],[0.964 0.964 0.964 ]);\npatch([14.775 16.22 17.22 15.775 14.775 ],[5.11 5.11 6.11 6.11 5.11 ],[1"
+	      " 1 1 ]);\npatch([15.775 19.22 18.22 17.22 16.22 14.775 15.775 ],[4.11 4.11 5.11 4.11 5.11 5.11 4.11 ],[0.964 0."
+	      "964 0.964 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black"
+	      "');port_label('input',1,' ');\ncolor('black');port_label('output',1,'\\fontsize{11pt} Out ','texmode','on');\nf"
+	      "printf('','COMMENT: end icon text');"
+	      Port {
+		PortNumber		1
+		Name			"Pkt Count"
+		RTWStorageClass		"Auto"
+		DataLoggingNameMode	"SignalName"
+	      }
+	    }
+	    Block {
+	      BlockType		      Logic
+	      Name		      "Logical Operator"
+	      SID		      "3377"
+	      Ports		      [2, 1]
+	      Position		      [1120, 227, 1150, 258]
+	      ZOrder		      -11
+	      ShowName		      off
+	      Operator		      "OR"
+	      AllPortsSameDT	      off
+	      OutDataTypeStr	      "boolean"
+	      Port {
+		PortNumber		1
+		Name			"START"
+		RTWStorageClass		"Auto"
+		DataLoggingNameMode	"SignalName"
+	      }
+	    }
+	    Block {
+	      BlockType		      SubSystem
+	      Name		      "Posedge3"
+	      SID		      "3361"
+	      Ports		      [1, 1]
+	      Position		      [430, 361, 475, 379]
+	      NamePlacement	      "alternate"
+	      MinAlgLoopOccurrences   off
+	      PropExecContextOutsideSubsystem off
+	      RTWSystemCode	      "Auto"
+	      FunctionWithSeparateData off
+	      Opaque		      off
+	      RequestExecContextInheritance off
+	      MaskHideContents	      off
+	      System {
+		Name			"Posedge3"
+		Location		[88, 301, 2330, 1301]
+		Open			off
+		ModelBrowserVisibility	off
+		ModelBrowserWidth	200
+		ScreenColor		"white"
+		PaperOrientation	"landscape"
+		PaperPositionMode	"auto"
+		PaperType		"usletter"
+		PaperUnits		"inches"
+		TiledPaperMargins	[0.500000, 0.500000, 0.500000, 0.500000]
+		TiledPageScale		1
+		ShowPageBoundaries	off
+		ZoomFactor		"100"
+		Block {
+		  BlockType		  Inport
+		  Name			  "D"
+		  SID			  "3362"
+		  Position		  [200, 253, 230, 267]
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Reference
+		  Name			  "Delay"
+		  SID			  "3363"
+		  Ports			  [1, 1]
+		  Position		  [425, 153, 460, 177]
+		  ShowName		  off
+		  LibraryVersion	  "1.2"
+		  SourceBlock		  "xbsIndex_r4/Delay"
+		  SourceType		  "Xilinx Delay Block"
+		  infoedit		  "Hardware notes: A delay line is a chain, each link of which is an SRL16 followed by a flip-flop. If r"
+		  "egister retiming is enabled, the delay line is a chain of flip-flops."
+		  rst			  off
+		  infoeditControl	  "Selection of Reset will increase slice count due to use of real FFs and instead of SRLs"
+		  en			  off
+		  latency		  "1"
+		  dbl_ovrd		  off
+		  reg_retiming		  off
+		  xl_use_area		  off
+		  xl_area		  "[1 1 0 0 0 0 0]"
+		  has_advanced_control	  "0"
+		  sggui_pos		  "-1,-1,-1,-1"
+		  block_type		  "delay"
+		  block_version		  "VER_STRING_GOES_HERE"
+		  sg_icon_stat		  "35,24,1,1,white,blue,0,07b98262,right,,[ ],[ ]"
+		  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 35 35 0 0 ],[0 0 24 24 0 ],[0.77 0.82 0.9"
+		  "1 ]);\nplot([0 35 35 0 0 ],[0 0 24 24 0 ]);\npatch([10.325 14.66 17.66 20.66 23.66 17.66 13.325 10.325 ],[15.33 15"
+		  ".33 18.33 15.33 18.33 18.33 18.33 15.33 ],[1 1 1 ]);\npatch([13.325 17.66 14.66 10.325 13.325 ],[12.33 12.33 15.33"
+		  " 15.33 12.33 ],[0.931 0.946 0.973 ]);\npatch([10.325 14.66 17.66 13.325 10.325 ],[9.33 9.33 12.33 12.33 9.33 ],[1 "
+		  "1 1 ]);\npatch([13.325 23.66 20.66 17.66 14.66 10.325 13.325 ],[6.33 6.33 9.33 6.33 9.33 9.33 6.33 ],[0.931 0.946 "
+		  "0.973 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\n\n\ncolor('black');"
+		  "disp('z^{-1}','texmode','on');\nfprintf('','COMMENT: end icon text');"
+		}
+		Block {
+		  BlockType		  Reference
+		  Name			  "Inverter"
+		  SID			  "3364"
+		  Ports			  [1, 1]
+		  Position		  [490, 156, 515, 174]
+		  ShowName		  off
+		  LibraryVersion	  "1.2"
+		  SourceBlock		  "xbsIndex_r4/Inverter"
+		  SourceType		  "Xilinx Inverter Block"
+		  infoedit		  "Bitwise logical negation (one's complement) operator."
+		  en			  off
+		  latency		  "0"
+		  dbl_ovrd		  off
+		  xl_use_area		  off
+		  xl_area		  "[0 0 0 0 0 0 0]"
+		  has_advanced_control	  "0"
+		  sggui_pos		  "-1,-1,-1,-1"
+		  block_type		  "inv"
+		  block_version		  "VER_STRING_GOES_HERE"
+		  sg_icon_stat		  "25,18,1,1,white,blue,0,267846e5,right,,[ ],[ ]"
+		  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 25 25 0 0 ],[0 0 18 18 0 ],[0.77 0.82 0.9"
+		  "1 ]);\nplot([0 25 25 0 0 ],[0 0 18 18 0 ]);\npatch([7.55 10.44 12.44 14.44 16.44 12.44 9.55 7.55 ],[11.22 11.22 13"
+		  ".22 11.22 13.22 13.22 13.22 11.22 ],[1 1 1 ]);\npatch([9.55 12.44 10.44 7.55 9.55 ],[9.22 9.22 11.22 11.22 9.22 ],"
+		  "[0.931 0.946 0.973 ]);\npatch([7.55 10.44 12.44 9.55 7.55 ],[7.22 7.22 9.22 9.22 7.22 ],[1 1 1 ]);\npatch([9.55 16"
+		  ".44 14.44 12.44 10.44 7.55 9.55 ],[5.22 5.22 7.22 5.22 7.22 7.22 5.22 ],[0.931 0.946 0.973 ]);\nfprintf('','COMMEN"
+		  "T: end icon graphics');\nfprintf('','COMMENT: begin icon text');\n\n\ncolor('black');disp('not');\nfprintf('','COM"
+		  "MENT: end icon text');"
+		}
+		Block {
+		  BlockType		  Reference
+		  Name			  "Logical1"
+		  SID			  "3365"
+		  Ports			  [2, 1]
+		  Position		  [540, 151, 585, 204]
+		  ShowName		  off
+		  LibraryVersion	  "1.2"
+		  SourceBlock		  "xbsIndex_r4/Logical"
+		  SourceType		  "Xilinx Logical Block Block"
+		  logical_function	  "AND"
+		  inputs		  "2"
+		  en			  off
+		  latency		  "0"
+		  precision		  "Full"
+		  arith_type		  "Unsigned"
+		  n_bits		  "8"
+		  bin_pt		  "2"
+		  align_bp		  on
+		  dbl_ovrd		  off
+		  xl_use_area		  off
+		  xl_area		  "[1 0 0 1 0 0 0]"
+		  has_advanced_control	  "0"
+		  sggui_pos		  "-1,-1,-1,-1"
+		  block_type		  "logical"
+		  block_version		  "VER_STRING_GOES_HERE"
+		  sg_icon_stat		  "45,53,2,1,white,blue,0,83a4b621,right,,[ ],[ ]"
+		  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 45 45 0 0 ],[0 0 53 53 0 ],[0.77 0.82 0.9"
+		  "1 ]);\nplot([0 45 45 0 0 ],[0 0 53 53 0 ]);\npatch([8.65 17.32 23.32 29.32 35.32 23.32 14.65 8.65 ],[32.66 32.66 3"
+		  "8.66 32.66 38.66 38.66 38.66 32.66 ],[1 1 1 ]);\npatch([14.65 23.32 17.32 8.65 14.65 ],[26.66 26.66 32.66 32.66 26"
+		  ".66 ],[0.931 0.946 0.973 ]);\npatch([8.65 17.32 23.32 14.65 8.65 ],[20.66 20.66 26.66 26.66 20.66 ],[1 1 1 ]);\npa"
+		  "tch([14.65 35.32 29.32 23.32 17.32 8.65 14.65 ],[14.66 14.66 20.66 14.66 20.66 20.66 14.66 ],[0.931 0.946 0.973 ])"
+		  ";\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\n\n\n\ncolor('black');disp('"
+		  "and');\nfprintf('','COMMENT: end icon text');"
+		}
+		Block {
+		  BlockType		  Outport
+		  Name			  "Q"
+		  SID			  "3366"
+		  Position		  [610, 173, 640, 187]
+		  IconDisplay		  "Port number"
+		}
+		Line {
+		  SrcBlock		  "D"
+		  SrcPort		  1
+		  Points		  [150, 0; 0, -70]
+		  Branch {
+		    DstBlock		    "Logical1"
+		    DstPort		    2
+		  }
+		  Branch {
+		    Points		    [0, -25]
+		    DstBlock		    "Delay"
+		    DstPort		    1
+		  }
+		}
+		Line {
+		  SrcBlock		  "Logical1"
+		  SrcPort		  1
+		  DstBlock		  "Q"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "Inverter"
+		  SrcPort		  1
+		  DstBlock		  "Logical1"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "Delay"
+		  SrcPort		  1
+		  DstBlock		  "Inverter"
+		  DstPort		  1
+		}
+		Annotation {
+		  Name			  "Rising Edge Detection"
+		  Position		  [500, 112]
+		}
+	      }
+	    }
+	    Block {
+	      BlockType		      DiscretePulseGenerator
+	      Name		      "Pulse\nGenerator1"
+	      SID		      "2414"
+	      Ports		      [0, 1]
+	      Position		      [1030, 199, 1060, 231]
+	      ZOrder		      -13
+	      ShowName		      off
+	      Period		      "1e9"
+	      PulseWidth	      "100"
+	      PhaseDelay	      "150"
+	    }
+	    Block {
+	      BlockType		      Scope
+	      Name		      "Radio TxEn-RxEn"
+	      SID		      "3423"
+	      Ports		      [7]
+	      Position		      [1315, 568, 1350, 662]
+	      ZOrder		      -3
+	      Floating		      off
+	      Location		      [6, 202, 1686, 1206]
+	      Open		      off
+	      NumInputPorts	      "7"
+	      ZoomMode		      "xonly"
+	      List {
+		ListType		AxesTitles
+		axes1			"%<SignalLabel>"
+		axes2			"%<SignalLabel>"
+		axes3			"%<SignalLabel>"
+		axes4			"%<SignalLabel>"
+		axes5			"%<SignalLabel>"
+		axes6			"%<SignalLabel>"
+		axes7			"%<SignalLabel>"
+	      }
+	      List {
+		ListType		ScopeGraphics
+		FigureColor		"[0.501960784313725 0.501960784313725 0.501960784313725]"
+		AxesColor		"[0 0 0]"
+		AxesTickColor		"[1 1 1]"
+		LineColors		"[1 1 0;1 0 1;0 1 1;1 0 0;0 1 0;0 0 1]"
+		LineStyles		"-|-|-|-|-|-"
+		LineWidths		"[2 0.5 0.5 0.5 0.5 0.5]"
+		MarkerStyles		"none|none|none|none|none|none"
+	      }
+	      TimeRange		      "14000"
+	      YMin		      "-1~2~-1~-1~-1~-1~-1"
+	      YMax		      "1~2~1~1~1~1~1"
+	      SaveName		      "ScopeData14"
+	      DataFormat	      "StructureWithTime"
+	      LimitDataPoints	      off
+	      SampleTime	      "0"
+	    }
+	    Block {
+	      BlockType		      RelationalOperator
+	      Name		      "Relational Operator"
+	      SID		      "3369"
+	      Ports		      [2, 1]
+	      Position		      [870, 362, 900, 393]
+	      ZOrder		      -14
+	      ShowName		      off
+	      InputSameDT	      off
+	      OutDataTypeStr	      "boolean"
+	    }
+	    Block {
+	      BlockType		      SubSystem
+	      Name		      "S-R Latch1"
+	      SID		      "3424"
+	      Ports		      [2, 1]
+	      Position		      [820, 253, 865, 302]
+	      MinAlgLoopOccurrences   off
+	      PropExecContextOutsideSubsystem off
+	      RTWSystemCode	      "Auto"
+	      FunctionWithSeparateData off
+	      Opaque		      off
+	      RequestExecContextInheritance off
+	      MaskHideContents	      off
+	      Port {
+		PortNumber		1
+		Name			"Start"
+		RTWStorageClass		"Auto"
+		DataLoggingNameMode	"SignalName"
+	      }
+	      System {
+		Name			"S-R Latch1"
+		Location		[351, 366, 2001, 1172]
+		Open			off
+		ModelBrowserVisibility	off
+		ModelBrowserWidth	200
+		ScreenColor		"white"
+		PaperOrientation	"landscape"
+		PaperPositionMode	"auto"
+		PaperType		"usletter"
+		PaperUnits		"inches"
+		TiledPaperMargins	[0.500000, 0.500000, 0.500000, 0.500000]
+		TiledPageScale		1
+		ShowPageBoundaries	off
+		ZoomFactor		"100"
+		Block {
+		  BlockType		  Inport
+		  Name			  "S"
+		  SID			  "3425"
+		  Position		  [140, 103, 170, 117]
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Inport
+		  Name			  "R"
+		  SID			  "3426"
+		  Position		  [140, 88, 170, 102]
+		  NamePlacement		  "alternate"
+		  Port			  "2"
+		  IconDisplay		  "Port number"
+		}
+		Block {
+		  BlockType		  Reference
+		  Name			  "Constant1"
+		  SID			  "3427"
+		  Ports			  [0, 1]
+		  Position		  [195, 71, 210, 89]
+		  ShowName		  off
+		  LibraryVersion	  "1.2"
+		  SourceBlock		  "xbsIndex_r4/Constant"
+		  SourceType		  "Xilinx Constant Block Block"
+		  const			  "1"
+		  gui_display_data_type	  "Boolean"
+		  arith_type		  "Boolean"
+		  n_bits		  "1"
+		  bin_pt		  "0"
+		  preci_type		  "Single"
+		  exp_width		  "8"
+		  frac_width		  "24"
+		  explicit_period	  off
+		  period		  "1"
+		  dsp48_infoedit	  "The use of this block for DSP48 instructions is deprecated.  Please use the Opmode block."
+		  equ			  "P=C"
+		  opselect		  "C"
+		  inp2			  "PCIN>>17"
+		  opr			  "+"
+		  inp1			  "P"
+		  carry			  "CIN"
+		  dbl_ovrd		  off
+		  has_advanced_control	  "0"
+		  sggui_pos		  "-1,-1,-1,-1"
+		  block_type		  "constant"
+		  block_version		  "VER_STRING_GOES_HERE"
+		  sg_icon_stat		  "15,18,0,1,white,blue,0,1c72b5be,right,,[ ],[ ]"
+		  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 15 15 0 0 ],[0 0 18 18 0 ],[0.77 0.82 0.9"
+		  "1 ]);\nplot([0 15 15 0 0 ],[0 0 18 18 0 ]);\npatch([2.55 5.44 7.44 9.44 11.44 7.44 4.55 2.55 ],[11.22 11.22 13.22 "
+		  "11.22 13.22 13.22 13.22 11.22 ],[1 1 1 ]);\npatch([4.55 7.44 5.44 2.55 4.55 ],[9.22 9.22 11.22 11.22 9.22 ],[0.931"
+		  " 0.946 0.973 ]);\npatch([2.55 5.44 7.44 4.55 2.55 ],[7.22 7.22 9.22 9.22 7.22 ],[1 1 1 ]);\npatch([4.55 11.44 9.44"
+		  " 7.44 5.44 2.55 4.55 ],[5.22 5.22 7.22 5.22 7.22 7.22 5.22 ],[0.931 0.946 0.973 ]);\nfprintf('','COMMENT: end icon"
+		  " graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black');port_label('output',1,'1');\nfprintf('','COM"
+		  "MENT: end icon text');"
+		}
+		Block {
+		  BlockType		  Reference
+		  Name			  "Convert1"
+		  SID			  "3428"
+		  Ports			  [1, 1]
+		  Position		  [210, 86, 235, 104]
+		  ShowName		  off
+		  LibraryVersion	  "1.2"
+		  SourceBlock		  "xbsIndex_r4/Convert"
+		  SourceType		  "Xilinx Type Converter Block"
+		  infoedit		  "Hardware notes: rounding and saturating require hardware resources; truncating and wrapping do not."
+		  gui_display_data_type	  "Boolean"
+		  arith_type		  "Boolean"
+		  n_bits		  "1"
+		  bin_pt		  "0"
+		  float_type		  "Single"
+		  exp_bits		  "8"
+		  fraction_bits		  "24"
+		  quantization		  "Truncate"
+		  overflow		  "Wrap"
+		  en			  off
+		  latency		  "0"
+		  dbl_ovrd		  off
+		  pipeline		  off
+		  xl_use_area		  off
+		  xl_area		  "[0,0,0,0,0,0,0]"
+		  has_advanced_control	  "0"
+		  sggui_pos		  "-1,-1,-1,-1"
+		  block_type		  "convert"
+		  sg_icon_stat		  "25,18,1,1,white,blue,0,edca21da,right,,[ ],[ ]"
+		  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 25 25 0 0 ],[0 0 18 18 0 ],[0.77 0.82 0.9"
+		  "1 ]);\nplot([0 25 25 0 0 ],[0 0 18 18 0 ]);\npatch([7.55 10.44 12.44 14.44 16.44 12.44 9.55 7.55 ],[11.22 11.22 13"
+		  ".22 11.22 13.22 13.22 13.22 11.22 ],[1 1 1 ]);\npatch([9.55 12.44 10.44 7.55 9.55 ],[9.22 9.22 11.22 11.22 9.22 ],"
+		  "[0.931 0.946 0.973 ]);\npatch([7.55 10.44 12.44 9.55 7.55 ],[7.22 7.22 9.22 9.22 7.22 ],[1 1 1 ]);\npatch([9.55 16"
+		  ".44 14.44 12.44 10.44 7.55 9.55 ],[5.22 5.22 7.22 5.22 7.22 7.22 5.22 ],[0.931 0.946 0.973 ]);\nfprintf('','COMMEN"
+		  "T: end icon graphics');\nfprintf('','COMMENT: begin icon text');\n\ncolor('black');port_label('output',1,'cast');\n"
+		  "fprintf('','COMMENT: end icon text');"
+		}
+		Block {
+		  BlockType		  Reference
+		  Name			  "Convert2"
+		  SID			  "3429"
+		  Ports			  [1, 1]
+		  Position		  [210, 101, 235, 119]
+		  ShowName		  off
+		  LibraryVersion	  "1.2"
+		  SourceBlock		  "xbsIndex_r4/Convert"
+		  SourceType		  "Xilinx Type Converter Block"
+		  infoedit		  "Hardware notes: rounding and saturating require hardware resources; truncating and wrapping do not."
+		  gui_display_data_type	  "Boolean"
+		  arith_type		  "Boolean"
+		  n_bits		  "1"
+		  bin_pt		  "0"
+		  float_type		  "Single"
+		  exp_bits		  "8"
+		  fraction_bits		  "24"
+		  quantization		  "Truncate"
+		  overflow		  "Wrap"
+		  en			  off
+		  latency		  "0"
+		  dbl_ovrd		  off
+		  pipeline		  off
+		  xl_use_area		  off
+		  xl_area		  "[0,0,0,0,0,0,0]"
+		  has_advanced_control	  "0"
+		  sggui_pos		  "-1,-1,-1,-1"
+		  block_type		  "convert"
+		  sg_icon_stat		  "25,18,1,1,white,blue,0,edca21da,right,,[ ],[ ]"
+		  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 25 25 0 0 ],[0 0 18 18 0 ],[0.77 0.82 0.9"
+		  "1 ]);\nplot([0 25 25 0 0 ],[0 0 18 18 0 ]);\npatch([7.55 10.44 12.44 14.44 16.44 12.44 9.55 7.55 ],[11.22 11.22 13"
+		  ".22 11.22 13.22 13.22 13.22 11.22 ],[1 1 1 ]);\npatch([9.55 12.44 10.44 7.55 9.55 ],[9.22 9.22 11.22 11.22 9.22 ],"
+		  "[0.931 0.946 0.973 ]);\npatch([7.55 10.44 12.44 9.55 7.55 ],[7.22 7.22 9.22 9.22 7.22 ],[1 1 1 ]);\npatch([9.55 16"
+		  ".44 14.44 12.44 10.44 7.55 9.55 ],[5.22 5.22 7.22 5.22 7.22 7.22 5.22 ],[0.931 0.946 0.973 ]);\nfprintf('','COMMEN"
+		  "T: end icon graphics');\nfprintf('','COMMENT: begin icon text');\n\ncolor('black');port_label('output',1,'cast');\n"
+		  "fprintf('','COMMENT: end icon text');"
+		}
+		Block {
+		  BlockType		  Reference
+		  Name			  "Register2"
+		  SID			  "3430"
+		  Ports			  [3, 1]
+		  Position		  [255, 71, 300, 119]
+		  ShowName		  off
+		  LibraryVersion	  "1.2"
+		  SourceBlock		  "xbsIndex_r4/Register"
+		  SourceType		  "Xilinx Register Block"
+		  init			  "0"
+		  rst			  on
+		  en			  on
+		  dbl_ovrd		  off
+		  xl_use_area		  off
+		  xl_area		  "[1 1 0 0 0 0 0]"
+		  has_advanced_control	  "0"
+		  sggui_pos		  "20,20,348,193"
+		  block_type		  "register"
+		  block_version		  "VER_STRING_GOES_HERE"
+		  sg_icon_stat		  "45,48,3,1,white,blue,0,30546de1,right,,[ ],[ ]"
+		  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 45 45 0 0 ],[0 0 48 48 0 ],[0.77 0.82 0.9"
+		  "1 ]);\nplot([0 45 45 0 0 ],[0 0 48 48 0 ]);\npatch([8.65 17.32 23.32 29.32 35.32 23.32 14.65 8.65 ],[30.66 30.66 3"
+		  "6.66 30.66 36.66 36.66 36.66 30.66 ],[1 1 1 ]);\npatch([14.65 23.32 17.32 8.65 14.65 ],[24.66 24.66 30.66 30.66 24"
+		  ".66 ],[0.931 0.946 0.973 ]);\npatch([8.65 17.32 23.32 14.65 8.65 ],[18.66 18.66 24.66 24.66 18.66 ],[1 1 1 ]);\npa"
+		  "tch([14.65 35.32 29.32 23.32 17.32 8.65 14.65 ],[12.66 12.66 18.66 12.66 18.66 18.66 12.66 ],[0.931 0.946 0.973 ])"
+		  ";\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black');port_label('"
+		  "input',1,'d');\ncolor('black');port_label('input',2,'rst');\ncolor('black');port_label('input',3,'en');\ncolor('bl"
+		  "ack');port_label('output',1,'q');\ncolor('black');disp('z^{-1}','texmode','on');\nfprintf('','COMMENT: end icon te"
+		  "xt');"
+		}
+		Block {
+		  BlockType		  Outport
+		  Name			  "Q"
+		  SID			  "3431"
+		  Position		  [325, 88, 355, 102]
+		  IconDisplay		  "Port number"
+		}
+		Line {
+		  SrcBlock		  "S"
+		  SrcPort		  1
+		  DstBlock		  "Convert2"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "Register2"
+		  SrcPort		  1
+		  DstBlock		  "Q"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "R"
+		  SrcPort		  1
+		  DstBlock		  "Convert1"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "Constant1"
+		  SrcPort		  1
+		  DstBlock		  "Register2"
+		  DstPort		  1
+		}
+		Line {
+		  SrcBlock		  "Convert1"
+		  SrcPort		  1
+		  DstBlock		  "Register2"
+		  DstPort		  2
+		}
+		Line {
+		  SrcBlock		  "Convert2"
+		  SrcPort		  1
+		  DstBlock		  "Register2"
+		  DstPort		  3
+		}
+	      }
+	    }
+	    Block {
+	      BlockType		      Stop
+	      Name		      "Stop Simulation"
+	      SID		      "3368"
+	      Position		      [1115, 362, 1150, 398]
+	      ZOrder		      -4
+	    }
+	    Block {
+	      BlockType		      Outport
+	      Name		      "Sim TX_START"
+	      SID		      "3583"
+	      Position		      [1205, 238, 1235, 252]
+	      ZOrder		      -23
+	      IconDisplay	      "Port number"
+	    }
+	    Line {
+	      SrcBlock		      "Posedge3"
+	      SrcPort		      1
+	      Points		      [15, 0]
+	      Branch {
+		DstBlock		"Counter"
+		DstPort			1
+	      }
+	      Branch {
+		Points			[0, -105]
+		DstBlock		"Delay"
+		DstPort			1
+	      }
+	    }
+	    Line {
+	      SrcBlock		      "Counter"
+	      SrcPort		      1
+	      Points		      [30, 0]
+	      Branch {
+		DstBlock		"Gateway Out1"
+		DstPort			1
+	      }
+	      Branch {
+		Points			[0, 215]
+		DstBlock		"Gateway Out4"
+		DstPort			1
+	      }
+	    }
+	    Line {
+	      SrcBlock		      "Constant1"
+	      SrcPort		      1
+	      DstBlock		      "Relational Operator"
+	      DstPort		      2
+	    }
+	    Line {
+	      SrcBlock		      "Relational Operator"
+	      SrcPort		      1
+	      DstBlock		      "Delay2"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "Gateway Out1"
+	      SrcPort		      1
+	      DstBlock		      "Relational Operator"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "Sim TX_DONE"
+	      SrcPort		      1
+	      Points		      [55, 0]
+	      Branch {
+		DstBlock		"Posedge3"
+		DstPort			1
+	      }
+	      Branch {
+		Points			[0, 200]
+		DstBlock		"Gateway Out3"
+		DstPort			1
+	      }
+	    }
+	    Line {
+	      Name		      "Stop"
+	      SrcBlock		      "Delay2"
+	      SrcPort		      1
+	      Points		      [0, 0]
+	      Branch {
+		DstBlock		"Stop Simulation"
+		DstPort			1
+	      }
+	      Branch {
+		Labels			[2, 0]
+		Points			[0, 220]
+		DstBlock		"Radio TxEn-RxEn"
+		DstPort			3
+	      }
+	    }
+	    Line {
+	      Name		      "Start"
+	      Labels		      [0, 0]
+	      SrcBlock		      "S-R Latch1"
+	      SrcPort		      1
+	      Points		      [40, 0]
+	      Branch {
+		Points			[0, -50; -180, 0]
+		DstBlock		"Delay1"
+		DstPort			1
+	      }
+	      Branch {
+		DstBlock		"Gateway Out2"
+		DstPort			1
+	      }
+	    }
+	    Line {
+	      Name		      "TX_DONE"
+	      Labels		      [0, 0]
+	      SrcBlock		      "Gateway Out3"
+	      SrcPort		      1
+	      DstBlock		      "Radio TxEn-RxEn"
+	      DstPort		      1
+	    }
+	    Line {
+	      Name		      "Pkt Count"
+	      Labels		      [0, 0]
+	      SrcBlock		      "Gateway Out4"
+	      SrcPort		      1
+	      DstBlock		      "Radio TxEn-RxEn"
+	      DstPort		      2
+	    }
+	    Line {
+	      SrcBlock		      "Delay"
+	      SrcPort		      1
+	      DstBlock		      "S-R Latch1"
+	      DstPort		      1
+	    }
+	    Line {
+	      SrcBlock		      "Delay1"
+	      SrcPort		      1
+	      DstBlock		      "S-R Latch1"
+	      DstPort		      2
+	    }
+	    Line {
+	      Name		      "Start"
+	      Labels		      [0, 0]
+	      SrcBlock		      "Gateway Out2"
+	      SrcPort		      1
+	      Points		      [15, 0; 0, -30]
+	      DstBlock		      "Logical Operator"
+	      DstPort		      2
+	    }
+	    Line {
+	      SrcBlock		      "Pulse\nGenerator1"
+	      SrcPort		      1
+	      Points		      [20, 0; 0, 20]
+	      DstBlock		      "Logical Operator"
+	      DstPort		      1
+	    }
+	    Line {
+	      Name		      "START"
+	      SrcBlock		      "Logical Operator"
+	      SrcPort		      1
+	      Points		      [15, 0]
+	      Branch {
+		DstBlock		"Sim TX_START"
+		DstPort			1
+	      }
+	      Branch {
+		Labels			[2, 0]
+		Points			[0, 370]
+		DstBlock		"Radio TxEn-RxEn"
+		DstPort			4
+	      }
+	    }
+	    Annotation {
+	      Name		      "Pulse starts first Tx, TX_DONE starts all subsequent Tx events"
+	      Position		      [1165, 181]
+	    }
 	  }
-	  List {
-	    ListType		    ScopeGraphics
-	    FigureColor		    "[0.5 0.5 0.5]"
-	    AxesColor		    "[0 0 0]"
-	    AxesTickColor	    "[1 1 1]"
-	    LineColors		    "[1 1 0;1 0 1;0 1 1;1 0 0;0 1 0;0 0 1]"
-	    LineStyles		    "-|-|-|-|-|-"
-	    LineWidths		    "[0.5 0.5 0.5 0.5 0.5 0.5]"
-	    MarkerStyles	    "none|none|none|none|none|none"
-	  }
-	  YMin			  "-5~-5"
-	  YMax			  "5~5"
-	  SaveName		  "ScopeData2"
-	  DataFormat		  "StructureWithTime"
-	  SampleTime		  "0"
 	}
 	Line {
 	  SrcBlock		  "PHY_TX_START"
@@ -68884,8 +69794,16 @@ Model {
 	Line {
 	  SrcBlock		  "From2"
 	  SrcPort		  1
-	  DstBlock		  "PHY_TX_DONE"
-	  DstPort		  1
+	  Points		  [10, 0]
+	  Branch {
+	    DstBlock		    "PHY_TX_DONE"
+	    DstPort		    1
+	  }
+	  Branch {
+	    Points		    [0, 75]
+	    DstBlock		    "Simulation Start-Stop"
+	    DstPort		    1
+	  }
 	}
 	Line {
 	  SrcBlock		  "Constant"
@@ -68978,9 +69896,22 @@ Model {
 	  DstPort		  1
 	}
 	Line {
-	  SrcBlock		  "Logical Operator"
+	  SrcBlock		  "Delay"
 	  SrcPort		  1
-	  Points		  [35, 0]
+	  Points		  [340, 0; 0, -60]
+	  DstBlock		  "RC_PHY_START"
+	  DstPort		  1
+	}
+	Line {
+	  SrcBlock		  "RC_PHY_START"
+	  SrcPort		  1
+	  DstBlock		  "Convert2"
+	  DstPort		  1
+	}
+	Line {
+	  SrcBlock		  "Simulation Start-Stop"
+	  SrcPort		  1
+	  Points		  [50, 0; 0, 95; -480, 0; 0, -530; 235, 0]
 	  Branch {
 	    DstBlock		    "PHY_TX_START"
 	    DstPort		    1
@@ -68990,55 +69921,6 @@ Model {
 	    DstBlock		    "Delay"
 	    DstPort		    1
 	  }
-	}
-	Line {
-	  SrcBlock		  "Delay"
-	  SrcPort		  1
-	  Points		  [340, 0; 0, -60]
-	  DstBlock		  "RC_PHY_START"
-	  DstPort		  1
-	}
-	Line {
-	  SrcBlock		  "Pulse\nGenerator1"
-	  SrcPort		  1
-	  Points		  [20, 0; 0, 20]
-	  DstBlock		  "Logical Operator"
-	  DstPort		  1
-	}
-	Line {
-	  SrcBlock		  "From10"
-	  SrcPort		  1
-	  DstBlock		  "Logical Operator"
-	  DstPort		  2
-	}
-	Line {
-	  SrcBlock		  "RC_PHY_START"
-	  SrcPort		  1
-	  DstBlock		  "Convert2"
-	  DstPort		  1
-	}
-	Line {
-	  Name			  "PHY_TX_STARTED"
-	  Labels		  [0, 0]
-	  SrcBlock		  "PHY_TX_STARTED"
-	  SrcPort		  1
-	  DstBlock		  "Tx Start vs Samp CE"
-	  DstPort		  1
-	}
-	Line {
-	  SrcBlock		  "From13"
-	  SrcPort		  1
-	  DstBlock		  "RC_TX_GAIN_B1"
-	  DstPort		  1
-	}
-	Line {
-	  Name			  "Samp CE"
-	  Labels		  [3, 0]
-	  SrcBlock		  "RC_TX_GAIN_B1"
-	  SrcPort		  1
-	  Points		  [35, 0; 0, -80]
-	  DstBlock		  "Tx Start vs Samp CE"
-	  DstPort		  2
 	}
 	Annotation {
 	  Name			  "MAC I/O"
@@ -79862,983 +80744,6 @@ Model {
 	  }
 	}
 	Block {
-	  BlockType		  SubSystem
-	  Name			  "Simulation Stop"
-	  SID			  "3391"
-	  Ports			  [1]
-	  Position		  [1365, 368, 1455, 412]
-	  MinAlgLoopOccurrences	  off
-	  PropExecContextOutsideSubsystem off
-	  RTWSystemCode		  "Auto"
-	  FunctionWithSeparateData off
-	  Opaque		  off
-	  RequestExecContextInheritance	off
-	  MaskHideContents	  off
-	  System {
-	    Name		    "Simulation Stop"
-	    Location		    [1272, 388, 2027, 560]
-	    Open		    off
-	    ModelBrowserVisibility  off
-	    ModelBrowserWidth	    200
-	    ScreenColor		    "white"
-	    PaperOrientation	    "landscape"
-	    PaperPositionMode	    "auto"
-	    PaperType		    "usletter"
-	    PaperUnits		    "inches"
-	    TiledPaperMargins	    [0.500000, 0.500000, 0.500000, 0.500000]
-	    TiledPageScale	    1
-	    ShowPageBoundaries	    off
-	    ZoomFactor		    "100"
-	    Block {
-	      BlockType		      Inport
-	      Name		      "TX_DONE"
-	      SID		      "3392"
-	      Position		      [360, 208, 390, 222]
-	      IconDisplay	      "Port number"
-	    }
-	    Block {
-	      BlockType		      Constant
-	      Name		      "Constant1"
-	      SID		      "3370"
-	      Position		      [720, 220, 825, 240]
-	      ZOrder		      -4
-	      ShowName		      off
-	      Value		      "tx_sim.num_pkts"
-	    }
-	    Block {
-	      BlockType		      Reference
-	      Name		      "Counter"
-	      SID		      "3367"
-	      Ports		      [1, 1]
-	      Position		      [525, 185, 585, 245]
-	      LibraryVersion	      "1.2"
-	      SourceBlock	      "xbsIndex_r4/Counter"
-	      SourceType	      "Xilinx Counter Block"
-	      infoedit		      "Hardware notes: Free running counters are the least expensive in hardware.  A count limited co"
-	      "unter is implemented by combining a counter with a comparator."
-	      cnt_type		      "Free Running"
-	      cnt_to		      "Inf"
-	      operation		      "Up"
-	      start_count	      "0"
-	      cnt_by_val	      "1"
-	      arith_type	      "Unsigned"
-	      n_bits		      "8"
-	      bin_pt		      "0"
-	      load_pin		      off
-	      rst		      off
-	      en		      on
-	      explicit_period	      "off"
-	      period		      "1"
-	      dbl_ovrd		      off
-	      use_behavioral_HDL      off
-	      implementation	      "Fabric"
-	      xl_use_area	      off
-	      xl_area		      "[0,0,0,0,0,0,0]"
-	      has_advanced_control    "0"
-	      sggui_pos		      "-1,-1,-1,-1"
-	      block_type	      "counter"
-	      sg_icon_stat	      "60,60,1,1,white,blue,0,b089e9c5,right,,[ ],[ ]"
-	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 60 60 0 0 ],[0 0 60 60 0 ],[0.77 0"
-	      ".82 0.91 ]);\nplot([0 60 60 0 0 ],[0 0 60 60 0 ]);\npatch([12.2 23.76 31.76 39.76 47.76 31.76 20.2 12.2 ],[38.8"
-	      "8 38.88 46.88 38.88 46.88 46.88 46.88 38.88 ],[1 1 1 ]);\npatch([20.2 31.76 23.76 12.2 20.2 ],[30.88 30.88 38.8"
-	      "8 38.88 30.88 ],[0.931 0.946 0.973 ]);\npatch([12.2 23.76 31.76 20.2 12.2 ],[22.88 22.88 30.88 30.88 22.88 ],[1"
-	      " 1 1 ]);\npatch([20.2 47.76 39.76 31.76 23.76 12.2 20.2 ],[14.88 14.88 22.88 14.88 22.88 22.88 14.88 ],[0.931 0"
-	      ".946 0.973 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('blac"
-	      "k');port_label('input',1,'en');\n\ncolor('black');disp('{\\fontsize{14}\\bf++}','texmode','on');\nfprintf('','C"
-	      "OMMENT: end icon text');"
-	    }
-	    Block {
-	      BlockType		      Reference
-	      Name		      "Delay"
-	      SID		      "3433"
-	      Ports		      [1, 1]
-	      Position		      [540, 94, 575, 126]
-	      LibraryVersion	      "1.2"
-	      SourceBlock	      "xbsIndex_r4/Delay"
-	      SourceType	      "Xilinx Delay Block"
-	      infoedit		      "Hardware notes: A delay line is a chain, each link of which is an SRL16 followed by a flip-flo"
-	      "p."
-	      rst		      off
-	      infoeditControl	      "Selection of Reset will increase slice count due to use of real FFs and instead of SRLs"
-	      en		      off
-	      latency		      "500"
-	      dbl_ovrd		      off
-	      reg_retiming	      off
-	      xl_use_area	      off
-	      xl_area		      "[0,0,0,0,0,0,0]"
-	      has_advanced_control    "0"
-	      sggui_pos		      "-1,-1,-1,-1"
-	      block_type	      "delay"
-	      sg_icon_stat	      "35,32,1,1,white,blue,0,5c475973,right,,[ ],[ ]"
-	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 35 35 0 0 ],[0 0 32 32 0 ],[0.77 0"
-	      ".82 0.91 ]);\nplot([0 35 35 0 0 ],[0 0 32 32 0 ]);\npatch([8.1 13.88 17.88 21.88 25.88 17.88 12.1 8.1 ],[20.44 "
-	      "20.44 24.44 20.44 24.44 24.44 24.44 20.44 ],[1 1 1 ]);\npatch([12.1 17.88 13.88 8.1 12.1 ],[16.44 16.44 20.44 2"
-	      "0.44 16.44 ],[0.931 0.946 0.973 ]);\npatch([8.1 13.88 17.88 12.1 8.1 ],[12.44 12.44 16.44 16.44 12.44 ],[1 1 1 "
-	      "]);\npatch([12.1 25.88 21.88 17.88 13.88 8.1 12.1 ],[8.44 8.44 12.44 8.44 12.44 12.44 8.44 ],[0.931 0.946 0.973"
-	      " ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\n\n\ncolor('black');di"
-	      "sp('z^{-500}','texmode','on');\nfprintf('','COMMENT: end icon text');"
-	    }
-	    Block {
-	      BlockType		      Reference
-	      Name		      "Delay1"
-	      SID		      "3434"
-	      Ports		      [1, 1]
-	      Position		      [740, 119, 775, 151]
-	      LibraryVersion	      "1.2"
-	      SourceBlock	      "xbsIndex_r4/Delay"
-	      SourceType	      "Xilinx Delay Block"
-	      infoedit		      "Hardware notes: A delay line is a chain, each link of which is an SRL16 followed by a flip-flo"
-	      "p."
-	      rst		      off
-	      infoeditControl	      "Selection of Reset will increase slice count due to use of real FFs and instead of SRLs"
-	      en		      off
-	      latency		      "32"
-	      dbl_ovrd		      off
-	      reg_retiming	      off
-	      xl_use_area	      off
-	      xl_area		      "[0,0,0,0,0,0,0]"
-	      has_advanced_control    "0"
-	      sggui_pos		      "-1,-1,-1,-1"
-	      block_type	      "delay"
-	      sg_icon_stat	      "35,32,1,1,white,blue,0,05c6467a,right,,[ ],[ ]"
-	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 35 35 0 0 ],[0 0 32 32 0 ],[0.77 0"
-	      ".82 0.91 ]);\nplot([0 35 35 0 0 ],[0 0 32 32 0 ]);\npatch([8.1 13.88 17.88 21.88 25.88 17.88 12.1 8.1 ],[20.44 "
-	      "20.44 24.44 20.44 24.44 24.44 24.44 20.44 ],[1 1 1 ]);\npatch([12.1 17.88 13.88 8.1 12.1 ],[16.44 16.44 20.44 2"
-	      "0.44 16.44 ],[0.931 0.946 0.973 ]);\npatch([8.1 13.88 17.88 12.1 8.1 ],[12.44 12.44 16.44 16.44 12.44 ],[1 1 1 "
-	      "]);\npatch([12.1 25.88 21.88 17.88 13.88 8.1 12.1 ],[8.44 8.44 12.44 8.44 12.44 12.44 8.44 ],[0.931 0.946 0.973"
-	      " ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\n\n\ncolor('black');di"
-	      "sp('z^{-32}','texmode','on');\nfprintf('','COMMENT: end icon text');"
-	    }
-	    Block {
-	      BlockType		      Delay
-	      Name		      "Delay2"
-	      SID		      "3374"
-	      Ports		      [1, 1]
-	      Position		      [950, 208, 985, 242]
-	      InputPortMap	      "u0"
-	      DelayLength	      "400"
-	      ExternalReset	      "None"
-	      SampleTime	      "1"
-	      Port {
-		PortNumber		1
-		Name			"Stop"
-		RTWStorageClass		"Auto"
-		DataLoggingNameMode	"SignalName"
-	      }
-	    }
-	    Block {
-	      BlockType		      Reference
-	      Name		      "Disregard Subsystem"
-	      SID		      "3432"
-	      Tag		      "discardX"
-	      Ports		      []
-	      Position		      [119, 307, 177, 365]
-	      ShowName		      off
-	      AttributesFormatString  "Disregard Subsystem\\nFor Generation"
-	      LibraryVersion	      "1.2"
-	      SourceBlock	      "xbsIndex_r4/Disregard Subsystem"
-	      SourceType	      "Xilinx Disregard Subsystem For Generation Block"
-	      infoedit		      "Place this block into a subsystem to have System Generator ignore the subsystem during code ge"
-	      "neration. This block can be used in combination with the Simulation Multiplexer block to provide an alternative"
-	      " simulation model for another subsystem (e.g., to provide a simulation model for a black box)."
-	      has_advanced_control    "0"
-	      sggui_pos		      "-1,-1,-1,-1"
-	      block_type	      "disregard"
-	      sg_icon_stat	      "58,58,-1,-1,darkgray,black,0,07734,right,,[ ],[ ]"
-	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 58 58 0 0 ],[0 0 58 58 0 ],[0.1 0."
-	      "1 0.1 ]);\nplot([0 58 58 0 0 ],[0 0 58 58 0 ]);\npatch([11.2 22.76 30.76 38.76 46.76 30.76 19.2 11.2 ],[37.88 3"
-	      "7.88 45.88 37.88 45.88 45.88 45.88 37.88 ],[0.33 0.33 0.33 ]);\npatch([19.2 30.76 22.76 11.2 19.2 ],[29.88 29.8"
-	      "8 37.88 37.88 29.88 ],[0.261 0.261 0.261 ]);\npatch([11.2 22.76 30.76 19.2 11.2 ],[21.88 21.88 29.88 29.88 21.8"
-	      "8 ],[0.33 0.33 0.33 ]);\npatch([19.2 46.76 38.76 30.76 22.76 11.2 19.2 ],[13.88 13.88 21.88 13.88 21.88 21.88 1"
-	      "3.88 ],[0.261 0.261 0.261 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text'"
-	      ");\nfprintf('','COMMENT: end icon text');"
-	    }
-	    Block {
-	      BlockType		      Reference
-	      Name		      "Gateway Out1"
-	      SID		      "3360"
-	      Ports		      [1, 1]
-	      Position		      [660, 209, 695, 221]
-	      ShowName		      off
-	      LibraryVersion	      "1.2"
-	      SourceBlock	      "xbsIndex_r4/Gateway Out"
-	      SourceType	      "Xilinx Gateway Out Block"
-	      infoedit		      "Gateway out block.  Converts Xilinx fixed-point or floating-point type inputs into ouputs of t"
-	      "ype Simulink integer, single, double, or fixed-point.<br><br>Hardware notes:  In hardware these blocks become t"
-	      "op level output ports or are discarded, depending on how they are configured."
-	      inherit_from_input      off
-	      hdl_port		      off
-	      timing_constraint	      "None"
-	      locs_specified	      off
-	      LOCs		      "{}"
-	      UseAsDAC		      off
-	      DACChannel	      "'1'"
-	      xl_use_area	      off
-	      xl_area		      "[0,0,0,0,0,0,0]"
-	      has_advanced_control    "0"
-	      sggui_pos		      "-1,-1,-1,-1"
-	      block_type	      "gatewayout"
-	      sg_icon_stat	      "35,12,1,1,white,grey,1,632ec840,right,,[ ],[ ]"
-	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 35 35 0 0 ],[0 0 12 12 0 ],[0.88 0"
-	      ".88 0.88 ]);\nplot([0 35 35 0 0 ],[0 0 12 12 0 ]);\npatch([14.775 16.22 17.22 18.22 19.22 17.22 15.775 14.775 ]"
-	      ",[7.11 7.11 8.11 7.11 8.11 8.11 8.11 7.11 ],[1 1 1 ]);\npatch([15.775 17.22 16.22 14.775 15.775 ],[6.11 6.11 7."
-	      "11 7.11 6.11 ],[0.964 0.964 0.964 ]);\npatch([14.775 16.22 17.22 15.775 14.775 ],[5.11 5.11 6.11 6.11 5.11 ],[1"
-	      " 1 1 ]);\npatch([15.775 19.22 18.22 17.22 16.22 14.775 15.775 ],[4.11 4.11 5.11 4.11 5.11 5.11 4.11 ],[0.964 0."
-	      "964 0.964 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black"
-	      "');port_label('input',1,' ');\ncolor('black');port_label('output',1,'\\fontsize{11pt} Out ','texmode','on');\nf"
-	      "printf('','COMMENT: end icon text');"
-	    }
-	    Block {
-	      BlockType		      Reference
-	      Name		      "Gateway Out2"
-	      SID		      "3437"
-	      Ports		      [1, 1]
-	      Position		      [945, 119, 980, 131]
-	      ShowName		      off
-	      LibraryVersion	      "1.2"
-	      SourceBlock	      "xbsIndex_r4/Gateway Out"
-	      SourceType	      "Xilinx Gateway Out Block"
-	      infoedit		      "Gateway out block.  Converts Xilinx fixed-point or floating-point type inputs into ouputs of t"
-	      "ype Simulink integer, single, double, or fixed-point.<br><br>Hardware notes:  In hardware these blocks become t"
-	      "op level output ports or are discarded, depending on how they are configured."
-	      inherit_from_input      off
-	      hdl_port		      off
-	      timing_constraint	      "None"
-	      locs_specified	      off
-	      LOCs		      "{}"
-	      UseAsDAC		      off
-	      DACChannel	      "'1'"
-	      xl_use_area	      off
-	      xl_area		      "[0,0,0,0,0,0,0]"
-	      has_advanced_control    "0"
-	      sggui_pos		      "-1,-1,-1,-1"
-	      block_type	      "gatewayout"
-	      sg_icon_stat	      "35,12,1,1,white,grey,1,632ec840,right,,[ ],[ ]"
-	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 35 35 0 0 ],[0 0 12 12 0 ],[0.88 0"
-	      ".88 0.88 ]);\nplot([0 35 35 0 0 ],[0 0 12 12 0 ]);\npatch([14.775 16.22 17.22 18.22 19.22 17.22 15.775 14.775 ]"
-	      ",[7.11 7.11 8.11 7.11 8.11 8.11 8.11 7.11 ],[1 1 1 ]);\npatch([15.775 17.22 16.22 14.775 15.775 ],[6.11 6.11 7."
-	      "11 7.11 6.11 ],[0.964 0.964 0.964 ]);\npatch([14.775 16.22 17.22 15.775 14.775 ],[5.11 5.11 6.11 6.11 5.11 ],[1"
-	      " 1 1 ]);\npatch([15.775 19.22 18.22 17.22 16.22 14.775 15.775 ],[4.11 4.11 5.11 4.11 5.11 5.11 4.11 ],[0.964 0."
-	      "964 0.964 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black"
-	      "');port_label('input',1,' ');\ncolor('black');port_label('output',1,'\\fontsize{11pt} Out ','texmode','on');\nf"
-	      "printf('','COMMENT: end icon text');"
-	      Port {
-		PortNumber		1
-		Name			"Start"
-		RTWStorageClass		"Auto"
-		DataLoggingNameMode	"SignalName"
-	      }
-	    }
-	    Block {
-	      BlockType		      Reference
-	      Name		      "Gateway Out3"
-	      SID		      "3421"
-	      Ports		      [1, 1]
-	      Position		      [1040, 414, 1075, 426]
-	      ShowName		      off
-	      LibraryVersion	      "1.2"
-	      SourceBlock	      "xbsIndex_r4/Gateway Out"
-	      SourceType	      "Xilinx Gateway Out Block"
-	      infoedit		      "Gateway out block.  Converts Xilinx fixed-point or floating-point type inputs into ouputs of t"
-	      "ype Simulink integer, single, double, or fixed-point.<br><br>Hardware notes:  In hardware these blocks become t"
-	      "op level output ports or are discarded, depending on how they are configured."
-	      inherit_from_input      off
-	      hdl_port		      off
-	      timing_constraint	      "None"
-	      locs_specified	      off
-	      LOCs		      "{}"
-	      UseAsDAC		      off
-	      DACChannel	      "'1'"
-	      xl_use_area	      off
-	      xl_area		      "[0,0,0,0,0,0,0]"
-	      has_advanced_control    "0"
-	      sggui_pos		      "-1,-1,-1,-1"
-	      block_type	      "gatewayout"
-	      sg_icon_stat	      "35,12,1,1,white,grey,1,632ec840,right,,[ ],[ ]"
-	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 35 35 0 0 ],[0 0 12 12 0 ],[0.88 0"
-	      ".88 0.88 ]);\nplot([0 35 35 0 0 ],[0 0 12 12 0 ]);\npatch([14.775 16.22 17.22 18.22 19.22 17.22 15.775 14.775 ]"
-	      ",[7.11 7.11 8.11 7.11 8.11 8.11 8.11 7.11 ],[1 1 1 ]);\npatch([15.775 17.22 16.22 14.775 15.775 ],[6.11 6.11 7."
-	      "11 7.11 6.11 ],[0.964 0.964 0.964 ]);\npatch([14.775 16.22 17.22 15.775 14.775 ],[5.11 5.11 6.11 6.11 5.11 ],[1"
-	      " 1 1 ]);\npatch([15.775 19.22 18.22 17.22 16.22 14.775 15.775 ],[4.11 4.11 5.11 4.11 5.11 5.11 4.11 ],[0.964 0."
-	      "964 0.964 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black"
-	      "');port_label('input',1,' ');\ncolor('black');port_label('output',1,'\\fontsize{11pt} Out ','texmode','on');\nf"
-	      "printf('','COMMENT: end icon text');"
-	      Port {
-		PortNumber		1
-		Name			"TX_DONE"
-		RTWStorageClass		"Auto"
-		DataLoggingNameMode	"SignalName"
-	      }
-	    }
-	    Block {
-	      BlockType		      Reference
-	      Name		      "Gateway Out4"
-	      SID		      "3422"
-	      Ports		      [1, 1]
-	      Position		      [1040, 429, 1075, 441]
-	      ShowName		      off
-	      LibraryVersion	      "1.2"
-	      SourceBlock	      "xbsIndex_r4/Gateway Out"
-	      SourceType	      "Xilinx Gateway Out Block"
-	      infoedit		      "Gateway out block.  Converts Xilinx fixed-point or floating-point type inputs into ouputs of t"
-	      "ype Simulink integer, single, double, or fixed-point.<br><br>Hardware notes:  In hardware these blocks become t"
-	      "op level output ports or are discarded, depending on how they are configured."
-	      inherit_from_input      off
-	      hdl_port		      off
-	      timing_constraint	      "None"
-	      locs_specified	      off
-	      LOCs		      "{}"
-	      UseAsDAC		      off
-	      DACChannel	      "'1'"
-	      xl_use_area	      off
-	      xl_area		      "[0,0,0,0,0,0,0]"
-	      has_advanced_control    "0"
-	      sggui_pos		      "-1,-1,-1,-1"
-	      block_type	      "gatewayout"
-	      sg_icon_stat	      "35,12,1,1,white,grey,1,632ec840,right,,[ ],[ ]"
-	      sg_mask_display	      "fprintf('','COMMENT: begin icon graphics');\npatch([0 35 35 0 0 ],[0 0 12 12 0 ],[0.88 0"
-	      ".88 0.88 ]);\nplot([0 35 35 0 0 ],[0 0 12 12 0 ]);\npatch([14.775 16.22 17.22 18.22 19.22 17.22 15.775 14.775 ]"
-	      ",[7.11 7.11 8.11 7.11 8.11 8.11 8.11 7.11 ],[1 1 1 ]);\npatch([15.775 17.22 16.22 14.775 15.775 ],[6.11 6.11 7."
-	      "11 7.11 6.11 ],[0.964 0.964 0.964 ]);\npatch([14.775 16.22 17.22 15.775 14.775 ],[5.11 5.11 6.11 6.11 5.11 ],[1"
-	      " 1 1 ]);\npatch([15.775 19.22 18.22 17.22 16.22 14.775 15.775 ],[4.11 4.11 5.11 4.11 5.11 5.11 4.11 ],[0.964 0."
-	      "964 0.964 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black"
-	      "');port_label('input',1,' ');\ncolor('black');port_label('output',1,'\\fontsize{11pt} Out ','texmode','on');\nf"
-	      "printf('','COMMENT: end icon text');"
-	      Port {
-		PortNumber		1
-		Name			"Pkt Count"
-		RTWStorageClass		"Auto"
-		DataLoggingNameMode	"SignalName"
-	      }
-	    }
-	    Block {
-	      BlockType		      Goto
-	      Name		      "Goto14"
-	      SID		      "3375"
-	      Position		      [1030, 117, 1180, 133]
-	      ZOrder		      -10
-	      ShowName		      off
-	      GotoTag		      "sim_Start_New_Tx"
-	      TagVisibility	      "global"
-	    }
-	    Block {
-	      BlockType		      SubSystem
-	      Name		      "Posedge3"
-	      SID		      "3361"
-	      Ports		      [1, 1]
-	      Position		      [425, 206, 470, 224]
-	      NamePlacement	      "alternate"
-	      MinAlgLoopOccurrences   off
-	      PropExecContextOutsideSubsystem off
-	      RTWSystemCode	      "Auto"
-	      FunctionWithSeparateData off
-	      Opaque		      off
-	      RequestExecContextInheritance off
-	      MaskHideContents	      off
-	      System {
-		Name			"Posedge3"
-		Location		[88, 301, 2330, 1301]
-		Open			off
-		ModelBrowserVisibility	off
-		ModelBrowserWidth	200
-		ScreenColor		"white"
-		PaperOrientation	"landscape"
-		PaperPositionMode	"auto"
-		PaperType		"usletter"
-		PaperUnits		"inches"
-		TiledPaperMargins	[0.500000, 0.500000, 0.500000, 0.500000]
-		TiledPageScale		1
-		ShowPageBoundaries	off
-		ZoomFactor		"100"
-		Block {
-		  BlockType		  Inport
-		  Name			  "D"
-		  SID			  "3362"
-		  Position		  [200, 253, 230, 267]
-		  IconDisplay		  "Port number"
-		}
-		Block {
-		  BlockType		  Reference
-		  Name			  "Delay"
-		  SID			  "3363"
-		  Ports			  [1, 1]
-		  Position		  [425, 153, 460, 177]
-		  ShowName		  off
-		  LibraryVersion	  "1.2"
-		  SourceBlock		  "xbsIndex_r4/Delay"
-		  SourceType		  "Xilinx Delay Block"
-		  infoedit		  "Hardware notes: A delay line is a chain, each link of which is an SRL16 followed by a flip-flop. If r"
-		  "egister retiming is enabled, the delay line is a chain of flip-flops."
-		  rst			  off
-		  infoeditControl	  "Selection of Reset will increase slice count due to use of real FFs and instead of SRLs"
-		  en			  off
-		  latency		  "1"
-		  dbl_ovrd		  off
-		  reg_retiming		  off
-		  xl_use_area		  off
-		  xl_area		  "[1 1 0 0 0 0 0]"
-		  has_advanced_control	  "0"
-		  sggui_pos		  "-1,-1,-1,-1"
-		  block_type		  "delay"
-		  block_version		  "VER_STRING_GOES_HERE"
-		  sg_icon_stat		  "35,24,1,1,white,blue,0,07b98262,right,,[ ],[ ]"
-		  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 35 35 0 0 ],[0 0 24 24 0 ],[0.77 0.82 0.9"
-		  "1 ]);\nplot([0 35 35 0 0 ],[0 0 24 24 0 ]);\npatch([10.325 14.66 17.66 20.66 23.66 17.66 13.325 10.325 ],[15.33 15"
-		  ".33 18.33 15.33 18.33 18.33 18.33 15.33 ],[1 1 1 ]);\npatch([13.325 17.66 14.66 10.325 13.325 ],[12.33 12.33 15.33"
-		  " 15.33 12.33 ],[0.931 0.946 0.973 ]);\npatch([10.325 14.66 17.66 13.325 10.325 ],[9.33 9.33 12.33 12.33 9.33 ],[1 "
-		  "1 1 ]);\npatch([13.325 23.66 20.66 17.66 14.66 10.325 13.325 ],[6.33 6.33 9.33 6.33 9.33 9.33 6.33 ],[0.931 0.946 "
-		  "0.973 ]);\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\n\n\ncolor('black');"
-		  "disp('z^{-1}','texmode','on');\nfprintf('','COMMENT: end icon text');"
-		}
-		Block {
-		  BlockType		  Reference
-		  Name			  "Inverter"
-		  SID			  "3364"
-		  Ports			  [1, 1]
-		  Position		  [490, 156, 515, 174]
-		  ShowName		  off
-		  LibraryVersion	  "1.2"
-		  SourceBlock		  "xbsIndex_r4/Inverter"
-		  SourceType		  "Xilinx Inverter Block"
-		  infoedit		  "Bitwise logical negation (one's complement) operator."
-		  en			  off
-		  latency		  "0"
-		  dbl_ovrd		  off
-		  xl_use_area		  off
-		  xl_area		  "[0 0 0 0 0 0 0]"
-		  has_advanced_control	  "0"
-		  sggui_pos		  "-1,-1,-1,-1"
-		  block_type		  "inv"
-		  block_version		  "VER_STRING_GOES_HERE"
-		  sg_icon_stat		  "25,18,1,1,white,blue,0,267846e5,right,,[ ],[ ]"
-		  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 25 25 0 0 ],[0 0 18 18 0 ],[0.77 0.82 0.9"
-		  "1 ]);\nplot([0 25 25 0 0 ],[0 0 18 18 0 ]);\npatch([7.55 10.44 12.44 14.44 16.44 12.44 9.55 7.55 ],[11.22 11.22 13"
-		  ".22 11.22 13.22 13.22 13.22 11.22 ],[1 1 1 ]);\npatch([9.55 12.44 10.44 7.55 9.55 ],[9.22 9.22 11.22 11.22 9.22 ],"
-		  "[0.931 0.946 0.973 ]);\npatch([7.55 10.44 12.44 9.55 7.55 ],[7.22 7.22 9.22 9.22 7.22 ],[1 1 1 ]);\npatch([9.55 16"
-		  ".44 14.44 12.44 10.44 7.55 9.55 ],[5.22 5.22 7.22 5.22 7.22 7.22 5.22 ],[0.931 0.946 0.973 ]);\nfprintf('','COMMEN"
-		  "T: end icon graphics');\nfprintf('','COMMENT: begin icon text');\n\n\ncolor('black');disp('not');\nfprintf('','COM"
-		  "MENT: end icon text');"
-		}
-		Block {
-		  BlockType		  Reference
-		  Name			  "Logical1"
-		  SID			  "3365"
-		  Ports			  [2, 1]
-		  Position		  [540, 151, 585, 204]
-		  ShowName		  off
-		  LibraryVersion	  "1.2"
-		  SourceBlock		  "xbsIndex_r4/Logical"
-		  SourceType		  "Xilinx Logical Block Block"
-		  logical_function	  "AND"
-		  inputs		  "2"
-		  en			  off
-		  latency		  "0"
-		  precision		  "Full"
-		  arith_type		  "Unsigned"
-		  n_bits		  "8"
-		  bin_pt		  "2"
-		  align_bp		  on
-		  dbl_ovrd		  off
-		  xl_use_area		  off
-		  xl_area		  "[1 0 0 1 0 0 0]"
-		  has_advanced_control	  "0"
-		  sggui_pos		  "-1,-1,-1,-1"
-		  block_type		  "logical"
-		  block_version		  "VER_STRING_GOES_HERE"
-		  sg_icon_stat		  "45,53,2,1,white,blue,0,83a4b621,right,,[ ],[ ]"
-		  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 45 45 0 0 ],[0 0 53 53 0 ],[0.77 0.82 0.9"
-		  "1 ]);\nplot([0 45 45 0 0 ],[0 0 53 53 0 ]);\npatch([8.65 17.32 23.32 29.32 35.32 23.32 14.65 8.65 ],[32.66 32.66 3"
-		  "8.66 32.66 38.66 38.66 38.66 32.66 ],[1 1 1 ]);\npatch([14.65 23.32 17.32 8.65 14.65 ],[26.66 26.66 32.66 32.66 26"
-		  ".66 ],[0.931 0.946 0.973 ]);\npatch([8.65 17.32 23.32 14.65 8.65 ],[20.66 20.66 26.66 26.66 20.66 ],[1 1 1 ]);\npa"
-		  "tch([14.65 35.32 29.32 23.32 17.32 8.65 14.65 ],[14.66 14.66 20.66 14.66 20.66 20.66 14.66 ],[0.931 0.946 0.973 ])"
-		  ";\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\n\n\n\ncolor('black');disp('"
-		  "and');\nfprintf('','COMMENT: end icon text');"
-		}
-		Block {
-		  BlockType		  Outport
-		  Name			  "Q"
-		  SID			  "3366"
-		  Position		  [610, 173, 640, 187]
-		  IconDisplay		  "Port number"
-		}
-		Line {
-		  SrcBlock		  "D"
-		  SrcPort		  1
-		  Points		  [150, 0; 0, -70]
-		  Branch {
-		    DstBlock		    "Logical1"
-		    DstPort		    2
-		  }
-		  Branch {
-		    Points		    [0, -25]
-		    DstBlock		    "Delay"
-		    DstPort		    1
-		  }
-		}
-		Line {
-		  SrcBlock		  "Logical1"
-		  SrcPort		  1
-		  DstBlock		  "Q"
-		  DstPort		  1
-		}
-		Line {
-		  SrcBlock		  "Inverter"
-		  SrcPort		  1
-		  DstBlock		  "Logical1"
-		  DstPort		  1
-		}
-		Line {
-		  SrcBlock		  "Delay"
-		  SrcPort		  1
-		  DstBlock		  "Inverter"
-		  DstPort		  1
-		}
-		Annotation {
-		  Name			  "Rising Edge Detection"
-		  Position		  [500, 112]
-		}
-	      }
-	    }
-	    Block {
-	      BlockType		      Scope
-	      Name		      "Radio TxEn-RxEn"
-	      SID		      "3423"
-	      Ports		      [7]
-	      Position		      [1165, 418, 1200, 512]
-	      ZOrder		      -3
-	      Floating		      off
-	      Location		      [6, 202, 1686, 1206]
-	      Open		      off
-	      NumInputPorts	      "7"
-	      ZoomMode		      "xonly"
-	      List {
-		ListType		AxesTitles
-		axes1			"%<SignalLabel>"
-		axes2			"%<SignalLabel>"
-		axes3			"%<SignalLabel>"
-		axes4			"%<SignalLabel>"
-		axes5			"%<SignalLabel>"
-		axes6			"%<SignalLabel>"
-		axes7			"%<SignalLabel>"
-	      }
-	      List {
-		ListType		ScopeGraphics
-		FigureColor		"[0.501960784313725 0.501960784313725 0.501960784313725]"
-		AxesColor		"[0 0 0]"
-		AxesTickColor		"[1 1 1]"
-		LineColors		"[1 1 0;1 0 1;0 1 1;1 0 0;0 1 0;0 0 1]"
-		LineStyles		"-|-|-|-|-|-"
-		LineWidths		"[2 0.5 0.5 0.5 0.5 0.5]"
-		MarkerStyles		"none|none|none|none|none|none"
-	      }
-	      TimeRange		      "14000"
-	      YMin		      "-1~2~-1~-1~-1~-1~-1"
-	      YMax		      "1~2~1~1~1~1~1"
-	      SaveName		      "ScopeData14"
-	      DataFormat	      "StructureWithTime"
-	      LimitDataPoints	      off
-	      SampleTime	      "0"
-	    }
-	    Block {
-	      BlockType		      RelationalOperator
-	      Name		      "Relational Operator"
-	      SID		      "3369"
-	      Ports		      [2, 1]
-	      Position		      [865, 207, 895, 238]
-	      ZOrder		      -14
-	      ShowName		      off
-	      InputSameDT	      off
-	      OutDataTypeStr	      "boolean"
-	    }
-	    Block {
-	      BlockType		      SubSystem
-	      Name		      "S-R Latch1"
-	      SID		      "3424"
-	      Ports		      [2, 1]
-	      Position		      [815, 98, 860, 147]
-	      MinAlgLoopOccurrences   off
-	      PropExecContextOutsideSubsystem off
-	      RTWSystemCode	      "Auto"
-	      FunctionWithSeparateData off
-	      Opaque		      off
-	      RequestExecContextInheritance off
-	      MaskHideContents	      off
-	      Port {
-		PortNumber		1
-		Name			"Start"
-		RTWStorageClass		"Auto"
-		DataLoggingNameMode	"SignalName"
-	      }
-	      System {
-		Name			"S-R Latch1"
-		Location		[351, 366, 2001, 1172]
-		Open			off
-		ModelBrowserVisibility	off
-		ModelBrowserWidth	200
-		ScreenColor		"white"
-		PaperOrientation	"landscape"
-		PaperPositionMode	"auto"
-		PaperType		"usletter"
-		PaperUnits		"inches"
-		TiledPaperMargins	[0.500000, 0.500000, 0.500000, 0.500000]
-		TiledPageScale		1
-		ShowPageBoundaries	off
-		ZoomFactor		"100"
-		Block {
-		  BlockType		  Inport
-		  Name			  "S"
-		  SID			  "3425"
-		  Position		  [140, 103, 170, 117]
-		  IconDisplay		  "Port number"
-		}
-		Block {
-		  BlockType		  Inport
-		  Name			  "R"
-		  SID			  "3426"
-		  Position		  [140, 88, 170, 102]
-		  NamePlacement		  "alternate"
-		  Port			  "2"
-		  IconDisplay		  "Port number"
-		}
-		Block {
-		  BlockType		  Reference
-		  Name			  "Constant1"
-		  SID			  "3427"
-		  Ports			  [0, 1]
-		  Position		  [195, 71, 210, 89]
-		  ShowName		  off
-		  LibraryVersion	  "1.2"
-		  SourceBlock		  "xbsIndex_r4/Constant"
-		  SourceType		  "Xilinx Constant Block Block"
-		  const			  "1"
-		  gui_display_data_type	  "Boolean"
-		  arith_type		  "Boolean"
-		  n_bits		  "1"
-		  bin_pt		  "0"
-		  preci_type		  "Single"
-		  exp_width		  "8"
-		  frac_width		  "24"
-		  explicit_period	  off
-		  period		  "1"
-		  dsp48_infoedit	  "The use of this block for DSP48 instructions is deprecated.  Please use the Opmode block."
-		  equ			  "P=C"
-		  opselect		  "C"
-		  inp2			  "PCIN>>17"
-		  opr			  "+"
-		  inp1			  "P"
-		  carry			  "CIN"
-		  dbl_ovrd		  off
-		  has_advanced_control	  "0"
-		  sggui_pos		  "-1,-1,-1,-1"
-		  block_type		  "constant"
-		  block_version		  "VER_STRING_GOES_HERE"
-		  sg_icon_stat		  "15,18,0,1,white,blue,0,1c72b5be,right,,[ ],[ ]"
-		  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 15 15 0 0 ],[0 0 18 18 0 ],[0.77 0.82 0.9"
-		  "1 ]);\nplot([0 15 15 0 0 ],[0 0 18 18 0 ]);\npatch([2.55 5.44 7.44 9.44 11.44 7.44 4.55 2.55 ],[11.22 11.22 13.22 "
-		  "11.22 13.22 13.22 13.22 11.22 ],[1 1 1 ]);\npatch([4.55 7.44 5.44 2.55 4.55 ],[9.22 9.22 11.22 11.22 9.22 ],[0.931"
-		  " 0.946 0.973 ]);\npatch([2.55 5.44 7.44 4.55 2.55 ],[7.22 7.22 9.22 9.22 7.22 ],[1 1 1 ]);\npatch([4.55 11.44 9.44"
-		  " 7.44 5.44 2.55 4.55 ],[5.22 5.22 7.22 5.22 7.22 7.22 5.22 ],[0.931 0.946 0.973 ]);\nfprintf('','COMMENT: end icon"
-		  " graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black');port_label('output',1,'1');\nfprintf('','COM"
-		  "MENT: end icon text');"
-		}
-		Block {
-		  BlockType		  Reference
-		  Name			  "Convert1"
-		  SID			  "3428"
-		  Ports			  [1, 1]
-		  Position		  [210, 86, 235, 104]
-		  ShowName		  off
-		  LibraryVersion	  "1.2"
-		  SourceBlock		  "xbsIndex_r4/Convert"
-		  SourceType		  "Xilinx Type Converter Block"
-		  infoedit		  "Hardware notes: rounding and saturating require hardware resources; truncating and wrapping do not."
-		  gui_display_data_type	  "Boolean"
-		  arith_type		  "Boolean"
-		  n_bits		  "1"
-		  bin_pt		  "0"
-		  float_type		  "Single"
-		  exp_bits		  "8"
-		  fraction_bits		  "24"
-		  quantization		  "Truncate"
-		  overflow		  "Wrap"
-		  en			  off
-		  latency		  "0"
-		  dbl_ovrd		  off
-		  pipeline		  off
-		  xl_use_area		  off
-		  xl_area		  "[0,0,0,0,0,0,0]"
-		  has_advanced_control	  "0"
-		  sggui_pos		  "-1,-1,-1,-1"
-		  block_type		  "convert"
-		  sg_icon_stat		  "25,18,1,1,white,blue,0,edca21da,right,,[ ],[ ]"
-		  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 25 25 0 0 ],[0 0 18 18 0 ],[0.77 0.82 0.9"
-		  "1 ]);\nplot([0 25 25 0 0 ],[0 0 18 18 0 ]);\npatch([7.55 10.44 12.44 14.44 16.44 12.44 9.55 7.55 ],[11.22 11.22 13"
-		  ".22 11.22 13.22 13.22 13.22 11.22 ],[1 1 1 ]);\npatch([9.55 12.44 10.44 7.55 9.55 ],[9.22 9.22 11.22 11.22 9.22 ],"
-		  "[0.931 0.946 0.973 ]);\npatch([7.55 10.44 12.44 9.55 7.55 ],[7.22 7.22 9.22 9.22 7.22 ],[1 1 1 ]);\npatch([9.55 16"
-		  ".44 14.44 12.44 10.44 7.55 9.55 ],[5.22 5.22 7.22 5.22 7.22 7.22 5.22 ],[0.931 0.946 0.973 ]);\nfprintf('','COMMEN"
-		  "T: end icon graphics');\nfprintf('','COMMENT: begin icon text');\n\ncolor('black');port_label('output',1,'cast');\n"
-		  "fprintf('','COMMENT: end icon text');"
-		}
-		Block {
-		  BlockType		  Reference
-		  Name			  "Convert2"
-		  SID			  "3429"
-		  Ports			  [1, 1]
-		  Position		  [210, 101, 235, 119]
-		  ShowName		  off
-		  LibraryVersion	  "1.2"
-		  SourceBlock		  "xbsIndex_r4/Convert"
-		  SourceType		  "Xilinx Type Converter Block"
-		  infoedit		  "Hardware notes: rounding and saturating require hardware resources; truncating and wrapping do not."
-		  gui_display_data_type	  "Boolean"
-		  arith_type		  "Boolean"
-		  n_bits		  "1"
-		  bin_pt		  "0"
-		  float_type		  "Single"
-		  exp_bits		  "8"
-		  fraction_bits		  "24"
-		  quantization		  "Truncate"
-		  overflow		  "Wrap"
-		  en			  off
-		  latency		  "0"
-		  dbl_ovrd		  off
-		  pipeline		  off
-		  xl_use_area		  off
-		  xl_area		  "[0,0,0,0,0,0,0]"
-		  has_advanced_control	  "0"
-		  sggui_pos		  "-1,-1,-1,-1"
-		  block_type		  "convert"
-		  sg_icon_stat		  "25,18,1,1,white,blue,0,edca21da,right,,[ ],[ ]"
-		  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 25 25 0 0 ],[0 0 18 18 0 ],[0.77 0.82 0.9"
-		  "1 ]);\nplot([0 25 25 0 0 ],[0 0 18 18 0 ]);\npatch([7.55 10.44 12.44 14.44 16.44 12.44 9.55 7.55 ],[11.22 11.22 13"
-		  ".22 11.22 13.22 13.22 13.22 11.22 ],[1 1 1 ]);\npatch([9.55 12.44 10.44 7.55 9.55 ],[9.22 9.22 11.22 11.22 9.22 ],"
-		  "[0.931 0.946 0.973 ]);\npatch([7.55 10.44 12.44 9.55 7.55 ],[7.22 7.22 9.22 9.22 7.22 ],[1 1 1 ]);\npatch([9.55 16"
-		  ".44 14.44 12.44 10.44 7.55 9.55 ],[5.22 5.22 7.22 5.22 7.22 7.22 5.22 ],[0.931 0.946 0.973 ]);\nfprintf('','COMMEN"
-		  "T: end icon graphics');\nfprintf('','COMMENT: begin icon text');\n\ncolor('black');port_label('output',1,'cast');\n"
-		  "fprintf('','COMMENT: end icon text');"
-		}
-		Block {
-		  BlockType		  Reference
-		  Name			  "Register2"
-		  SID			  "3430"
-		  Ports			  [3, 1]
-		  Position		  [255, 71, 300, 119]
-		  ShowName		  off
-		  LibraryVersion	  "1.2"
-		  SourceBlock		  "xbsIndex_r4/Register"
-		  SourceType		  "Xilinx Register Block"
-		  init			  "0"
-		  rst			  on
-		  en			  on
-		  dbl_ovrd		  off
-		  xl_use_area		  off
-		  xl_area		  "[1 1 0 0 0 0 0]"
-		  has_advanced_control	  "0"
-		  sggui_pos		  "20,20,348,193"
-		  block_type		  "register"
-		  block_version		  "VER_STRING_GOES_HERE"
-		  sg_icon_stat		  "45,48,3,1,white,blue,0,30546de1,right,,[ ],[ ]"
-		  sg_mask_display	  "fprintf('','COMMENT: begin icon graphics');\npatch([0 45 45 0 0 ],[0 0 48 48 0 ],[0.77 0.82 0.9"
-		  "1 ]);\nplot([0 45 45 0 0 ],[0 0 48 48 0 ]);\npatch([8.65 17.32 23.32 29.32 35.32 23.32 14.65 8.65 ],[30.66 30.66 3"
-		  "6.66 30.66 36.66 36.66 36.66 30.66 ],[1 1 1 ]);\npatch([14.65 23.32 17.32 8.65 14.65 ],[24.66 24.66 30.66 30.66 24"
-		  ".66 ],[0.931 0.946 0.973 ]);\npatch([8.65 17.32 23.32 14.65 8.65 ],[18.66 18.66 24.66 24.66 18.66 ],[1 1 1 ]);\npa"
-		  "tch([14.65 35.32 29.32 23.32 17.32 8.65 14.65 ],[12.66 12.66 18.66 12.66 18.66 18.66 12.66 ],[0.931 0.946 0.973 ])"
-		  ";\nfprintf('','COMMENT: end icon graphics');\nfprintf('','COMMENT: begin icon text');\ncolor('black');port_label('"
-		  "input',1,'d');\ncolor('black');port_label('input',2,'rst');\ncolor('black');port_label('input',3,'en');\ncolor('bl"
-		  "ack');port_label('output',1,'q');\ncolor('black');disp('z^{-1}','texmode','on');\nfprintf('','COMMENT: end icon te"
-		  "xt');"
-		}
-		Block {
-		  BlockType		  Outport
-		  Name			  "Q"
-		  SID			  "3431"
-		  Position		  [325, 88, 355, 102]
-		  IconDisplay		  "Port number"
-		}
-		Line {
-		  SrcBlock		  "S"
-		  SrcPort		  1
-		  DstBlock		  "Convert2"
-		  DstPort		  1
-		}
-		Line {
-		  SrcBlock		  "Register2"
-		  SrcPort		  1
-		  DstBlock		  "Q"
-		  DstPort		  1
-		}
-		Line {
-		  SrcBlock		  "R"
-		  SrcPort		  1
-		  DstBlock		  "Convert1"
-		  DstPort		  1
-		}
-		Line {
-		  SrcBlock		  "Constant1"
-		  SrcPort		  1
-		  DstBlock		  "Register2"
-		  DstPort		  1
-		}
-		Line {
-		  SrcBlock		  "Convert1"
-		  SrcPort		  1
-		  DstBlock		  "Register2"
-		  DstPort		  2
-		}
-		Line {
-		  SrcBlock		  "Convert2"
-		  SrcPort		  1
-		  DstBlock		  "Register2"
-		  DstPort		  3
-		}
-	      }
-	    }
-	    Block {
-	      BlockType		      Stop
-	      Name		      "Stop Simulation"
-	      SID		      "3368"
-	      Position		      [1110, 207, 1145, 243]
-	      ZOrder		      -4
-	    }
-	    Line {
-	      SrcBlock		      "Posedge3"
-	      SrcPort		      1
-	      Points		      [15, 0]
-	      Branch {
-		DstBlock		"Counter"
-		DstPort			1
-	      }
-	      Branch {
-		Points			[0, -105]
-		DstBlock		"Delay"
-		DstPort			1
-	      }
-	    }
-	    Line {
-	      SrcBlock		      "Counter"
-	      SrcPort		      1
-	      Points		      [30, 0]
-	      Branch {
-		DstBlock		"Gateway Out1"
-		DstPort			1
-	      }
-	      Branch {
-		Points			[0, 220]
-		DstBlock		"Gateway Out4"
-		DstPort			1
-	      }
-	    }
-	    Line {
-	      SrcBlock		      "Constant1"
-	      SrcPort		      1
-	      DstBlock		      "Relational Operator"
-	      DstPort		      2
-	    }
-	    Line {
-	      SrcBlock		      "Relational Operator"
-	      SrcPort		      1
-	      DstBlock		      "Delay2"
-	      DstPort		      1
-	    }
-	    Line {
-	      SrcBlock		      "Gateway Out1"
-	      SrcPort		      1
-	      DstBlock		      "Relational Operator"
-	      DstPort		      1
-	    }
-	    Line {
-	      SrcBlock		      "TX_DONE"
-	      SrcPort		      1
-	      Points		      [10, 0]
-	      Branch {
-		DstBlock		"Posedge3"
-		DstPort			1
-	      }
-	      Branch {
-		Points			[0, 205]
-		DstBlock		"Gateway Out3"
-		DstPort			1
-	      }
-	    }
-	    Line {
-	      Name		      "Stop"
-	      SrcBlock		      "Delay2"
-	      SrcPort		      1
-	      Points		      [0, 0]
-	      Branch {
-		DstBlock		"Stop Simulation"
-		DstPort			1
-	      }
-	      Branch {
-		Labels			[2, 0]
-		Points			[0, 225]
-		DstBlock		"Radio TxEn-RxEn"
-		DstPort			3
-	      }
-	    }
-	    Line {
-	      Name		      "Start"
-	      Labels		      [0, 0]
-	      SrcBlock		      "S-R Latch1"
-	      SrcPort		      1
-	      Points		      [40, 0]
-	      Branch {
-		Points			[0, -50; -180, 0]
-		DstBlock		"Delay1"
-		DstPort			1
-	      }
-	      Branch {
-		DstBlock		"Gateway Out2"
-		DstPort			1
-	      }
-	    }
-	    Line {
-	      Name		      "TX_DONE"
-	      Labels		      [0, 0]
-	      SrcBlock		      "Gateway Out3"
-	      SrcPort		      1
-	      DstBlock		      "Radio TxEn-RxEn"
-	      DstPort		      1
-	    }
-	    Line {
-	      Name		      "Pkt Count"
-	      Labels		      [0, 0]
-	      SrcBlock		      "Gateway Out4"
-	      SrcPort		      1
-	      DstBlock		      "Radio TxEn-RxEn"
-	      DstPort		      2
-	    }
-	    Line {
-	      SrcBlock		      "Delay"
-	      SrcPort		      1
-	      DstBlock		      "S-R Latch1"
-	      DstPort		      1
-	    }
-	    Line {
-	      SrcBlock		      "Delay1"
-	      SrcPort		      1
-	      DstBlock		      "S-R Latch1"
-	      DstPort		      2
-	    }
-	    Line {
-	      Name		      "Start"
-	      SrcBlock		      "Gateway Out2"
-	      SrcPort		      1
-	      Points		      [15, 0]
-	      Branch {
-		DstBlock		"Goto14"
-		DstPort			1
-	      }
-	      Branch {
-		Labels			[2, 0]
-		Points			[0, 340]
-		DstBlock		"Radio TxEn-RxEn"
-		DstPort			4
-	      }
-	    }
-	  }
-	}
-	Block {
 	  BlockType		  Reference
 	  Name			  "Slice"
 	  SID			  "2534"
@@ -83402,16 +83307,8 @@ Model {
 	Line {
 	  SrcBlock		  "negedge"
 	  SrcPort		  1
-	  Points		  [15, 0]
-	  Branch {
-	    DstBlock		    "Goto8"
-	    DstPort		    1
-	  }
-	  Branch {
-	    Points		    [0, 45]
-	    DstBlock		    "Simulation Stop"
-	    DstPort		    1
-	  }
+	  DstBlock		  "Goto8"
+	  DstPort		  1
 	}
 	Line {
 	  SrcBlock		  "Posedge2"

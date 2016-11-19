@@ -46,7 +46,7 @@ elseif phy_mode == 2
     % [18:23]: TAIL (6'b0)
 
     %L-SIG is same format as 11a SIGNAL, but with RATE always 6Mb and LENGTH
-    % set such that LENGTH/6Mb matches durration of HT transmission
+    % set such that LENGTH/6Mb matches duration of HT transmission
     % Using equation from IEEE 802.11-2012 9.23.4
     % L-SIG.LENGTH = (3*ceil( (TXTIME - 6 - 20) / 4) - 3)
     %  where TXTIME is actual duration of the HT transmission
@@ -56,6 +56,7 @@ elseif phy_mode == 2
     ht_txtime_usec = 16 + 5*4 + ((2+len)*8 + 6)/mcs_datarates(mcs+1) + 6; %approx, good enough for sim
     LSIG_LENGTH = 3*ceil((ht_txtime_usec - 6 - 20)/4) - 3;
     LSIG_RATE = uint8(11); %6Mb
+    LSIG_RATE = uint8(10); %12Mb - TESTING HT-SIG DECODE - DELETE THIS LINE!
     
     signal_bytes = calc_signal_field(LSIG_LENGTH, LSIG_RATE);
     

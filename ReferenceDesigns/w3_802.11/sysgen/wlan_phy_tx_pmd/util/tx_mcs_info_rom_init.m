@@ -1,4 +1,4 @@
-function [mcs_rom_11ag, mcs_rom_11n] = mcs_info_rom_init()
+function [mcs_rom_11ag, mcs_rom_11n] = tx_mcs_info_rom_init()
 
 %Helper function to convert each MCS info entry into a UFix32_0 ROM word
 % Requries all inputs be integers!
