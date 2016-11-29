@@ -73,6 +73,7 @@
 #define BSS_FIELD_MASK_SSID                                0x00000004
 #define BSS_FIELD_MASK_BEACON_INTERVAL                     0x00000008
 #define BSS_FIELD_MASK_HT_CAPABLE                          0x00000010
+#define BSS_FIELD_MASK_DTIM_MCAST_BUFFER                   0x00000020
 
 
 //-----------------------------------------------
@@ -158,14 +159,18 @@ CASSERT(sizeof(bss_info_t) == 72, bss_info_t_alignment_check);
  *
  * This struct contains all the BSS info fields that can be modified.
  ********************************************************************/
-typedef struct{
+typedef struct __attribute__((__packed__)){
     u32            update_mask;                       /* Mask of fields that were updated */
     u8             bssid[MAC_ADDR_LEN];               /* BSS ID */
     u16            beacon_interval;                   /* Beacon interval - In time units of 1024 us */
     char           ssid[SSID_LEN_MAX + 1];            /* SSID of the BSS - 33 bytes */
     chan_spec_t    chan_spec;                         /* Channel Specification*/
     u8             ht_capable;                        /* Support HTMF Tx/Rx */
-} bss_config_t;
+    u8  		   dtim_period;				          /* DTIM Period (in beacon intervals) */
+    u8  		   dtim_mcast_buffer_enable;	      /* Enable buffering of multicast packets until after DTIM transmission */
+    u8			   reserved[6];
+} bss_config_t; //FIXME: must update python to match
+CASSERT(sizeof(bss_config_t) == 56, bss_config_t_alignment_check);
 
 
 

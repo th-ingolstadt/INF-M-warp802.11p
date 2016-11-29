@@ -74,15 +74,6 @@ CASSERT( (MAX_NUM_ASSOC ) <= STATION_INFO_DL_ENTRY_MEM_NUM, insufficient_WLAN_OP
 
 /*********************** Global Structure Definitions ************************/
 
-typedef struct{
-	u8  enable;
-	u8  dtim_period;
-	u8  dtim_count;
-	u8  dtim_mcast_buffer_enable;
-	u64 dtim_timestamp;
-	u64 dtim_mcast_allow_window;
-} ps_conf;
-
 /*************************** Function Prototypes *****************************/
 int  main();
 
@@ -93,16 +84,12 @@ int  ethernet_receive(tx_queue_element_t* curr_tx_queue_element, u8* eth_dest, u
 u32 					mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_entry* rx_event_log_entry);
 bss_info_t* 			active_bss_info_getter();
 void 					process_scan_state_change(scan_state_t scan_state);
-void 					set_power_save_configuration(ps_conf power_save_configuration);
-volatile ps_conf* 		get_power_save_configuration();
 
 void queue_state_change(u32 QID, u8 queue_len);
 inline void update_tim_tag_aid(u8 aid, u8 bit_val_in);
 void update_tim_tag_all(u32 sched_id);
 
-void beacon_transmit_done( tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details, tx_low_entry* tx_low_event_log_entry );
-
-void poll_tx_queues();
+void poll_tx_queues(pkt_buf_group_t pkt_buf_group);
 void purge_all_data_tx_queue();
 
 void enable_associations();

@@ -52,7 +52,6 @@
 
 /*************************** Variable Definitions ****************************/
 volatile static phy_samp_rate_t   gl_phy_samp_rate;                                 ///< Current PHY sampling rate
-volatile static u8				  gl_in_frame_transmit;
 volatile static u32               mac_param_chan;                                   ///< Current channel of the lower-level MAC
 volatile static u8                mac_param_band;                                   ///< Current band of the lower-level MAC
 volatile static u8                mac_param_dsss_en;                                ///< Enable / Disable DSSS when possible
@@ -69,7 +68,6 @@ static u32                   	  ipc_msg_from_high_payload[MAILBOX_BUFFER_MAX_NUM
 
 // Callback function pointers
 static function_ptr_t        frame_rx_callback;                                     ///< User callback frame receptions
-static function_ptr_t        frame_tx_callback;                                     ///< User callback frame transmissions
 
 static function_ptr_t		 beacon_txrx_config_callback;
 static function_ptr_t		 mactime_change_callback;
@@ -111,14 +109,12 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
     cpu_low_status           = 0;
     cpu_low_type			 = type;
     cpu_low_compilation_details = compilation_details;
-    gl_in_frame_transmit 	 = 0;
 
     unique_seq = 0;
 
     mac_param_rx_filter      = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL);
 
     frame_rx_callback           = (function_ptr_t) wlan_null_callback;
-    frame_tx_callback           = (function_ptr_t) wlan_null_callback;
     ipc_low_param_callback      = (function_ptr_t) wlan_null_callback;
     beacon_txrx_config_callback = (function_ptr_t) wlan_null_callback;
     mactime_change_callback		= (function_ptr_t) wlan_null_callback;
@@ -144,6 +140,8 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
 
     // Initialize packet buffers
 	init_pkt_buf();
+
+	//FIXME: Reset/unpause all MAC processing cores (Only A + D can be paused)
 
 	// ***************************************************
 	// Initialize Transmit Packet Buffers
@@ -1002,89 +1000,38 @@ void wlan_mac_low_DSSS_rx_disable() {
 	wlan_phy_DSSS_rx_disable();
 }
 
-inline u8 wlan_mac_low_is_frame_transmitting(){
-	return gl_in_frame_transmit;
-}
-
-/*****************************************************************************/
-/**
- * @brief Process a Tx Packet Buffer for Transmission
- *
- * This function can be called directly via the IPC_MBOX_TX_MPDU_READY message
- * or asynchronously if allow_new_mpdu_tx is enabled.
- *
- * @param   tx_pkt_buf         - u16 packet buffer index
- * @return  None
- *
- */
-void wlan_mac_low_frame_transmit(u16 tx_pkt_buf){
-    u32                      status;
+int wlan_mac_low_finish_frame_transmit(u16 tx_pkt_buf){
+	// This function should only be called on a packet buffer whose state is
+	// TX_PKT_BUF_LOW_CTRL and is currently locked by CPU_LOW
+	int 					 return_value = 0;
     tx_frame_info_t        * tx_frame_info;
-    mac_header_80211       * tx_80211_header;
     u32                      is_locked, owner;
     wlan_ipc_msg_t           ipc_msg_to_high;
-    ltg_packet_id_t*         pkt_id;
+
 
     if(tx_pkt_buf >= NUM_TX_PKT_BUFS){
     	xil_printf("Error: Tx Pkt Buf index exceeds NUM_TX_PKT_BUFS\n");
-    	return;
+    	return_value = -1;
+    	return return_value;
     }
 
     tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 
 	switch(tx_frame_info->tx_pkt_buf_state){
-		// ---- Normal Tx process - buffer contains packet ready for Tx ----
-		case TX_PKT_BUF_READY:
-			if(lock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-				wlan_printf(PL_ERROR, "Error: unable to lock TX pkt_buf %d\n", tx_pkt_buf);
+		case TX_PKT_BUF_LOW_CTRL:
+			get_tx_pkt_buf_status(tx_pkt_buf, &is_locked, &owner);
+
+			if( (is_locked == 0) || (owner != XPAR_CPU_ID)){
+				wlan_printf(PL_ERROR, "TX pkt_buf %d is not locked by CPU_LOW\n", tx_pkt_buf);
 
 				get_tx_pkt_buf_status(tx_pkt_buf, &is_locked, &owner);
-
-				wlan_printf(PL_ERROR, "    TX pkt_buf %d status: isLocked = %d, owner = %d\n", tx_pkt_buf, is_locked, owner);
 				tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 
+				return_value = -1;
+
 			} else {
-
-				tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
-
-				tx_frame_info->delay_accept = (u32)(get_mac_time_usec() - tx_frame_info->timestamp_create);
-
-				// Get pointer to start of MAC header in packet buffer
-				tx_80211_header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
-
-				// Insert sequence number here
-				tx_80211_header->sequence_control = ((tx_80211_header->sequence_control) & 0xF) | ( (unique_seq&0xFFF)<<4 );
-
-				// Insert unique sequence into tx_frame_info
-				tx_frame_info->unique_seq = unique_seq;
-
-				if((tx_frame_info->flags) & TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ){
-					// Fill unique sequence number into LTG payload
-					pkt_id             = (ltg_packet_id_t*)((u8*)tx_80211_header + sizeof(mac_header_80211));
-					pkt_id->unique_seq = unique_seq;
-				}
-
-				//Increment the global unique sequence number
-				unique_seq++;
-
-				// Submit the MPDU for transmission - this callback will return only when the MPDU Tx is
-				//     complete (after all re-transmissions, ACK Rx, timeouts, etc.)
-				//
-				// If a frame_tx_callback is not provided, the wlan_null_callback will always
-				// return 0 (ie TX_MPDU_RESULT_SUCCESS).
-				//
-				gl_in_frame_transmit = 1;
-				status = frame_tx_callback(tx_pkt_buf);
-				gl_in_frame_transmit = 0;
-
 				//Record the total time this MPDU spent in the Tx state machine
 				tx_frame_info->delay_done = (u32)(get_mac_time_usec() - (tx_frame_info->timestamp_create + (u64)(tx_frame_info->delay_accept)));
-
-				if(status == TX_FRAME_INFO_RESULT_SUCCESS){
-					tx_frame_info->tx_result = TX_FRAME_INFO_RESULT_SUCCESS;
-				} else {
-					tx_frame_info->tx_result = TX_FRAME_INFO_RESULT_FAILURE;
-				}
 
 				tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_DONE;
 
@@ -1104,9 +1051,9 @@ void wlan_mac_low_frame_transmit(u16 tx_pkt_buf){
 				}
 			}
 		break;
-		// ---- Something went wrong - TX_READY message didn't match state of pkt buf ----
+		// ---- Something went wrong - packet buffer in unexpected state ----
 		default:
-		case TX_PKT_BUF_LOW_CTRL:
+		case TX_PKT_BUF_READY:
             // CPU Low responsible for any LOW_CTRL buffers
             //  Don't transmit - just clean up and return
 			tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
@@ -1118,6 +1065,103 @@ void wlan_mac_low_frame_transmit(u16 tx_pkt_buf){
             unlock_tx_pkt_buf(tx_pkt_buf);
 		break;
 	}
+	return return_value;
+}
+
+u32 wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf){
+	u32						 return_value = 0;
+	tx_frame_info_t* 		 tx_frame_info;
+	mac_header_80211       * tx_80211_header;
+	u32                      is_locked, owner;
+	ltg_packet_id_t*         pkt_id;
+	u32						 iter = 0;
+
+	if(tx_pkt_buf >= NUM_TX_PKT_BUFS){
+		xil_printf("Error: Tx Pkt Buf index exceeds NUM_TX_PKT_BUFS\n");
+		return_value |= PREPARE_FRAME_TRANSMIT_ERROR_INVALID_PKT_BUF;
+		return return_value;
+	}
+
+	tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+
+	if( tx_frame_info->flags & TX_FRAME_INFO_FLAGS_WAIT_FOR_LOCK ){
+		// This packet buffer has been flagged to ensure that CPU_LOW will wait until a mutex lock
+		// is achieved before proceeding (as opposed to aborting and raising an error). The implicit
+		// contract in this flag is that CPU_HIGH will only briefly lock the packet buffer while updating
+		// its contents.
+		if(tx_frame_info->tx_pkt_buf_state == TX_PKT_BUF_DONE){
+			return_value |= PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE;
+			return return_value;
+		}
+
+		while(lock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+			// This frame was flagged with
+			if(iter > 1000000) {
+				xil_printf("ERROR (poll_tbtt_and_send_beacon): stuck waiting for CPU High to unlock Tx pkt buf %d\n", tx_pkt_buf);
+			}
+			else {
+				iter++;
+			}
+		}
+
+		if(tx_frame_info->tx_pkt_buf_state != TX_PKT_BUF_READY){
+			return_value |= PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE;
+			return return_value;
+		}
+
+	} else {
+		// This packet buffer should be lockable and there is no need for CPU_LOW to wait on a mutex
+		// lock if it is not. In that case, CPU_LOW should print an error and quit this function.
+
+		if(tx_frame_info->tx_pkt_buf_state != TX_PKT_BUF_READY){
+			if(tx_frame_info->tx_pkt_buf_state == TX_PKT_BUF_LOW_CTRL ){
+				// CPU Low responsible for any LOW_CTRL buffers
+				//  Don't transmit - just clean up and return
+				tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+			}
+			//  CPU High will handle it eventually
+			//  Ensure CPU Low doesn't own lock then return
+			unlock_tx_pkt_buf(tx_pkt_buf);
+			return_value |= PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE;
+		}
+
+		// Attempt to lock the packet buffer. If this fails, we will not wait for it to succeed. Something
+		// has gone wrong and we should print an error.
+		if(lock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+			wlan_printf(PL_ERROR, "Error: unable to lock TX pkt_buf %d\n", tx_pkt_buf);
+			get_tx_pkt_buf_status(tx_pkt_buf, &is_locked, &owner);
+			wlan_printf(PL_ERROR, "    TX pkt_buf %d status: isLocked = %d, owner = %d\n", tx_pkt_buf, is_locked, owner);
+			tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+			return_value |= PREPARE_FRAME_TRANSMIT_ERROR_LOCK_FAIL;
+		}
+	}
+
+	// By this point in the function, we have verified that the packet buffer was in an expected state
+	// and have successfully locked the mutex.
+
+	tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
+
+	tx_frame_info->delay_accept = (u32)(get_mac_time_usec() - tx_frame_info->timestamp_create);
+
+	// Get pointer to start of MAC header in packet buffer
+	tx_80211_header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
+
+	// Insert sequence number here
+	tx_80211_header->sequence_control = ((tx_80211_header->sequence_control) & 0xF) | ( (unique_seq&0xFFF)<<4 );
+
+	// Insert unique sequence into tx_frame_info
+	tx_frame_info->unique_seq = unique_seq;
+
+	if((tx_frame_info->flags) & TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ){
+		// Fill unique sequence number into LTG payload
+		pkt_id             = (ltg_packet_id_t*)((u8*)tx_80211_header + sizeof(mac_header_80211));
+		pkt_id->unique_seq = unique_seq;
+	}
+
+	//Increment the global unique sequence number
+	unique_seq++;
+
+	return return_value;
 }
 
 void wlan_mac_low_send_low_tx_details(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details){
@@ -1186,23 +1230,6 @@ inline void wlan_mac_low_set_beacon_txrx_config_callback(function_ptr_t callback
 inline void wlan_mac_low_set_mactime_change_callback(function_ptr_t callback){
 	mactime_change_callback = callback;
 }
-
-
-/*****************************************************************************/
-/**
- * @brief Set Frame Transmission Callback
- *
- * Tells the framework which function should be called when an MPDU is passed down from the
- * upper-level MAC for wireless transmission
- *
- * @param   callback         - Pointer to callback function
- * @return  None
- */
-inline void wlan_mac_low_set_frame_tx_callback(function_ptr_t callback){
-    frame_tx_callback = callback;
-}
-
-
 
 /*****************************************************************************/
 /**
@@ -1841,14 +1868,6 @@ inline u8 wlan_mac_low_mcs_to_ctrl_resp_mcs(u8 mcs, u8 phy_mode){
     	}
     }
     return return_value;
-}
-
-inline u64 wlan_mac_low_get_unique_seq(){
-	return unique_seq;
-}
-
-inline void wlan_mac_low_set_unique_seq(u64 curr_unique_seq){
-	unique_seq = curr_unique_seq;
 }
 
 inline void wlan_mac_hw_clear_rx_started() {

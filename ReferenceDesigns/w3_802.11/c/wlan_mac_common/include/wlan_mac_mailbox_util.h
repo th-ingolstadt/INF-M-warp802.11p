@@ -78,7 +78,7 @@
 #define IPC_MBOX_CPU_STATUS                                5
 #define IPC_MBOX_CONFIG_CHANNEL                            7
 #define IPC_MBOX_CONFIG_DSSS_EN                            8
-#define IPC_MBOX_TX_BEACON_DONE                            10
+#define IPC_MBOX_TX_BEACON_DONE	                           9
 #define IPC_MBOX_SET_MAC_TIME 	                           11
 #define IPC_MBOX_CONFIG_RX_ANT_MODE                        12
 #define IPC_MBOX_CONFIG_TX_CTRL_POW                        13

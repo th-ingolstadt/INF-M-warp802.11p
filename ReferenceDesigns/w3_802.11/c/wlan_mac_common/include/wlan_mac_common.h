@@ -222,28 +222,36 @@ CASSERT(sizeof(compilation_details_t) == 24, compilation_details_t_alignment_che
 //-----------------------------------------------
 // Beacon Tx/Rx Configuration Struct
 //
-typedef enum {
+typedef enum __attribute__((__packed__)){
     NEVER_UPDATE,
     ALWAYS_UPDATE,
     FUTURE_ONLY_UPDATE,
 } mactime_update_mode_t;
+CASSERT(sizeof(mactime_update_mode_t) == 1, mactime_update_mode_t_alignment_check);
 
-typedef enum {
+typedef enum __attribute__((__packed__)){
     NO_BEACON_TX,
     AP_BEACON_TX,
     IBSS_BEACON_TX,
 } beacon_tx_mode_t;
+CASSERT(sizeof(beacon_tx_mode_t) == 1, beacon_tx_mode_t_alignment_check);
 
-typedef struct{
+typedef struct __attribute__((__packed__)){
     // Beacon Rx Configuration Parameters
     mactime_update_mode_t    ts_update_mode;               // Determines how MAC time is updated on reception of beacons
     u8                       bssid_match[MAC_ADDR_LEN];    // BSSID of current association for Rx matching
 
     // Beacon Tx Configuration Parameters
     u8                       beacon_template_pkt_buf;      // Packet Buffer that contains the the beacon template to transmit
-    beacon_tx_mode_t         beacon_tx_mode;               // Tx Beacon Mode
     u32                      beacon_interval_tu;           // Beacon Interval (in TU)
+    beacon_tx_mode_t         beacon_tx_mode;               // Tx Beacon Mode
+	u8  					 dtim_period;				   // DTIM Period (in beacon intervals)
+	u8  					 dtim_mcast_buffer_enable;	   // Enable buffering of multicast packets until after DTIM transmission
+	u8						 reserved0;
+	u16						 dtim_tag_byte_offset;		   // # of bytes into the payload that contains the start of the DTIM tag
+	u16						 reserved1;
 } beacon_txrx_configure_t;
+CASSERT(sizeof(beacon_txrx_configure_t) == 20, beacon_txrx_configure_t_alignment_check);
 
 
 //-----------------------------------------------

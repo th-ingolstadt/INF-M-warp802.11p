@@ -405,6 +405,7 @@ void wlan_mac_high_init(){
 				}
 			break;
 			case TX_PKT_BUF_BEACON:
+				unlock_tx_pkt_buf(TX_PKT_BUF_BEACON);
 				tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 			case TX_PKT_BUF_RTS:
 			case TX_PKT_BUF_ACK_CTS:
@@ -1476,11 +1477,11 @@ void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_
  *     - Length of the frame info
  * @param  tx_frame_info_flags_bf flags
  *     - Flags for the frame info
- * @param  u8 QID
+ * @param  u8 queue_id
  *     - Queue ID
  * @return None
  */
-void wlan_mac_high_setup_tx_frame_info(mac_header_80211_common * header, tx_queue_element_t * curr_tx_queue_element, u32 tx_length, u8 flags, u8 QID) {
+void wlan_mac_high_setup_tx_frame_info(mac_header_80211_common * header, tx_queue_element_t * curr_tx_queue_element, u32 tx_length, u8 flags, u8 queue_id) {
 
 	u16 occupancy;
 
@@ -1495,7 +1496,7 @@ void wlan_mac_high_setup_tx_frame_info(mac_header_80211_common * header, tx_queu
 	curr_tx_queue_buffer->tx_frame_info.timestamp_create            = get_mac_time_usec();
 	curr_tx_queue_buffer->tx_frame_info.length                      = tx_length;
 	curr_tx_queue_buffer->tx_frame_info.flags                       = flags;
-	curr_tx_queue_buffer->tx_frame_info.queue_info.QID              = QID;
+	curr_tx_queue_buffer->tx_frame_info.queue_info.id               = queue_id;
 	curr_tx_queue_buffer->tx_frame_info.queue_info.occupancy        = occupancy;
 
 }
@@ -1565,15 +1566,14 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 					tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 					tx_low_details = (wlan_mac_low_tx_details_t*)(msg->payload_ptr);
 
+					tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+
 #if WLAN_SW_CONFIG_ENABLE_LOGGING
 					// Log the TX low
 					tx_low_event_log_entry = wlan_exp_log_create_tx_low_entry(tx_frame_info, tx_low_details);
 #endif
 
 					beacon_tx_done_callback( tx_frame_info, tx_low_details, tx_low_event_log_entry );
-
-
-
 
 					tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_READY;
 					if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
@@ -1699,7 +1699,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 
 						//We can now attempt to dequeue any pending transmissions before we fully process
 						//this done message.
-						tx_poll_callback();
+						tx_poll_callback(tx_frame_info->queue_info.pkt_buf_group);
 
 						//We will pass this completed transmission off to the Station Info subsystem
 						station_info = station_info_tx_process((void*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)));
@@ -2187,25 +2187,40 @@ int wlan_mac_high_is_cpu_low_initialized(){
 /**
  * @brief Check that CPU low is ready to transmit
  *
- * @param  None
+ * @param  pkt_buf_group_t pkt_buf_group
  * @return int
  *     - 0 if CPU low is not ready to transmit
  *     - 1 if CPU low is ready to transmit
  */
-inline int wlan_mac_high_is_dequeue_allowed(){
-	u8 i, num_empty, num_done;
+inline int wlan_mac_high_is_dequeue_allowed(pkt_buf_group_t pkt_buf_group){
+
+	u8 i, num_empty, num_low_owned;
 
 	num_empty = 0;
-	num_done = 0;
-	for( i = 0; i < 3; i++ ){
+	num_low_owned = 0;
+
+	for( i = 0; i < 5; i++ ){
 		if( ((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state == TX_PKT_BUF_HIGH_CTRL ){
 			num_empty++;
-		} else if( ((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state == TX_PKT_BUF_DONE ){
-			num_done++;
+		}
+		if( (((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(i))->queue_info.pkt_buf_group == pkt_buf_group) &&
+			(	(((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state == TX_PKT_BUF_READY) ||
+				(((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state == TX_PKT_BUF_LOW_CTRL)	) ){
+			num_low_owned++;
 		}
 	}
 
-	return (((num_empty + num_done) >= 2) && ((num_empty) > 0));
+
+	// The first requirement for being allowed to dequeue is that there is at least one empty packet buffer.
+
+	// The second requirement for being allowed to dequeue is that no more than one packet buffer is currently
+	// in the TX_PKT_BUF_READY or TX_PKT_BUF_LOW_CTRL state for this pkt_buf_group
+
+	if( (num_empty > 0) && (num_low_owned <= 1) ){
+		return 1;
+	} else {
+		return 0;
+	}
 }
 
 
@@ -2228,7 +2243,7 @@ int wlan_mac_high_get_empty_tx_packet_buffer(){
 	u8 i;
 	int pkt_buf_sel = -1;
 
-	for( i = 0; i < 3; i++ ){
+	for( i = 0; i < 5; i++ ){
 		if( ((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state == TX_PKT_BUF_HIGH_CTRL ){
 			pkt_buf_sel = i;
 			break;
@@ -2310,7 +2325,8 @@ int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_heade
 	tx_frame_info->timestamp_create            = get_mac_time_usec();
 	tx_frame_info->length                      = tx_length;
 	tx_frame_info->flags                       = flags;
-	tx_frame_info->queue_info.QID			   = 0xFF;
+	tx_frame_info->queue_info.id			   = 0xFF;
+	tx_frame_info->queue_info.pkt_buf_group	   = PKT_BUF_GROUP_OTHER;
 	tx_frame_info->queue_info.occupancy 	   = 0;
 
 

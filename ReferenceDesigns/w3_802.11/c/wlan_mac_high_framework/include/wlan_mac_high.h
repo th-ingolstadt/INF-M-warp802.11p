@@ -347,7 +347,7 @@ u8                 wlan_mac_high_valid_tagged_rate(u8 rate);
 void               wlan_mac_high_tagged_rate_to_readable_rate(u8 rate, char* str);
 
 void               wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_1, u8 * addr_3 );
-void               wlan_mac_high_setup_tx_frame_info( mac_header_80211_common * header, tx_queue_element_t * curr_tx_queue_element, u32 tx_length, u8 flags, u8 QID );
+void 			   wlan_mac_high_setup_tx_frame_info(mac_header_80211_common * header, tx_queue_element_t * curr_tx_queue_element, u32 tx_length, u8 flags, u8 queue_id);
 
 void               wlan_mac_high_ipc_rx();
 void               wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg);
@@ -367,7 +367,7 @@ int                wlan_mac_high_write_low_param(u32 num_words, u32* payload);
 
 void               wlan_mac_high_request_low_state();
 int 			   wlan_mac_high_is_cpu_low_initialized();
-inline int         wlan_mac_high_is_dequeue_allowed();
+inline int         wlan_mac_high_is_dequeue_allowed(pkt_buf_group_t pkt_buf_group);
 int                wlan_mac_high_get_empty_tx_packet_buffer();
 u8                 wlan_mac_high_is_pkt_ltg(void* mac_payload, u16 length);
 

@@ -540,11 +540,18 @@ void wlan_process_all_eth_pkts(u32 schedule_id) {
         bd_set_count--;
 
         // Check stop condition
-        if ((num_pkt_processed >= max_pkts) && (wlan_mac_high_is_dequeue_allowed() == 0)) {
+        if ((num_pkt_processed >= max_pkts) && (wlan_mac_high_is_dequeue_allowed(PKT_BUF_GROUP_GENERAL) == 0 )) {
             // Processed enough packets in this call and the Tx PHY isn't waiting on an
             // Ethernet packet to transmit.  Leave this ISR to handle any other higher
             // priority interrupts, such as IPC messages, then come back later to process
             // the next set of Ethernet BDs.
+
+        	// One subtle concession in this implementation is that we only check PKT_BUF_GROUP_GENERAL. If
+        	// PKT_BUF_GROUP_DTIM_MCAST is able to be dequeued into, we will still defer processing Ethernet
+        	// receptions until later. The advantage of this is that we avoid a scenario where large bursts
+        	// of unicast Ethernet receptions are not deferred simply because there is available space in the
+        	// PKT_BUF_GROUP_DTIM_MCAST group.
+
             break;
         }
     }

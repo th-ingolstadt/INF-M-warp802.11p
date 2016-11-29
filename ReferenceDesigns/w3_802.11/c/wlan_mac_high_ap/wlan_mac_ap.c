@@ -120,8 +120,6 @@ static u8 	                      wlan_mac_addr[MAC_ADDR_LEN];
 // These global structs must be protected against externing. Any
 // modifications of these structs should be done via an explicit
 // setter that also updates the beacon template.
-static volatile ps_conf           		gl_power_save_configuration;
-static volatile	u32				  		num_dozed_stations;
 static volatile mgmt_tag_template_t*	mgmt_tag_tim_template;
 static volatile u32				  		mgmt_tag_tim_update_schedule_id;
 
@@ -136,13 +134,10 @@ static beacon_txrx_configure_t         gl_beacon_txrx_config;
 int  wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len);
 #endif
 
-void send_probe_req();
-
 
 /******************************** Functions **********************************/
 
 int main(){
-	ps_conf           		initial_power_save_configuration;
 	bss_config_t      		bss_config;
 	compilation_details_t	compilation_details;
 	bzero(&compilation_details, sizeof(compilation_details_t));
@@ -166,6 +161,9 @@ int main(){
 	wlan_mac_high_init();
 
 	pause_data_queue = 0;
+
+	//Set a sane default for the TIM tag byte offset
+	gl_beacon_txrx_config.dtim_tag_byte_offset = 0;
 
 	// AP does not currently advertise a BSS
 	configure_bss(NULL);
@@ -213,7 +211,6 @@ int main(){
 
 	// Initialize callbacks
 	wlan_mac_util_set_eth_rx_callback(          (void*)ethernet_receive);
-	wlan_mac_high_set_beacon_tx_done_callback(  (void*)beacon_transmit_done);
 	wlan_mac_high_set_mpdu_rx_callback(         (void*)mpdu_rx_process);
 	wlan_mac_high_set_pb_u_callback(            (void*)up_button);
 
@@ -224,7 +221,6 @@ int main(){
 	wlan_mac_ltg_sched_set_callback(            (void*)ltg_event);
 #endif //WLAN_SW_CONFIG_ENABLE_LTG
 	queue_set_state_change_callback(            (void*)queue_state_change);
-	wlan_mac_scan_set_tx_probe_request_callback((void*)send_probe_req);
 	wlan_mac_scan_set_state_change_callback(    (void*)process_scan_state_change);
 	wlan_mac_high_set_cpu_low_reboot_callback(  (void*)handle_cpu_low_reboot);
 
@@ -279,20 +275,9 @@ int main(){
 	// Initialize interrupts
 	wlan_mac_high_interrupt_init();
 
-	// Initialize DTIM configuration (ie station power saving configuration)
-	initial_power_save_configuration.enable      = 1;
-	initial_power_save_configuration.dtim_period = 1;
-	initial_power_save_configuration.dtim_count  = 0;
-	initial_power_save_configuration.dtim_mcast_buffer_enable = 1;
-	initial_power_save_configuration.dtim_mcast_allow_window  = (WLAN_DEFAULT_BEACON_INTERVAL_TU * BSS_MICROSECONDS_IN_A_TU) / 4;
-
 	// Initialize TIM management tag that will be postpended to a beacon
 	mgmt_tag_tim_update_schedule_id = SCHEDULE_ID_RESERVED_MAX;
 	mgmt_tag_tim_template = NULL;
-
-	// Set the global power save configuration
-	//   Note: this should be called after wlan_mac_high_configure_beacon_transmit
-	set_power_save_configuration(initial_power_save_configuration);
 
 	//  Periodic check for timed-out associations
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)remove_inactive_station_infos);
@@ -312,16 +297,19 @@ int main(){
 		memcpy(bss_config.bssid, wlan_mac_addr, MAC_ADDR_LEN);
 		strncpy(bss_config.ssid, default_AP_SSID, SSID_LEN_MAX);
 
-		bss_config.chan_spec.chan_pri  = WLAN_DEFAULT_CHANNEL;
-		bss_config.chan_spec.chan_type = CHAN_TYPE_BW20;
-		bss_config.ht_capable          = WLAN_DEFAULT_USE_HT;
-		bss_config.beacon_interval     = WLAN_DEFAULT_BEACON_INTERVAL_TU;
+		bss_config.chan_spec.chan_pri  		= WLAN_DEFAULT_CHANNEL;
+		bss_config.chan_spec.chan_type 		= CHAN_TYPE_BW20;
+		bss_config.ht_capable          		= WLAN_DEFAULT_USE_HT;
+		bss_config.beacon_interval     		= WLAN_DEFAULT_BEACON_INTERVAL_TU;
+		bss_config.dtim_mcast_buffer_enable = 1;
+		bss_config.dtim_period		  		= 1;
 
 		bss_config.update_mask = (BSS_FIELD_MASK_BSSID  		 |
 								  BSS_FIELD_MASK_CHAN   		 |
 								  BSS_FIELD_MASK_SSID			 |
 								  BSS_FIELD_MASK_BEACON_INTERVAL |
-								  BSS_FIELD_MASK_HT_CAPABLE);
+								  BSS_FIELD_MASK_HT_CAPABLE		 |
+								  BSS_FIELD_MASK_DTIM_MCAST_BUFFER);
 		configure_bss(&bss_config);
 	}
 
@@ -352,58 +340,6 @@ int main(){
 	return -1;
 }
 
-
-
-/*****************************************************************************/
-/**
- * @brief Send probe requet
- *
- * This function is part of the scan infrastructure and will be called whenever
- * the node needs to send a probe request.
- *
- * Note:  Normally, APs will never send probe requests.  However as part of the
- * WLAN Exp infrastructure, an active scan can be run on any node as long as
- * active_bss_info is NULL.  Therefore, this function needs to exist in the AP
- * codebase.
- *
- * @param   None
- * @return  None
- *
- *****************************************************************************/
-void send_probe_req(){
-	u16                             tx_length;
-	tx_queue_element_t*               curr_tx_queue_element;
-	tx_queue_buffer_t*                curr_tx_queue_buffer;
-	volatile scan_parameters_t*     scan_parameters = wlan_mac_scan_get_parameters();
-
-	// Check out queue element for packet
-	curr_tx_queue_element = queue_checkout();
-
-	// Create probe request
-	if(curr_tx_queue_element != NULL){
-		curr_tx_queue_buffer = (tx_queue_buffer_t*)(curr_tx_queue_element->data);
-
-		// Setup the TX header
-		wlan_mac_high_setup_tx_header(&tx_header_common, (u8 *)bcast_addr, (u8 *)bcast_addr);
-
-		// Fill in the data
-		tx_length = wlan_create_probe_req_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, scan_parameters->ssid);
-
-		// Setup the TX frame info
-		wlan_mac_high_setup_tx_frame_info(&tx_header_common, curr_tx_queue_element, tx_length, 0, MANAGEMENT_QID);
-
-		// Set the information in the TX queue buffer
-		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_mgmt_tx_params);
-		curr_tx_queue_buffer->tx_frame_info.ID          = 0;
-
-		// Put the packet in the queue
-		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
-
-		// Poll the TX queues to possibly send the packet
-		poll_tx_queues();
-	}
-}
 
 /*****************************************************************************/
 /**
@@ -457,43 +393,6 @@ void process_scan_state_change(scan_state_t scan_state){
 /**
  *
  *****************************************************************************/
-void set_power_save_configuration(ps_conf power_save_configuration){
-	interrupt_state_t curr_interrupt_state;
-	gl_power_save_configuration = power_save_configuration;
-
-	//TODO:
-	//	initial_power_save_configuration.dtim_period = 1;
-	//  initial_power_save_configuration.dtim_count = 0;
-	//  are currently the only supported parameters.
-	//
-	//	Supporting other parameters will require modifications
-	//  to beacon_transmit_done() to decrement the current
-	//  count after each beacon Tx.
-	gl_power_save_configuration.dtim_period = 1;
-	gl_power_save_configuration.dtim_count = 0;
-
-	curr_interrupt_state = wlan_mac_high_interrupt_stop();
-	update_tim_tag_all(SCHEDULE_ID_RESERVED_MAX);
-	wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
-
-}
-
-
-
-/*****************************************************************************/
-/**
- *
- *****************************************************************************/
-volatile ps_conf * get_power_save_configuration() {
-    return &gl_power_save_configuration;
-}
-
-
-
-/*****************************************************************************/
-/**
- *
- *****************************************************************************/
 void queue_state_change(u32 QID, u8 queue_len){
 	//queue_len will take on a value of 0 or 1
 	//and represents the state of the queue after the state
@@ -509,9 +408,7 @@ void queue_state_change(u32 QID, u8 queue_len){
 	if(mgmt_tag_tim_template == NULL){
 		//The TIM tag is not present in the current beacon template.
 		//We have no choice but to do a full TIM tag update and write.
-		if((gl_power_save_configuration.enable != 0) && (num_dozed_stations != 0)){
-			update_tim_tag_all(SCHEDULE_ID_RESERVED_MAX);
-		}
+		update_tim_tag_all(SCHEDULE_ID_RESERVED_MAX);
 	} else {
 		//There is a TIM tag that is already present. We can update
 		//only the relevant byte that applies to this queue state
@@ -539,7 +436,8 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 	//
 	//Note: AID = 0 is invalid. And input of 0 to this function
 	//indicates that the multicast bit in the tim_control byte should
-	//be modified.
+	//be modified if DTIM mcast buffering is currently disabled. Otherwise,
+	//CPU_LOW will maintain this bit.
 
 	u32 				existing_mgmt_tag_length 	= 0;	// Size of the management tag that is currently in the packet buffer
 	u8                  tim_control					= 0;
@@ -549,8 +447,9 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 	tx_frame_info_t*  	tx_frame_info 				= (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON);
 
 	if(active_bss_info == NULL) return;
+	if( ((aid==0) && (gl_beacon_txrx_config.dtim_mcast_buffer_enable == 0)) ) return;
 
-	//First, we should determine whether a call to update_time_tag_all is scheduled
+	//First, we should determine whether a call to update_tim_tag_all_tag_all is scheduled
 	//for some time in the future. If it is, we can just return immediately and let that
 	//execution clean up any pending TIM state changes.
 	if(mgmt_tag_tim_update_schedule_id != SCHEDULE_ID_RESERVED_MAX){
@@ -650,7 +549,7 @@ void update_tim_tag_all(u32 sched_id){
 	if(sched_id == SCHEDULE_ID_RESERVED_MAX){
 		//This function was called manually (not via the scheduler)
 
-		//First, we should determine whether a call to update_time_tag_all is scheduled
+		//First, we should determine whether a call to update_tim_tag_all is scheduled
 		//for some time in the future. If it is, we can just return immediately and let that
 		//execution clean up any pending TIM state changes.
 		if(mgmt_tag_tim_update_schedule_id != SCHEDULE_ID_RESERVED_MAX){
@@ -683,109 +582,85 @@ void update_tim_tag_all(u32 sched_id){
 	}
 
 	//----------------------------------
-	// 1. If we are not going to include the TIM tag in the next beacon transmission, we want to
-	// exit this context quickly and not bother updating state that ultimately will not be used.
-	if( (gl_power_save_configuration.enable == 0) || (num_dozed_stations == 0) ){
-		if(mgmt_tag_tim_template != NULL){
-			//We need to remove the existing tag
-			mgmt_tag_tim_template = NULL;
-			//We can leave the tag in place and just reduce the length
-			//accordingly.
-			tx_frame_info->length -= (existing_mgmt_tag_length+sizeof(mgmt_tag_header));
-		}
+	// 1. We will refresh the full state of the TIM tag based upon queue occupancy
+
+	//We'll start updating the TIM tag from the last associated station.
+	//Since we know that the WLAN MAC High Framework keeps the dl_list of
+	//associated stations in increasing AID order, we can use this final
+	//station's AID to define the size of the TIM tag.
+	curr_station_entry = active_bss_info->members.last;
+
+	if(curr_station_entry != NULL){
+		station_info = (station_info_t*)(curr_station_entry->data);
+		next_mgmt_tag_length = 4 + ((station_info->ID) / 8);
 	} else {
-		//----------------------------------
-		// 2. If we are going to include the TIM tag, we will refresh the full state of the
-		// TIM tag based upon queue occupancy
+		next_mgmt_tag_length = 4;
+	}
 
-		//We'll start updating the TIM tag from the last associated station.
-		//Since we know that the WLAN MAC High Framework keeps the dl_list of
-		//associated stations in increasing AID order, we can use this final
-		//station's AID to define the size of the TIM tag.
-		curr_station_entry = active_bss_info->members.last;
+	if(mgmt_tag_tim_template == NULL){
+		//We need to add the tag to the end of the beacon template
+		//and update the length field of the tx_frame_info.
+		mgmt_tag_tim_template = (mgmt_tag_template_t*)((void*)(tx_frame_info)
+												+PHY_TX_PKT_BUF_MPDU_OFFSET
+												+tx_frame_info->length
+												-WLAN_PHY_FCS_NBYTES);
+		gl_beacon_txrx_config.dtim_tag_byte_offset = (u16)((u32)mgmt_tag_tim_template - (u32)tx_frame_info);
 
-		if(curr_station_entry != NULL){
-			station_info = (station_info_t*)(curr_station_entry->data);
-			next_mgmt_tag_length = 4 + ((station_info->ID) / 8);
-		} else {
-			//Note: this clause should never execute since num_dozed_stations must be 0
-			//if no one is associated.
-			next_mgmt_tag_length = 4;
-		}
+		mgmt_tag_tim_template->header.tag_element_id 	= MGMT_TAG_TIM;
+		tx_frame_info->length += sizeof(mgmt_tag_header);
+	}
 
-		if(mgmt_tag_tim_template == NULL){
-			//We need to add the tag to the end of the beacon template
-			//and update the length field of the tx_frame_info.
-			mgmt_tag_tim_template = (mgmt_tag_template_t*)((void*)(tx_frame_info)
-													+PHY_TX_PKT_BUF_MPDU_OFFSET
-													+tx_frame_info->length
-													-WLAN_PHY_FCS_NBYTES);
-			mgmt_tag_tim_template->header.tag_element_id 	= MGMT_TAG_TIM;
-			tx_frame_info->length += sizeof(mgmt_tag_header);
-		}
+	mgmt_tag_tim_template->header.tag_length 		= next_mgmt_tag_length;
 
-		mgmt_tag_tim_template->header.tag_length 		= next_mgmt_tag_length;
+	tim_control = 0; //The top 7 bits are an offset for the partial map
 
-		tim_control = 0; //The top 7 bits are an offset for the partial map
+	if((gl_beacon_txrx_config.dtim_mcast_buffer_enable == 0) && (queue_num_queued(MCAST_QID)>0)){
+		//If mcast buffering is disabled, the AP is responsible for maintaining the
+		//mcast bit in the TIM control
+		tim_control |= 0x01; //Raise the multicast bit in the TIM control field
+	}
 
-		if(queue_num_queued(MCAST_QID)>0){
-			tim_control |= 0x01; //Raise the multicast bit in the TIM control field
-		}
-		curr_station_entry = active_bss_info->members.first;
-		while(curr_station_entry != NULL){
-			station_info = (station_info_t*)(curr_station_entry->data);
+	curr_station_entry = active_bss_info->members.first;
+	while(curr_station_entry != NULL){
+		station_info = (station_info_t*)(curr_station_entry->data);
 
-			if(queue_num_queued(STATION_ID_TO_QUEUE_ID(station_info->ID))){
-				tim_next_byte_idx = (station_info->ID) / 8;
+		if(queue_num_queued(STATION_ID_TO_QUEUE_ID(station_info->ID))){
+			tim_next_byte_idx = (station_info->ID) / 8;
 
-				if(tim_next_byte_idx > tim_byte_idx){
-					//We've moved on to a new octet. We should zero everything after the previous octet
-					//up to and including the new octet.
-					for(i = tim_byte_idx+1; i <= tim_next_byte_idx; i++){
-						mgmt_tag_tim_template->data[3+i] = 0;
-					}
+			if(tim_next_byte_idx > tim_byte_idx){
+				//We've moved on to a new octet. We should zero everything after the previous octet
+				//up to and including the new octet.
+				for(i = tim_byte_idx+1; i <= tim_next_byte_idx; i++){
+					mgmt_tag_tim_template->data[3+i] = 0;
 				}
-
-				tim_bit_idx  = (station_info->ID) % 8;
-				tim_byte_idx = tim_next_byte_idx;
-
-				//Raise the bit for this station in the TIM partial bitmap
-				mgmt_tag_tim_template->data[3+tim_byte_idx] |= 1<<tim_bit_idx;
 			}
 
-			curr_station_entry = dl_entry_next(curr_station_entry);
+			tim_bit_idx  = (station_info->ID) % 8;
+			tim_byte_idx = tim_next_byte_idx;
+
+			//Raise the bit for this station in the TIM partial bitmap
+			mgmt_tag_tim_template->data[3+tim_byte_idx] |= 1<<tim_bit_idx;
 		}
 
-		mgmt_tag_tim_template->data[0] = gl_power_save_configuration.dtim_count;
-		mgmt_tag_tim_template->data[1] = gl_power_save_configuration.dtim_period;
-		mgmt_tag_tim_template->data[2] = tim_control; 		//TIM Control (top 7 bits are offset for partial map)
+		curr_station_entry = dl_entry_next(curr_station_entry);
+	}
+
+	//mgmt_tag_tim_template->data[0] = gl_beacon_txrx_config.dtim_count; //Note: this field is going to be maintained by CPU_LOW, so it doesn't matter
+																		 // if we write anything to it.
+	mgmt_tag_tim_template->data[1] = gl_beacon_txrx_config.dtim_period;
+	mgmt_tag_tim_template->data[2] = tim_control; 		//TIM Control (top 7 bits are offset for partial map)
+    if(gl_beacon_txrx_config.dtim_mcast_buffer_enable == 0){
 		mgmt_tag_tim_template->data[3] |= tim_control&1; 	//Per 10.2.1.3 in 802.11-2012: AID 0 is treated as
 															//the multicast buffer state
-		tx_frame_info->length += (next_mgmt_tag_length - existing_mgmt_tag_length);
-	}
+    }
+	tx_frame_info->length += (next_mgmt_tag_length - existing_mgmt_tag_length);
+
 	if(unlock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
 		xil_printf("Error: Unable to unlock Beacon packet buffer during update_tim_tag_all\n");
 	}
 	return;
 
 }
-
-
-
-/*****************************************************************************/
-/**
- *
- *****************************************************************************/
-void beacon_transmit_done( tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details, tx_low_entry* tx_low_event_log_entry ){
-
-	gl_power_save_configuration.dtim_timestamp = get_system_time_usec() + gl_power_save_configuration.dtim_mcast_allow_window;
-
-	poll_tx_queues(); //We just entered a window where we are allowing multicast packets to dequeue. We should
-					  //poll the Tx queues and see if there are any ready to be dequeued.
-
-}
-
-
 
 /*****************************************************************************/
 /**
@@ -810,19 +685,20 @@ void beacon_transmit_done( tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_detai
  * return a non-zero status. Thus the calls below terminate polling as soon as any call to dequeue_transmit_checkin()
  * returns with a non-zero value, allowing the next call to poll_tx_queues() to continue the queue polling process.
  *
- * @param None
+ * @param pkt_buf_group_t pkt_buf_group
+ * 		- This instructs the polling function to fill in a particular packet buffer group.
+ * 		e.g. if the calling function knows that a unicast transmission has just finished, it should
+ * 		call this function with a PKT_BUF_GROUP_UNICAST argument
  * @return None
  *****************************************************************************/
-void poll_tx_queues(){
+void poll_tx_queues(pkt_buf_group_t pkt_buf_group){
 	interrupt_state_t curr_interrupt_state;
 	u32 i,k;
 
-	if(active_bss_info == NULL) return;
+#define NUM_QUEUE_GROUPS 2
+typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 
 	curr_interrupt_state = wlan_mac_high_interrupt_stop();
-
-	#define NUM_QUEUE_GROUPS 2
-	typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 
 	// Remember the next group to poll between calls to this function
 	//   This implements the ping-pong poll between the MGMT_QGRP and DATA_QGRP groups
@@ -836,79 +712,81 @@ void poll_tx_queues(){
 
 	station_info_t* curr_station_info;
 
-	if (wlan_mac_high_is_dequeue_allowed()){
-		for(k = 0; k < NUM_QUEUE_GROUPS; k++){
-			curr_queue_group = next_queue_group;
+	if( active_bss_info == NULL ) return;
+	if( wlan_mac_high_is_dequeue_allowed(pkt_buf_group) == 0 ) return;
 
-			switch(curr_queue_group){
-				case MGMT_QGRP:
-					next_queue_group = DATA_QGRP;
-					if(dequeue_transmit_checkin(MANAGEMENT_QID)){
-						goto poll_cleanup;
-						return;
-					}
-				break;
+	switch(pkt_buf_group){
+		case PKT_BUF_GROUP_OTHER:
+		break;
+		case PKT_BUF_GROUP_DTIM_MCAST:
+			if((gl_beacon_txrx_config.dtim_mcast_buffer_enable == 1) && (gl_beacon_txrx_config.beacon_tx_mode != NO_BEACON_TX)){
+				dequeue_transmit_checkin(MCAST_QID);
+			}
+		break;
+		case PKT_BUF_GROUP_GENERAL:
+			for(k = 0; k < NUM_QUEUE_GROUPS; k++){
+				curr_queue_group = next_queue_group;
 
-				case DATA_QGRP:
-					next_queue_group = MGMT_QGRP;
+				switch(curr_queue_group){
+					case MGMT_QGRP:
+						next_queue_group = DATA_QGRP;
+						if(dequeue_transmit_checkin(MANAGEMENT_QID)){
+							goto poll_cleanup;
+							return;
+						}
+					break;
 
-					if(pause_data_queue == 0){
-						curr_station_info_entry = next_station_info_entry;
+					case DATA_QGRP:
+						next_queue_group = MGMT_QGRP;
 
-						for(i = 0; i < (active_bss_info->members.length + 1); i++) {
-							// Loop through all associated stations' queues and the broadcast queue
-							if(curr_station_info_entry == NULL){
-								// Check the broadcast queue
-								next_station_info_entry = active_bss_info->members.first;
+						if(pause_data_queue == 0){
+							curr_station_info_entry = next_station_info_entry;
 
-								if( (num_dozed_stations == 0)
-										|| (get_system_time_usec() < gl_power_save_configuration.dtim_timestamp)
-										|| (gl_power_save_configuration.dtim_mcast_buffer_enable == 0)
-										|| (gl_power_save_configuration.enable == 0) ){
-									if(dequeue_transmit_checkin(MCAST_QID)){
+							for(i = 0; i < (active_bss_info->members.length + 1); i++) {
+								// Loop through all associated stations' queues and the broadcast queue
+								if(curr_station_info_entry == NULL){
+									// Check the broadcast queue
+									next_station_info_entry = active_bss_info->members.first;
+									if( ((gl_beacon_txrx_config.dtim_mcast_buffer_enable == 0) && dequeue_transmit_checkin(MCAST_QID))){
 										// Found a not-empty queue, transmitted a packet
 										goto poll_cleanup;
 										return;
 									}
-								}
-
-								curr_station_info_entry = next_station_info_entry;
-
-							} else {
-								curr_station_info = (station_info_t*)(curr_station_info_entry->data);
-								if( station_info_is_member(&active_bss_info->members, curr_station_info) ){
-									if(curr_station_info_entry == active_bss_info->members.last){
-										// We've reached the end of the table, so we wrap around to the beginning
-										next_station_info_entry = NULL;
-									} else {
-										next_station_info_entry = dl_entry_next(curr_station_info_entry);
-									}
-
-									if(((curr_station_info->flags & STATION_INFO_FLAG_DOZE) == 0) || (gl_power_save_configuration.enable == 0)){
-										if(dequeue_transmit_checkin(STATION_ID_TO_QUEUE_ID(curr_station_info->ID))){
-											// Found a not-empty queue, transmitted a packet
-											goto poll_cleanup;
-											return;
-										}
-									}
-
 									curr_station_info_entry = next_station_info_entry;
-
 								} else {
-									// This curr_station_info is invalid. Perhaps it was removed from
-									// the association table before poll_tx_queues was called. We will
-									// start the round robin checking back at broadcast.
-									next_station_info_entry = NULL;
-									goto poll_cleanup;
-									return;
-								} // END if(is_valid_association)
-							}
-						} // END for loop over association table
-					}
-				break;
-			} // END switch(queue group)
-		} // END loop over queue groups
-	} // END CPU low is ready
+									curr_station_info = (station_info_t*)(curr_station_info_entry->data);
+									if( station_info_is_member(&active_bss_info->members, curr_station_info) ){
+										if(curr_station_info_entry == active_bss_info->members.last){
+											// We've reached the end of the table, so we wrap around to the beginning
+											next_station_info_entry = active_bss_info->members.first;
+										} else {
+											next_station_info_entry = dl_entry_next(curr_station_info_entry);
+										}
+
+										if((curr_station_info->flags & STATION_INFO_FLAG_DOZE) == 0){
+											if(dequeue_transmit_checkin(STATION_ID_TO_QUEUE_ID(curr_station_info->ID))){
+												// Found a not-empty queue, transmitted a packet
+												goto poll_cleanup;
+												return;
+											}
+										}
+										curr_station_info_entry = next_station_info_entry;
+									} else {
+										// This curr_station_info is invalid. Perhaps it was removed from
+										// the association table before poll_tx_queues was called. We will
+										// start the round robin checking back at broadcast.
+										next_station_info_entry = active_bss_info->members.first;
+										goto poll_cleanup;
+										return;
+									} // END if(is_valid_association)
+								}
+							} // END for loop over association table
+						}
+					break;
+				} // END switch(queue group)
+			} // END loop over queue groups
+		break;
+	}
 
 	poll_cleanup:
 
@@ -1059,13 +937,13 @@ void ltg_event(u32 id, void* callback_arg){
 															curr_tx_queue_element,
 															payload_length,
 															(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ),
-															queue_sel );
+															queue_sel);
 					} else {
 						wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
 															curr_tx_queue_element,
 															payload_length,
 															(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO | TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ),
-															queue_sel );
+															queue_sel);
 					}
 
 					// Update the queue entry metadata to reflect the new new queue entry contents
@@ -1076,7 +954,7 @@ void ltg_event(u32 id, void* callback_arg){
 					} else {
 					    curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
 					    curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)station_info;
-						curr_tx_queue_buffer->tx_frame_info.ID         = station_info->ID;
+						curr_tx_queue_buffer->tx_frame_info.ID       = station_info->ID;
 					}
 
 					// Submit the new packet to the appropriate queue
@@ -1381,26 +1259,8 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 		if( sta_is_associated ){
 			// Update PS state
 			if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_POWER_MGMT){
-				if( (station_info->flags & STATION_INFO_FLAG_DOZE) == 0 ){
-					//Station was not previously dozing
-					num_dozed_stations++;
-					if(num_dozed_stations == 1){
-						//This is the first station in our BSS that has entered a doze state.
-						//We need include the TIM management tag in the next beacon.
-						update_tim_tag_all(SCHEDULE_ID_RESERVED_MAX);
-					}
-				}
 				station_info->flags |= STATION_INFO_FLAG_DOZE;
 			} else {
-				if( station_info->flags & STATION_INFO_FLAG_DOZE ){
-					//Station was previously dozing
-					num_dozed_stations--;
-					if(num_dozed_stations == 0){
-						//All stations are now awake. We can drop the TIM management
-						//tag in the next beacons.
-						update_tim_tag_all(SCHEDULE_ID_RESERVED_MAX);
-					}
-				}
 				station_info->flags &= ~STATION_INFO_FLAG_DOZE;
 			}
 
@@ -1453,7 +1313,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 									wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
 																		curr_tx_queue_element,
 																		length, 0,
-																		MCAST_QID );
+																		MCAST_QID);
 
 									// Set the information in the TX queue buffer
 									curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1496,7 +1356,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 																			curr_tx_queue_element,
 																			length,
 																			(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO),
-																			STATION_ID_TO_QUEUE_ID(associated_station->ID) );
+																			STATION_ID_TO_QUEUE_ID(associated_station->ID));
 
 
 										// Set the information in the TX queue buffer
@@ -1552,7 +1412,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 																	curr_tx_queue_element,
 																	tx_length,
 																	(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO),
-																	MANAGEMENT_QID );
+																	MANAGEMENT_QID);
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1636,7 +1496,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 																	curr_tx_queue_element,
 																	tx_length,
 																	(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO | TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP),
-																	MANAGEMENT_QID );
+																	MANAGEMENT_QID);
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1712,7 +1572,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 																	curr_tx_queue_element,
 																	tx_length,
 																	(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO ),
-																	MANAGEMENT_QID );
+																	MANAGEMENT_QID);
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1744,7 +1604,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 																	curr_tx_queue_element,
 																	tx_length,
 																	(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO),
-																	MANAGEMENT_QID );
+																	MANAGEMENT_QID);
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1856,7 +1716,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 																	curr_tx_queue_element,
 																	tx_length,
 																	(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO ),
-																	STATION_ID_TO_QUEUE_ID(station_info->ID) );
+																	STATION_ID_TO_QUEUE_ID(station_info->ID));
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1888,7 +1748,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 																	curr_tx_queue_element,
 																	tx_length,
 																	(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO ),
-																	MANAGEMENT_QID );
+																	MANAGEMENT_QID);
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1978,6 +1838,13 @@ void mpdu_dequeue(tx_queue_element_t* packet){
 	header 	  			= (mac_header_80211*)((((tx_queue_buffer_t*)(packet->data))->frame));
 	tx_frame_info 		= (tx_frame_info_t*)&((((tx_queue_buffer_t*)(packet->data))->tx_frame_info));
 
+	if(		(gl_beacon_txrx_config.dtim_mcast_buffer_enable == 1) &&
+			(gl_beacon_txrx_config.beacon_tx_mode != NO_BEACON_TX ) &&
+			wlan_addr_mcast(header->address_1)	){
+		tx_frame_info->queue_info.pkt_buf_group = PKT_BUF_GROUP_DTIM_MCAST;
+	} else {
+		tx_frame_info->queue_info.pkt_buf_group = PKT_BUF_GROUP_GENERAL;
+	}
 
 	if(active_bss_info != NULL){
 		//The below line assumes that each dequeued MPDU will explicitly have a 0-valued ID field for
@@ -2039,7 +1906,7 @@ u32  deauthenticate_station( station_info_t* station_info ) {
 											curr_tx_queue_element,
 											tx_length,
 											(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO ),
-											MANAGEMENT_QID );
+											MANAGEMENT_QID);
 
 		// Set the information in the TX queue buffer
 		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -2330,7 +2197,23 @@ u32	configure_bss(bss_config_t* bss_config){
 			}
 			if (bss_config->update_mask & BSS_FIELD_MASK_BEACON_INTERVAL) {
 				active_bss_info->beacon_interval = bss_config->beacon_interval;
+				memcpy(gl_beacon_txrx_config.bssid_match, active_bss_info->bssid, MAC_ADDR_LEN);
+				if ((active_bss_info->beacon_interval == BEACON_INTERVAL_NO_BEACON_TX) ||
+					(active_bss_info->beacon_interval == BEACON_INTERVAL_UNKNOWN)) {
+					((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON))->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+					gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
+				} else {
+					gl_beacon_txrx_config.beacon_tx_mode = AP_BEACON_TX;
+				}
+
+				gl_beacon_txrx_config.beacon_interval_tu = active_bss_info->beacon_interval;
+				gl_beacon_txrx_config.beacon_template_pkt_buf = TX_PKT_BUF_BEACON;
 				update_beacon_template = 1;
+				send_beacon_config_to_low = 1;
+			}
+			if (bss_config->update_mask & BSS_FIELD_MASK_DTIM_MCAST_BUFFER) {
+				gl_beacon_txrx_config.dtim_mcast_buffer_enable = bss_config->dtim_mcast_buffer_enable;
+				gl_beacon_txrx_config.dtim_period = bss_config->dtim_period;
 				send_beacon_config_to_low = 1;
 			}
 			if (bss_config->update_mask & BSS_FIELD_MASK_HT_CAPABLE) {
@@ -2355,7 +2238,10 @@ u32	configure_bss(bss_config_t* bss_config){
 			//     before the function returns.
 			if (update_beacon_template) {
 				wlan_mac_high_setup_tx_header(&tx_header_common, (u8 *)bcast_addr, active_bss_info->bssid);
-				while (wlan_mac_high_configure_beacon_tx_template( &tx_header_common, active_bss_info, &default_multicast_mgmt_tx_params, TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP ) != 0) {}
+				while (wlan_mac_high_configure_beacon_tx_template( &tx_header_common, active_bss_info, &default_multicast_mgmt_tx_params,
+																	TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP | TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ | TX_FRAME_INFO_FLAGS_WAIT_FOR_LOCK ) != 0) {}
+				//Add the TIM tag
+				update_tim_tag_all(SCHEDULE_ID_RESERVED_MAX);
 			}
 
 			// Update the channel
@@ -2366,20 +2252,6 @@ u32	configure_bss(bss_config_t* bss_config){
 
 			// Update Beacon configuration
 			if (send_beacon_config_to_low) {
-
-				memcpy(gl_beacon_txrx_config.bssid_match, active_bss_info->bssid, MAC_ADDR_LEN);
-
-				if ((active_bss_info->beacon_interval == BEACON_INTERVAL_NO_BEACON_TX) ||
-					(active_bss_info->beacon_interval == BEACON_INTERVAL_UNKNOWN)) {
-					((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON))->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
-					gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
-				} else {
-					gl_beacon_txrx_config.beacon_tx_mode = AP_BEACON_TX;
-				}
-
-				gl_beacon_txrx_config.beacon_interval_tu = active_bss_info->beacon_interval;
-				gl_beacon_txrx_config.beacon_template_pkt_buf = TX_PKT_BUF_BEACON;
-
 				wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
 			}
 

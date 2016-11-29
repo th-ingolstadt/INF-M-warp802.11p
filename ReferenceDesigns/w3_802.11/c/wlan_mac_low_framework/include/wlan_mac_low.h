@@ -177,6 +177,7 @@
 #define WLAN_MAC_STATUS_MASK_RX_PHY_WRITING_PAYLOAD        0x00080000     // b[19]
 
 #define wlan_mac_get_status() (Xil_In32(WLAN_MAC_REG_STATUS))
+#define wlan_mac_check_tu_latch() ((wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_TU_LATCH) >> 16)
 
 //-----------------------------------------------
 // WLAN MAC HW - RX_PHY_HDR_PARAMS bit masks
@@ -493,13 +494,10 @@ inline u32         wlan_mac_low_poll_frame_rx();
 inline void        wlan_mac_low_poll_ipc_rx();
 
 void               wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg);
-void               wlan_mac_low_frame_transmit(u16 tx_pkt_buf);
-u8 				   wlan_mac_low_is_frame_transmitting();
 void               wlan_mac_low_frame_ipc_send();
 void 			   wlan_mac_low_send_low_tx_details(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details);
 
 void               wlan_mac_low_set_frame_rx_callback(function_ptr_t callback);
-void               wlan_mac_low_set_frame_tx_callback(function_ptr_t callback);
 void 			   wlan_mac_low_set_beacon_txrx_config_callback(function_ptr_t callback);
 void 			   wlan_mac_low_set_mactime_change_callback(function_ptr_t callback);
 void 			   wlan_mac_low_set_sample_rate_change_callback(function_ptr_t callback);
@@ -519,6 +517,13 @@ void               wlan_mac_low_set_radio_channel(u32 channel);
 void               wlan_mac_low_DSSS_rx_enable();
 void               wlan_mac_low_DSSS_rx_disable();
 
+#define			   PREPARE_FRAME_TRANSMIT_ERROR_INVALID_PKT_BUF				0x00000001
+#define			   PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE	0x00000002
+#define 		   PREPARE_FRAME_TRANSMIT_ERROR_LOCK_FAIL					0x00000004
+
+u32 			   wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf);
+int 			   wlan_mac_low_finish_frame_transmit(u16 tx_pkt_buf);
+
 int                wlan_mac_low_rx_power_to_rssi(s8 rx_pow);
 int                wlan_mac_low_set_pkt_det_min_power(s8 rx_pow);
 inline int         wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain);
@@ -535,8 +540,6 @@ inline u32         wlan_mac_low_wlan_chan_to_rc_chan(u32 mac_channel);
 inline u16         wlan_mac_low_mcs_to_n_dbps(u8 mcs, u8 phy_mode);
 inline u8 		   wlan_mac_low_mcs_to_ctrl_resp_mcs(u8 mcs, u8 phy_mode);
 
-inline u64         wlan_mac_low_get_unique_seq();
-inline void        wlan_mac_low_set_unique_seq(u64 curr_unique_seq);
 inline void 	   wlan_mac_hw_clear_rx_started();
 
 

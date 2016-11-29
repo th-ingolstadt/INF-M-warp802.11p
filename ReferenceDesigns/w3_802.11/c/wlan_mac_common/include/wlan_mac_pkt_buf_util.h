@@ -222,12 +222,19 @@ typedef struct {
 //     - Information about the TX queue that contained the packet while in CPU High.
 //     - This structure must be 32-bit aligned.
 //
-typedef struct {
-    u16                      QID;                          ///< ID of the Queue
-    u16                      occupancy;                    ///< Number of elements in the queue when the
-                                                           ///<   packet was enqueued (including itself)
-} tx_queue_details_t;
+typedef enum __attribute__ ((__packed__)){
+	PKT_BUF_GROUP_GENERAL		= 0,
+	PKT_BUF_GROUP_DTIM_MCAST    = 1,
+	PKT_BUF_GROUP_OTHER 		= 0xFF,
+} pkt_buf_group_t;
+CASSERT(sizeof(pkt_buf_group_t) == 1, pkt_buf_group_t_alignment_check);
 
+typedef struct {
+    u8                      id;                     	  ///< ID of the Queue
+    pkt_buf_group_t         pkt_buf_group;                ///< Packet Buffer Group
+    u16                     occupancy;                    ///< Number of elements in the queue when the                                                         ///<   packet was enqueued (including itself)
+} tx_queue_details_t;
+CASSERT(sizeof(tx_queue_details_t) == 4, tx_queue_details_t_alignment_check);
 
 //-----------------------------------------------
 // TX frame information
@@ -245,9 +252,9 @@ typedef struct{
     u64                      	unique_seq;                   ///< Unique sequence number for this packet (12 LSB used as 802.11 MAC sequence number)
     //----- 8-byte boundary ------
     tx_queue_details_t       	queue_info;                   ///< Information about the TX queue used for the packet (4 bytes)
+    u16                       	num_tx_attempts;              ///< Number of transmission attempts for this frame
     u8                       	tx_result;                    ///< Result of transmission attempt - TX_MPDU_RESULT_SUCCESS or TX_MPDU_RESULT_FAILURE
     u8                       	reserved;
-    u16                       	num_tx_attempts;              ///< Number of transmission attempts for this frame
     //----- 8-byte boundary ------
     volatile tx_pkt_buf_state_t tx_pkt_buf_state;             ///< State of the Tx Packet Buffer
     u8                       	flags;                        ///< Bit flags en/disabling certain operations by the lower-level MAC
@@ -286,6 +293,7 @@ CASSERT(sizeof(tx_frame_info_t) == 48, tx_frame_info_alignment_check);
 #define TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP                       0x02
 #define TX_FRAME_INFO_FLAGS_FILL_DURATION                        0x04
 #define TX_FRAME_INFO_FLAGS_DTIM_MCAST	                         0x08
+#define TX_FRAME_INFO_FLAGS_WAIT_FOR_LOCK						 0x10
 #define TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ                        0x20
 
 

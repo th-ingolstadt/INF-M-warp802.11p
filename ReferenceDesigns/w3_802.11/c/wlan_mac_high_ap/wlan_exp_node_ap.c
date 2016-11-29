@@ -314,27 +314,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "AP: Configure flags = 0x%08x  mask = 0x%08x\n", flags, mask);
 
-            // Configure based on the flag bit / mask
-            if (mask & CMD_PARAM_NODE_AP_CONFIG_FLAG_DTIM_MULTICAST_BUFFER) {
-                volatile ps_conf * current_params;
-                ps_conf   new_params;
-
-                // Get the current PS config
-                current_params = get_power_save_configuration();
-
-                // Copy PS config
-                memcpy((void *)&new_params, (void *)current_params, sizeof(ps_conf));
-
-                // Update enable based on command
-                if (flags & CMD_PARAM_NODE_AP_CONFIG_FLAG_DTIM_MULTICAST_BUFFER) {
-                    new_params.dtim_mcast_buffer_enable = 1;
-                } else {
-                    new_params.dtim_mcast_buffer_enable = 0;
-                }
-
-                // Update PS config
-                set_power_save_configuration(new_params);
-            }
+            //FIXME: Remove control over DTIM mcast buffering. That has been moved to the configure_bss() context
 
             // Send response of status
             resp_args_32[resp_index++] = Xil_Htonl(status);

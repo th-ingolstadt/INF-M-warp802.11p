@@ -97,14 +97,6 @@ typedef enum {
     TX_MODE_LONG
 } tx_mode_t;
 
-typedef enum {
-	BEACON_SENT,
-	BEACON_DEFERRED,
-	TBTT_NOT_ACHIEVED,
-} poll_tbtt_return_t;
-
-
-
 /*************************** Function Prototypes *****************************/
 int                main();
 
@@ -112,15 +104,22 @@ u32                frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details);
 void 			   handle_sample_rate_change(phy_samp_rate_t phy_samp_rate);
 void 			   handle_mactime_change(s64 time_delta_usec);
 void 			   configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure);
-int 			   frame_transmit(u8 pkt_buf);
+void 			   frame_transmit_general(u8 pkt_buf);
+
+#define			   DTIM_MCAST_RETURN_PAUSED			0x00000001
+u32 			   frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume);
 int 			   handle_tx_pkt_buf_ready(u8 pkt_buf);
-void 			   poll_tx_pkt_buf_list();
+
+int 			   poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group);
 
 inline void        increment_src(u16* src_ptr);
 inline void        increment_lrc(u16* lrc_ptr);
 
-inline poll_tbtt_return_t poll_tbtt();
-inline int 		   		  send_beacon(u8 tx_pkt_buf);
+inline void 	   poll_tbtt_and_send_beacon();
+
+#define 		   SEND_BEACON_RETURN_DTIM			0x00000001
+#define 		   SEND_BEACON_RETURN_CANCELLED		0x00000002
+inline u32 		   send_beacon(u8 tx_pkt_buf);
 
 inline void        reset_cw();
 inline void        reset_ssrc();

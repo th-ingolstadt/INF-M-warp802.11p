@@ -482,7 +482,7 @@ tx_high_entry * wlan_exp_log_create_tx_high_entry(tx_frame_info_t* tx_frame_info
         	tx_high_event_log_entry->flags				  &= ~TX_HIGH_FLAGS_SUCCESSFUL;
         }
         tx_high_event_log_entry->pkt_type                 = tx_80211_header->frame_control_1;
-        tx_high_event_log_entry->queue_id                 = tx_frame_info->queue_info.QID;
+        tx_high_event_log_entry->queue_id                 = tx_frame_info->queue_info.id;
         tx_high_event_log_entry->queue_occupancy          = tx_frame_info->queue_info.occupancy;
 
 #ifdef _DEBUG_
