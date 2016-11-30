@@ -1407,7 +1407,7 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 
 		// Immediately re-read the current slot count.
 		// FIXME: Did backoff count readback make its way to the hardware?
-		n_slots_readback = wlan_mac_get_backoff_count_D();
+		//n_slots_readback = wlan_mac_get_backoff_count_D();
 
 		if( (n_slots != n_slots_readback) ){
 			// For the first transmission (non-retry) of an MPDU, the number of
@@ -1486,6 +1486,9 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 
 		// Transmission is complete
 		if( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_D_DONE ) {
+
+			//FIXME:
+			tx_mode = TX_MODE_SHORT;
 
 			switch(tx_mode) {
 				case TX_MODE_SHORT:
