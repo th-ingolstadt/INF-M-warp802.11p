@@ -44,7 +44,8 @@
 #define WLAN_MAC_REG_STATUS                                XPAR_WLAN_MAC_HW_MEMMAP_STATUS
 #define WLAN_MAC_REG_LATEST_RX_BYTE                        XPAR_WLAN_MAC_HW_MEMMAP_LATEST_RX_BYTE
 #define WLAN_MAC_REG_PHY_RX_PHY_HDR_PARAMS                 XPAR_WLAN_MAC_HW_MEMMAP_PHY_RX_PARAMS
-#define WLAN_MAC_REG_BACKOFF_COUNTERS                      XPAR_WLAN_MAC_HW_MEMMAP_BACKOFF_COUNTERS
+#define WLAN_MAC_REG_TX_A_BACKOFF_COUNTER                  XPAR_WLAN_MAC_HW_MEMMAP_TX_A_BACKOFF_COUNTER
+#define WLAN_MAC_REG_TX_CD_BACKOFF_COUNTERS                XPAR_WLAN_MAC_HW_MEMMAP_TX_CD_BACKOFF_COUNTERS
 #define WLAN_MAC_REG_RX_TIMESTAMP_LSB                      XPAR_WLAN_MAC_HW_MEMMAP_RX_START_TIMESTAMP_LSB
 #define WLAN_MAC_REG_RX_TIMESTAMP_MSB                      XPAR_WLAN_MAC_HW_MEMMAP_RX_START_TIMESTAMP_MSB
 #define WLAN_MAC_REG_TX_TIMESTAMP_LSB                      XPAR_WLAN_MAC_HW_MEMMAP_TX_START_TIMESTAMP_LSB
@@ -111,12 +112,13 @@
 #define WLAN_MAC_TXCTRL_STATUS_MASK_TX_C_PENDING                  0x00004000     // b[14]
 #define WLAN_MAC_TXCTRL_STATUS_MASK_TX_C_DONE                     0x00008000     // b[15]
 #define WLAN_MAC_TXCTRL_STATUS_MASK_TX_C_STATE                    0x00070000     // b[18:16]
-#define WLAN_MAC_TXCTRL_STATUS_MASK_TX_D_DONE                     0x00080000     // b[19]
-#define WLAN_MAC_TXCTRL_STATUS_MASK_TX_D_STATE                    0x00700000     // b[22:20]
-#define WLAN_MAC_TXCTRL_STATUS_MASK_POSTTX_TIMER2_RUNNING         0x00800000     // b[23]
-#define WLAN_MAC_TXCTRL_STATUS_MASK_POSTTX_TIMER1_RUNNING         0x01000000     // b[24]
-#define WLAN_MAC_TXCTRL_STATUS_MASK_POSTRX_TIMER2_RUNNING         0x02000000     // b[25]
-#define WLAN_MAC_TXCTRL_STATUS_MASK_POSTRX_TIMER1_RUNNING         0x04000000     // b[26]
+#define WLAN_MAC_TXCTRL_STATUS_MASK_TX_D_PENDING                  0x00080000     // b[19]
+#define WLAN_MAC_TXCTRL_STATUS_MASK_TX_D_DONE                     0x00100000     // b[20]
+#define WLAN_MAC_TXCTRL_STATUS_MASK_TX_D_STATE                    0x00E00000     // b[23:21]
+#define WLAN_MAC_TXCTRL_STATUS_MASK_POSTTX_TIMER2_RUNNING         0x01000000     // b[24]
+#define WLAN_MAC_TXCTRL_STATUS_MASK_POSTTX_TIMER1_RUNNING         0x02000000     // b[25]
+#define WLAN_MAC_TXCTRL_STATUS_MASK_POSTRX_TIMER2_RUNNING         0x04000000     // b[26]
+#define WLAN_MAC_TXCTRL_STATUS_MASK_POSTRX_TIMER1_RUNNING         0x08000000     // b[27]
 
 #define WLAN_MAC_TXCTRL_STATUS_TX_A_RESULT_NONE                  (0 << 2)        // FSM idle or still running
 #define WLAN_MAC_TXCTRL_STATUS_TX_A_RESULT_TIMEOUT               (1 << 2)        // FSM completed with postTx timer expiration
@@ -419,11 +421,15 @@
 #define wlan_mac_get_last_byte_index() (Xil_In32(WLAN_MAC_REG_LATEST_RX_BYTE) & 0xFFFF)
 #define wlan_mac_get_last_byte()      ((Xil_In32(WLAN_MAC_REG_LATEST_RX_BYTE) & 0xFF0000) >> 16)
 
-// BACKOFF_COUNTER
+// TX_A_BACKOFF_COUNTER
 //     b[15:0]: A Backoff count
-//     b[31:16]: C Backoff count
-#define wlan_mac_get_backoff_count_A()  (Xil_In32(WLAN_MAC_REG_BACKOFF_COUNTERS) & 0x0000FFFF)
-#define wlan_mac_get_backoff_count_C() ((Xil_In32(WLAN_MAC_REG_BACKOFF_COUNTERS) & 0xFFFF0000) >> 16)
+#define wlan_mac_get_backoff_count_A()  (Xil_In32(WLAN_MAC_REG_TX_A_BACKOFF_COUNTER) & 0x0000FFFF)
+
+// TX_CD_BACKOFF_COUNTERS
+//     b[15:0]: C Backoff count
+//     b[31:16]: D Backoff count
+#define wlan_mac_get_backoff_count_C()  (Xil_In32(WLAN_MAC_REG_TX_CD_BACKOFF_COUNTERS) & 0x0000FFFF)
+#define wlan_mac_get_backoff_count_D() ((Xil_In32(WLAN_MAC_REG_TX_CD_BACKOFF_COUNTERS) & 0xFFFF0000) >> 16)
 
 // RX_PHY_PARAMS Register:
 //     b[15:0] : Length
