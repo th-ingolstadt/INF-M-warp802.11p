@@ -302,7 +302,7 @@ int main(){
 		bss_config.ht_capable          		= WLAN_DEFAULT_USE_HT;
 		bss_config.beacon_interval     		= WLAN_DEFAULT_BEACON_INTERVAL_TU;
 		bss_config.dtim_mcast_buffer_enable = 1;
-		bss_config.dtim_period		  		= 1;
+		bss_config.dtim_period		  		= 4;
 
 		bss_config.update_mask = (BSS_FIELD_MASK_BSSID  		 |
 								  BSS_FIELD_MASK_CHAN   		 |
@@ -695,6 +695,8 @@ void poll_tx_queues(pkt_buf_group_t pkt_buf_group){
 	interrupt_state_t curr_interrupt_state;
 	u32 i,k;
 
+
+
 #define NUM_QUEUE_GROUPS 2
 typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 
@@ -937,13 +939,15 @@ void ltg_event(u32 id, void* callback_arg){
 															curr_tx_queue_element,
 															payload_length,
 															(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ),
-															queue_sel);
+															queue_sel,
+															PKT_BUF_GROUP_DTIM_MCAST);
 					} else {
 						wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
 															curr_tx_queue_element,
 															payload_length,
 															(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO | TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ),
-															queue_sel);
+															queue_sel,
+															PKT_BUF_GROUP_GENERAL);
 					}
 
 					// Update the queue entry metadata to reflect the new new queue entry contents
@@ -1016,7 +1020,6 @@ int ethernet_receive(tx_queue_element_t* curr_tx_queue_element, u8* eth_dest, u8
 
 	// Determine how to send the packet
 	if( wlan_addr_mcast(eth_dest) ) {
-
 		// Send the multicast packet
 		if(queue_num_queued(MCAST_QID) < max_queue_size){
 
@@ -1035,7 +1038,8 @@ int ethernet_receive(tx_queue_element_t* curr_tx_queue_element, u8* eth_dest, u8
 												curr_tx_queue_element,
 												tx_length,
 												0,
-												MCAST_QID);
+												MCAST_QID,
+												PKT_BUF_GROUP_DTIM_MCAST);
 
 			// Set the information in the TX queue buffer
 			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1076,7 +1080,8 @@ int ethernet_receive(tx_queue_element_t* curr_tx_queue_element, u8* eth_dest, u8
 													curr_tx_queue_element,
 													tx_length,
 													(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO),
-													STATION_ID_TO_QUEUE_ID(station_info->ID));
+													STATION_ID_TO_QUEUE_ID(station_info->ID),
+													PKT_BUF_GROUP_GENERAL);
 
 				// Set the information in the TX queue buffer
 				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
@@ -1313,7 +1318,8 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 									wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
 																		curr_tx_queue_element,
 																		length, 0,
-																		MCAST_QID);
+																		MCAST_QID,
+																		PKT_BUF_GROUP_DTIM_MCAST);
 
 									// Set the information in the TX queue buffer
 									curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1356,7 +1362,8 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 																			curr_tx_queue_element,
 																			length,
 																			(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO),
-																			STATION_ID_TO_QUEUE_ID(associated_station->ID));
+																			STATION_ID_TO_QUEUE_ID(associated_station->ID),
+																			PKT_BUF_GROUP_GENERAL);
 
 
 										// Set the information in the TX queue buffer
@@ -1412,7 +1419,8 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 																	curr_tx_queue_element,
 																	tx_length,
 																	(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO),
-																	MANAGEMENT_QID);
+																	MANAGEMENT_QID,
+																	PKT_BUF_GROUP_GENERAL);
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1496,7 +1504,8 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 																	curr_tx_queue_element,
 																	tx_length,
 																	(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO | TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP),
-																	MANAGEMENT_QID);
+																	MANAGEMENT_QID,
+																	PKT_BUF_GROUP_GENERAL);
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1572,7 +1581,8 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 																	curr_tx_queue_element,
 																	tx_length,
 																	(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO ),
-																	MANAGEMENT_QID);
+																	MANAGEMENT_QID,
+																	PKT_BUF_GROUP_GENERAL);
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1604,7 +1614,8 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 																	curr_tx_queue_element,
 																	tx_length,
 																	(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO),
-																	MANAGEMENT_QID);
+																	MANAGEMENT_QID,
+																	PKT_BUF_GROUP_GENERAL);
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1716,7 +1727,8 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 																	curr_tx_queue_element,
 																	tx_length,
 																	(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO ),
-																	STATION_ID_TO_QUEUE_ID(station_info->ID));
+																	STATION_ID_TO_QUEUE_ID(station_info->ID),
+																	PKT_BUF_GROUP_GENERAL);
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1748,7 +1760,8 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 																	curr_tx_queue_element,
 																	tx_length,
 																	(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO ),
-																	MANAGEMENT_QID);
+																	MANAGEMENT_QID,
+																	PKT_BUF_GROUP_GENERAL);
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -1838,6 +1851,8 @@ void mpdu_dequeue(tx_queue_element_t* packet){
 	header 	  			= (mac_header_80211*)((((tx_queue_buffer_t*)(packet->data))->frame));
 	tx_frame_info 		= (tx_frame_info_t*)&((((tx_queue_buffer_t*)(packet->data))->tx_frame_info));
 
+	// Here, we will overwrite the pkt_buf_group_t that was set by wlan_mac_high_setup_tx_frame_info(). This allows
+	// DTIM mcast buffering to be enabled or disabled after a packet has been created and is sitting in the queue.
 	if(		(gl_beacon_txrx_config.dtim_mcast_buffer_enable == 1) &&
 			(gl_beacon_txrx_config.beacon_tx_mode != NO_BEACON_TX ) &&
 			wlan_addr_mcast(header->address_1)	){
@@ -1906,7 +1921,8 @@ u32  deauthenticate_station( station_info_t* station_info ) {
 											curr_tx_queue_element,
 											tx_length,
 											(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO ),
-											MANAGEMENT_QID);
+											MANAGEMENT_QID,
+											PKT_BUF_GROUP_GENERAL);
 
 		// Set the information in the TX queue buffer
 		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;

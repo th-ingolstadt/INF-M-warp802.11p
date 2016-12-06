@@ -380,6 +380,9 @@ inline void poll_tbtt_and_send_beacon(){
 					// TX_LOW is being logged while other MPDUs remain in TX_PKT_BUF_LOW_CTRL for the
 					// same logging operation).
 
+					//FIXME DEBUG
+					xil_printf("BEACON SENT --- DTIM? %d \n", (send_beacon_return & SEND_BEACON_RETURN_DTIM) == SEND_BEACON_RETURN_DTIM);
+
 					// Update TU target
 					//  Changing TU target automatically resets TU_LATCH
 					//  Latch will assert immediately if Current TU >= new Target TU
@@ -388,7 +391,11 @@ inline void poll_tbtt_and_send_beacon(){
 
 					// Send mcast data here
 					if( (send_beacon_return & SEND_BEACON_RETURN_DTIM) && (gl_beacon_txrx_configure.dtim_mcast_buffer_enable == 1) ){
+
 						while( gl_tx_pkt_buf_ready_list_dtim_mcast.length > 0 ){
+							//FIXME DEBUG
+							xil_printf("%d mcast to send \n", gl_tx_pkt_buf_ready_list_dtim_mcast.length);
+
 							// There is at least one mcast frame for us to send.
 							poll_tx_pkt_buf_list(PKT_BUF_GROUP_DTIM_MCAST);
 
@@ -1219,7 +1226,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
 
 int handle_tx_pkt_buf_ready(u8 pkt_buf){
 	/*
-	 * TODO: There is a subtle state problem introduced in this new handling when CPU_HIGH is reset while
+	 * FIXME: There is a subtle state problem introduced in this new handling when CPU_HIGH is reset while
 	 * CPU_LOW is underway. At a minimum, we need to check for duplicates in these READY lists since the
 	 * lists could be stale from pre-rebooted interactions with CPU_HIGH. But even that isn't quite enough,
 	 * we should explicitly clear the lists on an at-boot high-to-low message.
@@ -1229,17 +1236,28 @@ int handle_tx_pkt_buf_ready(u8 pkt_buf){
 	dl_list* list = NULL;
 	tx_frame_info_t* tx_frame_info = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
 
+
 	if(gl_tx_pkt_buf_ready_list_free.length > 0){
 		entry = gl_tx_pkt_buf_ready_list_free.first;
 		dl_entry_remove(&gl_tx_pkt_buf_ready_list_free, entry);
 
 		*((u8*)(entry->data)) = pkt_buf;
 
-		if(tx_frame_info->flags & TX_FRAME_INFO_FLAGS_DTIM_MCAST){
-			list = &gl_tx_pkt_buf_ready_list_dtim_mcast;
+		if( (gl_beacon_txrx_configure.dtim_mcast_buffer_enable == 1) && (gl_beacon_txrx_configure.beacon_tx_mode != NO_BEACON_TX) ){
+			switch(tx_frame_info->queue_info.pkt_buf_group){
+				case PKT_BUF_GROUP_DTIM_MCAST:
+					list = &gl_tx_pkt_buf_ready_list_dtim_mcast;
+				break;
+				default:
+					xil_printf("handle_tx_pkt_buf_ready: unsupported pkt_buf_group_t");
+				case PKT_BUF_GROUP_GENERAL:
+					list = &gl_tx_pkt_buf_ready_list_general;
+				break;
+			}
 		} else {
 			list = &gl_tx_pkt_buf_ready_list_general;
 		}
+
 		dl_entry_insertEnd(list, entry);
 
 	} else {
@@ -1346,6 +1364,9 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
     tx_frame_info_t   * tx_frame_info       = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
     mac_header_80211  * header              = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
 
+    //FIXME DEBUG
+    xil_printf("frame_transmit_dtim_mcast(%d, %d)- LEN: %d, MCS: %d, PHY MODE: %d\n", pkt_buf, resume, tx_frame_info->length, tx_frame_info->params.phy.mcs, (tx_frame_info->params.phy.phy_mode & (PHY_MODE_HTMF | PHY_MODE_NONHT)));
+
     if( resume == 0 ){
     	// Extract waveform params from the tx_frame_info
 		u8  mcs      = tx_frame_info->params.phy.mcs;
@@ -1356,6 +1377,7 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 		tx_frame_info->phy_samp_rate	  = (u8)wlan_mac_low_get_phy_samp_rate();
 
 		// Compare the length of this frame to the RTS Threshold
+		// FIXME
 		if(length <= gl_dot11RTSThreshold) {
 			tx_mode = TX_MODE_SHORT;
 		} else {
@@ -1384,7 +1406,7 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 
 		// Configure the Tx power - update all antennas, even though only one will be used
 		curr_tx_pow = wlan_mac_low_dbm_to_gain_target(tx_frame_info->params.phy.power);
-		wlan_mac_tx_ctrl_A_gains(curr_tx_pow, curr_tx_pow, curr_tx_pow, curr_tx_pow);
+		wlan_mac_tx_ctrl_D_gains(curr_tx_pow, curr_tx_pow, curr_tx_pow, curr_tx_pow);
 
 		// We speculatively draw a backoff in case the backoff counter is currently 0 but
 		//  the medium is busy.
@@ -1405,11 +1427,14 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 		wlan_mac_tx_ctrl_D_start(1);
 		wlan_mac_tx_ctrl_D_start(0);
 
+		//FIXME DEBUG
+		xil_printf("started, pending? %d\n", (wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_TX_D_PENDING)==WLAN_MAC_STATUS_MASK_TX_D_PENDING );
+
 		// Immediately re-read the current slot count.
 		// FIXME: Did backoff count readback make its way to the hardware?
 		//n_slots_readback = wlan_mac_get_backoff_count_D();
 
-		if( (n_slots != n_slots_readback) ){
+		//if( (n_slots != n_slots_readback) ){
 			// For the first transmission (non-retry) of an MPDU, the number of
 			// slots used by the backoff process is ambiguous. The n_slots we provided
 			// to wlan_mac_tx_ctrl_A_params is only a suggestion. If the medium has been
@@ -1418,8 +1443,8 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 			// immediately reading back the slot count after starting the core, we can
 			// overwrite the number of slots that we will fill into low_tx_details with
 			// the correct value
-			n_slots = n_slots_readback;
-		}
+		//	n_slots = n_slots_readback;
+		//}
 
 
 		low_tx_details.flags						= 0;
@@ -1451,6 +1476,7 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
     	// resume it without resubmitting it to the core.
 
     	wlan_mac_pause_backoff_tx_ctrl_D(0);
+    	xil_printf("resumed\n");
 
     } //if( resume == 0 )
 
@@ -1468,7 +1494,7 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 
 			if ((tx_frame_info->flags) & TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP) {
 				//FIXME: remove this and also remove it from the general frame_transmit.
-				//This flag is vestigial from when frame_transmit() was repsonsbile for
+				//This flag is vestigial from when frame_transmit() was responsible for
 				//beacon transmissions
 
 				// Insert the TX START timestamp
@@ -1502,13 +1528,16 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 			}
 
 			// Start a post-Tx backoff using the updated contention window
-			n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
-			wlan_mac_dcf_hw_start_backoff(n_slots);
-			gl_waiting_for_response = 0;
+			// TODO: Debate merit of software-initiated backoffs in D
+
+			//n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
+			//wlan_mac_dcf_hw_start_backoff(n_slots);
 
 			// Send IPC message containing the details about this low-level transmission
 			wlan_mac_low_send_low_tx_details(pkt_buf, &low_tx_details);
 			tx_frame_info->tx_result = TX_FRAME_INFO_RESULT_SUCCESS;
+			// FIXME DEBUG
+			xil_printf("done\n");
 			return return_value;
 		} else if (tx_has_started == 0) {
 			//  This is the same MAC status check performed in the framework wlan_mac_low_poll_frame_rx()
@@ -1520,7 +1549,10 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 			} else{
 				if (wlan_mac_check_tu_latch() ){
 					wlan_mac_pause_backoff_tx_ctrl_D(1);
+					// FIXME: add check to make sure it really was paused and we won the race
 					return_value |= DTIM_MCAST_RETURN_PAUSED;
+					//FIXME DEBUG
+					xil_printf("paused...\n");
 					return return_value;
 				} else {
 					// Poll IPC rx
@@ -1531,6 +1563,8 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 		} // END if(Tx D state machine done)
 	} while( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_D_PENDING );
 
+	//FIXME DEBUG
+	xil_printf("Should never get here\n");
     return return_value;
 
 }

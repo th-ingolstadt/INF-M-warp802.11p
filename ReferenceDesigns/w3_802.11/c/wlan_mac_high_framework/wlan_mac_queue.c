@@ -302,7 +302,7 @@ void enqueue_after_tail(u16 queue_sel, tx_queue_element_t* tqe){
 	}
 
     // Poll the TX queues to see if anything needs to be transmitted
-	tx_poll_callback();
+	tx_poll_callback(((tx_queue_buffer_t*)(tqe->data))->tx_frame_info.queue_info.pkt_buf_group);
 
 	return;
 }

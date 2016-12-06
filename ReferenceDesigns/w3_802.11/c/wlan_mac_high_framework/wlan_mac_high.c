@@ -1479,9 +1479,11 @@ void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_
  *     - Flags for the frame info
  * @param  u8 queue_id
  *     - Queue ID
+ * @param pkt_buf_group_t pkt_buf_group
+ * 	   - Packet Buffer Group
  * @return None
  */
-void wlan_mac_high_setup_tx_frame_info(mac_header_80211_common * header, tx_queue_element_t * curr_tx_queue_element, u32 tx_length, u8 flags, u8 queue_id) {
+void wlan_mac_high_setup_tx_frame_info(mac_header_80211_common * header, tx_queue_element_t * curr_tx_queue_element, u32 tx_length, u8 flags, u8 queue_id, pkt_buf_group_t pkt_buf_group) {
 
 	u16 occupancy;
 
@@ -1498,6 +1500,7 @@ void wlan_mac_high_setup_tx_frame_info(mac_header_80211_common * header, tx_queu
 	curr_tx_queue_buffer->tx_frame_info.flags                       = flags;
 	curr_tx_queue_buffer->tx_frame_info.queue_info.id               = queue_id;
 	curr_tx_queue_buffer->tx_frame_info.queue_info.occupancy        = occupancy;
+	curr_tx_queue_buffer->tx_frame_info.queue_info.pkt_buf_group    = pkt_buf_group;
 
 }
 
