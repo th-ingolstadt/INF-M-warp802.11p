@@ -101,7 +101,8 @@ static u8                    eth_sta_mac_addr[6];
 //
 static XAxiDma_Bd          * bd_set_to_process_ptr;
 static int                   bd_set_count;
-static int                   max_pkts;
+#define						 MAX_PACKETS_ENQUEUED 2
+#define						 MAX_PACKETS_TOTAL 10
 static u32                   irq_status;
 
 
@@ -118,7 +119,8 @@ int      wlan_eth_dma_send(u8* pkt_ptr, u32 length);
 int      wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_ptr, u32 eth_rx_len);
 void     eth_rx_interrupt_handler(void *callbarck_arg);
 void     wlan_process_all_eth_pkts(u32 schedule_id);
-void     wlan_process_eth_rx(XAxiDma_BdRing * rx_ring_ptr, XAxiDma_Bd * bd_ptr);
+#define WLAN_PROCESS_ETH_RX_RETURN_IS_ENQUEUED	0x0000001
+u32     wlan_process_eth_rx(XAxiDma_BdRing * rx_ring_ptr, XAxiDma_Bd * bd_ptr);
 
 
 #if PERF_MON_ETH_BD
@@ -149,7 +151,6 @@ int wlan_eth_init() {
     // Set global variables
     bd_set_to_process_ptr  = NULL;
     bd_set_count           = 0;
-    max_pkts               = 2;                       // Value in [1 .. XAXIDMA_ALL_BDS]
 
     rx_schedule_id = SCHEDULE_ID_RESERVED_MAX;
     rx_schedule_dl_entry = NULL;
@@ -516,7 +517,9 @@ void eth_rx_interrupt_handler(void *callbarck_arg) {
  * NOTE:  This function must be able to handle the case where bd_set_count = 0.
  */
 void wlan_process_all_eth_pkts(u32 schedule_id) {
-    u32                 num_pkt_processed   = 0;
+	u32					wlan_process_eth_rx_return;
+    u32                 num_pkt_enqueued   = 0;
+    u32					num_pkt_total	   = 0;
     XAxiDma_BdRing    * rx_ring_ptr         = XAxiDma_GetRxRing(&eth_dma_instance);
 
 #if PERF_MON_ETH_PROCESS_ALL_RX
@@ -530,17 +533,20 @@ void wlan_process_all_eth_pkts(u32 schedule_id) {
 
     while (bd_set_count > 0) {
         // Process Ethernet packet
-        wlan_process_eth_rx(rx_ring_ptr, bd_set_to_process_ptr);
+    	wlan_process_eth_rx_return = wlan_process_eth_rx(rx_ring_ptr, bd_set_to_process_ptr);
 
         // Update to the next BD in the chain for the next iteration
         bd_set_to_process_ptr = XAxiDma_BdRingNext(rx_ring_ptr, bd_set_to_process_ptr);
 
         // Increment counters
-        num_pkt_processed++;
+        if(wlan_process_eth_rx_return & WLAN_PROCESS_ETH_RX_RETURN_IS_ENQUEUED){
+        	num_pkt_enqueued++;
+        }
+        num_pkt_total++;
         bd_set_count--;
 
         // Check stop condition
-        if ((num_pkt_processed >= max_pkts) && (wlan_mac_high_is_dequeue_allowed(PKT_BUF_GROUP_GENERAL) == 0 )) {
+        if( (num_pkt_enqueued >= MAX_PACKETS_ENQUEUED)||(num_pkt_total >= MAX_PACKETS_TOTAL)) {
             // Processed enough packets in this call and the Tx PHY isn't waiting on an
             // Ethernet packet to transmit.  Leave this ISR to handle any other higher
             // priority interrupts, such as IPC messages, then come back later to process
@@ -612,7 +618,7 @@ void wlan_process_all_eth_pkts(u32 schedule_id) {
  *  - Pointer to the buffer descriptor to process
  *
  */
-void wlan_process_eth_rx(XAxiDma_BdRing * rx_ring_ptr, XAxiDma_Bd * bd_ptr) {
+u32 wlan_process_eth_rx(XAxiDma_BdRing * rx_ring_ptr, XAxiDma_Bd * bd_ptr) {
     u8                * mpdu_start_ptr;
     u8                * eth_start_ptr;
     tx_queue_element_t* curr_tx_queue_element;
@@ -620,6 +626,7 @@ void wlan_process_eth_rx(XAxiDma_BdRing * rx_ring_ptr, XAxiDma_Bd * bd_ptr) {
     u32                 mpdu_tx_len;
 
     int                 status;
+    u32					return_value = 0;
     int                 packet_is_queued;
 
     u8                  eth_dest[6];
@@ -632,7 +639,7 @@ void wlan_process_eth_rx(XAxiDma_BdRing * rx_ring_ptr, XAxiDma_Bd * bd_ptr) {
     // Check arguments
     if ((bd_ptr == NULL) || (rx_ring_ptr == NULL)) {
         xil_printf("ERROR:  Tried to process NULL Ethernet packet\n");
-        return;
+        return return_value;
     }
 
     // Process Ethernet packet
@@ -671,11 +678,15 @@ void wlan_process_eth_rx(XAxiDma_BdRing * rx_ring_ptr, XAxiDma_Bd * bd_ptr) {
 
         // Return the occupied queue entry to the free pool
         queue_checkin(curr_tx_queue_element);
+    } else {
+    	return_value |= WLAN_PROCESS_ETH_RX_RETURN_IS_ENQUEUED;
     }
 
     // Free the ETH DMA buffer descriptor
     status = XAxiDma_BdRingFree(rx_ring_ptr, 1, bd_ptr);
-    if(status != XST_SUCCESS) {xil_printf("Error in XAxiDma_BdRingFree of Rx BD! Err = %d\n", status); return;}
+    if(status != XST_SUCCESS) {
+    	xil_printf("Error in XAxiDma_BdRingFree of Rx BD! Err = %d\n", status);
+    }
 
     // Reassign the just-freed DMA buffer descriptor to a new queue entry
     //     NOTE:  Due to processing overhead, we do not necessarily want to call this function
@@ -687,6 +698,8 @@ void wlan_process_eth_rx(XAxiDma_BdRing * rx_ring_ptr, XAxiDma_Bd * bd_ptr) {
 #if PERF_MON_ETH_PROCESS_RX
     wlan_mac_clear_dbg_hdr_out(0x4);
 #endif
+
+    return return_value;
 }
 
 
