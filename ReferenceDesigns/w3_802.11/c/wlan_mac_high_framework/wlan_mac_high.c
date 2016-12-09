@@ -633,6 +633,7 @@ int wlan_mac_high_interrupt_init(){
  *      - nonzero if error
  */
 inline int wlan_mac_high_interrupt_restore_state(interrupt_state_t new_interrupt_state){
+
 	interrupt_state = new_interrupt_state;
 	if(interrupt_state == INTERRUPTS_ENABLED){
 		if(InterruptController.IsReady && InterruptController.IsStarted == 0){
@@ -663,6 +664,7 @@ inline int wlan_mac_high_interrupt_restore_state(interrupt_state_t new_interrupt
  * high.
  */
 inline interrupt_state_t wlan_mac_high_interrupt_stop(){
+
 	interrupt_state_t curr_state = interrupt_state;
 	if(InterruptController.IsReady && InterruptController.IsStarted) XIntc_Stop(&InterruptController);
 	interrupt_state = INTERRUPTS_DISABLED;

@@ -338,6 +338,7 @@ inline void poll_tbtt_and_send_beacon(){
 	u32 mac_tx_ctrl_status;
 	u32 send_beacon_return;
 	u32 prepare_frame_transmit_return;
+	u32 poll_tx_pkt_buf_list_return = 0;
 
 	if(( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ) ||
 	   ( gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX )){
@@ -359,7 +360,6 @@ inline void poll_tbtt_and_send_beacon(){
 					// twice. This is intentional. This structure ensures we do not toggle the pause state on
 					// Tx controller A across many mcast transmissions spanning multiple beacon TBTTs
 
-
 					prepare_frame_transmit_return = wlan_mac_low_prepare_frame_transmit( gl_beacon_txrx_configure.beacon_template_pkt_buf );
 
 					if(prepare_frame_transmit_return & PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE){
@@ -380,9 +380,6 @@ inline void poll_tbtt_and_send_beacon(){
 					// TX_LOW is being logged while other MPDUs remain in TX_PKT_BUF_LOW_CTRL for the
 					// same logging operation).
 
-					//FIXME DEBUG
-					xil_printf("BEACON SENT --- DTIM? %d \n", (send_beacon_return & SEND_BEACON_RETURN_DTIM) == SEND_BEACON_RETURN_DTIM);
-
 					// Update TU target
 					//  Changing TU target automatically resets TU_LATCH
 					//  Latch will assert immediately if Current TU >= new Target TU
@@ -390,31 +387,39 @@ inline void poll_tbtt_and_send_beacon(){
 					wlan_mac_set_tu_target(gl_beacon_txrx_configure.beacon_interval_tu*((current_tu/gl_beacon_txrx_configure.beacon_interval_tu)+1));
 
 					// Send mcast data here
-					if( (send_beacon_return & SEND_BEACON_RETURN_DTIM) && (gl_beacon_txrx_configure.dtim_mcast_buffer_enable == 1) ){
+					// We are only allowed to send mcast packets if either of two conditions are met:
+					//	1) This is a DTIM beacon period
+					//	2) The frame transmitted just prior the last beacon was a multicast packet whose MAC_FRAME_CTRL2_FLAG_MORE_DATA bit
+					//	   is 1. In this case, we are allowed to continue sending multicast packets in the current beacon interval regardless
+					//	   of DTIM (11.2.1.5.f 802.11-2007)
+					if( ((send_beacon_return & SEND_BEACON_RETURN_DTIM) && (gl_beacon_txrx_configure.dtim_mcast_buffer_enable == 1)) ||
+						((poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_TRANSMITTED) && (poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_MORE_DATA)) ){
 
 						while( gl_tx_pkt_buf_ready_list_dtim_mcast.length > 0 ){
-							//FIXME DEBUG
-							xil_printf("%d mcast to send \n", gl_tx_pkt_buf_ready_list_dtim_mcast.length);
+							// There is at least one mcast frame for us to send. We will loop over this list until either we have fully emptied it
+							// or we are forced to buffer until the next DTIM.
 
-							// There is at least one mcast frame for us to send.
-							poll_tx_pkt_buf_list(PKT_BUF_GROUP_DTIM_MCAST);
+							poll_tx_pkt_buf_list_return = poll_tx_pkt_buf_list(PKT_BUF_GROUP_DTIM_MCAST);
+							// At this point in the code, either of two conditions have been met:
+							//  1) An mcast packet has been sent and gl_tx_pkt_buf_ready_list_dtim_mcast.length has been decremented
+							//  2) An mcast packet has been submitted to MAC Tx Controller D, but a TBTT boundary occured while the
+							//	   core was deferring.
 
-							if( gl_tx_pkt_buf_ready_list_dtim_mcast.length > 0 ){
-								// If there is still an mcast frame for us to send, then we know that the
-								// MAC_FRAME_CTRL2_FLAG_MORE_DATA bit was correctly set in the previous transmission.
-								// It is only in this case that we are allowed to try to continue sending mcast frames.
-								// Otherwise, we need to buffer until the next DTIM.
-
-								// TODO: Need to handle implications of an IPC message changing something like channel
-								// Poll the IPC Rx in the hope that a READY message will fill gl_tx_pkt_buf_ready_list_dtim_mcast
-								wlan_mac_low_poll_ipc_rx();
-
-								if( wlan_mac_check_tu_latch() ){
-									// We just crossed a TBTT so we should send another beacon. Break
-									// back to the top of the while( wlan_mac_check_tu_latch() ) loop.
-									break;
-								}
+							if( wlan_mac_check_tu_latch() ){
+								// We just crossed a TBTT so we should send another beacon. Break
+								// back to the top of the while( wlan_mac_check_tu_latch() ) loop.
+								break;
 							}
+
+							if( (poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_TRANSMITTED) && ((poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_MORE_DATA) == 0 ) ) {
+								// We sent the last mcast packet allowed in this beacon interval. We can now return all the way back to general
+								// operation.
+								return;
+							}
+
+							// TODO: Need to handle implications of an IPC message changing something like channel
+							// Poll the IPC Rx in the hope that a READY message will fill gl_tx_pkt_buf_ready_list_dtim_mcast
+							wlan_mac_low_poll_ipc_rx();
 						}
 					}
 				}
@@ -1236,7 +1241,6 @@ int handle_tx_pkt_buf_ready(u8 pkt_buf){
 	dl_list* list = NULL;
 	tx_frame_info_t* tx_frame_info = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
 
-
 	if(gl_tx_pkt_buf_ready_list_free.length > 0){
 		entry = gl_tx_pkt_buf_ready_list_free.first;
 		dl_entry_remove(&gl_tx_pkt_buf_ready_list_free, entry);
@@ -1267,11 +1271,12 @@ int handle_tx_pkt_buf_ready(u8 pkt_buf){
 	return return_value;
 }
 
-int poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
+u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 	u8 pkt_buf;
 	dl_entry* entry;
 	mac_header_80211* header;
-	int return_value = 0;
+	tx_frame_info_t* tx_frame_info;
+	u32 return_value = 0;
 	static u8 dtim_mcast_paused = 0;
 
 	// Note: one subtlety of the new software architecture in 1.5.4 is that it is possible to have nested calls to
@@ -1301,17 +1306,18 @@ int poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 
 				// In the special case of sending a DTIM MCAST packet, the DCF is responsible for maintaining the
 				// MAC_FRAME_CTRL2_FLAG_MORE_DATA bit in the header.
+				tx_frame_info = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
 				header  = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
 
-				if( gl_tx_pkt_buf_ready_list_dtim_mcast.length > 1 ){
+				if( tx_frame_info->flags & TX_FRAME_INFO_FLAGS_EMPTY_AT_DEQUEUE ){
 					// If there is a second mcast frame in the READY state, we can safely raise
 					// the MAC_FRAME_CTRL2_FLAG_MORE_DATA bit. Otherwise, we will be forced to
 					// wait until the next DTIM even if another frame enters the READY state while
 					// the current frame is underway.
-					header->frame_control_2 |= MAC_FRAME_CTRL2_FLAG_MORE_DATA;
-					return_value = 1;
-				} else {
 					header->frame_control_2 &= ~MAC_FRAME_CTRL2_FLAG_MORE_DATA;
+				} else {
+					header->frame_control_2 |= MAC_FRAME_CTRL2_FLAG_MORE_DATA;
+					return_value |= POLL_TX_PKT_BUF_LIST_RETURN_MORE_DATA;
 				}
 
 				if(dtim_mcast_paused == 0){
@@ -1332,6 +1338,7 @@ int poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 				} else {
 					dtim_mcast_paused = 0;
 					wlan_mac_low_finish_frame_transmit(pkt_buf);
+					return_value |= POLL_TX_PKT_BUF_LIST_RETURN_TRANSMITTED;
 					dl_entry_remove(&gl_tx_pkt_buf_ready_list_dtim_mcast, entry);
 					dl_entry_insertEnd(&gl_tx_pkt_buf_ready_list_free, entry);
 				}
@@ -1339,7 +1346,7 @@ int poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 		break;
 		case PKT_BUF_GROUP_OTHER:
 			xil_printf("Error in poll_tx_pkt_buf_list: unsupported argument\n");
-			return_value = -1;
+			return_value |= POLL_TX_PKT_BUF_LIST_RETURN_ERROR;
 		break;
 	}
 
@@ -1363,9 +1370,6 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
     u8                  mpdu_tx_ant_mask    = 0;
     tx_frame_info_t   * tx_frame_info       = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
     mac_header_80211  * header              = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
-
-    //FIXME DEBUG
-    xil_printf("frame_transmit_dtim_mcast(%d, %d)- LEN: %d, MCS: %d, PHY MODE: %d\n", pkt_buf, resume, tx_frame_info->length, tx_frame_info->params.phy.mcs, (tx_frame_info->params.phy.phy_mode & (PHY_MODE_HTMF | PHY_MODE_NONHT)));
 
     if( resume == 0 ){
     	// Extract waveform params from the tx_frame_info
@@ -1427,14 +1431,10 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 		wlan_mac_tx_ctrl_D_start(1);
 		wlan_mac_tx_ctrl_D_start(0);
 
-		//FIXME DEBUG
-		xil_printf("started, pending? %d\n", (wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_TX_D_PENDING)==WLAN_MAC_STATUS_MASK_TX_D_PENDING );
-
 		// Immediately re-read the current slot count.
-		// FIXME: Did backoff count readback make its way to the hardware?
-		//n_slots_readback = wlan_mac_get_backoff_count_D();
+		n_slots_readback = wlan_mac_get_backoff_count_D();
 
-		//if( (n_slots != n_slots_readback) ){
+		if( (n_slots != n_slots_readback) ){
 			// For the first transmission (non-retry) of an MPDU, the number of
 			// slots used by the backoff process is ambiguous. The n_slots we provided
 			// to wlan_mac_tx_ctrl_A_params is only a suggestion. If the medium has been
@@ -1443,8 +1443,8 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 			// immediately reading back the slot count after starting the core, we can
 			// overwrite the number of slots that we will fill into low_tx_details with
 			// the correct value
-		//	n_slots = n_slots_readback;
-		//}
+			n_slots = n_slots_readback;
+		}
 
 
 		low_tx_details.flags						= 0;
@@ -1536,8 +1536,6 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 			// Send IPC message containing the details about this low-level transmission
 			wlan_mac_low_send_low_tx_details(pkt_buf, &low_tx_details);
 			tx_frame_info->tx_result = TX_FRAME_INFO_RESULT_SUCCESS;
-			// FIXME DEBUG
-			xil_printf("done\n");
 			return return_value;
 		} else if (tx_has_started == 0) {
 			//  This is the same MAC status check performed in the framework wlan_mac_low_poll_frame_rx()
@@ -1551,8 +1549,6 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 					wlan_mac_pause_backoff_tx_ctrl_D(1);
 					// FIXME: add check to make sure it really was paused and we won the race
 					return_value |= DTIM_MCAST_RETURN_PAUSED;
-					//FIXME DEBUG
-					xil_printf("paused...\n");
 					return return_value;
 				} else {
 					// Poll IPC rx
@@ -1563,8 +1559,6 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 		} // END if(Tx D state machine done)
 	} while( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_D_PENDING );
 
-	//FIXME DEBUG
-	xil_printf("Should never get here\n");
     return return_value;
 
 }

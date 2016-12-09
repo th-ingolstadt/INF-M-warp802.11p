@@ -60,7 +60,7 @@
 #define  WLAN_EXP_ETH                            TRANSPORT_ETH_B
 #define  WLAN_EXP_NODE_TYPE                      WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_AP
 
-#define  WLAN_DEFAULT_CHANNEL                    1
+#define  WLAN_DEFAULT_CHANNEL                    11
 #define  WLAN_DEFAULT_TX_PWR                     15
 #define  WLAN_DEFAULT_TX_ANTENNA                 TX_ANTMODE_SISO_ANTA
 #define  WLAN_DEFAULT_RX_ANTENNA                 RX_ANTMODE_SISO_ANTA
@@ -695,6 +695,7 @@ void poll_tx_queues(pkt_buf_group_t pkt_buf_group){
 	interrupt_state_t curr_interrupt_state;
 	u32 i,k;
 
+	if( active_bss_info == NULL ) return;
 
 
 #define NUM_QUEUE_GROUPS 2
@@ -714,8 +715,10 @@ typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 
 	station_info_t* curr_station_info;
 
-	if( active_bss_info == NULL ) return;
-	if( wlan_mac_high_is_dequeue_allowed(pkt_buf_group) == 0 ) return;
+	if( wlan_mac_high_is_dequeue_allowed(pkt_buf_group) == 0 ) {
+		goto poll_cleanup;
+		return;
+	}
 
 	switch(pkt_buf_group){
 		case PKT_BUF_GROUP_OTHER:

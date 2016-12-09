@@ -307,6 +307,7 @@ void               wlan_mac_high_init();
 void               wlan_mac_high_heap_init();
 
 int                          wlan_mac_high_interrupt_init();
+
 inline int                   wlan_mac_high_interrupt_restore_state(interrupt_state_t new_interrupt_state);
 inline interrupt_state_t     wlan_mac_high_interrupt_stop();
 
