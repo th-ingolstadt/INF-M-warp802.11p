@@ -381,6 +381,9 @@ void wlan_mac_high_init(){
 			case TX_PKT_BUF_MPDU_1:
 			case TX_PKT_BUF_MPDU_2:
 			case TX_PKT_BUF_MPDU_3:
+			case TX_PKT_BUF_MPDU_4:
+			case TX_PKT_BUF_MPDU_5:
+			case TX_PKT_BUF_MPDU_6:
 				switch(tx_frame_info->tx_pkt_buf_state){
 					case TX_PKT_BUF_UNINITIALIZED:
 					case TX_PKT_BUF_HIGH_CTRL:
@@ -2204,7 +2207,7 @@ inline int wlan_mac_high_is_dequeue_allowed(pkt_buf_group_t pkt_buf_group){
 	num_empty = 0;
 	num_low_owned = 0;
 
-	for( i = 0; i < 5; i++ ){
+	for( i = 0; i < 6; i++ ){
 		if( ((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state == TX_PKT_BUF_HIGH_CTRL ){
 			num_empty++;
 		}
@@ -2219,9 +2222,10 @@ inline int wlan_mac_high_is_dequeue_allowed(pkt_buf_group_t pkt_buf_group){
 	// The first requirement for being allowed to dequeue is that there is at least one empty packet buffer.
 
 	// The second requirement for being allowed to dequeue is that no more than one packet buffer is currently
-	// in the TX_PKT_BUF_READY or TX_PKT_BUF_LOW_CTRL state for this pkt_buf_group
+	// in the TX_PKT_BUF_READY or TX_PKT_BUF_LOW_CTRL for pkt_buf_group of PKT_BUF_GROUP_GENERAL and no more than two
+	// for PKT_BUF_GROUP_DTIM_MCAST
 
-	if( (num_empty > 0) && (num_low_owned <= 1) ){
+	if( (num_empty > 0) && ( ((pkt_buf_group==PKT_BUF_GROUP_GENERAL)&&(num_low_owned <= 1)) || ((pkt_buf_group==PKT_BUF_GROUP_DTIM_MCAST)&&(num_low_owned <= 2)) ) ){
 		return 1;
 	} else {
 		return 0;

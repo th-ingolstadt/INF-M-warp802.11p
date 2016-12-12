@@ -17,7 +17,7 @@
 #define WLAN_MAC_DCF_H_
 
 #define PKT_BUF_INVALID                                   0xFF
-#define MAX_NUM_PENDING_TX_PKT_BUFS 					  4
+#define MAX_NUM_PENDING_TX_PKT_BUFS 					  5
 
 
 //-----------------------------------------------

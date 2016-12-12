@@ -1309,7 +1309,7 @@ u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 				tx_frame_info = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
 				header  = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
 
-				if( tx_frame_info->flags & TX_FRAME_INFO_FLAGS_EMPTY_AT_DEQUEUE ){
+				if( gl_tx_pkt_buf_ready_list_dtim_mcast.length == 1 ){
 					// If there is a second mcast frame in the READY state, we can safely raise
 					// the MAC_FRAME_CTRL2_FLAG_MORE_DATA bit. Otherwise, we will be forced to
 					// wait until the next DTIM even if another frame enters the READY state while

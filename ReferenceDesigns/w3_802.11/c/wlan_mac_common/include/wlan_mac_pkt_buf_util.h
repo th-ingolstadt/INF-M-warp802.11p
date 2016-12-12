@@ -67,10 +67,11 @@
 #define TX_PKT_BUF_MPDU_3                                  2
 #define TX_PKT_BUF_MPDU_4  		                           3
 #define TX_PKT_BUF_MPDU_5                                  4
-#define TX_PKT_BUF_BEACON                                  5
+#define TX_PKT_BUF_MPDU_6                                  5
+#define TX_PKT_BUF_BEACON                                  6
 // Packet Buffers owned by CPU_LOW at boot
-#define TX_PKT_BUF_RTS                                     6
-#define TX_PKT_BUF_ACK_CTS                                 7
+#define TX_PKT_BUF_RTS                                     7
+#define TX_PKT_BUF_ACK_CTS                                 8
 
 //#define TX_PKT_BUF_DTIM_MCAST							   0x80
 
