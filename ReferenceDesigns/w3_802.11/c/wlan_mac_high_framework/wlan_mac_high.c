@@ -66,7 +66,10 @@ extern int                   _HEAP_SIZE;                   ///< Size of the heap
 extern int                   _stack_end;                   ///< Start of the stack (stack counts backwards)
 extern int                   __stack;                      ///< End of the stack
 
-
+//FIXME DEBUG
+extern int					__malloc_sbrk_base;
+extern int					__malloc_trim_threshold;
+extern int					__malloc_av_;
 
 /*************************** Variable Definitions ****************************/
 
@@ -146,6 +149,33 @@ void wlan_mac_high_copy_comparison();
 
 
 /******************************** Functions **********************************/
+
+
+void wlan_mac_high_malloc_init(){
+	u32  i, val;
+	u32* malloc_sbrk_base_ptr;
+	u32* malloc_trim_threshold_ptr;
+	u32* malloc_av_ptr;
+
+	malloc_sbrk_base_ptr      = (u32*)&__malloc_sbrk_base;
+	malloc_trim_threshold_ptr = (u32*)&__malloc_trim_threshold;
+	malloc_av_ptr 			  = (u32*)&__malloc_av_;
+
+	malloc_sbrk_base_ptr[0] = 0xFFFFFFFF;
+
+	malloc_trim_threshold_ptr[0] = 0x00020000;
+
+	malloc_av_ptr[0] = 0;
+	malloc_av_ptr[1] = 0;
+
+	val = 0;
+	for(i=2; i<258; i+=2){
+		malloc_av_ptr[i]   = (u32)((char*)(&malloc_av_ptr[2*val+2])) - 2*sizeof(size_t);
+		malloc_av_ptr[i+1] = malloc_av_ptr[i];
+		val++;
+	}
+}
+
 
 /**
  * @brief Initialize Heap and Data Sections

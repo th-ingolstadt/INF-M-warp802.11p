@@ -304,6 +304,7 @@ extern const  u8 zero_addr[MAC_ADDR_LEN];
 
 /*************************** Function Prototypes *****************************/
 void               wlan_mac_high_init();
+void 			   wlan_mac_high_malloc_init();
 void               wlan_mac_high_heap_init();
 
 int                          wlan_mac_high_interrupt_init();
