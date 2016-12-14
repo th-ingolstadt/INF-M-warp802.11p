@@ -16,8 +16,6 @@ Provides sample data to use with the log examples.
 
 _SAMPLE_DATA_DIR = 'sample_data'
 
-_URL_ROOT = 'http://warpproject.org/dl/refdes/802.11/sample_data/1.5.4/'
-
 _FILES_TO_DL = [
     'ap_two_node_two_flow_capture.hdf5',
     'sta_two_node_two_flow_capture.hdf5',
@@ -46,8 +44,11 @@ def get_sample_data_dir():
 
 def download_sample_data():
     import os, sys
+    import wlan_exp.version as ver
 
     sample_data_dir = get_sample_data_dir()
+
+    url_root = 'http://warpproject.org/dl/refdes/802.11/sample_data/{}.{}.{}/'.format(ver.WLAN_EXP_MAJOR, ver.WLAN_EXP_MINOR, ver.WLAN_EXP_REVISION)
 
     try:
         import requests
@@ -62,7 +63,7 @@ def download_sample_data():
 
 
     print("Downloading 802.11 Reference Design sample data to local directory:")
-    print(" From: {0}".format(_URL_ROOT))
+    print(" From: {0}".format(url_root))
     print(" To:   {0}\n".format(os.path.normpath(sample_data_dir)))
 
     # Progress indicator based on great StackOverflow posts:
@@ -74,11 +75,11 @@ def download_sample_data():
         if(os.path.isfile(fn_full)):
             print("\rERROR: Local file {0} already exists".format(fn_full))
         else:
-            r = requests.get(_URL_ROOT + fn, stream=True)
+            r = requests.get(url_root + fn, stream=True)
             len_total = r.headers.get('content-length')
 
             if(r.status_code != 200):
-                print("\rERROR: Failed to download {0}; HTTP status {1}".format(_URL_ROOT + fn, r.status_code))
+                print("\rERROR: Failed to download {0}; HTTP status {1}".format(url_root + fn, r.status_code))
             else:
                 with open(fn_full, "wb") as f:
                     if len_total is None: # no content length header
