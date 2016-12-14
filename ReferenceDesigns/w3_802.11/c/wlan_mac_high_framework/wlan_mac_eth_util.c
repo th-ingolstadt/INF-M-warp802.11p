@@ -1102,7 +1102,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
 
                             if (Xil_Ntohl(dhcp->magic_cookie) == DHCP_MAGIC_COOKIE) {
                                 eth_mid_ptr = (u8*)((void*)dhcp + sizeof(dhcp_packet));
-\
+
                                 // Iterate over all tagged parameters in the DHCP request, looking for the hostname parameter
                                 //     NOTE:  Stop after 20 tagged parameters (handles case of mal-formed DHCP packets missing END tag)
                                 continue_loop = 20;

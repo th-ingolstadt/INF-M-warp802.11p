@@ -51,25 +51,15 @@
 /*********************** Global Variable Definitions *************************/
 
 //These variables are defined by the linker at compile time
-extern int                   __data_start;                 ///< Start address of the data section
-extern int                   __data_end;                   ///< End address of the data section
-
 extern int                   __cpu_high_ddr_linker_data_start;  ///< Start address of the CPU High linker data section
 extern int                   __cpu_high_ddr_linker_data_end;    ///< End address of the CPU High linker data section
 
-extern int                   __bss_start;                  ///< Start address of the bss section
-extern int                   __bss_end;                    ///< End address of the bss section
+extern int                   _stack_end;                    ///< Start of the stack (stack counts backwards)
+extern int                   __stack;                       ///< End of the stack
 
-extern int                   _heap_start;                  ///< Start address of the heap
-extern int                   _HEAP_SIZE;                   ///< Size of the heap
-
-extern int                   _stack_end;                   ///< Start of the stack (stack counts backwards)
-extern int                   __stack;                      ///< End of the stack
-
-//FIXME DEBUG
-extern int					__malloc_sbrk_base;
-extern int					__malloc_trim_threshold;
-extern int					__malloc_av_;
+extern int					__malloc_sbrk_base;				///< Internal malloc variable in .data
+extern int					__malloc_trim_threshold; 		///< Internal malloc variable in .data
+extern int					__malloc_av_;					///< Internal malloc variable in .data
 
 /*************************** Variable Definitions ****************************/
 
@@ -150,7 +140,27 @@ void wlan_mac_high_copy_comparison();
 
 /******************************** Functions **********************************/
 
-
+/**
+ * @brief Initialize Malloc
+ *
+ * Dynamic memory allocation through malloc uses metadata in the data section
+ * of the elf binary. This metadata is not reset upon software reset (i.e., when a
+ * user presses the reset button on the hardware). This will cause failures on
+ * subsequent boots because this metadata has not be reset back to its original
+ * state at the first boot.
+ *
+ * This function explicitly overwrites the relevant pieces of the data section
+ * with a good default state for malloc. The initial values of the variables
+ * __malloc_sbrk_base, __malloc_trim_threshold, and __malloc_av__ can be found
+ * here: https://github.com/Xilinx/newlib/blob/xsdk_14.4/newlib/libc/stdlib/mallocr.c
+ *
+ * @param None
+ * @return None
+ *
+ * @note This function should be the first thing called after boot. If it is
+ * called after other parts have the code have started dynamic memory access,
+ * there will be unpredictable results on software reset.
+ */
 void wlan_mac_high_malloc_init(){
 	u32  i, val;
 	u32* malloc_sbrk_base_ptr;
@@ -175,59 +185,6 @@ void wlan_mac_high_malloc_init(){
 		val++;
 	}
 }
-
-
-/**
- * @brief Initialize Heap and Data Sections
- *
- * Dynamic memory allocation through malloc uses metadata in the data section
- * of the elf binary. This metadata is not reset upon software reset (i.e., when a
- * user presses the reset button on the hardware). This will cause failures on
- * subsequent boots because this metadata has not be reset back to its original
- * state at the first boot.
- *
- * This function backs up the original data section to a dedicated BRAM, so it can
- * be copied back on subsequent soft resets.
- *
- * @param None
- * @return None
- *
- * @note This function should be the first thing called after boot. If it is
- * called after other parts have the code have started dynamic memory access,
- * there will be unpredictable results on software reset.
- */
-void wlan_mac_high_heap_init(){
-	u32 data_size;
-	volatile u32* identifier;
-
-	data_size = 4*(&__data_end - &__data_start);
-	identifier = (u32*)INIT_DATA_BASEADDR;
-
-	//Zero out the heap
-	bzero((void*)&_heap_start, (int)&_HEAP_SIZE);
-
-	//Zero out the bss
-	bzero((void*)&__bss_start, 4*(&__bss_end - &__bss_start));
-
-#ifdef INIT_DATA_BASEADDR
-	if(*identifier == INIT_DATA_DOTDATA_IDENTIFIER){
-		//This program has run before. We should copy the .data out of the INIT_DATA memory.
-		if(data_size <= INIT_DATA_DOTDATA_SIZE){
-			memcpy((void*)&__data_start, (void*)INIT_DATA_DOTDATA_START, data_size);
-		}
-
-	} else {
-		//This is the first time this program has been run.
-		if(data_size <= INIT_DATA_DOTDATA_SIZE){
-			*identifier = INIT_DATA_DOTDATA_IDENTIFIER;
-			memcpy((void*)INIT_DATA_DOTDATA_START, (void*)&__data_start, data_size);
-		}
-
-	}
-#endif
-}
-
-
 
 /**
  * @brief Initialize CPU High DDR Linker Data Sections
@@ -276,8 +233,6 @@ void wlan_mac_high_cpu_ddr_linker_data_init(u8 dram_present) {
     //-----------------------------------------------------
     // Perform any User initialization of the memory
     //-----------------------------------------------------
-
-
 
     //-----------------------------------------------------
     // End Perform any User initialization of the memory

@@ -1275,7 +1275,6 @@ u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 	u8 pkt_buf;
 	dl_entry* entry;
 	mac_header_80211* header;
-	tx_frame_info_t* tx_frame_info;
 	u32 return_value = 0;
 	static u8 dtim_mcast_paused = 0;
 
@@ -1306,7 +1305,6 @@ u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 
 				// In the special case of sending a DTIM MCAST packet, the DCF is responsible for maintaining the
 				// MAC_FRAME_CTRL2_FLAG_MORE_DATA bit in the header.
-				tx_frame_info = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
 				header  = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
 
 				if( gl_tx_pkt_buf_ready_list_dtim_mcast.length == 1 ){
