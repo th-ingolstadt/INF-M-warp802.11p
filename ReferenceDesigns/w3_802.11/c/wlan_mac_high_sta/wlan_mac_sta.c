@@ -134,17 +134,13 @@ int main() {
 	// Print initial message to UART
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
-	xil_printf("----- v1.5.3 ----------------------------\n");
+	xil_printf("----- v1.6.0 ----------------------------\n");
 	xil_printf("----- wlan_mac_sta ----------------------\n");
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 	strncpy(compilation_details.compilation_date, __DATE__, 12);
 	strncpy(compilation_details.compilation_time, __TIME__, 9);
 
-	// Heap Initialization
-	//    The heap must be initialized before any use of malloc. This explicit
-	//    init handles the case of soft-reset of the MicroBlaze leaving stale
-	//    values in the heap RAM
-	wlan_mac_high_heap_init();
+	wlan_mac_high_malloc_init();
 
 	// Initialize the maximum TX queue size
 	max_queue_size = MAX_TX_QUEUE_LEN;
@@ -352,7 +348,7 @@ void send_probe_req(){
 		tx_length = wlan_create_probe_req_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, scan_parameters->ssid);
 
 		// Setup the TX frame info
-		wlan_mac_high_setup_tx_frame_info(&tx_header_common, curr_tx_queue_element, tx_length, 0, MANAGEMENT_QID);
+		wlan_mac_high_setup_tx_frame_info(&tx_header_common, curr_tx_queue_element, tx_length, 0, MANAGEMENT_QID, PKT_BUF_GROUP_GENERAL);
 
 		// Set the information in the TX queue buffer
 		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
@@ -363,7 +359,7 @@ void send_probe_req(){
 		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
 
 		// Poll the TX queues to possibly send the packet
-		poll_tx_queues();
+		poll_tx_queues(PKT_BUF_GROUP_GENERAL);
 	}
 }
 
@@ -441,10 +437,10 @@ void process_scan_state_change(scan_state_t scan_state){
  * return a non-zero status. Thus the calls below terminate polling as soon as any call to dequeue_transmit_checkin()
  * returns with a non-zero value, allowing the next call to poll_tx_queues() to continue the queue polling process.
  *
- * @param None
+ * @param pkt_buf_group_t pkt_buf_group
  * @return None
  *****************************************************************************/
-void poll_tx_queues(){
+void poll_tx_queues(pkt_buf_group_t pkt_buf_group){
 	u8 i;
 
 	#define MAX_NUM_QUEUE 2
@@ -455,7 +451,7 @@ void poll_tx_queues(){
 		static u32 queue_index = 0;
 
 		// Is CPU low ready for a transmission?
-		if (wlan_mac_high_is_dequeue_allowed()) {
+		if (wlan_mac_high_is_dequeue_allowed(PKT_BUF_GROUP_GENERAL)) {
 
 			// Alternate between checking the management queue and the data queue
 			for (i = 0; i < MAX_NUM_QUEUE; i++) {
@@ -470,7 +466,7 @@ void poll_tx_queues(){
 	} else {
 		// We are only currently allowed to send management frames. Typically this is caused by an ongoing
 		// active scan
-		if (wlan_mac_high_is_dequeue_allowed()) {
+		if (wlan_mac_high_is_dequeue_allowed(PKT_BUF_GROUP_GENERAL)) {
 			dequeue_transmit_checkin(MANAGEMENT_QID);
 		}
 	}
@@ -540,7 +536,7 @@ int ethernet_receive(tx_queue_element_t* curr_tx_queue_element, u8* eth_dest, u8
 			wlan_create_data_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS);
 
 			// Setup the TX frame info
-			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO), UNICAST_QID );
+			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO), UNICAST_QID, PKT_BUF_GROUP_GENERAL );
 
 			// Set the information in the TX queue buffer
 			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
@@ -882,7 +878,7 @@ void ltg_event(u32 id, void* callback_arg){
 				payload_length = max(payload_length+sizeof(mac_header_80211)+WLAN_PHY_FCS_NBYTES, min_ltg_payload_length);
 
 				// Finally prepare the 802.11 header
-				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO | TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ), UNICAST_QID);
+				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO | TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ), UNICAST_QID, PKT_BUF_GROUP_GENERAL);
 
 				// Update the queue entry metadata to reflect the new new queue entry contents
 				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
@@ -953,7 +949,8 @@ int  sta_disassociate( void ) {
 												curr_tx_queue_element,
 												tx_length,
 												(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO ),
-												MANAGEMENT_QID );
+												MANAGEMENT_QID,
+												PKT_BUF_GROUP_GENERAL);
 
 			// Set the information in the TX queue buffer
 			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;

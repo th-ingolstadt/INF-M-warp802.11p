@@ -67,7 +67,7 @@ int main(){
 
     xil_printf("\f");
     xil_printf("----- Mango 802.11 Reference Design -----\n");
-    xil_printf("----- v1.5.3 ----------------------------\n");
+    xil_printf("----- v1.6.0 ----------------------------\n");
     xil_printf("----- wlan_mac_nomac --------------------\n");
     xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 	strncpy(compilation_details.compilation_date, __DATE__, 12);
@@ -94,9 +94,8 @@ int main(){
 
     // Set up the TX / RX callbacks
     wlan_mac_low_set_frame_rx_callback(           (void*)frame_receive );
-    wlan_mac_low_set_frame_tx_callback(           (void*)frame_transmit );
     wlan_mac_low_set_ipc_low_param_callback(      (void*)process_low_param );
-    wlan_mac_low_set_handle_tx_pkt_buf_ready(	  (void*)wlan_mac_low_frame_transmit );
+    wlan_mac_low_set_handle_tx_pkt_buf_ready(	  (void*)handle_tx_pkt_buf_ready );
     // wlan_mac_low_set_sample_rate_change_callback() not used at this time.
 
     // Finish Low Framework initialization
@@ -201,7 +200,15 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details){
     return 0;
 }
 
-
+int handle_tx_pkt_buf_ready(u8 pkt_buf){
+	if( wlan_mac_low_prepare_frame_transmit(pkt_buf) == 0 ){
+		frame_transmit(pkt_buf);
+		wlan_mac_low_finish_frame_transmit(pkt_buf);
+		return 0;
+	} else {
+		return -1;
+	}
+}
 
 /*****************************************************************************/
 /**

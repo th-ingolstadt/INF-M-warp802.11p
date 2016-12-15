@@ -29,6 +29,7 @@
 /*************************** Function Prototypes *****************************/
 int  main();
 
+int  handle_tx_pkt_buf_ready(u8 pkt_buf);
 int  frame_transmit(u8 pkt_buf);
 u32  frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details);
 

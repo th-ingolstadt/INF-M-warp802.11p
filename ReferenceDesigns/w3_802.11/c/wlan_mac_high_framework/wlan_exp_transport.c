@@ -126,11 +126,8 @@ int transport_init(u32 eth_dev_num, void * node_info, u8 * ip_addr, u8 * hw_addr
     //     NOTE:  The WLAN project uses interrupts so we should make sure to disable
     //         interrupts when sending Ethernet packets.  This step must be done after
     //         the call to eth_init().
-    //FIXME UNCOMMENT
-    //eth_set_interrupt_enable_callback((void *)wlan_mac_high_interrupt_restore_state);
-
-    //FIXME UNCOMMENT
-    //eth_set_interrupt_disable_callback((void *)wlan_mac_high_interrupt_stop);
+    eth_set_interrupt_enable_callback((void *)wlan_mac_high_interrupt_restore_state);
+    eth_set_interrupt_disable_callback((void *)wlan_mac_high_interrupt_stop);
 
     // Initialize the transport_eth_dev_info structure for the Ethernet device
     transport_eth_dev_info_init(eth_dev_num, (wlan_exp_node_info *)node_info, ip_addr, hw_addr, unicast_port, broadcast_port);
