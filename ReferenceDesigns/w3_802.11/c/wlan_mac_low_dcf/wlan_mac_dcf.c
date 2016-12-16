@@ -234,11 +234,26 @@ void handle_sample_rate_change(phy_samp_rate_t phy_samp_rate){
 
 void handle_mactime_change(s64 time_delta_usec){
 	u32 current_tu;
+	u32 temp_var;
 	if(( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ) ||
 	   ( gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX )){
 		//The MAC Time has changed. We should explicitly update the next TU target
 		//for beacon transmission.
 		current_tu = (u32)(get_mac_time_usec()>>10);
+
+		//We also need to update the DTIM count to obey 10.1.3.2 in 802.11-2012.
+		//MAC time 0 is a TBTT and a DTIM.
+		if(gl_beacon_txrx_configure.dtim_period != 0){
+			temp_var = ((current_tu/gl_beacon_txrx_configure.beacon_interval_tu)+1)%gl_beacon_txrx_configure.dtim_period;
+			if(temp_var == 0){
+				gl_dtim_count = 0;
+			} else {
+				gl_dtim_count = gl_beacon_txrx_configure.dtim_period - temp_var + 1;
+			}
+
+		} else {
+			gl_dtim_count = 0;
+		}
 
 		//The current_tu can be anywhere within a beacon interval, so we need
 		//to round up to the next TBTT.
@@ -252,6 +267,8 @@ void configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure){
 	u8 pkt_buf;
 	tx_frame_info_t* tx_frame_info;
 	mac_header_80211* header;
+	u32 current_tu;
+	u32 temp_var;
 
 	dl_entry* curr_entry;
 	dl_entry* next_entry;
@@ -262,8 +279,6 @@ void configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure){
 			// We want to enable dtim buffering mcast and it has previously been disabled. This means we need to search through the
 			// gl_tx_pkt_buf_ready_list_general list and move any multicast packets in it to the gl_tx_pkt_buf_ready_list_dtim_mcast
 			// list.
-
-			gl_dtim_count = 0; // Ensure the first beacon we send is a DTIM
 
 			iter = gl_tx_pkt_buf_ready_list_general.length;
 			next_entry = gl_tx_pkt_buf_ready_list_general.first;
@@ -314,8 +329,6 @@ void configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure){
 
 	memcpy((void*)&gl_beacon_txrx_configure, beacon_txrx_configure, sizeof(beacon_txrx_configure_t));
 
-	u32 current_tu;
-
 	if(( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ) ||
 	   ( gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX )){
 
@@ -324,6 +337,21 @@ void configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure){
 		//The current_tu can be anywhere within a beacon interval, so we need
 		//to round up to the next TBTT.
 		wlan_mac_set_tu_target(gl_beacon_txrx_configure.beacon_interval_tu*((current_tu/gl_beacon_txrx_configure.beacon_interval_tu)+1));
+
+		//We also need to update the DTIM count to obey 10.1.3.2 in 802.11-2012.
+		//MAC time 0 is a TBTT and a DTIM.
+		if(gl_beacon_txrx_configure.dtim_period != 0){
+			temp_var = ((current_tu/gl_beacon_txrx_configure.beacon_interval_tu)+1)%gl_beacon_txrx_configure.dtim_period;
+			if(temp_var == 0){
+				gl_dtim_count = 0;
+			} else {
+				gl_dtim_count = gl_beacon_txrx_configure.dtim_period - temp_var + 1;
+			}
+
+		} else {
+			gl_dtim_count = 0;
+		}
+
 		wlan_mac_reset_tu_target_latch(1);
 		wlan_mac_reset_tu_target_latch(0);
 	}  else {
