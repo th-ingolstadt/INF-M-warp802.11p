@@ -246,12 +246,13 @@ typedef struct __attribute__((__packed__)){
     u32                      beacon_interval_tu;           // Beacon Interval (in TU)
     beacon_tx_mode_t         beacon_tx_mode;               // Tx Beacon Mode
 	u8  					 dtim_period;				   // DTIM Period (in beacon intervals)
-	u8  					 dtim_mcast_buffer_enable;	   // Enable buffering of multicast packets until after DTIM transmission
 	u8						 reserved0;
+	u8						 reserved1;
 	u16						 dtim_tag_byte_offset;		   // # of bytes into the payload that contains the start of the DTIM tag
-	u16						 reserved1;
+	u16						 reserved2;
 } beacon_txrx_configure_t;
 CASSERT(sizeof(beacon_txrx_configure_t) == 20, beacon_txrx_configure_t_alignment_check);
+
 
 
 //-----------------------------------------------

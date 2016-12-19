@@ -1882,6 +1882,17 @@ void wlan_mac_high_set_radio_channel(u32 mac_channel) {
 	}
 }
 
+void wlan_mac_high_enable_mcast_buffering(u8 enable){
+	wlan_ipc_msg_t ipc_msg_to_low;
+
+	// Send message to CPU Low
+	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_MCAST_BUFFER_ENABLE);
+	ipc_msg_to_low.num_payload_words = 0;
+	ipc_msg_to_low.arg0				 = enable;
+
+	write_mailbox_msg(&ipc_msg_to_low);
+}
+
 void wlan_mac_high_config_txrx_beacon(beacon_txrx_configure_t* beacon_txrx_configure){
 	wlan_ipc_msg_t ipc_msg_to_low;
 

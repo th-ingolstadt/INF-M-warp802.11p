@@ -126,6 +126,10 @@ static volatile u32				  		mgmt_tag_tim_update_schedule_id;
 // Beacon configuration
 static beacon_txrx_configure_t         gl_beacon_txrx_config;
 
+// DTIM Multicast Buffer
+u8 									   gl_dtim_mcast_buffer_enable;	   // Enable buffering of multicast packets until after DTIM transmission
+//FIXME: add wlan_exp control over gl_dtim_mcast_buffer_enable
+
 
 
 /*************************** Functions Prototypes ****************************/
@@ -302,8 +306,7 @@ int main(){
 		bss_config.chan_spec.chan_type 		= CHAN_TYPE_BW20;
 		bss_config.ht_capable          		= WLAN_DEFAULT_USE_HT;
 		bss_config.beacon_interval     		= WLAN_DEFAULT_BEACON_INTERVAL_TU;
-		bss_config.dtim_mcast_buffer_enable = 1;
-		bss_config.dtim_period		  		= 4;
+		bss_config.dtim_period		  		= 1;
 
 		bss_config.update_mask = (BSS_FIELD_MASK_BSSID  		 |
 								  BSS_FIELD_MASK_CHAN   		 |
@@ -313,6 +316,9 @@ int main(){
 								  BSS_FIELD_MASK_DTIM_MCAST_BUFFER);
 		configure_bss(&bss_config);
 	}
+
+	gl_dtim_mcast_buffer_enable	= 0;
+	wlan_mac_high_enable_mcast_buffering(gl_dtim_mcast_buffer_enable);
 
     // Print AP information to the terminal
 
@@ -448,7 +454,7 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 	tx_frame_info_t*  	tx_frame_info 				= (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON);
 
 	if(active_bss_info == NULL) return;
-	if( ((aid==0) && (gl_beacon_txrx_config.dtim_mcast_buffer_enable == 0)) ) return;
+	if( ((aid==0) && (gl_dtim_mcast_buffer_enable == 0)) ) return;
 
 	//First, we should determine whether a call to update_tim_tag_all_tag_all is scheduled
 	//for some time in the future. If it is, we can just return immediately and let that
@@ -615,7 +621,7 @@ void update_tim_tag_all(u32 sched_id){
 
 	tim_control = 0; //The top 7 bits are an offset for the partial map
 
-	if((gl_beacon_txrx_config.dtim_mcast_buffer_enable == 0) && (queue_num_queued(MCAST_QID)>0)){
+	if((gl_dtim_mcast_buffer_enable == 0) && (queue_num_queued(MCAST_QID)>0)){
 		//If mcast buffering is disabled, the AP is responsible for maintaining the
 		//mcast bit in the TIM control
 		tim_control |= 0x01; //Raise the multicast bit in the TIM control field
@@ -650,7 +656,7 @@ void update_tim_tag_all(u32 sched_id){
 																		 // if we write anything to it.
 	mgmt_tag_tim_template->data[1] = gl_beacon_txrx_config.dtim_period;
 	mgmt_tag_tim_template->data[2] = tim_control; 		//TIM Control (top 7 bits are offset for partial map)
-    if(gl_beacon_txrx_config.dtim_mcast_buffer_enable == 0){
+    if(gl_dtim_mcast_buffer_enable == 0){
 		mgmt_tag_tim_template->data[3] |= tim_control&1; 	//Per 10.2.1.3 in 802.11-2012: AID 0 is treated as
 															//the multicast buffer state
     }
@@ -725,7 +731,7 @@ typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 		case PKT_BUF_GROUP_OTHER:
 		break;
 		case PKT_BUF_GROUP_DTIM_MCAST:
-			if((gl_beacon_txrx_config.dtim_mcast_buffer_enable == 1) && (gl_beacon_txrx_config.beacon_tx_mode != NO_BEACON_TX)){
+			if((gl_dtim_mcast_buffer_enable == 1) && (gl_beacon_txrx_config.beacon_tx_mode != NO_BEACON_TX)){
 				dequeue_transmit_checkin(MCAST_QID);
 			}
 		break;
@@ -753,7 +759,7 @@ typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 								if(curr_station_info_entry == NULL){
 									// Check the broadcast queue
 									next_station_info_entry = active_bss_info->members.first;
-									if( ((gl_beacon_txrx_config.dtim_mcast_buffer_enable == 0) && dequeue_transmit_checkin(MCAST_QID))){
+									if( ((gl_dtim_mcast_buffer_enable == 0) && dequeue_transmit_checkin(MCAST_QID))){
 										// Found a not-empty queue, transmitted a packet
 										goto poll_cleanup;
 										return;
@@ -1858,7 +1864,7 @@ void mpdu_dequeue(tx_queue_element_t* packet){
 
 	// Here, we will overwrite the pkt_buf_group_t that was set by wlan_mac_high_setup_tx_frame_info(). This allows
 	// DTIM mcast buffering to be enabled or disabled after a packet has been created and is sitting in the queue.
-	if(		(gl_beacon_txrx_config.dtim_mcast_buffer_enable == 1) &&
+	if(		(gl_dtim_mcast_buffer_enable == 1) &&
 			(gl_beacon_txrx_config.beacon_tx_mode != NO_BEACON_TX ) &&
 			wlan_addr_mcast(header->address_1)	){
 		tx_frame_info->queue_info.pkt_buf_group = PKT_BUF_GROUP_DTIM_MCAST;
@@ -2233,7 +2239,6 @@ u32	configure_bss(bss_config_t* bss_config){
 				send_beacon_config_to_low = 1;
 			}
 			if (bss_config->update_mask & BSS_FIELD_MASK_DTIM_MCAST_BUFFER) {
-				gl_beacon_txrx_config.dtim_mcast_buffer_enable = bss_config->dtim_mcast_buffer_enable;
 				gl_beacon_txrx_config.dtim_period = bss_config->dtim_period;
 				send_beacon_config_to_low = 1;
 			}

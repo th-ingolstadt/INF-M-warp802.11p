@@ -505,6 +505,7 @@ void 			   wlan_mac_low_send_low_tx_details(u8 pkt_buf, wlan_mac_low_tx_details_
 
 void               wlan_mac_low_set_frame_rx_callback(function_ptr_t callback);
 void 			   wlan_mac_low_set_beacon_txrx_config_callback(function_ptr_t callback);
+void			   wlan_mac_low_set_mcast_buffer_enable_callback(function_ptr_t callback);
 void 			   wlan_mac_low_set_mactime_change_callback(function_ptr_t callback);
 void 			   wlan_mac_low_set_sample_rate_change_callback(function_ptr_t callback);
 void 			   wlan_mac_low_set_handle_tx_pkt_buf_ready(function_ptr_t callback);

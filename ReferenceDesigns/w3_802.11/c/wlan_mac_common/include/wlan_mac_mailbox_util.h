@@ -79,6 +79,7 @@
 #define IPC_MBOX_CONFIG_CHANNEL                            7
 #define IPC_MBOX_CONFIG_DSSS_EN                            8
 #define IPC_MBOX_TX_BEACON_DONE	                           9
+#define IPC_MBOX_MCAST_BUFFER_ENABLE					   10
 #define IPC_MBOX_SET_MAC_TIME 	                           11
 #define IPC_MBOX_CONFIG_RX_ANT_MODE                        12
 #define IPC_MBOX_CONFIG_TX_CTRL_POW                        13
@@ -86,6 +87,7 @@
 #define IPC_MBOX_MEM_READ_WRITE                            15
 #define IPC_MBOX_LOW_PARAM                                 16
 #define IPC_MBOX_LOW_RANDOM_SEED                           17
+
 
 
 //-----------------------------------------------

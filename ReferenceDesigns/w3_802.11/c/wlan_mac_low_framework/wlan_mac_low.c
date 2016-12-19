@@ -70,6 +70,7 @@ static u32                   	  ipc_msg_from_high_payload[MAILBOX_BUFFER_MAX_NUM
 static function_ptr_t        frame_rx_callback;                                     ///< User callback frame receptions
 
 static function_ptr_t		 beacon_txrx_config_callback;
+static function_ptr_t		 mcast_buffer_enable_callback;
 static function_ptr_t		 mactime_change_callback;
 static function_ptr_t		 sample_rate_change_callback;
 static function_ptr_t		 handle_tx_pkt_buf_ready;
@@ -114,12 +115,13 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
 
     mac_param_rx_filter      = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL);
 
-    frame_rx_callback           = (function_ptr_t) wlan_null_callback;
-    ipc_low_param_callback      = (function_ptr_t) wlan_null_callback;
-    beacon_txrx_config_callback = (function_ptr_t) wlan_null_callback;
-    mactime_change_callback		= (function_ptr_t) wlan_null_callback;
-    sample_rate_change_callback = (function_ptr_t) wlan_null_callback;
-    handle_tx_pkt_buf_ready		= (function_ptr_t) wlan_null_callback;
+    frame_rx_callback            = (function_ptr_t) wlan_null_callback;
+    ipc_low_param_callback       = (function_ptr_t) wlan_null_callback;
+    beacon_txrx_config_callback  = (function_ptr_t) wlan_null_callback;
+    mcast_buffer_enable_callback = (function_ptr_t) wlan_null_callback;
+    mactime_change_callback		 = (function_ptr_t) wlan_null_callback;
+    sample_rate_change_callback  = (function_ptr_t) wlan_null_callback;
+    handle_tx_pkt_buf_ready		 = (function_ptr_t) wlan_null_callback;
 
     status = w3_node_init();
 
@@ -856,6 +858,11 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
         break;
 
         //---------------------------------------------------------------------
+        case IPC_MBOX_MCAST_BUFFER_ENABLE: {
+        	mcast_buffer_enable_callback(msg->arg0);
+        }
+
+        //---------------------------------------------------------------------
         case IPC_MBOX_CONFIG_CHANNEL: {
             wlan_mac_low_set_radio_channel(ipc_msg_from_high_payload[0]);
         }
@@ -1225,6 +1232,10 @@ inline void wlan_mac_low_set_handle_tx_pkt_buf_ready(function_ptr_t callback){
 
 inline void wlan_mac_low_set_beacon_txrx_config_callback(function_ptr_t callback){
 	beacon_txrx_config_callback = callback;
+}
+
+inline void wlan_mac_low_set_mcast_buffer_enable_callback(function_ptr_t callback){
+	mcast_buffer_enable_callback = callback;
 }
 
 inline void wlan_mac_low_set_mactime_change_callback(function_ptr_t callback){

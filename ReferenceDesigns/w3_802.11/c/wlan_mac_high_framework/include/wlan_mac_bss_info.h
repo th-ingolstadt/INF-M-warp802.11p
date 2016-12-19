@@ -167,10 +167,10 @@ typedef struct __attribute__((__packed__)){
     chan_spec_t    chan_spec;                         /* Channel Specification*/
     u8             ht_capable;                        /* Support HTMF Tx/Rx */
     u8  		   dtim_period;				          /* DTIM Period (in beacon intervals) */
-    u8  		   dtim_mcast_buffer_enable;	      /* Enable buffering of multicast packets until after DTIM transmission */
-    u8			   reserved[6];
+    u8			   reserved[7];
 } bss_config_t; //FIXME: must update python to match
 CASSERT(sizeof(bss_config_t) == 56, bss_config_t_alignment_check);
+
 
 
 

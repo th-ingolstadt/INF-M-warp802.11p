@@ -69,6 +69,7 @@ volatile u8                            gl_red_led_index;
 volatile u8                            gl_green_led_index;
 
 volatile beacon_txrx_configure_t	   gl_beacon_txrx_configure;
+volatile u8							   gl_dtim_mcast_buffer_enable;
 volatile u8							   gl_dtim_count;
 
 volatile static u8					   gl_waiting_for_response;
@@ -113,7 +114,7 @@ int main(){
 
     gl_beacon_txrx_configure.beacon_tx_mode = NO_BEACON_TX;
     gl_beacon_txrx_configure.ts_update_mode = NEVER_UPDATE;
-    gl_beacon_txrx_configure.dtim_mcast_buffer_enable = 0;
+    gl_dtim_mcast_buffer_enable = 0;
 
     bzero((void*)gl_beacon_txrx_configure.bssid_match, MAC_ADDR_LEN);
 
@@ -154,6 +155,7 @@ int main(){
     wlan_mac_low_set_ipc_low_param_callback((void*)process_low_param);
     wlan_mac_low_set_sample_rate_change_callback((void*)handle_sample_rate_change);
     wlan_mac_low_set_handle_tx_pkt_buf_ready((void*)handle_tx_pkt_buf_ready);
+    wlan_mac_low_set_mcast_buffer_enable_callback((void*)handle_mcast_buffer_enable);
 
 
     // wlan_mac_low_init() has placed a mutex lock on TX_PKT_BUF_ACK_CTS and
@@ -185,6 +187,69 @@ int main(){
     }
 
     return 0;
+}
+
+void handle_mcast_buffer_enable(u32 enable){
+	gl_dtim_mcast_buffer_enable = enable;
+	update_tx_pkt_buf_lists();
+}
+
+void update_tx_pkt_buf_lists(){
+	u32 iter;
+	u8 pkt_buf;
+	tx_frame_info_t* tx_frame_info;
+	mac_header_80211* header;
+
+	dl_entry* curr_entry;
+	dl_entry* next_entry;
+
+	if( (gl_dtim_mcast_buffer_enable == 1) && (gl_beacon_txrx_configure.beacon_tx_mode != NO_BEACON_TX) ) {
+		// DTIM buffering is enabled. We need to move any PKT_BUF_GROUP_DTIM_MCAST packets out of gl_tx_pkt_buf_ready_list_general
+		// and into gl_tx_pkt_buf_ready_list_dtim_mcast.
+
+		iter = gl_tx_pkt_buf_ready_list_general.length;
+		next_entry = gl_tx_pkt_buf_ready_list_general.first;
+
+		while( (next_entry != NULL) && (iter-- > 0) ){
+
+			curr_entry = next_entry;
+			next_entry = dl_entry_next(next_entry);
+
+			pkt_buf = *( (u8*)curr_entry->data);
+
+			tx_frame_info	= (tx_frame_info_t*)  (TX_PKT_BUF_TO_ADDR(pkt_buf));
+			header          = (mac_header_80211*) (TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
+
+			if(wlan_addr_mcast(header->address_1)){
+				tx_frame_info->queue_info.pkt_buf_group = PKT_BUF_GROUP_DTIM_MCAST;
+				dl_entry_remove(&gl_tx_pkt_buf_ready_list_general, curr_entry);
+				dl_entry_insertEnd(&gl_tx_pkt_buf_ready_list_dtim_mcast, curr_entry);
+			}
+		}
+	} else if( (gl_dtim_mcast_buffer_enable == 0) || (gl_beacon_txrx_configure.beacon_tx_mode == NO_BEACON_TX) ) {
+			// DTIM buffering is disabled. We need to merge gl_tx_pkt_buf_ready_list_general and gl_tx_pkt_buf_ready_list_dtim_mcast and
+			// assigned all packet buffer groups to PKT_BUF_GROUP_GENERAL.
+
+			//FIXME: If MAC Tx Core D is currently paused, we need to clear it.
+
+			iter = gl_tx_pkt_buf_ready_list_dtim_mcast.length;
+			next_entry = gl_tx_pkt_buf_ready_list_dtim_mcast.first;
+
+			while( (next_entry != NULL) && (iter-- > 0) ){
+
+				curr_entry = next_entry;
+				next_entry = dl_entry_next(next_entry);
+
+				pkt_buf = *( (u8*)curr_entry->data);
+
+				tx_frame_info	= (tx_frame_info_t*)  (TX_PKT_BUF_TO_ADDR(pkt_buf));
+
+				tx_frame_info->queue_info.pkt_buf_group = PKT_BUF_GROUP_GENERAL;
+				dl_entry_remove(&gl_tx_pkt_buf_ready_list_dtim_mcast, curr_entry);
+				dl_entry_insertEnd(&gl_tx_pkt_buf_ready_list_general, curr_entry);
+			}
+		}
+
 }
 
 void handle_sample_rate_change(phy_samp_rate_t phy_samp_rate){
@@ -263,71 +328,12 @@ void handle_mactime_change(s64 time_delta_usec){
 }
 
 void configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure){
-	u32 iter;
-	u8 pkt_buf;
-	tx_frame_info_t* tx_frame_info;
-	mac_header_80211* header;
 	u32 current_tu;
 	u32 temp_var;
 
-	dl_entry* curr_entry;
-	dl_entry* next_entry;
-
-	if( (gl_beacon_txrx_configure.dtim_mcast_buffer_enable == 0) || (gl_beacon_txrx_configure.beacon_tx_mode == NO_BEACON_TX) ){
-		// We are not currently buffering any mcast
-		if( (beacon_txrx_configure->dtim_mcast_buffer_enable == 1) && (beacon_txrx_configure->beacon_tx_mode != NO_BEACON_TX) ) {
-			// We want to enable dtim buffering mcast and it has previously been disabled. This means we need to search through the
-			// gl_tx_pkt_buf_ready_list_general list and move any multicast packets in it to the gl_tx_pkt_buf_ready_list_dtim_mcast
-			// list.
-
-			iter = gl_tx_pkt_buf_ready_list_general.length;
-			next_entry = gl_tx_pkt_buf_ready_list_general.first;
-
-			while( (next_entry != NULL) && (iter-- > 0) ){
-
-				curr_entry = next_entry;
-				next_entry = dl_entry_next(next_entry);
-
-				pkt_buf = *( (u8*)curr_entry->data);
-
-			    tx_frame_info	= (tx_frame_info_t*)  (TX_PKT_BUF_TO_ADDR(pkt_buf));
-			    header          = (mac_header_80211*) (TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
-
-			    if(wlan_addr_mcast(header->address_1)){
-			    	tx_frame_info->queue_info.pkt_buf_group = PKT_BUF_GROUP_DTIM_MCAST;
-			    	dl_entry_remove(&gl_tx_pkt_buf_ready_list_general, curr_entry);
-			    	dl_entry_insertEnd(&gl_tx_pkt_buf_ready_list_dtim_mcast, curr_entry);
-			    }
-			}
-		}
-	} else {
-		// We are currently buffering mcast until just after a DTIM beacon transmission
-		if( (beacon_txrx_configure->dtim_mcast_buffer_enable == 0) || (beacon_txrx_configure->beacon_tx_mode == NO_BEACON_TX) ) {
-			// We want to disable mcast buffering. This means we need to merge the gl_tx_pkt_buf_ready_list_dtim_mcast
-			// and gl_tx_pkt_buf_ready_list_general lists.
-
-			//FIXME: If MAC Tx Core D is currently paused, we need to clear it.
-
-			iter = gl_tx_pkt_buf_ready_list_dtim_mcast.length;
-			next_entry = gl_tx_pkt_buf_ready_list_dtim_mcast.first;
-
-			while( (next_entry != NULL) && (iter-- > 0) ){
-
-				curr_entry = next_entry;
-				next_entry = dl_entry_next(next_entry);
-
-				pkt_buf = *( (u8*)curr_entry->data);
-
-				tx_frame_info	= (tx_frame_info_t*)  (TX_PKT_BUF_TO_ADDR(pkt_buf));
-
-				tx_frame_info->queue_info.pkt_buf_group = PKT_BUF_GROUP_GENERAL;
-				dl_entry_remove(&gl_tx_pkt_buf_ready_list_dtim_mcast, curr_entry);
-				dl_entry_insertEnd(&gl_tx_pkt_buf_ready_list_general, curr_entry);
-			}
-		}
-	}
-
 	memcpy((void*)&gl_beacon_txrx_configure, beacon_txrx_configure, sizeof(beacon_txrx_configure_t));
+
+	update_tx_pkt_buf_lists();
 
 	if(( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ) ||
 	   ( gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX )){
@@ -420,7 +426,7 @@ inline void poll_tbtt_and_send_beacon(){
 					//	2) The frame transmitted just prior the last beacon was a multicast packet whose MAC_FRAME_CTRL2_FLAG_MORE_DATA bit
 					//	   is 1. In this case, we are allowed to continue sending multicast packets in the current beacon interval regardless
 					//	   of DTIM (11.2.1.5.f 802.11-2007)
-					if( ((send_beacon_return & SEND_BEACON_RETURN_DTIM) && (gl_beacon_txrx_configure.dtim_mcast_buffer_enable == 1)) ||
+					if( ((send_beacon_return & SEND_BEACON_RETURN_DTIM) && (gl_dtim_mcast_buffer_enable == 1)) ||
 						((poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_TRANSMITTED) && (poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_MORE_DATA)) ){
 
 						while( gl_tx_pkt_buf_ready_list_dtim_mcast.length > 0 ){
@@ -491,7 +497,7 @@ inline u32 send_beacon(u8 tx_pkt_buf){
 	}
 
 	if(mgmt_tag_tim_template != NULL){
-		if( (gl_beacon_txrx_configure.dtim_mcast_buffer_enable == 1) && (gl_beacon_txrx_configure.dtim_period != 0) ){
+		if( (gl_beacon_txrx_configure.dtim_period != 0) ){
 			// Update the DTIM count
 			mgmt_tag_tim_template->data[0] = gl_dtim_count;  //DTIM Count
 			if(gl_dtim_count == 0){
@@ -1275,7 +1281,7 @@ int handle_tx_pkt_buf_ready(u8 pkt_buf){
 
 		*((u8*)(entry->data)) = pkt_buf;
 
-		if( (gl_beacon_txrx_configure.dtim_mcast_buffer_enable == 1) && (gl_beacon_txrx_configure.beacon_tx_mode != NO_BEACON_TX) ){
+		if( (gl_dtim_mcast_buffer_enable == 1) && (gl_beacon_txrx_configure.beacon_tx_mode != NO_BEACON_TX) ){
 			switch(tx_frame_info->queue_info.pkt_buf_group){
 				case PKT_BUF_GROUP_DTIM_MCAST:
 					list = &gl_tx_pkt_buf_ready_list_dtim_mcast;

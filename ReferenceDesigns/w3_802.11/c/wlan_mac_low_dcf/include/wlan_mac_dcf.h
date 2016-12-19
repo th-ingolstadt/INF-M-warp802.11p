@@ -101,6 +101,8 @@ typedef enum {
 int                main();
 
 u32                frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details);
+void			   handle_mcast_buffer_enable(u32 enable);
+void 			   update_tx_pkt_buf_lists();
 void 			   handle_sample_rate_change(phy_samp_rate_t phy_samp_rate);
 void 			   handle_mactime_change(s64 time_delta_usec);
 void 			   configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure);
