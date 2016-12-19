@@ -29,7 +29,7 @@ class WlanExpNodeAp(node.WlanExpNode):
     #-------------------------------------------------------------------------
     # Node Commands
     #-------------------------------------------------------------------------
-    def configure_bss(self, bssid=False, ssid=None, channel=None, beacon_interval=False, ht_capable=None):
+    def configure_bss(self, bssid=False, ssid=None, channel=None, beacon_interval=False, dtim_period=None, ht_capable=None):
         """Configure the BSS information of the node
 
         Each node is either a member of no BSS (colloquially "unassociated")
@@ -61,6 +61,7 @@ class WlanExpNodeAp(node.WlanExpNode):
                 (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds);
                 A value of None will disable beacons;  A value of False will not
                 update the current beacon interval.
+            dtim_period (int): Integer number of beacon intervals between DTIMs
             ht_capable (bool):  Is the PHY mode HTMF (True) or NONHT (False)?
 
         """
@@ -87,7 +88,7 @@ class WlanExpNodeAp(node.WlanExpNode):
                 bssid = self.wlan_mac_address
 
         resp_args = self.send_cmd(cmds.NodeConfigBSS(bssid=bssid, ssid=ssid, channel=channel,
-                                                     beacon_interval=beacon_interval, ht_capable=ht_capable))
+                                                     beacon_interval=beacon_interval, dtim_period=dtim_period, ht_capable=ht_capable))
         
         # Process response arguments
         if (resp_args is not False):

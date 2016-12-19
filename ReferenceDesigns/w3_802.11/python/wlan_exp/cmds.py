@@ -1509,6 +1509,7 @@ class NodeConfigBSS(message.Cmd):
             (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds);
             A value of None will disable beacons;  A value of False will not 
             update the current beacon interval.
+        dtim_period (int): Integer number of beacon intervals between DTIMs
         ht_capable (bool):  TBD.  A value of None will not update the current
             value of HT capable.
     """
@@ -1516,10 +1517,11 @@ class NodeConfigBSS(message.Cmd):
     ssid            = None
     channel         = None
     beacon_interval = None
+    dtim_period     = None
     ht_capable      = None
     
     
-    def __init__(self,  bssid=False, ssid=None, channel=None, beacon_interval=False, ht_capable=None):
+    def __init__(self,  bssid=False, ssid=None, channel=None, beacon_interval=False, dtim_period=None, ht_capable=None):
         super(NodeConfigBSS, self).__init__()
         self.command = _CMD_GROUP_NODE + CMDID_NODE_CONFIG_BSS
         
@@ -1529,6 +1531,7 @@ class NodeConfigBSS(message.Cmd):
         # Create BSS Config         
         bss_config = info.BSSConfig(bssid=bssid, ssid=ssid, channel=channel, 
                                     beacon_interval=beacon_interval, 
+                                    dtim_period=dtim_period,
                                     ht_capable=ht_capable)
 
         # Set local variables for error messages
@@ -1536,6 +1539,7 @@ class NodeConfigBSS(message.Cmd):
         self.ssid            = ssid
         self.channel         = channel
         self.beacon_interval = beacon_interval
+        self.dtim_period     = dtim_period
         self.ht_capable      = ht_capable
 
         # Convert BSSConfig() to bytes for transfer
