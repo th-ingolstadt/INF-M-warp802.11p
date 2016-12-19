@@ -87,7 +87,9 @@ info_field_defs = {
         ('ssid',                        '33s',    '33uint8', 'SSID (32 chars max)'),
         ('channel',                     'B',      'uint8',   'Primary channel'),
         ('channel_type',                'B',      'uint8',   'Channel Type'),
-        ('ht_capable',                  'B',      'uint8',   'Support for HTMF Tx/Rx')],
+        ('ht_capable',                  'B',      'uint8',   'Support for HTMF Tx/Rx'),
+        ('dtim_period',                 'B',      'uint8',   'DTIM Period - In units of beacon intervals'),
+        ('reserved',                    '6x',     '6uint8',  'Reserved')],
 
     'TXRX_COUNTS' : [
         ('retrieval_timestamp',         'Q',      'uint64',  'Value of System Time in microseconds when structure retrieved from the node'),
@@ -146,7 +148,8 @@ info_consts_defs = {
             'CHANNEL'                  : 0x00000002,
             'SSID'                     : 0x00000004,
             'BEACON_INTERVAL'          : 0x00000008,
-            'HT_CAPABLE'               : 0x00000010
+            'HT_CAPABLE'               : 0x00000010,
+            'DTIM_PERIOD'              : 0x00000020,
         }),
         'channel_type'  : util.consts_dict({
             'BW20'                     : 0x0000,
@@ -707,11 +710,13 @@ class BSSConfig(InfoStruct):
             (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds);
             A value of None will disable beacons;  A value of False will not 
             update the current beacon interval
+        dtim_period (int): Number of beacon intervals between DTIMs
         ht_capable (bool):  Does the node support HTMF Tx/Rx.  A value of None 
-            will not update the current value of HT capable.
+            will not update the current value of HT capable.        
+        
             
     """
-    def __init__(self, bssid=False, ssid=None, channel=None, beacon_interval=False, ht_capable=None):                       
+    def __init__(self, bssid=False, ssid=None, channel=None, beacon_interval=False, dtim_period=None, ht_capable=None):                       
         super(BSSConfig, self).__init__(field_name='BSS_CONFIG')
 
         # Default values used if value not provided:
@@ -802,6 +807,25 @@ class BSSConfig(InfoStruct):
         else:
             self['beacon_interval'] = 0xFFFF
 
+
+        # Set the DTIM period
+        if dtim_period is not None:
+            
+            # Check DTIM period
+            if type(dtim_period) is not int:
+                dtim_period = int(dtim_period)
+                print("WARNING:  DTIM period must be an interger number of time units.  Rounding to {0}".format(beacon_interval))
+
+            if not ((beacon_interval > 0) and (beacon_interval < 255)):
+                msg  = "The DTIM period must be in [1, 255] (ie 8-bit positive integer)."
+                raise ValueError(msg)
+
+            self['dtim_period'] = dtim_period
+        
+            # Set update mask
+            self['update_mask'] |= self._consts.update_mask.DTIM_PERIOD
+        else:
+            self['dtim_period'] = 0xFF
 
         # Set the HT capable field
         if ht_capable is not None:
