@@ -306,7 +306,7 @@ int main(){
 		bss_config.chan_spec.chan_type 		= CHAN_TYPE_BW20;
 		bss_config.ht_capable          		= WLAN_DEFAULT_USE_HT;
 		bss_config.beacon_interval     		= WLAN_DEFAULT_BEACON_INTERVAL_TU;
-		bss_config.dtim_period		  		= 1;
+		bss_config.dtim_period		  		= 4;
 
 		bss_config.update_mask = (BSS_FIELD_MASK_BSSID  		 |
 								  BSS_FIELD_MASK_CHAN   		 |
@@ -317,7 +317,7 @@ int main(){
 		configure_bss(&bss_config);
 	}
 
-	gl_dtim_mcast_buffer_enable	= 0;
+	gl_dtim_mcast_buffer_enable	= 1;
 	wlan_mac_high_enable_mcast_buffering(gl_dtim_mcast_buffer_enable);
 
     // Print AP information to the terminal
@@ -1054,7 +1054,7 @@ int ethernet_receive(tx_queue_element_t* curr_tx_queue_element, u8* eth_dest, u8
 			// Set the information in the TX queue buffer
 			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
 			curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)&(default_multicast_data_tx_params);
-			curr_tx_queue_buffer->tx_frame_info.ID         = 0;
+			curr_tx_queue_buffer->tx_frame_info.ID       = 0;
 
 			// Put the packet in the queue
 			enqueue_after_tail(MCAST_QID, curr_tx_queue_element);

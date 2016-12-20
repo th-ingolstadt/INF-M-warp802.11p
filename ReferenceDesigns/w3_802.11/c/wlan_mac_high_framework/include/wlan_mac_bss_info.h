@@ -168,7 +168,7 @@ typedef struct __attribute__((__packed__)){
     u8             ht_capable;                        /* Support HTMF Tx/Rx */
     u8  		   dtim_period;				          /* DTIM Period (in beacon intervals) */
     u8			   reserved[7];
-} bss_config_t; //FIXME: must update python to match
+} bss_config_t;
 CASSERT(sizeof(bss_config_t) == 56, bss_config_t_alignment_check);
 
 

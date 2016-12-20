@@ -313,7 +313,7 @@ void handle_mactime_change(s64 time_delta_usec){
 			if(temp_var == 0){
 				gl_dtim_count = 0;
 			} else {
-				gl_dtim_count = gl_beacon_txrx_configure.dtim_period - temp_var + 1;
+				gl_dtim_count = gl_beacon_txrx_configure.dtim_period - temp_var;
 			}
 
 		} else {
@@ -351,7 +351,7 @@ void configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure){
 			if(temp_var == 0){
 				gl_dtim_count = 0;
 			} else {
-				gl_dtim_count = gl_beacon_txrx_configure.dtim_period - temp_var + 1;
+				gl_dtim_count = gl_beacon_txrx_configure.dtim_period - temp_var;
 			}
 
 		} else {

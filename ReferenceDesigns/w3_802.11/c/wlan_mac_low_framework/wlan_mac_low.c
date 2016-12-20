@@ -861,6 +861,7 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
         case IPC_MBOX_MCAST_BUFFER_ENABLE: {
         	mcast_buffer_enable_callback(msg->arg0);
         }
+        break;
 
         //---------------------------------------------------------------------
         case IPC_MBOX_CONFIG_CHANNEL: {
