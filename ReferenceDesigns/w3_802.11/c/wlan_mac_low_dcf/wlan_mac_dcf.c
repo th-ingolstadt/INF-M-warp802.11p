@@ -1508,8 +1508,6 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
     	// resume it without resubmitting it to the core.
 
     	wlan_mac_pause_backoff_tx_ctrl_D(0);
-    	xil_printf("resumed\n");
-
     } //if( resume == 0 )
 
 
