@@ -31,6 +31,7 @@
 #include "wlan_mac_dcf.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_mgmt_tags.h"
+#include "wlan_mac_userio_util.h"
 
 // WLAN Exp includes
 #include "wlan_exp.h"
@@ -439,6 +440,17 @@ inline void poll_tbtt_and_send_beacon(){
 							//  2) An mcast packet has been submitted to MAC Tx Controller D, but a TBTT boundary occured while the
 							//	   core was deferring.
 
+
+							// TODO: Need to handle implications of an IPC message changing something like channel
+							// Poll the IPC Rx in the hope that a READY message will fill gl_tx_pkt_buf_ready_list_dtim_mcast
+							u32 fixme_debug; //FIXME DEBUG
+							wlan_mac_set_dbg_hdr_out(0x4000);//FIXME DEBUG
+							fixme_debug = wlan_mac_low_poll_ipc_rx();
+							wlan_mac_clear_dbg_hdr_out(0x4000);//FIXME DEBUG
+							if(fixme_debug == 0){
+								//xil_printf("nothing in mailbox\n");
+							}
+
 							if( wlan_mac_check_tu_latch() ){
 								// We just crossed a TBTT so we should send another beacon. Break
 								// back to the top of the while( wlan_mac_check_tu_latch() ) loop.
@@ -448,12 +460,9 @@ inline void poll_tbtt_and_send_beacon(){
 							if( (poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_TRANSMITTED) && ((poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_MORE_DATA) == 0 ) ) {
 								// We sent the last mcast packet allowed in this beacon interval. We can now return all the way back to general
 								// operation.
+								wlan_mac_pause_backoff_tx_ctrl_A(0);
 								return;
 							}
-
-							// TODO: Need to handle implications of an IPC message changing something like channel
-							// Poll the IPC Rx in the hope that a READY message will fill gl_tx_pkt_buf_ready_list_dtim_mcast
-							wlan_mac_low_poll_ipc_rx();
 						}
 					}
 				}
@@ -676,6 +685,10 @@ inline u32 send_beacon(u8 tx_pkt_buf){
 					return return_status;
 				}
 
+			} else {
+				// Poll IPC rx
+				// TODO: Need to handle implications of an IPC message changing something like channel
+				wlan_mac_low_poll_ipc_rx();
 			}
 		} // END if(Tx A state machine done)
 	} while( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_C_PENDING );
@@ -1284,6 +1297,8 @@ int handle_tx_pkt_buf_ready(u8 pkt_buf){
 		if( (gl_dtim_mcast_buffer_enable == 1) && (gl_beacon_txrx_configure.beacon_tx_mode != NO_BEACON_TX) ){
 			switch(tx_frame_info->queue_info.pkt_buf_group){
 				case PKT_BUF_GROUP_DTIM_MCAST:
+					wlan_mac_set_dbg_hdr_out(0x0001); //FIXME_DEBUG
+					wlan_mac_clear_dbg_hdr_out(0x0001); //FIXME_DEBUG
 					list = &gl_tx_pkt_buf_ready_list_dtim_mcast;
 				break;
 				default:
@@ -1347,6 +1362,9 @@ u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 					// wait until the next DTIM even if another frame enters the READY state while
 					// the current frame is underway.
 					header->frame_control_2 &= ~MAC_FRAME_CTRL2_FLAG_MORE_DATA;
+					xil_printf("NO MORE DATA\n");// FIXME DEBUG
+					wlan_mac_set_dbg_hdr_out(0x1000); //FIXME DEBUG
+					wlan_mac_clear_dbg_hdr_out(0x1000); //FIXME DEBUG
 				} else {
 					header->frame_control_2 |= MAC_FRAME_CTRL2_FLAG_MORE_DATA;
 					return_value |= POLL_TX_PKT_BUF_LIST_RETURN_MORE_DATA;
@@ -1369,7 +1387,12 @@ u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 					dtim_mcast_paused = 1;
 				} else {
 					dtim_mcast_paused = 0;
+
+					//FIXME DEBUG
+					//wlan_mac_set_dbg_hdr_out(0x4000);
 					wlan_mac_low_finish_frame_transmit(pkt_buf);
+					//wlan_mac_clear_dbg_hdr_out(0x4000);
+
 					return_value |= POLL_TX_PKT_BUF_LIST_RETURN_TRANSMITTED;
 					dl_entry_remove(&gl_tx_pkt_buf_ready_list_dtim_mcast, entry);
 					dl_entry_insertEnd(&gl_tx_pkt_buf_ready_list_free, entry);
@@ -1387,23 +1410,30 @@ u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 
 u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 	u32 return_value = 0;
-    wlan_mac_low_tx_details_t   low_tx_details;
+
+	if(resume == 1){
+		xil_printf("RESUME\n"); //FIXME DEBUG
+	}
+
+	//We will make a few variables static. This will make it so that they retain their
+	//values on the next call to frame_transmit_dtim_mcast in the event that resume = 1
+    static wlan_mac_low_tx_details_t    low_tx_details;
+    static tx_mode_t           			tx_mode;
+    static u8							tx_has_started;
 
     u32 mac_hw_status;
+    u32 mac_tx_ctrl_status;
 
-    int curr_tx_pow;
-
-    u8	tx_has_started;
-
-    tx_mode_t           		tx_mode;
-
-    u16                 n_slots             = 0;
-    u16                 n_slots_readback    = 0;
-    u8                  mpdu_tx_ant_mask    = 0;
     tx_frame_info_t   * tx_frame_info       = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
     mac_header_80211  * header              = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
 
+
     if( resume == 0 ){
+    	int curr_tx_pow;
+        u16                 n_slots             = 0;
+        u16                 n_slots_readback    = 0;
+        u8                  mpdu_tx_ant_mask    = 0;
+
     	// Extract waveform params from the tx_frame_info
 		u8  mcs      = tx_frame_info->params.phy.mcs;
 		u8  phy_mode = (tx_frame_info->params.phy.phy_mode & (PHY_MODE_HTMF | PHY_MODE_NONHT));
@@ -1577,9 +1607,16 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 			} else{
 				if (wlan_mac_check_tu_latch() ){
 					wlan_mac_pause_backoff_tx_ctrl_D(1);
-					// FIXME: add check to make sure it really was paused and we won the race
-					return_value |= DTIM_MCAST_RETURN_PAUSED;
-					return return_value;
+					mac_tx_ctrl_status = wlan_mac_get_tx_ctrl_status();
+					// Check if Tx controller D is deferring (now with a paused backoff) or idle (no Tx pending)
+					// if we lost the race to pause the controller, we will continue on as if we did not observe the TU latch
+					if(((mac_tx_ctrl_status & WLAN_MAC_TXCTRL_STATUS_MASK_TX_D_STATE) == WLAN_MAC_TXCTRL_STATUS_TX_D_STATE_DEFER) ||
+					   ((mac_tx_ctrl_status & WLAN_MAC_TXCTRL_STATUS_MASK_TX_D_STATE) == WLAN_MAC_TXCTRL_STATUS_TX_D_STATE_IDLE)) {
+						return_value |= DTIM_MCAST_RETURN_PAUSED;
+						return return_value;
+					} else {
+						wlan_mac_pause_backoff_tx_ctrl_D(0);
+					}
 				} else {
 					// Poll IPC rx
 					// TODO: Need to handle implications of an IPC message changing something like channel
@@ -2315,7 +2352,8 @@ inline u32 rand_num_slots(u8 reason){
         break;
     }
 
-    return n_slots;
+    return 0; //FIXME DEBUG
+    //return n_slots;
 }
 
 

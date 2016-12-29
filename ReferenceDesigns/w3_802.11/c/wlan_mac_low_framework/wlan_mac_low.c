@@ -130,12 +130,22 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
         return -1;
     }
 
+//FIXME
+#if 0
     // Initialize Debug Header
     //  Allow HW to control Pins 0:11
     wlan_mac_set_dbg_hdr_ctrlsrc(DBG_HDR_CTRLSRC_HW, 0x0FFF);
     //  Allow SW to control Pins 12:15
     wlan_mac_set_dbg_hdr_ctrlsrc(DBG_HDR_CTRLSRC_SW, 0xF000);
     wlan_mac_set_dbg_hdr_dir(DBG_HDR_DIR_OUTPUT, 0xF000);
+#else
+    // Initialize Debug Header
+    //  Allow HW to control Pins 0:11
+    wlan_mac_set_dbg_hdr_ctrlsrc(DBG_HDR_CTRLSRC_HW, 0x0FFC);
+    //  Allow SW to control Pins 12:15
+    wlan_mac_set_dbg_hdr_ctrlsrc(DBG_HDR_CTRLSRC_SW, 0xF003);
+    wlan_mac_set_dbg_hdr_dir(DBG_HDR_DIR_OUTPUT, 0xF003);
+#endif
 
 	// Initialize mailbox
 	init_mailbox();
@@ -677,13 +687,17 @@ inline u32 wlan_mac_low_poll_frame_rx(){
  * This function is a non-blocking poll for IPC receptions from the upper-level MAC.
  *
  * @param   None
- * @return  None
+ * @return  int				- 0 when mailbox was empty, 1 when one message was processed
  */
-inline void wlan_mac_low_poll_ipc_rx(){
+inline int wlan_mac_low_poll_ipc_rx(){
     // Poll mailbox read msg
     if (read_mailbox_msg(&ipc_msg_from_high) == IPC_MBOX_SUCCESS) {
+    	wlan_mac_set_dbg_hdr_out(0x0002); //FIXME DEBUG
         wlan_mac_low_process_ipc_msg(&ipc_msg_from_high);
+        wlan_mac_clear_dbg_hdr_out(0x0002); //FIXME DEBUG
+        return 1;
     }
+    return 0;
 }
 
 
@@ -928,6 +942,7 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
 				// Message is an indication that a Tx Pkt Buf needs processing
         		handle_tx_pkt_buf_ready(tx_pkt_buf);
         		// TODO: check return status and inform CPU_HIGH of error?
+
         	}
         }
         break;

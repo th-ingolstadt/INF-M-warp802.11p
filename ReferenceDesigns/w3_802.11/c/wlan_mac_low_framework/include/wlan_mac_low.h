@@ -149,11 +149,11 @@
 #define WLAN_MAC_TXCTRL_STATUS_TX_C_STATE_DO_TX       (3 << 16) //PHY Tx started, waiting on TX_DONE - TX_TIME
 #define WLAN_MAC_TXCTRL_STATUS_TX_C_STATE_DONE        (4 << 16) //TX_DONE occurred - 1 cycle
 
-#define WLAN_MAC_TXCTRL_STATUS_TX_D_STATE_IDLE        (0 << 16)
-#define WLAN_MAC_TXCTRL_STATUS_TX_D_STATE_START_BO    (1 << 16) //Starting backoff counter - 1 cycle
-#define WLAN_MAC_TXCTRL_STATUS_TX_D_STATE_DEFER       (2 << 16) //Waiting for zero backoff - unbounded time
-#define WLAN_MAC_TXCTRL_STATUS_TX_D_STATE_DO_TX       (3 << 16) //PHY Tx started, waiting on TX_DONE - TX_TIME
-#define WLAN_MAC_TXCTRL_STATUS_TX_D_STATE_DONE        (4 << 16) //TX_DONE occurred - 1 cycle
+#define WLAN_MAC_TXCTRL_STATUS_TX_D_STATE_IDLE        (0 << 21)
+#define WLAN_MAC_TXCTRL_STATUS_TX_D_STATE_START_BO    (1 << 21) //Starting backoff counter - 1 cycle
+#define WLAN_MAC_TXCTRL_STATUS_TX_D_STATE_DEFER       (2 << 21) //Waiting for zero backoff - unbounded time
+#define WLAN_MAC_TXCTRL_STATUS_TX_D_STATE_DO_TX       (3 << 21) //PHY Tx started, waiting on TX_DONE - TX_TIME
+#define WLAN_MAC_TXCTRL_STATUS_TX_D_STATE_DONE        (4 << 21) //TX_DONE occurred - 1 cycle
 
 #define wlan_mac_get_tx_ctrl_status() (Xil_In32(WLAN_MAC_REG_TX_CTRL_STATUS))
 
@@ -497,7 +497,7 @@ void               wlan_mac_low_init_hw_info(u32 type);
 inline void        wlan_mac_low_send_exception(u32 reason);
 
 inline u32         wlan_mac_low_poll_frame_rx();
-inline void        wlan_mac_low_poll_ipc_rx();
+inline int         wlan_mac_low_poll_ipc_rx();
 
 void               wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg);
 void               wlan_mac_low_frame_ipc_send();
