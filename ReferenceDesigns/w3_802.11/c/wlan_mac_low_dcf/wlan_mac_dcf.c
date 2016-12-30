@@ -173,6 +173,7 @@ int main(){
     xil_printf("  Wireless MAC Addr : %02x:%02x:%02x:%02x:%02x:%02x\n\n", gl_eeprom_addr[0], gl_eeprom_addr[1], gl_eeprom_addr[2], gl_eeprom_addr[3], gl_eeprom_addr[4], gl_eeprom_addr[5]);
 
     while(1){
+
         // Poll PHY RX start
     	gl_waiting_for_response = 0;
         wlan_mac_low_poll_frame_rx();
@@ -428,7 +429,8 @@ inline void poll_tbtt_and_send_beacon(){
 					//	   is 1. In this case, we are allowed to continue sending multicast packets in the current beacon interval regardless
 					//	   of DTIM (11.2.1.5.f 802.11-2007)
 					if( ((send_beacon_return & SEND_BEACON_RETURN_DTIM) && (gl_dtim_mcast_buffer_enable == 1)) ||
-						((poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_TRANSMITTED) && (poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_MORE_DATA)) ){
+						((poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_TRANSMITTED) && (poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_MORE_DATA)) ||
+						 poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_PAUSED){
 
 						while( gl_tx_pkt_buf_ready_list_dtim_mcast.length > 0 ){
 							// There is at least one mcast frame for us to send. We will loop over this list until either we have fully emptied it
@@ -1379,6 +1381,7 @@ u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 				// we will be abandoning a frame in the paused MAC Tx Controller D.
 				if( frame_transmit_dtim_mcast(pkt_buf, dtim_mcast_paused)&DTIM_MCAST_RETURN_PAUSED ){
 					dtim_mcast_paused = 1;
+					return_value |= POLL_TX_PKT_BUF_LIST_RETURN_PAUSED;
 				} else {
 					dtim_mcast_paused = 0;
 
@@ -1590,14 +1593,14 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 			wlan_mac_low_send_low_tx_details(pkt_buf, &low_tx_details);
 			tx_frame_info->tx_result = TX_FRAME_INFO_RESULT_SUCCESS;
 			return return_value;
-		} else if (tx_has_started == 0) {
+		} else if(tx_has_started == 0) {
 			//  This is the same MAC status check performed in the framework wlan_mac_low_poll_frame_rx()
 			//  It is critical to check the Rx status here using the same status register read that was
 			//  used in the Tx state checking above. Skipping this and calling wlan_mac_low_poll_frame_rx()
 			//  directly leads to a race between the Tx status checking above and Rx status checking
 			if (mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_STARTED) {
 				wlan_mac_low_poll_frame_rx();
-			} else{
+			} else {
 				if (wlan_mac_check_tu_latch() ){
 					wlan_mac_pause_backoff_tx_ctrl_D(1);
 					mac_tx_ctrl_status = wlan_mac_get_tx_ctrl_status();
@@ -2343,6 +2346,7 @@ inline u32 rand_num_slots(u8 reason){
             n_slots = ((unsigned int)rand() >> (32 - (gl_cw_exp_min + 1 + 1)));
         break;
     }
+
     return n_slots;
 }
 

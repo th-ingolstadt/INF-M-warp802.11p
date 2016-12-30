@@ -114,7 +114,8 @@ int 			   handle_tx_pkt_buf_ready(u8 pkt_buf);
 
 #define			   POLL_TX_PKT_BUF_LIST_RETURN_ERROR			0x80000000
 #define			   POLL_TX_PKT_BUF_LIST_RETURN_TRANSMITTED		0x00000001
-#define			   POLL_TX_PKT_BUF_LIST_RETURN_MORE_DATA		0x00000002
+#define			   POLL_TX_PKT_BUF_LIST_RETURN_PAUSED			0x00000002
+#define			   POLL_TX_PKT_BUF_LIST_RETURN_MORE_DATA		0x00000004
 u32 			   poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group);
 
 inline void        increment_src(u16* src_ptr);
