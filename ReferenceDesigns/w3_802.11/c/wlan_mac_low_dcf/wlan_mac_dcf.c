@@ -2348,9 +2348,7 @@ inline u32 rand_num_slots(u8 reason){
             n_slots = ((unsigned int)rand() >> (32 - (gl_cw_exp_min + 1 + 1)));
         break;
     }
-
-    return 0; //FIXME DEBUG
-    //return n_slots;
+    return n_slots;
 }
 
 
