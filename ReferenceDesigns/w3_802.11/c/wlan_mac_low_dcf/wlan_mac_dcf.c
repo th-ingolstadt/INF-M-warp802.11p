@@ -1408,10 +1408,6 @@ u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 	u32 return_value = 0;
 
-	if(resume == 1){
-		xil_printf("RESUME\n"); //FIXME DEBUG
-	}
-
 	//We will make a few variables static. This will make it so that they retain their
 	//values on the next call to frame_transmit_dtim_mcast in the event that resume = 1
     static wlan_mac_low_tx_details_t    low_tx_details;
@@ -1666,7 +1662,6 @@ void frame_transmit_general(u8 pkt_buf) {
 
     int curr_tx_pow;
 
-    u32 low_tx_details_num;
     u8	tx_has_started;
 
     tx_wait_state_t     		tx_wait_state;
@@ -1712,6 +1707,7 @@ void frame_transmit_general(u8 pkt_buf) {
 		//     For DATA Tx, DURATION = T_SIFS + T_ACK, where T_ACK is function of the ACK Tx rate
 		header->duration_id = wlan_ofdm_calc_txtime(sizeof(mac_header_80211_ACK) + WLAN_PHY_FCS_NBYTES, ack_mcs, ack_phy_mode, wlan_mac_low_get_phy_samp_rate()) + gl_mac_timing_values.t_sifs;
 	}
+
 
 	// Retry loop
 	while(1) {
@@ -1880,9 +1876,8 @@ void frame_transmit_general(u8 pkt_buf) {
 		// While waiting, fill in the metadata about this transmission attempt, to be used by CPU High in creating TX_LOW log entries
 		// The phy_params (as opposed to phy_params2) element is used for the MPDU itself. If we are waiting for a CTS and we do not
 		// receive one, CPU_HIGH will know to ignore this element of low_tx_details (since the MPDU will not be transmitted).
-		low_tx_details_num = (tx_frame_info->num_tx_attempts) - 1;
 
-		if((low_tx_details_num == 0) && (n_slots != n_slots_readback)){
+		if(((tx_frame_info->num_tx_attempts) == 1) && (n_slots != n_slots_readback)){
 			// For the first transmission (non-retry) of an MPDU, the number of
 			// slots used by the backoff process is ambiguous. The n_slots we provided
 			// to wlan_mac_tx_ctrl_A_params is only a suggestion. If the medium has been
@@ -2168,6 +2163,9 @@ void frame_transmit_general(u8 pkt_buf) {
 						n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
 						wlan_mac_dcf_hw_start_backoff(n_slots);
 
+						// Send IPC message containing the details about this low-level transmission
+						wlan_mac_low_send_low_tx_details(pkt_buf, &low_tx_details);
+
 						// Now we evaluate the SRC and LRC to see if either has reached its maximum
 						if ((short_retry_count == gl_dot11ShortRetryLimit) ||
 							(long_retry_count  == gl_dot11LongRetryLimit )) {
@@ -2180,9 +2178,6 @@ void frame_transmit_general(u8 pkt_buf) {
 						// Poll IPC rx
 						// TODO: Need to handle implications of an IPC message changing something like channel
 						wlan_mac_low_poll_ipc_rx();
-
-						// Send IPC message containing the details about this low-level transmission
-						wlan_mac_low_send_low_tx_details(pkt_buf, &low_tx_details);
 
 						// Jump to next loop iteration
 						continue;
