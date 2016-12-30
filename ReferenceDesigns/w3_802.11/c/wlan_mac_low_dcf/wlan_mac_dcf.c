@@ -440,17 +440,6 @@ inline void poll_tbtt_and_send_beacon(){
 							//  2) An mcast packet has been submitted to MAC Tx Controller D, but a TBTT boundary occured while the
 							//	   core was deferring.
 
-
-							// TODO: Need to handle implications of an IPC message changing something like channel
-							// Poll the IPC Rx in the hope that a READY message will fill gl_tx_pkt_buf_ready_list_dtim_mcast
-							u32 fixme_debug; //FIXME DEBUG
-							wlan_mac_set_dbg_hdr_out(0x4000);//FIXME DEBUG
-							fixme_debug = wlan_mac_low_poll_ipc_rx();
-							wlan_mac_clear_dbg_hdr_out(0x4000);//FIXME DEBUG
-							if(fixme_debug == 0){
-								//xil_printf("nothing in mailbox\n");
-							}
-
 							if( wlan_mac_check_tu_latch() ){
 								// We just crossed a TBTT so we should send another beacon. Break
 								// back to the top of the while( wlan_mac_check_tu_latch() ) loop.
@@ -702,6 +691,11 @@ inline u32 send_beacon(u8 tx_pkt_buf){
 	ipc_msg_to_high.arg0              = tx_pkt_buf;
 	ipc_msg_to_high.payload_ptr       = (u32*)&low_tx_details;
 	write_mailbox_msg(&ipc_msg_to_high);
+
+	//Enough time has passed in the transmission of this beacon that we should see if any new MPDUs
+	//are ready to send. This is particularly important for multicast packets that may need to be sent
+	//immediately folling a DTIM
+	wlan_mac_low_poll_ipc_rx();
 
 	return return_status;
 }
@@ -1297,8 +1291,6 @@ int handle_tx_pkt_buf_ready(u8 pkt_buf){
 		if( (gl_dtim_mcast_buffer_enable == 1) && (gl_beacon_txrx_configure.beacon_tx_mode != NO_BEACON_TX) ){
 			switch(tx_frame_info->queue_info.pkt_buf_group){
 				case PKT_BUF_GROUP_DTIM_MCAST:
-					wlan_mac_set_dbg_hdr_out(0x0001); //FIXME_DEBUG
-					wlan_mac_clear_dbg_hdr_out(0x0001); //FIXME_DEBUG
 					list = &gl_tx_pkt_buf_ready_list_dtim_mcast;
 				break;
 				default:
@@ -1345,6 +1337,11 @@ u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 
 				dl_entry_remove(&gl_tx_pkt_buf_ready_list_general, entry);
 				dl_entry_insertEnd(&gl_tx_pkt_buf_ready_list_free, entry);
+
+				//We just removed a packet from the to-be-transmitted list.
+				//Now is a good time to see if another one is available in
+				//the mailbox to refill it.
+				wlan_mac_low_poll_ipc_rx();
 			}
 		break;
 		case PKT_BUF_GROUP_DTIM_MCAST:
@@ -1362,9 +1359,6 @@ u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 					// wait until the next DTIM even if another frame enters the READY state while
 					// the current frame is underway.
 					header->frame_control_2 &= ~MAC_FRAME_CTRL2_FLAG_MORE_DATA;
-					xil_printf("NO MORE DATA\n");// FIXME DEBUG
-					wlan_mac_set_dbg_hdr_out(0x1000); //FIXME DEBUG
-					wlan_mac_clear_dbg_hdr_out(0x1000); //FIXME DEBUG
 				} else {
 					header->frame_control_2 |= MAC_FRAME_CTRL2_FLAG_MORE_DATA;
 					return_value |= POLL_TX_PKT_BUF_LIST_RETURN_MORE_DATA;
@@ -1388,14 +1382,17 @@ u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 				} else {
 					dtim_mcast_paused = 0;
 
-					//FIXME DEBUG
-					//wlan_mac_set_dbg_hdr_out(0x4000);
+
 					wlan_mac_low_finish_frame_transmit(pkt_buf);
-					//wlan_mac_clear_dbg_hdr_out(0x4000);
 
 					return_value |= POLL_TX_PKT_BUF_LIST_RETURN_TRANSMITTED;
 					dl_entry_remove(&gl_tx_pkt_buf_ready_list_dtim_mcast, entry);
 					dl_entry_insertEnd(&gl_tx_pkt_buf_ready_list_free, entry);
+
+					//We just removed a packet from the to-be-transmitted list.
+					//Now is a good time to see if another one is available in
+					//the mailbox to refill it.
+					wlan_mac_low_poll_ipc_rx();
 				}
 			}
 		break;

@@ -1364,10 +1364,7 @@ void wlan_mac_high_mpdu_transmit(tx_queue_element_t* packet, int tx_pkt_buf) {
 	} else {
 		// We successfully unlocked the packet buffer or we failed to unlock it because
 		// it was already unlocked. In either case, we can submit this READY message.
-		//FIXME DEBUG
-		wlan_mac_set_dbg_hdr_out(0x8000);
 		write_mailbox_msg(&ipc_msg_to_low);
-		wlan_mac_clear_dbg_hdr_out(0x8000);
 	}
 }
 

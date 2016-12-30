@@ -130,24 +130,14 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
         return -1;
     }
 
-//FIXME
-#if 0
     // Initialize Debug Header
     //  Allow HW to control Pins 0:11
     wlan_mac_set_dbg_hdr_ctrlsrc(DBG_HDR_CTRLSRC_HW, 0x0FFF);
     //  Allow SW to control Pins 12:15
     wlan_mac_set_dbg_hdr_ctrlsrc(DBG_HDR_CTRLSRC_SW, 0xF000);
     wlan_mac_set_dbg_hdr_dir(DBG_HDR_DIR_OUTPUT, 0xF000);
-#else
-    // Initialize Debug Header
-    //  Allow HW to control Pins 0:11
-    wlan_mac_set_dbg_hdr_ctrlsrc(DBG_HDR_CTRLSRC_HW, 0x0FFC);
-    //  Allow SW to control Pins 12:15
-    wlan_mac_set_dbg_hdr_ctrlsrc(DBG_HDR_CTRLSRC_SW, 0xF003);
-    wlan_mac_set_dbg_hdr_dir(DBG_HDR_DIR_OUTPUT, 0xF003);
-#endif
 
-	// Initialize mailbox
+    // Initialize mailbox
 	init_mailbox();
 
     // Initialize packet buffers
@@ -692,9 +682,7 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 inline int wlan_mac_low_poll_ipc_rx(){
     // Poll mailbox read msg
     if (read_mailbox_msg(&ipc_msg_from_high) == IPC_MBOX_SUCCESS) {
-    	wlan_mac_set_dbg_hdr_out(0x0002); //FIXME DEBUG
         wlan_mac_low_process_ipc_msg(&ipc_msg_from_high);
-        wlan_mac_clear_dbg_hdr_out(0x0002); //FIXME DEBUG
         return 1;
     }
     return 0;
