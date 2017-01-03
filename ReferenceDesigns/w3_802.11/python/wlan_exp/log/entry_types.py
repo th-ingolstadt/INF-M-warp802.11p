@@ -792,17 +792,34 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     # Common Log Entry Contants
     # -----------------------------------------------------------------------------
 
-    # Packet Type
-    #     Matches definition in wlan_mac_802_11_defs.h
-    common_pkt_type = util.consts_dict({
-        'BEACON'            :  0x80,
+    # Packet Type/Sub-type values
+    #     Matches definition in wlan_mac_802_11_defs.h (802.11-2012 Table 8-1)
+    common_pkt_types = util.consts_dict({
+        # Management sub-types
+        'ASSOC_REQ'         :  0x00,
+        'ASSOC_RESP'        :  0x10,
+        'REASSOC_REQ'       :  0x20,
+        'REASSOC_RESP'      :  0x30,
+        'PROBE_REQ'         :  0x40,
         'PROBE_RESP'        :  0x50,
-        'ACK'               :  0xD4,        
-        'CTS'               :  0xC4,
+        'BEACON'            :  0x80,
+        'DISASSOC'          :  0xA0,
+        'AUTH'              :  0xB0,
+        'DEAUTH'            :  0xC0,
+        'ACTION'            :  0xD0,
+
+        # Control sub-types
+        'BLOCK_ACK_REQ'     :  0x84,
+        'BLOCK_ACK'         :  0x94,
         'RTS'               :  0xB4,
+        'CTS'               :  0xC4,
+        'ACK'               :  0xD4,
+
+        # Data sub-types
         'DATA'              :  0x08,        
+        'NULLDATA'          :  0x48,
         'QOSDATA'           :  0x88,
-        'NULLDATA'          :  0x48,})
+    })
         
 
     # -----------------------------------------------------------------------------
@@ -856,7 +873,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
                 'RF_C': 0x03,
                 'RF_D': 0x04,
             }),
-        'pkt_type'      : common_pkt_type,
+        'pkt_type'      : common_pkt_types,
         'phy_mode'      : util.phy_modes,
         'flags'         : util.consts_dict({
             'FCS_GOOD'                 : 0x0001,
@@ -904,7 +921,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
                 'RF_D': 0x40,
             }),
         'phy_mode'   : util.phy_modes,
-        'pkt_type'   : common_pkt_type,
+        'pkt_type'   : common_pkt_types,
         'flags'      : util.consts_dict({
             'SUCCESSFUL'     : 0x0001,
             'LTG_PYLD'       : 0x0040,
@@ -949,7 +966,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
                 'RF_D': 0x40,
             }),
         'phy_mode'      : util.phy_modes,
-        'pkt_type'      : common_pkt_type,
+        'pkt_type'      : common_pkt_types,
         'flags'         : util.consts_dict({
             'RECEIVED_RESPONSE'          : 0x01,
             'LTG'                        : 0x40,
