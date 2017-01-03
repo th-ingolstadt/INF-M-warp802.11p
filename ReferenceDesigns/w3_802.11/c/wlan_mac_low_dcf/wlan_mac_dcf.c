@@ -197,7 +197,7 @@ void handle_mcast_buffer_enable(u32 enable){
 }
 
 void update_tx_pkt_buf_lists(){
-	u32 iter;
+	int iter;
 	u8 pkt_buf;
 	tx_frame_info_t* tx_frame_info;
 	mac_header_80211* header;
@@ -1593,7 +1593,7 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 			wlan_mac_low_send_low_tx_details(pkt_buf, &low_tx_details);
 			tx_frame_info->tx_result = TX_FRAME_INFO_RESULT_SUCCESS;
 			return return_value;
-		} else if(tx_has_started == 0) {
+		} else {
 			//  This is the same MAC status check performed in the framework wlan_mac_low_poll_frame_rx()
 			//  It is critical to check the Rx status here using the same status register read that was
 			//  used in the Tx state checking above. Skipping this and calling wlan_mac_low_poll_frame_rx()
@@ -1601,7 +1601,7 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 			if (mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_STARTED) {
 				wlan_mac_low_poll_frame_rx();
 			} else {
-				if (wlan_mac_check_tu_latch() ){
+				if (wlan_mac_check_tu_latch() && (tx_has_started == 0)){
 					wlan_mac_pause_backoff_tx_ctrl_D(1);
 					mac_tx_ctrl_status = wlan_mac_get_tx_ctrl_status();
 					// Check if Tx controller D is deferring (now with a paused backoff) or idle (no Tx pending)

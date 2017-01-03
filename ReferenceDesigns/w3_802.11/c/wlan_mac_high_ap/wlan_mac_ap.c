@@ -130,8 +130,6 @@ static beacon_txrx_configure_t         gl_beacon_txrx_config;
 u8 									   gl_dtim_mcast_buffer_enable;	   // Enable buffering of multicast packets until after DTIM transmission
 //FIXME: add wlan_exp control over gl_dtim_mcast_buffer_enable
 
-
-
 /*************************** Functions Prototypes ****************************/
 
 #if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
@@ -704,7 +702,6 @@ void poll_tx_queues(pkt_buf_group_t pkt_buf_group){
 
 	if( active_bss_info == NULL ) return;
 
-
 #define NUM_QUEUE_GROUPS 2
 typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 
@@ -721,6 +718,8 @@ typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 	dl_entry* curr_station_info_entry;
 
 	station_info_t* curr_station_info;
+
+
 
 	if( wlan_mac_high_is_dequeue_allowed(pkt_buf_group) == 0 ) {
 		goto poll_cleanup;

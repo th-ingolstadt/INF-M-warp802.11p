@@ -925,6 +925,7 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
         //---------------------------------------------------------------------
         case IPC_MBOX_TX_PKT_BUF_READY: {
         	u8 tx_pkt_buf;
+
         	tx_pkt_buf = msg->arg0;
         	if(tx_pkt_buf < NUM_TX_PKT_BUFS){
 				// Message is an indication that a Tx Pkt Buf needs processing
@@ -1058,6 +1059,7 @@ int wlan_mac_low_finish_frame_transmit(u16 tx_pkt_buf){
 					ipc_msg_to_high.payload_ptr = NULL;
 
 					ipc_msg_to_high.arg0 = tx_pkt_buf;
+
 					write_mailbox_msg(&ipc_msg_to_high);
 				}
 			}

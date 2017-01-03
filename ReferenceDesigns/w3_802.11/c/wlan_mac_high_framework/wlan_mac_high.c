@@ -130,7 +130,6 @@ volatile static u32          num_malloc;                   ///< Tracking variabl
 volatile static u32          num_free;                     ///< Tracking variable for number of times free has been called
 volatile static u32          num_realloc;                  ///< Tracking variable for number of times realloc has been called
 
-
 /*************************** Functions Prototypes ****************************/
 
 #ifdef _DEBUG_
@@ -1723,9 +1722,8 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 					break;
 				}
 			} else {
-				xil_printf("Error: IPC_MBOX_TX_MPDU_DONE with invalid pkt buf index %d\n ", tx_pkt_buf);
+				xil_printf("Error: IPC_MBOX_TX_PKT_BUF_DONE with invalid pkt buf index %d\n ", tx_pkt_buf);
 			}
-
 
 		} break;
 
@@ -2196,6 +2194,7 @@ int wlan_mac_high_is_cpu_low_initialized(){
  *     - 0 if CPU low is not ready to transmit
  *     - 1 if CPU low is ready to transmit
  */
+
 inline int wlan_mac_high_is_dequeue_allowed(pkt_buf_group_t pkt_buf_group){
 
 	u8 i, num_empty, num_low_owned;
@@ -2203,7 +2202,7 @@ inline int wlan_mac_high_is_dequeue_allowed(pkt_buf_group_t pkt_buf_group){
 	num_empty = 0;
 	num_low_owned = 0;
 
-	for( i = 0; i < 6; i++ ){
+	for( i = 0; i < NUM_TX_PKT_BUF_MPDU; i++ ){
 		if( ((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state == TX_PKT_BUF_HIGH_CTRL ){
 			num_empty++;
 		}
@@ -2213,7 +2212,6 @@ inline int wlan_mac_high_is_dequeue_allowed(pkt_buf_group_t pkt_buf_group){
 			num_low_owned++;
 		}
 	}
-
 
 	// The first requirement for being allowed to dequeue is that there is at least one empty packet buffer.
 
@@ -2248,7 +2246,7 @@ int wlan_mac_high_get_empty_tx_packet_buffer(){
 	u8 i;
 	int pkt_buf_sel = -1;
 
-	for( i = 0; i < 5; i++ ){
+	for( i = 0; i < NUM_TX_PKT_BUF_MPDU; i++ ){
 		if( ((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state == TX_PKT_BUF_HIGH_CTRL ){
 			pkt_buf_sel = i;
 			break;

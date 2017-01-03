@@ -62,6 +62,9 @@
 //     make iteration easier.
 //
 // Packet Buffers owned by CPU_HIGH at boot
+
+#define NUM_TX_PKT_BUF_MPDU								   6
+
 #define TX_PKT_BUF_MPDU_1                                  0
 #define TX_PKT_BUF_MPDU_2                                  1
 #define TX_PKT_BUF_MPDU_3                                  2
