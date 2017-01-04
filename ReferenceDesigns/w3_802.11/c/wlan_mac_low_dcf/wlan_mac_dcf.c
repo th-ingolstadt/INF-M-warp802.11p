@@ -811,7 +811,12 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     // Wait until the PHY has written enough bytes so that the first address field can be processed
     i = 0;
     while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR1) {
-    	if(i++ > 1000000) {xil_printf("Stuck waiting for MAC_HW_LASTBYTE_ADDR1: wlan_mac_get_last_byte_index() = %d\n", wlan_mac_get_last_byte_index());}
+    	if(i++ > 1000000) {
+    		xil_printf("Stuck waiting for MAC_HW_LASTBYTE_ADDR1: wlan_mac_get_last_byte_index() = %d\n", wlan_mac_get_last_byte_index());
+			xil_printf(" MAC HW Status: 0x%08x\n", wlan_mac_get_status());
+			xil_printf(" Rx Hdr Params: 0x%08x\n", wlan_mac_get_rx_phy_hdr_params());
+			xil_printf(" Rx PHY Status: 0x%08x\n", Xil_In32(WLAN_RX_STATUS));
+    	}
     };
 
     // Check the destination address
@@ -838,7 +843,12 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         	// loop.
         	i = 0;
         	while(wlan_mac_get_last_byte_index() < MAC_HW_LASTBYTE_ADDR2) {
-        		if(i++ > 1000000) {xil_printf("Stuck waiting for MAC_HW_LASTBYTE_ADDR2: wlan_mac_get_last_byte_index() = %d\n", wlan_mac_get_last_byte_index());}
+        		if(i++ > 1000000) {
+        			xil_printf("Stuck waiting for MAC_HW_LASTBYTE_ADDR2: wlan_mac_get_last_byte_index() = %d\n", wlan_mac_get_last_byte_index());
+        			xil_printf(" MAC HW Status: 0x%08x\n", wlan_mac_get_status());
+        			xil_printf(" Rx Hdr Params: 0x%08x\n", wlan_mac_get_rx_phy_hdr_params());
+        			xil_printf(" Rx PHY Status: 0x%08x\n", Xil_In32(WLAN_RX_STATUS));
+        		}
 			};
         }
 
