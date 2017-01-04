@@ -593,7 +593,12 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 				mac_hw_status = wlan_mac_get_status();
 				phy_hdr_params = wlan_mac_get_rx_phy_hdr_params();
 
-				if(i++ > 1000000) {xil_printf("Stuck in OFDM Rx PHY hdr check: 0x%08x 0x%08x\n", mac_hw_status, phy_hdr_params);}
+				if(i++ > 1000000) {
+					xil_printf("Stuck in OFDM Rx PHY hdr check!\n");
+					xil_printf(" MAC HW Status: 0x%08x\n", wlan_mac_get_status());
+					xil_printf(" Rx Hdr Params: 0x%08x\n", wlan_mac_get_rx_phy_hdr_params());
+					xil_printf(" Rx PHY Status: 0x%08x\n", Xil_In32(WLAN_RX_STATUS));
+				}
 
 				if(phy_hdr_params & WLAN_MAC_PHY_RX_PHY_HDR_READY) {
 					// Rx PHY received enough bytes to decode PHY header
@@ -1603,7 +1608,12 @@ inline u32 wlan_mac_hw_rx_finish() {
     //  time independent of payload-specific PHY latencies.
     do{
         mac_hw_status = wlan_mac_get_status();
-        if(i++>1000000) {xil_printf("Stuck in wlan_mac_hw_rx_finish! 0x%08x\n", mac_hw_status);}
+        if(i++>1000000) {
+        	xil_printf("Stuck in wlan_mac_hw_rx_finish!\n", mac_hw_status);
+			xil_printf(" MAC HW Status: 0x%08x\n", wlan_mac_get_status());
+			xil_printf(" Rx Hdr Params: 0x%08x\n", wlan_mac_get_rx_phy_hdr_params());
+			xil_printf(" Rx PHY Status: 0x%08x\n", Xil_In32(WLAN_RX_STATUS));
+        }
     } while(mac_hw_status & (WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_WRITING_PAYLOAD));
 
     // Check RX_END_ERROR and FCS
