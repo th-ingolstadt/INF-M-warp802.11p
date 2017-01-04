@@ -21,10 +21,6 @@
 #include "xaxidma.h"
 #include "xintc.h"
 
-#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
-#include "WARP_ip_udp.h"
-#endif //WLAN_SW_CONFIG_ENABLE_WLAN_EXP
-
 #include "wlan_mac_common.h"
 #include "wlan_mac_pkt_buf_util.h"
 #include "wlan_mac_userio_util.h"
