@@ -3,7 +3,7 @@
  *
  *  This contains code to implement the 802.11 DCF.
  *
- *  @copyright Copyright 2013-2016, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2013-2017, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *              See LICENSE.txt included in the design archive or
  *              at http://mangocomm.com/802.11/license
@@ -104,6 +104,8 @@ u32                frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details);
 void			   handle_mcast_buffer_enable(u32 enable);
 void 			   update_tx_pkt_buf_lists();
 void 			   handle_sample_rate_change(phy_samp_rate_t phy_samp_rate);
+void               update_dtim_count();
+void               update_tu_target();
 void 			   handle_mactime_change(s64 time_delta_usec);
 void 			   configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure);
 void 			   frame_transmit_general(u8 pkt_buf);

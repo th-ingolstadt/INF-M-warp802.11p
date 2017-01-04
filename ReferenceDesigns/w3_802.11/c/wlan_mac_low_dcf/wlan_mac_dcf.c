@@ -3,7 +3,7 @@
  *
  *  This contains code to implement the 802.11 DCF.
  *
- *  @copyright Copyright 2013-2016, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2013-2017, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *              See LICENSE.txt included in the design archive or
  *              at http://mangocomm.com/802.11/license
@@ -39,53 +39,51 @@
 
 /*************************** Constant Definitions ****************************/
 #define DBG_PRINT                                          0
-
 #define WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW                 WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW_DCF
-
 #define DEFAULT_TX_ANTENNA_MODE                            TX_ANTMODE_SISO_ANTA
-
 #define NUM_LEDS                                           4
-
 #define RX_LEN_THRESH                                      200
 
 
 /*********************** Global Variable Definitions *************************/
-volatile static mac_timing             gl_mac_timing_values;
-volatile static u32                    gl_stationShortRetryCount;
-volatile static u32                    gl_stationLongRetryCount;
-volatile static u32                    gl_cw_exp;
-volatile static u8                     gl_cw_exp_min;
-volatile static u8                     gl_cw_exp_max;
 
-volatile static u32                    gl_dot11RTSThreshold;
+volatile static u8                  gl_eeprom_addr[MAC_ADDR_LEN]; ///< HW address of this node that is stored in the EEPROM
 
-volatile static u8                     gl_eeprom_addr[MAC_ADDR_LEN];
+volatile static mac_timing          gl_mac_timing_values; ///< Struct of IFS values for the DCF. These are not constants because they depend on sample rate									
 
-volatile static u8                     gl_mpdu_pkt_buf;
+// Retry Limits & Backoff parameters
+volatile static u32                 gl_stationShortRetryCount; ///< Station Short Retry Count (SSRC) variable
+volatile static u32                 gl_stationLongRetryCount; ///< Station Long Retry Count (SLRC) variable
+volatile static u32                 gl_cw_exp; ///< Current Contention Window exponent
+volatile static u8                  gl_cw_exp_min; ///< Maximum Contention Window exponent
+volatile static u8                  gl_cw_exp_max; ///< Minimum Contention Window exponent
+volatile static u32                 gl_dot11RTSThreshold; ///< Length threshold (in bytes) for enabling/disabling RTS/CTS protection
+volatile static u32                 gl_dot11ShortRetryLimit; ///< Short Retry Limit (i.e. not using RTS/CTS)
+volatile static u32                 gl_dot11LongRetryLimit; ///< Long Retry Limit (i.e. using RTS/CTS)
 
-volatile static u32                    gl_dot11ShortRetryLimit;
-volatile static u32                    gl_dot11LongRetryLimit;
+// Variables for shared state between Tx and Rx contexts for RTS/CTS
+volatile static u8					gl_waiting_for_response; ///< Informs the Rx context that Tx is expecting a control response
+volatile static u8                  gl_long_mpdu_pkt_buf; ///< Packet buffer index for a long MPDU that should be sent in the frame reception context (i.e. CTS reception)
 
-volatile u8                            gl_red_led_index;
-volatile u8                            gl_green_led_index;
+// Status variables for User I/O
+volatile u8                         gl_red_led_index; ///< Variable that enables User I/O visualization of bad FCS receptions
+volatile u8                         gl_green_led_index; ///< Variable that enables User I/O visualization of good FCS receptions
 
-volatile beacon_txrx_configure_t	   gl_beacon_txrx_configure;
-volatile u8							   gl_dtim_mcast_buffer_enable;
-volatile u8							   gl_dtim_count;
-
-volatile static u8					   gl_waiting_for_response;
+// Beacon transmission & reception parameters
+volatile beacon_txrx_configure_t	gl_beacon_txrx_configure; ///< Struct with configuration parameters regarding beacons
+volatile u8							gl_dtim_mcast_buffer_enable; ///< Informs the DCF whether or not to buffer multicast transmissions until the DTIM
+volatile u8							gl_dtim_count; ///< DTIM count for the current beacon interval
 
 // Variables for managing Tx packet buffer ready messages
-static dl_list				   		   gl_tx_pkt_buf_ready_list_general;
-static dl_list				   		   gl_tx_pkt_buf_ready_list_dtim_mcast;
-static dl_list				   		   gl_tx_pkt_buf_ready_list_free;
-static dl_entry						   gl_tx_pkt_buf_entry[MAX_NUM_PENDING_TX_PKT_BUFS];
-static u8						 	   gl_tx_pkt_buf_entry_data[MAX_NUM_PENDING_TX_PKT_BUFS];
+static dl_list				   		gl_tx_pkt_buf_ready_list_general; ///< List of Tx packet buffer indices for to-be-sent packets in the general packet buffer group
+static dl_list				   		gl_tx_pkt_buf_ready_list_dtim_mcast; ///< List of packet buffer indices for to-be-sent packets in the DTIM multicast packet buffer group
+static dl_list				   		gl_tx_pkt_buf_ready_list_free;	///< List of unused Tx packet buffers
+static dl_entry						gl_tx_pkt_buf_entry[MAX_NUM_PENDING_TX_PKT_BUFS]; ///< Array of entries that will belong to one of the above lists
+static u8						 	gl_tx_pkt_buf_entry_data[MAX_NUM_PENDING_TX_PKT_BUFS]; ///< Byte array to serve as the data payload for the above entries
 
 /*************************** Functions Prototypes ****************************/
 
-int process_low_param(u8 mode, u32* payload);
-
+int process_low_param(u8 mode, u32* payload); ///< Implementation of DCF-specific processing of low params from wlan_exp
 
 /******************************** Functions **********************************/
 
@@ -108,10 +106,8 @@ int main(){
     xil_printf("This switch can be toggled any time while the design is running.\n\n");
     xil_printf("------------------------\n");
 
-    gl_mpdu_pkt_buf = PKT_BUF_INVALID;
+    gl_long_mpdu_pkt_buf = PKT_BUF_INVALID;
     gl_waiting_for_response = 0;
-
-
 
     gl_beacon_txrx_configure.beacon_tx_mode = NO_BEACON_TX;
     gl_beacon_txrx_configure.ts_update_mode = NEVER_UPDATE;
@@ -187,15 +183,38 @@ int main(){
         // Poll the timestamp (for periodic transmissions like beacons)
         poll_tbtt_and_send_beacon();
     }
-
     return 0;
 }
 
+/*****************************************************************************/
+/**
+ * @brief Handle change to DTIM multicast buffer enable bit
+ * 
+ * The transition between buffering DTIM multicast packets to not (and vice versa)
+ * requires inspecition of the to-be-sent list of ready packet buffers. This function
+ * calls a subfunction to perform this inspection and toggles the top-level global
+ * variable that indicates whether or not DTIM multicast buffering is enabled.
+ *
+ * @param   u32		enable 		-1 for enabled buffering, 0 for disabled buffering
+ * @return  None
+ */
 void handle_mcast_buffer_enable(u32 enable){
 	gl_dtim_mcast_buffer_enable = enable;
 	update_tx_pkt_buf_lists();
 }
 
+/*****************************************************************************/
+/**
+ * @brief Update packet buffer lists
+ * 
+ * This function will merge the gl_tx_pkt_buf_ready_list_general and gl_tx_pkt_buf_ready_list_dtim_mcast
+ * lists into the gl_tx_pkt_buf_ready_list_general list only when DTIM multicast buffering is disabled.
+ * When enabled, members of gl_tx_pkt_buf_ready_list_general with a multicast RA will be removed from the
+ * list and placed into gl_tx_pkt_buf_ready_list_dtim_mcast.
+ *
+ * @param   None
+ * @return  None
+ */
 void update_tx_pkt_buf_lists(){
 	int iter;
 	u8 pkt_buf;
@@ -222,6 +241,9 @@ void update_tx_pkt_buf_lists(){
 			tx_frame_info	= (tx_frame_info_t*)  (TX_PKT_BUF_TO_ADDR(pkt_buf));
 			header          = (mac_header_80211*) (TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
 
+			// The pkt_buf_group_t in the frame_info_t cannot be used to find the existing multicast packets in the
+			// general list. When DTIM multicast buffering is disabled, all pkt_buf_group_t are PKT_BUF_GROUP_GENERAL.
+			// So, instead, we will inspect the RA of the to-be-transmitted packets to find ones that are multicast.
 			if(wlan_addr_mcast(header->address_1)){
 				tx_frame_info->queue_info.pkt_buf_group = PKT_BUF_GROUP_DTIM_MCAST;
 				dl_entry_remove(&gl_tx_pkt_buf_ready_list_general, curr_entry);
@@ -254,6 +276,17 @@ void update_tx_pkt_buf_lists(){
 
 }
 
+/*****************************************************************************/
+/**
+ * @brief Handle sample rate change
+ * 
+ * A change in sample rate needs to be reflected in MAC timings. This function is
+ * provides with an argument of what the new sample rate is so that it can make
+ * the appropriate changes.
+ *
+ * @param   u32		phy_samp_rate_t		- Sample rate enum
+ * @return  None
+ */
 void handle_sample_rate_change(phy_samp_rate_t phy_samp_rate){
 	// TODO: Add an argument to specify the phy_mode in case that changes MAC timings
 
@@ -295,21 +328,25 @@ void handle_sample_rate_change(phy_samp_rate_t phy_samp_rate){
 	//     NAV adjust time - signed char (Fix8_0) value
 	wlan_mac_set_NAV_adj(0*10);
 	wlan_mac_set_EIFS(gl_mac_timing_values.t_eifs*10);
-
-	// xil_printf("PHY Sampling Rate set to %d\n", wlan_mac_low_get_phy_samp_rate());
 }
 
-void handle_mactime_change(s64 time_delta_usec){
+/*****************************************************************************/
+/**
+ * @brief Update DTIM count
+ * 
+ * 10.1.3.2 in 802.11-2012 dictates that MAC Time 0 is, by definition, a DTIM. Based upon this single fact,
+ * a DTIM count can be explicitly calculated according to the current MAC time as well as the DTIM period.
+ * This function successfully does nothing it the beacon_tx_mode is something other than AP_BEACON_TX.
+ *
+ * @param   None
+ * @return  None
+ */
+void update_dtim_count(){
 	u32 current_tu;
 	u32 temp_var;
-	if(( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ) ||
-	   ( gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX )){
-		//The MAC Time has changed. We should explicitly update the next TU target
-		//for beacon transmission.
+	if(( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ))){
 		current_tu = (u32)(get_mac_time_usec()>>10);
 
-		//We also need to update the DTIM count to obey 10.1.3.2 in 802.11-2012.
-		//MAC time 0 is a TBTT and a DTIM.
 		if(gl_beacon_txrx_configure.dtim_period != 0){
 			temp_var = ((current_tu/gl_beacon_txrx_configure.beacon_interval_tu)+1)%gl_beacon_txrx_configure.dtim_period;
 			if(temp_var == 0){
@@ -321,18 +358,63 @@ void handle_mactime_change(s64 time_delta_usec){
 		} else {
 			gl_dtim_count = 0;
 		}
+	} else {
+		gl_dtim_count = 0;
+	}
+}
+
+/*****************************************************************************/
+/**
+ * @brief Update TU target
+ * 
+ * This function sets the TU target to whenever the next TBTT occurs. It only performs
+ * this action if beacon_tx_mode is AP_BEACON_TX or IBSS_BEACON_TX
+ *
+ * @param   None
+ * @return  None
+ */
+void update_tu_target(){
+	u32 current_tu;
+
+	if(( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ) ||
+	   ( gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX )){
+		
+		current_tu = (u32)(get_mac_time_usec()>>10);
 
 		//The current_tu can be anywhere within a beacon interval, so we need
 		//to round up to the next TBTT.
 		wlan_mac_set_tu_target(gl_beacon_txrx_configure.beacon_interval_tu*((current_tu/gl_beacon_txrx_configure.beacon_interval_tu)+1));
 	}
+}
+
+/*****************************************************************************/
+/**
+ * @brief Handle MAC time change
+ * 
+ * If the MAC time has changed, we need to ensure that we update the TU target to
+ * to whatever the next TBTT is on the current timebase. Similarly, we must update
+ * the DTIM count for multicast buffering.
+ *
+ * @param   s64		time_delta_usec		- number of microseconds between the current time and the MAC time prior to the change
+ * @return  None
+ */
+void handle_mactime_change(s64 time_delta_usec){
+	update_dtim_count();
+	update_tu_target();
 	return;
 }
 
+/*****************************************************************************/
+/**
+ * @brief Configure beacon parameters
+ * 
+ * The CPU_HIGH application will configure the DCF with whatever parameters it
+ * needs to know about beacon transmissions and receptions.
+ *
+ * @param   u32		phy_samp_rate_t		- Sample rate enum
+ * @return  None
+ */
 void configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure){
-	u32 current_tu;
-	u32 temp_var;
-
 	memcpy((void*)&gl_beacon_txrx_configure, beacon_txrx_configure, sizeof(beacon_txrx_configure_t));
 
 	update_tx_pkt_buf_lists();
@@ -340,25 +422,9 @@ void configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure){
 	if(( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ) ||
 	   ( gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX )){
 
-		current_tu = (u32)(get_mac_time_usec()>>10);
+		update_tu_target();
 
-		//The current_tu can be anywhere within a beacon interval, so we need
-		//to round up to the next TBTT.
-		wlan_mac_set_tu_target(gl_beacon_txrx_configure.beacon_interval_tu*((current_tu/gl_beacon_txrx_configure.beacon_interval_tu)+1));
-
-		//We also need to update the DTIM count to obey 10.1.3.2 in 802.11-2012.
-		//MAC time 0 is a TBTT and a DTIM.
-		if(gl_beacon_txrx_configure.dtim_period != 0){
-			temp_var = ((current_tu/gl_beacon_txrx_configure.beacon_interval_tu)+1)%gl_beacon_txrx_configure.dtim_period;
-			if(temp_var == 0){
-				gl_dtim_count = 0;
-			} else {
-				gl_dtim_count = gl_beacon_txrx_configure.dtim_period - temp_var;
-			}
-
-		} else {
-			gl_dtim_count = 0;
-		}
+		update_dtim_count();
 
 		wlan_mac_reset_tu_target_latch(1);
 		wlan_mac_reset_tu_target_latch(0);
@@ -368,9 +434,20 @@ void configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure){
 	}
 }
 
-
+/*****************************************************************************/
+/**
+ * @brief Poll for the TBTT and, if appropriate, send a beacon
+ * 
+ * This function is the context that will pause the general transmission state machine
+ * (Tx Controller A) and send a beacon on a TBTT boundary. Furthermore. this function
+ * will proceed to send multicast frames after a DTIM beacon. If a second (or more)
+ * TBTTs occur while still in the context of this function, additional beacons and multicast
+ * frames will be sent on the proper boundaries.
+ *
+ * @param   None
+ * @return  None
+ */
 inline void poll_tbtt_and_send_beacon(){
-	u32 current_tu;
 	u32 mac_tx_ctrl_status;
 	u32 send_beacon_return;
 	u32 prepare_frame_transmit_return;
@@ -402,8 +479,7 @@ inline void poll_tbtt_and_send_beacon(){
 						// Update TU target
 						//  Changing TU target automatically resets TU_LATCH
 						//  Latch will assert immediately if Current TU >= new Target TU
-						current_tu = (u32)(get_mac_time_usec()>>10);
-						wlan_mac_set_tu_target(gl_beacon_txrx_configure.beacon_interval_tu*((current_tu/gl_beacon_txrx_configure.beacon_interval_tu)+1));
+						update_tu_target();
 						wlan_mac_pause_backoff_tx_ctrl_A(0);
 						//FIXME: unpause D and reset it. This error condition could leave it in a paused state
 						return;
@@ -419,8 +495,7 @@ inline void poll_tbtt_and_send_beacon(){
 					// Update TU target
 					//  Changing TU target automatically resets TU_LATCH
 					//  Latch will assert immediately if Current TU >= new Target TU
-					current_tu = (u32)(get_mac_time_usec()>>10);
-					wlan_mac_set_tu_target(gl_beacon_txrx_configure.beacon_interval_tu*((current_tu/gl_beacon_txrx_configure.beacon_interval_tu)+1));
+					update_tu_target();
 
 					// Send mcast data here
 					// We are only allowed to send mcast packets if either of two conditions are met:
@@ -464,6 +539,17 @@ inline void poll_tbtt_and_send_beacon(){
 	return;
 }
 
+
+/*****************************************************************************/
+/**
+ * @brief Send a beacon
+ * 
+ * This function will send a beacon on Tx Controller C and then send the report
+ * of that message to CPU_HIGH via IPC messages.
+ *
+ * @param   None
+ * @return  None
+ */
 inline u32 send_beacon(u8 tx_pkt_buf){
 	// Note: it is assumed that this function is only called when it is safe to immediately
 	// transmit a beacon throuch MAC support core C. In other words, it is the responsibility
@@ -501,11 +587,14 @@ inline u32 send_beacon(u8 tx_pkt_buf){
 			// Update the DTIM count
 			mgmt_tag_tim_template->data[0] = gl_dtim_count;  //DTIM Count
 			if(gl_dtim_count == 0){
-				return_status |= SEND_BEACON_RETURN_DTIM;
-				gl_dtim_count = gl_beacon_txrx_configure.dtim_period-1;
-			} else {
-				gl_dtim_count--;
-			}
+				return_status |= SEND_BEACON_RETURN_DTIM;		
+			} 
+
+			//Note: while it is tempting to simply decrement the gl_dtim_count, this can lead to a bug
+			//in the event that a beacon is skipped because a previous beacon is deferred across the following
+			//TBTT. Instead, we should explicitly update the DTIM count according to the current MAC time
+			update_dtim_count();
+
 			//mgmt_tag_tim_template->data[1] = 1;  //DTIM Period -- Note: CPU_HIGH is responsible for filling this in during the TIM update
 
 			//Update the mcast TIM bitmap depending on the state of
@@ -884,13 +973,13 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         rx_frame_info->resp_low_tx_details.phy_params_ctrl.antenna_mode = ack_tx_ant;
 
     } else if(unicast_to_me && (rx_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_CTS)){
-        if(gl_mpdu_pkt_buf != PKT_BUF_INVALID) {
+        if(gl_long_mpdu_pkt_buf != PKT_BUF_INVALID) {
             // We have an outgoing data frame we should send
             //     - Configure the Tx antenna selection
             //     - The frame_transmit() context already configured the SIGNAL field,
             //       so we do not have to worry about it in this context
             //
-        	tx_frame_info = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(gl_mpdu_pkt_buf));
+        	tx_frame_info = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(gl_long_mpdu_pkt_buf));
 
             switch(tx_frame_info->params.phy.antenna_mode) {
                 case TX_ANTMODE_SISO_ANTA:  mpdu_tx_ant_mask |= 0x1;  break;
@@ -903,7 +992,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
             // Configure the Tx power - update all antennas, even though only one will be used
             curr_tx_pow = wlan_mac_low_dbm_to_gain_target(tx_frame_info->params.phy.power);
             wlan_mac_tx_ctrl_A_gains(curr_tx_pow, curr_tx_pow, curr_tx_pow, curr_tx_pow);
-            wlan_mac_tx_ctrl_A_params(gl_mpdu_pkt_buf, mpdu_tx_ant_mask, 0, 1, 0, 1, tx_frame_info->params.phy.phy_mode); //Use postRx timer 1 and postTx_timer2
+            wlan_mac_tx_ctrl_A_params(gl_long_mpdu_pkt_buf, mpdu_tx_ant_mask, 0, 1, 0, 1, tx_frame_info->params.phy.phy_mode); //Use postRx timer 1 and postTx_timer2
 
             rx_finish_state = RX_FINISH_SEND_A;
 
@@ -1098,61 +1187,42 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         }
 
 
-		// Check to see if this was a beacon or probe response frame and update the MAC time if appropriate
-		switch(rx_header->frame_control_1) {
-			//---------------------------------------------------------------------
-			case (MAC_FRAME_CTRL1_SUBTYPE_BEACON):
-			case (MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP):
-				// Beacon Packet / Probe Response Packet
-				//   -
-				//
+		// Check to see if this was a beacon and update the MAC time if appropriate
+		if(rx_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_BEACON) {
+			
+			// If this packet was from our BSS
+			if(wlan_addr_eq(gl_beacon_txrx_configure.bssid_match, rx_header->address_3)){
 
-				// If this packet was from our BSS
-				if(wlan_addr_eq(gl_beacon_txrx_configure.bssid_match, rx_header->address_3)){
-
-					if(gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX){
-						// Reset all state in the DCF core - this cancels deferrals and pending transmissions
-						wlan_mac_reset_tx_ctrl_C(1);
-						wlan_mac_reset_tx_ctrl_C(0);
-						return_value |= POLL_MAC_CANCEL_TX;
-					}
-
-					// Move the packet pointer to after the header
-					mac_payload_ptr_u8 += sizeof(mac_header_80211);
-
-					// Calculate the difference between the beacon timestamp and the packet timestamp
-					time_delta = (s64)(((beacon_probe_frame*)mac_payload_ptr_u8)->timestamp) - (s64)(rx_frame_info->timestamp) + gl_mac_timing_values.t_phy_rx_start_dly;
-
-					// Update the MAC time
-					switch(gl_beacon_txrx_configure.ts_update_mode){
-						// TODO: notify the MAC Low Framework of this change so that TBTT can be updated (if necessary)
-						case NEVER_UPDATE:
-						break;
-						case ALWAYS_UPDATE:
-							apply_mac_time_delta_usec(time_delta);
-							//handle_mactime_change(time_delta); //This call is actually not necessary here since, whether or not we adopt the
-																 //new MAC time, we will update next TBTT target anyway
-						break;
-						case FUTURE_ONLY_UPDATE:
-							if(time_delta > 0){
-								apply_mac_time_delta_usec(time_delta);
-								//handle_mactime_change(time_delta); //This call is actually not necessary here since, whether or not we adopt the
-																	 //new MAC time, we will update next TBTT target anyway
-							}
-						break;
-					}
-
-					if(( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ) ||
-					   ( gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX )){
-						current_tu = (u32)(get_mac_time_usec()>>10);
-
-						//The current_tu can be anywhere within a beacon interval, so we need
-						//to round up to the next TBTT.
-						wlan_mac_set_tu_target(gl_beacon_txrx_configure.beacon_interval_tu*((current_tu/gl_beacon_txrx_configure.beacon_interval_tu)+1));
-					}
+				if(gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX){
+					// Reset all state in the DCF core - this cancels deferrals and pending transmissions
+					wlan_mac_reset_tx_ctrl_C(1);
+					wlan_mac_reset_tx_ctrl_C(0);
+					return_value |= POLL_MAC_CANCEL_TX;
 				}
 
-			break;
+				// Move the packet pointer to after the header
+				mac_payload_ptr_u8 += sizeof(mac_header_80211);
+
+				// Calculate the difference between the beacon timestamp and the packet timestamp
+				time_delta = (s64)(((beacon_probe_frame*)mac_payload_ptr_u8)->timestamp) - (s64)(rx_frame_info->timestamp) + gl_mac_timing_values.t_phy_rx_start_dly;
+
+				// Update the MAC time
+				switch(gl_beacon_txrx_configure.ts_update_mode){
+					// TODO: notify the MAC Low Framework of this change so that TBTT can be updated (if necessary)
+					case NEVER_UPDATE:
+					break;
+					case ALWAYS_UPDATE:
+						apply_mac_time_delta_usec(time_delta);
+						handle_mactime_change(time_delta); 																
+					break;
+					case FUTURE_ONLY_UPDATE:
+						if(time_delta > 0){
+							apply_mac_time_delta_usec(time_delta);
+							handle_mactime_change(time_delta);																
+						}
+					break;
+				}
+			}			
 		}
 
 
@@ -1282,6 +1352,19 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     return return_value;
 }
 
+
+/*****************************************************************************/
+/**
+ * @brief Handle a ready message for a Tx packet buffer
+ * 
+ * When a ready message for a Tx packet buffer is sent from CPU_HIGH, this function
+ * saves the packet buffer index into one of two global dl_list structs 
+ * (gl_tx_pkt_buf_ready_list_general or gl_tx_pkt_buf_ready_list_dtim_mcast) based
+ * upon the pkt_buf_group_t in the tx_frame_info_t for that packet buffer.
+ *
+ * @param   u8		pkt_buf 	- packet buffer index
+ * @return  int 				- 0 for success, -1 for failure 
+ */
 int handle_tx_pkt_buf_ready(u8 pkt_buf){
 	/*
 	 * FIXME: There is a subtle state problem introduced in this new handling when CPU_HIGH is reset while
@@ -1324,6 +1407,12 @@ int handle_tx_pkt_buf_ready(u8 pkt_buf){
 	return return_value;
 }
 
+/*****************************************************************************/
+/**
+ * @brief Poll the packet buffer lists and send
+ * 
+ * FIXME CONTINUE THIS
+ */
 u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 	u8 pkt_buf;
 	dl_entry* entry;
@@ -1746,7 +1835,7 @@ void frame_transmit_general(u8 pkt_buf) {
 			// This is a global pkt_buf index that can be seen by the frame_receive() context.
 			// frame_receive() needs this to figure out what to send in the event that it receives
 			// a valid CTS.
-			gl_mpdu_pkt_buf = pkt_buf;
+			gl_long_mpdu_pkt_buf = pkt_buf;
 
 			mac_cfg_pkt_buf = TX_PKT_BUF_RTS;
 
@@ -2016,7 +2105,7 @@ void frame_transmit_general(u8 pkt_buf) {
 						rx_status       = wlan_mac_low_poll_frame_rx();
 						gl_waiting_for_response = 0;
 
-						gl_mpdu_pkt_buf = PKT_BUF_INVALID;
+						gl_long_mpdu_pkt_buf = PKT_BUF_INVALID;
 
 						// Check if the reception is an ACK addressed to this node, received with a valid checksum
 						if ((tx_wait_state == TX_WAIT_CTS) &&
@@ -2142,7 +2231,7 @@ void frame_transmit_general(u8 pkt_buf) {
 						// Tx required timeout, timeout expired with no receptions
 						gl_waiting_for_response = 0;
 
-						gl_mpdu_pkt_buf = PKT_BUF_INVALID;
+						gl_long_mpdu_pkt_buf = PKT_BUF_INVALID;
 
 						switch (tx_wait_state) {
 							case TX_WAIT_ACK:
