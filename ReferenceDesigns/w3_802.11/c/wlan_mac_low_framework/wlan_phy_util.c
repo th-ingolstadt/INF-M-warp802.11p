@@ -241,6 +241,11 @@ void wlan_phy_init() {
     //     wlan_phy_rx_pktDet_autoCorr_dsss_cfg(0xFF, 0x3FF, 30, 40);
     wlan_phy_rx_pktDet_autoCorr_dsss_cfg(0x60, 400, 30, 40);
 
+    // WLAN_RX_PKT_DET_OFDM_CFG reg
+	// args: (corr_thresh, energy_thresh, min_dur, post_wait)
+	// Using defaults from set_phy_samp_rate(20)
+	wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 9, 4, 0x3F);
+
     // WLAN_RX_REG_CFG reg
     // Configure DSSS Rx to wait for AGC lock, then hold AGC lock until Rx completes or times out
     REG_SET_BITS(WLAN_RX_REG_CFG, (WLAN_RX_REG_CFG_DSSS_RX_AGC_HOLD | WLAN_RX_REG_CFG_DSSS_RX_REQ_AGC));
