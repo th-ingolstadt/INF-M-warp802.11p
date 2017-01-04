@@ -259,8 +259,9 @@
 //     [23:16] - FFT window offset - number of samples of CP to use on average (must be in [0,CP_LENGTH))
 //     [31:24] - FFT scaling - UFix6_0 value; see Xilinx FFT datasheet for scaling details
 //
-#define wlan_phy_rx_set_fft_window_offset(d) Xil_Out32(WLAN_RX_FFT_CFG, ((Xil_In32(WLAN_RX_FFT_CFG) & 0xFF00FFFF) | (((d) & 0xFF) << 16)))
-#define wlan_phy_rx_set_fft_scaling(d)       Xil_Out32(WLAN_RX_FFT_CFG, ((Xil_In32(WLAN_RX_FFT_CFG) & 0x00FFFFFF) | (((d) & 0xFF) << 24)))
+#define wlan_phy_rx_set_fft_window_offset(d)   Xil_Out32(WLAN_RX_FFT_CFG, ((Xil_In32(WLAN_RX_FFT_CFG) & 0xFF00FFFF) | (((d) & 0xFF) << 16)))
+#define wlan_phy_rx_set_fft_scaling(d)         Xil_Out32(WLAN_RX_FFT_CFG, ((Xil_In32(WLAN_RX_FFT_CFG) & 0x00FFFFFF) | (((d) & 0xFF) << 24)))
+#define wlan_phy_rx_config_fft(num_sc, cp_len) Xil_Out32(WLAN_RX_FFT_CFG, ((Xil_In32(WLAN_RX_FFT_CFG) & 0xFFFF0000) | ( (((num_sc) & 0xFF) << 0))) | (((cp_len) & 0xFF) << 8))
 
 #define wlan_phy_tx_config_fft(scaling, num_sc, cp_len) Xil_Out32(WLAN_TX_REG_FFT_CFG, \
 		(((scaling) & 0x3F) << 24) | \

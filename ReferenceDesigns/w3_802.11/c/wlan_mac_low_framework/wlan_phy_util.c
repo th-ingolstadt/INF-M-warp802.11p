@@ -228,10 +228,12 @@ void wlan_phy_init() {
     wlan_phy_rx_set_max_pkt_len_kB(2);
     wlan_phy_rx_set_max_pktbuf_addr( PKT_BUF_SIZE - sizeof(rx_frame_info_t) - PHY_RX_PKT_BUF_PHY_HDR_SIZE );
 
+    // WLAN_RX_DSSS_CFG reg
     // Configure the DSSS Rx pipeline
     //  wlan_phy_DSSS_rx_config(code_corr, despread_dly, sfd_timeout)
     wlan_phy_DSSS_rx_config(0x30, 5, 140);
 
+    // WLAN_RX_PKT_DET_DSSS_CFG reg
     // Configure the DSSS auto-correlation packet detector
     //  wlan_phy_pktDet_autoCorr_dsss_cfg(corr_thresh, energy_thresh, timeout_ones, timeout_count)
     //
@@ -239,6 +241,7 @@ void wlan_phy_init() {
     //     wlan_phy_rx_pktDet_autoCorr_dsss_cfg(0xFF, 0x3FF, 30, 40);
     wlan_phy_rx_pktDet_autoCorr_dsss_cfg(0x60, 400, 30, 40);
 
+    // WLAN_RX_REG_CFG reg
     // Configure DSSS Rx to wait for AGC lock, then hold AGC lock until Rx completes or times out
     REG_SET_BITS(WLAN_RX_REG_CFG, (WLAN_RX_REG_CFG_DSSS_RX_AGC_HOLD | WLAN_RX_REG_CFG_DSSS_RX_REQ_AGC));
 
@@ -252,8 +255,9 @@ void wlan_phy_init() {
     // Enable writing OFDM chan ests to Rx pkt buffer
     REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_RECORD_CHAN_EST);
 
+    // The rate/length BUSY logic should hold the pkt det signal high to avoid
+    //  spurious AGC and detection events during an unsupported waveform
     REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_BUSY_HOLD_PKT_DET);
-//    REG_CLEAR_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_BUSY_HOLD_PKT_DET);
 
     // Block Rx inputs during Tx
     REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_USE_TX_SIG_BLOCK);
@@ -266,64 +270,91 @@ void wlan_phy_init() {
     // Keep CCA.BUSY asserted when DSSS Rx is active
     REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_DSSS_ASSERTS_CCA);
 
+    // WLAN_RX_FFT_CFG reg
     // FFT config
+    wlan_phy_rx_config_fft(64, 16);
     wlan_phy_rx_set_fft_window_offset(5);
-
     wlan_phy_rx_set_fft_scaling(5);
 
+    // WLAN_RX_LTS_CFG reg
     // Set LTS correlation threshold and timeout
     //     1023 disables LTS threshold switch (one threshold worked across SNRs in our testing)
     //     Timeout value is doubled in hardware (350/2 becomes a timeout of 350 sample periods)
     wlan_phy_rx_lts_corr_config(1023 * PHY_RX_RSSI_SUM_LEN, 350/2);
 
+    // WLAN_RX_LTS_THRESH reg
     // LTS correlation thresholds (low NSR, high SNR)
     wlan_phy_rx_lts_corr_thresholds(12500, 12500);
 
+    // WLAN_RX_PKT_DET_OFDM_CFG reg
     // Configure RSSI pkt det
     //     RSSI pkt det disabled by default (auto-corr detection worked across SNRs in our testing)
     //     The summing logic realizes a sum of the length specified + 1
      wlan_phy_rx_pktDet_RSSI_cfg( (PHY_RX_RSSI_SUM_LEN-1), ( PHY_RX_RSSI_SUM_LEN * 1023), 1);
 
-    // Configure the default antenna selections as SISO Tx/Rx on RF A
-    wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
-
+    // WLAN_RX_PHY_CCA_CFG reg
     // Set physical carrier sensing threshold
     wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * wlan_mac_low_rx_power_to_rssi(-62));     // -62dBm from 802.11-2012
+    wlan_phy_rx_set_extension((6*20) - 64); // Overridden later by set_phy_samp_rate()
 
+    // WLAN_RX_FEC_CFG reg
     // Set pre-quantizer scaling for decoder inputs
     //  These values were found empirically by vs PER by sweeping scaling and attenuation
     wlan_phy_rx_set_fec_scaling(15, 15, 18, 22);
 
+    // WLAN_RX_PKT_BUF_SEL reg
     // Configure channel estimate capture (64 subcarriers, 4 bytes each)
     //     Chan ests start at sizeof(rx_frame_info) - sizeof(chan_est)
     wlan_phy_rx_pkt_buf_h_est_offset((PHY_RX_PKT_BUF_PHY_HDR_OFFSET - (64*4)));
 
+    // WLAN_RX_CHAN_EST_SMOOTHING reg
     //Disable channel estimate smoothing
     wlan_phy_rx_chan_est_smoothing(0xFFF, 0x0);
+
+    // WLAN_RX_PKT_BUF_MAXADDR reg
+    wlan_phy_rx_set_max_pktbuf_addr(3800);
+
+    // WLAN_RX_RSSI_THRESH reg
+    //  Set MSB of RSSI_THRESH register to use summed RSSI for energy det debug output
+    Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, ((1<<31) | (PHY_RX_RSSI_SUM_LEN * 150)));
+
+    // Configure the default antenna selections as SISO Tx/Rx on RF A
+    wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);
 
     /************ PHY Tx ************/
 
     // De-assert all starts
     REG_CLEAR_BITS(WLAN_TX_REG_START, 0xFFFFFFFF);
 
+    // TX_OUTPUT_SCALING register
     // Set digital scaling of preamble/payload signals before DACs (UFix12_0)
     wlan_phy_tx_set_scaling(0x2000, 0x2000); // Scaling of 2.0
 
+    // TX_CONFIG register
     // Enable the Tx PHY 4-bit TxEn port that captures the MAC's selection of active antennas per Tx
     REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_USE_MAC_ANT_MASKS);
 
+    // TX_FFT_CONFIG register
     // Configure the IFFT scaling and control logic
     //  Current PHY design requires 64 subcarriers, 16-sample cyclic prefix
     wlan_phy_tx_config_fft(0x2A, 64, 16);
 
-    /*********** AGC ***************/
+    // TX_TIMING register
+    //  Timing values overridden later in set_phy_samp_rate()
+	wlan_phy_tx_set_extension(112);
+	wlan_phy_tx_set_txen_extension(50);
+	wlan_phy_tx_set_rx_invalid_extension(150);
+
+	// TX_PKT_BUF_SEL register
+    wlan_phy_tx_pkt_buf_phy_hdr_offset(PHY_TX_PKT_BUF_PHY_HDR_OFFSET);
+    wlan_phy_tx_pkt_buf(0);
+
+	/*********** AGC ***************/
 
     wlan_agc_config(RX_ANTMODE_SISO_ANTA);
 
     /************ Wrap Up ************/
 
-    // Set MSB of RSSI_THRESH register to use summed RSSI for debug output
-    Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, ((1<<31) | (PHY_RX_RSSI_SUM_LEN * 150)));
 
     // De-assert resets
     REG_CLEAR_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);
