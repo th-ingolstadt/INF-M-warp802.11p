@@ -344,7 +344,7 @@ void handle_sample_rate_change(phy_samp_rate_t phy_samp_rate){
 void update_dtim_count(){
 	u32 current_tu;
 	u32 temp_var;
-	if(( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ))){
+	if( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ){
 		current_tu = (u32)(get_mac_time_usec()>>10);
 
 		if(gl_beacon_txrx_configure.dtim_period != 0){
@@ -843,7 +843,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     u8                  ctrl_tx_gain;
     u32                 mac_tx_ctrl_status;
     s64					time_delta;
-    u32 				current_tu;
 
     u8                  mpdu_tx_ant_mask         = 0;
     u8                  ack_tx_ant               = 0;
@@ -1411,7 +1410,23 @@ int handle_tx_pkt_buf_ready(u8 pkt_buf){
 /**
  * @brief Poll the packet buffer lists and send
  * 
- * FIXME CONTINUE THIS
+ * This function attempts to transmit from the head of a specified
+ * packet buffer group list.
+ *
+ * In the case that the packet buffer group argument is PKT_BUF_GROUP_DTIM_MCAST,
+ * this function is also responsible for setting the MAC_FRAME_CTRL2_FLAG_MORE_DATA
+ * bit in the frame control 2 byte of the outgoing MAC header. It uses the
+ * gl_tx_pkt_buf_ready_list_dtim_mcast length to make this determination.
+ *
+ * Finally, also in the case of PKT_BUF_GROUP_DTIM_MCAST, this function will recognize
+ * when frame_transmit_dtim_mcast() terminates without sending the frame (i.e. in
+ * the event that a TBTT boundary is crossed before the transmission can begin). In this
+ * case, it knows to not remove the packet from the gl_tx_pkt_buf_ready_list_dtim_mcast
+ * list and to resume that packet's transmission on the next call to
+ * poll_tx_pkt_buf_list(PKT_BUF_GROUP_DTIM_MCAST).
+ *
+ * @param   pkt_buf_group_t		pkt_buf_group 	- PKT_BUF_GROUP_GENERAL or PKT_BUF_GROUP_DTIM_MCAST
+ * @return  int 								- 0 for success, -1 for failure
  */
 u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 	u8 pkt_buf;
@@ -1419,11 +1434,6 @@ u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 	mac_header_80211* header;
 	u32 return_value = 0;
 	static u8 dtim_mcast_paused = 0;
-
-	// Note: one subtlety of the new software architecture in 1.5.4 is that it is possible to have nested calls to
-	// this function and, in turn, nested calls to frame_transmit(). If a beacon TBTT occurs during a retry chain,
-	// this function may be executed to send multicast frames all the while the previous invocation of frame_transmit()
-	// is still on the stack.
 
 	switch(pkt_buf_group){
 		case PKT_BUF_GROUP_GENERAL:
@@ -1434,6 +1444,8 @@ u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 				if( wlan_mac_low_prepare_frame_transmit(pkt_buf) == 0 ){
 					frame_transmit_general(pkt_buf);
 					wlan_mac_low_finish_frame_transmit(pkt_buf);
+				} else {
+					xil_printf("Error in wlan_mac_low_prepare_frame_transmit(%d)\n", pkt_buf);
 				}
 
 				dl_entry_remove(&gl_tx_pkt_buf_ready_list_general, entry);
@@ -1467,7 +1479,7 @@ u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 
 				if(dtim_mcast_paused == 0){
 					if( wlan_mac_low_prepare_frame_transmit(pkt_buf) != 0 ){
-						//TODO: Deal with this error condition
+						xil_printf("Error in wlan_mac_low_prepare_frame_transmit(%d) -- PKT_BUF_GROUP_DTIM_MCAST case\n", pkt_buf);
 					}
 				}
 
@@ -1507,11 +1519,30 @@ u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 	return return_value;
 }
 
+
+/*****************************************************************************/
+/**
+ * @brief Handles transmission of a DTIM multicast packet
+ *
+ * This function is called to transmit a multicast packet through Tx Controller D.
+ * Prior to the PHY starting the waveform, this function must continually poll the
+ * TU target register to determine if a TBTT boundary has been crossed. If so, it
+ * must attempt to pause the Tx Controller D and return to the calling context.
+ *
+ * Additionally, this function is responsible for polling for IPC receptions
+ * continually while waiting for the transmission to begin and while the
+ * transmission is ongoing.
+ *
+ * @param   u8		pkt_buf     - Index of the Tx packet buffer containing the packet to transmit
+ * @param	u8		resume		- 0 to indicate that this is a new MPDU that must be submitted
+ * 								  1 to indicate that this packet should resume a packet already submitted
+ * @return  u32					- Bit flags indicating various status messages
+ */
 u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 	u32 return_value = 0;
 
 	//We will make a few variables static. This will make it so that they retain their
-	//values on the next call to frame_transmit_dtim_mcast in the event that resume = 1
+	//values on the next call to frame_transmit_dtim_mcast in the event that resume == 1
     static wlan_mac_low_tx_details_t    low_tx_details;
     static tx_mode_t           			tx_mode;
     static u8							tx_has_started;
@@ -1727,25 +1758,15 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 
 /*****************************************************************************/
 /**
- * @brief Handles transmission of a wireless packet
+ * @brief Handles transmission of a general packet
  *
- * This function is called to transmit a new packet via the DCF+PHY. This code interacts with the wlan_mac_dcf_hw core
- * to manage MAC and PHY state. This function should be called once per packet and will return after the full transmission
- * state machine has executed for that packet. This state machine includes channel access (including carrier sensing,
- * deferrals and backoffs), ACK reception, timeouts and re-transmissions.
+ * This function is responsible for using Tx Controller A to send a new MPDU and handle
+ * any retries that the MPDU may require.
  *
- * This function is called once per IPC_MBOX_TX_MPDU_READY message from CPU High. The IPC_MBOX_TX_MPDU_DONE message will be
- * sent back to CPU High when this function returns.
- *
- * @param   mpdu_pkt_buf     - Index of the Tx packet buffer containing the packet to transmit
+ * @param   pkt_buf     - Index of the Tx packet buffer containing the packet to transmit
  * @return  none
  */
 void frame_transmit_general(u8 pkt_buf) {
-    // The pkt_buf, rate, and length arguments provided to this function specifically relate to
-    // the MPDU that the WLAN MAC LOW framework wants us to send. We may opt to first send an RTS
-    // to reserve the medium prior to doing this. The tx_rate, tx_length, and tx_pkt_buf relate
-    // to whatever the next waveform will be. That waveform could be an RTS, or it could be the
-    // MPDU itself.
     u8  mac_cfg_mcs;
     u16 mac_cfg_length;
     u8  mac_cfg_pkt_buf;

@@ -4,7 +4,7 @@
  *  This contains definitions for creating and parsing tagged parameter
  *  fields in management frames.
  *
- *  @copyright Copyright 2015-2016, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2015-2017, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *              See LICENSE.txt included in the design archive or
  *              at http://mangocomm.com/802.11/license

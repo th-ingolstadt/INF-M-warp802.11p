@@ -1,7 +1,7 @@
 /** @file wlan_mac_sysmon_util.c
  *  @brief System Monitor Utility functions
  *
- *  @copyright Copyright 2013-2016, Mango Communications. All rights reserved.
+ *  @copyright Copyright 2013-2017, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
  *              See LICENSE.txt included in the design archive or
  *              at http://mangocomm.com/802.11/license
