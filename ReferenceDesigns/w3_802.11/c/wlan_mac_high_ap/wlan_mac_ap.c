@@ -128,7 +128,7 @@ static beacon_txrx_configure_t         gl_beacon_txrx_config;
 
 // DTIM Multicast Buffer
 u8 									   gl_dtim_mcast_buffer_enable;	   // Enable buffering of multicast packets until after DTIM transmission
-//FIXME: add wlan_exp control over gl_dtim_mcast_buffer_enable
+
 
 /*************************** Functions Prototypes ****************************/
 
@@ -769,7 +769,7 @@ typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 									if( station_info_is_member(&active_bss_info->members, curr_station_info) ){
 										if(curr_station_info_entry == active_bss_info->members.last){
 											// We've reached the end of the table, so we wrap around to the beginning
-											next_station_info_entry = active_bss_info->members.first;
+											next_station_info_entry = NULL;
 										} else {
 											next_station_info_entry = dl_entry_next(curr_station_info_entry);
 										}

@@ -61,6 +61,7 @@ extern tx_params_t                default_unicast_data_tx_params;
 extern bss_info_t*                active_bss_info;
 
 extern wlan_exp_function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback;
+extern u8						  gl_dtim_mcast_buffer_enable;
 
 
 /*************************** Variable Definitions ****************************/
@@ -314,7 +315,16 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "AP: Configure flags = 0x%08x  mask = 0x%08x\n", flags, mask);
 
-            //FIXME: Remove control over DTIM mcast buffering. That has been moved to the configure_bss() context
+            // Configure based on the flag bit / mask
+			if (mask & CMD_PARAM_NODE_AP_CONFIG_FLAG_DTIM_MULTICAST_BUFFER) {
+				if(flags & CMD_PARAM_NODE_AP_CONFIG_FLAG_DTIM_MULTICAST_BUFFER){
+					gl_dtim_mcast_buffer_enable	= 1;
+					wlan_mac_high_enable_mcast_buffering(gl_dtim_mcast_buffer_enable);
+				} else {
+					gl_dtim_mcast_buffer_enable	= 0;
+					wlan_mac_high_enable_mcast_buffering(gl_dtim_mcast_buffer_enable);
+				}
+			}
 
             // Send response of status
             resp_args_32[resp_index++] = Xil_Htonl(status);
