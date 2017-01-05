@@ -221,9 +221,9 @@
 #define WLAN_MAC_CTRL_MASK_RESET_A_BACKOFF                 0x00008000
 #define WLAN_MAC_CTRL_MASK_RESET_C_BACKOFF                 0x00010000
 #define WLAN_MAC_CTRL_MASK_RESET_D_BACKOFF                 0x00020000
-#define WLAN_MAC_CTRL_MASK_PAUSE_A_BACKOFF                 0x00040000
-#define WLAN_MAC_CTRL_MASK_PAUSE_C_BACKOFF                 0x00080000
-#define WLAN_MAC_CTRL_MASK_PAUSE_D_BACKOFF                 0x00100000
+#define WLAN_MAC_CTRL_MASK_PAUSE_TX_A		               0x00040000
+#define WLAN_MAC_CTRL_MASK_PAUSE_TX_C	                   0x00080000
+#define WLAN_MAC_CTRL_MASK_PAUSE_TX_D		               0x00100000
 
 #define wlan_mac_reset(x)                      	Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET) | ((x) ? WLAN_MAC_CTRL_MASK_RESET : 0))
 
@@ -236,9 +236,9 @@
 #define wlan_mac_set_C_backoff_reset(x)         Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_C_BACKOFF) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_C_BACKOFF : 0))
 #define wlan_mac_set_D_backoff_reset(x)         Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_D_BACKOFF) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_D_BACKOFF : 0))
 
-#define wlan_mac_pause_backoff_tx_ctrl_A(x)     Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_PAUSE_A_BACKOFF) | ((x) ? WLAN_MAC_CTRL_MASK_PAUSE_A_BACKOFF : 0))
-#define wlan_mac_pause_backoff_tx_ctrl_C(x)     Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_PAUSE_C_BACKOFF) | ((x) ? WLAN_MAC_CTRL_MASK_PAUSE_C_BACKOFF : 0))
-#define wlan_mac_pause_backoff_tx_ctrl_D(x)     Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_PAUSE_D_BACKOFF) | ((x) ? WLAN_MAC_CTRL_MASK_PAUSE_D_BACKOFF : 0))
+#define wlan_mac_pause_tx_ctrl_A(x)     Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_PAUSE_TX_A) | ((x) ? WLAN_MAC_CTRL_MASK_PAUSE_TX_A : 0))
+#define wlan_mac_pause_tx_ctrl_C(x)     Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_PAUSE_TX_C) | ((x) ? WLAN_MAC_CTRL_MASK_PAUSE_TX_C : 0))
+#define wlan_mac_pause_tx_ctrl_D(x)     Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_PAUSE_TX_D) | ((x) ? WLAN_MAC_CTRL_MASK_PAUSE_TX_D : 0))
 
 #define wlan_mac_reset_tu_target_latch(x)       Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_TU_LATCH) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_TU_LATCH : 0))
 #define wlan_mac_reset_rx_started(x)			Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET_RX_STARTED_LATCH) | ((x) ? WLAN_MAC_CTRL_MASK_RESET_RX_STARTED_LATCH : 0))

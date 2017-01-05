@@ -460,7 +460,7 @@ inline void poll_tbtt_and_send_beacon(){
 			// Current TU >= Target TU
 
 			// Attempt to pause the backoff counter in Tx controller A
-			wlan_mac_pause_backoff_tx_ctrl_A(1);
+			wlan_mac_pause_tx_ctrl_A(1);
 
 			mac_tx_ctrl_status = wlan_mac_get_tx_ctrl_status();
 
@@ -480,7 +480,7 @@ inline void poll_tbtt_and_send_beacon(){
 						//  Changing TU target automatically resets TU_LATCH
 						//  Latch will assert immediately if Current TU >= new Target TU
 						update_tu_target();
-						wlan_mac_pause_backoff_tx_ctrl_A(0);
+						wlan_mac_pause_tx_ctrl_A(0);
 						//FIXME: unpause D and reset it. This error condition could leave it in a paused state
 						return;
 					}
@@ -526,14 +526,14 @@ inline void poll_tbtt_and_send_beacon(){
 							if( (poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_TRANSMITTED) && ((poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_MORE_DATA) == 0 ) ) {
 								// We sent the last mcast packet allowed in this beacon interval. We can now return all the way back to general
 								// operation.
-								wlan_mac_pause_backoff_tx_ctrl_A(0);
+								wlan_mac_pause_tx_ctrl_A(0);
 								return;
 							}
 						}
 					}
 				}
 			}
-			wlan_mac_pause_backoff_tx_ctrl_A(0);
+			wlan_mac_pause_tx_ctrl_A(0);
 		}
 	}
 	return;
@@ -1663,7 +1663,7 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
     	// There is currently a transmission that whose state is "paused." We should
     	// resume it without resubmitting it to the core.
 
-    	wlan_mac_pause_backoff_tx_ctrl_D(0);
+    	wlan_mac_pause_tx_ctrl_D(0);
     } //if( resume == 0 )
 
 
@@ -1732,7 +1732,7 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 				wlan_mac_low_poll_frame_rx();
 			} else {
 				if (wlan_mac_check_tu_latch() && (tx_has_started == 0)){
-					wlan_mac_pause_backoff_tx_ctrl_D(1);
+					wlan_mac_pause_tx_ctrl_D(1);
 					mac_tx_ctrl_status = wlan_mac_get_tx_ctrl_status();
 					// Check if Tx controller D is deferring (now with a paused backoff) or idle (no Tx pending)
 					// if we lost the race to pause the controller, we will continue on as if we did not observe the TU latch
@@ -1741,7 +1741,7 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 						return_value |= DTIM_MCAST_RETURN_PAUSED;
 						return return_value;
 					} else {
-						wlan_mac_pause_backoff_tx_ctrl_D(0);
+						wlan_mac_pause_tx_ctrl_D(0);
 					}
 				} else {
 					// Poll IPC rx
