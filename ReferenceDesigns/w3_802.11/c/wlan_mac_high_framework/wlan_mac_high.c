@@ -387,7 +387,7 @@ void wlan_mac_high_init(){
 					case TX_PKT_BUF_LOW_CTRL:
 						// CPU High rebooted after submitting packet for transmission
 						//  Will be handled by CPU Low, either because CPU Low is about
-						//  to transmit p or just rebooted and will clean up
+						//  to transmit or just rebooted and will clean up
 					break;
 				}
 			break;

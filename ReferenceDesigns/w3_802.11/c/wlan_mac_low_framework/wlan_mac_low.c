@@ -143,8 +143,6 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
     // Initialize packet buffers
 	init_pkt_buf();
 
-	//FIXME: Reset/unpause all MAC processing cores (Only A + D can be paused)
-
 	// ***************************************************
 	// Initialize Transmit Packet Buffers
 	// ***************************************************
@@ -236,6 +234,11 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
     wlan_phy_init();
     wlan_mac_hw_init();
     wlan_mac_reset(0);
+
+	// Unpause MAC Tx Controllers
+	wlan_mac_pause_tx_ctrl_A(0);
+	wlan_mac_pause_tx_ctrl_C(0);
+	wlan_mac_pause_tx_ctrl_D(0);
 
     // Initialize the HW info structure
     init_mac_hw_info();

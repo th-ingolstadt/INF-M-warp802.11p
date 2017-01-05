@@ -254,7 +254,11 @@ void update_tx_pkt_buf_lists(){
 			// DTIM buffering is disabled. We need to merge gl_tx_pkt_buf_ready_list_general and gl_tx_pkt_buf_ready_list_dtim_mcast and
 			// assigned all packet buffer groups to PKT_BUF_GROUP_GENERAL.
 
-			//FIXME: If MAC Tx Core D is currently paused, we need to clear it.
+			// It is possible that MAC Tx Controller D is currently paused with a frame to be transmitted. In this context, we can
+			// safely reset the state of that controller and then force the pause bit to 0.
+			wlan_mac_reset_tx_ctrl_D(1);
+			wlan_mac_reset_tx_ctrl_D(0);
+			wlan_mac_pause_tx_ctrl_D(0);
 
 			iter = gl_tx_pkt_buf_ready_list_dtim_mcast.length;
 			next_entry = gl_tx_pkt_buf_ready_list_dtim_mcast.first;
@@ -481,7 +485,11 @@ inline void poll_tbtt_and_send_beacon(){
 						//  Latch will assert immediately if Current TU >= new Target TU
 						update_tu_target();
 						wlan_mac_pause_tx_ctrl_A(0);
-						//FIXME: unpause D and reset it. This error condition could leave it in a paused state
+
+						// Reset Tx Controller D and unpause
+						wlan_mac_reset_tx_ctrl_D(1);
+						wlan_mac_reset_tx_ctrl_D(0);
+						wlan_mac_pause_tx_ctrl_D(0);
 						return;
 					}
 					send_beacon_return = send_beacon(gl_beacon_txrx_configure.beacon_template_pkt_buf);
@@ -1365,12 +1373,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
  * @return  int 				- 0 for success, -1 for failure 
  */
 int handle_tx_pkt_buf_ready(u8 pkt_buf){
-	/*
-	 * FIXME: There is a subtle state problem introduced in this new handling when CPU_HIGH is reset while
-	 * CPU_LOW is underway. At a minimum, we need to check for duplicates in these READY lists since the
-	 * lists could be stale from pre-rebooted interactions with CPU_HIGH. But even that isn't quite enough,
-	 * we should explicitly clear the lists on an at-boot high-to-low message.
-	 */
 	int return_value = 0;
 	dl_entry* entry;
 	dl_list* list = NULL;
@@ -1487,9 +1489,6 @@ u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 				// if a DTIM MCAST transmission has been paused, then packet buffer that has been paused
 				// is gl_tx_pkt_buf_ready_list_dtim_mcast.first. In other words, gl_tx_pkt_buf_ready_list_dtim_mcast.first
 				// may not be modified by any other context.
-				// FIXME: There are subtle implications of disabling DTIM mcast buffering while a DTIM MCAST
-				// is paused. Since we will be mangling gl_tx_pkt_buf_ready_list_dtim_mcast when disabling buffering,
-				// we will be abandoning a frame in the paused MAC Tx Controller D.
 				if( frame_transmit_dtim_mcast(pkt_buf, dtim_mcast_paused)&DTIM_MCAST_RETURN_PAUSED ){
 					dtim_mcast_paused = 1;
 					return_value |= POLL_TX_PKT_BUF_LIST_RETURN_PAUSED;
@@ -1677,17 +1676,6 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 		if ( (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE) && (tx_has_started == 0)) {
 
 			tx_has_started = 1;
-
-			if ((tx_frame_info->flags) & TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP) {
-				//FIXME: remove this and also remove it from the general frame_transmit.
-				//This flag is vestigial from when frame_transmit() was responsible for
-				//beacon transmissions
-
-				// Insert the TX START timestamp
-				*((u32*)((u8*)header + 24)) =  Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_LSB);
-				*((u32*)((u8*)header + 28)) =  Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_MSB);
-			}
-
 			low_tx_details.tx_details_type  = TX_DETAILS_MPDU;
 			low_tx_details.tx_start_timestamp_mpdu = wlan_mac_low_get_tx_start_timestamp();
 			low_tx_details.tx_start_timestamp_frac_mpdu = wlan_mac_low_get_tx_start_timestamp_frac();
@@ -2051,13 +2039,6 @@ void frame_transmit_general(u8 pkt_buf) {
 				if(req_timeout){
 					gl_waiting_for_response = 1;
 				}
-
-				if ((tx_frame_info->flags) & TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP) {
-					// Insert the TX START timestamp
-					*((u32*)((u8*)header + 24)) =  Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_LSB);
-					*((u32*)((u8*)header + 28)) =  Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_MSB);
-				}
-
 
 				if(tx_wait_state == TX_WAIT_CTS) {
 					// This will potentially be overwritten with TX_DETAILS_RTS_MPDU should we make it that far.
