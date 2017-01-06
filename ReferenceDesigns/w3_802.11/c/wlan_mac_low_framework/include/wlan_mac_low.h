@@ -73,7 +73,8 @@
 #define WLAN_MAC_REG_POST_RX_TIMERS                        XPAR_WLAN_MAC_HW_MEMMAP_POST_RX_TIMERS
 #define WLAN_MAC_REG_NAV_CHECK_ADDR_1                      XPAR_WLAN_MAC_HW_MEMMAP_NAV_MATCH_ADDR_1
 #define WLAN_MAC_REG_NAV_CHECK_ADDR_2                      XPAR_WLAN_MAC_HW_MEMMAP_NAV_MATCH_ADDR_2
-#define WLAN_MAC_REG_TU_TARGET                             XPAR_WLAN_MAC_HW_MEMMAP_TU_TARGET
+#define WLAN_MAC_REG_TU_TARGET_LSB                         XPAR_WLAN_MAC_HW_MEMMAP_TU_TARGET_LSB
+#define WLAN_MAC_REG_TU_TARGET_MSB                         XPAR_WLAN_MAC_HW_MEMMAP_TU_TARGET_MSB
 
 //-----------------------------------------------
 // WLAN MAC HW - Tx/Rx timer bit masks / macros
@@ -454,6 +455,9 @@
 #define wlan_mac_low_get_rx_start_timestamp_frac() ((Xil_In32(WLAN_MAC_REG_TXRX_TIMESTAMPS_FRAC) & 0xFF00) >> 8)
 #define wlan_mac_low_get_tx_start_timestamp_frac()  (Xil_In32(WLAN_MAC_REG_TXRX_TIMESTAMPS_FRAC) & 0x00FF)
 
+// TU Target register - UFix32_0 TU target
+#define wlan_mac_get_tu_target()    (u64)((Xil_In32(WLAN_MAC_REG_TU_TARGET_MSB)<<32) + Xil_In32(WLAN_MAC_REG_TU_TARGET_LSB))
+
 //-----------------------------------------------
 // MAC Polling defines
 //
@@ -544,6 +548,7 @@ inline u16         wlan_mac_low_mcs_to_n_dbps(u8 mcs, u8 phy_mode);
 inline u8 		   wlan_mac_low_mcs_to_ctrl_resp_mcs(u8 mcs, u8 phy_mode);
 
 inline void 	   wlan_mac_hw_clear_rx_started();
+void 			   wlan_mac_set_tu_target(u64 tu_target);
 
 inline u64 		   wlan_mac_get_tu_target();
 inline void 	   wlan_mac_set_tu_target(u64 tu_target);

@@ -1911,17 +1911,8 @@ inline void wlan_mac_hw_clear_rx_started() {
 	return;
 }
 
-
-inline u64 wlan_mac_get_tu_target(){
-	//FIXME make u64
-	u64 return_value;
-
-	return_value = (u64)Xil_In32(WLAN_MAC_REG_TU_TARGET);
-	return return_value;
-}
-
-inline void wlan_mac_set_tu_target(u64 tu_target){
-	//FIXME make u64
-	Xil_Out32(WLAN_MAC_REG_TU_TARGET, (tu_target));
+void wlan_mac_set_tu_target(u64 tu_target) {
+	Xil_Out32(WLAN_MAC_REG_TU_TARGET_MSB, ((u32)(tu_target >> 32)));
+	Xil_Out32(WLAN_MAC_REG_TU_TARGET_LSB, ((u32)(tu_target & 0xFFFFFFFF)));
 }
 
