@@ -105,7 +105,7 @@ void			   handle_mcast_buffer_enable(u32 enable);
 void 			   update_tx_pkt_buf_lists();
 void 			   handle_sample_rate_change(phy_samp_rate_t phy_samp_rate);
 void               update_dtim_count();
-void               update_tu_target();
+void 			   update_tu_target(u8 recompute);
 void 			   handle_mactime_change(s64 time_delta_usec);
 void 			   configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure);
 void 			   frame_transmit_general(u8 pkt_buf);

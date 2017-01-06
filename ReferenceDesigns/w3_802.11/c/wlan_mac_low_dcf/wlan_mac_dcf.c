@@ -374,24 +374,34 @@ void update_dtim_count(){
  * This function sets the TU target to whenever the next TBTT occurs. It only performs
  * this action if beacon_tx_mode is AP_BEACON_TX or IBSS_BEACON_TX
  *
- * @param   None
+ * @param   u8	recompute	- 0 for updating TU target via addition from previous target, 1 to recompute from MAC time
  * @return  None
  */
-void update_tu_target(){
-	u32 current_tu;		//FIXME: in next hardware rev, we will deal directly with u64
-	u32 next_target;
+void update_tu_target(u8 recompute) {
+	u64 current_tu = (get_mac_time_usec()>>10);
+    if(recompute) {
+        // Re-compute TU target from current MAC time
 
-	if(( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ) ||
-	   ( gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX )){
-		
-		current_tu = (u32)(get_mac_time_usec()>>10);
+        // Expensive u64 division
+        u64 tu_target =  gl_beacon_txrx_configure.beacon_interval_tu * ((current_tu /  gl_beacon_txrx_configure.beacon_interval_tu) + 1);
 
-		//The current_tu can be anywhere within a beacon interval, so we need
-		//to round up to the next TBTT.
-		next_target = gl_beacon_txrx_configure.beacon_interval_tu*((current_tu/gl_beacon_txrx_configure.beacon_interval_tu)+1);
+        wlan_mac_set_tu_target(tu_target);
 
-		wlan_mac_set_tu_target(next_target);
-	}
+    } else {
+        // Increment current TU target to the next-future target
+
+        while(1) {
+            u64 current_tu_target = wlan_mac_get_tu_target();
+            if(current_tu_target > current_tu) {
+                // Achieved future target - done
+                break;
+            }
+            else{
+                // Increment target and continue
+            	wlan_mac_set_tu_target(current_tu_target + gl_beacon_txrx_configure.beacon_interval_tu);
+            }
+        }
+    }
 }
 
 /*****************************************************************************/
@@ -407,7 +417,13 @@ void update_tu_target(){
  */
 void handle_mactime_change(s64 time_delta_usec){
 	update_dtim_count();
-	update_tu_target();
+	if((time_delta_usec < 0) || (time_delta_usec > (100*gl_beacon_txrx_configure.beacon_interval_tu)) ){
+		//The MAC time change was either very large or moved us backwards in time. Either way, we can't rely on the
+		//"fast" TU target update and must instead explicitly recompute the target based upon the MAC time.
+		update_tu_target(1);
+	} else {
+		update_tu_target(0);
+	}
 	return;
 }
 
@@ -429,8 +445,10 @@ void configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure){
 	if(( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ) ||
 	   ( gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX )){
 
-		update_tu_target();
-
+		//Because we are setting up a new beacon configuration, we should not update the TU target
+		//based upon existing targets. We should instead explicitly recompute the target from the
+		//current MAC time and beacon interval
+		update_tu_target(1);
 		update_dtim_count();
 
 		wlan_mac_reset_tu_target_latch(1);
@@ -486,7 +504,7 @@ inline void poll_tbtt_and_send_beacon(){
 						// Update TU target
 						//  Changing TU target automatically resets TU_LATCH
 						//  Latch will assert immediately if Current TU >= new Target TU
-						update_tu_target();
+						update_tu_target(0);
 						wlan_mac_pause_tx_ctrl_A(0);
 
 						// Reset Tx Controller D and unpause
@@ -506,7 +524,7 @@ inline void poll_tbtt_and_send_beacon(){
 					// Update TU target
 					//  Changing TU target automatically resets TU_LATCH
 					//  Latch will assert immediately if Current TU >= new Target TU
-					update_tu_target();
+					update_tu_target(0);
 
 					// Send mcast data here
 					// We are only allowed to send mcast packets if either of two conditions are met:
