@@ -548,9 +548,7 @@ inline u16         wlan_mac_low_mcs_to_n_dbps(u8 mcs, u8 phy_mode);
 inline u8 		   wlan_mac_low_mcs_to_ctrl_resp_mcs(u8 mcs, u8 phy_mode);
 
 inline void 	   wlan_mac_hw_clear_rx_started();
-void 			   wlan_mac_set_tu_target(u64 tu_target);
 
-inline u64 		   wlan_mac_get_tu_target();
 inline void 	   wlan_mac_set_tu_target(u64 tu_target);
 
 
