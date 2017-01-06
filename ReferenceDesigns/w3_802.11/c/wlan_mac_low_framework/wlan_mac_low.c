@@ -113,6 +113,10 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
 
     unique_seq = 0;
 
+    //Set the TU Target to the max value
+    //FIXME: Change this to u64 in next revision
+    wlan_mac_set_tu_target(0xFFFFFFFF);
+
     mac_param_rx_filter      = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL);
 
     frame_rx_callback            = (function_ptr_t) wlan_null_callback;

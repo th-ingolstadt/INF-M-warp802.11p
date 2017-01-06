@@ -378,8 +378,7 @@ void update_dtim_count(){
  * @return  None
  */
 void update_tu_target(){
-	#define TU_OVERFLOW_PAD 200
-	u32 current_tu;
+	u32 current_tu;		//FIXME: in next hardware rev, we will deal directly with u64
 	u32 next_target;
 
 	if(( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ) ||
@@ -390,11 +389,6 @@ void update_tu_target(){
 		//The current_tu can be anywhere within a beacon interval, so we need
 		//to round up to the next TBTT.
 		next_target = gl_beacon_txrx_configure.beacon_interval_tu*((current_tu/gl_beacon_txrx_configure.beacon_interval_tu)+1);
-
-		//If the next TBTT is near the point where the u32 next_target overflows, we could have an issue where we "miss" the event because
-		//current_tu has already wrapped by the time we call update_tu_target. If we get close to the edge, we will just skip the last couple of
-		//beacons and set the next target to the postwrap TBTT of 0.
-		if((0xFFFFFFFF - next_target) < TU_OVERFLOW_PAD) next_target = 0;
 
 		wlan_mac_set_tu_target(next_target);
 	}
