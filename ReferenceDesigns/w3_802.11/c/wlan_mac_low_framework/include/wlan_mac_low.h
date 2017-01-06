@@ -456,7 +456,7 @@
 #define wlan_mac_low_get_tx_start_timestamp_frac()  (Xil_In32(WLAN_MAC_REG_TXRX_TIMESTAMPS_FRAC) & 0x00FF)
 
 // TU Target register - UFix32_0 TU target
-#define wlan_mac_get_tu_target()    (u64)((Xil_In32(WLAN_MAC_REG_TU_TARGET_MSB)<<32) + Xil_In32(WLAN_MAC_REG_TU_TARGET_LSB))
+#define wlan_mac_get_tu_target()    (u64)(((u64)Xil_In32(WLAN_MAC_REG_TU_TARGET_MSB)<<32) + (u64)Xil_In32(WLAN_MAC_REG_TU_TARGET_LSB))
 
 //-----------------------------------------------
 // MAC Polling defines

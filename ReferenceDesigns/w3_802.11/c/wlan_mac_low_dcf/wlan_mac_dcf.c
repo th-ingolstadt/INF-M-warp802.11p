@@ -1572,8 +1572,6 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
     u32 mac_tx_ctrl_status;
 
     tx_frame_info_t   * tx_frame_info       = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
-    mac_header_80211  * header              = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
-
 
     if( resume == 0 ){
     	int curr_tx_pow;
