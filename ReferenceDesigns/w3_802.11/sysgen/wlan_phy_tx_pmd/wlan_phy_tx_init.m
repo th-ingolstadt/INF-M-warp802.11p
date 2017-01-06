@@ -73,10 +73,10 @@ ltg_pyld = sscanf('08 02 26 00 40 d8 55 04 24 f4 40 d8 55 04 24 b6 40 d8 55 04 2
 % Bypass if running multiple sims via the gen_sim_waveforms script
 if(~exist('gen_waveform_mode', 'var'))
     tx_sim = struct();
-    tx_sim.MAC_payload = 1:22;
+    tx_sim.MAC_payload = MPDU_Data_long;
     tx_sim.payload_len = length(tx_sim.MAC_payload);
-    tx_sim.PHY_mode = 2; %1=11a, 2=11n
-    tx_sim.mcs = 4;
+    tx_sim.PHY_mode = 1; %1=11a, 2=11n
+    tx_sim.mcs = 7;
     tx_sim.samp_rate = 40; %Must be in [10 20 40]
     tx_sim.num_pkts = 1;
 end

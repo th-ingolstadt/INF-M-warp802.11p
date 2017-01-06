@@ -1,20 +1,24 @@
-%xlLoadChipScopeData('../wlan_phy_rx/cs_capt/wlan_cs_capt_5.prn'); cs_interp = 1; cs_start = 1;
+%xlLoadChipScopeData('../wlan_phy_rx_pmd/rx_sigs/adi_tx_noPktDet_v0.prn'); cs_interp = 1; cs_start = 2500; cs_end = 4500;
 %payload_vec = [zeros(25,1); complex(ADC_I(cs_start:cs_interp:end), ADC_Q(cs_start:cs_interp:end));];
-payload_vec = 0;
+
+load('../wlan_phy_rx_pmd/rx_sigs/wlan_tx_NONHT_MCS0_52B.mat');
+payload_vec = [zeros(25,1); wlan_tx_out(:)];
+
+%payload_vec = 0;
 raw_rx_I.time = [];
 raw_rx_Q.time = [];
 
-DCO_I = 0.05;
+DCO_I = 0;
 DCO_Q = 0;
-G_I = 2;
-G_Q = 2;
+G_I = 1;
+G_Q = 1;
 
 raw_rx_I.signals.values = DCO_I + G_I*real(payload_vec);
 raw_rx_Q.signals.values = DCO_Q + G_Q*imag(payload_vec);
 
 
 PHY_CONFIG_PKT_DET_CORR_THRESH = 90;
-PHY_CONFIG_PKT_DET_ENERGY_THRESH = 14;
+PHY_CONFIG_PKT_DET_ENERGY_THRESH = 1;
 PHY_CONFIG_PKT_DET_MIN_DURR = 4;
 
 %% Register Init
