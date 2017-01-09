@@ -2115,6 +2115,9 @@ u32	configure_bss(bss_config_t* bss_config){
 			// This will not result in any OTA transmissions to the stations.
 
 			if (active_bss_info != NULL) {
+				//Purge all tranmissions queues
+				purge_all_data_tx_queue();
+
 				// Remove all associations
 				next_station_info_entry = active_bss_info->members.first;
 				iter = active_bss_info->members.length;
@@ -2124,9 +2127,6 @@ u32	configure_bss(bss_config_t* bss_config){
 					next_station_info_entry = dl_entry_next(curr_station_info_entry);
 
 					curr_station_info = (station_info_t*)(curr_station_info_entry->data);
-
-					// Purge any data for the station
-					purge_queue(STATION_ID_TO_QUEUE_ID(curr_station_info->ID));
 
 					// Lower KEEP flag so that the MAC High Framework can cleanup
 					curr_station_info->flags &= ~STATION_INFO_FLAG_KEEP;
