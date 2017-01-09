@@ -737,10 +737,7 @@ inline u32 send_beacon(u8 tx_pkt_buf){
 		if( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE && (tx_has_started == 0)){
 			if((tx_frame_info->flags) & TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP){
 				// Insert the TX START timestamp
-				*((u32*)((u8*)header + 24)) =  Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_LSB);
-				*((u32*)((u8*)header + 28)) =  Xil_In32(WLAN_MAC_REG_TX_TIMESTAMP_MSB);
-				// The below u64 approach also works, but takes 100ns longer than just dealing with the LSB and MSB separately.
-				//*((u64*)((TX_PKT_BUF_TO_ADDR(mpdu_pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET + 24))) = (u64)wlan_mac_low_get_tx_start_timestamp();
+				*((u64*)(((u8*)header + 24))) = ((u64)wlan_mac_low_get_tx_start_timestamp())+T_TIMESTAMP_FIELD_OFFSET;
 			}
 			tx_has_started = 1;
 		}
@@ -1233,7 +1230,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
 				mac_payload_ptr_u8 += sizeof(mac_header_80211);
 
 				// Calculate the difference between the beacon timestamp and the packet timestamp
-				time_delta = (s64)(((beacon_probe_frame*)mac_payload_ptr_u8)->timestamp) - (s64)(rx_frame_info->timestamp) + gl_mac_timing_values.t_phy_rx_start_dly;
+				time_delta = (s64)(((beacon_probe_frame*)mac_payload_ptr_u8)->timestamp) - (s64)(rx_frame_info->timestamp) + gl_mac_timing_values.t_phy_rx_start_dly - T_TIMESTAMP_FIELD_OFFSET;
 
 				// Update the MAC time
 				switch(gl_beacon_txrx_configure.ts_update_mode){
@@ -2053,6 +2050,13 @@ void frame_transmit_general(u8 pkt_buf) {
 
 			// Fill in the timestamp if indicated by the flags, only possible after Tx PHY has started
 			if ( (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE) && (tx_has_started == 0)) {
+
+				if((tx_frame_info->flags) & TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP){
+					//Note: Probe responses still need their timestamp to be filled in, so this clause remains
+					//even though no beacons will be sent here
+					// Insert the TX START timestamp
+					*((u64*)(((u8*)header + 24))) = ((u64)wlan_mac_low_get_tx_start_timestamp())+T_TIMESTAMP_FIELD_OFFSET;
+				}
 
 				tx_has_started = 1;
 

@@ -56,6 +56,17 @@ typedef struct{
 
 
 //-----------------------------------------------
+// According to 10.21.1 of 802.11-2012, the timestamp value of
+// transmitted beacons and probe responses shall be set to the
+// time of the data symbol containing the first bit of the timestamp
+// This is a rate-specific value. For this release, we will hardcode
+// the value for the default MCS 0, NONHT (aka 6 Mbps) rate. This
+// needs to be changed for beacons & probe responses sent at a different
+// rate
+#define	T_TIMESTAMP_FIELD_OFFSET						   52
+
+
+//-----------------------------------------------
 // WLAN Exp low parameter defines (DCF)
 //     NOTE:  Need to make sure that these values do not conflict with any of the LOW PARAM
 //     callback defines
