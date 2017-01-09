@@ -27,7 +27,6 @@
 #include "wlan_mac_time_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"
-#include "wlan_mac_ltg.h"
 #include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
@@ -78,13 +77,6 @@ static volatile u8                          print_scheduled      = 0;
 static char                                 text_entry[SSID_LEN_MAX + 1];
 static u8                                   curr_char            = 0;
 
-#if WLAN_SW_CONFIG_ENABLE_LTG
-static          ltg_pyld_fixed              traffic_blast_pyld;
-static          ltg_sched_periodic_params   traffic_blast_sched;
-static volatile u32                         traffic_blast_ltg_id = LTG_ID_INVALID;
-#endif //WLAN_SW_CONFIG_ENABLE_LTG
-
-
 /*************************** Functions Prototypes ****************************/
 
 void print_main_menu();
@@ -124,9 +116,6 @@ void stop_periodic_print();
  *
  *****************************************************************************/
 void uart_rx(u8 rxByte){
-#if WLAN_SW_CONFIG_ENABLE_LTG
-	void                        * ltg_state;
-#endif //WLAN_SW_CONFIG_ENABLE_LTG
 	volatile join_parameters_t  * join_parameters;
 	volatile scan_parameters_t  * scan_params;
 	u32                           is_scanning;
@@ -138,9 +127,6 @@ void uart_rx(u8 rxByte){
 		uart_mode = UART_MODE_MAIN;
 		stop_periodic_print();
 		print_main_menu();
-#if WLAN_SW_CONFIG_ENABLE_LTG
-		ltg_sched_remove(LTG_REMOVE_ALL);
-#endif
 
 		// Stop join process
 		if (wlan_mac_sta_is_joining()) {
@@ -275,52 +261,6 @@ void uart_rx(u8 rxByte){
 					txrx_counts_zero_all();
 #endif
 				break;
-
-#if WLAN_SW_CONFIG_ENABLE_LTG
-				// ----------------------------------------
-				// 'b' - Enable / Disable "Traffic Blaster"
-				//     The "Traffic Blaster" will create a backlogged LTG with a payload of
-				//     1400 bytes that will be sent to all associated nodes.
-				//
-				case ASCII_b:
-					// Check if an LTG has been created and create a new one if not
-					if ((traffic_blast_ltg_id == LTG_ID_INVALID) && (active_bss_info != NULL)) {
-						// Set up LTG payload
-						traffic_blast_pyld.hdr.type = LTG_PYLD_TYPE_FIXED;
-						traffic_blast_pyld.length   = 1400;
-						memcpy(&traffic_blast_pyld.addr_da, active_bss_info->bssid, MAC_ADDR_LEN);
-
-						// Set up LTG schedule
-						traffic_blast_sched.duration_count = LTG_DURATION_FOREVER;
-						traffic_blast_sched.interval_count = 0;
-
-						// Start the LTG
-						traffic_blast_ltg_id = ltg_sched_create(LTG_SCHED_TYPE_PERIODIC, &traffic_blast_sched, &traffic_blast_pyld, NULL);
-
-						// Check if there was an error
-						if (traffic_blast_ltg_id == LTG_ID_INVALID) {
-							xil_printf("Error in creating LTG\n");
-							break;
-						}
-					}
-
-					// Check to see if this LTG ID is currently running.
-					//     Note: Given that the "Traffic Blaster" only creates period LTGs, the code can assume
-					//         the type of the ltg_state.  In general, the second argument to ltg_sched_get_state
-					//         can be used to figure out what type to cast the ltg_state.
-					ltg_sched_get_state(traffic_blast_ltg_id, NULL, &ltg_state);
-
-					// Based on the state, start / stop the LTG
-					switch (((ltg_sched_periodic_state*)ltg_state)->hdr.enabled) {
-
-						// LTG is not running, so let's start it
-						case 0:   ltg_sched_start(traffic_blast_ltg_id);  break;
-
-						// LTG is running, so let's stop it
-						case 1:   ltg_sched_stop(traffic_blast_ltg_id);  break;
-					}
-				break;
-#endif //WLAN_SW_CONFIG_ENABLE_LTG
 			}
 		break;
 
