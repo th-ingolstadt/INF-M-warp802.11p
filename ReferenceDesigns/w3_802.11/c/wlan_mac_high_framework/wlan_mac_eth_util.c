@@ -141,9 +141,6 @@ int wlan_eth_init() {
     XAxiEthernet_Config    * eth_cfg_ptr;
     XAxiEthernet             eth_instance;
 
-    // Enable portal behaviors
-    wlan_eth_portal_en(1);
-
     // Set global variables
     bd_set_to_process_ptr  = NULL;
     bd_set_count           = 0;
@@ -204,6 +201,9 @@ int wlan_eth_init() {
 
     // Start the Ethernet controller
     XAxiEthernet_Start(&eth_instance);
+
+    // Enable bridging of the wired-wireless networks (a.k.a. the "portal" between networks)
+    wlan_eth_portal_en(1);
 
     return 0;
 }
