@@ -461,10 +461,6 @@ tx_high_entry * wlan_exp_log_create_tx_high_entry(tx_frame_info_t* tx_frame_info
         tx_high_event_log_entry->delay_accept             = tx_frame_info->delay_accept;
         tx_high_event_log_entry->delay_done               = tx_frame_info->delay_done;
         tx_high_event_log_entry->unique_seq               = tx_frame_info->unique_seq;
-        tx_high_event_log_entry->phy_params.antenna_mode  = tx_frame_info->params.phy.antenna_mode;
-        tx_high_event_log_entry->phy_params.mcs           = tx_frame_info->params.phy.mcs;
-        tx_high_event_log_entry->phy_params.phy_mode      = tx_frame_info->params.phy.phy_mode;
-        tx_high_event_log_entry->phy_params.power         = tx_frame_info->params.phy.power;
         tx_high_event_log_entry->num_tx                   = tx_frame_info->num_tx_attempts;              // TODO: Add long/short distinction to event log
         tx_high_event_log_entry->length                   = tx_frame_info->length;
         tx_high_event_log_entry->flags					  = 0;

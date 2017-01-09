@@ -296,11 +296,11 @@ typedef struct{
     u32                 delay_accept;            // Delay from timestamp_create to when accepted by CPU Low
     u32                 delay_done;              // Delay from delay_accept to when CPU Low was done
     u64                 unique_seq;              // Unique packet sequence number
-    phy_tx_params_t     phy_params;              // Transmission parameters
+    u32					padding0;
     u8                  num_tx;                  // Number of Transmissions that it took to send the packet
-    u8                  padding0;                // Padding for 32-bit alignment
+    u8                  padding1;                // Padding for 32-bit alignment
     u16                 length;                  // Length of the packet
-    u8                  padding1;
+    u8                  padding2;
     u8                  pkt_type;                // Type of packet
     u16                 queue_id;                // Queue ID this packet was sent from
     u16                 queue_occupancy;         // Occupancy of queue (includes itself)
