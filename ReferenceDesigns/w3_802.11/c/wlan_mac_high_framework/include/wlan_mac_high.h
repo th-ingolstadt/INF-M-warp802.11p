@@ -173,9 +173,9 @@
  * XAXIDMA_BD_MINIMUM_ALIGNMENT), so we set ETH_TX_BD_SIZE to 64.
  *
  ********************************************************************/
-#define ETH_TX_BD_BASE                     (STATION_INFO_DL_ENTRY_MEM_BASE + STATION_INFO_DL_ENTRY_MEM_SIZE)
-#define ETH_TX_BD_SIZE                     (64)
-#define ETH_TX_BD_HIGH                      high_addr_calc(ETH_TX_BD_BASE, ETH_TX_BD_SIZE)
+#define ETH_TX_BD_MEM_BASE                     (STATION_INFO_DL_ENTRY_MEM_BASE + STATION_INFO_DL_ENTRY_MEM_SIZE)
+#define ETH_TX_BD_MEM_SIZE                     (64)
+#define ETH_TX_BD_MEM_HIGH                      high_addr_calc(ETH_TX_BD_MEM_BASE, ETH_TX_BD_MEM_SIZE)
 
 
 
@@ -187,9 +187,9 @@
  * BD to be able to handle bursty Ethernet receptions.
  *
  ********************************************************************/
-#define ETH_RX_BD_BASE                     (ETH_TX_BD_BASE + ETH_TX_BD_SIZE)
-#define ETH_RX_BD_SIZE                     (WLAN_OPTIONS_AUX_SIZE_KB_RX_ETH_BD)
-#define ETH_RX_BD_HIGH                      high_addr_calc(ETH_RX_BD_BASE, ETH_RX_BD_SIZE)
+#define ETH_RX_BD_MEM_BASE                     (ETH_TX_BD_MEM_BASE + ETH_TX_BD_MEM_SIZE)
+#define ETH_RX_BD_MEM_SIZE                     (WLAN_OPTIONS_AUX_SIZE_KB_RX_ETH_BD)
+#define ETH_RX_BD_MEM_HIGH                      high_addr_calc(ETH_RX_BD_MEM_BASE, ETH_RX_BD_MEM_SIZE)
 
 
 

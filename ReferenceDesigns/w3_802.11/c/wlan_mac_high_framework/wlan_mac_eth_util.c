@@ -153,13 +153,13 @@ int wlan_eth_init() {
 #endif
 
     // Check to see if we were given enough room by wlan_mac_high.h for our buffer descriptors
-    if (ETH_TX_BD_SIZE < XAXIDMA_BD_MINIMUM_ALIGNMENT) {
-        xil_printf("Only %d bytes allocated for Eth Tx BD. Must be at least %d bytes\n", ETH_TX_BD_SIZE, XAXIDMA_BD_MINIMUM_ALIGNMENT);
+    if (ETH_TX_BD_MEM_SIZE < XAXIDMA_BD_MINIMUM_ALIGNMENT) {
+        xil_printf("Only %d bytes allocated for Eth Tx BD. Must be at least %d bytes\n", ETH_TX_BD_MEM_SIZE, XAXIDMA_BD_MINIMUM_ALIGNMENT);
         cpu_error_halt(WLAN_ERROR_CODE_INSUFFICIENT_BD_SIZE);
     }
 
-    if (ETH_RX_BD_SIZE < XAXIDMA_BD_MINIMUM_ALIGNMENT) {
-        xil_printf("Only %d bytes allocated for Eth Rx BDs. Must be at least %d bytes\n", ETH_RX_BD_SIZE, XAXIDMA_BD_MINIMUM_ALIGNMENT);
+    if (ETH_RX_BD_MEM_SIZE < XAXIDMA_BD_MINIMUM_ALIGNMENT) {
+        xil_printf("Only %d bytes allocated for Eth Rx BDs. Must be at least %d bytes\n", ETH_RX_BD_MEM_SIZE, XAXIDMA_BD_MINIMUM_ALIGNMENT);
         cpu_error_halt(WLAN_ERROR_CODE_INSUFFICIENT_BD_SIZE);
     }
 
@@ -167,7 +167,7 @@ int wlan_eth_init() {
     num_tx_bd = 1;
     xil_printf("%3d Eth Tx BDs placed in BRAM: using %d B\n", num_tx_bd, num_tx_bd*XAXIDMA_BD_MINIMUM_ALIGNMENT);
 
-    num_rx_bd = ETH_RX_BD_SIZE / XAXIDMA_BD_MINIMUM_ALIGNMENT;
+    num_rx_bd = ETH_RX_BD_MEM_SIZE / XAXIDMA_BD_MINIMUM_ALIGNMENT;
     xil_printf("%3d Eth Rx BDs placed in BRAM: using %d kB\n", num_rx_bd, num_rx_bd*XAXIDMA_BD_MINIMUM_ALIGNMENT/1024);
 
     // Initialize Callback
@@ -258,8 +258,8 @@ int wlan_eth_dma_init() {
     XAxiDma_BdRingSetCoalesce(eth_rx_ring_ptr, 1, 0);
 
     // Setup Tx/Rx buffer descriptor rings in memory
-    status  = XAxiDma_BdRingCreate(eth_tx_ring_ptr, ETH_TX_BD_BASE, ETH_TX_BD_BASE, XAXIDMA_BD_MINIMUM_ALIGNMENT, num_tx_bd);
-    status |= XAxiDma_BdRingCreate(eth_rx_ring_ptr, ETH_RX_BD_BASE, ETH_RX_BD_BASE, XAXIDMA_BD_MINIMUM_ALIGNMENT, num_rx_bd);
+    status  = XAxiDma_BdRingCreate(eth_tx_ring_ptr, ETH_TX_BD_MEM_BASE, ETH_TX_BD_MEM_BASE, XAXIDMA_BD_MINIMUM_ALIGNMENT, num_tx_bd);
+    status |= XAxiDma_BdRingCreate(eth_rx_ring_ptr, ETH_RX_BD_MEM_BASE, ETH_RX_BD_MEM_BASE, XAXIDMA_BD_MINIMUM_ALIGNMENT, num_rx_bd);
     if (status != XST_SUCCESS) { xil_printf("Error creating DMA BD Rings! Err = %d\n", status); return -1; }
 
     // Populate each ring with empty buffer descriptors
