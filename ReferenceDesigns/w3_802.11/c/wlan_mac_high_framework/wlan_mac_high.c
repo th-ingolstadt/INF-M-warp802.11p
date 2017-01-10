@@ -118,9 +118,6 @@ volatile static u8           cpu_low_reg_read_buffer_status;
 // Interrupt State
 volatile static interrupt_state_t interrupt_state;
 
-// Debug GPIO State
-volatile static u8           debug_gpio_state;             ///< Current state of debug GPIO pins
-
 // IPC variables
 wlan_ipc_msg_t               ipc_msg_from_low;                                           ///< IPC message from lower-level
 u32                          ipc_msg_from_low_payload[MAILBOX_BUFFER_MAX_NUM_WORDS];     ///< Buffer space for IPC message from lower-level
@@ -1247,13 +1244,13 @@ int wlan_mac_high_cdma_start_transfer(void* dest, void* src, u32 size){
 	u8 out_of_range  = 0;
 
 
-	if((u32)src > XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_BASEADDR && (u32)src < XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_HIGHADDR){
+	if((u32)src >= XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_BASEADDR && (u32)src <= XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_HIGHADDR){
 		out_of_range = 1;
-	} else if((u32)src > XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_BASEADDR && (u32)src < XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_HIGHADDR){
+	} else if((u32)src >= XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_BASEADDR && (u32)src <= XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_HIGHADDR){
 		out_of_range = 1;
-	} else if((u32)dest > XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_BASEADDR && (u32)dest < XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_HIGHADDR){
+	} else if((u32)dest >= XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_BASEADDR && (u32)dest <= XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_HIGHADDR){
 		out_of_range = 1;
-	} else if((u32)dest > XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_BASEADDR && (u32)dest < XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_HIGHADDR){
+	} else if((u32)dest >= XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_BASEADDR && (u32)dest <= XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_HIGHADDR){
 		out_of_range = 1;
 	}
 
