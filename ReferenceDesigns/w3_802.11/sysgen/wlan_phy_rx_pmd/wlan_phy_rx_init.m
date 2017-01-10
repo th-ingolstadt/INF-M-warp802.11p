@@ -1,6 +1,6 @@
 % Mango 802.11 Reference Design
 % WLAN PHY Rx Init script
-% Copyright 2016 Mango Communications
+% Copyright 2017 Mango Communications
 % Distributed under the Mango Research License:
 % http://mangocomm.com/802.11/license
 
@@ -8,10 +8,6 @@
 addpath('./util');
 addpath('./mcode_blocks');
 addpath('./blackboxes');
-
-%FIXME - only for testing with same noise vector over and over
-rng('default');
-[~] = randn(1,1e4); %advance the RNG arbitrarily
 
 %% Define an input signal for simulation
 % Skip this if running a multi-sim test with the rx_sim_test script
@@ -33,21 +29,9 @@ if(~exist('sim_many_waveform_mode','var'))
     %sim_sig = sim_sig .* exp(j*2*pi*1e-4*(0:length(sim_sig)-1)).';
 
     if 1
-    % rx_11b_1Mb_then_3_5p5Mb: 
-    %  1Mb beacon 93180:2:1.302e5
-    %  5.5Mb data #1 1.313e5:2:1.489e5
-    %t_start = 93180;
-    %t_end   = 1.302e5;
-    %load('rx_sigs/rx_11b_1Mb_then_3_5p5Mb.mat');wlan_tx_out1 = 2*rx_iq(t_start:2:t_end).';
-
     %Output of PHY Tx simulation
     % .mat files from Tx PHY sim store I/Q signal in 'wlan_tx_out' variable
-    %load('rx_sigs/tx_HTMF_MCS4_22B_Invalid_LSIG.mat');wlan_tx_out1 = wlan_tx_out.';
-    load('rx_sigs/wlan_tx_out_test.mat');wlan_tx_out = wlan_tx_out_sampclk(1:4:end).';
-    %load('tx_NONHT_100B_MCS4_newPHY.mat');wlan_tx_out = sig.';
-    %load('rx_sigs/siggen_HTMF_MCS11_100B_BW20_CDD200.mat');wlan_tx_out = 0.2*sig.';
-    %load('rx_sigs/siggen_HTMF_MCS4_100B_BW20.mat');wlan_tx_out = 0.2*sig;
-    %load('rx_sigs/siggen_HTMF_MCS4_100B_BW20.mat');wlan_tx_out = 0.2*sig;
+    load('rx_sigs/wlan_tx_NONHT_MCS7_52B.mat');wlan_tx_out = 0.5 * wlan_tx_out.';
     
     %CFO
     %wlan_tx_out = wlan_tx_out .* exp(j*2*pi*-1e-4*(0:length(wlan_tx_out)-1));
@@ -58,7 +42,10 @@ if(~exist('sim_many_waveform_mode','var'))
     %AWGN
     %wlan_tx_out = wlan_tx_out + 1e-2*complex(randn(1,length(wlan_tx_out)), randn(1,length(wlan_tx_out)));
     
+    % 1-pkt waveform
     sim_sig = wlan_tx_out(1:end).';
+    
+    % 2-pkt waveform
     %sim_sig = [wlan_tx_out1(1:end).'; zeros(200,1); wlan_tx_out2(1:end).'];
     end
 end
@@ -79,7 +66,6 @@ MAX_CP_LEN = 32;
 MAX_NUM_SAMPS = 50e3;
 MAX_NUM_SYMS = 600;
 MAX_NUM_BYTES = 2^16-1;
-
 
 %% Define the LTS correlation coefficients
 
@@ -138,14 +124,13 @@ barker_seq20 = 0.95 * circshift(barker_seq20, [0 4]) ./ max(abs(barker_seq20));
 %Initial values for Rx PHY registers
 PHY_CONFIG_NUM_SC = 64;
 PHY_CONFIG_CP_LEN = 16;
-PHY_CONFIG_CFO_EST_OFFSET = 0;
 PHY_CONFIG_FFT_SCALING = bin2dec('000101');
 
 % FFT offset depends on PHY samp rate (and waveform format?)
-%  20: FFT_OFFSET=1 for zero cyclic prefix samps
-%  40: FFT_OFFSET=3 for zero cyclic prefix samps
+%  20: FFT_OFFSET=2 for zero cyclic prefix samps
+%  40: FFT_OFFSET=4 for zero cyclic prefix samps
 %PHY_CONFIG_FFT_OFFSET = (1+2*(rx_sim.samp_rate==40)) + 0;
-PHY_CONFIG_FFT_OFFSET = 6;
+PHY_CONFIG_FFT_OFFSET = 4;
 
 PHY_CONFIG_RSSI_SUM_LEN = 8;
 
@@ -153,9 +138,10 @@ PHY_SIGNAL_MIN_LEN = 14;
 
 PHY_CONFIG_LTS_CORR_THRESH_LOWSNR = 12500;
 PHY_CONFIG_LTS_CORR_THRESH_HIGHSNR = 12500;
+PHY_CONFIG_LTS_CORR_PEAKTYPE_THRESH_LOWSNR = 12500;
+PHY_CONFIG_LTS_CORR_PEAKTYPE_THRESH_HIGHSNR = 12500;
 PHY_CONFIG_LTS_CORR_RSSI_THRESH = PHY_CONFIG_RSSI_SUM_LEN*400;
 
-%PHY_CONFIG_LTS_CORR_TIMEOUT = 250; %v1.2
 PHY_CONFIG_LTS_CORR_TIMEOUT = 175;
 
 PHY_CONFIG_PKT_DET_CORR_THRESH = 200;%(0.75) * 2^8; %UFix8_8 threshold - CLK2X
@@ -206,14 +192,21 @@ REG_RX_LTS_Corr_Thresh = ...
     2^16  * (PHY_CONFIG_LTS_CORR_THRESH_HIGHSNR) +... %b[31:16]
     0;
 
+REG_RX_LTS_Corr_PeakType_Thresh = ...
+    2^0  *  (PHY_CONFIG_LTS_CORR_PEAKTYPE_THRESH_LOWSNR) +... %b[15:0]
+    2^16  * (PHY_CONFIG_LTS_CORR_PEAKTYPE_THRESH_HIGHSNR) +... %b[31:16]
+    0;
+
 REG_RX_Chan_Est_Smoothing = ...
     2^0  *  (PHY_CONFIG_H_EST_SMOOTHING_A) +... %b[11:0]
     2^12  * (PHY_CONFIG_H_EST_SMOOTHING_B) +... %b[23:12]
+    2^24  * 25; %PHY mode det threshold
     0;
 
 REG_RX_LTS_Corr_Confg = ...
     2^0 *  (PHY_CONFIG_LTS_CORR_TIMEOUT) + ... %b[7:0]
     2^8 *  (PHY_CONFIG_LTS_CORR_RSSI_THRESH) + ... %b[23:8]
+    2^24 * 7 + ... %b[26:24] - 0x1/2/4 enables 63/64/65-sample spacing for LTS corr
     0;
 
 REG_RX_FFT_Config = ...
