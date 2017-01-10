@@ -900,7 +900,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('time_to_accept',         'I',      'uint32',  'Time duration in microseconds between packet creation and packet acceptance by CPU Low'),
         ('time_to_done',           'I',      'uint32',  'Time duration in microseconds between packet acceptance by CPU Low and Tx completion in CPU Low'),
         ('uniq_seq',               'Q',      'uint64',  'Unique sequence number for Tx packet; 12 LSB of this used for 802.11 MAC header sequence number'),
-        ('padding0',               'x',      'uint32',  'Padding'),        
+        ('padding0',               'I',      'uint32',  'Padding'),        
         ('num_tx',                 'B',      'uint8',   'Number of Tx attempts that were made for this packet'),
         ('padding1',               'B',      'uint8',   'Padding'),
         ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
