@@ -829,7 +829,7 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
                             if( ipc_msg_from_high_payload[1]&0xFF000000 ){
                                 wlan_phy_enable_req_both_pkt_det();
                                 //The value sent from wlan_exp will be unsigned with 0 representing PKT_DET_MIN_POWER_MIN
-                                wlan_mac_low_set_pkt_det_min_power((ipc_msg_from_high_payload[1]&0x000000FF) - PKT_DET_MIN_POWER_MIN);
+                                wlan_mac_low_set_pkt_det_min_power((ipc_msg_from_high_payload[1]&0x000000FF) + PKT_DET_MIN_POWER_MIN);
 
                             } else {
                                 wlan_phy_disable_req_both_pkt_det();
