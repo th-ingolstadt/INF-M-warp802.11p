@@ -352,7 +352,7 @@
 #define wlan_phy_rx_lts_corr_peaktype_thresholds(thresh_low_snr, thresh_high_snr) \
     Xil_Out32(WLAN_RX_LTS_PEAKTYPE_THRESH, ((thresh_low_snr) & 0xFFFF) | (((thresh_high_snr) & 0xFFFF) << 16))
 
-#define wlan_phy_rx_lts_corr_config(snr_thresh, corr_timeout) Xil_Out32(WLAN_RX_LTS_CFG, ((corr_timeout) & 0xFF) | (((snr_thresh) & 0xFFFF) << 8))
+#define wlan_phy_rx_lts_corr_config(snr_thresh, corr_timeout, dly_mask) Xil_Out32(WLAN_RX_LTS_CFG, ((((dly_mask) & 0x7) << 24) | ((corr_timeout) & 0xFF) | (((snr_thresh) & 0xFFFF) << 8)))
 
 #define wlan_phy_rx_chan_est_smoothing(coef_a, coef_b) \
 	Xil_Out32(WLAN_RX_CHAN_EST_SMOOTHING, ((Xil_In32(WLAN_RX_CHAN_EST_SMOOTHING) & 0xFF000000) | \

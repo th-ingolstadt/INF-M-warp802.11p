@@ -282,10 +282,11 @@ void wlan_phy_init() {
     wlan_phy_rx_set_fft_scaling(5);
 
     // WLAN_RX_LTS_CFG reg
-    // Set LTS correlation threshold and timeout
+    // Set LTS correlation threshold, timeout and allowed peak separation times
     //     1023 disables LTS threshold switch (one threshold worked across SNRs in our testing)
     //     Timeout value is doubled in hardware (350/2 becomes a timeout of 350 sample periods)
-    wlan_phy_rx_lts_corr_config(1023 * PHY_RX_RSSI_SUM_LEN, 350/2);
+    //     Peak separation is 3-bit mask, allowing 63/64/65 sample periods between peaks
+    wlan_phy_rx_lts_corr_config(1023 * PHY_RX_RSSI_SUM_LEN, 350/2, 0x7);
 
     // WLAN_RX_LTS_THRESH reg
     // LTS correlation thresholds (low NSR, high SNR)
@@ -293,7 +294,8 @@ void wlan_phy_init() {
 
     // WLAN_RX_LTS_PEAKTYPE_THRESH reg
     // LTS correlation peak-type (big vs small) thresholds (low NSR, high SNR)
-    wlan_phy_rx_lts_corr_peaktype_thresholds(12500, 12500);
+    // FIXME: only for initial testing, set peak-type threshold to max so all peaks are small
+    wlan_phy_rx_lts_corr_peaktype_thresholds(0xFFFF, 0xFFFF);
 
     // WLAN_RX_PKT_DET_OFDM_CFG reg
     // Configure RSSI pkt det
