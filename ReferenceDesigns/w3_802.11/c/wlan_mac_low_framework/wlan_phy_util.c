@@ -293,8 +293,7 @@ void wlan_phy_init() {
 
     // WLAN_RX_LTS_PEAKTYPE_THRESH reg
     // LTS correlation peak-type (big vs small) thresholds (low NSR, high SNR)
-    //FIXME: uncomment with new hw:
-    // wlan_phy_rx_lts_corr_peaktype_thresholds(12500, 12500);
+    wlan_phy_rx_lts_corr_peaktype_thresholds(12500, 12500);
 
     // WLAN_RX_PKT_DET_OFDM_CFG reg
     // Configure RSSI pkt det
