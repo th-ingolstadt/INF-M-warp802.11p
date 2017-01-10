@@ -1588,7 +1588,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                     # C code expects a u32
                     #  Bit 24 is flag for en/disable of min_power logic
                     #  Bits [7:0] are u8 interpreted as dB above min threshold
-                    param = (1 << 24) | ((power_level - cmds.CMD_PARAM_NODE_MIN_MIN_PKT_DET_POWER_DBM) & 0xFF)
+                    param = (1 << 24) | ((power_level + cmds.CMD_PARAM_NODE_MIN_MIN_PKT_DET_POWER_DBM) & 0xFF)
                     self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_PKT_DET_MIN_POWER, param_values=param)
                 else:
                     msg  = "\nPower level must be in the range of [{0},{1}]\n".format(cmds.CMD_PARAM_NODE_MIN_MIN_PKT_DET_POWER_DBM, cmds.CMD_PARAM_NODE_MAX_MIN_PKT_DET_POWER_DBM)
