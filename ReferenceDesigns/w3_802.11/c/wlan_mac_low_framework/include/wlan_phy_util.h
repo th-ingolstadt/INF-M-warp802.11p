@@ -106,8 +106,8 @@
 #define WLAN_RX_FEC_CFG              XPAR_WLAN_PHY_RX_MEMMAP_FEC_CONFIG
 #define WLAN_RX_LTS_CFG              XPAR_WLAN_PHY_RX_MEMMAP_LTS_CORR_CONFIG
 #define WLAN_RX_LTS_THRESH           XPAR_WLAN_PHY_RX_MEMMAP_LTS_CORR_THRESH
+#define WLAN_RX_LTS_PEAKTYPE_THRESH  XPAR_WLAN_PHY_RX_MEMMAP_LTS_CORR_PEAKTYPE_THRESH
 #define WLAN_RX_FFT_CFG              XPAR_WLAN_PHY_RX_MEMMAP_FFT_CONFIG
-#define WLAN_RX_DEBUG_GPIO           XPAR_WLAN_PHY_RX_MEMMAP_DEBUG_GPIO
 #define WLAN_RX_RSSI_THRESH          XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH
 #define WLAN_RX_PKTDET_RSSI_CFG      XPAR_WLAN_PHY_RX_MEMMAP_PKTDET_RSSI_CONFIG
 #define WLAN_RX_PHY_CCA_CFG          XPAR_WLAN_PHY_RX_MEMMAP_PHY_CCA_CONFIG
@@ -174,10 +174,12 @@
 //-----------------------------------------------
 // RX STATUS
 //
-#define WLAN_RX_REG_STATUS_OFDM_FCS_GOOD        0x00000001
-#define WLAN_RX_REG_STATUS_DSSS_FCS_GOOD        0x00000002
-#define WLAN_RX_REG_STATUS_ACTIVE_ANT_MASK      0x0000000C     // 2-bits: [0,1,2,3] = RF[A,B,C,D]
-#define WLAN_RX_REG_STATUS_PKT_DET_STATUS_MASK  0x000001F0
+#define WLAN_RX_REG_STATUS_OFDM_FCS_GOOD        	 0x00000001
+#define WLAN_RX_REG_STATUS_DSSS_FCS_GOOD        	 0x00000002
+#define WLAN_RX_REG_STATUS_ACTIVE_ANT_MASK           0x0000000C // 2-bits: [0,1,2,3] = RF[A,B,C,D]
+#define WLAN_RX_REG_STATUS_OFDM_PKT_DET_STATUS_MASK  0x000001F0 // 5 bits: [ext, RF D/C/B/A]
+#define WLAN_RX_REG_STATUS_DSSS_PKT_DET_STATUS_MASK  0x00001E00 // 4 bits: [RF D/C/B/A]
+
 
 //-----------------------------------------------
 // TX CONFIG
@@ -346,9 +348,19 @@
 #define wlan_phy_rx_lts_corr_thresholds(corr_thresh_low_snr, corr_thresh_high_snr) \
     Xil_Out32(WLAN_RX_LTS_THRESH, ((corr_thresh_low_snr) & 0xFFFF) | (((corr_thresh_high_snr) & 0xFFFF) << 16))
 
+
+#define wlan_phy_rx_lts_corr_peaktype_thresholds(thresh_low_snr, thresh_high_snr) \
+    Xil_Out32(WLAN_RX_LTS_PEAKTYPE_THRESH, ((thresh_low_snr) & 0xFFFF) | (((thresh_high_snr) & 0xFFFF) << 16))
+
 #define wlan_phy_rx_lts_corr_config(snr_thresh, corr_timeout) Xil_Out32(WLAN_RX_LTS_CFG, ((corr_timeout) & 0xFF) | (((snr_thresh) & 0xFFFF) << 8))
 
-#define wlan_phy_rx_chan_est_smoothing(coef_a, coef_b) Xil_Out32(WLAN_RX_CHAN_EST_SMOOTHING, (((coef_b) & 0xFFF) << 12) | ((coef_a) & 0xFFF))
+#define wlan_phy_rx_chan_est_smoothing(coef_a, coef_b) \
+	Xil_Out32(WLAN_RX_CHAN_EST_SMOOTHING, ((Xil_In32(WLAN_RX_CHAN_EST_SMOOTHING) & 0xFF000000) | \
+			(((coef_b) & 0xFFF) << 12) | ((coef_a) & 0xFFF)))
+
+#define wlan_phy_rx_phy_mode_det_thresh(thresh) \
+		Xil_Out32(WLAN_RX_CHAN_EST_SMOOTHING, ((Xil_In32(WLAN_RX_CHAN_EST_SMOOTHING) & 0xC0FFFFFF) | \
+			(((thresh) & 0x3F) << 24)))
 
 //Tx PHY TIMING register:
 // [ 9: 0] Tx extension (time from last sample to TX_DONE)

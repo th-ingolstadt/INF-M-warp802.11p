@@ -291,6 +291,11 @@ void wlan_phy_init() {
     // LTS correlation thresholds (low NSR, high SNR)
     wlan_phy_rx_lts_corr_thresholds(12500, 12500);
 
+    // WLAN_RX_LTS_PEAKTYPE_THRESH reg
+    // LTS correlation peak-type (big vs small) thresholds (low NSR, high SNR)
+    //FIXME: uncomment with new hw:
+    // wlan_phy_rx_lts_corr_peaktype_thresholds(12500, 12500);
+
     // WLAN_RX_PKT_DET_OFDM_CFG reg
     // Configure RSSI pkt det
     //     RSSI pkt det disabled by default (auto-corr detection worked across SNRs in our testing)
@@ -315,6 +320,7 @@ void wlan_phy_init() {
     // WLAN_RX_CHAN_EST_SMOOTHING reg
     //Disable channel estimate smoothing
     wlan_phy_rx_chan_est_smoothing(0xFFF, 0x0);
+    wlan_phy_rx_phy_mode_det_thresh(20);
 
     // WLAN_RX_PKT_BUF_MAXADDR reg
     wlan_phy_rx_set_max_pktbuf_addr(3800);
