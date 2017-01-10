@@ -621,9 +621,10 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 		rx_seq         = ((rx_80211_header->sequence_control) >> 4) & 0xFFF;
 
 		// Check if this was a duplicate reception
+		//   - Packet is unicast and directed towards me
 		//	 - Packet has the RETRY bit set to 1 in the second frame control byte
 		//   - Received seq num matched previously received seq num for this STA
-		if( station_info != NULL ){
+		if( (station_info != NULL) && unicast_to_me ){
 			if( ((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY) && (station_info->latest_rx_seq == rx_seq) ) {
 				if(rx_event_log_entry != NULL){
 					rx_event_log_entry->flags |= RX_FLAGS_DUPLICATE;
