@@ -830,7 +830,7 @@ inline u32 send_beacon(u8 tx_pkt_buf){
  * but post-reception actions must be conditioned on the eventual FCS status (good or bad).
  *
  * NOTE: The timing of this function is critical for correct operation of the 802.11 DCF. It is not
- *     safe to add large delays to this function (e.g. xil_printf or usleep)
+ *     safe to add large delays to this function (e.g. xil_printf or wlan_usleep)
  *
  * Two primary job responsibilities of this function:
  *  (1): Prepare outgoing ACK packets and instruct the MAC_DCF_HW core whether or not to send ACKs

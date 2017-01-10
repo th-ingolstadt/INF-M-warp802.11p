@@ -899,7 +899,7 @@ u32 transport_update_link_speed(u32 eth_dev_num, u32 wait_for_negotiation) {
         if (wait_for_negotiation == ETH_WAIT_FOR_AUTO_NEGOTIATION) {
 
             while((reg_val & ETH_PHY_REG_17_0_SPEED_RESOLVED) == 0) {
-                usleep(1000);
+            	wlan_usleep(1000);
                 reg_val = transport_get_ethernet_status(eth_dev_num);
             }
 
@@ -923,7 +923,7 @@ u32 transport_update_link_speed(u32 eth_dev_num, u32 wait_for_negotiation) {
         transport_set_phy_link_speed(eth_dev_num, speed);
 
         // Sleep for a short period of time to let everything settle
-        usleep(1 * 10000);
+        wlan_usleep(1 * 10000);
 
     } else {
         wlan_exp_printf(WLAN_EXP_PRINT_NONE, NULL, "  ETH %c not initialized.  Link speed not updated.\n", warp_conv_eth_dev_num(eth_dev_num));

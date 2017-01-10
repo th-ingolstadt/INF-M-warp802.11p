@@ -302,7 +302,7 @@ int wlan_exp_node_init(u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wl
             }
 
             // Sleep for a bit before checking the status again
-            usleep(100000);
+            wlan_usleep(100000);
         }
 
     } else {

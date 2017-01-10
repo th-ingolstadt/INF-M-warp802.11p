@@ -138,7 +138,7 @@ int main(){
  * an acknowledgment.  This should be modified to fit the user's needs.
  *
  * NOTE: The timing of this function is critical for correct operation of the 802.11. It is not
- *     safe to add large delays to this function (e.g. xil_printf or usleep)
+ *     safe to add large delays to this function (e.g. xil_printf or wlan_usleep)
  *
  * @param   rx_pkt_buf       - Index of the Rx packet buffer containing the newly recevied packet
  * @param   phy_details      - Pointer to phy_rx_details struct containing PHY mode, MCS, and Length

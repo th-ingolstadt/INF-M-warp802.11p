@@ -302,13 +302,13 @@ void blink_hex_display(u32 num_blinks, u32 blink_time) {
     // Set the hex display mode to raw bits
     userio_write_control(USERIO_BASEADDR, temp_control);
 
-    // Use usleep to blink the display
+    // Use wlan_usleep to blink the display
     if (num_blinks > 0) {
         // Perform standard blink
         for (i = 0; i < num_blinks; i++) {
             userio_write_hexdisp_left(USERIO_BASEADDR,  (((i % 2) == 0) ? left_val  : 0x00));
             userio_write_hexdisp_right(USERIO_BASEADDR, (((i % 2) == 0) ? right_val : 0x00));
-            usleep(blink_time);
+            wlan_usleep(blink_time);
         }
     } else {
         // Perform an infinite blink
@@ -316,7 +316,7 @@ void blink_hex_display(u32 num_blinks, u32 blink_time) {
         while (1) {
             userio_write_hexdisp_left(USERIO_BASEADDR,  (((i % 2) == 0) ? left_val  : 0x00));
             userio_write_hexdisp_right(USERIO_BASEADDR, (((i % 2) == 0) ? right_val : 0x00));
-            usleep(blink_time);
+            wlan_usleep(blink_time);
             i++;
         }
     }

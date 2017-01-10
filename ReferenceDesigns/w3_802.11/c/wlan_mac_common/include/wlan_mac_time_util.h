@@ -44,7 +44,7 @@ u64                get_mac_time_usec();
 void               set_mac_time_usec(u64 new_time);
 void               apply_mac_time_delta_usec(s64 time_delta);
 u64                get_system_time_usec();
-void               usleep(u64 delay);
+void               wlan_usleep(u64 delay);
 
 
 

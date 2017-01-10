@@ -315,7 +315,7 @@ void uart_rx(u8 rxByte){
 						xil_printf("\nNo SSID entered.  Returning to Main Menu.\n");
 
 						// Wait a second before proceeding
-						usleep(2000000);
+						wlan_usleep(2000000);
 
 						// Print the main menu
 						print_main_menu();
@@ -421,7 +421,7 @@ void check_join_status() {
 		}
 
 		// Wait a second before proceeding
-		usleep(3000000);
+		wlan_usleep(3000000);
 
 		// Print the main menu
 		print_main_menu();

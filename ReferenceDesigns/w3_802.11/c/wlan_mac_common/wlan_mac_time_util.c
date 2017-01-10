@@ -238,7 +238,7 @@ void apply_mac_time_delta_usec(s64 time_delta) {
  * @param   delay            - Time to sleep in microseconds (u64)
  * @return  None
  */
-void usleep(u64 delay) {
+void wlan_usleep(u64 delay) {
     u64 timestamp = get_system_time_usec();
     while (get_system_time_usec() < (timestamp + delay)) {}
     return;
