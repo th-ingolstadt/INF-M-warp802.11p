@@ -60,7 +60,7 @@ volatile static u32               mac_param_rx_filter;                          
 volatile static u8                rx_pkt_buf;                                       ///< Current receive buffer of the lower-level MAC
 
 static u32                        cpu_low_status;                                   ///< Status flags that are reported to upper-level MAC
-static u32						  cpu_low_type;										///< wlan_exp CPU_LOW type that is reported to upperp-level MAC
+static u32						  cpu_low_type;										///< wlan_exp CPU_LOW type that is reported to upper-level MAC
 static compilation_details_t	  cpu_low_compilation_details;
 
 static wlan_ipc_msg_t        	  ipc_msg_from_high;                                          ///< Buffer for incoming IPC messages
@@ -114,8 +114,7 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
     unique_seq = 0;
 
     //Set the TU Target to the max value
-    //FIXME: Change this to u64 in next revision
-    wlan_mac_set_tu_target(0xFFFFFFFF);
+    wlan_mac_set_tu_target(0xFFFFFFFFFFFFFFFFUL);
 
     mac_param_rx_filter      = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL);
 
