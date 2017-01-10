@@ -356,7 +356,7 @@ class WlanExpNodeAp(node.WlanExpNode):
         self.send_cmd(cmds.NodeAPSetAuthAddrFilter(filters))
 
 
-    def add_association(self, device_list, disable_timeout=None):
+    def add_association(self, device_list, disable_timeout=True):
         """Adds each device in ``device_list`` to the list of associated stations at the AP. If a device
         is also an 802.11 Reference Design STA, the STA is also configured with the BSS of the AP. In this
         case the AP and STA attain the same association state as if they had associated via the standard
