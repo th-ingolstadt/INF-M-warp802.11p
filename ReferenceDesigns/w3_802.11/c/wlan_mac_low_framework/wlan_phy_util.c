@@ -290,7 +290,7 @@ void wlan_phy_init() {
 
     // WLAN_RX_LTS_THRESH reg
     // LTS correlation thresholds (low NSR, high SNR)
-    wlan_phy_rx_lts_corr_thresholds(12500, 12500);
+    wlan_phy_rx_lts_corr_thresholds(9000, 9000);
 
     // WLAN_RX_LTS_PEAKTYPE_THRESH reg
     // LTS correlation peak-type (big vs small) thresholds (low NSR, high SNR)
