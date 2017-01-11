@@ -168,12 +168,12 @@
 
 
 extern u8       wlan_exp_print_level;
-extern char   * print_type_node;
-extern char   * print_type_transport;
-extern char   * print_type_event_log;
-extern char   * print_type_counts;
-extern char   * print_type_ltg;
-extern char   * print_type_queue;
+extern const char   * print_type_node;
+extern const char   * print_type_transport;
+extern const char   * print_type_event_log;
+extern const char   * print_type_counts;
+extern const char   * print_type_ltg;
+extern const char   * print_type_queue;
 
 
 
@@ -274,7 +274,7 @@ typedef struct {
 int           wlan_exp_null_callback(void* param);
 
 // Printing Functions
-void          wlan_exp_print_header(u8 level, char * type, char * filename, u32 line);
+void          wlan_exp_print_header(u8 level, const char * type, char * filename, u32 line);
 void          wlan_exp_print_mac_address(u8 level, u8 * mac_address);
 
 void          wlan_exp_set_print_level(u8 level);

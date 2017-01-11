@@ -107,7 +107,7 @@ u32           process_buffer_cmds(int socket_index, void * from, cmd_resp * comm
                                   cmd_resp_hdr * cmd_hdr, u32 * cmd_args_32,
                                   cmd_resp_hdr * resp_hdr, u32 * resp_args_32,
                                   u32 eth_dev_num, u32 max_resp_len,
-                                  char * type, char * description, dl_list * source_list, u32 dest_size,
+                                  const char * type, char * description, dl_list * source_list, u32 dest_size,
                                   u32 (*find_id)(u8 *),
                                   dl_entry * (*find_source)(u8 *),
                                   void (*copy_source_to_dest)(void *, void *, u8*),
@@ -133,13 +133,13 @@ int           null_process_cmd_callback(u32 cmd_id, void* param);
 wlan_exp_node_info                node_info;
 static wlan_exp_tag_parameter     node_parameters[NODE_PARAM_MAX_PARAMETER];
 
-static wlan_exp_function_ptr_t    wlan_exp_process_node_cmd_callback         = (wlan_exp_function_ptr_t) null_process_cmd_callback;
-       wlan_exp_function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback  = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
-       wlan_exp_function_ptr_t    wlan_exp_tx_cmd_add_association_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
-       wlan_exp_function_ptr_t    wlan_exp_process_user_cmd_callback         = (wlan_exp_function_ptr_t) null_process_cmd_callback;
-       wlan_exp_function_ptr_t    wlan_exp_beacon_ts_update_mode_callback    = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
-       wlan_exp_function_ptr_t    wlan_exp_process_config_bss_callback       = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
-       wlan_exp_function_ptr_t    wlan_exp_active_bss_info_getter_callback	 = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
+static wlan_exp_function_ptr_t    wlan_exp_process_node_cmd_callback;
+	   wlan_exp_function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback;
+       wlan_exp_function_ptr_t    wlan_exp_tx_cmd_add_association_callback;
+       wlan_exp_function_ptr_t    wlan_exp_process_user_cmd_callback;
+       wlan_exp_function_ptr_t    wlan_exp_beacon_ts_update_mode_callback;
+       wlan_exp_function_ptr_t    wlan_exp_process_config_bss_callback;
+       wlan_exp_function_ptr_t    wlan_exp_active_bss_info_getter_callback;
 
 
 // Allocate Ethernet Header buffer
@@ -186,6 +186,8 @@ int wlan_exp_node_init(u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wl
 
     xil_printf("------------------------\n");
     xil_printf("WLAN EXP v%d.%d.%d (compiled %s %s)\n", WLAN_EXP_VER_MAJOR, WLAN_EXP_VER_MINOR, WLAN_EXP_VER_REV, __DATE__, __TIME__);
+
+    wlan_exp_reset_all_callbacks();
 
 
     // ------------------------------------------
@@ -3082,7 +3084,7 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
                         cmd_resp_hdr * cmd_hdr, u32 * cmd_args_32,
                         cmd_resp_hdr * resp_hdr, u32 * resp_args_32,
                         u32 eth_dev_num, u32 max_resp_len,
-                        char * type, char * description, dl_list * source_list, u32 dest_size,
+                        const char * type, char * description, dl_list * source_list, u32 dest_size,
                         u32 (*find_id)(u8 *),
                         dl_entry * (*find_source)(u8 *),
                         void (*copy_source_to_dest)(void *, void *, u8*),

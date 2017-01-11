@@ -135,6 +135,9 @@ void event_log_init( char * start_address, u32 size ) {
     u32 alignment;
     u32 disable_log = 0;
 
+    wlan_exp_log_set_mac_payload_len(MIN_MAC_PAYLOAD_LOG_LEN);
+    //wlan_exp_log_set_mac_payload_len(MAX_MAC_PAYLOAD_LOG_LEN); //Log full payloads
+
     // Make sure that the start_address is 64-bit aligned
     alignment = ((u32)start_address) % 8;
 

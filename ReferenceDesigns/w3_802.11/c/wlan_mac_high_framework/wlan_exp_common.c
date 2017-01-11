@@ -53,15 +53,15 @@
 *
 ******************************************************************************/
 u8       wlan_exp_print_level     = WLAN_EXP_DEFAULT_DEBUG_PRINT_LEVEL;
-char   * print_type_node          = "NODE";
-char   * print_type_transport     = "TRANSPORT";
-char   * print_type_event_log     = "EVENT LOG";
-char   * print_type_counts        = "COUNTS";
-char   * print_type_ltg           = "LTG";
-char   * print_type_queue         = "QUEUE";
+const char   * print_type_node          = "NODE";
+const char   * print_type_transport     = "TRANSPORT";
+const char   * print_type_event_log     = "EVENT LOG";
+const char   * print_type_counts        = "COUNTS";
+const char   * print_type_ltg           = "LTG";
+const char   * print_type_queue         = "QUEUE";
 
 
-void wlan_exp_print_header(u8 level, char * type, char* filename, u32 line) {
+void wlan_exp_print_header(u8 level, const char * type, char* filename, u32 line) {
     char * basename = NULL;
 
     if (type != NULL) {

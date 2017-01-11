@@ -74,8 +74,8 @@ static u32   system_time_id;
 // through WLAN Exp.
 //
 
-u32 mac_payload_log_len = MIN_MAC_PAYLOAD_LOG_LEN;
-// u32 mac_payload_log_len = MAX_MAC_PAYLOAD_LOG_LEN;
+u32 mac_payload_log_len;
+
 
 
 /*************************** Variable Definitions ****************************/

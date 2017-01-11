@@ -65,8 +65,8 @@
 //     These channels will be scanned by default at boot.  This uses the standard
 //     channel numbering scheme.
 //
-// u8 default_channel_selections[11] = {1,2,3,4,5,6,7,8,9,10,11};             // Scan only 2.4GHz channels
-u8 default_channel_selections[15] = {1,2,3,4,5,6,7,8,9,10,11,36,40,44,48}; // Scan 2.4GHz and 5GHz channels
+//const u8 default_channel_selections[11] = {1,2,3,4,5,6,7,8,9,10,11};             // Scan only 2.4GHz channels
+const u8 default_channel_selections[15] = {1,2,3,4,5,6,7,8,9,10,11,36,40,44,48}; // Scan 2.4GHz and 5GHz channels
 
 
 // Global scan parameters
