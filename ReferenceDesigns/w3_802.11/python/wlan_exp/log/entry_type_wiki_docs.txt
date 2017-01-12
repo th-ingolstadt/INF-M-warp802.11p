@@ -1,4 +1,4 @@
-== wlan_exp v1.5.3   Log Entry Types ==
+== wlan_exp v1.6.0   Log Entry Types ==
 
 ----
 
@@ -143,7 +143,7 @@ cpu_high_compilation_date
 12S
 }}}
 {{{#!td align=left
-CPU High Compilation Date
+CPU High Compilation Date string
 }}}
 |----------------
 {{{#!td align=left
@@ -153,7 +153,7 @@ cpu_high_compilation_time
 12S
 }}}
 {{{#!td align=left
-CPU High Compilation Time
+CPU High Compilation Time string
 }}}
 |----------------
 {{{#!td align=left
@@ -163,7 +163,7 @@ cpu_low_compilation_date
 12S
 }}}
 {{{#!td align=left
-CPU Low Compilation Date
+CPU Low Compilation Date string
 }}}
 |----------------
 {{{#!td align=left
@@ -173,7 +173,7 @@ cpu_low_compilation_time
 12S
 }}}
 {{{#!td align=left
-CPU Low Compilation Time
+CPU Low Compilation Time string
 }}}
 |----------------
 
@@ -435,7 +435,7 @@ timestamp_frac
 uint8
 }}}
 {{{#!td align=left
-Fractional timestamp (units of 6.25ns)
+Fractional part of timestamp (units of 6.25ns)
 }}}
 |----------------
 {{{#!td align=left
@@ -445,7 +445,7 @@ phy_samp_rate
 uint8
 }}}
 {{{#!td align=left
-PHY Sampling Rate Mode
+PHY sampling rate in MSps
 }}}
 |----------------
 {{{#!td align=left
@@ -485,7 +485,7 @@ phy_mode
 uint8
 }}}
 {{{#!td align=left
-PHY mode
+PHY mode index, in ![0:2]
 
 Constants defined for this field:
  * {{{'NONHT': 1}}}
@@ -538,17 +538,28 @@ pkt_type
 uint8
 }}}
 {{{#!td align=left
-Packet type, (first frame control byte of 802.11 header)
+Packet type, first frame control byte of 802.11 header
 
 Constants defined for this field:
- * {{{'QOSDATA': 136}}}
- * {{{'PROBE_RESP': 80}}}
+ * {{{'DEAUTH': 192}}}
+ * {{{'BLOCK_ACK': 148}}}
  * {{{'CTS': 196}}}
  * {{{'ACK': 212}}}
+ * {{{'AUTH': 176}}}
  * {{{'BEACON': 128}}}
- * {{{'RTS': 180}}}
+ * {{{'DISASSOC': 160}}}
  * {{{'NULLDATA': 72}}}
+ * {{{'REASSOC_REQ': 32}}}
  * {{{'DATA': 8}}}
+ * {{{'BLOCK_ACK_REQ': 132}}}
+ * {{{'PROBE_REQ': 64}}}
+ * {{{'PROBE_RESP': 80}}}
+ * {{{'QOSDATA': 136}}}
+ * {{{'REASSOC_RESP': 48}}}
+ * {{{'ASSOC_RESP': 16}}}
+ * {{{'ASSOC_REQ': 0}}}
+ * {{{'RTS': 180}}}
+ * {{{'ACTION': 208}}}
 
 }}}
 |----------------
@@ -730,7 +741,7 @@ timestamp_frac
 uint8
 }}}
 {{{#!td align=left
-Fractional timestamp (units of 6.25ns)
+Fractional part of timestamp (units of 6.25ns)
 }}}
 |----------------
 {{{#!td align=left
@@ -740,7 +751,7 @@ phy_samp_rate
 uint8
 }}}
 {{{#!td align=left
-PHY Sampling Rate Mode
+PHY sampling rate in MSps
 }}}
 |----------------
 {{{#!td align=left
@@ -780,7 +791,7 @@ phy_mode
 uint8
 }}}
 {{{#!td align=left
-PHY mode
+PHY mode index, in ![0:2]
 
 Constants defined for this field:
  * {{{'NONHT': 1}}}
@@ -833,17 +844,28 @@ pkt_type
 uint8
 }}}
 {{{#!td align=left
-Packet type, (first frame control byte of 802.11 header)
+Packet type, first frame control byte of 802.11 header
 
 Constants defined for this field:
- * {{{'QOSDATA': 136}}}
- * {{{'PROBE_RESP': 80}}}
+ * {{{'DEAUTH': 192}}}
+ * {{{'BLOCK_ACK': 148}}}
  * {{{'CTS': 196}}}
  * {{{'ACK': 212}}}
+ * {{{'AUTH': 176}}}
  * {{{'BEACON': 128}}}
- * {{{'RTS': 180}}}
+ * {{{'DISASSOC': 160}}}
  * {{{'NULLDATA': 72}}}
+ * {{{'REASSOC_REQ': 32}}}
  * {{{'DATA': 8}}}
+ * {{{'BLOCK_ACK_REQ': 132}}}
+ * {{{'PROBE_REQ': 64}}}
+ * {{{'PROBE_RESP': 80}}}
+ * {{{'QOSDATA': 136}}}
+ * {{{'REASSOC_RESP': 48}}}
+ * {{{'ASSOC_RESP': 16}}}
+ * {{{'ASSOC_REQ': 0}}}
+ * {{{'RTS': 180}}}
+ * {{{'ACTION': 208}}}
 
 }}}
 |----------------
@@ -1047,7 +1069,7 @@ timestamp_frac
 uint8
 }}}
 {{{#!td align=left
-Fractional timestamp (units of 6.25ns)
+Fractional part of timestamp (units of 6.25ns)
 }}}
 |----------------
 {{{#!td align=left
@@ -1057,7 +1079,7 @@ phy_samp_rate
 uint8
 }}}
 {{{#!td align=left
-PHY Sampling Rate Mode
+PHY sampling rate in MSps
 }}}
 |----------------
 {{{#!td align=left
@@ -1097,7 +1119,7 @@ phy_mode
 uint8
 }}}
 {{{#!td align=left
-PHY mode
+PHY mode index, in ![0:2]
 
 Constants defined for this field:
  * {{{'NONHT': 1}}}
@@ -1150,17 +1172,28 @@ pkt_type
 uint8
 }}}
 {{{#!td align=left
-Packet type, (first frame control byte of 802.11 header)
+Packet type, first frame control byte of 802.11 header
 
 Constants defined for this field:
- * {{{'QOSDATA': 136}}}
- * {{{'PROBE_RESP': 80}}}
+ * {{{'DEAUTH': 192}}}
+ * {{{'BLOCK_ACK': 148}}}
  * {{{'CTS': 196}}}
  * {{{'ACK': 212}}}
+ * {{{'AUTH': 176}}}
  * {{{'BEACON': 128}}}
- * {{{'RTS': 180}}}
+ * {{{'DISASSOC': 160}}}
  * {{{'NULLDATA': 72}}}
+ * {{{'REASSOC_REQ': 32}}}
  * {{{'DATA': 8}}}
+ * {{{'BLOCK_ACK_REQ': 132}}}
+ * {{{'PROBE_REQ': 64}}}
+ * {{{'PROBE_RESP': 80}}}
+ * {{{'QOSDATA': 136}}}
+ * {{{'REASSOC_RESP': 48}}}
+ * {{{'ASSOC_RESP': 16}}}
+ * {{{'ASSOC_REQ': 0}}}
+ * {{{'RTS': 180}}}
+ * {{{'ACTION': 208}}}
 
 }}}
 |----------------
@@ -1301,7 +1334,7 @@ MAC Header Sequence Number
 ----
 
 === Entry Type TX_HIGH ===
-Tx events in CPU High, logged for each MPDU frame created and enqueued in CPU High. See TX_LOW for log entries of actual Tx events, including re-transmissions. The time values in this log entry can be used to determine time in queue (time_to_accept), time taken by CPU Low for all Tx attempts (time_to_done) and total time from creation to completion (time_to_accept+time_to_done).
+Tx events in CPU High, logged for each data and management frame created and enqueued in CPU High. See TX_LOW for log entries of actual Tx events, including re-transmissions. The time values in this log entry can be used to determine time in queue (time_to_accept), time taken by CPU Low for all Tx attempts (time_to_done) and total time from creation to completion (time_to_accept+time_to_done).
 
 Entry type ID: 20
 
@@ -1332,7 +1365,7 @@ time_to_accept
 uint32
 }}}
 {{{#!td align=left
-Time duration in microseconds between packet creation and packet acceptance by CPU Low
+Time duration in microseconds between packet creation and acceptance by frame_transmit() in CPU Low
 }}}
 |----------------
 {{{#!td align=left
@@ -1342,7 +1375,7 @@ time_to_done
 uint32
 }}}
 {{{#!td align=left
-Time duration in microseconds between packet acceptance by CPU Low and Tx completion in CPU Low
+Time duration in microseconds between packet acceptance by CPU Low and completion of all transmissions by CPU Low
 }}}
 |----------------
 {{{#!td align=left
@@ -1356,76 +1389,23 @@ Unique sequence number for Tx packet; 12 LSB of this used for 802.11 MAC header 
 }}}
 |----------------
 {{{#!td align=left
-mcs
+padding0
 }}}
 {{{#!td align=center
-uint8
+uint32
 }}}
 {{{#!td align=left
-MCS index in ![0:7]
-}}}
-|----------------
-{{{#!td align=left
-phy_mode
-}}}
-{{{#!td align=center
-uint8
-}}}
-{{{#!td align=left
-PHY mode
 
-Constants defined for this field:
- * {{{'NONHT': 1}}}
- * {{{'HTMF': 2}}}
- * {{{'DSSS': 0}}}
-
-}}}
-|----------------
-{{{#!td align=left
-ant_mode
-}}}
-{{{#!td align=center
-uint8
-}}}
-{{{#!td align=left
-PHY antenna mode in [0x10, 0x20, 0x30, 0x40]
-
-Constants defined for this field:
- * {{{'RF_A': 16}}}
- * {{{'RF_C': 48}}}
- * {{{'RF_B': 32}}}
- * {{{'RF_D': 64}}}
-
-}}}
-|----------------
-{{{#!td align=left
-tx_power
-}}}
-{{{#!td align=center
-int8
-}}}
-{{{#!td align=left
-Tx power in dBm
 }}}
 |----------------
 {{{#!td align=left
 num_tx
 }}}
 {{{#!td align=center
-uint8
+uint16
 }}}
 {{{#!td align=left
 Number of Tx attempts that were made for this packet
-}}}
-|----------------
-{{{#!td align=left
-padding0
-}}}
-{{{#!td align=center
-uint8
-}}}
-{{{#!td align=left
-Padding
 }}}
 |----------------
 {{{#!td align=left
@@ -1455,17 +1435,28 @@ pkt_type
 uint8
 }}}
 {{{#!td align=left
-Packet type, (first frame control byte of 802.11 header)
+Packet type, first frame control byte of 802.11 header
 
 Constants defined for this field:
- * {{{'QOSDATA': 136}}}
- * {{{'PROBE_RESP': 80}}}
+ * {{{'DEAUTH': 192}}}
+ * {{{'BLOCK_ACK': 148}}}
  * {{{'CTS': 196}}}
  * {{{'ACK': 212}}}
+ * {{{'AUTH': 176}}}
  * {{{'BEACON': 128}}}
- * {{{'RTS': 180}}}
+ * {{{'DISASSOC': 160}}}
  * {{{'NULLDATA': 72}}}
+ * {{{'REASSOC_REQ': 32}}}
  * {{{'DATA': 8}}}
+ * {{{'BLOCK_ACK_REQ': 132}}}
+ * {{{'PROBE_REQ': 64}}}
+ * {{{'PROBE_RESP': 80}}}
+ * {{{'QOSDATA': 136}}}
+ * {{{'REASSOC_RESP': 48}}}
+ * {{{'ASSOC_RESP': 16}}}
+ * {{{'ASSOC_REQ': 0}}}
+ * {{{'RTS': 180}}}
+ * {{{'ACTION': 208}}}
 
 }}}
 |----------------
@@ -1486,7 +1477,7 @@ queue_occupancy
 uint16
 }}}
 {{{#!td align=left
-Occupancy of the Tx queue at the time the packet was created (value includes itself)
+Occupancy of the Tx queue immediately after this packet was enqueued
 }}}
 |----------------
 {{{#!td align=left
@@ -1584,7 +1575,7 @@ MAC Header Sequence Number
 ----
 
 === Entry Type TX_HIGH_LTG ===
-Tx events in CPU High, logged for each MPDU frame created and enqueued in CPU High. See TX_LOW for log entries of actual Tx events, including re-transmissions. The time values in this log entry can be used to determine time in queue (time_to_accept), time taken by CPU Low for all Tx attempts (time_to_done) and total time from creation to completion (time_to_accept+time_to_done).
+Tx events in CPU High, logged for each data and management frame created and enqueued in CPU High. See TX_LOW for log entries of actual Tx events, including re-transmissions. The time values in this log entry can be used to determine time in queue (time_to_accept), time taken by CPU Low for all Tx attempts (time_to_done) and total time from creation to completion (time_to_accept+time_to_done).
 
 Entry type ID: 21
 
@@ -1615,7 +1606,7 @@ time_to_accept
 uint32
 }}}
 {{{#!td align=left
-Time duration in microseconds between packet creation and packet acceptance by CPU Low
+Time duration in microseconds between packet creation and acceptance by frame_transmit() in CPU Low
 }}}
 |----------------
 {{{#!td align=left
@@ -1625,7 +1616,7 @@ time_to_done
 uint32
 }}}
 {{{#!td align=left
-Time duration in microseconds between packet acceptance by CPU Low and Tx completion in CPU Low
+Time duration in microseconds between packet acceptance by CPU Low and completion of all transmissions by CPU Low
 }}}
 |----------------
 {{{#!td align=left
@@ -1639,76 +1630,23 @@ Unique sequence number for Tx packet; 12 LSB of this used for 802.11 MAC header 
 }}}
 |----------------
 {{{#!td align=left
-mcs
+padding0
 }}}
 {{{#!td align=center
-uint8
+uint32
 }}}
 {{{#!td align=left
-MCS index in ![0:7]
-}}}
-|----------------
-{{{#!td align=left
-phy_mode
-}}}
-{{{#!td align=center
-uint8
-}}}
-{{{#!td align=left
-PHY mode
 
-Constants defined for this field:
- * {{{'NONHT': 1}}}
- * {{{'HTMF': 2}}}
- * {{{'DSSS': 0}}}
-
-}}}
-|----------------
-{{{#!td align=left
-ant_mode
-}}}
-{{{#!td align=center
-uint8
-}}}
-{{{#!td align=left
-PHY antenna mode in [0x10, 0x20, 0x30, 0x40]
-
-Constants defined for this field:
- * {{{'RF_A': 16}}}
- * {{{'RF_C': 48}}}
- * {{{'RF_B': 32}}}
- * {{{'RF_D': 64}}}
-
-}}}
-|----------------
-{{{#!td align=left
-tx_power
-}}}
-{{{#!td align=center
-int8
-}}}
-{{{#!td align=left
-Tx power in dBm
 }}}
 |----------------
 {{{#!td align=left
 num_tx
 }}}
 {{{#!td align=center
-uint8
+uint16
 }}}
 {{{#!td align=left
 Number of Tx attempts that were made for this packet
-}}}
-|----------------
-{{{#!td align=left
-padding0
-}}}
-{{{#!td align=center
-uint8
-}}}
-{{{#!td align=left
-Padding
 }}}
 |----------------
 {{{#!td align=left
@@ -1738,17 +1676,28 @@ pkt_type
 uint8
 }}}
 {{{#!td align=left
-Packet type, (first frame control byte of 802.11 header)
+Packet type, first frame control byte of 802.11 header
 
 Constants defined for this field:
- * {{{'QOSDATA': 136}}}
- * {{{'PROBE_RESP': 80}}}
+ * {{{'DEAUTH': 192}}}
+ * {{{'BLOCK_ACK': 148}}}
  * {{{'CTS': 196}}}
  * {{{'ACK': 212}}}
+ * {{{'AUTH': 176}}}
  * {{{'BEACON': 128}}}
- * {{{'RTS': 180}}}
+ * {{{'DISASSOC': 160}}}
  * {{{'NULLDATA': 72}}}
+ * {{{'REASSOC_REQ': 32}}}
  * {{{'DATA': 8}}}
+ * {{{'BLOCK_ACK_REQ': 132}}}
+ * {{{'PROBE_REQ': 64}}}
+ * {{{'PROBE_RESP': 80}}}
+ * {{{'QOSDATA': 136}}}
+ * {{{'REASSOC_RESP': 48}}}
+ * {{{'ASSOC_RESP': 16}}}
+ * {{{'ASSOC_REQ': 0}}}
+ * {{{'RTS': 180}}}
+ * {{{'ACTION': 208}}}
 
 }}}
 |----------------
@@ -1769,7 +1718,7 @@ queue_occupancy
 uint16
 }}}
 {{{#!td align=left
-Occupancy of the Tx queue at the time the packet was created (value includes itself)
+Occupancy of the Tx queue immediately after this packet was enqueued
 }}}
 |----------------
 {{{#!td align=left
@@ -1889,7 +1838,7 @@ LTG Flow ID, calculated as:
 ----
 
 === Entry Type TX_LOW ===
-Record of actual PHY transmission. At least one TX_LOW will be logged for every TX entry. Multiple TX_LOW entries may be created for the same TX entry if the low-level MAC re-transmitted the frame. The uniq_seq fields can be match between TX and TX_LOW entries to find records common to the same MPUD.
+Record of actual PHY transmission. At least one TX_LOW will be logged for every TX_HIGH entry. Multiple TX_LOW entries may be created for the same TX_HIGH entry if the low-level MAC re-transmitted the frame. Use the uniq_seq fields to match TX_HIGH and TX_LOW entries to find records common to the same MPDU.
 
 Entry type ID: 25
 
@@ -1940,7 +1889,7 @@ phy_mode
 uint8
 }}}
 {{{#!td align=left
-PHY mode
+PHY mode index, in ![1:2]
 
 Constants defined for this field:
  * {{{'NONHT': 1}}}
@@ -1977,13 +1926,13 @@ Tx power in dBm
 }}}
 |----------------
 {{{#!td align=left
-tx_count
+reserved0
 }}}
 {{{#!td align=center
 uint8
 }}}
 {{{#!td align=left
-Transmission index for this attempt, starting at 0 (0 = initial Tx, 1+ = subsequent attempts)
+
 }}}
 |----------------
 {{{#!td align=left
@@ -2036,14 +1985,25 @@ uint8
 Packet type, (first frame control byte of 802.11 header)
 
 Constants defined for this field:
- * {{{'QOSDATA': 136}}}
- * {{{'PROBE_RESP': 80}}}
+ * {{{'DEAUTH': 192}}}
+ * {{{'BLOCK_ACK': 148}}}
  * {{{'CTS': 196}}}
  * {{{'ACK': 212}}}
+ * {{{'AUTH': 176}}}
  * {{{'BEACON': 128}}}
- * {{{'RTS': 180}}}
+ * {{{'DISASSOC': 160}}}
  * {{{'NULLDATA': 72}}}
+ * {{{'REASSOC_REQ': 32}}}
  * {{{'DATA': 8}}}
+ * {{{'BLOCK_ACK_REQ': 132}}}
+ * {{{'PROBE_REQ': 64}}}
+ * {{{'PROBE_RESP': 80}}}
+ * {{{'QOSDATA': 136}}}
+ * {{{'REASSOC_RESP': 48}}}
+ * {{{'ASSOC_RESP': 16}}}
+ * {{{'ASSOC_REQ': 0}}}
+ * {{{'RTS': 180}}}
+ * {{{'ACTION': 208}}}
 
 }}}
 |----------------
@@ -2070,7 +2030,7 @@ timestamp_frac
 uint8
 }}}
 {{{#!td align=left
-Fractional timestamp (units of 6.25ns)
+Fractional part of Tx timestamp (units of 6.25ns)
 }}}
 |----------------
 {{{#!td align=left
@@ -2081,6 +2041,26 @@ uint8
 }}}
 {{{#!td align=left
 PHY Sampling Rate Mode
+}}}
+|----------------
+{{{#!td align=left
+tx_count
+}}}
+{{{#!td align=center
+uint16
+}}}
+{{{#!td align=left
+Transmission index for this attempt, starting at 0 (0 = first Tx)
+}}}
+|----------------
+{{{#!td align=left
+reserved1
+}}}
+{{{#!td align=center
+uint16
+}}}
+{{{#!td align=left
+
 }}}
 |----------------
 {{{#!td align=left
@@ -2162,7 +2142,7 @@ MAC Header Sequence Number
 ----
 
 === Entry Type TX_LOW_LTG ===
-Record of actual PHY transmission. At least one TX_LOW will be logged for every TX entry. Multiple TX_LOW entries may be created for the same TX entry if the low-level MAC re-transmitted the frame. The uniq_seq fields can be match between TX and TX_LOW entries to find records common to the same MPUD.
+Record of actual PHY transmission. At least one TX_LOW will be logged for every TX_HIGH entry. Multiple TX_LOW entries may be created for the same TX_HIGH entry if the low-level MAC re-transmitted the frame. Use the uniq_seq fields to match TX_HIGH and TX_LOW entries to find records common to the same MPDU.
 
 Entry type ID: 26
 
@@ -2213,7 +2193,7 @@ phy_mode
 uint8
 }}}
 {{{#!td align=left
-PHY mode
+PHY mode index, in ![1:2]
 
 Constants defined for this field:
  * {{{'NONHT': 1}}}
@@ -2250,13 +2230,13 @@ Tx power in dBm
 }}}
 |----------------
 {{{#!td align=left
-tx_count
+reserved0
 }}}
 {{{#!td align=center
 uint8
 }}}
 {{{#!td align=left
-Transmission index for this attempt, starting at 0 (0 = initial Tx, 1+ = subsequent attempts)
+
 }}}
 |----------------
 {{{#!td align=left
@@ -2309,14 +2289,25 @@ uint8
 Packet type, (first frame control byte of 802.11 header)
 
 Constants defined for this field:
- * {{{'QOSDATA': 136}}}
- * {{{'PROBE_RESP': 80}}}
+ * {{{'DEAUTH': 192}}}
+ * {{{'BLOCK_ACK': 148}}}
  * {{{'CTS': 196}}}
  * {{{'ACK': 212}}}
+ * {{{'AUTH': 176}}}
  * {{{'BEACON': 128}}}
- * {{{'RTS': 180}}}
+ * {{{'DISASSOC': 160}}}
  * {{{'NULLDATA': 72}}}
+ * {{{'REASSOC_REQ': 32}}}
  * {{{'DATA': 8}}}
+ * {{{'BLOCK_ACK_REQ': 132}}}
+ * {{{'PROBE_REQ': 64}}}
+ * {{{'PROBE_RESP': 80}}}
+ * {{{'QOSDATA': 136}}}
+ * {{{'REASSOC_RESP': 48}}}
+ * {{{'ASSOC_RESP': 16}}}
+ * {{{'ASSOC_REQ': 0}}}
+ * {{{'RTS': 180}}}
+ * {{{'ACTION': 208}}}
 
 }}}
 |----------------
@@ -2343,7 +2334,7 @@ timestamp_frac
 uint8
 }}}
 {{{#!td align=left
-Fractional timestamp (units of 6.25ns)
+Fractional part of Tx timestamp (units of 6.25ns)
 }}}
 |----------------
 {{{#!td align=left
@@ -2354,6 +2345,26 @@ uint8
 }}}
 {{{#!td align=left
 PHY Sampling Rate Mode
+}}}
+|----------------
+{{{#!td align=left
+tx_count
+}}}
+{{{#!td align=center
+uint16
+}}}
+{{{#!td align=left
+Transmission index for this attempt, starting at 0 (0 = first Tx)
+}}}
+|----------------
+{{{#!td align=left
+reserved1
+}}}
+{{{#!td align=center
+uint16
+}}}
+{{{#!td align=left
+
 }}}
 |----------------
 {{{#!td align=left
