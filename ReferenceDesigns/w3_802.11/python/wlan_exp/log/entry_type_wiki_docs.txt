@@ -37,12 +37,13 @@ uint32
 Code identifying applications in CPU High and CPU Low
 
 Constants defined for this field:
- * {{{'AP_DCF': 0x10101}}}
- * {{{'AP_NOMAC': 0x10102}}}
- * {{{'IBSS_DCF': 0x10301}}}
- * {{{'STA_NOMAC': 0x10202}}}
- * {{{'IBSS_NOMAC': 0x10302}}}
- * {{{'STA_DCF': 0x10201}}}
+||= Name =||= Value =||
+||  {{{AP_DCF}}}  ||  {{{0x10101}}}  ||
+||  {{{AP_NOMAC}}}  ||  {{{0x10102}}}  ||
+||  {{{IBSS_DCF}}}  ||  {{{0x10301}}}  ||
+||  {{{STA_NOMAC}}}  ||  {{{0x10202}}}  ||
+||  {{{IBSS_NOMAC}}}  ||  {{{0x10302}}}  ||
+||  {{{STA_DCF}}}  ||  {{{0x10201}}}  ||
 
 }}}
 |----------------
@@ -363,9 +364,10 @@ uint32
 Reason code for TIME_INFO log entry creation
 
 Constants defined for this field:
- * {{{'SYSTEM': 0x0}}}
- * {{{'WLAN_EXP_SET_TIME': 0x1}}}
- * {{{'WLAN_EXP_ADD_LOG': 0x2}}}
+||= Name =||= Value =||
+||  {{{SYSTEM}}}  ||  {{{0x0}}}  ||
+||  {{{WLAN_EXP_SET_TIME}}}  ||  {{{0x1}}}  ||
+||  {{{WLAN_EXP_ADD_LOG}}}  ||  {{{0x2}}}  ||
 
 }}}
 |----------------
@@ -488,9 +490,10 @@ uint8
 PHY mode index, in ![0:2]
 
 Constants defined for this field:
- * {{{'NONHT': 0x1}}}
- * {{{'HTMF': 0x2}}}
- * {{{'DSSS': 0x0}}}
+||= Name =||= Value =||
+||  {{{NONHT}}}  ||  {{{0x1}}}  ||
+||  {{{HTMF}}}  ||  {{{0x2}}}  ||
+||  {{{DSSS}}}  ||  {{{0x0}}}  ||
 
 }}}
 |----------------
@@ -504,10 +507,11 @@ uint8
 Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D]
 
 Constants defined for this field:
- * {{{'RF_A': 0x1}}}
- * {{{'RF_C': 0x3}}}
- * {{{'RF_B': 0x2}}}
- * {{{'RF_D': 0x4}}}
+||= Name =||= Value =||
+||  {{{RF_A}}}  ||  {{{0x1}}}  ||
+||  {{{RF_C}}}  ||  {{{0x3}}}  ||
+||  {{{RF_B}}}  ||  {{{0x2}}}  ||
+||  {{{RF_D}}}  ||  {{{0x4}}}  ||
 
 }}}
 |----------------
@@ -541,25 +545,26 @@ uint8
 Packet type, first frame control byte of 802.11 header
 
 Constants defined for this field:
- * {{{'DEAUTH': 0xC0}}}
- * {{{'BLOCK_ACK': 0x94}}}
- * {{{'CTS': 0xC4}}}
- * {{{'ACK': 0xD4}}}
- * {{{'AUTH': 0xB0}}}
- * {{{'BEACON': 0x80}}}
- * {{{'DISASSOC': 0xA0}}}
- * {{{'NULLDATA': 0x48}}}
- * {{{'REASSOC_REQ': 0x20}}}
- * {{{'DATA': 0x8}}}
- * {{{'BLOCK_ACK_REQ': 0x84}}}
- * {{{'PROBE_REQ': 0x40}}}
- * {{{'PROBE_RESP': 0x50}}}
- * {{{'QOSDATA': 0x88}}}
- * {{{'REASSOC_RESP': 0x30}}}
- * {{{'ASSOC_RESP': 0x10}}}
- * {{{'ASSOC_REQ': 0x0}}}
- * {{{'RTS': 0xB4}}}
- * {{{'ACTION': 0xD0}}}
+||= Name =||= Value =||
+||  {{{DEAUTH}}}  ||  {{{0xC0}}}  ||
+||  {{{BLOCK_ACK}}}  ||  {{{0x94}}}  ||
+||  {{{CTS}}}  ||  {{{0xC4}}}  ||
+||  {{{ACK}}}  ||  {{{0xD4}}}  ||
+||  {{{AUTH}}}  ||  {{{0xB0}}}  ||
+||  {{{BEACON}}}  ||  {{{0x80}}}  ||
+||  {{{DISASSOC}}}  ||  {{{0xA0}}}  ||
+||  {{{NULLDATA}}}  ||  {{{0x48}}}  ||
+||  {{{REASSOC_REQ}}}  ||  {{{0x20}}}  ||
+||  {{{DATA}}}  ||  {{{0x8}}}  ||
+||  {{{BLOCK_ACK_REQ}}}  ||  {{{0x84}}}  ||
+||  {{{PROBE_REQ}}}  ||  {{{0x40}}}  ||
+||  {{{PROBE_RESP}}}  ||  {{{0x50}}}  ||
+||  {{{QOSDATA}}}  ||  {{{0x88}}}  ||
+||  {{{REASSOC_RESP}}}  ||  {{{0x30}}}  ||
+||  {{{ASSOC_RESP}}}  ||  {{{0x10}}}  ||
+||  {{{ASSOC_REQ}}}  ||  {{{0x0}}}  ||
+||  {{{RTS}}}  ||  {{{0xB4}}}  ||
+||  {{{ACTION}}}  ||  {{{0xD0}}}  ||
 
 }}}
 |----------------
@@ -613,11 +618,12 @@ uint16
 1-bit flags
 
 Constants defined for this field:
- * {{{'FCS_GOOD': 0x1}}}
- * {{{'DUPLICATE': 0x2}}}
- * {{{'LTG_PYLD': 0x40}}}
- * {{{'LTG': 0x80}}}
- * {{{'UNEXPECTED_RESPONSE': 0x4}}}
+||= Name =||= Value =||
+||  {{{FCS_GOOD}}}  ||  {{{0x1}}}  ||
+||  {{{DUPLICATE}}}  ||  {{{0x2}}}  ||
+||  {{{LTG_PYLD}}}  ||  {{{0x40}}}  ||
+||  {{{LTG}}}  ||  {{{0x80}}}  ||
+||  {{{UNEXPECTED_RESPONSE}}}  ||  {{{0x4}}}  ||
 
 }}}
 |----------------
@@ -794,9 +800,10 @@ uint8
 PHY mode index, in ![0:2]
 
 Constants defined for this field:
- * {{{'NONHT': 0x1}}}
- * {{{'HTMF': 0x2}}}
- * {{{'DSSS': 0x0}}}
+||= Name =||= Value =||
+||  {{{NONHT}}}  ||  {{{0x1}}}  ||
+||  {{{HTMF}}}  ||  {{{0x2}}}  ||
+||  {{{DSSS}}}  ||  {{{0x0}}}  ||
 
 }}}
 |----------------
@@ -810,10 +817,11 @@ uint8
 Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D]
 
 Constants defined for this field:
- * {{{'RF_A': 0x1}}}
- * {{{'RF_C': 0x3}}}
- * {{{'RF_B': 0x2}}}
- * {{{'RF_D': 0x4}}}
+||= Name =||= Value =||
+||  {{{RF_A}}}  ||  {{{0x1}}}  ||
+||  {{{RF_C}}}  ||  {{{0x3}}}  ||
+||  {{{RF_B}}}  ||  {{{0x2}}}  ||
+||  {{{RF_D}}}  ||  {{{0x4}}}  ||
 
 }}}
 |----------------
@@ -847,25 +855,26 @@ uint8
 Packet type, first frame control byte of 802.11 header
 
 Constants defined for this field:
- * {{{'DEAUTH': 0xC0}}}
- * {{{'BLOCK_ACK': 0x94}}}
- * {{{'CTS': 0xC4}}}
- * {{{'ACK': 0xD4}}}
- * {{{'AUTH': 0xB0}}}
- * {{{'BEACON': 0x80}}}
- * {{{'DISASSOC': 0xA0}}}
- * {{{'NULLDATA': 0x48}}}
- * {{{'REASSOC_REQ': 0x20}}}
- * {{{'DATA': 0x8}}}
- * {{{'BLOCK_ACK_REQ': 0x84}}}
- * {{{'PROBE_REQ': 0x40}}}
- * {{{'PROBE_RESP': 0x50}}}
- * {{{'QOSDATA': 0x88}}}
- * {{{'REASSOC_RESP': 0x30}}}
- * {{{'ASSOC_RESP': 0x10}}}
- * {{{'ASSOC_REQ': 0x0}}}
- * {{{'RTS': 0xB4}}}
- * {{{'ACTION': 0xD0}}}
+||= Name =||= Value =||
+||  {{{DEAUTH}}}  ||  {{{0xC0}}}  ||
+||  {{{BLOCK_ACK}}}  ||  {{{0x94}}}  ||
+||  {{{CTS}}}  ||  {{{0xC4}}}  ||
+||  {{{ACK}}}  ||  {{{0xD4}}}  ||
+||  {{{AUTH}}}  ||  {{{0xB0}}}  ||
+||  {{{BEACON}}}  ||  {{{0x80}}}  ||
+||  {{{DISASSOC}}}  ||  {{{0xA0}}}  ||
+||  {{{NULLDATA}}}  ||  {{{0x48}}}  ||
+||  {{{REASSOC_REQ}}}  ||  {{{0x20}}}  ||
+||  {{{DATA}}}  ||  {{{0x8}}}  ||
+||  {{{BLOCK_ACK_REQ}}}  ||  {{{0x84}}}  ||
+||  {{{PROBE_REQ}}}  ||  {{{0x40}}}  ||
+||  {{{PROBE_RESP}}}  ||  {{{0x50}}}  ||
+||  {{{QOSDATA}}}  ||  {{{0x88}}}  ||
+||  {{{REASSOC_RESP}}}  ||  {{{0x30}}}  ||
+||  {{{ASSOC_RESP}}}  ||  {{{0x10}}}  ||
+||  {{{ASSOC_REQ}}}  ||  {{{0x0}}}  ||
+||  {{{RTS}}}  ||  {{{0xB4}}}  ||
+||  {{{ACTION}}}  ||  {{{0xD0}}}  ||
 
 }}}
 |----------------
@@ -919,11 +928,12 @@ uint16
 1-bit flags
 
 Constants defined for this field:
- * {{{'FCS_GOOD': 0x1}}}
- * {{{'DUPLICATE': 0x2}}}
- * {{{'LTG_PYLD': 0x40}}}
- * {{{'LTG': 0x80}}}
- * {{{'UNEXPECTED_RESPONSE': 0x4}}}
+||= Name =||= Value =||
+||  {{{FCS_GOOD}}}  ||  {{{0x1}}}  ||
+||  {{{DUPLICATE}}}  ||  {{{0x2}}}  ||
+||  {{{LTG_PYLD}}}  ||  {{{0x40}}}  ||
+||  {{{LTG}}}  ||  {{{0x80}}}  ||
+||  {{{UNEXPECTED_RESPONSE}}}  ||  {{{0x4}}}  ||
 
 }}}
 |----------------
@@ -1122,9 +1132,10 @@ uint8
 PHY mode index, in ![0:2]
 
 Constants defined for this field:
- * {{{'NONHT': 0x1}}}
- * {{{'HTMF': 0x2}}}
- * {{{'DSSS': 0x0}}}
+||= Name =||= Value =||
+||  {{{NONHT}}}  ||  {{{0x1}}}  ||
+||  {{{HTMF}}}  ||  {{{0x2}}}  ||
+||  {{{DSSS}}}  ||  {{{0x0}}}  ||
 
 }}}
 |----------------
@@ -1138,10 +1149,11 @@ uint8
 Antenna mode: ![1,2,3,4] for SISO Rx on RF [A,B,C,D]
 
 Constants defined for this field:
- * {{{'RF_A': 0x1}}}
- * {{{'RF_C': 0x3}}}
- * {{{'RF_B': 0x2}}}
- * {{{'RF_D': 0x4}}}
+||= Name =||= Value =||
+||  {{{RF_A}}}  ||  {{{0x1}}}  ||
+||  {{{RF_C}}}  ||  {{{0x3}}}  ||
+||  {{{RF_B}}}  ||  {{{0x2}}}  ||
+||  {{{RF_D}}}  ||  {{{0x4}}}  ||
 
 }}}
 |----------------
@@ -1175,25 +1187,26 @@ uint8
 Packet type, first frame control byte of 802.11 header
 
 Constants defined for this field:
- * {{{'DEAUTH': 0xC0}}}
- * {{{'BLOCK_ACK': 0x94}}}
- * {{{'CTS': 0xC4}}}
- * {{{'ACK': 0xD4}}}
- * {{{'AUTH': 0xB0}}}
- * {{{'BEACON': 0x80}}}
- * {{{'DISASSOC': 0xA0}}}
- * {{{'NULLDATA': 0x48}}}
- * {{{'REASSOC_REQ': 0x20}}}
- * {{{'DATA': 0x8}}}
- * {{{'BLOCK_ACK_REQ': 0x84}}}
- * {{{'PROBE_REQ': 0x40}}}
- * {{{'PROBE_RESP': 0x50}}}
- * {{{'QOSDATA': 0x88}}}
- * {{{'REASSOC_RESP': 0x30}}}
- * {{{'ASSOC_RESP': 0x10}}}
- * {{{'ASSOC_REQ': 0x0}}}
- * {{{'RTS': 0xB4}}}
- * {{{'ACTION': 0xD0}}}
+||= Name =||= Value =||
+||  {{{DEAUTH}}}  ||  {{{0xC0}}}  ||
+||  {{{BLOCK_ACK}}}  ||  {{{0x94}}}  ||
+||  {{{CTS}}}  ||  {{{0xC4}}}  ||
+||  {{{ACK}}}  ||  {{{0xD4}}}  ||
+||  {{{AUTH}}}  ||  {{{0xB0}}}  ||
+||  {{{BEACON}}}  ||  {{{0x80}}}  ||
+||  {{{DISASSOC}}}  ||  {{{0xA0}}}  ||
+||  {{{NULLDATA}}}  ||  {{{0x48}}}  ||
+||  {{{REASSOC_REQ}}}  ||  {{{0x20}}}  ||
+||  {{{DATA}}}  ||  {{{0x8}}}  ||
+||  {{{BLOCK_ACK_REQ}}}  ||  {{{0x84}}}  ||
+||  {{{PROBE_REQ}}}  ||  {{{0x40}}}  ||
+||  {{{PROBE_RESP}}}  ||  {{{0x50}}}  ||
+||  {{{QOSDATA}}}  ||  {{{0x88}}}  ||
+||  {{{REASSOC_RESP}}}  ||  {{{0x30}}}  ||
+||  {{{ASSOC_RESP}}}  ||  {{{0x10}}}  ||
+||  {{{ASSOC_REQ}}}  ||  {{{0x0}}}  ||
+||  {{{RTS}}}  ||  {{{0xB4}}}  ||
+||  {{{ACTION}}}  ||  {{{0xD0}}}  ||
 
 }}}
 |----------------
@@ -1247,11 +1260,12 @@ uint16
 1-bit flags
 
 Constants defined for this field:
- * {{{'FCS_GOOD': 0x1}}}
- * {{{'DUPLICATE': 0x2}}}
- * {{{'LTG_PYLD': 0x40}}}
- * {{{'LTG': 0x80}}}
- * {{{'UNEXPECTED_RESPONSE': 0x4}}}
+||= Name =||= Value =||
+||  {{{FCS_GOOD}}}  ||  {{{0x1}}}  ||
+||  {{{DUPLICATE}}}  ||  {{{0x2}}}  ||
+||  {{{LTG_PYLD}}}  ||  {{{0x40}}}  ||
+||  {{{LTG}}}  ||  {{{0x80}}}  ||
+||  {{{UNEXPECTED_RESPONSE}}}  ||  {{{0x4}}}  ||
 
 }}}
 |----------------
@@ -1438,25 +1452,26 @@ uint8
 Packet type, first frame control byte of 802.11 header
 
 Constants defined for this field:
- * {{{'DEAUTH': 0xC0}}}
- * {{{'BLOCK_ACK': 0x94}}}
- * {{{'CTS': 0xC4}}}
- * {{{'ACK': 0xD4}}}
- * {{{'AUTH': 0xB0}}}
- * {{{'BEACON': 0x80}}}
- * {{{'DISASSOC': 0xA0}}}
- * {{{'NULLDATA': 0x48}}}
- * {{{'REASSOC_REQ': 0x20}}}
- * {{{'DATA': 0x8}}}
- * {{{'BLOCK_ACK_REQ': 0x84}}}
- * {{{'PROBE_REQ': 0x40}}}
- * {{{'PROBE_RESP': 0x50}}}
- * {{{'QOSDATA': 0x88}}}
- * {{{'REASSOC_RESP': 0x30}}}
- * {{{'ASSOC_RESP': 0x10}}}
- * {{{'ASSOC_REQ': 0x0}}}
- * {{{'RTS': 0xB4}}}
- * {{{'ACTION': 0xD0}}}
+||= Name =||= Value =||
+||  {{{DEAUTH}}}  ||  {{{0xC0}}}  ||
+||  {{{BLOCK_ACK}}}  ||  {{{0x94}}}  ||
+||  {{{CTS}}}  ||  {{{0xC4}}}  ||
+||  {{{ACK}}}  ||  {{{0xD4}}}  ||
+||  {{{AUTH}}}  ||  {{{0xB0}}}  ||
+||  {{{BEACON}}}  ||  {{{0x80}}}  ||
+||  {{{DISASSOC}}}  ||  {{{0xA0}}}  ||
+||  {{{NULLDATA}}}  ||  {{{0x48}}}  ||
+||  {{{REASSOC_REQ}}}  ||  {{{0x20}}}  ||
+||  {{{DATA}}}  ||  {{{0x8}}}  ||
+||  {{{BLOCK_ACK_REQ}}}  ||  {{{0x84}}}  ||
+||  {{{PROBE_REQ}}}  ||  {{{0x40}}}  ||
+||  {{{PROBE_RESP}}}  ||  {{{0x50}}}  ||
+||  {{{QOSDATA}}}  ||  {{{0x88}}}  ||
+||  {{{REASSOC_RESP}}}  ||  {{{0x30}}}  ||
+||  {{{ASSOC_RESP}}}  ||  {{{0x10}}}  ||
+||  {{{ASSOC_REQ}}}  ||  {{{0x0}}}  ||
+||  {{{RTS}}}  ||  {{{0xB4}}}  ||
+||  {{{ACTION}}}  ||  {{{0xD0}}}  ||
 
 }}}
 |----------------
@@ -1490,9 +1505,10 @@ uint16
 1-bit flags
 
 Constants defined for this field:
- * {{{'SUCCESSFUL': 0x1}}}
- * {{{'LTG_PYLD': 0x40}}}
- * {{{'LTG': 0x80}}}
+||= Name =||= Value =||
+||  {{{SUCCESSFUL}}}  ||  {{{0x1}}}  ||
+||  {{{LTG_PYLD}}}  ||  {{{0x40}}}  ||
+||  {{{LTG}}}  ||  {{{0x80}}}  ||
 
 }}}
 |----------------
@@ -1679,25 +1695,26 @@ uint8
 Packet type, first frame control byte of 802.11 header
 
 Constants defined for this field:
- * {{{'DEAUTH': 0xC0}}}
- * {{{'BLOCK_ACK': 0x94}}}
- * {{{'CTS': 0xC4}}}
- * {{{'ACK': 0xD4}}}
- * {{{'AUTH': 0xB0}}}
- * {{{'BEACON': 0x80}}}
- * {{{'DISASSOC': 0xA0}}}
- * {{{'NULLDATA': 0x48}}}
- * {{{'REASSOC_REQ': 0x20}}}
- * {{{'DATA': 0x8}}}
- * {{{'BLOCK_ACK_REQ': 0x84}}}
- * {{{'PROBE_REQ': 0x40}}}
- * {{{'PROBE_RESP': 0x50}}}
- * {{{'QOSDATA': 0x88}}}
- * {{{'REASSOC_RESP': 0x30}}}
- * {{{'ASSOC_RESP': 0x10}}}
- * {{{'ASSOC_REQ': 0x0}}}
- * {{{'RTS': 0xB4}}}
- * {{{'ACTION': 0xD0}}}
+||= Name =||= Value =||
+||  {{{DEAUTH}}}  ||  {{{0xC0}}}  ||
+||  {{{BLOCK_ACK}}}  ||  {{{0x94}}}  ||
+||  {{{CTS}}}  ||  {{{0xC4}}}  ||
+||  {{{ACK}}}  ||  {{{0xD4}}}  ||
+||  {{{AUTH}}}  ||  {{{0xB0}}}  ||
+||  {{{BEACON}}}  ||  {{{0x80}}}  ||
+||  {{{DISASSOC}}}  ||  {{{0xA0}}}  ||
+||  {{{NULLDATA}}}  ||  {{{0x48}}}  ||
+||  {{{REASSOC_REQ}}}  ||  {{{0x20}}}  ||
+||  {{{DATA}}}  ||  {{{0x8}}}  ||
+||  {{{BLOCK_ACK_REQ}}}  ||  {{{0x84}}}  ||
+||  {{{PROBE_REQ}}}  ||  {{{0x40}}}  ||
+||  {{{PROBE_RESP}}}  ||  {{{0x50}}}  ||
+||  {{{QOSDATA}}}  ||  {{{0x88}}}  ||
+||  {{{REASSOC_RESP}}}  ||  {{{0x30}}}  ||
+||  {{{ASSOC_RESP}}}  ||  {{{0x10}}}  ||
+||  {{{ASSOC_REQ}}}  ||  {{{0x0}}}  ||
+||  {{{RTS}}}  ||  {{{0xB4}}}  ||
+||  {{{ACTION}}}  ||  {{{0xD0}}}  ||
 
 }}}
 |----------------
@@ -1731,9 +1748,10 @@ uint16
 1-bit flags
 
 Constants defined for this field:
- * {{{'SUCCESSFUL': 0x1}}}
- * {{{'LTG_PYLD': 0x40}}}
- * {{{'LTG': 0x80}}}
+||= Name =||= Value =||
+||  {{{SUCCESSFUL}}}  ||  {{{0x1}}}  ||
+||  {{{LTG_PYLD}}}  ||  {{{0x40}}}  ||
+||  {{{LTG}}}  ||  {{{0x80}}}  ||
 
 }}}
 |----------------
@@ -1892,9 +1910,10 @@ uint8
 PHY mode index, in ![1:2]
 
 Constants defined for this field:
- * {{{'NONHT': 0x1}}}
- * {{{'HTMF': 0x2}}}
- * {{{'DSSS': 0x0}}}
+||= Name =||= Value =||
+||  {{{NONHT}}}  ||  {{{0x1}}}  ||
+||  {{{HTMF}}}  ||  {{{0x2}}}  ||
+||  {{{DSSS}}}  ||  {{{0x0}}}  ||
 
 }}}
 |----------------
@@ -1908,10 +1927,11 @@ uint8
 PHY antenna mode in [0x10, 0x20, 0x30, 0x40]
 
 Constants defined for this field:
- * {{{'RF_A': 0x10}}}
- * {{{'RF_C': 0x30}}}
- * {{{'RF_B': 0x20}}}
- * {{{'RF_D': 0x40}}}
+||= Name =||= Value =||
+||  {{{RF_A}}}  ||  {{{0x10}}}  ||
+||  {{{RF_C}}}  ||  {{{0x30}}}  ||
+||  {{{RF_B}}}  ||  {{{0x20}}}  ||
+||  {{{RF_D}}}  ||  {{{0x40}}}  ||
 
 }}}
 |----------------
@@ -1985,25 +2005,26 @@ uint8
 Packet type, (first frame control byte of 802.11 header)
 
 Constants defined for this field:
- * {{{'DEAUTH': 0xC0}}}
- * {{{'BLOCK_ACK': 0x94}}}
- * {{{'CTS': 0xC4}}}
- * {{{'ACK': 0xD4}}}
- * {{{'AUTH': 0xB0}}}
- * {{{'BEACON': 0x80}}}
- * {{{'DISASSOC': 0xA0}}}
- * {{{'NULLDATA': 0x48}}}
- * {{{'REASSOC_REQ': 0x20}}}
- * {{{'DATA': 0x8}}}
- * {{{'BLOCK_ACK_REQ': 0x84}}}
- * {{{'PROBE_REQ': 0x40}}}
- * {{{'PROBE_RESP': 0x50}}}
- * {{{'QOSDATA': 0x88}}}
- * {{{'REASSOC_RESP': 0x30}}}
- * {{{'ASSOC_RESP': 0x10}}}
- * {{{'ASSOC_REQ': 0x0}}}
- * {{{'RTS': 0xB4}}}
- * {{{'ACTION': 0xD0}}}
+||= Name =||= Value =||
+||  {{{DEAUTH}}}  ||  {{{0xC0}}}  ||
+||  {{{BLOCK_ACK}}}  ||  {{{0x94}}}  ||
+||  {{{CTS}}}  ||  {{{0xC4}}}  ||
+||  {{{ACK}}}  ||  {{{0xD4}}}  ||
+||  {{{AUTH}}}  ||  {{{0xB0}}}  ||
+||  {{{BEACON}}}  ||  {{{0x80}}}  ||
+||  {{{DISASSOC}}}  ||  {{{0xA0}}}  ||
+||  {{{NULLDATA}}}  ||  {{{0x48}}}  ||
+||  {{{REASSOC_REQ}}}  ||  {{{0x20}}}  ||
+||  {{{DATA}}}  ||  {{{0x8}}}  ||
+||  {{{BLOCK_ACK_REQ}}}  ||  {{{0x84}}}  ||
+||  {{{PROBE_REQ}}}  ||  {{{0x40}}}  ||
+||  {{{PROBE_RESP}}}  ||  {{{0x50}}}  ||
+||  {{{QOSDATA}}}  ||  {{{0x88}}}  ||
+||  {{{REASSOC_RESP}}}  ||  {{{0x30}}}  ||
+||  {{{ASSOC_RESP}}}  ||  {{{0x10}}}  ||
+||  {{{ASSOC_REQ}}}  ||  {{{0x0}}}  ||
+||  {{{RTS}}}  ||  {{{0xB4}}}  ||
+||  {{{ACTION}}}  ||  {{{0xD0}}}  ||
 
 }}}
 |----------------
@@ -2017,9 +2038,10 @@ uint8
 1-bit Flags
 
 Constants defined for this field:
- * {{{'RECEIVED_RESPONSE': 0x1}}}
- * {{{'LTG_PYLD': 0x80}}}
- * {{{'LTG': 0x40}}}
+||= Name =||= Value =||
+||  {{{RECEIVED_RESPONSE}}}  ||  {{{0x1}}}  ||
+||  {{{LTG_PYLD}}}  ||  {{{0x80}}}  ||
+||  {{{LTG}}}  ||  {{{0x40}}}  ||
 
 }}}
 |----------------
@@ -2196,9 +2218,10 @@ uint8
 PHY mode index, in ![1:2]
 
 Constants defined for this field:
- * {{{'NONHT': 0x1}}}
- * {{{'HTMF': 0x2}}}
- * {{{'DSSS': 0x0}}}
+||= Name =||= Value =||
+||  {{{NONHT}}}  ||  {{{0x1}}}  ||
+||  {{{HTMF}}}  ||  {{{0x2}}}  ||
+||  {{{DSSS}}}  ||  {{{0x0}}}  ||
 
 }}}
 |----------------
@@ -2212,10 +2235,11 @@ uint8
 PHY antenna mode in [0x10, 0x20, 0x30, 0x40]
 
 Constants defined for this field:
- * {{{'RF_A': 0x10}}}
- * {{{'RF_C': 0x30}}}
- * {{{'RF_B': 0x20}}}
- * {{{'RF_D': 0x40}}}
+||= Name =||= Value =||
+||  {{{RF_A}}}  ||  {{{0x10}}}  ||
+||  {{{RF_C}}}  ||  {{{0x30}}}  ||
+||  {{{RF_B}}}  ||  {{{0x20}}}  ||
+||  {{{RF_D}}}  ||  {{{0x40}}}  ||
 
 }}}
 |----------------
@@ -2289,25 +2313,26 @@ uint8
 Packet type, (first frame control byte of 802.11 header)
 
 Constants defined for this field:
- * {{{'DEAUTH': 0xC0}}}
- * {{{'BLOCK_ACK': 0x94}}}
- * {{{'CTS': 0xC4}}}
- * {{{'ACK': 0xD4}}}
- * {{{'AUTH': 0xB0}}}
- * {{{'BEACON': 0x80}}}
- * {{{'DISASSOC': 0xA0}}}
- * {{{'NULLDATA': 0x48}}}
- * {{{'REASSOC_REQ': 0x20}}}
- * {{{'DATA': 0x8}}}
- * {{{'BLOCK_ACK_REQ': 0x84}}}
- * {{{'PROBE_REQ': 0x40}}}
- * {{{'PROBE_RESP': 0x50}}}
- * {{{'QOSDATA': 0x88}}}
- * {{{'REASSOC_RESP': 0x30}}}
- * {{{'ASSOC_RESP': 0x10}}}
- * {{{'ASSOC_REQ': 0x0}}}
- * {{{'RTS': 0xB4}}}
- * {{{'ACTION': 0xD0}}}
+||= Name =||= Value =||
+||  {{{DEAUTH}}}  ||  {{{0xC0}}}  ||
+||  {{{BLOCK_ACK}}}  ||  {{{0x94}}}  ||
+||  {{{CTS}}}  ||  {{{0xC4}}}  ||
+||  {{{ACK}}}  ||  {{{0xD4}}}  ||
+||  {{{AUTH}}}  ||  {{{0xB0}}}  ||
+||  {{{BEACON}}}  ||  {{{0x80}}}  ||
+||  {{{DISASSOC}}}  ||  {{{0xA0}}}  ||
+||  {{{NULLDATA}}}  ||  {{{0x48}}}  ||
+||  {{{REASSOC_REQ}}}  ||  {{{0x20}}}  ||
+||  {{{DATA}}}  ||  {{{0x8}}}  ||
+||  {{{BLOCK_ACK_REQ}}}  ||  {{{0x84}}}  ||
+||  {{{PROBE_REQ}}}  ||  {{{0x40}}}  ||
+||  {{{PROBE_RESP}}}  ||  {{{0x50}}}  ||
+||  {{{QOSDATA}}}  ||  {{{0x88}}}  ||
+||  {{{REASSOC_RESP}}}  ||  {{{0x30}}}  ||
+||  {{{ASSOC_RESP}}}  ||  {{{0x10}}}  ||
+||  {{{ASSOC_REQ}}}  ||  {{{0x0}}}  ||
+||  {{{RTS}}}  ||  {{{0xB4}}}  ||
+||  {{{ACTION}}}  ||  {{{0xD0}}}  ||
 
 }}}
 |----------------
@@ -2321,9 +2346,10 @@ uint8
 1-bit Flags
 
 Constants defined for this field:
- * {{{'RECEIVED_RESPONSE': 0x1}}}
- * {{{'LTG_PYLD': 0x80}}}
- * {{{'LTG': 0x40}}}
+||= Name =||= Value =||
+||  {{{RECEIVED_RESPONSE}}}  ||  {{{0x1}}}  ||
+||  {{{LTG_PYLD}}}  ||  {{{0x80}}}  ||
+||  {{{LTG}}}  ||  {{{0x40}}}  ||
 
 }}}
 |----------------
