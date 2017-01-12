@@ -117,15 +117,15 @@ class WlanExpNodeAp(node.WlanExpNode):
                 ret_val = False
             
             if (status & cmds.ERROR_CONFIG_BSS_CHANNEL_INVALID):
-                msg    += "    Channel {0} was invalid.\n".format(self.channel)
+                msg    += "    Channel {0} was invalid.\n".format(channel)
                 ret_val = False
             
             if (status & cmds.ERROR_CONFIG_BSS_BEACON_INTERVAL_INVALID):
-                msg    += "    Beacon interval {0} was invalid.\n".format(self.beacon_interval)
+                msg    += "    Beacon interval {0} was invalid.\n".format(beacon_interval)
                 ret_val = False
             
             if (status & cmds.ERROR_CONFIG_BSS_HT_CAPABLE_INVALID):
-                msg    += "    HT capable {0} was invalid.\n".format(self.ht_capable)
+                msg    += "    HT capable {0} was invalid.\n".format(ht_capable)
                 ret_val = False
             
             if not ret_val:
