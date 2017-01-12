@@ -850,16 +850,16 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
 
     entry_rx_common.append_field_defs([
         ('timestamp',              'Q',      'uint64',  'Value of MAC Time in microseconds at PHY RX_START'),
-        ('timestamp_frac',         'B',      'uint8',   'Fractional timestamp (units of 6.25ns)'),
-        ('phy_samp_rate',          'B',      'uint8',   'PHY Sampling Rate Mode'),
+        ('timestamp_frac',         'B',      'uint8',   'Fractional part of timestamp (units of 6.25ns)'),
+        ('phy_samp_rate',          'B',      'uint8',   'PHY sampling rate in MSps'),
         ('length',                 'H',      'uint16',  'Length of payload in bytes'),
         ('cfo_est',                'i',      'int32',   'Time-domain CFO estimate from Rx PHY; Fix32_31 value, CFO as fraction of sampling frequency'),
         ('mcs',                    'B',      'uint8',   'MCS index, in [0:7]'),
-        ('phy_mode',               'B',      'uint8',   'PHY mode'),
+        ('phy_mode',               'B',      'uint8',   'PHY mode index, in [0:2]'),
         ('ant_mode',               'B',      'uint8',   'Antenna mode: [1,2,3,4] for SISO Rx on RF [A,B,C,D]'),
         ('power',                  'b',      'int8',    'Rx power in dBm'),
         ('padding0',               'x',      'uint8',   ''),
-        ('pkt_type',               'B',      'uint8',   'Packet type, (first frame control byte of 802.11 header)'),
+        ('pkt_type',               'B',      'uint8',   'Packet type, first frame control byte of 802.11 header'),
         ('channel',                'B',      'uint8',   'Channel (center frequency) index'),
         ('padding1',               'x',      'uint8',   ''),
         ('rf_gain',                'B',      'uint8',   'AGC RF gain setting: [1,2,3] for [0,15,30]dB gain'),
@@ -890,23 +890,23 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     #
     entry_tx_common = WlanExpLogEntryType(name='TX_HIGH_COMMON_FIELDS', entry_type_id=None)
 
-    entry_tx_common.description  = 'Tx events in CPU High, logged for each MPDU frame created and enqueued in CPU High. See TX_LOW for log entries of '
+    entry_tx_common.description  = 'Tx events in CPU High, logged for each data and management frame created and enqueued in CPU High. See TX_LOW for log entries of '
     entry_tx_common.description += 'actual Tx events, including re-transmissions. The time values in this log entry can be used to determine time in queue '
     entry_tx_common.description += '(time_to_accept), time taken by CPU Low for all Tx attempts (time_to_done) and total time from creation to completion '
     entry_tx_common.description += '(time_to_accept+time_to_done).'
 
     entry_tx_common.append_field_defs([
         ('timestamp',              'Q',      'uint64',  'Value of MAC Time in microseconds when packet was created, immediately before it was enqueued'),
-        ('time_to_accept',         'I',      'uint32',  'Time duration in microseconds between packet creation and packet acceptance by CPU Low'),
-        ('time_to_done',           'I',      'uint32',  'Time duration in microseconds between packet acceptance by CPU Low and Tx completion in CPU Low'),
+        ('time_to_accept',         'I',      'uint32',  'Time duration in microseconds between packet creation and acceptance by frame_transmit() in CPU Low'),
+        ('time_to_done',           'I',      'uint32',  'Time duration in microseconds between packet acceptance by CPU Low and completion of all transmissions by CPU Low'),
         ('uniq_seq',               'Q',      'uint64',  'Unique sequence number for Tx packet; 12 LSB of this used for 802.11 MAC header sequence number'),
-        ('padding0',               'I',      'uint32',  'Padding'),        
-        ('num_tx',                 'H',      'uint16',   'Number of Tx attempts that were made for this packet'),
+        ('padding0',               'I',      'uint32',  ''),        
+        ('num_tx',                 'H',      'uint16',  'Number of Tx attempts that were made for this packet'),
         ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
-        ('padding1',               'x',      'uint8',   'Padding'),
-        ('pkt_type',               'B',      'uint8',   'Packet type, (first frame control byte of 802.11 header)'),
+        ('padding1',               'x',      'uint8',   ''),
+        ('pkt_type',               'B',      'uint8',   'Packet type, first frame control byte of 802.11 header'),
         ('queue_id',               'H',      'uint16',  'Tx queue ID from which the packet was retrieved'),
-        ('queue_occupancy',        'H',      'uint16',  'Occupancy of the Tx queue at the time the packet was created (value includes itself)'),
+        ('queue_occupancy',        'H',      'uint16',  'Occupancy of the Tx queue immediately after this packet was enqueued'),
         ('flags',                  'H',      'uint16',  '1-bit flags')])
 
     entry_tx_common.consts = util.consts_dict({
@@ -931,15 +931,15 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
     #
     entry_tx_low_common = WlanExpLogEntryType(name='TX_LOW_COMMON_FIELDS', entry_type_id=None)
 
-    entry_tx_low_common.description  = 'Record of actual PHY transmission. At least one TX_LOW will be logged for every TX entry. Multiple TX_LOW entries '
-    entry_tx_low_common.description += 'may be created for the same TX entry if the low-level MAC re-transmitted the frame. The uniq_seq fields can be match '
-    entry_tx_low_common.description += 'between TX and TX_LOW entries to find records common to the same MPUD.'
+    entry_tx_low_common.description  = 'Record of actual PHY transmission. At least one TX_LOW will be logged for every TX_HIGH entry. Multiple TX_LOW entries '
+    entry_tx_low_common.description += 'may be created for the same TX_HIGH entry if the low-level MAC re-transmitted the frame. Use the uniq_seq fields to match '
+    entry_tx_low_common.description += 'TX_HIGH and TX_LOW entries to find records common to the same MPDU.'
 
     entry_tx_low_common.append_field_defs([
         ('timestamp',              'Q',      'uint64',  'Value of MAC Time in microseconds when packet transmission actually started (PHY TX_START time)'),
         ('uniq_seq',               'Q',      'uint64',  'Unique sequence number of original MPDU'),
         ('mcs',                    'B',      'uint8',   'MCS index in [0:7]'),
-        ('phy_mode',               'B',      'uint8',   'PHY mode'),
+        ('phy_mode',               'B',      'uint8',   'PHY mode index, in [1:2]'),
         ('ant_mode',               'B',      'uint8',   'PHY antenna mode in [0x10, 0x20, 0x30, 0x40]'),
         ('tx_power',               'b',      'int8',    'Tx power in dBm'),
         ('reserved0',              'B',      'uint8',   ''),
@@ -949,9 +949,9 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('cw',                     'H',      'uint16',  'Contention window value at time of this Tx'),
         ('pkt_type',               'B',      'uint8',   'Packet type, (first frame control byte of 802.11 header)'),
         ('flags',                  'B',      'uint8',   '1-bit Flags'),
-        ('timestamp_frac',         'B',      'uint8',   'Fractional timestamp (units of 6.25ns)'),
+        ('timestamp_frac',         'B',      'uint8',   'Fractional part of Tx timestamp (units of 6.25ns)'),
         ('phy_samp_rate',          'B',      'uint8',   'PHY Sampling Rate Mode'),
-        ('tx_count',               'H',      'uint16',   'Transmission index for this attempt, starting at 0 (0 = initial Tx, 1+ = subsequent attempts)'),
+        ('tx_count',               'H',      'uint16',   'Transmission index for this attempt, starting at 0 (0 = first Tx)'),
         ('reserved1',              'H',      'uint16',   '')])
 
     entry_tx_low_common.consts = util.consts_dict({
@@ -994,10 +994,10 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('wlan_mac_addr',                       'Q',    'uint64',  'Node MAC address, 6 bytes in lower 48-bits of u64'),
         ('max_tx_power_dbm',                    'i',    'int32',   'Maximum transmit power'),
         ('min_tx_power_dbm',                    'i',    'int32',   'Minimum transmit power'),
-        ('cpu_high_compilation_date',           '12s',  '12S',   'CPU High Compilation Date'),
-        ('cpu_high_compilation_time',           '12s',  '12S',   'CPU High Compilation Time'),
-        ('cpu_low_compilation_date',            '12s',  '12S',   'CPU Low Compilation Date'),
-        ('cpu_low_compilation_time',            '12s',  '12S',   'CPU Low Compilation Time')])
+        ('cpu_high_compilation_date',           '12s',  '12S',     'CPU High Compilation Date string'),
+        ('cpu_high_compilation_time',           '12s',  '12S',     'CPU High Compilation Time string'),
+        ('cpu_low_compilation_date',            '12s',  '12S',     'CPU Low Compilation Date string'),
+        ('cpu_low_compilation_time',            '12s',  '12S',     'CPU Low Compilation Time string')])
 
     entry_node_info.consts = util.consts_dict({
         'node_type': util.consts_dict({
