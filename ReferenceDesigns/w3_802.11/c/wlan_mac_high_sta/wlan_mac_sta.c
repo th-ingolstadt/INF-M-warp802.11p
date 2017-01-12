@@ -226,8 +226,9 @@ int main() {
     // NOTE:  To use the WLAN Experiments Framework, it must be initialized after
     //        CPU low has populated the hw_info structure in the MAC High framework.
 
-    // Reset all callbacks
-    wlan_exp_reset_all_callbacks();
+    // Initialize WLAN Exp
+	wlan_exp_node_init(hw_info->serial_number, hw_info->fpga_dna,
+			   WLAN_EXP_ETH, hw_info->hw_addr_wlan_exp, hw_info->hw_addr_wlan);
 
     // Set WLAN Exp callbacks
     wlan_exp_set_process_node_cmd_callback(         (void *) wlan_exp_process_node_cmd);
@@ -238,10 +239,6 @@ int main() {
     wlan_exp_set_process_config_bss_callback(       (void *) configure_bss);
     wlan_exp_set_active_bss_info_getter_callback(   (void *) active_bss_info_getter);
     //   - wlan_exp_set_beacon_tx_param_update_callback() should not be used by the STA
-
-    // Initialize WLAN Exp
-    wlan_exp_node_init(hw_info->serial_number, hw_info->fpga_dna,
-                       WLAN_EXP_ETH, hw_info->hw_addr_wlan_exp, hw_info->hw_addr_wlan);
 
     // Set CPU_HIGH Type in wlan_exp's node_info struct;
     wlan_exp_node_set_type_high(WLAN_EXP_NODE_TYPE, &compilation_details);
