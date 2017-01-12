@@ -541,13 +541,13 @@ uint8
 Packet type, first frame control byte of 802.11 header
 
 Constants defined for this field:
- * {{{'DEAUTH': 0xc0}}}
+ * {{{'DEAUTH': 0xC0}}}
  * {{{'BLOCK_ACK': 0x94}}}
- * {{{'CTS': 0xc4}}}
- * {{{'ACK': 0xd4}}}
- * {{{'AUTH': 0xb0}}}
+ * {{{'CTS': 0xC4}}}
+ * {{{'ACK': 0xD4}}}
+ * {{{'AUTH': 0xB0}}}
  * {{{'BEACON': 0x80}}}
- * {{{'DISASSOC': 0xa0}}}
+ * {{{'DISASSOC': 0xA0}}}
  * {{{'NULLDATA': 0x48}}}
  * {{{'REASSOC_REQ': 0x20}}}
  * {{{'DATA': 0x8}}}
@@ -558,8 +558,8 @@ Constants defined for this field:
  * {{{'REASSOC_RESP': 0x30}}}
  * {{{'ASSOC_RESP': 0x10}}}
  * {{{'ASSOC_REQ': 0x0}}}
- * {{{'RTS': 0xb4}}}
- * {{{'ACTION': 0xd0}}}
+ * {{{'RTS': 0xB4}}}
+ * {{{'ACTION': 0xD0}}}
 
 }}}
 |----------------
@@ -847,13 +847,13 @@ uint8
 Packet type, first frame control byte of 802.11 header
 
 Constants defined for this field:
- * {{{'DEAUTH': 0xc0}}}
+ * {{{'DEAUTH': 0xC0}}}
  * {{{'BLOCK_ACK': 0x94}}}
- * {{{'CTS': 0xc4}}}
- * {{{'ACK': 0xd4}}}
- * {{{'AUTH': 0xb0}}}
+ * {{{'CTS': 0xC4}}}
+ * {{{'ACK': 0xD4}}}
+ * {{{'AUTH': 0xB0}}}
  * {{{'BEACON': 0x80}}}
- * {{{'DISASSOC': 0xa0}}}
+ * {{{'DISASSOC': 0xA0}}}
  * {{{'NULLDATA': 0x48}}}
  * {{{'REASSOC_REQ': 0x20}}}
  * {{{'DATA': 0x8}}}
@@ -864,8 +864,8 @@ Constants defined for this field:
  * {{{'REASSOC_RESP': 0x30}}}
  * {{{'ASSOC_RESP': 0x10}}}
  * {{{'ASSOC_REQ': 0x0}}}
- * {{{'RTS': 0xb4}}}
- * {{{'ACTION': 0xd0}}}
+ * {{{'RTS': 0xB4}}}
+ * {{{'ACTION': 0xD0}}}
 
 }}}
 |----------------
@@ -1175,13 +1175,13 @@ uint8
 Packet type, first frame control byte of 802.11 header
 
 Constants defined for this field:
- * {{{'DEAUTH': 0xc0}}}
+ * {{{'DEAUTH': 0xC0}}}
  * {{{'BLOCK_ACK': 0x94}}}
- * {{{'CTS': 0xc4}}}
- * {{{'ACK': 0xd4}}}
- * {{{'AUTH': 0xb0}}}
+ * {{{'CTS': 0xC4}}}
+ * {{{'ACK': 0xD4}}}
+ * {{{'AUTH': 0xB0}}}
  * {{{'BEACON': 0x80}}}
- * {{{'DISASSOC': 0xa0}}}
+ * {{{'DISASSOC': 0xA0}}}
  * {{{'NULLDATA': 0x48}}}
  * {{{'REASSOC_REQ': 0x20}}}
  * {{{'DATA': 0x8}}}
@@ -1192,8 +1192,8 @@ Constants defined for this field:
  * {{{'REASSOC_RESP': 0x30}}}
  * {{{'ASSOC_RESP': 0x10}}}
  * {{{'ASSOC_REQ': 0x0}}}
- * {{{'RTS': 0xb4}}}
- * {{{'ACTION': 0xd0}}}
+ * {{{'RTS': 0xB4}}}
+ * {{{'ACTION': 0xD0}}}
 
 }}}
 |----------------
@@ -1438,13 +1438,13 @@ uint8
 Packet type, first frame control byte of 802.11 header
 
 Constants defined for this field:
- * {{{'DEAUTH': 0xc0}}}
+ * {{{'DEAUTH': 0xC0}}}
  * {{{'BLOCK_ACK': 0x94}}}
- * {{{'CTS': 0xc4}}}
- * {{{'ACK': 0xd4}}}
- * {{{'AUTH': 0xb0}}}
+ * {{{'CTS': 0xC4}}}
+ * {{{'ACK': 0xD4}}}
+ * {{{'AUTH': 0xB0}}}
  * {{{'BEACON': 0x80}}}
- * {{{'DISASSOC': 0xa0}}}
+ * {{{'DISASSOC': 0xA0}}}
  * {{{'NULLDATA': 0x48}}}
  * {{{'REASSOC_REQ': 0x20}}}
  * {{{'DATA': 0x8}}}
@@ -1455,8 +1455,8 @@ Constants defined for this field:
  * {{{'REASSOC_RESP': 0x30}}}
  * {{{'ASSOC_RESP': 0x10}}}
  * {{{'ASSOC_REQ': 0x0}}}
- * {{{'RTS': 0xb4}}}
- * {{{'ACTION': 0xd0}}}
+ * {{{'RTS': 0xB4}}}
+ * {{{'ACTION': 0xD0}}}
 
 }}}
 |----------------
@@ -1679,13 +1679,13 @@ uint8
 Packet type, first frame control byte of 802.11 header
 
 Constants defined for this field:
- * {{{'DEAUTH': 0xc0}}}
+ * {{{'DEAUTH': 0xC0}}}
  * {{{'BLOCK_ACK': 0x94}}}
- * {{{'CTS': 0xc4}}}
- * {{{'ACK': 0xd4}}}
- * {{{'AUTH': 0xb0}}}
+ * {{{'CTS': 0xC4}}}
+ * {{{'ACK': 0xD4}}}
+ * {{{'AUTH': 0xB0}}}
  * {{{'BEACON': 0x80}}}
- * {{{'DISASSOC': 0xa0}}}
+ * {{{'DISASSOC': 0xA0}}}
  * {{{'NULLDATA': 0x48}}}
  * {{{'REASSOC_REQ': 0x20}}}
  * {{{'DATA': 0x8}}}
@@ -1696,8 +1696,8 @@ Constants defined for this field:
  * {{{'REASSOC_RESP': 0x30}}}
  * {{{'ASSOC_RESP': 0x10}}}
  * {{{'ASSOC_REQ': 0x0}}}
- * {{{'RTS': 0xb4}}}
- * {{{'ACTION': 0xd0}}}
+ * {{{'RTS': 0xB4}}}
+ * {{{'ACTION': 0xD0}}}
 
 }}}
 |----------------
@@ -1985,13 +1985,13 @@ uint8
 Packet type, (first frame control byte of 802.11 header)
 
 Constants defined for this field:
- * {{{'DEAUTH': 0xc0}}}
+ * {{{'DEAUTH': 0xC0}}}
  * {{{'BLOCK_ACK': 0x94}}}
- * {{{'CTS': 0xc4}}}
- * {{{'ACK': 0xd4}}}
- * {{{'AUTH': 0xb0}}}
+ * {{{'CTS': 0xC4}}}
+ * {{{'ACK': 0xD4}}}
+ * {{{'AUTH': 0xB0}}}
  * {{{'BEACON': 0x80}}}
- * {{{'DISASSOC': 0xa0}}}
+ * {{{'DISASSOC': 0xA0}}}
  * {{{'NULLDATA': 0x48}}}
  * {{{'REASSOC_REQ': 0x20}}}
  * {{{'DATA': 0x8}}}
@@ -2002,8 +2002,8 @@ Constants defined for this field:
  * {{{'REASSOC_RESP': 0x30}}}
  * {{{'ASSOC_RESP': 0x10}}}
  * {{{'ASSOC_REQ': 0x0}}}
- * {{{'RTS': 0xb4}}}
- * {{{'ACTION': 0xd0}}}
+ * {{{'RTS': 0xB4}}}
+ * {{{'ACTION': 0xD0}}}
 
 }}}
 |----------------
@@ -2289,13 +2289,13 @@ uint8
 Packet type, (first frame control byte of 802.11 header)
 
 Constants defined for this field:
- * {{{'DEAUTH': 0xc0}}}
+ * {{{'DEAUTH': 0xC0}}}
  * {{{'BLOCK_ACK': 0x94}}}
- * {{{'CTS': 0xc4}}}
- * {{{'ACK': 0xd4}}}
- * {{{'AUTH': 0xb0}}}
+ * {{{'CTS': 0xC4}}}
+ * {{{'ACK': 0xD4}}}
+ * {{{'AUTH': 0xB0}}}
  * {{{'BEACON': 0x80}}}
- * {{{'DISASSOC': 0xa0}}}
+ * {{{'DISASSOC': 0xA0}}}
  * {{{'NULLDATA': 0x48}}}
  * {{{'REASSOC_REQ': 0x20}}}
  * {{{'DATA': 0x8}}}
@@ -2306,8 +2306,8 @@ Constants defined for this field:
  * {{{'REASSOC_RESP': 0x30}}}
  * {{{'ASSOC_RESP': 0x10}}}
  * {{{'ASSOC_REQ': 0x0}}}
- * {{{'RTS': 0xb4}}}
- * {{{'ACTION': 0xd0}}}
+ * {{{'RTS': 0xB4}}}
+ * {{{'ACTION': 0xD0}}}
 
 }}}
 |----------------
