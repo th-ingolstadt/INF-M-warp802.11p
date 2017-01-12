@@ -310,7 +310,7 @@ class WlanExpLogEntryType(object):
                         fd_desc += '||= Name =||= Value =||\n'
                         for c in consts.keys():
                             #fd_desc += ' * {{{{{{\'{0}\': 0x{1:X}}}}}}}\n'.format(c, consts[c])
-                            fd_desc += '||  {{{{{{{0}}}}}}}  ||  {{{{{{0x{1:X}}}}}}}  ||\n'.format(c, consts[c])
+                            fd_desc += '|| {{{{{{{0}}}}}}}  ||  {{{{{{0x{1:X}}}}}}}  ||\n'.format(c, consts[c])
                     except:
                         # Field didn't have constants defined
                         pass
