@@ -1585,7 +1585,7 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 		tx_frame_info->phy_samp_rate	  = (u8)wlan_mac_low_get_phy_samp_rate();
 
 		// Compare the length of this frame to the RTS Threshold
-		// FIXME
+		// TODO: needs further investigation
 		if(length <= gl_dot11RTSThreshold) {
 			tx_mode = TX_MODE_SHORT;
 		} else {
@@ -1703,8 +1703,6 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 
 		// Transmission is complete
 		if( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_D_DONE ) {
-
-			//FIXME:
 			tx_mode = TX_MODE_SHORT;
 
 			switch(tx_mode) {

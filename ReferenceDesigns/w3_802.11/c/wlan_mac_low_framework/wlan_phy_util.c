@@ -278,7 +278,7 @@ void wlan_phy_init() {
     // WLAN_RX_FFT_CFG reg
     // FFT config
     wlan_phy_rx_config_fft(64, 16);
-    wlan_phy_rx_set_fft_window_offset(5);
+    wlan_phy_rx_set_fft_window_offset(7);
     wlan_phy_rx_set_fft_scaling(5);
 
     // WLAN_RX_LTS_CFG reg
@@ -294,7 +294,7 @@ void wlan_phy_init() {
 
     // WLAN_RX_LTS_PEAKTYPE_THRESH reg
     // LTS correlation peak-type (big vs small) thresholds (low NSR, high SNR)
-    // FIXME: only for initial testing, set peak-type threshold to max so all peaks are small
+    // TODO: We can explore the peaktype dimension further in a future release
     wlan_phy_rx_lts_corr_peaktype_thresholds(0xFFFF, 0xFFFF);
 
     // WLAN_RX_PKT_DET_OFDM_CFG reg
