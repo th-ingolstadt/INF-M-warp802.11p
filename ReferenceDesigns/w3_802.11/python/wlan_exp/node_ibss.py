@@ -3,10 +3,7 @@
 ------------------------------------------------------------------------------
 Mango 802.11 Reference Design Experiments Framework - Ad hoc (IBSS) Node
 ------------------------------------------------------------------------------
-Authors:   Chris Hunter (chunter [at] mangocomm.com)
-           Patrick Murphy (murphpo [at] mangocomm.com)
-           Erik Welsh (welsh [at] mangocomm.com)
-License:   Copyright 2014-2016, Mango Communications. All rights reserved.
+License:   Copyright 2014-2017, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
 
