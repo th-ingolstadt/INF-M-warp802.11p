@@ -204,7 +204,7 @@ END
 
 BEGIN wlan_phy_rx_pmd_axiw
  PARAMETER INSTANCE = wlan_phy_rx
- PARAMETER HW_VER = 4.00.u
+ PARAMETER HW_VER = 4.00.x
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -263,7 +263,7 @@ END
 
 BEGIN wlan_mac_hw_axiw
  PARAMETER INSTANCE = wlan_mac_hw
- PARAMETER HW_VER = 2.01.f
+ PARAMETER HW_VER = 2.01.j
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
@@ -311,6 +311,7 @@ BEGIN wlan_mac_hw_axiw
  PORT dbg_tx_a_pending = dbg_mac_tx_a_pending
  PORT dbg_tx_b_pending = dbg_mac_tx_b_pending
  PORT dbg_tx_c_pending = dbg_mac_tx_c_pending
+ PORT dbg_tx_d_pending = dbg_mac_tx_d_pending
 END
 
 BEGIN wlan_agc_axiw
@@ -675,9 +676,9 @@ BEGIN axi_bram_ctrl
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 1
  PARAMETER C_INTERCONNECT_S_AXI_R_REGISTER = 1
  PARAMETER C_INTERCONNECT_S_AXI_B_REGISTER = 7
- PARAMETER C_INTERCONNECT_S_AXI_MASTERS = mb_high.M_AXI_DC & mb_low.M_AXI_DC & axi_cdma_0.M_AXI & axi2axi_eth_a_dma.M_AXI & axi2axi_eth_b_dma.M_AXI
+ PARAMETER C_INTERCONNECT_S_AXI_MASTERS = mb_high.M_AXI_DC & mb_low.M_AXI_DC & axi_cdma_0.M_AXI
  PARAMETER C_S_AXI_BASEADDR = 0x91000000
- PARAMETER C_S_AXI_HIGHADDR = 0x91007FFF
+ PARAMETER C_S_AXI_HIGHADDR = 0x9100FFFF
  BUS_INTERFACE BRAM_PORTA = PKT_BUFF_TX_CTRL_PORTA
  BUS_INTERFACE S_AXI = mb_shared_axi
  PORT S_AXI_ACLK = clk_160MHz
@@ -701,7 +702,7 @@ BEGIN axi_bram_ctrl
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 1
  PARAMETER C_INTERCONNECT_S_AXI_R_REGISTER = 1
  PARAMETER C_INTERCONNECT_S_AXI_B_REGISTER = 7
- PARAMETER C_INTERCONNECT_S_AXI_MASTERS = mb_low.M_AXI_DC & mb_high.M_AXI_DC & axi_cdma_0.M_AXI & axi2axi_eth_a_dma.M_AXI & axi2axi_eth_b_dma.M_AXI
+ PARAMETER C_INTERCONNECT_S_AXI_MASTERS = mb_low.M_AXI_DC & mb_high.M_AXI_DC & axi_cdma_0.M_AXI & axi2axi_eth_a_dma.M_AXI
  PARAMETER C_S_AXI_BASEADDR = 0x90000000
  PARAMETER C_S_AXI_HIGHADDR = 0x90007FFF
  BUS_INTERFACE BRAM_PORTA = PKT_BUFF_RX_CTRL_PORTA
@@ -772,7 +773,7 @@ BEGIN w3_userio_axi
  PORT usr_rfb_led_red = RFB_statLED_Rx
  PORT usr_rfb_led_green = RFB_statLED_Tx
  PORT usr_leds_red = dbg_signal_err_disp
- PORT usr_dbg_hdr_out = dbg_mac_eifs_sel & dbg_mac_tx_c_pending & dbg_mac_backoff_c_active & dbg_mac_tx_b_pending & dbg_mac_nav_active & dbg_mac_backoff_a_active & dbg_mac_idle_for_difs & dbg_mac_tx_a_pending & dbg_rssi_det & mac_phy_rx_fcs_good_ind & dbg_lts_timeout & dbg_pkt_det_dsss & dbg_pkt_det_ofdm & dbg_dsss_rx_active & dbg_ofdm_rx_active & dbg_tx_running
+ PORT usr_dbg_hdr_out = dbg_mac_tx_d_pending & dbg_mac_tx_c_pending & dbg_mac_backoff_c_active & dbg_mac_tx_b_pending & dbg_mac_nav_active & dbg_mac_backoff_a_active & dbg_mac_idle_for_difs & dbg_mac_tx_a_pending & dbg_rssi_det & mac_phy_rx_fcs_good_ind & dbg_lts_timeout & dbg_pkt_det_dsss & dbg_pkt_det_ofdm & dbg_dsss_rx_active & dbg_ofdm_rx_active & dbg_tx_running
  PORT dbg_hdr = dbg_hdr
 END
 
@@ -946,20 +947,6 @@ BEGIN axi_uartlite
  PORT TX = mb_low_uart_TX
 END
 
-BEGIN axi_timer
- PARAMETER INSTANCE = mb_low_timer
- PARAMETER HW_VER = 1.03.a
- PARAMETER C_BASEADDR = 0x21000000
- PARAMETER C_HIGHADDR = 0x2100FFFF
- PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
- PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
- PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 7
- PARAMETER C_INTERCONNECT_S_AXI_R_REGISTER = 7
- PARAMETER C_INTERCONNECT_S_AXI_B_REGISTER = 7
- BUS_INTERFACE S_AXI = mb_low_axi_periph
- PORT S_AXI_ACLK = clk_160MHz
-END
-
 # ##############################################################################
 # Microblaze High
 # ##############################################################################
@@ -1131,7 +1118,7 @@ BEGIN axi_intc
  PARAMETER C_INTERCONNECT_S_AXI_B_REGISTER = 8
  BUS_INTERFACE S_AXI = mb_high_axi_periph
  BUS_INTERFACE INTERRUPT = mb_high_interrupt
- PORT Intr = ETH_A_MAC_INTERRUPT & ETH_B_MAC_INTERRUPT & mb_high_sw_gpio_IP2INTC_Irpt & mb_high_uart_Interrupt & ETH_A_DMA_mm2s_introut & ETH_A_DMA_s2mm_introut & ETH_B_DMA_mm2s_introut & ETH_B_DMA_s2mm_introut & axi_cdma_0_cdma_introut & mb_high_timer_Interrupt & mb_mailbox_Interrupt_0
+ PORT Intr = ETH_A_MAC_INTERRUPT & ETH_B_MAC_INTERRUPT & mb_high_sw_gpio_IP2INTC_Irpt & mb_high_uart_Interrupt & ETH_A_DMA_mm2s_introut & ETH_A_DMA_s2mm_introut & ETH_B_DMA_mm2s_introut & ETH_B_DMA_s2mm_introut & mb_high_timer_Interrupt & mb_mailbox_Interrupt_0
  PORT S_AXI_ACLK = clk_160MHz
 END
 
@@ -1156,28 +1143,10 @@ BEGIN axi_gpio
 END
 
 BEGIN axi_bram_ctrl
- PARAMETER INSTANCE = mb_high_init_bram_ctrl
- PARAMETER HW_VER = 1.03.a
- PARAMETER C_S_AXI_BASEADDR = 0x10000000
- PARAMETER C_S_AXI_HIGHADDR = 0x10000FFF
- BUS_INTERFACE S_AXI = mb_high_axi_periph
- BUS_INTERFACE BRAM_PORTA = INIT_BRAM_CTRL_PORT_A
- BUS_INTERFACE BRAM_PORTB = INIT_BRAM_CTRL_PORT_B
- PORT S_AXI_ACLK = clk_160MHz
-END
-
-BEGIN bram_block
- PARAMETER INSTANCE = mb_high_init_bram
- PARAMETER HW_VER = 1.00.a
- BUS_INTERFACE PORTA = INIT_BRAM_CTRL_PORT_A
- BUS_INTERFACE PORTB = INIT_BRAM_CTRL_PORT_B
-END
-
-BEGIN axi_bram_ctrl
  PARAMETER INSTANCE = mb_high_aux_bram_ctrl
  PARAMETER HW_VER = 1.03.a
  PARAMETER C_S_AXI_DATA_WIDTH = 64
- PARAMETER C_INTERCONNECT_S_AXI_MASTERS = mb_high.M_AXI_DC & axi_cdma_0.M_AXI & axi2axi_eth_a_dma.M_AXI & axi2axi_eth_b_dma.M_AXI
+ PARAMETER C_INTERCONNECT_S_AXI_MASTERS = mb_high.M_AXI_DC & axi2axi_eth_a_dma.M_AXI & axi2axi_eth_b_dma.M_AXI
  PARAMETER C_INTERCONNECT_S_AXI_AW_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_AR_REGISTER = 7
  PARAMETER C_INTERCONNECT_S_AXI_W_REGISTER = 1
@@ -1220,7 +1189,6 @@ BEGIN axi_cdma
  BUS_INTERFACE M_AXI = mb_shared_axi
  PORT s_axi_lite_aclk = clk_160MHz
  PORT m_axi_aclk = clk_160MHz
- PORT cdma_introut = axi_cdma_0_cdma_introut
 END
 
 # ##############################################################################
