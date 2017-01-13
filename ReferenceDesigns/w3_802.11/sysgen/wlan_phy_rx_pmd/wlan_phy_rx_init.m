@@ -21,17 +21,14 @@ if(~exist('sim_many_waveform_mode','var'))
     
     %PHY debugging with ChipScope captures of I/Q
     % ChipScope waveforms must be saved in ASCII format with (at least) ADC_I and ADC_Q signals
-    %xlLoadChipScopeData('rx_sigs/adi_tx_badEVM_v0.prn'); cs_interp = 8; cs_start = 1; cs_end = length(ADC_I);
-    %xlLoadChipScopeData('rx_sigs/adi_phy_tx_badPN_v1.prn'); cs_interp = 1; cs_start = 7350; cs_end = 14700;
-    %xlLoadChipScopeData('mcs7_11n_badFCS_v1.prn'); cs_interp = 1; cs_start = 1; cs_end = 3800;%length(ADC_I);
-    %xlLoadChipScopeData('mcs0_11a_200B_bad_v0.prn'); cs_interp = 1; cs_start = 650; cs_end = length(ADC_I);
+    xlLoadChipScopeData('good_fcs_54M_v151.prn'); cs_interp = 1; cs_start = 11500; cs_end = length(ADC_I);
     %sim_sig = complex(ADC_I([cs_start:cs_interp:cs_end]), ADC_Q(cs_start:cs_interp:cs_end));
-    %sim_sig = sim_sig .* exp(j*2*pi*1e-4*(0:length(sim_sig)-1)).';
 
     if 1
     %Output of PHY Tx simulation
     % .mat files from Tx PHY sim store I/Q signal in 'wlan_tx_out' variable
-    load('rx_sigs/wlan_tx_NONHT_MCS7_52B.mat');wlan_tx_out = 0.5 * wlan_tx_out.';
+    load('rx_sigs/wlan_tx_NONHT_MCS4_52B.mat');wlan_tx_out = wlan_tx_out.';
+    %load('rx_sigs/wlan_tx_NONHT_MCS7_52B');wlan_tx_out = wlan_tx_out.';
     
     %CFO
     %wlan_tx_out = wlan_tx_out .* exp(j*2*pi*-1e-4*(0:length(wlan_tx_out)-1));
@@ -130,7 +127,7 @@ PHY_CONFIG_FFT_SCALING = bin2dec('000101');
 %  20: FFT_OFFSET=2 for zero cyclic prefix samps
 %  40: FFT_OFFSET=4 for zero cyclic prefix samps
 %PHY_CONFIG_FFT_OFFSET = (1+2*(rx_sim.samp_rate==40)) + 0;
-PHY_CONFIG_FFT_OFFSET = 4;
+PHY_CONFIG_FFT_OFFSET = 7;
 
 PHY_CONFIG_RSSI_SUM_LEN = 8;
 
