@@ -211,11 +211,11 @@ function entry_table_CreateFcn(hObject, eventdata, handles)
 % hObject    handle to entry_table (see GCBO)
 % eventdata  reserved - to be defined in a future version of MATLAB
 % handles    empty - handles not created until after all CreateFcns called
-colNames{1} = 'Timestamp (usec)';   colFmts{1} = 'numeric'; colWidths{1} = 125;
+colNames{1} = 'Timestamp (usec)';   colFmts{1} = 'numeric'; colWidths{1} = 115;
 colNames{2} = 'Rx Power (dBm)';     colFmts{2} = 'numeric'; colWidths{2} = 85;
 colNames{3} = 'RF Gain (dB)';       colFmts{3} = 'numeric'; colWidths{3} = 65;
 colNames{4} = 'BB Gain (dB)';       colFmts{4} = 'numeric'; colWidths{4} = 65;
-colNames{5} = 'FCS Bad';            colFmts{5} = 'numeric'; colWidths{5} = 50;
+colNames{5} = 'FCS Good';            colFmts{5} = 'numeric'; colWidths{5} = 60;
 
 set(hObject, 'ColumnName', colNames);
 set(hObject, 'ColumnWidth', colWidths);
