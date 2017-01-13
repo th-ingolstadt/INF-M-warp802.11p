@@ -912,13 +912,6 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('flags',                  'H',      'uint16',  '1-bit flags')])
 
     entry_tx_common.consts = util.consts_dict({
-        'ant_mode'      : util.consts_dict({
-                'RF_A': 0x10,
-                'RF_B': 0x20,
-                'RF_C': 0x30,
-                'RF_D': 0x40,
-            }),
-        'phy_mode'   : util.phy_modes,
         'pkt_type'   : common_pkt_types,
         'flags'      : util.consts_dict({
             'SUCCESSFUL'     : 0x0001,
@@ -947,13 +940,13 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('reserved0',              'B',      'uint8',   ''),
         ('channel',                'B',      'uint8',   'Channel (center frequency) index'),
         ('length',                 'H',      'uint16',  'Length in bytes of MPDU; includes MAC header, payload and FCS'),
-        ('num_slots',              'h',      'int16',   'Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0); A value of -1 in this field means no backoff occured'),
+        ('num_slots',              'h',      'int16',   'Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (attempt_number==1); A value of -1 in this field means no backoff occured'),
         ('cw',                     'H',      'uint16',  'Contention window value at time of this Tx'),
         ('pkt_type',               'B',      'uint8',   'Packet type, (first frame control byte of 802.11 header)'),
         ('flags',                  'B',      'uint8',   '1-bit Flags'),
         ('timestamp_frac',         'B',      'uint8',   'Fractional part of Tx timestamp (units of 6.25ns)'),
         ('phy_samp_rate',          'B',      'uint8',   'PHY Sampling Rate Mode'),
-        ('tx_count',               'H',      'uint16',   'Transmission index for this attempt, starting at 0 (0 = first Tx)'),
+        ('attempt_number',         'H',      'uint16',   'Transmission index for this attempt, starting at 1 (1 = first Tx)'),
         ('reserved1',              'H',      'uint16',   '')])
 
     entry_tx_low_common.consts = util.consts_dict({
