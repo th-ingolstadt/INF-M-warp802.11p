@@ -2,7 +2,7 @@
 ------------------------------------------------------------------------------
 Mango 802.11 Reference Design - Experiments Framework - Log File Details
 ------------------------------------------------------------------------------
-License:   Copyright 2014-2016, Mango Communications. All rights reserved.
+License:   Copyright 2014-2017, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
 This script uses the WLAN Exp Log utilities to prase raw log data and print
@@ -22,6 +22,7 @@ Description:
 import os
 import sys
 import numpy as np
+import time
 
 import wlan_exp.util as wlan_exp_util
 
@@ -80,9 +81,9 @@ log_util.print_log_index_summary(raw_log_index, "Log Index Contents:")
 
 # Filter log index to include all Rx entries and all Tx entries
 log_index = log_util.filter_log_index(raw_log_index,
-                                      include_only=['NODE_INFO', 'RX_OFDM', 'TX_HIGH', 'TX_LOW'],
-                                      merge={'RX_OFDM': ['RX_OFDM', 'RX_OFDM_LTG'],
-                                             'TX_HIGH': ['TX_HIGH', 'TX_HIGH_LTG'],
+                                      include_only=['NODE_INFO', 'TIME_INFO', 'RX_OFDM', 'TX_HIGH', 'TX_LOW'],
+                                      merge={'RX_OFDM': ['RX_OFDM', 'RX_OFDM_LTG'],                                             
+                                             'TX_HIGH' : ['TX_HIGH', 'TX_HIGH_LTG'],
                                              'TX_LOW' : ['TX_LOW', 'TX_LOW_LTG']})
 
 log_util.print_log_index_summary(log_index, "Filtered Log Index:")
@@ -96,81 +97,65 @@ log_np = log_util.log_data_to_np_arrays(log_data, log_index)
 
 
 ###############################################################################
+# Example 0: Print node info / Time info
+log_node_info = log_np['NODE_INFO'][0]
+
+print("Node Info:")
+print("  Node Type    : {0}".format(wlan_exp_util.node_type_to_str(log_node_info['node_type'])))
+print("  MAC Address  : {0}".format(wlan_exp_util.mac_addr_to_str(log_node_info['wlan_mac_addr'])))
+print("  Serial Number: {0}".format(wlan_exp_util.sn_to_str(log_node_info['hw_generation'], log_node_info['serial_num'])))
+print("  WLAN Exp Ver : {0}".format(wlan_exp_util.ver_code_to_str(log_node_info['version'])))
+print("")
+
+if(len(log_np['TIME_INFO']) > 0):
+    log_time_info = log_np['TIME_INFO'][0]
+
+    print("Experiment Started at: {0}".format(time.ctime(float(log_time_info['host_timestamp'] / 1E6))))
+    print("")
+
+###############################################################################
 # Example 1: Gather some Tx information from the log
 #     - Since there are only loops, this example can deal with TX_HIGH / TX_LOW
 #       being an empty list and does not need a try / except.
 #
 
 # Initialize variables
-TX_CONSTS     = log_util.get_entry_constants('TX_HIGH')
-log_tx_high   = log_np['TX_HIGH']
+TX_CONSTS     = log_util.get_entry_constants('TX_LOW')
 log_tx_low    = log_np['TX_LOW']
 total_retrans = 0
 
 # Print header
 print("\nExample 1: Tx Information per Rate:")
-print("{0:^30} {1:^32} {2:^20}".format("Rate", "# Tx Pkts", "Avg Tx time (us)"))
-print("{0:^30} {1:>10} {2:>10} {3:>10} {4:>10}".format("", "CPU High", "CPU Low", "Re-trans", "CPU High"))
+print("{0:^35} {1:^32}".format("Rate", "# Tx Pkts"))
+print("{0:^30} {1:>15} {2:>15}".format("", "CPU Low", "Re-trans"))
 
 # For each PHY mode, process the MCS index counts
 for phy_mode in wlan_exp_util.phy_modes.keys():
-    # Create index based on phy_mode    
-    tx_high_idx        = (log_tx_high['phy_mode'] == TX_CONSTS.phy_mode[phy_mode])
-    tx_low_idx         = (log_tx_low['phy_mode'] == TX_CONSTS.phy_mode[phy_mode])    
-    tx_low_src_high_only_idx = ((log_tx_low['phy_mode'] == TX_CONSTS.phy_mode[phy_mode]) & 
-                          ((log_tx_low['pkt_type'] != TX_CONSTS.pkt_type.BEACON) & 
-                           (log_tx_low['pkt_type'] != TX_CONSTS.pkt_type.ACK) & 
-                           (log_tx_low['pkt_type'] != TX_CONSTS.pkt_type.CTS) & 
-                           (log_tx_low['pkt_type'] != TX_CONSTS.pkt_type.RTS)))
-
-
-
-    # Extract arrays for each PHY mode
-    tx_high_entries = log_tx_high[tx_high_idx]
-    tx_low_entries  = log_tx_low[tx_low_idx]
-    tx_low_src_high_only  = log_tx_low[tx_low_src_high_only_idx]
-
-    # Extract arrays of just the MCS indexes
-    tx_high_entries_mcs = tx_high_entries['mcs']
-    tx_low_entries_mcs  = tx_low_entries['mcs']
-    tx_low_src_high_only_mcs  = tx_low_src_high_only['mcs']
-
-    # Initialize an array to count number of packets per MCS index
-    #   MAC uses MCS indexes 0:7 to encode OFDM rates
-    tx_high_entries_mcs_counts = np.bincount(tx_high_entries_mcs, minlength=8)
-    tx_low_entries_mcs_counts  = np.bincount(tx_low_entries_mcs, minlength=8)
-    tx_low_src_high_only_mcs_counts  = np.bincount(tx_low_src_high_only_mcs, minlength=8)
-    
-    # Extract an array of just the 'time_to_done' timestamp offsets
-    tx_high_done = tx_high_entries['time_to_done']
-
     # Calculate the average time to send a packet for each rate
     for mcs in range(0, 8):
-        # Find indexes of all instances where addresses match        
-        mcs_idx = tx_high_entries_mcs == mcs
-
-        # Calculate the average time to send a packet
-        tx_high_avg_time = 0
-        
-        if np.any(mcs_idx):
-            tx_high_avg_time = np.average(tx_high_done[mcs_idx])
-
+        # Create an index into the tx_Low array based on the following criteria:
+        #  - the PHY mode matches phy_mode in the above loop
+        #  - the MCS matches the mcs in the above loop
+        tx_low_idx         = ((log_tx_low['phy_mode'] == TX_CONSTS.phy_mode[phy_mode]) &
+                              (log_tx_low['mcs'] == mcs))
+                             
+    
+        # Extract arrays for each PHY mode    
+        tx_low_entries  = log_tx_low[tx_low_idx]
+                    
         # Calculate retransmissions
-        #    Must use the counts with no control packets since control packets
-        #    and beacons are transmitted without a corresponding TX_HIGH entry
-        retrans = tx_low_src_high_only_mcs_counts[mcs] - tx_high_entries_mcs_counts[mcs]
+        #    Any packet whose "attempt_number" is larger than 1 is a retransmission
+        retrans = np.sum(tx_low_entries['attempt_number']>1)
         total_retrans  += retrans
 
         # Print info
         try:
             rate_info = wlan_exp_util.get_rate_info(mcs, phy_mode)
             rate_str  = wlan_exp_util.rate_info_to_str(rate_info)
-            print("{0:30} {1:10} {2:10} {3:10} {4:>10.0f}".format(
+            print("{0:30} {1:15} {2:15}".format(
                 rate_str,
-                tx_high_entries_mcs_counts[mcs],
-                tx_low_entries_mcs_counts[mcs],
-                retrans,
-                tx_high_avg_time))
+                len(tx_low_entries),
+                retrans))
         except:
             # Do nothing with unsupported PHY modes
             pass

@@ -2,7 +2,7 @@
 ------------------------------------------------------------------------------
 Mango 802.11 Reference Design - Experiments Framework - Log File Tx Stats
 ------------------------------------------------------------------------------
-License:   Copyright 2014-2016, Mango Communications. All rights reserved.
+License:   Copyright 2014-2017, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
 This example will process the TX statistics for a given log file.
@@ -99,16 +99,16 @@ tx_stats = mlab.rec_groupby(log_tx, group_fields, stat_calc)
 # Display the results
 print('\nTx Statistics for {0}:\n'.format(os.path.basename(LOGFILE)))
 
-print('{0:^18} | {1:^9} | {2:^10} | {3:^14} | {4:^11} | {5:^5}'.format(
+print('{0:^18} | {1:^9} | {2:^10} | {3:^14} | {4:^16} | {5:^5}'.format(
     'Dest Addr',
     'Num MPDUs',
     'Avg Length',
     'Total Tx Bytes',
-    'Avg Tx Time',
+    'Avg Time to Done',
     'Avg Num Tx'))
 
 for ii in range(len(tx_stats)):
-    print('{0:<18} | {1:9d} | {2:10.1f} | {3:14} | {4:11.3f} | {5:5.2f}'.format(
+    print('{0:<18} | {1:9d} | {2:10.1f} | {3:14} | {4:16.3f} | {5:5.2f}'.format(
         wlan_exp_util.mac_addr_to_str(tx_stats['addr1'][ii]),
         tx_stats['num_pkts'][ii],
         tx_stats['avg_len'][ii],

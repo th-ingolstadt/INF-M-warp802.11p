@@ -2,7 +2,7 @@
 ------------------------------------------------------------------------------
 Mango 802.11 Reference Design Experiments Framework - Interactive Node
 ------------------------------------------------------------------------------
-License:   Copyright 2014-2016, Mango Communications. All rights reserved.
+License:   Copyright 2014-2017, Mango Communications. All rights reserved.
            Distributed under the WARP license (http://warpproject.org/license)
 ------------------------------------------------------------------------------
 This will initialize the nodes in NODE_SERIAL_LIST to allow interactive use of 
