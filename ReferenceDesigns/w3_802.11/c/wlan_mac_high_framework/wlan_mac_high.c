@@ -1189,13 +1189,11 @@ int wlan_mac_high_memory_test(){
  * 	-  0 for right shift test pass
  *	- -1 for right shift test fail
  */
-const u32 right_shift_test = 0xFEDCBA98;
-
 int wlan_mac_high_right_shift_test(){
     u8 val_3, val_2, val_1, val_0;
 
-    u32 test_val   = right_shift_test;
-    u8 *test_array = (u8 *)&right_shift_test;
+    volatile u32 test_val   = 0xFEDCBA98;
+    volatile u8 *test_array = (u8 *)&test_val;
 
     val_3 = (u8)((test_val & 0xFF000000) >> 24);
     val_2 = (u8)((test_val & 0x00FF0000) >> 16);
