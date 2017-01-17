@@ -30,6 +30,7 @@
 #include "wlan_mac_mailbox_util.h"
 #include "wlan_phy_util.h"
 #include "wlan_mac_low.h"
+#include "wlan_mac_common.h"
 
 // LUT of number of ones in each byte (used to calculate PARITY in SIGNAL)
 const u8 ones_in_chars[256] = {
@@ -225,7 +226,7 @@ void wlan_phy_init() {
     /************ PHY Rx ************/
 
     // Set the max Tx/Rx packet sizes to 2KB (sane default for standard 802.11a/g links)
-    wlan_phy_rx_set_max_pkt_len_kB(2);
+    wlan_phy_rx_set_max_pkt_len_kB( MAX_PKT_SIZE_KB );
     wlan_phy_rx_set_max_pktbuf_addr( PKT_BUF_SIZE - sizeof(rx_frame_info_t) - PHY_RX_PKT_BUF_PHY_HDR_SIZE );
 
     // WLAN_RX_DSSS_CFG reg

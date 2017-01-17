@@ -20,6 +20,7 @@
 #include "xaxiethernet.h"
 #include "xaxidma.h"
 #include "xintc.h"
+#include "stddef.h"
 
 #include "wlan_mac_common.h"
 #include "wlan_mac_pkt_buf_util.h"
@@ -649,7 +650,7 @@ u32 wlan_process_eth_rx(XAxiDma_BdRing * rx_ring_ptr, XAxiDma_Bd * bd_ptr) {
 
     // Get the TX queue entry pointer. This is located further back in the tx_queue_buffer_t struct.
 	//
-	tx_queue_buffer = (tx_queue_buffer_t*)( (u8*)mpdu_start_ptr - sizeof(tx_queue_buffer_prepayload_header_t) );
+	tx_queue_buffer = (tx_queue_buffer_t*)( (u8*)mpdu_start_ptr - offsetof(tx_queue_buffer_t,frame));
 	curr_tx_queue_element = tx_queue_buffer->tx_queue_entry;
 
 	eth_start_ptr  = (u8*)eth_rx_buf;
@@ -1120,7 +1121,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
                                                 // Look backwards from the MPDU payload to find the wireless Rx pkt metadata (the rx_frame_info struct)
                                                 rx_frame_info = (rx_frame_info_t*)((u8*)mpdu  - PHY_RX_PKT_BUF_MPDU_OFFSET);
 
-                                                if (rx_frame_info->additional_info != NULL) {
+                                                if ((void*)(rx_frame_info->additional_info) != NULL) {
                                                     // rx_frame_info has pointer to STA entry in association table - fill in that entry's hostname field
 
                                                     // Zero out the hostname field of the station_info

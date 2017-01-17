@@ -13,6 +13,7 @@
 /***************************** Include Files *********************************/
 
 #include "wlan_mac_high_sw_config.h"
+#include "stddef.h"
 
 #include "wlan_mac_common.h"
 #include "wlan_mac_pkt_buf_util.h"
@@ -47,23 +48,13 @@ typedef struct{
 	u32   metadata_ptr;
 } tx_queue_metadata_t;
 
-#define TX_QUEUE_BUFFER_COMMON_FIELDS                               	\
-		tx_queue_metadata_t   metadata;									\
-		dl_entry*			tx_queue_entry;								\
-		tx_frame_info_t     tx_frame_info;								\
-		u8                  phy_hdr_pad[PHY_TX_PKT_BUF_PHY_HDR_SIZE];	\
-
 typedef struct{
-	TX_QUEUE_BUFFER_COMMON_FIELDS
-} tx_queue_buffer_prepayload_header_t;
-
-
-typedef struct{
-	TX_QUEUE_BUFFER_COMMON_FIELDS
-	u8                  frame[QUEUE_BUFFER_SIZE - sizeof(tx_queue_buffer_prepayload_header_t)];
+	tx_queue_metadata_t   metadata;
+	dl_entry*			  tx_queue_entry;
+	tx_frame_info_t       tx_frame_info;
+	u8                    phy_hdr_pad[PHY_TX_PKT_BUF_PHY_HDR_SIZE];
+	u8                    frame[MAX_PKT_SIZE_B];
 } tx_queue_buffer_t;
-
-
 
 
 /*************************** Function Prototypes *****************************/

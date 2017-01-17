@@ -91,6 +91,9 @@
 #define PHY_MODE_NONHT                                     0x1       // 11a OFDM
 #define PHY_MODE_HTMF                                      0x2       // 11n OFDM, HT mixed format
 
+#define MAX_PKT_SIZE_KB									   2
+#define MAX_PKT_SIZE_B									   (MAX_PKT_SIZE_KB << 10)
+
 
 //-----------------------------------------------
 // Unique sequence number defines
