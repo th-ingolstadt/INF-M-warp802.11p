@@ -51,8 +51,8 @@
 /*********************** Global Variable Definitions *************************/
 
 //These variables are defined by the linker at compile time
-extern int                   __wlan_exp_eth_buffers_section_start;  ///< Start address of the CPU High linker data section
-extern int                   __wlan_exp_eth_buffers_section_end;    ///< End address of the CPU High linker data section
+extern int                   __wlan_exp_eth_buffers_section_start;  ///< Start address of the linker section in DRAM dedicated to wlan_exp Eth buffers
+extern int                   __wlan_exp_eth_buffers_section_end;    ///< End address of the linker section in DRAM dedicated to wlan_exp Eth buffers
 
 extern int                   _stack_end;                    ///< Start of the stack (stack counts backwards)
 extern int                   __stack;                       ///< End of the stack
