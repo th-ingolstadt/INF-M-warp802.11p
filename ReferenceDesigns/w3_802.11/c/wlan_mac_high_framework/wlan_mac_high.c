@@ -182,60 +182,6 @@ void wlan_mac_high_malloc_init(){
 	}
 }
 
-/**
- * @brief Initialize CPU High DDR Linker Data Sections
- *
- * The linker command file defines the cpu_high_linker_data section that is used
- * to link sections that need memory outside of what is provided by BRAM.  However,
- * the SDK cannot load this section.  Therefore, any initialization of that section
- * must be done in this function.
- *
- * @param   None
- *
- * @return  None
- *
- * @note    This function should be the first thing called after the DDR has been
- *     detected. If it is called after other parts have the code have started
- *     accessing this memory, there will be unpredictable results.
- *
- */
-void wlan_mac_high_cpu_ddr_linker_data_init(u8 dram_present) {
-    u32            data_size;
-    // volatile u32 * identifier;                             // Uncomment if needed
-
-    data_size  = 4 * (&__wlan_exp_eth_buffers_section_end - &__wlan_exp_eth_buffers_section_start);
-    // identifier = (u32 *)CPU_HIGH_DDR_LINKER_DATA_BASE;     // Uncomment if needed
-
-    // Check that the section has not exceeded the allocated size
-    if (data_size > CPU_HIGH_DDR_LINKER_DATA_SIZE) {
-        xil_printf("!!! ERROR: CPU High DDR linker data exceeds allocated size. !!!\n");
-        xil_printf("    Please allocate more space in wlan_mac_high.h by \n");
-        xil_printf("    updating CPU_HIGH_LINKER_DATA_SIZE.\n");
-    }
-
-
-#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
-    // Check if DRAM is present
-    if (!dram_present) {
-        xil_printf("!!! ERROR: WLAN Exp requires DDR for Ethernet communication. !!!\n");
-    }
-
-    // Perform any WLAN Exp initialization of the memory
-    if (WLAN_EXP_CLEAR_DDR_ON_BOOT) {
-        clear_ddr(WLAN_EXP_VERBOSE);
-    }
-#endif
-
-    //-----------------------------------------------------
-    // Perform any User initialization of the memory
-    //-----------------------------------------------------
-
-    //-----------------------------------------------------
-    // End Perform any User initialization of the memory
-    //-----------------------------------------------------
-}
-
-
 
 /**
  * @brief Initialize MAC High Framework
@@ -312,6 +258,13 @@ void wlan_mac_high_init(){
 	if(Status != 1){
 		xil_printf("Error: Overlap detected in DRAM. Check address assignments\n");
 	}
+
+    // Check that the linker script allocated the expected amount of DRAM for the wlan_exp Ethernet buffers
+    if ((4 * (&__wlan_exp_eth_buffers_section_end - &__wlan_exp_eth_buffers_section_start)) != WLAN_EXP_ETH_BUFFERS_SECTION_SIZE) {
+        xil_printf("!!! ERROR: CPU High DDR linker data exceeds allocated size. !!!\n");
+        xil_printf("  Check WLAN_EXP_ETH_BUFFERS_SECTION_SIZE in wlan_mac_high.h and the \n");
+        xil_printf("  wlan_exp_eth_buffers_section section in the linker script (lscript.ld)\n");
+    }
 
 	// ***************************************************
 	// Initialize libraries
@@ -487,10 +440,6 @@ void wlan_mac_high_init(){
 			break;
 		}
 	}
-
-    // Initialize the CPU High DDR linker data
-	wlan_mac_high_cpu_ddr_linker_data_init(dram_present);
-
 
 	// ***************************************************
 	// Initialize various subsystems in the MAC High Framework

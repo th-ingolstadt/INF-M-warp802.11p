@@ -38,29 +38,4 @@
                                                     // all LTG-related code from the design as well we disable any wlan_exp
                                                     // commands that control LTGs.
 
-
-//---------- AUX BRAM SIZE PARAMETERS ----------
-// These options affect the usage of the AUX. BRAM memory. By disabling USAGE TOGGLES options
-// above, these definitions can be reduced and still guarantee safe performance of the node.
-
-#define WLAN_OPTIONS_AUX_SIZE_KB_STATION_INFO   4608   	 			// dl_entry structs will fill WLAN_OPTIONS_AUX_SIZE_KB_STATION_INFO
-                                                                    // kilobytes of memory. This parameter directly controls the number
-                                                                    // of station_info_t structs that can be created. Note:
-                                                                    // WLAN_OPTIONS_COMPILE_COUNTS_TXRX will affect the size of the
-                                                                    // station_info_t structs in DRAM, but will not change the number
-                                                                    // of station_info_t structs that can exists because that number
-                                                                    // is constrained by the size of dl_entry and
-                                                                    // WLAN_OPTIONS_AUX_SIZE_KB_STATION_INFO
-
-#define WLAN_OPTIONS_AUX_SIZE_KB_BSS_INFO       4608    			// dl_entry structs will fill WLAN_OPTIONS_AUX_SIZE_KB_BSS_INFO
-                                                                    // kilobytes of memory. This parameter directly controls the number
-                                                                    // of bss_info_t structs that can be created.
-
-#define WLAN_OPTIONS_AUX_SIZE_KB_RX_ETH_BD      15296  				// The XAxiDma_BdRing for Ethernet receptions will fill
-													   	   	   	   	// WLAN_OPTIONS_AUX_SIZE_KB_RX_ETH_BD kilobytes of memory. This
-													   	   	   	   	// parameter has a soft performance implication on the number of
-												 	   	   	   	    // bursty Ethernet receptions the design can handle.
-
-
-
 #endif /* WLAN_MAC_HIGH_SW_CONFIG_H_ */

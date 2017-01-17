@@ -21,9 +21,53 @@
 #include "xil_types.h"
 #include "wlan_mac_common.h"
 
-//-----------------------------------------------
-// Auxiliary (AUX) BRAM and DRAM (DDR) Memory Maps
-//
+/********************************************************************
+ * Auxiliary (AUX) BRAM and DRAM (DDR) Memory Maps
+
+ * The 802.11 Reference Design hardware includes a 64 KB BRAM block named
+ * AUX BRAM. This block is mapped into the address space of CPU High
+ * and provides a low-latency memory block for data storage beyond the
+ * DLMB.
+ *
+ * The reference code uses the AUX BRAM to store various data structures
+ * that provides references to larger blocks in DRAM. These data structures
+ * benefit from the low-latency access of the BRAM block.
+ *
+ * For example, the doubly-linked list of Tx Queue entries is stored in the
+ * AUX BRAM. Each list entry points to a dedicated 4KB buffer in DRAM. The C code
+ * can manage a queue with quick list operatations in BRAM while the queued packets
+ * themselves are stored in the slower but *much* larger DRAM.
+ *
+ * The 64 KB AUX BRAM block is divided as follows:
+ *
+ * ***************************** AUX BRAM Map *********************************************
+ * Description                      | Size
+ * -------------------------------------------------------------------------------------------------
+ * Tx Queue list entries (entry.data points to DRAM)      | 40960 B (TX_QUEUE_DL_ENTRY_MEM_SIZE)
+ * BSS Info list entries (entry.data points to DRAM)      |  4608 B (BSS_INFO_DL_ENTRY_MEM_SIZE)
+ * Station Info list entries (entry.data points to DRAM)  |  4608 B (STATION_INFO_DL_ENTRY_MEM_SIZE)
+ * ETH A Tx DMA buffer descriptors                        |    64 B (ETH_TX_BD_MEM_SIZE)
+ * ETH A Rx DMA buffer descriptors                        | 15296 B (ETH_RX_BD_MEM_SIZE)
+ * -------------------------------------------------------------------------------------------------
+ *
+ * On WARP v3 1 GB of the DDR3 SO-DIMM DRAM is mapped into the address space of CPU High.
+ * This memory space is used as follows:
+ *
+ * ******************************* DRAM Map *********************************************************
+ * Description                      | Size
+ * --------------------------------------------------------------------------------------------------
+ * wlan_exp Eth buffers             |    1024 KB (WLAN_EXP_ETH_BUFFERS_SECTION_SIZE)
+ * Tx queue buffers	                |    1400 KB (TX_QUEUE_BUFFER_SIZE)
+ * BSS Info buffers	                |      27 KB (BSS_INFO_BUFFER_SIZE)
+ * Station Info buffers             |      69 KB (STATION_INFO_BUFFER_SIZE)
+ * User scratch space               |   10000 KB (USER_SCRATCH_SIZE)
+ * Event log                        | 1036056 KB (EVENT_LOG_SIZE)
+ * --------------------------------------------------------------------------------------------------
+ *
+ *
+ ************************************************************************************************/
+
+
 #define AUX_BRAM_BASE                      (XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_BASEADDR)
 #define AUX_BRAM_SIZE                      (XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_HIGHADDR - XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_BASEADDR + 1)
 #define AUX_BRAM_HIGH                      (XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_HIGHADDR)
@@ -33,63 +77,30 @@
 #define DRAM_HIGH                          (XPAR_DDR3_SODIMM_S_AXI_HIGHADDR)
 
 
-/********************************************************************
- *
- * --------------------------------------------------------
- *      Aux. BRAM (64 KB)    |      DRAM (1048576 KB)
- * --------------------------------------------------------
- *                           |
- *                           |  CPU High Data Linker Space
- *                           |
- *   Tx Queue DL_ENTRY       |-----------------------------
- *                           |
- *                          -->      Tx Queue Buffer
- *                           |
- * --------------------------|-----------------------------
- *                           |
- *   BSS Info DL_ENTRY      -->      BSS Info Buffer
- *                           |
- * --------------------------|-----------------------------
- *                           |
- *  Station Info DL_ENTRY   -->    Station Info Buffer
- *                           |
- * --------------------------|-----------------------------
- *                           |
- *       Eth Tx BD           |      User Scratch Space
- *                           |
- * --------------------------|-----------------------------
- *                           |
- *       Eth Rx BD           |          Event Log
- *                           |
- * --------------------------|-----------------------------
- *
- ********************************************************************/
 
-#define high_addr_calc(base, size)         ((base)+((size)-1))
+#define CALC_HIGH_ADDR(base, size)         ((base)+((size)-1))
 
 
 
 /********************************************************************
- * CPU High Linker Data Space
+ * wlan_exp and IP/UDP library Ethernet buffers
  *
- * In order for the linker to store data sections in the DDR, we must reserve the
- * beginning of DDR.  You can see how this is used by looking for the .cpu_high_data
- * section in the linker command file (lscript.ld).  By default, 1024 KB (ie 1 MB)
- * of space is reserved for this section.
+ * The wlan_exp Ethernet handling code uses large buffers for constructing packets
+ * for transmission and for processing received packets. The IP/UDP library uses
+ * multiple buffers to pipeline Ethernet operations. The library also supports jumbo
+ * frames. As a result the wlan_exp and IP/UDP library Ethernet buffers are too large
+ * to store in on-chip BRAM. Instead the first 1MB of the DRAM is reserved for use
+ * by the wlan_exp Ethernet code.
  *
- * In the default reference design, only the WARP IP/UDP library is loaded in this
- * section since it requires memory space to store buffers / information for sending /
- * receiving packets.
- *
- * NOTE:  Please be aware that while the linker can link into this section, it cannot
- *     be loaded by the SDK.  Therefore, the CPU must perform any necessary
- *     initialization.
+ * The linker script for CPU High *must* include a dedicated section allocated at the
+ * base of the DRAM address range. The macros below assume this section exist and
+ * are used to verify the wlan_exp and IP/UDP library code does not overflow the
+ * DRAM allocation.
  *
  ********************************************************************/
-#define CPU_HIGH_DDR_LINKER_DATA_BASE      (DRAM_BASE)
-#define CPU_HIGH_DDR_LINKER_DATA_SIZE      (1024 * 1024)
-#define CPU_HIGH_DDR_LINKER_DATA_HIGH       high_addr_calc(CPU_HIGH_DDR_LINKER_DATA_BASE, CPU_HIGH_DDR_LINKER_DATA_HIGH)
-
+#define WLAN_EXP_ETH_BUFFERS_SECTION_BASE   (DRAM_BASE)
+#define WLAN_EXP_ETH_BUFFERS_SECTION_SIZE   (1024 * 1024)
+#define WLAN_EXP_ETH_BUFFERS_SECTION_HIGH   CALC_HIGH_ADDR(WLAN_EXP_ETH_BUFFERS_SECTION_BASE, WLAN_EXP_ETH_BUFFERS_SECTION_SIZE)
 
 
 /********************************************************************
@@ -99,7 +110,7 @@
  *     (1) dl_entry structs that live in the AUX BRAM
  *     (2) Data buffers for the packets themselves than live in DRAM
  *
- * The below definitions carve out the sizes of memory for these two pieces.  The default
+ * The definitions below reserve memory for these two pieces.  The default
  * value of 40 kB do the dl_entry memory space was chosen. Because each dl_entry has a
  * size of 12 bytes, this space allows for a potential of 3413 dl_entry structs describing
  * Tx queue elements.
@@ -109,13 +120,14 @@
  * buffer.
  *
  ********************************************************************/
+
 #define TX_QUEUE_DL_ENTRY_MEM_BASE         (AUX_BRAM_BASE)
 #define TX_QUEUE_DL_ENTRY_MEM_SIZE         (40 * 1024)
-#define TX_QUEUE_DL_ENTRY_MEM_HIGH          high_addr_calc(TX_QUEUE_DL_ENTRY_MEM_BASE, TX_QUEUE_DL_ENTRY_MEM_SIZE)
+#define TX_QUEUE_DL_ENTRY_MEM_HIGH          CALC_HIGH_ADDR(TX_QUEUE_DL_ENTRY_MEM_BASE, TX_QUEUE_DL_ENTRY_MEM_SIZE)
 
-#define TX_QUEUE_BUFFER_BASE               (CPU_HIGH_DDR_LINKER_DATA_BASE + CPU_HIGH_DDR_LINKER_DATA_SIZE)
+#define TX_QUEUE_BUFFER_BASE               (WLAN_EXP_ETH_BUFFERS_SECTION_HIGH + 1)
 #define TX_QUEUE_BUFFER_SIZE               (14000 * 1024)
-#define TX_QUEUE_BUFFER_HIGH                high_addr_calc(TX_QUEUE_BUFFER_BASE, TX_QUEUE_BUFFER_SIZE)
+#define TX_QUEUE_BUFFER_HIGH                CALC_HIGH_ADDR(TX_QUEUE_BUFFER_BASE, TX_QUEUE_BUFFER_SIZE)
 
 
 
@@ -128,12 +140,12 @@
  *
  ********************************************************************/
 #define BSS_INFO_DL_ENTRY_MEM_BASE         (TX_QUEUE_DL_ENTRY_MEM_BASE + TX_QUEUE_DL_ENTRY_MEM_SIZE)
-#define BSS_INFO_DL_ENTRY_MEM_SIZE         (WLAN_OPTIONS_AUX_SIZE_KB_BSS_INFO)
-#define BSS_INFO_DL_ENTRY_MEM_HIGH          high_addr_calc(BSS_INFO_DL_ENTRY_MEM_BASE, BSS_INFO_DL_ENTRY_MEM_SIZE)
+#define BSS_INFO_DL_ENTRY_MEM_SIZE         (4608)
+#define BSS_INFO_DL_ENTRY_MEM_HIGH          CALC_HIGH_ADDR(BSS_INFO_DL_ENTRY_MEM_BASE, BSS_INFO_DL_ENTRY_MEM_SIZE)
 
-#define BSS_INFO_BUFFER_BASE               (TX_QUEUE_BUFFER_BASE + TX_QUEUE_BUFFER_SIZE)
+#define BSS_INFO_BUFFER_BASE               (TX_QUEUE_BUFFER_HIGH + 1)
 #define BSS_INFO_BUFFER_SIZE			   ((BSS_INFO_DL_ENTRY_MEM_SIZE/sizeof(dl_entry))*sizeof(bss_info_t))
-#define BSS_INFO_BUFFER_HIGH                high_addr_calc(BSS_INFO_BUFFER_BASE, BSS_INFO_BUFFER_SIZE)
+#define BSS_INFO_BUFFER_HIGH                CALC_HIGH_ADDR(BSS_INFO_BUFFER_BASE, BSS_INFO_BUFFER_SIZE)
 
 
 /********************************************************************
@@ -144,14 +156,14 @@
  *     (2) station_info_t buffers with the actual content that live in DRAM
  *
  ********************************************************************/
-#define STATION_INFO_DL_ENTRY_MEM_BASE     (BSS_INFO_DL_ENTRY_MEM_BASE + BSS_INFO_DL_ENTRY_MEM_SIZE)
-#define STATION_INFO_DL_ENTRY_MEM_SIZE     (WLAN_OPTIONS_AUX_SIZE_KB_STATION_INFO)
+#define STATION_INFO_DL_ENTRY_MEM_BASE     (BSS_INFO_DL_ENTRY_MEM_HIGH + 1)
+#define STATION_INFO_DL_ENTRY_MEM_SIZE     (4608)
 #define STATION_INFO_DL_ENTRY_MEM_NUM      (STATION_INFO_DL_ENTRY_MEM_SIZE/sizeof(dl_entry))
-#define STATION_INFO_DL_ENTRY_MEM_HIGH      high_addr_calc(STATION_INFO_DL_ENTRY_MEM_BASE, STATION_INFO_DL_ENTRY_MEM_SIZE)
+#define STATION_INFO_DL_ENTRY_MEM_HIGH      CALC_HIGH_ADDR(STATION_INFO_DL_ENTRY_MEM_BASE, STATION_INFO_DL_ENTRY_MEM_SIZE)
 
-#define STATION_INFO_BUFFER_BASE          (BSS_INFO_BUFFER_BASE + BSS_INFO_BUFFER_SIZE)
+#define STATION_INFO_BUFFER_BASE          (BSS_INFO_BUFFER_HIGH + 1)
 #define STATION_INFO_BUFFER_SIZE		  ((STATION_INFO_DL_ENTRY_MEM_SIZE/sizeof(dl_entry))*sizeof(station_info_t))
-#define STATION_INFO_BUFFER_HIGH           high_addr_calc(STATION_INFO_BUFFER_BASE, STATION_INFO_BUFFER_SIZE)
+#define STATION_INFO_BUFFER_HIGH           CALC_HIGH_ADDR(STATION_INFO_BUFFER_BASE, STATION_INFO_BUFFER_SIZE)
 
 
 
@@ -163,9 +175,11 @@
  * XAXIDMA_BD_MINIMUM_ALIGNMENT), so we set ETH_TX_BD_SIZE to 64.
  *
  ********************************************************************/
-#define ETH_TX_BD_MEM_BASE                     (STATION_INFO_DL_ENTRY_MEM_BASE + STATION_INFO_DL_ENTRY_MEM_SIZE)
-#define ETH_TX_BD_MEM_SIZE                     (64)
-#define ETH_TX_BD_MEM_HIGH                      high_addr_calc(ETH_TX_BD_MEM_BASE, ETH_TX_BD_MEM_SIZE)
+#define ETH_DMA_BD_SIZE			       64 // hard-code sizeof(XAxiDma_Bd) to avoid including axi_dma header
+
+#define ETH_TX_BD_MEM_BASE                     (STATION_INFO_DL_ENTRY_MEM_HIGH + 1)
+#define ETH_TX_BD_MEM_SIZE                     (1 * ETH_DMA_BD_SIZE)
+#define ETH_TX_BD_MEM_HIGH                      CALC_HIGH_ADDR(ETH_TX_BD_MEM_BASE, ETH_TX_BD_MEM_SIZE)
 
 
 
@@ -177,9 +191,9 @@
  * BD to be able to handle bursty Ethernet receptions.
  *
  ********************************************************************/
-#define ETH_RX_BD_MEM_BASE                     (ETH_TX_BD_MEM_BASE + ETH_TX_BD_MEM_SIZE)
-#define ETH_RX_BD_MEM_SIZE                     (WLAN_OPTIONS_AUX_SIZE_KB_RX_ETH_BD)
-#define ETH_RX_BD_MEM_HIGH                      high_addr_calc(ETH_RX_BD_MEM_BASE, ETH_RX_BD_MEM_SIZE)
+#define ETH_RX_BD_MEM_BASE                     (ETH_TX_BD_MEM_HIGH + 1)
+#define ETH_RX_BD_MEM_SIZE                     (239 * ETH_DMA_BD_SIZE)
+#define ETH_RX_BD_MEM_HIGH                      CALC_HIGH_ADDR(ETH_RX_BD_MEM_BASE, ETH_RX_BD_MEM_SIZE)
 
 
 
@@ -190,22 +204,22 @@
  * We do not use the below definitions in any part of the reference design.
  *
  ********************************************************************/
-#define USER_SCRATCH_BASE                  (STATION_INFO_BUFFER_BASE + STATION_INFO_BUFFER_SIZE)
+#define USER_SCRATCH_BASE                  (STATION_INFO_BUFFER_HIGH + 1)
 #define USER_SCRATCH_SIZE                  (10000 * 1024)
-#define USER_SCRATCH_HIGH                   high_addr_calc(USER_SCRATCH_BASE, USER_SCRATCH_SIZE)
+#define USER_SCRATCH_HIGH                   CALC_HIGH_ADDR(USER_SCRATCH_BASE, USER_SCRATCH_SIZE)
 
 
 /********************************************************************
  * Event Log
  *
- * The remaining space in DRAM is used for the WLAN Experiment Framwork event log. The above
+ * The remaining space in DRAM is used for the WLAN Experiment Framework event log. The above
  * sections in DRAM are much smaller than the space set aside for the event log. In the current
  * implementation, the event log is ~995 MB.
  *
  ********************************************************************/
-#define EVENT_LOG_BASE                     (USER_SCRATCH_BASE + USER_SCRATCH_SIZE)
-#define EVENT_LOG_SIZE                     (DRAM_SIZE - (CPU_HIGH_DDR_LINKER_DATA_SIZE + TX_QUEUE_BUFFER_SIZE + BSS_INFO_BUFFER_SIZE + STATION_INFO_BUFFER_SIZE + USER_SCRATCH_SIZE))
-#define EVENT_LOG_HIGH                      high_addr_calc(EVENT_LOG_BASE, EVENT_LOG_SIZE)
+#define EVENT_LOG_BASE                     (USER_SCRATCH_HIGH + 1)
+#define EVENT_LOG_SIZE                     (DRAM_SIZE - EVENT_LOG_BASE) // log occupies all remianing DRAM
+#define EVENT_LOG_HIGH                      CALC_HIGH_ADDR(EVENT_LOG_BASE, EVENT_LOG_SIZE)
 
 
 
