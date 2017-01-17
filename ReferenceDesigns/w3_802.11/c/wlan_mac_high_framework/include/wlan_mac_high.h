@@ -22,16 +22,6 @@
 #include "wlan_mac_common.h"
 
 //-----------------------------------------------
-// Boot memory defines
-//
-#define INIT_DATA_BASEADDR                  XPAR_MB_HIGH_INIT_BRAM_CTRL_S_AXI_BASEADDR   ///< Base address of memory used for storing boot data
-#define INIT_DATA_DOTDATA_IDENTIFIER        0x1234ABCD                                   ///< "Magic number" used as an identifier in boot data memory
-#define INIT_DATA_DOTDATA_START            (INIT_DATA_BASEADDR+0x200)                    ///< Offset into memory for boot data
-#define INIT_DATA_DOTDATA_SIZE             (4*(XPAR_MB_HIGH_INIT_BRAM_CTRL_S_AXI_HIGHADDR - INIT_DATA_DOTDATA_START))  ///< Amount of space available in boot data memory
-
-
-
-//-----------------------------------------------
 // Auxiliary (AUX) BRAM and DRAM (DDR) Memory Maps
 //
 #define AUX_BRAM_BASE                      (XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_BASEADDR)
