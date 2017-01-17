@@ -212,19 +212,19 @@ int main(){
 	max_queue_size = min((queue_total_size()- eth_get_num_rx_bd()) / (1), MAX_TX_QUEUE_LEN);
 
 	// Initialize callbacks
-	wlan_mac_util_set_eth_rx_callback(          (void*)ethernet_receive);
-	wlan_mac_high_set_mpdu_rx_callback(         (void*)mpdu_rx_process);
-	wlan_mac_high_set_pb_u_callback(            (void*)up_button);
+	wlan_mac_util_set_eth_rx_callback(          		(void*)ethernet_receive);
+	wlan_mac_high_set_mpdu_rx_callback(         		(void*)mpdu_rx_process);
+	wlan_mac_high_set_pb_u_callback(            		(void*)up_button);
 
-	wlan_mac_high_set_uart_rx_callback(         (void*)uart_rx);
-	wlan_mac_high_set_poll_tx_queues_callback(  (void*)poll_tx_queues);
-	wlan_mac_high_set_mpdu_dequeue_callback(    (void*)mpdu_dequeue);
+	wlan_mac_high_set_uart_rx_callback(         		(void*)uart_rx);
+	wlan_mac_high_set_poll_tx_queues_callback(  		(void*)poll_tx_queues);
+	wlan_mac_high_set_mpdu_dequeue_callback(    		(void*)mpdu_dequeue);
 #if WLAN_SW_CONFIG_ENABLE_LTG
-	wlan_mac_ltg_sched_set_callback(            (void*)ltg_event);
+	wlan_mac_ltg_sched_set_callback(            		(void*)ltg_event);
 #endif //WLAN_SW_CONFIG_ENABLE_LTG
-	queue_set_state_change_callback(            (void*)queue_state_change);
-	wlan_mac_scan_set_state_change_callback(    (void*)process_scan_state_change);
-	wlan_mac_high_set_cpu_low_reboot_callback(  (void*)handle_cpu_low_reboot);
+	queue_set_state_change_callback(            		(void*)queue_state_change);
+	wlan_mac_scan_set_state_change_callback(    		(void*)process_scan_state_change);
+	wlan_mac_high_set_cpu_low_reboot_callback(  		(void*)handle_cpu_low_reboot);
 
 	// Configure the wireless-wired encapsulation mode (AP and STA behaviors are different)
 	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_AP);
@@ -1110,8 +1110,6 @@ int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src,
 	// Packet successfully enqueued
 	return 1;
 }
-
-
 
 //TODO: Create function to update beacon live fields (e.g. TIM bitmap)
 // We may need to formalize a beacon ping/pong handshake to avoid any races

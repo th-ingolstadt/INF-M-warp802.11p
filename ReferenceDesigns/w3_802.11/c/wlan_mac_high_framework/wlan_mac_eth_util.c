@@ -63,6 +63,7 @@ static XAxiDma               eth_dma_instance;
 
 // Callback for top-level processing of Ethernet received packets
 static function_ptr_t        eth_rx_callback;
+static function_ptr_t        eth_rx_early_rejection_callback;
 
 // Ethernet encapsulation mode
 //     See:  http://warpproject.org/trac/wiki/802.11/MAC/Upper/MACHighFramework/EthEncap
@@ -173,6 +174,7 @@ int wlan_eth_init() {
 
     // Initialize Callback
     eth_rx_callback = (function_ptr_t)wlan_null_callback;
+    eth_rx_early_rejection_callback = (function_ptr_t)wlan_null_callback;
 
     // Initialize Ethernet instance
     eth_cfg_ptr = XAxiEthernet_LookupConfig(WLAN_ETH_DEV_ID);
@@ -377,6 +379,22 @@ void wlan_mac_util_set_eth_rx_callback(void(*callback)()) {
 }
 
 
+/*****************************************************************************/
+/**
+ * @brief Sets the MAC callback to provide early rejection feedback to the framework
+ *
+ * Prior to encapsulating a received Ethernet frame, the framework will call the
+ * early rejection callback if it has been attached by the application. If the application
+ * so chooses, the application can provide feedback to the framework to bypass the
+ * encapsulation procedure and drop the packet. This is purely optional and is intended
+ * to provided performance improvements in busy unswitched Ethernet networks.
+ *
+ * @param void(*callback)
+ *  -Function pointer to the MAC's Ethernet Rx Early Rejection callback
+ */
+void wlan_mac_util_set_eth_rx_early_rejection_callback(void(*callback)()) {
+	eth_rx_early_rejection_callback = (function_ptr_t)callback;
+}
 
 /*****************************************************************************/
 /**
@@ -620,6 +638,7 @@ u32 wlan_process_eth_rx(XAxiDma_BdRing * rx_ring_ptr, XAxiDma_Bd * bd_ptr) {
     u32                 eth_rx_len, eth_rx_buf;
     u32                 mpdu_tx_len;
     tx_queue_buffer_t*	tx_queue_buffer;
+    ethernet_header_t*  eth_hdr;
 
     int                 status;
     u32					return_value = 0;
@@ -655,18 +674,24 @@ u32 wlan_process_eth_rx(XAxiDma_BdRing * rx_ring_ptr, XAxiDma_Bd * bd_ptr) {
 
 	eth_start_ptr  = (u8*)eth_rx_buf;
 
-    // Encapsulate the Ethernet packet
-    mpdu_tx_len    = wlan_eth_encap(mpdu_start_ptr, eth_dest, eth_src, eth_start_ptr, eth_rx_len);
+	eth_hdr = (ethernet_header_t*)eth_start_ptr;
 
-    if ((gl_portal_en == 0) || (mpdu_tx_len == 0)) {
-        // Encapsulation failed (Probably because of an unknown ETHERTYPE value)
-        //     Don't pass the invalid frame to the MAC - just cleanup and return
-        packet_is_queued = 0;
-    } else {
-        // Call the MAC's callback to process the packet
-        //     MAC will either enqueue the packet for eventual transmission or reject the packet
-        packet_is_queued = eth_rx_callback(curr_tx_queue_element, eth_dest, eth_src, mpdu_tx_len);
-    }
+	if(eth_rx_early_rejection_callback(eth_hdr->dest_mac_addr, eth_hdr->src_mac_addr)){
+		// Encapsulate the Ethernet packet
+		mpdu_tx_len    = wlan_eth_encap(mpdu_start_ptr, eth_dest, eth_src, eth_start_ptr, eth_rx_len);
+
+		if ((gl_portal_en == 0) || (mpdu_tx_len == 0)) {
+			// Encapsulation failed (Probably because of an unknown ETHERTYPE value)
+			//     Don't pass the invalid frame to the MAC - just cleanup and return
+			packet_is_queued = 0;
+		} else {
+			// Call the MAC's callback to process the packet
+			//     MAC will either enqueue the packet for eventual transmission or reject the packet
+			packet_is_queued = eth_rx_callback(curr_tx_queue_element, eth_dest, eth_src, mpdu_tx_len);
+		}
+	} else {
+		packet_is_queued = 0;
+	}
 
     // If the packet was not successfully enqueued, discard it and return its queue entry to the free pool
     //     For packets that are successfully enqueued, this cleanup is part of the post-wireless-Tx handler
