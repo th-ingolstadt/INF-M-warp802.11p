@@ -51,8 +51,8 @@
 /*********************** Global Variable Definitions *************************/
 
 //These variables are defined by the linker at compile time
-extern int                   __cpu_high_ddr_linker_data_start;  ///< Start address of the CPU High linker data section
-extern int                   __cpu_high_ddr_linker_data_end;    ///< End address of the CPU High linker data section
+extern int                   __wlan_exp_eth_buffers_section_start;  ///< Start address of the CPU High linker data section
+extern int                   __wlan_exp_eth_buffers_section_end;    ///< End address of the CPU High linker data section
 
 extern int                   _stack_end;                    ///< Start of the stack (stack counts backwards)
 extern int                   __stack;                       ///< End of the stack
@@ -203,7 +203,7 @@ void wlan_mac_high_cpu_ddr_linker_data_init(u8 dram_present) {
     u32            data_size;
     // volatile u32 * identifier;                             // Uncomment if needed
 
-    data_size  = 4 * (&__cpu_high_ddr_linker_data_end - &__cpu_high_ddr_linker_data_start);
+    data_size  = 4 * (&__wlan_exp_eth_buffers_section_end - &__wlan_exp_eth_buffers_section_start);
     // identifier = (u32 *)CPU_HIGH_DDR_LINKER_DATA_BASE;     // Uncomment if needed
 
     // Check that the section has not exceeded the allocated size

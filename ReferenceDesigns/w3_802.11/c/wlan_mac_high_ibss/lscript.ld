@@ -104,10 +104,12 @@ SECTIONS
  * wlan_mac_high.c.
  *
  ******************************************************************/
-.cpu_high_ddr_linker_data (NOLOAD) : {
-   __cpu_high_ddr_linker_data_start = .;
-   *(.eth_data)
-   __cpu_high_ddr_linker_data_end = .;
+.wlan_exp_eth_buffers_section (NOLOAD) : {
+   __wlan_exp_eth_buffers_section_start = .;
+   *(.eth_data) /* legacy name used before v1.6.1 - remove in future release */ 
+   *(.ip_udp_eth_buffers)
+   *(.wlan_exp_eth_buffers)
+   __wlan_exp_eth_buffers_section_end = .;
 } > ddr3_sodimm_S_AXI_BASEADDR
 
 .init : {

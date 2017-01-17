@@ -141,13 +141,12 @@ static wlan_exp_function_ptr_t    wlan_exp_process_node_cmd_callback;
        wlan_exp_function_ptr_t    wlan_exp_process_config_bss_callback;
        wlan_exp_function_ptr_t    wlan_exp_active_bss_info_getter_callback;
 
-
 // Allocate Ethernet Header buffer
 //     NOTE:  The buffer memory must be placed in DMA accessible DDR such that it can be fetched by the AXI DMA
 //            attached to the Ethernet module.  Therefore, we will use the same section as other buffers for
-//            Ethernet data, ie section ".eth_data".
+//            Ethernet data, ie section ".wlan_exp_eth_buffers".
 //
-u8     ETH_header_buffer[WLAN_EXP_ETH_NUM_BUFFER * WLAN_EXP_ETH_BUFFER_SIZE] __attribute__ ((aligned(WLAN_EXP_ETH_BUFFER_ALIGNMENT))) __attribute__ ((section (".eth_data")));
+u8     ETH_header_buffer[WLAN_EXP_ETH_NUM_BUFFER * WLAN_EXP_ETH_BUFFER_SIZE] __attribute__ ((aligned(WLAN_EXP_ETH_BUFFER_ALIGNMENT))) __attribute__ ((section (".wlan_exp_eth_buffers")));
 
 
 /******************************** Functions **********************************/
