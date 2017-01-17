@@ -203,7 +203,9 @@ int main() {
 	wlan_mac_sta_join_init();
 
 	// Initialize callbacks
+#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 	wlan_mac_util_set_eth_rx_callback(           (void *) ethernet_receive);
+#endif
 	wlan_mac_high_set_mpdu_rx_callback(          (void *) mpdu_rx_process);
 	wlan_mac_high_set_uart_rx_callback(          (void *) uart_rx);
 	wlan_mac_high_set_poll_tx_queues_callback(   (void *) poll_tx_queues);
@@ -214,8 +216,10 @@ int main() {
 	wlan_mac_scan_set_tx_probe_request_callback( (void *) send_probe_req);
 	wlan_mac_scan_set_state_change_callback(     (void *) process_scan_state_change);
 
+#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 	// Set the Ethernet ecapsulation mode
 	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_STA);
+#endif
 
     wlan_mac_hw_info_t * hw_info;
     // Get the hardware info that has been collected from CPU low
@@ -594,7 +598,9 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 	dl_entry*				bss_info_entry;
 	bss_info_t*				curr_bss_info;
 	volatile bss_info_t*	attempt_bss_info;
+#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 	u8						pre_llc_offset			 = 0;
+#endif
 	u32						return_val				 = 0;
 
 	u16 					length   = rx_frame_info->phy_details.length;
@@ -653,7 +659,9 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 
 				//---------------------------------------------------------------------
 				case MAC_FRAME_CTRL1_SUBTYPE_QOSDATA:
+#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 					pre_llc_offset = sizeof(qos_control);
+#endif
 				case (MAC_FRAME_CTRL1_SUBTYPE_DATA):
 					// Data packet
 					//   - If the STA is associated with the AP and this is from the DS, then transmit over the wired network
@@ -661,7 +669,9 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 					if(is_associated){
 						if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_FROM_DS) {
 							// MPDU is flagged as destined to the DS - send it for de-encapsulation and Ethernet Tx (if appropriate)
+#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 							wlan_mpdu_eth_send(mac_payload,length, pre_llc_offset);
+#endif
 						}
 					}
 				break;

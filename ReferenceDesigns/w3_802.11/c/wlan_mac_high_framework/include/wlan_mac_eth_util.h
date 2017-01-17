@@ -15,51 +15,8 @@
 
 #include "wlan_mac_high_sw_config.h"
 
-#include "xintc.h"
-
-
-/*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_ETH_UTIL_H_
 #define WLAN_MAC_ETH_UTIL_H_
-
-//-----------------------------------------------
-// xparameter.h definitions
-//
-// Ethernet A
-#define ETH_A_MAC_DEVICE_ID                                XPAR_ETH_A_MAC_DEVICE_ID
-#define ETH_A_DMA_DEVICE_ID                                XPAR_ETH_A_DMA_DEVICE_ID
-
-#define ETH_A_RX_INTR_ID                                   XPAR_INTC_0_AXIDMA_0_S2MM_INTROUT_VEC_ID
-#define ETH_A_TX_INTR_ID                                   XPAR_INTC_0_AXIDMA_0_MM2S_INTROUT_VEC_ID
-
-// Ethernet B
-#define ETH_B_MAC_DEVICE_ID                                XPAR_ETH_B_MAC_DEVICE_ID
-#define ETH_B_DMA_DEVICE_ID                                XPAR_ETH_B_DMA_DEVICE_ID
-
-#define ETH_B_RX_INTR_ID                                   XPAR_INTC_0_AXIDMA_1_S2MM_INTROUT_VEC_ID
-#define ETH_B_TX_INTR_ID                                   XPAR_INTC_0_AXIDMA_1_MM2S_INTROUT_VEC_ID
-
-
-//-----------------------------------------------
-// Ethernet PHY defines
-//
-#define ETH_A_MDIO_PHYADDR                                 0x6
-#define ETH_B_MDIO_PHYADDR                                 0x7
-
-
-//-----------------------------------------------
-// WLAN Ethernet defines
-//     NOTE:  Ethernet device associated with device ID must match Ethernet device associated
-//         with MDIO PHY address
-//
-#define WLAN_ETH_DEV_ID                                    ETH_A_MAC_DEVICE_ID
-#define WLAN_ETH_DMA_DEV_ID                                ETH_A_DMA_DEVICE_ID
-#define WLAN_ETH_MDIO_PHYADDR                              ETH_A_MDIO_PHYADDR
-#define WLAN_ETH_RX_INTR_ID                                ETH_A_RX_INTR_ID
-#define WLAN_ETH_TX_INTR_ID                                ETH_A_TX_INTR_ID
-#define WLAN_ETH_LINK_SPEED	                               1000
-#define WLAN_ETH_PKT_BUF_SIZE                              0x800               // 2KB - space allocated per pkt
-
 
 //-----------------------------------------------
 // Magic numbers used for Ethernet/IP/UDP/DHCP/ARP packet interpretation
@@ -165,7 +122,47 @@ typedef struct {
     u16                      checksum;                                         // Checksum
 } udp_header_t;
 
+#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 
+#include "xintc.h"
+
+//-----------------------------------------------
+// xparameter.h definitions
+//
+// Ethernet A
+#define ETH_A_MAC_DEVICE_ID                                XPAR_ETH_A_MAC_DEVICE_ID
+#define ETH_A_DMA_DEVICE_ID                                XPAR_ETH_A_DMA_DEVICE_ID
+
+#define ETH_A_RX_INTR_ID                                   XPAR_INTC_0_AXIDMA_0_S2MM_INTROUT_VEC_ID
+#define ETH_A_TX_INTR_ID                                   XPAR_INTC_0_AXIDMA_0_MM2S_INTROUT_VEC_ID
+
+// Ethernet B
+#define ETH_B_MAC_DEVICE_ID                                XPAR_ETH_B_MAC_DEVICE_ID
+#define ETH_B_DMA_DEVICE_ID                                XPAR_ETH_B_DMA_DEVICE_ID
+
+#define ETH_B_RX_INTR_ID                                   XPAR_INTC_0_AXIDMA_1_S2MM_INTROUT_VEC_ID
+#define ETH_B_TX_INTR_ID                                   XPAR_INTC_0_AXIDMA_1_MM2S_INTROUT_VEC_ID
+
+
+//-----------------------------------------------
+// Ethernet PHY defines
+//
+#define ETH_A_MDIO_PHYADDR                                 0x6
+#define ETH_B_MDIO_PHYADDR                                 0x7
+
+
+//-----------------------------------------------
+// WLAN Ethernet defines
+//     NOTE:  Ethernet device associated with device ID must match Ethernet device associated
+//         with MDIO PHY address
+//
+#define WLAN_ETH_DEV_ID                                    ETH_A_MAC_DEVICE_ID
+#define WLAN_ETH_DMA_DEV_ID                                ETH_A_DMA_DEVICE_ID
+#define WLAN_ETH_MDIO_PHYADDR                              ETH_A_MDIO_PHYADDR
+#define WLAN_ETH_RX_INTR_ID                                ETH_A_RX_INTR_ID
+#define WLAN_ETH_TX_INTR_ID                                ETH_A_TX_INTR_ID
+#define WLAN_ETH_LINK_SPEED	                               1000
+#define WLAN_ETH_PKT_BUF_SIZE                              0x800               // 2KB - space allocated per pkt
 
 /*************************** Function Prototypes *****************************/
 
@@ -182,5 +179,7 @@ int           wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset);
 
 void          wlan_eth_dma_update();
 void 	      wlan_eth_portal_en(u8 enable);
+
+#endif /* WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE */
 
 #endif /* WLAN_MAC_ETH_UTIL_H_ */

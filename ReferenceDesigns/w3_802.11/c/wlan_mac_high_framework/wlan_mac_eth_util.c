@@ -13,7 +13,12 @@
 
 /***************************** Include Files *********************************/
 
+
+
+
 #include "wlan_mac_high_sw_config.h"
+
+#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 
 #include "stdlib.h"
 #include "xparameters.h"
@@ -1377,5 +1382,5 @@ void wlan_eth_portal_en(u8 enable){
 	gl_portal_en = enable;
 }
 
-
+#endif /* WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE */
 

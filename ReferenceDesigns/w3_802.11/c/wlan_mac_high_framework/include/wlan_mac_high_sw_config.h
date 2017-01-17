@@ -38,4 +38,6 @@
                                                     // all LTG-related code from the design as well we disable any wlan_exp
                                                     // commands that control LTGs.
 
+#define WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE	1		//Top-level switch for compiling Ethernet bridging functionality.
+
 #endif /* WLAN_MAC_HIGH_SW_CONFIG_H_ */

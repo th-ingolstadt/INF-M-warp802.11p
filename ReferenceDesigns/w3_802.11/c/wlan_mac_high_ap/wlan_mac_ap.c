@@ -209,10 +209,16 @@ int main(){
 	// Calculate the maximum length of any Tx queue
 	//   (queue_total_size()- eth_get_num_rx_bd()) is the number of queue entries available after dedicating some to the ETH DMA
 	//   MAX_PER_FLOW_QUEUE is the absolute max length of any queue; long queues (a.k.a. buffer bloat) are bad
+#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 	max_queue_size = min((queue_total_size()- eth_get_num_rx_bd()) / (1), MAX_TX_QUEUE_LEN);
+#else
+	max_queue_size = min((queue_total_size()) / (1), MAX_TX_QUEUE_LEN);
+#endif
 
 	// Initialize callbacks
+#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 	wlan_mac_util_set_eth_rx_callback(          		(void*)ethernet_receive);
+#endif
 	wlan_mac_high_set_mpdu_rx_callback(         		(void*)mpdu_rx_process);
 	wlan_mac_high_set_pb_u_callback(            		(void*)up_button);
 
@@ -226,8 +232,10 @@ int main(){
 	wlan_mac_scan_set_state_change_callback(    		(void*)process_scan_state_change);
 	wlan_mac_high_set_cpu_low_reboot_callback(  		(void*)handle_cpu_low_reboot);
 
+#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 	// Configure the wireless-wired encapsulation mode (AP and STA behaviors are different)
 	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_AP);
+#endif
 
     wlan_mac_hw_info_t * hw_info;
     // Get the hardware info that has been collected from CPU low
@@ -1224,7 +1232,9 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 	u8                  		eth_send;
 	u8                  		allow_auth               = 0;
 
+#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 	u8							pre_llc_offset			 = 0;
+#endif
 	u16 						length  				 = rx_frame_info->phy_details.length;
 	u32							return_val				 = 0;
 
@@ -1288,7 +1298,9 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 			switch(rx_80211_header->frame_control_1) {
 				//---------------------------------------------------------------------
 				case MAC_FRAME_CTRL1_SUBTYPE_QOSDATA:
+#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 					pre_llc_offset = sizeof(qos_control);
+#endif
 				case (MAC_FRAME_CTRL1_SUBTYPE_DATA):
 					// Data packet
 					//   - Determine if this packet is from an associated station
@@ -1392,7 +1404,9 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 
 							// Encapsulate the packet and send over the wired network
 							if(eth_send){
+#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 								wlan_mpdu_eth_send(mac_payload, length, pre_llc_offset);
+#endif
 							}
 						}
 					} else {

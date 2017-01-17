@@ -1498,6 +1498,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 wlan_exp_set_print_level(debug_level & 0xFF);
             }
 
+#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
             // Set Eth A portal behavior
             if (mask & CMD_PARAM_NODE_CONFIG_FLAG_ETH_PORTAL) {
             	if (flags & CMD_PARAM_NODE_CONFIG_FLAG_ETH_PORTAL) {
@@ -1509,6 +1510,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 				}
 
             }
+#endif
 
             // Send response of status
             resp_args_32[resp_index++] = Xil_Htonl(status);

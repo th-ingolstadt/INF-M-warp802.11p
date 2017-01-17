@@ -459,7 +459,9 @@ void wlan_mac_high_init(){
 
 	bss_info_init();
 	station_info_init();
+#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 	wlan_eth_init();
+#endif
 	wlan_mac_schedule_init();
 #if WLAN_SW_CONFIG_ENABLE_LTG
 	wlan_mac_ltg_sched_init();
@@ -531,11 +533,13 @@ int wlan_mac_high_interrupt_init(){
 		return -1;
 	}
 
+#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 	Result = wlan_eth_setup_interrupt(&InterruptController);
 	if (Result != XST_SUCCESS) {
 		wlan_printf(PL_ERROR,"Failed to set up Ethernet interrupt\n");
 		return Result;
 	}
+#endif
 
 	// ***************************************************
 	// Enable MicroBlaze exceptions
