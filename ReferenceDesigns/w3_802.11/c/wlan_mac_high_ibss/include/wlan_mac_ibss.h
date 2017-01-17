@@ -70,7 +70,7 @@ void remove_inactive_station_infos();
 void ltg_event(u32 id, void* callback_arg);
 void association_timestamp_adjust(s64 timestamp_diff);
 
-int  ethernet_receive(tx_queue_element_t* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length);
+int  ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length);
 
 u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_entry* rx_event_log_entry);
 bss_info_t* active_bss_info_getter();

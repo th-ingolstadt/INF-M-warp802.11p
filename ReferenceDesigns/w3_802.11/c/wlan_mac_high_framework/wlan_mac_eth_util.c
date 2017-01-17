@@ -110,7 +110,7 @@ static u32                   bd_high_water_mark;
 /*************************** Functions Prototypes ****************************/
 
 int      wlan_eth_dma_init();
-int      init_rx_bd(XAxiDma_Bd * bd_ptr, tx_queue_element_t * tqe_ptr, u32 max_transfer_len);
+int      init_rx_bd(XAxiDma_Bd * bd_ptr, dl_entry * tqe_ptr, u32 max_transfer_len);
 int      wlan_eth_dma_send(u8* pkt_ptr, u32 length);
 int      wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_ptr, u32 eth_rx_len);
 void     eth_rx_interrupt_handler(void *callbarck_arg);
@@ -234,7 +234,7 @@ int wlan_eth_dma_init() {
     XAxiDma_Bd        * first_bd_ptr;
     XAxiDma_Bd        * cur_bd_ptr;
 
-    tx_queue_element_t* curr_tx_queue_element;
+    dl_entry* curr_tx_queue_element;
 
     // Initialize the DMA peripheral structures
     eth_dma_cfg_ptr = XAxiDma_LookupConfig(WLAN_ETH_DMA_DEV_ID);
@@ -323,14 +323,14 @@ int wlan_eth_dma_init() {
  *
  * @param XAxiDma_Bd * bd_ptr
  *  - Pointer to buffer descriptor to be initialized
- * @param tx_queue_element_t * tqe_ptr
+ * @param dl_entry * tqe_ptr
  *  - Pointer to Tx queue element
  * @param u32 max_transfer_len
  *  - Max transfer length for Rx BD
  *
  * @return 0 on success, -1 otherwise
  */
-int init_rx_bd(XAxiDma_Bd * bd_ptr, tx_queue_element_t * tqe_ptr, u32 max_transfer_len) {
+int init_rx_bd(XAxiDma_Bd * bd_ptr, dl_entry * tqe_ptr, u32 max_transfer_len) {
     int  status;
     u32  buf_addr;
 
@@ -340,7 +340,8 @@ int init_rx_bd(XAxiDma_Bd * bd_ptr, tx_queue_element_t * tqe_ptr, u32 max_transf
     //     NOTE:  This pointer is offset by the size of a MAC header and LLC header, which results
     //         in the Ethernet payload being copied to its post-encapsulated location. This
     //         speeds up the encapsulation process by skipping any re-copying of Ethernet payloads
-    buf_addr = (u32)((void*)((tx_queue_buffer_t*)(tqe_ptr->data))->frame + sizeof(mac_header_80211) + sizeof(llc_header_t) - sizeof(ethernet_header_t));
+    buf_addr = (u32)((void*)((tx_queue_buffer_t*)(tqe_ptr->data))->frame + ETH_PAYLOAD_OFFSET);
+
     status   = XAxiDma_BdSetBufAddr(bd_ptr, buf_addr);
     if (status != XST_SUCCESS) { xil_printf("XAxiDma_BdSetBufAddr failed (addr 0x08x)! Err = %d\n", buf_addr, status); return -1; }
 
@@ -353,9 +354,6 @@ int init_rx_bd(XAxiDma_Bd * bd_ptr, tx_queue_element_t * tqe_ptr, u32 max_transf
 
     // Rx BD's don't need control flags before use; DMA populates these post-Rx
     XAxiDma_BdSetCtrl(bd_ptr, 0);
-
-    // BD ID is arbitrary; use pointer to the dl_entry associated with this BD
-    XAxiDma_BdSetId(bd_ptr, (u32)tqe_ptr);
 
     return 0;
 }
@@ -617,9 +615,10 @@ void wlan_process_all_eth_pkts(u32 schedule_id) {
 u32 wlan_process_eth_rx(XAxiDma_BdRing * rx_ring_ptr, XAxiDma_Bd * bd_ptr) {
     u8                * mpdu_start_ptr;
     u8                * eth_start_ptr;
-    tx_queue_element_t* curr_tx_queue_element;
+    dl_entry*           curr_tx_queue_element;
     u32                 eth_rx_len, eth_rx_buf;
     u32                 mpdu_tx_len;
+    tx_queue_buffer_t*	tx_queue_buffer;
 
     int                 status;
     u32					return_value = 0;
@@ -641,17 +640,19 @@ u32 wlan_process_eth_rx(XAxiDma_BdRing * rx_ring_ptr, XAxiDma_Bd * bd_ptr) {
     // Process Ethernet packet
     packet_is_queued = 0;
 
-    // Get the TX queue entry pointer
-    //     NOTE:  The DMA "ID" field is used to hold a pointer to the Tx queue entry containing the packet contents
-    curr_tx_queue_element = (tx_queue_element_t*)XAxiDma_BdGetId(bd_ptr);
-
     // Lookup length and data pointers from the DMA metadata
     eth_rx_len     = XAxiDma_BdGetActualLength(bd_ptr, rx_ring_ptr->MaxTransferLen);
     eth_rx_buf     = XAxiDma_BdGetBufAddr(bd_ptr);
 
-    // After encapsulation, byte[0] of the MPDU will be at byte[0] of the queue entry frame buffer
-    mpdu_start_ptr = (void*)((tx_queue_buffer_t*)(curr_tx_queue_element->data))->frame;
-    eth_start_ptr  = (u8*)eth_rx_buf;
+	// The start of the MPDU is before the first byte of the DMA transfer. We can work our way backwards from this point.
+	mpdu_start_ptr = (void*)( (u8*)eth_rx_buf - ETH_PAYLOAD_OFFSET );
+
+    // Get the TX queue entry pointer. This is located further back in the tx_queue_buffer_t struct.
+	//
+	tx_queue_buffer = (tx_queue_buffer_t*)( (u8*)mpdu_start_ptr - sizeof(tx_queue_buffer_prepayload_header_t) );
+	curr_tx_queue_element = tx_queue_buffer->tx_queue_entry;
+
+	eth_start_ptr  = (u8*)eth_rx_buf;
 
     // Encapsulate the Ethernet packet
     mpdu_tx_len    = wlan_eth_encap(mpdu_start_ptr, eth_dest, eth_src, eth_start_ptr, eth_rx_len);
@@ -1326,9 +1327,6 @@ int wlan_eth_dma_send(u8* pkt_ptr, u32 length) {
 
     // When using 1 BD for 1 pkt set both start-of-frame (SOF) and end-of-frame (EOF)
     XAxiDma_BdSetCtrl(cur_bd_ptr, (XAXIDMA_BD_CTRL_TXSOF_MASK | XAXIDMA_BD_CTRL_TXEOF_MASK));
-
-    // Set arbitrary ID (DMA ignores this)
-    XAxiDma_BdSetId(cur_bd_ptr, (u32)pkt_ptr);
 
     // Push the BD ring to hardware; this initiates the actual DMA transfer and Ethernet Tx
     status = XAxiDma_BdRingToHw(tx_ring_ptr, 1, cur_bd_ptr);

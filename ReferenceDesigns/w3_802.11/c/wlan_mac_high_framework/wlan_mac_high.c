@@ -1302,7 +1302,7 @@ void wlan_mac_high_cdma_finish_transfer(){
  * @return None
  *
  */
-void wlan_mac_high_mpdu_transmit(tx_queue_element_t* packet, int tx_pkt_buf) {
+void wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf) {
 	wlan_ipc_msg_t 		ipc_msg_to_low;
 	tx_frame_info_t* 	tx_frame_info;
 	station_info_t* 	station_info;
@@ -1467,7 +1467,7 @@ void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_
  *
  * @param  mac_header_80211_common * header
  *     - Pointer to the 802.11 header
- * @param  tx_queue_element_t * curr_tx_queue_element
+ * @param  dl_entry * curr_tx_queue_element
  *     - Pointer to the TX queue element
  * @param  u32 tx_length
  *     - Length of the frame info
@@ -1479,7 +1479,7 @@ void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_
  * 	   - Packet Buffer Group
  * @return None
  */
-void wlan_mac_high_setup_tx_frame_info(mac_header_80211_common * header, tx_queue_element_t * curr_tx_queue_element, u32 tx_length, u8 flags, u8 queue_id, pkt_buf_group_t pkt_buf_group) {
+void wlan_mac_high_setup_tx_frame_info(mac_header_80211_common * header, dl_entry * curr_tx_queue_element, u32 tx_length, u8 flags, u8 queue_id, pkt_buf_group_t pkt_buf_group) {
 
 	u16 occupancy;
 

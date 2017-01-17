@@ -67,11 +67,11 @@ CASSERT(sizeof(txrx_counts_sub_t) == 56,txrx_counts_sub_alignment_check);
  * the network.
  *
  ********************************************************************/
-#define STATION_TXRX_COUNTS_COMMON_FIELDS                                                                  						\
+#define STATION_TXRX_COUNTS_COMMON_FIELDS                                                                  			\
 		txrx_counts_sub_t   data;                          /* Counts about data types	*/							\
-		 /*----- 8-byte boundary ------*/																				\
+		 /*----- 8-byte boundary ------*/																			\
 		txrx_counts_sub_t   mgmt;                          /* Counts about management types */						\
-		 /*----- 8-byte boundary ------*/																				\
+		 /*----- 8-byte boundary ------*/																			\
 
 
 typedef struct{

@@ -377,7 +377,7 @@ int main() {
  *****************************************************************************/
 void send_probe_req(){
 	u16                             tx_length;
-	tx_queue_element_t*             curr_tx_queue_element;
+	dl_entry*             curr_tx_queue_element;
 	tx_queue_buffer_t*              curr_tx_queue_buffer;
 	volatile scan_parameters_t*     scan_parameters = wlan_mac_scan_get_parameters();
 
@@ -601,7 +601,7 @@ void purge_all_data_tx_queue(){
  * The tx_queue_list argument is a DL list, but must contain exactly one queue entry which contains the encapsulated packet
  * A list container is used here to ease merging of the list with the target queue.
  *
- * @param tx_queue_element_t* curr_tx_queue_element
+ * @param dl_entry* curr_tx_queue_element
  *  - A single queue element containing the packet to transmit
  * @param u8* eth_dest
  *  - 6-byte destination address from original Ethernet packet
@@ -611,7 +611,7 @@ void purge_all_data_tx_queue(){
  *  - Length (in bytes) of the packet payload
  * @return 1 for successful enqueuing of the packet, 0 otherwise
  *****************************************************************************/
-int ethernet_receive(tx_queue_element_t* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length){
+int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length){
 
 	tx_queue_buffer_t* 	curr_tx_queue_buffer;
 	station_info_t*     station_info;
@@ -719,7 +719,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 
 	u16                 rx_seq;
 
-	tx_queue_element_t*   curr_tx_queue_element;
+	dl_entry*   curr_tx_queue_element;
 	tx_queue_buffer_t*    curr_tx_queue_buffer;
 
 	u8                  unicast_to_me;
@@ -971,7 +971,7 @@ void ltg_event(u32 id, void* callback_arg){
 	u8*                 addr_da;
 	u8                  is_multicast;
 	u8                  queue_sel;
-	tx_queue_element_t* curr_tx_queue_element        = NULL;
+	dl_entry* curr_tx_queue_element        = NULL;
 	tx_queue_buffer_t*  curr_tx_queue_buffer         = NULL;
 	u8                  continue_loop;
 

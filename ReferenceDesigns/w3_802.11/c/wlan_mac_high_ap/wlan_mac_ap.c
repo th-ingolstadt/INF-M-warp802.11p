@@ -159,7 +159,6 @@ int main(){
 	//    values in the heap RAM
 	wlan_mac_high_malloc_init();
 
-
 	//Initialize the MAC framework
 	wlan_mac_high_init();
 
@@ -862,7 +861,7 @@ void ltg_event(u32 id, void* callback_arg){
 	u8*                 addr_da;
 	u8                  is_multicast;
 	u8                  queue_sel;
-	tx_queue_element_t* curr_tx_queue_element        = NULL;
+	dl_entry* curr_tx_queue_element        = NULL;
 	tx_queue_buffer_t*  curr_tx_queue_buffer         = NULL;
 	u8                  continue_loop;
 
@@ -1008,7 +1007,7 @@ void ltg_event(u32 id, void* callback_arg){
  * The tx_queue_list argument is a DL list, but must contain exactly one queue entry which contains the encapsulated packet
  * A list container is used here to ease merging of the list with the target queue.
  *
- * @param tx_queue_element_t* curr_tx_queue_element
+ * @param dl_entry* curr_tx_queue_element
  *  - A single queue element containing the packet to transmit
  * @param u8* eth_dest
  *  - 6-byte destination address from original Ethernet packet
@@ -1018,7 +1017,7 @@ void ltg_event(u32 id, void* callback_arg){
  *  - Length (in bytes) of the packet payload
  * @return 1 for successful enqueuing of the packet, 0 otherwise
  *****************************************************************************/
-int ethernet_receive(tx_queue_element_t* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length){
+int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length){
 	station_info_t* station_info;
 	dl_entry*     	entry;
 
@@ -1210,7 +1209,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 	u8                  		send_response            = 0;
 	u16                 		tx_length;
 	u16                 		rx_seq;
-	tx_queue_element_t* 		curr_tx_queue_element;
+	dl_entry* 		curr_tx_queue_element;
 	tx_queue_buffer_t*  		curr_tx_queue_buffer;
 	char                		ssid[SSID_LEN_MAX];
 	u8                  		ssid_length				  = 0;
@@ -1850,7 +1849,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 /**
  *
  *****************************************************************************/
-void mpdu_dequeue(tx_queue_element_t* packet){
+void mpdu_dequeue(dl_entry* packet){
 	mac_header_80211* 	header;
 	tx_frame_info_t*	tx_frame_info;
 	dl_entry*			curr_station_entry;
@@ -1900,7 +1899,7 @@ void mpdu_dequeue(tx_queue_element_t* packet){
  *****************************************************************************/
 u32  deauthenticate_station( station_info_t* station_info ) {
 
-	tx_queue_element_t*		curr_tx_queue_element;
+	dl_entry*		curr_tx_queue_element;
 	tx_queue_buffer_t* 		curr_tx_queue_buffer;
 	u32            tx_length;
 	u32            aid;

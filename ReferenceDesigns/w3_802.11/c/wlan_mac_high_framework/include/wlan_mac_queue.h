@@ -41,35 +41,42 @@
 
 /*********************** Global Structure Definitions ************************/
 
-typedef dl_entry tx_queue_element_t;
-
-
 typedef struct{
 	u8    metadata_type;
 	u8    reserved[3];
 	u32   metadata_ptr;
 } tx_queue_metadata_t;
 
+#define TX_QUEUE_BUFFER_COMMON_FIELDS                               	\
+		tx_queue_metadata_t   metadata;									\
+		dl_entry*			tx_queue_entry;								\
+		tx_frame_info_t     tx_frame_info;								\
+		u8                  phy_hdr_pad[PHY_TX_PKT_BUF_PHY_HDR_SIZE];	\
 
 typedef struct{
-	tx_queue_metadata_t metadata;
-	tx_frame_info_t     tx_frame_info;
-	u8                  phy_hdr_pad[PHY_TX_PKT_BUF_PHY_HDR_SIZE];
-	u8                  frame[QUEUE_BUFFER_SIZE - PHY_TX_PKT_BUF_PHY_HDR_SIZE - sizeof(tx_frame_info_t) - sizeof(tx_queue_metadata_t)];
+	TX_QUEUE_BUFFER_COMMON_FIELDS
+} tx_queue_buffer_prepayload_header_t;
+
+
+typedef struct{
+	TX_QUEUE_BUFFER_COMMON_FIELDS
+	u8                  frame[QUEUE_BUFFER_SIZE - sizeof(tx_queue_buffer_prepayload_header_t)];
 } tx_queue_buffer_t;
+
+
 
 
 /*************************** Function Prototypes *****************************/
 
 void                queue_init(u8 dram_present);
 
-void                enqueue_after_tail(u16 queue_sel, tx_queue_element_t* tqe);
-tx_queue_element_t* dequeue_from_head(u16 queue_sel);
+void                enqueue_after_tail(u16 queue_sel, dl_entry* tqe);
+dl_entry* 			dequeue_from_head(u16 queue_sel);
 inline int          dequeue_transmit_checkin(u16 queue_sel);
 inline void 	    queue_set_state_change_callback(function_ptr_t callback);
 
-tx_queue_element_t* queue_checkout();
-void                queue_checkin(tx_queue_element_t* tqe);
+dl_entry* 			queue_checkout();
+void                queue_checkin(dl_entry* tqe);
 
 int                 queue_checkout_list(dl_list* new_list, u16 num_tqe);
 int                 queue_checkin_list(dl_list * list);

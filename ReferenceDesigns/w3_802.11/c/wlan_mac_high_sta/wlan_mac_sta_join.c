@@ -580,7 +580,7 @@ void wlan_mac_sta_join_bss_attempt_poll(u32 aid){
  *****************************************************************************/
 void transmit_join_auth_req(){
     u16                 tx_length;
-    tx_queue_element_t*   curr_tx_queue_element;
+    dl_entry*   curr_tx_queue_element;
     tx_queue_buffer_t*    curr_tx_queue_buffer;
 
     // Only transmit if FSM is "ATTEMPTING" to join
@@ -626,7 +626,7 @@ void transmit_join_auth_req(){
  *****************************************************************************/
 void transmit_join_assoc_req(){
     u16                 tx_length;
-    tx_queue_element_t*   curr_tx_queue_element;
+    dl_entry*   curr_tx_queue_element;
     tx_queue_buffer_t*    curr_tx_queue_buffer;
 
     // Only transmit if FSM is "ATTEMPTING" to join

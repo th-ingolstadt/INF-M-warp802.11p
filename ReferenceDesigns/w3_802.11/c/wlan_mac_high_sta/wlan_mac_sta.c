@@ -328,7 +328,7 @@ int main() {
  *****************************************************************************/
 void send_probe_req(){
 	u16                             tx_length;
-	tx_queue_element_t*             curr_tx_queue_element;
+	dl_entry*             curr_tx_queue_element;
 	tx_queue_buffer_t*              curr_tx_queue_buffer;
 	volatile scan_parameters_t*     scan_parameters = wlan_mac_scan_get_parameters();
 
@@ -500,7 +500,7 @@ void purge_all_data_tx_queue(){
  * The tx_queue_list argument is a DL list, but must contain exactly one queue entry which contains the encapsulated packet
  * A list container is used here to ease merging of the list with the target queue.
  *
- * @param tx_queue_element_t* curr_tx_queue_element
+ * @param dl_entry* curr_tx_queue_element
  *  - A single queue element containing the packet to transmit
  * @param u8* eth_dest
  *  - 6-byte destination address from original Ethernet packet
@@ -510,7 +510,7 @@ void purge_all_data_tx_queue(){
  *  - Length (in bytes) of the packet payload
  * @return 1 for successful enqueuing of the packet, 0 otherwise
  *****************************************************************************/
-int ethernet_receive(tx_queue_element_t* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length){
+int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length){
 	tx_queue_buffer_t* 	curr_tx_queue_buffer;
 	station_info_t* 	ap_station_info;
 
@@ -841,7 +841,7 @@ void ltg_event(u32 id, void* callback_arg){
 	u32                 min_ltg_payload_length;
 	u8*                 addr_da;
 	station_info_t*     ap_station_info;
-	tx_queue_element_t* curr_tx_queue_element        = NULL;
+	dl_entry* curr_tx_queue_element        = NULL;
 	tx_queue_buffer_t*  curr_tx_queue_buffer         = NULL;
 
 	if(active_bss_info != NULL){
@@ -910,7 +910,7 @@ int  sta_disassociate( void ) {
 	int                 status = 0;
 	station_info_t*     ap_station_info          = NULL;
 	dl_entry*           ap_station_info_entry;
-	tx_queue_element_t* curr_tx_queue_element;
+	dl_entry* curr_tx_queue_element;
 	tx_queue_buffer_t*  curr_tx_queue_buffer;
 	u32                 tx_length;
 

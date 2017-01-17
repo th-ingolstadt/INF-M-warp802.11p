@@ -134,9 +134,16 @@ void queue_init(u8 dram_present){
 		// Segment the buffer in QUEUE_BUFFER_SIZE pieces
 		dl_entry_base[i].data = (void*)(TX_QUEUE_BUFFER_BASE + (i * QUEUE_BUFFER_SIZE));
 
+        // Copy the pointer to the dl_entry into the DRAM payload. This will allow any context
+		// (like Ethernet Rx) to find the dl_entry that points to a given DRAM payload
+        ((tx_queue_buffer_t*)(dl_entry_base[i].data))->tx_queue_entry = &(dl_entry_base[i]);
+
 		// Insert new dl_entry into the free queue
 		dl_entry_insertEnd(&free_queue, &(dl_entry_base[i]));
 	}
+
+
+
 
 	// Print status
 	xil_printf("Tx Queue of %d placed in DRAM: using %d kB\n", total_tx_queue_entries,
@@ -207,7 +214,7 @@ u32 queue_num_queued(u16 queue_sel){
 void purge_queue(u16 queue_sel){
 	u32                        num_queued;
 	u32                        i;
-	tx_queue_element_t       * curr_tx_queue_element;
+	dl_entry       * curr_tx_queue_element;
 	volatile interrupt_state_t prev_interrupt_state;
 
 	num_queued = queue_num_queued(queue_sel);
@@ -259,10 +266,10 @@ void purge_queue(u16 queue_sel){
  * @param  u16 queue_sel          - ID of the queue to which tqe is added. A new
  *                                  queue with ID queue_sel will be created if it
  *                                  does not already exist.
- * @param  tx_queue_element_t* tqe  - Tx Queue entry containing packet for transmission
+ * @param  dl_entry* tqe  - Tx Queue entry containing packet for transmission
  *
  *****************************************************************************/
-void enqueue_after_tail(u16 queue_sel, tx_queue_element_t* tqe){
+void enqueue_after_tail(u16 queue_sel, dl_entry* tqe){
 	u32 i;
 
 	// Create queues up to and including queue_sel if they don't already exist
@@ -319,11 +326,11 @@ void enqueue_after_tail(u16 queue_sel, tx_queue_element_t* tqe){
  *
  * @param  u16 queue_sel          - ID of the queue from which to dequeue an entry
  *
- * @return tx_queue_element_t *     - Pointer to queue entry if available,
+ * @return dl_entry *     - Pointer to queue entry if available,
  *                                  NULL if queue is empty
  *
  *****************************************************************************/
-tx_queue_element_t* dequeue_from_head(u16 queue_sel){
+dl_entry* dequeue_from_head(u16 queue_sel){
 	dl_entry          * curr_dl_entry;
 
 	if ((queue_sel + 1) > num_tx_queues) {
@@ -346,7 +353,7 @@ tx_queue_element_t* dequeue_from_head(u16 queue_sel){
 				queue_state_change_callback(queue_sel, 0);
 			}
 
-			return (tx_queue_element_t *) curr_dl_entry;
+			return (dl_entry *) curr_dl_entry;
 		}
 	}
 }
@@ -361,15 +368,15 @@ tx_queue_element_t* dequeue_from_head(u16 queue_sel){
  * removes one entry from the free pool and returns it for use by the MAC
  * application. If the free pool is empty NULL is returned.
  *
- * @return tx_queue_element_t *     - Pointer to new queue entry if available,
+ * @return dl_entry *     - Pointer to new queue entry if available,
  *                                  NULL if free queue is empty
  *
  *****************************************************************************/
-tx_queue_element_t* queue_checkout(){
-	tx_queue_element_t* tqe;
+dl_entry* queue_checkout(){
+	dl_entry* tqe;
 
 	if(free_queue.length > 0){
-		tqe = ((tx_queue_element_t*)(free_queue.first));
+		tqe = ((dl_entry*)(free_queue.first));
 		dl_entry_remove(&free_queue,free_queue.first);
 
 		// Initialize the metadata type of the tx_queue entry since this
@@ -397,10 +404,10 @@ tx_queue_element_t* queue_checkout(){
  * entry which the MAC application no longer needs. The application must not
  * use the entry pointed to by tqe after calling this function.
  *
- * @param  tx_queue_element_t* tqe  - Pointer to queue entry to be returned to free pool
+ * @param  dl_entry* tqe  - Pointer to queue entry to be returned to free pool
  *
  *****************************************************************************/
-void queue_checkin(tx_queue_element_t* tqe){
+void queue_checkin(dl_entry* tqe){
 	if (tqe != NULL) {
 	    dl_entry_insertEnd(&free_queue, (dl_entry*) tqe);
 	}
@@ -528,7 +535,7 @@ int queue_checkin_list(dl_list * list) {
 inline int dequeue_transmit_checkin(u16 queue_sel){
 	int                 return_value             = 0;
 	int                 tx_pkt_buf               = -1;
-	tx_queue_element_t  * curr_tx_queue_element;
+	dl_entry  * curr_tx_queue_element;
 
 	tx_pkt_buf = wlan_mac_high_get_empty_tx_packet_buffer();
 

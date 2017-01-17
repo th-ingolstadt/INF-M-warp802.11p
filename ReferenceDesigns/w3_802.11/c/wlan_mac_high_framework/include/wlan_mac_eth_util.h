@@ -93,6 +93,8 @@
 #define ETH_ADDR_SIZE                                      6                   // Length of Ethernet MAC address (in bytes)
 #define IP_ADDR_SIZE                                       4                   // Length of IP address (in bytes)
 
+#define ETH_PAYLOAD_OFFSET								   ( sizeof(mac_header_80211) + sizeof(llc_header_t) - sizeof(ethernet_header_t) )
+
 
 /*********************** Global Structure Definitions ************************/
 
