@@ -88,16 +88,9 @@ volatile static u32          total_tx_queue_entries;
  *                                  (1 = present; other = not present)
  *
  *****************************************************************************/
-void queue_init(u8 dram_present){
+void queue_init() {
 	u32            i;
 	dl_entry     * dl_entry_base;
-
-	// Check that DRAM is present; Fatal error if not.
-	if(dram_present != 1){
-		xil_printf("A working DRAM SODIMM has not been detected on this board.\n");
-		xil_printf("DRAM is required for the wireless transmission queue.  Halting.\n");
-		cpu_error_halt(WLAN_ERROR_CODE_DRAM_NOT_PRESENT);
-	}
 
 	// Set the total number of supported Tx Queue entries
 	total_tx_queue_entries = min((TX_QUEUE_DL_ENTRY_MEM_SIZE / sizeof(dl_entry)),   // Max dl_entry

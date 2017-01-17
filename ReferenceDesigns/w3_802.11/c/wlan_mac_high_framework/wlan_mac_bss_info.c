@@ -54,7 +54,7 @@ dl_entry* wlan_mac_high_find_bss_info_oldest();
 
 /******************************** Functions **********************************/
 
-void bss_info_init(u8 dram_present){
+void bss_info_init() {
 
 	u32       i;
 	u32       num_bss_info;
@@ -64,30 +64,27 @@ void bss_info_init(u8 dram_present){
 	dl_list_init(&bss_info_list);
 	dl_list_init(&bss_info_matching_ssid_list);
 
-	if(dram_present){
-		// Clear the memory in the dram used for bss_infos
-		bzero((void*)BSS_INFO_BUFFER_BASE, BSS_INFO_BUFFER_SIZE);
+	// Clear the memory in the dram used for bss_infos
+	bzero((void*)BSS_INFO_BUFFER_BASE, BSS_INFO_BUFFER_SIZE);
 
-		// The number of BSS info elements we can initialize is limited by the smaller of two values:
-		//     (1) The number of dl_entry structs we can squeeze into BSS_INFO_DL_ENTRY_MEM_SIZE
-		//     (2) The number of bss_info structs we can squeeze into BSS_INFO_BUFFER_SIZE
-		num_bss_info = min(BSS_INFO_DL_ENTRY_MEM_SIZE/sizeof(dl_entry), BSS_INFO_BUFFER_SIZE/sizeof(bss_info_t));
+	// The number of BSS info elements we can initialize is limited by the smaller of two values:
+	//     (1) The number of dl_entry structs we can squeeze into BSS_INFO_DL_ENTRY_MEM_SIZE
+	//     (2) The number of bss_info structs we can squeeze into BSS_INFO_BUFFER_SIZE
+	num_bss_info = min(BSS_INFO_DL_ENTRY_MEM_SIZE/sizeof(dl_entry), BSS_INFO_BUFFER_SIZE/sizeof(bss_info_t));
 
-		// At boot, every dl_entry buffer descriptor is free
-		// To set up the doubly linked list, we exploit the fact that we know the starting state is sequential.
-		// This matrix addressing is not safe once the queue is used. The insert/remove helper functions should be used
-		dl_entry_base = (dl_entry*)(BSS_INFO_DL_ENTRY_MEM_BASE);
+	// At boot, every dl_entry buffer descriptor is free
+	// To set up the doubly linked list, we exploit the fact that we know the starting state is sequential.
+	// This matrix addressing is not safe once the queue is used. The insert/remove helper functions should be used
+	dl_entry_base = (dl_entry*)(BSS_INFO_DL_ENTRY_MEM_BASE);
 
-		for (i = 0; i < num_bss_info; i++) {
-			dl_entry_base[i].data = (void*)(BSS_INFO_BUFFER_BASE + (i*sizeof(bss_info_t)));
-			dl_entry_insertEnd(&bss_info_free, &(dl_entry_base[i]));
-		}
-
-		xil_printf("BSS Info list (len %d) placed in DRAM: using %d kB\n", num_bss_info, (num_bss_info*sizeof(bss_info_t))/1024);
-
-	} else {
-		xil_printf("Error initializing BSS info subsystem\n");
+	for (i = 0; i < num_bss_info; i++) {
+		dl_entry_base[i].data = (void*)(BSS_INFO_BUFFER_BASE + (i*sizeof(bss_info_t)));
+		dl_entry_insertEnd(&bss_info_free, &(dl_entry_base[i]));
 	}
+
+	xil_printf("BSS Info list (len %d) placed in DRAM: using %d kB\n", num_bss_info, (num_bss_info*sizeof(bss_info_t))/1024);
+
+	return;
 }
 
 

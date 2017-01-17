@@ -176,7 +176,7 @@ CASSERT(sizeof(bss_config_t) == 56, bss_config_t_alignment_check);
 
 /*************************** Function Prototypes *****************************/
 
-void             bss_info_init(u8 dram_present);
+void             bss_info_init();
 void             bss_info_init_finish();
 
 dl_entry       * bss_info_checkout();

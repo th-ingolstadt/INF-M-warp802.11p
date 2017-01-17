@@ -145,7 +145,7 @@ CASSERT(sizeof(station_info_t) == 72, station_info_alignment_check);
 
 /*************************** Function Prototypes *****************************/
 
-void             station_info_init(u8 dram_present);
+void             station_info_init();
 void             station_info_init_finish();
 
 dl_entry* 		 station_info_checkout();

@@ -59,7 +59,7 @@ typedef struct{
 
 /*************************** Function Prototypes *****************************/
 
-void                queue_init(u8 dram_present);
+void                queue_init();
 
 void                enqueue_after_tail(u16 queue_sel, dl_entry* tqe);
 dl_entry* 			dequeue_from_head(u16 queue_sel);

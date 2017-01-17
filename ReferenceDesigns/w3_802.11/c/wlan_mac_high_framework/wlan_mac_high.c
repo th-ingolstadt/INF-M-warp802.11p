@@ -426,16 +426,16 @@ void wlan_mac_high_init(){
 	}
 
 	// Test to see if DRAM SODIMM is connected to board
-	dram_present = 0;
 	timestamp = get_system_time_usec();
 
 	while((get_system_time_usec() - timestamp) < 100000){
 		if((XGpio_DiscreteRead(&Gpio_userio, GPIO_USERIO_INPUT_CHANNEL) & GPIO_MASK_DRAM_INIT_DONE)) {
 			xil_printf("------------------------\nDRAM SODIMM Detected\n");
-			if(wlan_mac_high_memory_test()==0){
-				dram_present = 1;
-			} else {
-				dram_present = 0;
+			if(wlan_mac_high_memory_test() != 0 ){
+				xil_printf("A working DRAM SODIMM has not been detected on this board.\n");
+				xil_printf("The 802.11 Reference Design requires at least 1GB of DRAM.\n");
+				xil_printf("This CPU will now halt.\n");
+				cpu_error_halt(WLAN_ERROR_CODE_DRAM_NOT_PRESENT);
 			}
 			break;
 		}
@@ -444,27 +444,21 @@ void wlan_mac_high_init(){
 	// ***************************************************
 	// Initialize various subsystems in the MAC High Framework
 	// ***************************************************
-	queue_init(dram_present);
+	queue_init();
 
 #if WLAN_SW_CONFIG_ENABLE_LOGGING
-	if( dram_present ) {
-		// The event_list lives in DRAM immediately following the queue payloads.
-		if(MAX_EVENT_LOG == -1){
-			log_size = EVENT_LOG_SIZE;
-		} else {
-			log_size = min(EVENT_LOG_SIZE, MAX_EVENT_LOG );
-		}
-
-		event_log_init( (void*)EVENT_LOG_BASE, log_size );
-
+	// The event_list lives in DRAM immediately following the queue payloads.
+	if(MAX_EVENT_LOG == -1){
+		log_size = EVENT_LOG_SIZE;
 	} else {
-		// No DRAM, so the log has nowhere to be stored.
-		log_size = 0;
+		log_size = min(EVENT_LOG_SIZE, MAX_EVENT_LOG );
 	}
+
+	event_log_init( (void*)EVENT_LOG_BASE, log_size );
 #endif //WLAN_SW_CONFIG_ENABLE_LOGGING
 
-	bss_info_init(dram_present);
-	station_info_init(dram_present);
+	bss_info_init();
+	station_info_init();
 	wlan_eth_init();
 	wlan_mac_schedule_init();
 #if WLAN_SW_CONFIG_ENABLE_LTG

@@ -50,7 +50,7 @@ dl_entry* station_info_find_oldest();
 
 /******************************** Functions **********************************/
 
-void station_info_init(u8 dram_present){
+void station_info_init() {
 
 	u32       i;
 	u32       num_station_info;
@@ -59,32 +59,28 @@ void station_info_init(u8 dram_present){
 	dl_list_init(&station_info_free);
 	dl_list_init(&station_info_list);
 
-	if(dram_present){
-		// Clear the memory in the dram used for bss_infos
-		bzero((void*)STATION_INFO_BUFFER_BASE, STATION_INFO_BUFFER_SIZE);
+	// Clear the memory in the dram used for bss_infos
+	bzero((void*)STATION_INFO_BUFFER_BASE, STATION_INFO_BUFFER_SIZE);
 
-		// The number of elements we can initialize is limited by the smaller of two values:
-		//     (1) The number of dl_entry structs we can squeeze into STATION_INFO_DL_ENTRY_MEM_SIZE
-		//     (2) The number of station_info_t structs we can squeeze into STATION_INFO_BUFFER_SIZE
-		num_station_info = min(STATION_INFO_DL_ENTRY_MEM_SIZE/sizeof(dl_entry), STATION_INFO_BUFFER_SIZE/sizeof(station_info_t));
+	// The number of elements we can initialize is limited by the smaller of two values:
+	//     (1) The number of dl_entry structs we can squeeze into STATION_INFO_DL_ENTRY_MEM_SIZE
+	//     (2) The number of station_info_t structs we can squeeze into STATION_INFO_BUFFER_SIZE
+	num_station_info = min(STATION_INFO_DL_ENTRY_MEM_SIZE/sizeof(dl_entry), STATION_INFO_BUFFER_SIZE/sizeof(station_info_t));
 
-		// At boot, every dl_entry buffer descriptor is free
-		// To set up the doubly linked list, we exploit the fact that we know the starting state is sequential.
-		// This matrix addressing is not safe once the queue is used. The insert/remove helper functions should be used
-		dl_entry_base = (dl_entry*)(STATION_INFO_DL_ENTRY_MEM_BASE);
+	// At boot, every dl_entry buffer descriptor is free
+	// To set up the doubly linked list, we exploit the fact that we know the starting state is sequential.
+	// This matrix addressing is not safe once the queue is used. The insert/remove helper functions should be used
+	dl_entry_base = (dl_entry*)(STATION_INFO_DL_ENTRY_MEM_BASE);
 
-		for (i = 0; i < num_station_info; i++) {
-			dl_entry_base[i].data = (void*)(STATION_INFO_BUFFER_BASE + (i*sizeof(station_info_t)));
-			dl_entry_insertEnd(&station_info_free, &(dl_entry_base[i]));
-		}
-
-		xil_printf("Station Info list (len %d) placed in DRAM: using %d kB\n", num_station_info, (num_station_info*sizeof(station_info_t))/1024);
-
-	} else {
-		xil_printf("Error initializing Station Info subsystem\n");
+	for (i = 0; i < num_station_info; i++) {
+		dl_entry_base[i].data = (void*)(STATION_INFO_BUFFER_BASE + (i*sizeof(station_info_t)));
+		dl_entry_insertEnd(&station_info_free, &(dl_entry_base[i]));
 	}
-}
 
+	xil_printf("Station Info list (len %d) placed in DRAM: using %d kB\n", num_station_info, (num_station_info*sizeof(station_info_t))/1024);
+
+	return;
+}
 
 
 void station_info_init_finish(){
