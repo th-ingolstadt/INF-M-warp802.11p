@@ -676,7 +676,7 @@ u32 wlan_process_eth_rx(XAxiDma_BdRing * rx_ring_ptr, XAxiDma_Bd * bd_ptr) {
 
 	eth_hdr = (ethernet_header_t*)eth_start_ptr;
 
-	if(eth_rx_early_rejection_callback(eth_hdr->dest_mac_addr, eth_hdr->src_mac_addr)){
+	if(eth_rx_early_rejection_callback(eth_hdr->dest_mac_addr, eth_hdr->src_mac_addr) == 0){
 		// Encapsulate the Ethernet packet
 		mpdu_tx_len    = wlan_eth_encap(mpdu_start_ptr, eth_dest, eth_src, eth_start_ptr, eth_rx_len);
 
