@@ -14,7 +14,7 @@
 
 /***************************** Include Files *********************************/
 #include "wlan_mac_high_sw_config.h"
-
+#include "wlan_platform_common.h"
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
 #include "wlan_exp_node_sta.h"
@@ -277,7 +277,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             my_aid = aid;
 
             // Update the hex display with the new AID
-            sta_update_hex_display(my_aid);
+            wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, my_aid);
 
             // Send response of status
             resp_args_32[resp_index++] = Xil_Htonl(status);

@@ -26,10 +26,9 @@
 #include "xaxidma.h"
 #include "xintc.h"
 #include "stddef.h"
-
+#include "wlan_platform_common.h"
 #include "wlan_mac_common.h"
 #include "wlan_mac_pkt_buf_util.h"
-#include "wlan_mac_userio_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"
@@ -72,7 +71,7 @@ static function_ptr_t        eth_rx_early_rejection_callback;
 
 // Ethernet encapsulation mode
 //     See:  http://warpproject.org/trac/wiki/802.11/MAC/Upper/MACHighFramework/EthEncap
-static u8                    eth_encap_mode;
+static application_role_t    eth_encap_mode;
 
 // Number of TX / RX buffer descriptors
 static u32                   num_rx_bd;
@@ -162,12 +161,13 @@ int wlan_eth_init() {
     // Check to see if we were given enough room by wlan_mac_high.h for our buffer descriptors
     if (ETH_TX_BD_MEM_SIZE < XAXIDMA_BD_MINIMUM_ALIGNMENT) {
         xil_printf("Only %d bytes allocated for Eth Tx BD. Must be at least %d bytes\n", ETH_TX_BD_MEM_SIZE, XAXIDMA_BD_MINIMUM_ALIGNMENT);
-        cpu_error_halt(WLAN_ERROR_CODE_INSUFFICIENT_BD_SIZE);
+        wlan_platform_userio_disp_status(USERIO_DISP_STATUS_CPU_ERROR, WLAN_ERROR_CODE_INSUFFICIENT_BD_SIZE);
+
     }
 
     if (ETH_RX_BD_MEM_SIZE < XAXIDMA_BD_MINIMUM_ALIGNMENT) {
         xil_printf("Only %d bytes allocated for Eth Rx BDs. Must be at least %d bytes\n", ETH_RX_BD_MEM_SIZE, XAXIDMA_BD_MINIMUM_ALIGNMENT);
-        cpu_error_halt(WLAN_ERROR_CODE_INSUFFICIENT_BD_SIZE);
+        wlan_platform_userio_disp_status(USERIO_DISP_STATUS_CPU_ERROR, WLAN_ERROR_CODE_INSUFFICIENT_BD_SIZE);
     }
 
     // Initialize buffer descriptor counts
@@ -405,10 +405,9 @@ void wlan_mac_util_set_eth_rx_early_rejection_callback(void(*callback)()) {
 /**
  * @brief Sets the wired-wireless encapsulation mode
  *
- * @param u8 mode
- *  -Must be ENCAP_MODE_AP or ENCAP_MODE_STA, indicating AP-style or STA-style encapsulation/de-encapsulation
+ * @param application_role_t mode		- The role of the high-level application (AP, STA, or IBSS)
  */
-void wlan_mac_util_set_eth_encap_mode(u8 mode) {
+void wlan_mac_util_set_eth_encap_mode(application_role_t mode) {
     eth_encap_mode = mode;
 }
 
@@ -806,8 +805,11 @@ int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_
     bzero((void *)(llc_hdr->org_code), 3); //Org Code 0x000000: Encapsulated Ethernet
 
     switch(eth_encap_mode) {
+    	default:
+    		return 0;
+    	break;
         // ------------------------------------------------
-        case ENCAP_MODE_AP:
+        case APPLICATION_ROLE_AP:
             switch(eth_hdr->ethertype) {
                 case ETH_TYPE_ARP:
                     llc_hdr->type = LLC_TYPE_ARP;
@@ -826,8 +828,8 @@ int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_
         break;
 
         // ------------------------------------------------
-        case ENCAP_MODE_IBSS:
-        case ENCAP_MODE_STA:
+        case APPLICATION_ROLE_IBSS:
+        case APPLICATION_ROLE_STA:
             // Save this ethernet src address
             memcpy(eth_sta_mac_addr, eth_src, 6);
             memcpy(eth_src, get_mac_hw_addr_wlan(), 6);
@@ -1097,8 +1099,11 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
 
     // Perform de-encapsulation of wireless packet
     switch(eth_encap_mode) {
+    	default:
+    		return 0;
+    	break;
         // ------------------------------------------------
-        case ENCAP_MODE_AP:
+        case APPLICATION_ROLE_AP:
             // Map the 802.11 header address fields to Ethernet header address fields
             //     For AP de-encapsulation, (eth.dest == wlan.addr3) and (eth.src == wlan.addr2)
             memmove(eth_hdr->dest_mac_addr, rx80211_hdr->address_3, 6);
@@ -1188,7 +1193,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
         break;
 
         // ------------------------------------------------
-        case ENCAP_MODE_STA:
+        case APPLICATION_ROLE_STA:
             if (wlan_addr_eq(rx80211_hdr->address_3, get_mac_hw_addr_wlan())) {
                 // This case handles the behavior of an AP reflecting a station-sent broadcast
                 // packet back out over the air.  Without this filtering, a station would forward
@@ -1235,7 +1240,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
         break;
 
         // ------------------------------------------------
-        case ENCAP_MODE_IBSS:
+        case APPLICATION_ROLE_IBSS:
             // Make temp copy of the 802.11 header address 2 field
             memcpy(addr_cache, rx80211_hdr->address_2, 6);
 

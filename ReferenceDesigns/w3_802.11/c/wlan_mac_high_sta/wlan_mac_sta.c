@@ -25,7 +25,7 @@
 
 // WLAN includes
 #include "wlan_mac_time_util.h"
-#include "wlan_mac_userio_util.h"
+#include "wlan_platform_common.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_event_log.h"
@@ -197,7 +197,7 @@ int main() {
 	configure_bss(NULL);
 
 	// Initialize hex display to "No BSS"
-	sta_update_hex_display(0xFF);
+	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0xFF);
 
 	// Initialize the join state machine
 	wlan_mac_sta_join_init();
@@ -218,7 +218,7 @@ int main() {
 
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 	// Set the Ethernet ecapsulation mode
-	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_STA);
+	wlan_mac_util_set_eth_encap_mode(APPLICATION_ROLE_STA);
 #endif
 
     wlan_mac_hw_info_t * hw_info;
@@ -261,6 +261,8 @@ int main() {
 	wlan_mac_high_set_radio_channel(WLAN_DEFAULT_CHANNEL);
 	wlan_mac_high_set_rx_ant_mode(WLAN_DEFAULT_RX_ANTENNA);
 	wlan_mac_high_set_tx_ctrl_pow(WLAN_DEFAULT_TX_PWR);
+
+	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_APPLICATION_ROLE, APPLICATION_ROLE_STA);
 
 	// Initialize interrupts
 	wlan_mac_high_interrupt_init();
@@ -781,7 +783,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 							purge_queue(UNICAST_QID);
 
 							// Update the hex display to show that we are no longer associated
-							sta_update_hex_display(0);
+							wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0);
 
 							// Remove the association
 							curr_bss_info = active_bss_info;
@@ -1082,7 +1084,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				station_info_remove( &active_bss_info->members, curr_station_info->addr );
 
 				// Update the hex display to show STA is not currently associated
-				sta_update_hex_display(0);
+				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0);
 
 				// Inform the MAC High Framework to no longer will keep this BSS Info. This will
 				// allow it to be overwritten in the future to make space for new BSS Infos.
@@ -1097,7 +1099,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
 
 				// Set hex display to "No BSS"
-				sta_update_hex_display(0xFF);
+				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0xFF);
 			}
 
 			// Pause the data queue, if un-paused
@@ -1165,7 +1167,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				}
 
 				// Set hex display
-				sta_update_hex_display(my_aid);
+				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, my_aid);
 			}
 		}
 
@@ -1243,7 +1245,7 @@ u32	configure_bss(bss_config_t* bss_config){
 			}
 
 			// Update the hex diplay with the current AID
-			sta_update_hex_display(my_aid);
+			wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, my_aid);
 
 			// Print new BSS information
 			xil_printf("BSS Details: \n");
@@ -1324,25 +1326,6 @@ dl_list * get_bss_member_list(){
 u8         * get_wlan_mac_addr()     { return (u8 *)&wlan_mac_addr; }
 bss_info_t * active_bss_info_getter(){ return active_bss_info; }
 
-
-
-/*****************************************************************************/
-/**
- * @brief STA specific hex display update command
- *
- * This function update the hex display for the STA.  In general, this function
- * is a wrapper for standard hex display commands found in wlan_mac_misc_util.c.
- * However, this wrapper was implemented so that it would be easy to do other
- * actions when the STA needed to update the hex display.
- *
- * @param   val              - Value to be displayed (between 0 and 99)
- * @return  None
- *****************************************************************************/
-void sta_update_hex_display(u8 val) {
-
-    // Use standard hex display write
-    write_hex_display(val);
-}
 
 
 

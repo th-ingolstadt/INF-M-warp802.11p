@@ -30,7 +30,6 @@
 #include "wlan_mac_mailbox_util.h"
 #include "wlan_mac_pkt_buf_util.h"
 #include "wlan_mac_time_util.h"
-#include "wlan_mac_userio_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"
@@ -231,7 +230,7 @@ void wlan_mac_high_init(){
 	// Check that right shift works correctly
 	//   Issue with -Os in Xilinx SDK 14.7
 	if (wlan_mac_high_right_shift_test() != 0) {
-		cpu_error_halt(WLAN_ERROR_CODE_RIGHT_SHIFT);
+		wlan_platform_userio_disp_status(USERIO_DISP_STATUS_CPU_ERROR,WLAN_ERROR_CODE_RIGHT_SHIFT);
 	}
 
 	// Sanity check memory map of aux. BRAM and DRAM
@@ -435,7 +434,7 @@ void wlan_mac_high_init(){
 				xil_printf("A working DRAM SODIMM has not been detected on this board.\n");
 				xil_printf("The 802.11 Reference Design requires at least 1GB of DRAM.\n");
 				xil_printf("This CPU will now halt.\n");
-				cpu_error_halt(WLAN_ERROR_CODE_DRAM_NOT_PRESENT);
+				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_CPU_ERROR,WLAN_ERROR_CODE_DRAM_NOT_PRESENT);
 			}
 			break;
 		}
@@ -1696,7 +1695,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
 				case CPU_STATUS_REASON_EXCEPTION:
 					wlan_printf(PL_ERROR, "ERROR:  An unrecoverable exception has occurred in CPU_LOW, halting...\n");
 					wlan_printf(PL_ERROR, "    Reason code: %d\n", ipc_msg_from_low_payload[1]);
-					cpu_error_halt(WLAN_ERROR_CPU_STOP);
+					wlan_platform_userio_disp_status(USERIO_DISP_STATUS_CPU_ERROR, WLAN_ERROR_CPU_STOP);
 				break;
 
 				case CPU_STATUS_REASON_BOOTED:

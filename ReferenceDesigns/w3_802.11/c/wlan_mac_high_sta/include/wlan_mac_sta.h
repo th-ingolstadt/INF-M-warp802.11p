@@ -95,6 +95,4 @@ u32  configure_bss(bss_config_t* bss_config);
 void up_button();
 void uart_rx(u8 rxByte);
 
-void sta_update_hex_display(u8 val);
-
 #endif /* WLAN_MAC_STA_H_ */

@@ -40,7 +40,6 @@
 // Define standard macros for base addresses and device IDs
 //     XPAR_ names will change with instance names in hardware
 //
-#define USERIO_BASEADDR      XPAR_W3_USERIO_BASEADDR
 #define CLK_BASEADDR         XPAR_W3_CLOCK_CONTROLLER_BASEADDR
 #define EEPROM_BASEADDR      XPAR_W3_IIC_EEPROM_ONBOARD_BASEADDR
 #define FMC_EEPROM_BASEADDR  XPAR_W3_IIC_EEPROM_FMC_BASEADDR

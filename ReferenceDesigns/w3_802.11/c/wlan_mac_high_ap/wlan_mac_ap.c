@@ -27,7 +27,7 @@
 #include "wlan_mac_station_info.h"
 #include "wlan_mac_addr_filter.h"
 #include "wlan_mac_time_util.h"
-#include "wlan_mac_userio_util.h"
+#include "wlan_platform_common.h"
 #include "wlan_mac_pkt_buf_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"
@@ -171,7 +171,7 @@ int main(){
 	configure_bss(NULL);
 
 	// Initialize hex display to "No BSS"
-	ap_update_hex_display(0xFF);
+	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0xFF);
 
 	// Zero out all TX params
 	bzero(&default_unicast_data_tx_params, sizeof(tx_params_t));
@@ -234,7 +234,7 @@ int main(){
 
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 	// Configure the wireless-wired encapsulation mode (AP and STA behaviors are different)
-	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_AP);
+	wlan_mac_util_set_eth_encap_mode(APPLICATION_ROLE_AP);
 #endif
 
     wlan_mac_hw_info_t * hw_info;
@@ -289,10 +289,7 @@ int main(){
 	//  Periodic check for timed-out associations
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)remove_inactive_station_infos);
 
-	// Set Periodic blinking of hex display (period of 500 with min of 2 and max of 400)
-	set_hex_pwm_period(500);
-	set_hex_pwm_min_max(2, 400);
-	enable_hex_pwm();
+	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_APPLICATION_ROLE, APPLICATION_ROLE_AP);
 
 #if WLAN_SW_CONFIG_ENABLE_LOGGING
 	// Reset the event log
@@ -1710,7 +1707,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 							//       correct value from the tagged parameters in the association request.
 							station_info_add(&active_bss_info->members, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, WLAN_DEFAULT_USE_HT);
 
-							ap_update_hex_display(active_bss_info->members.length);
+							wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_bss_info->members.length);
 						}
 
 						if(station_info != NULL) {
@@ -1819,7 +1816,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 						xil_printf("Authenticated, Unassociated Stations:\n");
 						station_info_remove(&authenticated_unassociated_stations, rx_80211_header->address_2);
 
-						ap_update_hex_display(active_bss_info->members.length);
+						wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_bss_info->members.length);
 					}
 				break;
 
@@ -1967,7 +1964,7 @@ u32  deauthenticate_station( station_info_t* station_info ) {
 
 	station_info_remove(&active_bss_info->members, station_info->addr);
 
-	ap_update_hex_display(active_bss_info->members.length);
+	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_bss_info->members.length);
 
 	return aid;
 }
@@ -2144,7 +2141,7 @@ u32	configure_bss(bss_config_t* bss_config){
 					station_info_remove(&active_bss_info->members, curr_station_info->addr);
 
 					// Update the hex display to show station was removed
-					ap_update_hex_display(active_bss_info->members.length);
+					wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_bss_info->members.length);
 				}
 
 				// Remove the bss_info from the network list
@@ -2168,7 +2165,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
 
 				// Set hex display to "No BSS"
-				ap_update_hex_display(0xFF);
+				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0xFF);
 			}
 
 			// (bss_config == NULL) is one way to remove the BSS state of the node. This operation
@@ -2209,7 +2206,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				}
 
 				// Set hex display
-				ap_update_hex_display(active_bss_info->members.length);
+				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0xFF);
 			}
 		}
 
@@ -2345,25 +2342,6 @@ dl_list * get_bss_member_list(){
 }
 u8         * get_wlan_mac_addr()    { return (u8 *)&wlan_mac_addr;      }
 bss_info_t * active_bss_info_getter(){ return active_bss_info; }
-
-
-/*****************************************************************************/
-/**
- * @brief AP specific hex display update command
- *
- * This function update the hex display for the AP.  In general, this function
- * is a wrapper for standard hex display commands found in wlan_mac_userio_util.c.
- * However, this wrapper was implemented so that it would be easy to do other
- * actions when the AP needed to update the hex display.
- *
- * @param   val              - Value to be displayed (between 0 and 99)
- * @return  None
- *****************************************************************************/
-void ap_update_hex_display(u8 val) {
-
-    // Use standard hex display write with PWMs enabled
-    write_hex_display_with_pwm(val);
-}
 
 
 

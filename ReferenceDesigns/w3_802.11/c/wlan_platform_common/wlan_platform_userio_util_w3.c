@@ -15,7 +15,7 @@
 /***************************** Include Files *********************************/
 
 #include "w3_userio.h"
-#include "wlan_mac_userio_util.h"
+#include "wlan_platform_userio_util_w3.h"
 #include "wlan_mac_time_util.h"
 
 
@@ -362,8 +362,5 @@ void set_hex_display_left_dp(u8 val) {
         userio_write_hexdisp_left(USERIO_BASEADDR, (userio_read_hexdisp_left(USERIO_BASEADDR) & ~W3_USERIO_HEXDISP_DP));
     }
 }
-
-
-
 
 

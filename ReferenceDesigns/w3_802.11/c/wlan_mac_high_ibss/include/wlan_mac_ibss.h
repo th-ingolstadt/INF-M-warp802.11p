@@ -81,7 +81,6 @@ void purge_all_data_tx_queue();
 
 void uart_rx(u8 rxByte);
 
-void ibss_update_hex_display(u8 val);
 
 
 #endif /* WLAN_MAC_STA_H_ */

@@ -23,7 +23,7 @@
 #include "w3_iic_eeprom.h"
 
 #include "wlan_mac_common.h"
-#include "wlan_mac_userio_util.h"
+#include "wlan_platform_common.h"
 
 
 /*********************** Global Variable Definitions *************************/
@@ -171,33 +171,6 @@ int wlan_verify_channel(u32 channel) {
 
     return return_value;
 }
-
-
-
-/*****************************************************************************/
-/**
- * Halt CPU on Error
- *
- * @param   error_code       - Error code to display on WARP hex display
- *****************************************************************************/
-void cpu_error_halt(u32 error_code) {
-
-    if (error_code != WLAN_ERROR_CPU_STOP) {
-        // Print error message
-        xil_printf("\n\nERROR:  CPU is halting with error code: E%X\n\n", (error_code & 0xF));
-
-        // Set the error code on the hex display
-        set_hex_display_error_status(error_code & 0xF);
-
-        // Enter infinite loop blinking the hex display
-        blink_hex_display(0, 250000);
-    } else {
-        // Stop execution
-        while (1) {};
-    }
-}
-
-
 
 
 /*****************************************************************************/

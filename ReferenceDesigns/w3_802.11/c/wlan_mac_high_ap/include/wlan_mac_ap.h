@@ -106,6 +106,4 @@ void up_button();
 
 void uart_rx(u8 rxByte);
 
-void ap_update_hex_display(u8 val);
-
 #endif /* WLAN_MAC_AP_H_ */

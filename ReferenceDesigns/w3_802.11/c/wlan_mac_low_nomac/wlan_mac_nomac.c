@@ -29,6 +29,7 @@
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_phy_util.h"
 #include "wlan_mac_nomac.h"
+#include "wlan_platform_common.h"
 
 // WLAN Exp includes
 #include "wlan_exp.h"
@@ -39,17 +40,12 @@
 
 #define DEFAULT_TX_ANTENNA_MODE                            TX_ANTMODE_SISO_ANTA
 
-#define NUM_LEDS                                           4
-
 
 /*********************** Global Variable Definitions *************************/
 
 
 /*************************** Variable Definitions ****************************/
 static u8                              eeprom_addr[MAC_ADDR_LEN];
-
-volatile u8                            red_led_index;
-volatile u8                            green_led_index;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -77,13 +73,6 @@ int main(){
     xil_printf("and interact with CPU_HIGH, raise the right-most User I/O DIP switch bit.\n");
     xil_printf("This switch can be toggled live while the design is running.\n\n");
     xil_printf("------------------------\n");
-
-    // Initialize LEDs
-    red_led_index   = 0;
-    green_led_index = 0;
-
-    userio_write_leds_green(USERIO_BASEADDR, (1 << green_led_index));
-    userio_write_leds_red(USERIO_BASEADDR, (1 << red_led_index));
 
     // Initialize the Low Framework
     wlan_mac_low_init(WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW, compilation_details);
@@ -178,11 +167,9 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details){
 
     // Increment the LEDs based on the FCS status
     if(rx_frame_info->flags & RX_FRAME_INFO_FLAGS_FCS_GOOD){
-        green_led_index = (green_led_index + 1) % NUM_LEDS;
-        userio_write_leds_green(USERIO_BASEADDR, (1 << green_led_index));
+    	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_GOOD_FCS_EVENT);
     } else {
-        red_led_index = (red_led_index + 1) % NUM_LEDS;
-        userio_write_leds_red(USERIO_BASEADDR, (1 << red_led_index));
+    	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_BAD_FCS_EVENT);
     }
 
     rx_frame_info->rx_pkt_buf_state = RX_PKT_BUF_READY;

@@ -180,6 +180,23 @@
 //
 typedef int (*function_ptr_t)();
 
+//FIXME: wlan_exp should be updated to use this enum to report node type
+typedef enum {
+	APPLICATION_ROLE_AP			= 1,
+	APPLICATION_ROLE_STA		= 2,
+	APPLICATION_ROLE_IBSS		= 3,
+	APPLICATION_ROLE_UNKNOWN	= 0xFF
+} application_role_t;
+
+typedef enum {
+	USERIO_DISP_STATUS_IDENTIFY     		= 0,
+	USERIO_DISP_STATUS_APPLICATION_ROLE     = 1,
+	USERIO_DISP_STATUS_MEMBER_LIST_UPDATE   = 2,
+	USERIO_DISP_STATUS_WLAN_EXP_CONFIGURE   = 3,
+	USERIO_DISP_STATUS_GOOD_FCS_EVENT       = 4,
+	USERIO_DISP_STATUS_BAD_FCS_EVENT        = 5,
+	USERIO_DISP_STATUS_CPU_ERROR    		= 255
+} userio_disp_status_t;
 
 //-----------------------------------------------
 // PHY Bandwidth Configuration
@@ -278,8 +295,6 @@ typedef struct {
 int                     wlan_null_callback(void * param);
 
 int                     wlan_verify_channel(u32 channel);
-
-void                    cpu_error_halt(u32 error_code);
 
 void                    init_mac_hw_info();
 wlan_mac_hw_info_t    * get_mac_hw_info();

@@ -21,6 +21,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
+#include <stdarg.h>
 
 // WARP Includes
 #include "w3_iic_eeprom.h"
@@ -29,7 +30,7 @@
 #include "wlan_mac_pkt_buf_util.h"
 #include "wlan_mac_sysmon_util.h"
 #include "wlan_mac_time_util.h"
-#include "wlan_mac_userio_util.h"
+#include "wlan_platform_common.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_entries.h"
 #include "wlan_mac_ltg.h"
@@ -729,7 +730,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
                 resp_sent                  = RESP_SENT;
 
-                blink_hex_display(num_blinks, time_per_blink);
+                wlan_platform_userio_disp_status(USERIO_DISP_STATUS_IDENTIFY);
 
             } else {
                 resp_args_32[resp_index++] = Xil_Htonl(CMD_PARAM_ERROR);
@@ -793,7 +794,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                         xil_printf("IP address %d.%d.%d.%d\n", ip_addr[0], ip_addr[1], ip_addr[2], ip_addr[3]);
 
                         // Set right decimal point to indicate WLAN Exp network is configured
-                        set_hex_display_right_dp(1);
+                        wlan_platform_userio_disp_status(USERIO_DISP_STATUS_WLAN_EXP_CONFIGURE, 1);
                     }
                 } else {
                     // Do nothing
@@ -857,7 +858,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     xil_printf("NODE_CONFIG_RESET: Reset wlan_exp network config\n");
 
                     // Clear right decimal point to indicate WLAN Exp network is not configured
-                    set_hex_display_right_dp(0);
+                    wlan_platform_userio_disp_status(USERIO_DISP_STATUS_WLAN_EXP_CONFIGURE, 0);
                 } else {
                     // Do nothing
                 }

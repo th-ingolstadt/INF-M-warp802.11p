@@ -26,7 +26,7 @@
 #include "radio_controller.h"
 
 // WLAN includes
-#include "wlan_mac_userio_util.h"
+#include "wlan_platform_common.h"
 #include "wlan_mac_time_util.h"
 #include "wlan_mac_mailbox_util.h"
 #include "wlan_mac_802_11_defs.h"
@@ -133,12 +133,17 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
         return -1;
     }
 
+#if 0
+
+    //FIXME: this needs further discussion.
+
     // Initialize Debug Header
     //  Allow HW to control Pins 0:11
     wlan_mac_set_dbg_hdr_ctrlsrc(DBG_HDR_CTRLSRC_HW, 0x0FFF);
     //  Allow SW to control Pins 12:15
     wlan_mac_set_dbg_hdr_ctrlsrc(DBG_HDR_CTRLSRC_SW, 0xF000);
     wlan_mac_set_dbg_hdr_dir(DBG_HDR_DIR_OUTPUT, 0xF000);
+#endif
 
     // Initialize mailbox
 	init_mailbox();
@@ -540,7 +545,7 @@ inline void wlan_mac_low_send_exception(u32 reason){
     write_mailbox_msg(&ipc_msg_to_high);
 
     // Set the Hex display with the reason code and flash the LEDs
-    cpu_error_halt(reason);
+    wlan_platform_userio_disp_status(USERIO_DISP_STATUS_CPU_ERROR,reason);
 }
 
 /*****************************************************************************/

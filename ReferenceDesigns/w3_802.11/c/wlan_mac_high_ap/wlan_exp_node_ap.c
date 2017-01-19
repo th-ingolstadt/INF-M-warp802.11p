@@ -15,7 +15,7 @@
 
 #include "wlan_mac_high_sw_config.h"
 #include "wlan_mac_common.h"
-
+#include "wlan_platform_common.h"
 #include "wlan_exp_common.h"
 #include "wlan_exp.h"
 #include "wlan_mac_high.h"
@@ -486,7 +486,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                     //
 
                     // Update the hex display
-                    ap_update_hex_display(active_bss_info->members.length);
+                    wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_bss_info->members.length);
 
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Associated with node: ");
                 } else {

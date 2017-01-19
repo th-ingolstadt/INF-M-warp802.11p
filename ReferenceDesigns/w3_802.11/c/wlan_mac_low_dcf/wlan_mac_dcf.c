@@ -31,7 +31,7 @@
 #include "wlan_mac_dcf.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_mgmt_tags.h"
-#include "wlan_mac_userio_util.h"
+#include "wlan_platform_common.h"
 
 // WLAN Exp includes
 #include "wlan_exp.h"
@@ -41,7 +41,6 @@
 #define DBG_PRINT                                          0
 #define WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW                 WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW_DCF
 #define DEFAULT_TX_ANTENNA_MODE                            TX_ANTMODE_SISO_ANTA
-#define NUM_LEDS                                           4
 #define RX_LEN_THRESH                                      200
 
 
@@ -64,10 +63,6 @@ volatile static u32                 gl_dot11LongRetryLimit; ///< Long Retry Limi
 // Variables for shared state between Tx and Rx contexts for RTS/CTS
 volatile static u8					gl_waiting_for_response; ///< Informs the Rx context that Tx is expecting a control response
 volatile static u8                  gl_long_mpdu_pkt_buf; ///< Packet buffer index for a long MPDU that should be sent in the frame reception context (i.e. CTS reception)
-
-// Status variables for User I/O
-volatile u8                         gl_red_led_index; ///< Variable that enables User I/O visualization of bad FCS receptions
-volatile u8                         gl_green_led_index; ///< Variable that enables User I/O visualization of good FCS receptions
 
 // Beacon transmission & reception parameters
 volatile beacon_txrx_configure_t	gl_beacon_txrx_configure; ///< Struct with configuration parameters regarding beacons
@@ -125,11 +120,6 @@ int main(){
 
     gl_stationShortRetryCount    = 0;
     gl_stationLongRetryCount     = 0;
-
-    gl_red_led_index             = 0;
-    gl_green_led_index           = 0;
-    userio_write_leds_green(USERIO_BASEADDR, (1 << gl_green_led_index));
-    userio_write_leds_red(USERIO_BASEADDR, (1 << gl_red_led_index));
 
     wlan_mac_low_init(WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW, compilation_details);
 
@@ -1158,8 +1148,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
 
 
         // Increment green LEDs
-        gl_green_led_index = (gl_green_led_index + 1) % NUM_LEDS;
-        userio_write_leds_green(USERIO_BASEADDR, (1<<gl_green_led_index));
+    	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_GOOD_FCS_EVENT);
 
         return_value |= POLL_MAC_STATUS_GOOD;
 
@@ -1255,8 +1244,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     // Received checksum was bad
     } else {
         // Increment red LEDs
-        gl_red_led_index = (gl_red_led_index + 1) % NUM_LEDS;
-        userio_write_leds_red(USERIO_BASEADDR, (1<<gl_red_led_index));
+    	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_BAD_FCS_EVENT);
 
         // Check if this packet should be passed up to CPU High for further processing
         rx_filter = wlan_mac_low_get_current_rx_filter();
