@@ -257,7 +257,8 @@ void wlan_mac_high_init(){
 	}
 
     // Check that the linker script allocated the expected amount of DRAM for the wlan_exp Ethernet buffers
-    if ((4 * (&__wlan_exp_eth_buffers_section_end - &__wlan_exp_eth_buffers_section_start)) != WLAN_EXP_ETH_BUFFERS_SECTION_SIZE) {
+	// FIXME: improve error message here
+    if (((1 + (u8*)&__wlan_exp_eth_buffers_section_end - (u8*)&__wlan_exp_eth_buffers_section_start)) != WLAN_EXP_ETH_BUFFERS_SECTION_SIZE) {
         xil_printf("!!! ERROR: CPU High DDR linker data exceeds allocated size. !!!\n");
         xil_printf("  Check WLAN_EXP_ETH_BUFFERS_SECTION_SIZE in wlan_mac_high.h and the \n");
         xil_printf("  wlan_exp_eth_buffers_section section in the linker script (lscript.ld)\n");
@@ -1380,7 +1381,7 @@ void wlan_mac_high_tagged_rate_to_readable_rate(u8 rate, char* str){
 		case 0x6c:  strcpy(str,"54");   break;
 
 		default:    // Unknown rate
-			*str = NULL;
+			*str = 0;
 		break;
 	}
 }
