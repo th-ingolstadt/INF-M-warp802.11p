@@ -23,9 +23,6 @@
 #include <string.h>
 #include <stdarg.h>
 
-// WARP Includes
-#include "w3_iic_eeprom.h"
-
 // WLAN includes
 #include "wlan_mac_pkt_buf_util.h"
 #include "wlan_mac_sysmon_util.h"
@@ -2916,6 +2913,9 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
         //---------------------------------------------------------------------
         case CMDID_DEV_EEPROM: {
+#if 0
+        	//FIXME: Replace or Remove
+
             // Read / Write values from / to EEPROM
             //
             // Write Message format:
@@ -3043,7 +3043,9 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 resp_hdr->length  += (resp_index * sizeof(resp_args_32));
                 resp_hdr->num_args = resp_index;
             }
+#endif
         }
+
         break;
 
 

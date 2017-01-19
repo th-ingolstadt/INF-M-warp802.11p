@@ -264,9 +264,6 @@ int main(){
 
 #endif
 
-
-	// The node's MAC address is stored in the EEPROM, accessible only to CPU Low
-	// CPU Low provides this to CPU High after it boots
 	memcpy((void*) &(wlan_mac_addr[0]), (void*) get_mac_hw_addr_wlan(), MAC_ADDR_LEN);
 
     // Set Header information

@@ -23,7 +23,6 @@
 #include "w3_userio.h"
 #include "w3_ad_controller.h"
 #include "w3_clock_controller.h"
-#include "w3_iic_eeprom.h"
 #include "radio_controller.h"
 
 // WLAN includes
@@ -31,6 +30,7 @@
 #include "wlan_phy_util.h"
 #include "wlan_mac_low.h"
 #include "wlan_mac_common.h"
+#include "wlan_platform_common.h"
 
 // LUT of number of ones in each byte (used to calculate PARITY in SIGNAL)
 const u8 ones_in_chars[256] = {
@@ -189,10 +189,10 @@ int w3_node_init() {
         ret_val = XST_FAILURE;
     }
 
-    // Initialize the EEPROM read/write core
-    iic_eeprom_init(EEPROM_BASEADDR, 0x64, XPAR_CPU_ID);
+    wlan_platform_init();
 
 #ifdef WLAN_4RF_EN
+    //FIXME
     iic_eeprom_init(FMC_EEPROM_BASEADDR, 0x64);
 #endif
 

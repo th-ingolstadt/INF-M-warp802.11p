@@ -26,6 +26,7 @@
 
 // WLAN Includes
 #include "wlan_mac_common.h"
+#include "wlan_platform_common.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_mailbox_util.h"
 #include "wlan_mac_pkt_buf_util.h"
@@ -45,7 +46,6 @@
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
 #include "wlan_mac_scan.h"
-#include "w3_iic_eeprom.h"
 
 /*********************** Global Variable Definitions *************************/
 
@@ -108,8 +108,6 @@ volatile static u32          cpu_low_status;               ///< Tracking variabl
 // CPU Low Register Read Buffer
 volatile static u32        * cpu_low_reg_read_buffer;
 volatile static u8           cpu_low_reg_read_buffer_status;
-
-#define EEPROM_BASEADDR                                    XPAR_W3_IIC_EEPROM_ONBOARD_BASEADDR
 
 #define CPU_LOW_REG_READ_BUFFER_STATUS_READY               1
 #define CPU_LOW_REG_READ_BUFFER_STATUS_NOT_READY           0
@@ -230,7 +228,7 @@ void wlan_mac_high_init(){
 	// Check that right shift works correctly
 	//   Issue with -Os in Xilinx SDK 14.7
 	if (wlan_mac_high_right_shift_test() != 0) {
-		wlan_platform_userio_disp_status(USERIO_DISP_STATUS_CPU_ERROR,WLAN_ERROR_CODE_RIGHT_SHIFT);
+		wlan_platform_userio_disp_status(USERIO_DISP_STATUS_CPU_ERROR, WLAN_ERROR_CODE_RIGHT_SHIFT);
 	}
 
 	// Sanity check memory map of aux. BRAM and DRAM
@@ -279,8 +277,8 @@ void wlan_mac_high_init(){
 	mtshr(&__stack);
 	mtslr(&_stack_end);
 
-    // Initialize the EEPROM read/write core
-    iic_eeprom_init(EEPROM_BASEADDR, 0x64, XPAR_CPU_ID);
+	// Initialize HW platform
+    wlan_platform_init();
 
 	// Initialize the HW info structure
 	init_mac_hw_info();

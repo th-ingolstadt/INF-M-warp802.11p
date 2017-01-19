@@ -22,7 +22,6 @@
 // WARP Includes
 #include "w3_ad_controller.h"
 #include "w3_clock_controller.h"
-#include "w3_iic_eeprom.h"
 #include "radio_controller.h"
 
 // WLAN includes

@@ -20,15 +20,11 @@
 #include "xstatus.h"
 #include "xparameters.h"
 
-#include "w3_iic_eeprom.h"
-
 #include "wlan_mac_common.h"
 #include "wlan_platform_common.h"
 
 
 /*********************** Global Variable Definitions *************************/
-
-#define EEPROM_BASEADDR                                    XPAR_W3_IIC_EEPROM_ONBOARD_BASEADDR
 
 
 /*************************** Variable Definitions ****************************/
@@ -186,22 +182,7 @@ int wlan_verify_channel(u32 channel) {
  *
  *****************************************************************************/
 void init_mac_hw_info() {
-    // Initialize the wlan_mac_hw_info_t structure to all zeros
-    memset((void*)(&mac_hw_info), 0x0, sizeof(wlan_mac_hw_info_t));
-
-    // Set General Node information
-    mac_hw_info.serial_number = w3_eeprom_read_serial_num(EEPROM_BASEADDR);
-    mac_hw_info.fpga_dna[1]   = w3_eeprom_read_fpga_dna(EEPROM_BASEADDR, 1);
-    mac_hw_info.fpga_dna[0]   = w3_eeprom_read_fpga_dna(EEPROM_BASEADDR, 0);
-
-    // Set HW Addresses
-    //   - The w3_eeprom_read_eth_addr() function handles the case when the WARP v3
-    //     hardware does not have a valid Ethernet address
-    //
-    // Use address 0 for the WLAN interface, address 1 for the WLAN Exp interface
-    //
-    w3_eeprom_read_eth_addr(EEPROM_BASEADDR, 0, mac_hw_info.hw_addr_wlan);
-    w3_eeprom_read_eth_addr(EEPROM_BASEADDR, 1, mac_hw_info.hw_addr_wlan_exp);
+	mac_hw_info = wlan_platform_get_hw_info();
 }
 
 
@@ -220,37 +201,3 @@ wlan_mac_hw_info_t * get_mac_hw_info()          { return &mac_hw_info; }
 u8                 * get_mac_hw_addr_wlan()     { return mac_hw_info.hw_addr_wlan; }
 u8                 * get_mac_hw_addr_wlan_exp() { return mac_hw_info.hw_addr_wlan_exp; }
 
-
-#ifdef _DEBUG_
-
-/*****************************************************************************/
-/**
- * @brief Print Hardware Information
- *
- * @param wlan_mac_hw_info_t *    - Pointer to the hardware info struct
- *
- *****************************************************************************/
-void wlan_print_hw_info(wlan_mac_hw_info_t * info) {
-	int i;
-
-	xil_printf("WLAN MAC HW INFO:  \n");
-	xil_printf("  CPU Low Type     :  0x%8x\n", info->wlan_exp_type);
-	xil_printf("  Serial Number    :  %d\n",    info->serial_number);
-	xil_printf("  FPGA DNA         :  0x%8x  0x%8x\n", info->fpga_dna[1], info->fpga_dna[0]);
-	xil_printf("  WLAN EXP HW Addr :  %02x",    info->hw_addr_wlan_exp[0]);
-
-	for (i = 1; i < MAC_ADDR_LEN; i++) {
-		xil_printf(":%02x", info->hw_addr_wlan_exp[i]);
-	}
-	xil_printf("\n");
-
-	xil_printf("  WLAN HW Addr     :  %02x",    info->hw_addr_wlan[0]);
-	for (i = 1; i < MAC_ADDR_LEN; i++) {
-		xil_printf(":%02x", info->hw_addr_wlan[i]);
-	}
-	xil_printf("\n");
-}
-
-
-
-#endif
