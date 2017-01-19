@@ -218,7 +218,7 @@
  *
  ********************************************************************/
 #define EVENT_LOG_BASE                     (USER_SCRATCH_HIGH + 1)
-#define EVENT_LOG_SIZE                     (DRAM_SIZE - EVENT_LOG_BASE) // log occupies all remianing DRAM
+#define EVENT_LOG_SIZE                     (DRAM_HIGH - EVENT_LOG_BASE + 1) // log occupies all remianing DRAM
 #define EVENT_LOG_HIGH                      CALC_HIGH_ADDR(EVENT_LOG_BASE, EVENT_LOG_SIZE)
 
 
