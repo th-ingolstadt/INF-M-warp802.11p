@@ -27,7 +27,8 @@
  * The 802.11 Reference Design hardware includes a 64 KB BRAM block named
  * AUX BRAM. This block is mapped into the address space of CPU High
  * and provides a low-latency memory block for data storage beyond the
- * DLMB.
+ * DLMB. The AUX BRAM is also accessible by the Ethernet DMAs and CDMA (the
+ * DMAs cannot access the MicroBlaze DLMB memory area).
  *
  * The reference code uses the AUX BRAM to store various data structures
  * that provides references to larger blocks in DRAM. These data structures
@@ -35,13 +36,13 @@
  *
  * For example, the doubly-linked list of Tx Queue entries is stored in the
  * AUX BRAM. Each list entry points to a dedicated 4KB buffer in DRAM. The C code
- * can manage a queue with quick list operatations in BRAM while the queued packets
+ * can manage a queue with quick list operations in BRAM while the queued packets
  * themselves are stored in the slower but *much* larger DRAM.
  *
  * The 64 KB AUX BRAM block is divided as follows:
  *
  * ***************************** AUX BRAM Map *********************************************
- * Description                      | Size
+ * Description                                            | Size
  * -------------------------------------------------------------------------------------------------
  * Tx Queue list entries (entry.data points to DRAM)      | 40960 B (TX_QUEUE_DL_ENTRY_MEM_SIZE)
  * BSS Info list entries (entry.data points to DRAM)      |  4608 B (BSS_INFO_DL_ENTRY_MEM_SIZE)
