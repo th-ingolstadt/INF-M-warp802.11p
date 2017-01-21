@@ -19,7 +19,6 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "wlan_platform_high.h"
-#include "xparameters.h"
 #include "string.h"
 
 #include "wlan_mac_pkt_buf_util.h"

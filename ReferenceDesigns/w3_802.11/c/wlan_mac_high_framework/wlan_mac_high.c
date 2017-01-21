@@ -1316,33 +1316,6 @@ void wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf) {
 	}
 }
 
-/**
- * @brief Check Validity of Tagged Rate
- *
- * This function checks the validity of a given rate from a tagged field in a management frame.
- *
- * @param u8 rate
- *     - Tagged rate
- * @return u8
- *     - 1 if valid
- *     - 0 if invalid
- *
- *  @note This function checks against the 12 possible valid rates sent in 802.11b/a/g.
- *  The faster 802.11n rates will return as invalid when this function is used.
- *
- */
-u8 wlan_mac_high_valid_tagged_rate(u8 rate){
-	u32 i;
-	u8 valid_rates[NUM_VALID_RATES] = {0x02, 0x04, 0x0b, 0x16, 0x0c, 0x12, 0x18, 0x24, 0x30, 0x48, 0x60, 0x6c};
-
-	for(i = 0; i < NUM_VALID_RATES; i++ ){
-		if((rate & ~RATE_BASIC) == valid_rates[i]) return 1;
-	}
-
-	return 0;
-}
-
-
 
 /**
  * @brief Convert Tagged Rate to Human-Readable String (in Mbps)

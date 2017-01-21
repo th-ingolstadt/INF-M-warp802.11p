@@ -222,9 +222,6 @@
 // WLAN Constants
 //
 
-#define TX_BUFFER_NUM                                      2                                  ///< Number of PHY transmit buffers to use. This should remain 2 (ping/pong buffering).
-
-
 #define GPIO_MASK_DRAM_INIT_DONE                           0x00000100                         ///< Mask for GPIO -- DRAM initialization bit
 #define GPIO_MASK_PB_U                                     0x00000040                         ///< Mask for GPIO -- "Up" Pushbutton
 #define GPIO_MASK_PB_M                                     0x00000020                         ///< Mask for GPIO -- "Middle" Pushbutton
@@ -232,9 +229,6 @@
 #define GPIO_MASK_DS_3                                     0x00000008                         ///< Mask for GPIO -- MSB of Dip Switch
 
 #define UART_BUFFER_SIZE                                   1                                  ///< UART is configured to read 1 byte at a time
-
-#define NUM_VALID_RATES                                    12                                 ///< Number of supported rates
-
 
 //-----------------------------------------------
 // Callback Return Flags
@@ -315,7 +309,6 @@ void               wlan_mac_high_cdma_finish_transfer();
 
 void               wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf);
 
-u8                 wlan_mac_high_valid_tagged_rate(u8 rate);
 void               wlan_mac_high_tagged_rate_to_readable_rate(u8 rate, char* str);
 
 void               wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_1, u8 * addr_3 );
