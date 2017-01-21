@@ -16,28 +16,15 @@
 #include "wlan_mac_high_sw_config.h"
 
 // Xilinx SDK includes
-#include "xparameters.h"
-#include "stdio.h"
-#include "stdlib.h"
-#include "xtmrctr.h"
-#include "xio.h"
-#include "string.h"
-#include "xintc.h"
+#include "xil_types.h"
 
 // WLAN includes
 #include "wlan_mac_time_util.h"
-#include "wlan_mac_802_11_defs.h"
-#include "wlan_mac_queue.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_entries.h"
-#include "wlan_mac_high.h"
-#include "wlan_mac_packet_types.h"
-#include "wlan_mac_eth_util.h"
 #include "wlan_mac_ap.h"
 #include "ascii_characters.h"
 #include "wlan_mac_schedule.h"
-#include "wlan_mac_bss_info.h"
-#include "wlan_mac_station_info.h"
 
 
 //

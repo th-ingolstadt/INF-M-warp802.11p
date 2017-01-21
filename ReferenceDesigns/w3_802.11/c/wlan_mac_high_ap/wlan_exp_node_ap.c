@@ -25,17 +25,6 @@
 
 #if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
-// Xilinx includes
-#include <xparameters.h>
-#include <xil_io.h>
-#include <xio.h>
-#include "xintc.h"
-
-
-// Library includes
-#include "string.h"
-#include "stdlib.h"
-
 // WLAN includes
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"

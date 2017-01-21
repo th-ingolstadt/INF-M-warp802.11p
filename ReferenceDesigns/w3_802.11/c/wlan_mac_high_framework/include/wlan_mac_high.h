@@ -72,6 +72,8 @@
  *  DRAM_BASEADDR - base address of DRAM
  *  DRAM_HIGHADDR - high address of DRAM
  *
+ *  The per-section macros below are derived from these AUX_BRAM and DRAM address macros.
+ *
  ************************************************************************************************/
 
 

@@ -21,7 +21,6 @@
 #include "xio.h"
 #include "string.h"
 #include "xintc.h"
-#include "xparameters.h"
 
 // 802.11 ref design includes
 #include "wlan_mac_station_info.h"
