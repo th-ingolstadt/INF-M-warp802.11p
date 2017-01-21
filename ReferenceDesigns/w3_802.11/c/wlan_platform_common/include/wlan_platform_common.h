@@ -18,6 +18,12 @@
  *
  **********************************************************************/
 
+// CPU IDs
+#define CPU_ID	         XPAR_CPU_ID
+#define CPU_ID_MB_LOW	 0
+#define CPU_ID_MB_HIGH	 1
+
+#define IS_CPU_HIGH	    (CPU_ID == CPU_ID_MB_HIGH)
 
 // --------------------------------------------------------------------
 // Peripherals accessible by both CPUs
@@ -26,8 +32,11 @@
 #define EEPROM_BASEADDR			XPAR_W3_IIC_EEPROM_ONBOARD_BASEADDR
 #define FMC_EEPROM_BASEADDR  	XPAR_W3_IIC_EEPROM_FMC_BASEADDR
 
-
-
+// IPC mailbox
+//  Only CPU High uses the mailbox interrupt. INT_ID defined here
+//  so mailbox_util.h can be shared between projects.
+#define PLATFORM_DEV_ID_MAILBOX    XPAR_MBOX_0_DEVICE_ID
+#define PLATFORM_INT_ID_MAILBOX    XPAR_INTC_0_MBOX_0_VEC_ID
 
 
 void wlan_platform_init();

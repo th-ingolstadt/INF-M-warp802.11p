@@ -41,7 +41,7 @@ static XMbox                 ipc_mailbox;
 
 #define MAILBOX_RIT                                        0         /* mailbox receive interrupt threshold */
 #define MAILBOX_SIT                                        0         /* mailbox send interrupt threshold */
-#define MBOX_INTR_ID                                       XPAR_MB_HIGH_INTC_MB_MAILBOX_INTERRUPT_0_INTR
+#define MBOX_INTR_ID                                       PLATFORM_INT_ID_MAILBOX
 
 static XIntc*                intc_ptr;
 static function_ptr_t        mailbox_rx_callback;
@@ -75,7 +75,7 @@ int init_mailbox() {
 #endif
 
     // Initialize the IPC mailbox core
-    mbox_config_ptr = XMbox_LookupConfig(MAILBOX_DEVICE_ID);
+    mbox_config_ptr = XMbox_LookupConfig(PLATFORM_DEV_ID_MAILBOX);
     XMbox_CfgInitialize(&ipc_mailbox, mbox_config_ptr, mbox_config_ptr->BaseAddress);
 
     return XST_SUCCESS;

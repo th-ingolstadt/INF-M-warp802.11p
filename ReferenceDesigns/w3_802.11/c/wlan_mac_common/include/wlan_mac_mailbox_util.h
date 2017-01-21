@@ -15,8 +15,7 @@
 
 /***************************** Include Files *********************************/
 
-#include "xparameters.h"
-
+#include "wlan_platform_common.h"
 
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_MAILBOX_UTIL_H_
@@ -26,7 +25,7 @@
 //-----------------------------------------------
 // Hardware defines
 //
-#define MAILBOX_DEVICE_ID                                  XPAR_MBOX_0_DEVICE_ID
+
 
 // TODO: Note that v1.5 hardware has 512-word mailbox
 //  - In a future release, we may reduce the mailbox size anyway. At the moment,
@@ -43,7 +42,7 @@
 //    Determine if the interrupt controller is present to allow mailbox driver
 //    to support both interrupt and polled modes of operation.
 //
-#ifdef XPAR_INTC_0_DEVICE_ID
+#if IS_CPU_HIGH
 
 // Set define to indicate INTC is present
 #define MAILBOX_INTC_PRESENT                               1
