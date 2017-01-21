@@ -13,26 +13,13 @@
  */
 
 
-/***************************** Include Files *********************************/
-
-#include "xil_io.h"
-
-#include "wlan_mac_common.h"
-
-
 /*************************** Constant Definitions ****************************/
 
 #ifndef WLAN_MAC_PKT_BUF_UTIL_H_
 #define WLAN_MAC_PKT_BUF_UTIL_H_
 
 
-//-----------------------------------------------
-// Hardware defines
-//
-#define PKT_BUF_MUTEX_DEVICE_ID                            XPAR_MUTEX_0_DEVICE_ID
-
-
-// Base address of mutex for Tx/Rx packet buffers
+// Base index of mutex for Tx/Rx packet buffers
 #define PKT_BUF_MUTEX_TX_BASE                              0
 #define PKT_BUF_MUTEX_RX_BASE                              16
 
@@ -116,6 +103,8 @@
 
 
 /*********************** Global Structure Definitions ************************/
+
+#include "wlan_mac_common.h"
 
 //-----------------------------------------------
 // TX parameters

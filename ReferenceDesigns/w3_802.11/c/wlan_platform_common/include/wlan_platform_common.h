@@ -44,6 +44,9 @@
 #endif
 
 
+// Mutex for Tx/Rx packet buffers
+#define PLATFORM_DEV_ID_PKT_BUF_MUTEX	XPAR_MUTEX_0_DEVICE_ID
+
 #include "wlan_mac_common.h"
 
 void wlan_platform_init();

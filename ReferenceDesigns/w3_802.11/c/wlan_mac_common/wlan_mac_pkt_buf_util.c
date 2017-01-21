@@ -14,17 +14,11 @@
 
 /***************************** Include Files *********************************/
 
-#include "stdlib.h"
-#include "stdio.h"
-
-#include "xstatus.h"
 #include "xmutex.h"
-#include "xparameters.h"
 
 #include "wlan_mac_common.h"
-#include "wlan_mac_mailbox_util.h"
+#include "wlan_platform_common.h"
 #include "wlan_mac_pkt_buf_util.h"
-#include "wlan_mac_802_11_defs.h"
 
 /*********************** Global Variable Definitions *************************/
 
@@ -43,7 +37,7 @@ int init_pkt_buf() {
     XMutex_Config *mutex_config_ptr;
 
     //Initialize the pkt buffer mutex core
-    mutex_config_ptr = XMutex_LookupConfig(PKT_BUF_MUTEX_DEVICE_ID);
+    mutex_config_ptr = XMutex_LookupConfig(PLATFORM_DEV_ID_PKT_BUF_MUTEX);
     XMutex_CfgInitialize(&pkt_buf_mutex, mutex_config_ptr, mutex_config_ptr->BaseAddress);
 
     // Unlock all mutexes this CPU might own at boot
