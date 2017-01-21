@@ -20,6 +20,8 @@
 // Xilinx / Standard library includes
 
 #include <xparameters.h>
+#include "wlan_platform_common.h"
+#include "wlan_platform_high.h"
 #include <xil_io.h>
 #include <xio.h>
 
@@ -208,8 +210,8 @@ void clear_ddr(u32 verbose) {
     u64 end_timestamp;
     u32 processing_time;
 
-    u32 start_address = DRAM_BASE;
-    u32 size          = DRAM_SIZE;
+    u32 start_address = DRAM_BASEADDR;
+    u32 size          = (DRAM_HIGHADDR - DRAM_BASEADDR + 1);
 
     start_timestamp = get_system_time_usec();
 

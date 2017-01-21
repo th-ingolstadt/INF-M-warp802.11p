@@ -29,8 +29,6 @@
 //-----------------------------------------------
 // Timer defines
 //
-#define TMRCTR_DEVICE_ID                                   XPAR_TMRCTR_0_DEVICE_ID
-#define TIMER_FREQ                                         XPAR_TMRCTR_0_CLOCK_FREQ_HZ
 
 #define TIMER_CLKS_PER_US                                  (TIMER_FREQ / 1000000)
 

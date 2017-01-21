@@ -19,7 +19,7 @@
 #include "xil_types.h"
 #include "xil_exception.h"
 
-#include "xparameters.h"
+#include "wlan_platform_high.h"
 #include "xtmrctr.h"
 #include "xintc.h"
 
@@ -95,7 +95,7 @@ int wlan_mac_schedule_init(){
 	// for this since it requires that the timer instance be initialized.
 	u32 ControlStatusReg;
 	u8	i;
-	XTmrCtr_Config *TmrCtrConfigPtr = XTmrCtr_LookupConfig(TMRCTR_DEVICE_ID);
+	XTmrCtr_Config *TmrCtrConfigPtr = XTmrCtr_LookupConfig(PLATFORM_DEV_ID_TIMER);
 
 	if(TmrCtrConfigPtr != NULL){
 		for(i=0; i<2; i++){
@@ -121,7 +121,7 @@ int wlan_mac_schedule_init(){
 
 
 
-		status = XTmrCtr_Initialize(&timer_instance, TMRCTR_DEVICE_ID);
+		status = XTmrCtr_Initialize(&timer_instance, PLATFORM_DEV_ID_TIMER);
 		if ( (status != XST_SUCCESS) ) {
 			xil_printf("ERROR:  XTmrCtr failed to initialize\n");
 			return -1;
@@ -155,8 +155,8 @@ int wlan_mac_schedule_init(){
 int wlan_mac_schedule_setup_interrupt(XIntc* intc){
 	int status;
 
-	status =  XIntc_Connect(intc, TMRCTR_INTERRUPT_ID, (XInterruptHandler)timer_interrupt_handler, &timer_instance);
-	XIntc_Enable(intc, TMRCTR_INTERRUPT_ID);
+	status =  XIntc_Connect(intc, PLATFORM_INT_ID_TIMER, (XInterruptHandler)timer_interrupt_handler, &timer_instance);
+	XIntc_Enable(intc, PLATFORM_INT_ID_TIMER);
 
 	return status;
 }

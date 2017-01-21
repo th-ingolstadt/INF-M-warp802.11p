@@ -65,23 +65,18 @@
  * Event log                        | 1036056 KB (EVENT_LOG_SIZE)
  * --------------------------------------------------------------------------------------------------
  *
+ * Platform must define:
+ *  AUX_BRAM_BASEADDR - base address of AUX BRAM
+ *  AUX_BRAM_HIGHADDR - high address of AUX BRAM
+ *
+ *  DRAM_BASEADDR - base address of DRAM
+ *  DRAM_HIGHADDR - high address of DRAM
  *
  ************************************************************************************************/
 
 
-#define AUX_BRAM_BASE                      (XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_BASEADDR)
-#define AUX_BRAM_SIZE                      (XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_HIGHADDR - XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_BASEADDR + 1)
-#define AUX_BRAM_HIGH                      (XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_HIGHADDR)
-
-#define DRAM_BASE                          (XPAR_DDR3_SODIMM_S_AXI_BASEADDR)
-#define DRAM_SIZE                          (XPAR_DDR3_SODIMM_S_AXI_HIGHADDR - XPAR_DDR3_SODIMM_S_AXI_BASEADDR + 1)
-#define DRAM_HIGH                          (XPAR_DDR3_SODIMM_S_AXI_HIGHADDR)
-
-
 
 #define CALC_HIGH_ADDR(base, size)         ((base)+((size)-1))
-
-
 
 /********************************************************************
  * wlan_exp and IP/UDP library Ethernet buffers
@@ -99,7 +94,7 @@
  * DRAM allocation.
  *
  ********************************************************************/
-#define WLAN_EXP_ETH_BUFFERS_SECTION_BASE   (DRAM_BASE)
+#define WLAN_EXP_ETH_BUFFERS_SECTION_BASE   (DRAM_BASEADDR)
 #define WLAN_EXP_ETH_BUFFERS_SECTION_SIZE   (1024 * 1024)
 #define WLAN_EXP_ETH_BUFFERS_SECTION_HIGH   CALC_HIGH_ADDR(WLAN_EXP_ETH_BUFFERS_SECTION_BASE, WLAN_EXP_ETH_BUFFERS_SECTION_SIZE)
 
@@ -122,7 +117,7 @@
  *
  ********************************************************************/
 
-#define TX_QUEUE_DL_ENTRY_MEM_BASE         (AUX_BRAM_BASE)
+#define TX_QUEUE_DL_ENTRY_MEM_BASE         (AUX_BRAM_BASEADDR)
 #define TX_QUEUE_DL_ENTRY_MEM_SIZE         (40 * 1024)
 #define TX_QUEUE_DL_ENTRY_MEM_HIGH          CALC_HIGH_ADDR(TX_QUEUE_DL_ENTRY_MEM_BASE, TX_QUEUE_DL_ENTRY_MEM_SIZE)
 
@@ -219,32 +214,8 @@
  *
  ********************************************************************/
 #define EVENT_LOG_BASE                     (USER_SCRATCH_HIGH + 1)
-#define EVENT_LOG_SIZE                     (DRAM_HIGH - EVENT_LOG_BASE + 1) // log occupies all remianing DRAM
+#define EVENT_LOG_SIZE                     (DRAM_HIGHADDR - EVENT_LOG_BASE + 1) // log occupies all remaining DRAM
 #define EVENT_LOG_HIGH                      CALC_HIGH_ADDR(EVENT_LOG_BASE, EVENT_LOG_SIZE)
-
-
-
-//-----------------------------------------------
-// Device IDs
-//
-// NOTE:  These are re-definitions of xparameters.h #defines so that the name of the
-//     underlying hardware component can change and it will only require modifying
-//     one line of code in the SDK project.
-//
-#define INTC_DEVICE_ID                                     XPAR_INTC_0_DEVICE_ID              ///< XParameters rename of interrupt controller device ID
-#define UARTLITE_DEVICE_ID                                 XPAR_UARTLITE_0_DEVICE_ID          ///< XParameters rename for UART
-#define GPIO_USERIO_DEVICE_ID                              XPAR_MB_HIGH_SW_GPIO_DEVICE_ID     ///< XParameters rename of device ID of GPIO
-
-//-----------------------------------------------
-// Interrupt IDs
-//
-//  These macros define the index of each interrupt signal in the axi_intc input
-//  The defines below rename macros from xparameters.h to remove instance-name-specific
-//    strings from the application code
-#define INTC_GPIO_USERIO_INTERRUPT_ID                      XPAR_MB_HIGH_INTC_MB_HIGH_SW_GPIO_IP2INTC_IRPT_INTR               ///< XParameters rename of GPIO interrupt ID
-#define UARTLITE_INT_IRQ_ID                                XPAR_INTC_0_UARTLITE_0_VEC_ID      ///< XParameters rename of UART interrupt ID
-#define TMRCTR_INTERRUPT_ID                                XPAR_INTC_0_TMRCTR_0_VEC_ID        ///< XParameters rename of timer interrupt ID
-
 
 
 //-----------------------------------------------
@@ -253,8 +224,6 @@
 
 #define TX_BUFFER_NUM                                      2                                  ///< Number of PHY transmit buffers to use. This should remain 2 (ping/pong buffering).
 
-#define GPIO_USERIO_INPUT_CHANNEL                          1                                  ///< Channel used as input user IO inputs (buttons, DIP switch)
-#define GPIO_USERIO_INPUT_IR_CH_MASK                       XGPIO_IR_CH1_MASK                  ///< Mask for enabling interrupts on GPIO input
 
 #define GPIO_MASK_DRAM_INIT_DONE                           0x00000100                         ///< Mask for GPIO -- DRAM initialization bit
 #define GPIO_MASK_PB_U                                     0x00000040                         ///< Mask for GPIO -- "Up" Pushbutton

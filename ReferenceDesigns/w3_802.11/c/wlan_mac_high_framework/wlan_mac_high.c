@@ -17,7 +17,6 @@
 // Xilinx Includes
 #include "stdlib.h"
 #include "malloc.h"
-#include "xparameters.h"
 #include "xgpio.h"
 #include "xil_exception.h"
 #include "xintc.h"
@@ -27,6 +26,7 @@
 // WLAN Includes
 #include "wlan_mac_common.h"
 #include "wlan_platform_common.h"
+#include "wlan_platform_high.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_mailbox_util.h"
 #include "wlan_mac_pkt_buf_util.h"
@@ -212,7 +212,7 @@ void wlan_mac_high_init(){
 	 * - Disable all interrupt sources
 	 * - Acknowledge all sources
 	 */
-	XIntc_Config *CfgPtr = XIntc_LookupConfig(INTC_DEVICE_ID);
+	XIntc_Config *CfgPtr = XIntc_LookupConfig(PLATFORM_DEV_ID_INTC);
 
 	XIntc_Out32(CfgPtr->BaseAddress + XIN_MER_OFFSET, 0);
 	XIntc_Out32(CfgPtr->BaseAddress + XIN_IER_OFFSET, 0);
@@ -220,7 +220,7 @@ void wlan_mac_high_init(){
 
 	bzero(&InterruptController, sizeof(XIntc));
 
-	Status = XIntc_Initialize(&InterruptController, INTC_DEVICE_ID);
+	Status = XIntc_Initialize(&InterruptController, PLATFORM_DEV_ID_INTC);
 	if ((Status != XST_SUCCESS)) {
 		xil_printf("Error in initializing Interrupt Controller\n");
 	}
@@ -233,24 +233,24 @@ void wlan_mac_high_init(){
 
 	// Sanity check memory map of aux. BRAM and DRAM
 	//Aux. BRAM Check
-	Status = (AUX_BRAM_BASE <= TX_QUEUE_DL_ENTRY_MEM_BASE) &&
+	Status = (AUX_BRAM_BASEADDR <= TX_QUEUE_DL_ENTRY_MEM_BASE) &&
 			 (TX_QUEUE_DL_ENTRY_MEM_HIGH < BSS_INFO_DL_ENTRY_MEM_BASE) &&
 			 (BSS_INFO_DL_ENTRY_MEM_HIGH < STATION_INFO_DL_ENTRY_MEM_BASE ) &&
 			 (STATION_INFO_DL_ENTRY_MEM_HIGH < ETH_TX_BD_MEM_BASE) &&
 			 (ETH_TX_BD_MEM_HIGH < ETH_RX_BD_MEM_BASE) &&
-			 (ETH_RX_BD_MEM_HIGH <= AUX_BRAM_HIGH);
+			 (ETH_RX_BD_MEM_HIGH <= AUX_BRAM_HIGHADDR);
 
 	if(Status != 1){
 		xil_printf("Error: Overlap detected in Aux. BRAM. Check address assignments\n");
 	}
 
 	//DRAM Check
-	Status = (DRAM_BASE <= TX_QUEUE_BUFFER_BASE) &&
+	Status = (DRAM_BASEADDR <= TX_QUEUE_BUFFER_BASE) &&
 			 (TX_QUEUE_BUFFER_HIGH < BSS_INFO_BUFFER_BASE) &&
 			 (BSS_INFO_BUFFER_HIGH < STATION_INFO_BUFFER_BASE) &&
 			 (STATION_INFO_BUFFER_HIGH < USER_SCRATCH_BASE) &&
 			 (USER_SCRATCH_HIGH < EVENT_LOG_BASE) &&
-			 (EVENT_LOG_HIGH <= DRAM_HIGH);
+			 (EVENT_LOG_HIGH <= DRAM_HIGHADDR);
 
 	if(Status != 1){
 		xil_printf("Error: Overlap detected in DRAM. Check address assignments\n");
@@ -399,7 +399,7 @@ void wlan_mac_high_init(){
 	// ***************************************************
 
 	// Initialize the central DMA (CDMA) driver
-	cdma_cfg_ptr = XAxiCdma_LookupConfig(XPAR_AXI_CDMA_0_DEVICE_ID);
+	cdma_cfg_ptr = XAxiCdma_LookupConfig(PLATFORM_DEV_ID_CMDA);
 	Status = XAxiCdma_CfgInitialize(&cdma_inst, cdma_cfg_ptr, cdma_cfg_ptr->BaseAddress);
 	if (Status != XST_SUCCESS) {
 		wlan_printf(PL_ERROR, "ERROR: Could not initialize CDMA: %d\n", Status);
@@ -407,7 +407,7 @@ void wlan_mac_high_init(){
 	XAxiCdma_IntrDisable(&cdma_inst, XAXICDMA_XR_IRQ_ALL_MASK);
 
 	// Initialize the GPIO driver instances
-	Status = XGpio_Initialize(&Gpio_userio, GPIO_USERIO_DEVICE_ID);
+	Status = XGpio_Initialize(&Gpio_userio, PLATFORM_DEV_ID_USRIO_GPIO);
 
 	if (Status != XST_SUCCESS) {
 		wlan_printf(PL_ERROR, "ERROR: Could not initialize GPIO\n");
@@ -418,7 +418,7 @@ void wlan_mac_high_init(){
 	XGpio_SetDataDirection(&Gpio_userio, GPIO_USERIO_INPUT_CHANNEL, 0xFFFFFFFF);
 
 	// Initialize the UART driver
-	Status = XUartLite_Initialize(&UartLite, UARTLITE_DEVICE_ID);
+	Status = XUartLite_Initialize(&UartLite, PLATFORM_DEV_ID_UART);
 	if (Status != XST_SUCCESS) {
 		wlan_printf(PL_ERROR, "ERROR: Could not initialize UART\n");
 		return;
@@ -498,22 +498,22 @@ int wlan_mac_high_interrupt_init(){
 	// ***************************************************
 
 	// GPIO for User IO inputs
-	Result = XIntc_Connect(&InterruptController, INTC_GPIO_USERIO_INTERRUPT_ID, (XInterruptHandler)wlan_mac_high_userio_gpio_handler, &Gpio_userio);
+	Result = XIntc_Connect(&InterruptController, PLATFORM_INT_ID_USRIO_GPIO, (XInterruptHandler)wlan_mac_high_userio_gpio_handler, &Gpio_userio);
 	if (Result != XST_SUCCESS) {
 		wlan_printf(PL_ERROR, "Failed to set up GPIO interrupt\n");
 		return Result;
 	}
-	XIntc_Enable(&InterruptController, INTC_GPIO_USERIO_INTERRUPT_ID);
+	XIntc_Enable(&InterruptController, PLATFORM_INT_ID_USRIO_GPIO);
 	XGpio_InterruptEnable(&Gpio_userio, GPIO_USERIO_INPUT_IR_CH_MASK);
 	XGpio_InterruptGlobalEnable(&Gpio_userio);
 
 	// UART
-	Result = XIntc_Connect(&InterruptController, UARTLITE_INT_IRQ_ID, (XInterruptHandler)XUartLite_InterruptHandler, &UartLite);
+	Result = XIntc_Connect(&InterruptController, PLATFORM_INT_ID_UART, (XInterruptHandler)XUartLite_InterruptHandler, &UartLite);
 	if (Result != XST_SUCCESS) {
 		wlan_printf(PL_ERROR, "Failed to set up UART interrupt\n");
 		return Result;
 	}
-	XIntc_Enable(&InterruptController, UARTLITE_INT_IRQ_ID);
+	XIntc_Enable(&InterruptController, PLATFORM_INT_ID_UART);
 	XUartLite_SetRecvHandler(&UartLite, wlan_mac_high_uart_rx_handler, &UartLite);
 	XUartLite_EnableInterrupt(&UartLite);
 
@@ -1072,7 +1072,7 @@ int wlan_mac_high_memory_test(){
 	volatile void* memory_ptr;
 
 	for(i=0;i<6;i++){
-		memory_ptr = (void*)((u8*)DRAM_BASE + (i*100000*1024));
+		memory_ptr = (void*)((u8*)DRAM_BASEADDR + (i*100000*1024));
 		for(j=0;j<3;j++){
 			//Test 1 byte offsets to make sure byte enables are all working
 			test_u8 = rand()&0xFF;
@@ -1188,13 +1188,9 @@ int wlan_mac_high_cdma_start_transfer(void* dest, void* src, u32 size){
 	u8 out_of_range  = 0;
 
 
-	if((u32)src >= XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_BASEADDR && (u32)src <= XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_HIGHADDR){
+	if((u32)src >= DLMB_BASEADDR && (u32)src <= DLMB_HIGHADDR){
 		out_of_range = 1;
-	} else if((u32)src >= XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_BASEADDR && (u32)src <= XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_HIGHADDR){
-		out_of_range = 1;
-	} else if((u32)dest >= XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_BASEADDR && (u32)dest <= XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_HIGHADDR){
-		out_of_range = 1;
-	} else if((u32)dest >= XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_BASEADDR && (u32)dest <= XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_HIGHADDR){
+	} else if((u32)dest >= DLMB_BASEADDR && (u32)dest <= DLMB_HIGHADDR){
 		out_of_range = 1;
 	}
 

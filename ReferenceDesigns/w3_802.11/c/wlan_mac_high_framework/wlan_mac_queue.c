@@ -19,6 +19,7 @@
 #include "xil_types.h"
 #include "stdlib.h"
 #include "stdio.h"
+#include "wlan_platform_high.h"
 #include "xparameters.h"
 #include "xintc.h"
 #include "string.h"

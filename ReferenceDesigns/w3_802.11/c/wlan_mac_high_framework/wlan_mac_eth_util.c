@@ -21,12 +21,12 @@
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 
 #include "stdlib.h"
-#include "xparameters.h"
 #include "xaxiethernet.h"
 #include "xaxidma.h"
 #include "xintc.h"
 #include "stddef.h"
 #include "wlan_platform_common.h"
+#include "wlan_platform_high.h"
 #include "wlan_mac_common.h"
 #include "wlan_mac_pkt_buf_util.h"
 #include "wlan_mac_802_11_defs.h"
@@ -1340,9 +1340,8 @@ int wlan_eth_dma_send(u8* pkt_ptr, u32 length) {
     // Xil_DCacheFlushRange((u32)TxPacket, MAX_PKT_LEN);
 
     // Check if the user-supplied pointer is in the DLMB, unreachable by the DMA
-    if (((u32)pkt_ptr > XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_BASEADDR && (u32)pkt_ptr < XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_HIGHADDR) ||
-        ((u32)pkt_ptr > XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_BASEADDR && (u32)pkt_ptr < XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_HIGHADDR)) {
-        xil_printf("ERROR: Eth DMA send -- source address (0x%08x) not reachable by DMA\n", pkt_ptr);
+    if (((u32)pkt_ptr >= DLMB_BASEADDR && (u32)pkt_ptr <= DLMB_HIGHADDR)) {
+        xil_printf("ERROR: Eth DMA send -- DLMB source address (0x%08x) not reachable by DMA\n", pkt_ptr);
         return -1;
     }
 
