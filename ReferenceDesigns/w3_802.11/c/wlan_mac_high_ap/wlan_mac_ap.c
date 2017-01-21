@@ -11,48 +11,26 @@
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
-#include "wlan_mac_high_sw_config.h"
-#include "wlan_mac_common.h"
-
 // Xilinx SDK includes
-#include "stdio.h"
 #include "stdlib.h"
-#include "xtmrctr.h"
 #include "xio.h"
 #include "string.h"
-#include "xintc.h"
 
-// 802.11 ref design includes
-#include "wlan_mac_station_info.h"
+// 802.11 ref design headers
+#include "wlan_mac_high_sw_config.h"
+#include "wlan_mac_common.h"
+#include "wlan_platform_common.h"
+
+#include "wlan_mac_high.h"
+#include "wlan_mac_ap.h"
 #include "wlan_mac_addr_filter.h"
 #include "wlan_mac_time_util.h"
-#include "wlan_platform_common.h"
-#include "wlan_mac_pkt_buf_util.h"
-#include "wlan_mac_802_11_defs.h"
-#include "wlan_mac_queue.h"
 #include "wlan_mac_ltg.h"
-#include "wlan_mac_high.h"
-#include "wlan_mac_packet_types.h"
-#include "wlan_mac_eth_util.h"
 #include "wlan_mac_event_log.h"
-#include "wlan_mac_entries.h"
 #include "wlan_mac_schedule.h"
-#include "wlan_mac_dl_list.h"
-#include "ascii_characters.h"
-#include "wlan_mac_bss_info.h"
-#include "wlan_mac_station_info.h"
-#include "wlan_mac_mgmt_tags.h"
-#include "wlan_mac_scan.h"
-#include "wlan_mac_ap.h"
 
-
-// WLAN Experiments framework includes
-#include "wlan_exp.h"
-#include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
 #include "wlan_exp_node_ap.h"
-#include "wlan_exp_transport.h"
-#include "wlan_exp_user.h"
 
 
 /*************************** Constant Definitions ****************************/

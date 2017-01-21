@@ -14,30 +14,20 @@
 /***************************** Include Files *********************************/
 
 #include "wlan_mac_high_sw_config.h"
-#include "wlan_mac_common.h"
-#include "wlan_platform_common.h"
-#include "wlan_exp_common.h"
-#include "wlan_exp.h"
-#include "wlan_mac_high.h"
-#include "wlan_mac_entries.h"
-#include "wlan_exp_node.h"
-#include "wlan_exp_node_ap.h"
 
 #if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
-// WLAN includes
-#include "wlan_mac_802_11_defs.h"
-#include "wlan_mac_queue.h"
+#include "wlan_platform_common.h"
+
+#include "wlan_exp_node.h"
+#include "wlan_exp_node_ap.h"
+
+#include "wlan_mac_entries.h"
 #include "wlan_mac_ltg.h"
-#include "wlan_mac_packet_types.h"
-#include "wlan_mac_eth_util.h"
-#include "wlan_mac_dl_list.h"
-#include "wlan_mac_schedule.h"
 #include "wlan_mac_addr_filter.h"
 #include "wlan_mac_event_log.h"
+
 #include "wlan_mac_ap.h"
-#include "wlan_mac_bss_info.h"
-#include "wlan_mac_station_info.h"
 
 
 

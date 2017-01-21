@@ -19,6 +19,7 @@
 #include "wlan_mac_mgmt_tags.h"
 #include "wlan_mac_scan.h"
 #include "wlan_mac_station_info.h"
+#include "wlan_mac_entries.h"
 
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_AP_H_
