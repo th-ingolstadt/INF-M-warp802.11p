@@ -55,12 +55,12 @@ static int                   bd_set_count;
 #define						 MAX_PACKETS_TOTAL 10
 static u32                   irq_status;
 
-static void*				gl_eth_tx_bd_mem_base;
+static u32					gl_eth_tx_bd_mem_base;
 static u32					gl_eth_tx_bd_mem_size;
-static void*				gl_eth_tx_bd_mem_high;
-static void*				gl_eth_rx_bd_mem_base;
+static u32					gl_eth_tx_bd_mem_high;
+static u32					gl_eth_rx_bd_mem_base;
 static u32					gl_eth_rx_bd_mem_size;
-static void*				gl_eth_rx_bd_mem_high;
+static u32					gl_eth_rx_bd_mem_high;
 
 
 #if PERF_MON_ETH_BD
@@ -99,7 +99,7 @@ int wlan_platform_ethernet_init(){
 	}
 
 	// Split up the memory set aside for us in ETH_MEM_BASE
-	gl_eth_tx_bd_mem_base = (void*)ETH_MEM_BASE;
+	gl_eth_tx_bd_mem_base = ETH_MEM_BASE;
 	gl_eth_tx_bd_mem_size = XAXIDMA_BD_MINIMUM_ALIGNMENT;
 	gl_eth_tx_bd_mem_high = CALC_HIGH_ADDR(gl_eth_tx_bd_mem_base, gl_eth_tx_bd_mem_size);
 	gl_eth_rx_bd_mem_base = gl_eth_tx_bd_mem_high+1;
@@ -301,6 +301,7 @@ int wlan_eth_dma_init() {
 
     dl_entry* curr_tx_queue_element;
 
+
     // Initialize the DMA peripheral structures
     eth_dma_cfg_ptr = XAxiDma_LookupConfig(WLAN_ETH_DMA_DEV_ID);
     status = XAxiDma_CfgInitialize(&eth_dma_instance, eth_dma_cfg_ptr);
@@ -323,8 +324,9 @@ int wlan_eth_dma_init() {
     XAxiDma_BdRingSetCoalesce(eth_rx_ring_ptr, 1, 0);
 
     // Setup Tx/Rx buffer descriptor rings in memory
-    status  = XAxiDma_BdRingCreate(eth_tx_ring_ptr, gl_eth_tx_bd_mem_size, gl_eth_tx_bd_mem_size, XAXIDMA_BD_MINIMUM_ALIGNMENT, num_tx_bd);
-    status |= XAxiDma_BdRingCreate(eth_rx_ring_ptr, gl_eth_rx_bd_mem_size, gl_eth_rx_bd_mem_size, XAXIDMA_BD_MINIMUM_ALIGNMENT, num_rx_bd);
+    status  = XAxiDma_BdRingCreate(eth_tx_ring_ptr, gl_eth_tx_bd_mem_base, gl_eth_tx_bd_mem_base, XAXIDMA_BD_MINIMUM_ALIGNMENT, num_tx_bd);
+    status |= XAxiDma_BdRingCreate(eth_rx_ring_ptr, gl_eth_rx_bd_mem_base, gl_eth_rx_bd_mem_base, XAXIDMA_BD_MINIMUM_ALIGNMENT, num_rx_bd);
+
     if (status != XST_SUCCESS) { xil_printf("Error creating DMA BD Rings! Err = %d\n", status); return -1; }
 
     // Populate each ring with empty buffer descriptors

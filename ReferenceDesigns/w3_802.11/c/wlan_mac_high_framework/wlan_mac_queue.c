@@ -20,6 +20,7 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "wlan_platform_high.h"
+#include "wlan_platform_ethernet.h"
 #include "xintc.h"
 #include "string.h"
 
