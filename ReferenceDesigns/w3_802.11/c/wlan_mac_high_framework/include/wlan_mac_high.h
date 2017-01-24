@@ -47,8 +47,7 @@
  * Tx Queue list entries (entry.data points to DRAM)      | 40960 B (TX_QUEUE_DL_ENTRY_MEM_SIZE)
  * BSS Info list entries (entry.data points to DRAM)      |  4608 B (BSS_INFO_DL_ENTRY_MEM_SIZE)
  * Station Info list entries (entry.data points to DRAM)  |  4608 B (STATION_INFO_DL_ENTRY_MEM_SIZE)
- * ETH A Tx DMA buffer descriptors                        |    64 B (ETH_TX_BD_MEM_SIZE)
- * ETH A Rx DMA buffer descriptors                        | 15296 B (ETH_RX_BD_MEM_SIZE)
+ * Space for wlan_platform_ethernet use                   | 15360 B (ETH_MEM_SIZE)
  * -------------------------------------------------------------------------------------------------
  *
  * On WARP v3 1 GB of the DDR3 SO-DIMM DRAM is mapped into the address space of CPU High.
@@ -164,36 +163,16 @@
 #define STATION_INFO_BUFFER_HIGH           CALC_HIGH_ADDR(STATION_INFO_BUFFER_BASE, STATION_INFO_BUFFER_SIZE)
 
 
-
 /********************************************************************
- * Ethernet TX Buffer Descriptors
+ * Ethernet TX Aux. Space
  *
- * The current architecture blocks on Ethernet transmissions. As such, only a single
- * Eth DMA buffer descriptor (BD) is needed. Each BD is 64 bytes in size (see
- * XAXIDMA_BD_MINIMUM_ALIGNMENT), so we set ETH_TX_BD_SIZE to 64.
- *
+ * Space is set aside for the use of wlan_platform's Ethernet
+ * implementation
  ********************************************************************/
-#define ETH_DMA_BD_SIZE			       64 // hard-code sizeof(XAxiDma_Bd) to avoid including axi_dma header
 
-#define ETH_TX_BD_MEM_BASE                     (STATION_INFO_DL_ENTRY_MEM_HIGH + 1)
-#define ETH_TX_BD_MEM_SIZE                     (1 * ETH_DMA_BD_SIZE)
-#define ETH_TX_BD_MEM_HIGH                      CALC_HIGH_ADDR(ETH_TX_BD_MEM_BASE, ETH_TX_BD_MEM_SIZE)
-
-
-
-/********************************************************************
- * Ethernet RX Buffer Descriptors
- *
- * The last section we are defining in the aux. BRAM is for ETH_RX.
- * Like TX, each BD is 64 bytes. Unlike TX, we need more than a single
- * BD to be able to handle bursty Ethernet receptions.
- *
- ********************************************************************/
-#define ETH_RX_BD_MEM_BASE                     (ETH_TX_BD_MEM_HIGH + 1)
-#define ETH_RX_BD_MEM_SIZE                     (239 * ETH_DMA_BD_SIZE)
-#define ETH_RX_BD_MEM_HIGH                      CALC_HIGH_ADDR(ETH_RX_BD_MEM_BASE, ETH_RX_BD_MEM_SIZE)
-
-
+#define ETH_MEM_BASE                     	(STATION_INFO_DL_ENTRY_MEM_HIGH + 1)
+#define ETH_MEM_SIZE                      	(240 * 64)
+#define ETH_MEM_HIGH                     	CALC_HIGH_ADDR(ETH_MEM_BASE, ETH_MEM_SIZE)
 
 /********************************************************************
  * User Scratch Space

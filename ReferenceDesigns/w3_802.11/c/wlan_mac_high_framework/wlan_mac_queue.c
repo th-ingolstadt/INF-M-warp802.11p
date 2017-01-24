@@ -403,6 +403,9 @@ void queue_checkin(dl_entry* tqe){
 	if (tqe != NULL) {
 	    dl_entry_insertEnd(&free_queue, (dl_entry*) tqe);
 	}
+
+	wlan_platform_ethernet_handle_freed_queue_entry();
+
 }
 
 
@@ -553,14 +556,6 @@ inline int dequeue_transmit_checkin(u16 queue_sel){
 
 			// Check in the Tx Queue element because it is not long being used
 			queue_checkin(curr_tx_queue_element);
-
-#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
-			// Update the Ethernet DMA
-			//     NOTE:  Given that there is now another free Tx queue element, let
-			//         the Ethernet sub-system know so that if it is ready, it can
-			//         use this Tx queue element to store a packet from Ethernet.
-			wlan_eth_dma_update();
-#endif
 
 			// Update return value
 			return_value = 1;

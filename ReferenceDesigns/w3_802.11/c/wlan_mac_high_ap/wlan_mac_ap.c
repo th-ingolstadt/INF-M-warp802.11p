@@ -139,6 +139,10 @@ int main(){
 	//Initialize the MAC framework
 	wlan_mac_high_init();
 
+	// Before any queue entries are used, calculate the maximum number of
+	// allowed enqueues based on the number that are free
+	max_queue_size = min( queue_num_free(), MAX_TX_QUEUE_LEN );
+
 	pause_data_queue = 0;
 
 	//Set a sane default for the TIM tag byte offset
@@ -182,15 +186,6 @@ int main(){
 	default_multicast_mgmt_tx_params.phy.mcs          = 0;
 	default_multicast_mgmt_tx_params.phy.phy_mode     = PHY_MODE_NONHT;
 	default_multicast_mgmt_tx_params.phy.antenna_mode = WLAN_DEFAULT_TX_ANTENNA;
-
-	// Calculate the maximum length of any Tx queue
-	//   (queue_total_size()- eth_get_num_rx_bd()) is the number of queue entries available after dedicating some to the ETH DMA
-	//   MAX_PER_FLOW_QUEUE is the absolute max length of any queue; long queues (a.k.a. buffer bloat) are bad
-#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
-	max_queue_size = min((queue_total_size()- eth_get_num_rx_bd()) / (1), MAX_TX_QUEUE_LEN);
-#else
-	max_queue_size = min((queue_total_size()) / (1), MAX_TX_QUEUE_LEN);
-#endif
 
 	// Initialize callbacks
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE

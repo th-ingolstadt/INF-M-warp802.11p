@@ -236,9 +236,8 @@ void wlan_mac_high_init(){
 	Status = (AUX_BRAM_BASEADDR <= TX_QUEUE_DL_ENTRY_MEM_BASE) &&
 			 (TX_QUEUE_DL_ENTRY_MEM_HIGH < BSS_INFO_DL_ENTRY_MEM_BASE) &&
 			 (BSS_INFO_DL_ENTRY_MEM_HIGH < STATION_INFO_DL_ENTRY_MEM_BASE ) &&
-			 (STATION_INFO_DL_ENTRY_MEM_HIGH < ETH_TX_BD_MEM_BASE) &&
-			 (ETH_TX_BD_MEM_HIGH < ETH_RX_BD_MEM_BASE) &&
-			 (ETH_RX_BD_MEM_HIGH <= AUX_BRAM_HIGHADDR);
+			 (STATION_INFO_DL_ENTRY_MEM_HIGH < ETH_MEM_BASE) &&
+			 (ETH_MEM_HIGH <= AUX_BRAM_HIGHADDR);
 
 	if(Status != 1){
 		xil_printf("Error: Overlap detected in Aux. BRAM. Check address assignments\n");
