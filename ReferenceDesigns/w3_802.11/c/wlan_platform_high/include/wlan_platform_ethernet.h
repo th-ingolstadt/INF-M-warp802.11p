@@ -1,6 +1,7 @@
 #ifndef WLAN_PLATFORM_ETHERNET_H_
 #define WLAN_PLATFORM_ETHERNET_H_
 
+#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 #include "xintc.h"
 
 //-----------------------------------------------
@@ -46,7 +47,7 @@ int 	wlan_platform_ethernet_init();
 int 	wlan_platform_ethernet_setup_interrupt(XIntc* intc);
 int 	wlan_platform_ethernet_send(u8* pkt_ptr, u32 length);
 void	wlan_platform_ethernet_handle_freed_queue_entry();
-
+#endif
 
 
 #endif /* WLAN_PLATFORM_ETHERNET_H_ */

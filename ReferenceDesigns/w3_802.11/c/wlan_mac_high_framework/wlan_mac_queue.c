@@ -401,11 +401,14 @@ dl_entry* queue_checkout(){
  *
  *****************************************************************************/
 void queue_checkin(dl_entry* tqe){
+
 	if (tqe != NULL) {
 	    dl_entry_insertEnd(&free_queue, (dl_entry*) tqe);
 	}
 
+#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 	wlan_platform_ethernet_handle_freed_queue_entry();
+#endif
 
 }
 
@@ -463,6 +466,7 @@ int queue_checkout_list(dl_list* list, u16 num_tqe){
 	//
 	// Ex.  For one queue entry, function will take 2.0 us (ie (0.16 * 1) + 1.84 = 2.0)
 	//
+
     return dl_entry_move(&free_queue, list, num_tqe);
 #endif
 }

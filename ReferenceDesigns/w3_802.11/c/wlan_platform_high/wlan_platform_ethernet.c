@@ -1,3 +1,6 @@
+#include "wlan_mac_high_sw_config.h"
+
+#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 #include "wlan_platform_ethernet.h"
 #include "xparameters.h"
 
@@ -271,7 +274,7 @@ int wlan_platform_ethernet_send(u8* pkt_ptr, u32 length) {
 
 void wlan_platform_ethernet_handle_freed_queue_entry(){
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
-	wlan_eth_dma_init();
+	wlan_eth_dma_update();
 #endif
 }
 
@@ -722,7 +725,7 @@ void wlan_eth_dma_update() {
 }
 
 
-
+#endif //WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 
 
 
