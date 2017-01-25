@@ -2175,7 +2175,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				}
 
 				// Set hex display
-				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0xFF);
+				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_bss_info->members.length);
 			}
 		}
 
