@@ -114,7 +114,7 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
     unique_seq = 0;
 
     //Set the TU Target to the max value
-    wlan_mac_set_tu_target(0xFFFFFFFFFFFFFFFFUL);
+    wlan_mac_set_tu_target(0xFFFFFFFFFFFFFFFFULL);
 
     mac_param_rx_filter      = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL);
 
