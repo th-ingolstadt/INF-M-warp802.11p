@@ -174,6 +174,9 @@ int w3_node_init() {
     // Initialize the AD9963 ADCs/DACs for on-board RF interfaces
     ad_init(AD_BASEADDR, AD_ALL_RF, 3);
 
+    // Disable AD9963 Duty Cycle Stabilizer (recommended when ADCCLK < 75MHz)
+    ad_config_clocks(AD_BASEADDR, AD_ALL_RF, AD_DACCLKSRC_EXT, AD_ADCCLKSRC_EXT, AD_ADCCLKDIV_1, AD_DCS_OFF);
+
     if(status != XST_SUCCESS) {
         xil_printf("ERROR: (w3_node_init) ADC/DAC initialization failed with error code: %d\n", status);
         ret_val = XST_FAILURE;
