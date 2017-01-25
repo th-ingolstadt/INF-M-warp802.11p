@@ -29,6 +29,7 @@
 #include "wlan_mac_time_util.h"
 #include "wlan_phy_util.h"
 #include "wlan_mac_dcf.h"
+#include "wlan_platform_low.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_mgmt_tags.h"
 #include "wlan_platform_common.h"

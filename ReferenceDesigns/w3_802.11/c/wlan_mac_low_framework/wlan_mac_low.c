@@ -30,6 +30,7 @@
 #include "wlan_mac_mailbox_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_phy_util.h"
+#include "wlan_platform_low.h"
 #include "wlan_mac_low.h"
 
 // WLAN Exp includes
