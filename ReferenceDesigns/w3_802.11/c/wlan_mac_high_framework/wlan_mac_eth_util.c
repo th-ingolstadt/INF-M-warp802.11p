@@ -29,7 +29,6 @@
 #include "wlan_platform_high.h"
 #include "wlan_mac_common.h"
 #include "wlan_mac_eth_util.h"
-#include "wlan_platform_ethernet.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_station_info.h"
@@ -77,7 +76,7 @@ int      wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_s
 
 /*****************************************************************************/
 /**
- * @brief Initialize the Ethernet sub-system
+ * @brief Initialize the Ethernet utility sub-system
  *
  * Initialize Ethernet A hardware and framework for handling Ethernet Tx/Rx via
  * the DMA.  This function must be called once at boot, before any Ethernet
@@ -85,19 +84,15 @@ int      wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_s
  *
  * @return 0 on success
  */
-int wlan_eth_init() {
-    int status;
+int wlan_eth_util_init() {
 
 	// Initialize Callback
 	eth_rx_callback = (function_ptr_t)wlan_null_callback;
 	eth_rx_early_rejection_callback = (function_ptr_t)wlan_null_callback;
 
-	// Initialize Ethernet in wlan_platform
-    status = wlan_platform_ethernet_init();
-
     // Enable bridging of the wired-wireless networks (a.k.a. the "portal" between networks)
 	wlan_eth_portal_en(1);
-    return status;
+    return 0;
 }
 
 /*****************************************************************************/
@@ -141,23 +136,6 @@ void wlan_mac_util_set_eth_rx_early_rejection_callback(void(*callback)()) {
  */
 void wlan_mac_util_set_eth_encap_mode(application_role_t mode) {
     eth_encap_mode = mode;
-}
-
-/*****************************************************************************/
-/**
- * @brief Configures and connects the axi_dma interrupt to the system interrupt controller
- *
- * @param XIntc* intc
- *  - axi_intc driver instance - this function must be called after the axi_intc is setup
- *
- * @return 0 on success, non-zero otherwise
- */
-int wlan_eth_setup_interrupt(XIntc* intc){
-    int                 status;
-
-    status = wlan_platform_ethernet_setup_interrupt(intc);
-
-    return status;
 }
 
 /*****************************************************************************/

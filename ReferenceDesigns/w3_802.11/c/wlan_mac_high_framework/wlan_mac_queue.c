@@ -20,7 +20,6 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "wlan_platform_high.h"
-#include "wlan_platform_ethernet.h"
 #include "xintc.h"
 #include "string.h"
 
@@ -51,7 +50,6 @@ static function_ptr_t        queue_state_change_callback;
 
 // List to hold all of the empty, free entries
 static dl_list               free_queue;
-
 
 // The tx_queues variable is an array of lists that will be filled with queue
 // entries from the free_queue list
@@ -406,10 +404,7 @@ void queue_checkin(dl_entry* tqe){
 	    dl_entry_insertEnd(&free_queue, (dl_entry*) tqe);
 	}
 
-#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
-	wlan_platform_ethernet_handle_freed_queue_entry();
-#endif
-
+	wlan_platform_free_queue_entry_notify();
 }
 
 

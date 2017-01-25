@@ -264,9 +264,6 @@ int main() {
 
 	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_APPLICATION_ROLE, APPLICATION_ROLE_STA);
 
-	// Initialize interrupts
-	wlan_mac_high_interrupt_init();
-
 	// Schedule all events
 	//     None at this time
 

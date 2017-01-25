@@ -433,7 +433,7 @@ void wlan_mac_high_init(){
 				xil_printf("A working DRAM SODIMM has not been detected on this board.\n");
 				xil_printf("The 802.11 Reference Design requires at least 1GB of DRAM.\n");
 				xil_printf("This CPU will now halt.\n");
-				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_CPU_ERROR,WLAN_ERROR_CODE_DRAM_NOT_PRESENT);
+				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_CPU_ERROR, WLAN_ERROR_CODE_DRAM_NOT_PRESENT);
 			}
 			break;
 		}
@@ -458,7 +458,7 @@ void wlan_mac_high_init(){
 	bss_info_init();
 	station_info_init();
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
-	wlan_eth_init();
+	wlan_eth_util_init();
 #endif
 	wlan_mac_schedule_init();
 #if WLAN_SW_CONFIG_ENABLE_LTG
@@ -475,6 +475,9 @@ void wlan_mac_high_init(){
 
 	//Create IPC message to receive into
 	ipc_msg_from_low.payload_ptr = &(ipc_msg_from_low_payload[0]);
+
+	// Initialize Interrupts
+	wlan_mac_high_interrupt_init();
 }
 
 
@@ -531,13 +534,16 @@ int wlan_mac_high_interrupt_init(){
 		return -1;
 	}
 
-#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
-	Result = wlan_eth_setup_interrupt(&InterruptController);
+
+	platform_config_t platform_config;
+	platform_config.intc = &InterruptController;
+	platform_config.eth_rx_callback = (void*)wlan_process_eth_rx;
+
+	Result = wlan_platform_high_init(platform_config);
 	if (Result != XST_SUCCESS) {
 		wlan_printf(PL_ERROR,"Failed to set up Ethernet interrupt\n");
 		return Result;
 	}
-#endif
 
 	// ***************************************************
 	// Enable MicroBlaze exceptions

@@ -1,7 +1,8 @@
 #include "wlan_mac_high_sw_config.h"
 
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
-#include "wlan_platform_ethernet.h"
+#include "wlan_platform_high.h"
+#include "w3_wlan_platform_ethernet.h"
 #include "xparameters.h"
 
 #include "stdlib.h"
@@ -65,120 +66,27 @@ static u32					gl_eth_rx_bd_mem_base;
 static u32					gl_eth_rx_bd_mem_size;
 static u32					gl_eth_rx_bd_mem_high;
 
+static function_ptr_t		rx_callback;
+
 
 #if PERF_MON_ETH_BD
 static u32                   bd_high_water_mark;
 #endif
 
 // Local Function Declarations -- these are not intended to be called by functions outside of this file
-int      wlan_eth_dma_init();
-int      init_rx_bd(XAxiDma_Bd * bd_ptr, dl_entry * tqe_ptr, u32 max_transfer_len);
-void     wlan_process_all_eth_pkts(u32 schedule_id);
-void 	 eth_rx_interrupt_handler(void *callbarck_arg);
-void 	 wlan_eth_dma_update();
-
-int wlan_platform_ethernet_init(){
-	int status = 0;
-
-	XAxiEthernet_Config    * eth_cfg_ptr;
-	XAxiEthernet             eth_instance;
-
-	// Set global variables
-	bd_set_to_process_ptr  = NULL;
-	bd_set_count           = 0;
-
-	rx_schedule_id = SCHEDULE_ID_RESERVED_MAX;
-	rx_schedule_dl_entry = NULL;
-
-#if PERF_MON_ETH_BD
-	bd_high_water_mark     = 0;
-#endif
-
-	// Check to see if we were given enough room by wlan_mac_high.h for our buffer descriptors
-	// At an absolute minimum, there needs to be room for 1 Tx BD and 1 Rx BD
-	if (ETH_MEM_SIZE < (2*XAXIDMA_BD_MINIMUM_ALIGNMENT) ) {
-		xil_printf("Only %d bytes allocated for Eth Tx BD. Must be at least %d bytes\n", ETH_MEM_SIZE, 2*XAXIDMA_BD_MINIMUM_ALIGNMENT);
-		wlan_platform_userio_disp_status(USERIO_DISP_STATUS_CPU_ERROR, WLAN_ERROR_CODE_INSUFFICIENT_BD_SIZE);
-	}
-
-	// Split up the memory set aside for us in ETH_MEM_BASE
-	gl_eth_tx_bd_mem_base = ETH_MEM_BASE;
-	gl_eth_tx_bd_mem_size = XAXIDMA_BD_MINIMUM_ALIGNMENT;
-	gl_eth_tx_bd_mem_high = CALC_HIGH_ADDR(gl_eth_tx_bd_mem_base, gl_eth_tx_bd_mem_size);
-	gl_eth_rx_bd_mem_base = gl_eth_tx_bd_mem_high+1;
-	gl_eth_rx_bd_mem_size = ETH_MEM_SIZE - gl_eth_tx_bd_mem_size;
-	gl_eth_rx_bd_mem_high = CALC_HIGH_ADDR(gl_eth_rx_bd_mem_base, gl_eth_rx_bd_mem_size);
+int      _wlan_eth_dma_init();
+int      _init_rx_bd(XAxiDma_Bd * bd_ptr, dl_entry * tqe_ptr, u32 max_transfer_len);
+void     _wlan_process_all_eth_pkts(u32 schedule_id);
+void 	 _eth_rx_interrupt_handler(void *callbarck_arg);
+void 	 _wlan_eth_dma_update();
 
 
-	// Initialize buffer descriptor counts
-	num_tx_bd = 1;
-	xil_printf("%3d Eth Tx BDs placed in BRAM: using %d B\n", num_tx_bd, num_tx_bd*XAXIDMA_BD_MINIMUM_ALIGNMENT);
 
-	num_rx_bd = gl_eth_rx_bd_mem_size / XAXIDMA_BD_MINIMUM_ALIGNMENT;
-	xil_printf("%3d Eth Rx BDs placed in BRAM: using %d kB\n", num_rx_bd, num_rx_bd*XAXIDMA_BD_MINIMUM_ALIGNMENT/1024);
 
-	// Initialize Ethernet instance
-	eth_cfg_ptr = XAxiEthernet_LookupConfig(WLAN_ETH_DEV_ID);
-	status = XAxiEthernet_CfgInitialize(&eth_instance, eth_cfg_ptr, eth_cfg_ptr->BaseAddress);
-	if (status != XST_SUCCESS) { xil_printf("Error in XAxiEthernet_CfgInitialize! Err = %d\n", status); return -1; };
 
-	// Setup the Ethernet options
-	//     NOTE:  This Ethernet driver does not support jumbo Ethernet frames.  Only 2KB is allocated for each buffer
-	//         descriptor and there is a basic assumption that 1 Ethernet frame = 1 buffer descriptor.
-	status  = XAxiEthernet_ClearOptions(&eth_instance, XAE_LENTYPE_ERR_OPTION | XAE_FLOW_CONTROL_OPTION | XAE_JUMBO_OPTION);
-	status |= XAxiEthernet_SetOptions(&eth_instance, XAE_FCS_STRIP_OPTION | XAE_PROMISC_OPTION | XAE_MULTICAST_OPTION | XAE_BROADCAST_OPTION | XAE_FCS_INSERT_OPTION);
-	status |= XAxiEthernet_SetOptions(&eth_instance, XAE_RECEIVER_ENABLE_OPTION | XAE_TRANSMITTER_ENABLE_OPTION);
-	if (status != XST_SUCCESS) {xil_printf("Error in XAxiEthernet_Set/ClearOptions! Err = %d\n", status); return -1;};
-
-	// Set the operating speed
-	XAxiEthernet_SetOperatingSpeed(&eth_instance, WLAN_ETH_LINK_SPEED);
-
-	// If the link speed is 1 Gbps, then only advertise and link to 1 Gbps connection
-	//     See Ethernet PHY specification for documentation on the values used
-	if (WLAN_ETH_LINK_SPEED == 1000) {
-		XAxiEthernet_PhyWrite(&eth_instance, WLAN_ETH_MDIO_PHYADDR, 0, 0x0140);
-		XAxiEthernet_PhyWrite(&eth_instance, WLAN_ETH_MDIO_PHYADDR, 0, 0x8140);
-	}
-
-	// Initialize the DMA for Ethernet A
-	status = wlan_eth_dma_init();
-
-	// Start the Ethernet controller
-	XAxiEthernet_Start(&eth_instance);
-
-	return 0;
-}
-
-/*****************************************************************************/
-/**
- * @brief Configures and connects the axi_dma interrupt to the system interrupt controller
- *
- * @param XIntc* intc
- *  - axi_intc driver instance - this function must be called after the axi_intc is setup
- *
- * @return 0 on success, non-zero otherwise
- */
-int wlan_platform_ethernet_setup_interrupt(XIntc* intc){
-    int                 status;
-    XAxiDma_BdRing    * rx_ring_ptr;
-
-    // The interrupt controller will remember an arbitrary value and pass it to the callback
-    // when this interrupt fires. We use this to pass the axi_dma Rx BD ring pointer into
-    // the eth_rx_interrupt_handler() callback
-    rx_ring_ptr = XAxiDma_GetRxRing(&eth_dma_instance);
-
-    // Connect the axi_dma interrupt
-    status = XIntc_Connect(intc, WLAN_ETH_RX_INTR_ID, (XInterruptHandler)eth_rx_interrupt_handler, rx_ring_ptr);
-
-    if (status != XST_SUCCESS) {
-        xil_printf("ERROR: Failed to connect axi_dma interrupt: (%d)\n", status);
-        return XST_FAILURE;
-    }
-
-    XIntc_Enable(intc, WLAN_ETH_RX_INTR_ID);
-
-    return 0;
-}
+//---------------------------------------
+// Public Function for WLAN MAC High Framework
+//  These functions are intended to be called directly to the WLAN MAC High Framework
 
 
 
@@ -272,11 +180,137 @@ int wlan_platform_ethernet_send(u8* pkt_ptr, u32 length) {
     return 0;
 }
 
-void wlan_platform_ethernet_handle_freed_queue_entry(){
+
+
+//---------------------------------------
+// Private Functions for WLAN Platform High
+//  These functions are intended to be called directly to the by the high-level platform code,
+//  but not by the WLAN MAC High Framework.
+
+
+
+int w3_wlan_platform_ethernet_init(){
+	int status = 0;
+
+	XAxiEthernet_Config    * eth_cfg_ptr;
+	XAxiEthernet             eth_instance;
+
+	// Set global variables
+	bd_set_to_process_ptr  = NULL;
+	bd_set_count           = 0;
+
+	rx_callback = wlan_null_callback;
+
+	rx_schedule_id = SCHEDULE_ID_RESERVED_MAX;
+	rx_schedule_dl_entry = NULL;
+
+#if PERF_MON_ETH_BD
+	bd_high_water_mark     = 0;
+#endif
+
+	// Check to see if we were given enough room by wlan_mac_high.h for our buffer descriptors
+	// At an absolute minimum, there needs to be room for 1 Tx BD and 1 Rx BD
+	if (ETH_MEM_SIZE < (2*XAXIDMA_BD_MINIMUM_ALIGNMENT) ) {
+		xil_printf("Only %d bytes allocated for Eth Tx BD. Must be at least %d bytes\n", ETH_MEM_SIZE, 2*XAXIDMA_BD_MINIMUM_ALIGNMENT);
+		wlan_platform_userio_disp_status(USERIO_DISP_STATUS_CPU_ERROR, WLAN_ERROR_CODE_INSUFFICIENT_BD_SIZE);
+	}
+
+	// Split up the memory set aside for us in ETH_MEM_BASE
+	gl_eth_tx_bd_mem_base = ETH_MEM_BASE;
+	gl_eth_tx_bd_mem_size = XAXIDMA_BD_MINIMUM_ALIGNMENT;
+	gl_eth_tx_bd_mem_high = CALC_HIGH_ADDR(gl_eth_tx_bd_mem_base, gl_eth_tx_bd_mem_size);
+	gl_eth_rx_bd_mem_base = gl_eth_tx_bd_mem_high+1;
+	gl_eth_rx_bd_mem_size = ETH_MEM_SIZE - gl_eth_tx_bd_mem_size;
+	gl_eth_rx_bd_mem_high = CALC_HIGH_ADDR(gl_eth_rx_bd_mem_base, gl_eth_rx_bd_mem_size);
+
+
+	// Initialize buffer descriptor counts
+	num_tx_bd = 1;
+	xil_printf("%3d Eth Tx BDs placed in BRAM: using %d B\n", num_tx_bd, num_tx_bd*XAXIDMA_BD_MINIMUM_ALIGNMENT);
+
+	num_rx_bd = gl_eth_rx_bd_mem_size / XAXIDMA_BD_MINIMUM_ALIGNMENT;
+	xil_printf("%3d Eth Rx BDs placed in BRAM: using %d kB\n", num_rx_bd, num_rx_bd*XAXIDMA_BD_MINIMUM_ALIGNMENT/1024);
+
+	// Initialize Ethernet instance
+	eth_cfg_ptr = XAxiEthernet_LookupConfig(WLAN_ETH_DEV_ID);
+	status = XAxiEthernet_CfgInitialize(&eth_instance, eth_cfg_ptr, eth_cfg_ptr->BaseAddress);
+	if (status != XST_SUCCESS) { xil_printf("Error in XAxiEthernet_CfgInitialize! Err = %d\n", status); return -1; };
+
+	// Setup the Ethernet options
+	//     NOTE:  This Ethernet driver does not support jumbo Ethernet frames.  Only 2KB is allocated for each buffer
+	//         descriptor and there is a basic assumption that 1 Ethernet frame = 1 buffer descriptor.
+	status  = XAxiEthernet_ClearOptions(&eth_instance, XAE_LENTYPE_ERR_OPTION | XAE_FLOW_CONTROL_OPTION | XAE_JUMBO_OPTION);
+	status |= XAxiEthernet_SetOptions(&eth_instance, XAE_FCS_STRIP_OPTION | XAE_PROMISC_OPTION | XAE_MULTICAST_OPTION | XAE_BROADCAST_OPTION | XAE_FCS_INSERT_OPTION);
+	status |= XAxiEthernet_SetOptions(&eth_instance, XAE_RECEIVER_ENABLE_OPTION | XAE_TRANSMITTER_ENABLE_OPTION);
+	if (status != XST_SUCCESS) {xil_printf("Error in XAxiEthernet_Set/ClearOptions! Err = %d\n", status); return -1;};
+
+	// Set the operating speed
+	XAxiEthernet_SetOperatingSpeed(&eth_instance, WLAN_ETH_LINK_SPEED);
+
+	// If the link speed is 1 Gbps, then only advertise and link to 1 Gbps connection
+	//     See Ethernet PHY specification for documentation on the values used
+	if (WLAN_ETH_LINK_SPEED == 1000) {
+		XAxiEthernet_PhyWrite(&eth_instance, WLAN_ETH_MDIO_PHYADDR, 0, 0x0140);
+		XAxiEthernet_PhyWrite(&eth_instance, WLAN_ETH_MDIO_PHYADDR, 0, 0x8140);
+	}
+
+	// Initialize the DMA for Ethernet A
+	status = _wlan_eth_dma_init();
+
+	// Start the Ethernet controller
+	XAxiEthernet_Start(&eth_instance);
+
+	return 0;
+}
+
+/*****************************************************************************/
+/**
+ * @brief Configures and connects the axi_dma interrupt to the system interrupt controller
+ *
+ * @param XIntc* intc
+ *  - axi_intc driver instance - this function must be called after the axi_intc is setup
+ *
+ * @return 0 on success, non-zero otherwise
+ */
+int w3_wlan_platform_ethernet_setup_interrupt(XIntc* intc){
+    int                 status;
+    XAxiDma_BdRing    * rx_ring_ptr;
+
+    // The interrupt controller will remember an arbitrary value and pass it to the callback
+    // when this interrupt fires. We use this to pass the axi_dma Rx BD ring pointer into
+    // the _eth_rx_interrupt_handler() callback
+    rx_ring_ptr = XAxiDma_GetRxRing(&eth_dma_instance);
+
+    // Connect the axi_dma interrupt
+    status = XIntc_Connect(intc, WLAN_ETH_RX_INTR_ID, (XInterruptHandler)_eth_rx_interrupt_handler, rx_ring_ptr);
+
+    if (status != XST_SUCCESS) {
+        xil_printf("ERROR: Failed to connect axi_dma interrupt: (%d)\n", status);
+        return XST_FAILURE;
+    }
+
+    XIntc_Enable(intc, WLAN_ETH_RX_INTR_ID);
+
+    return 0;
+}
+
+void w3_wlan_platform_ethernet_set_rx_callback(function_ptr_t callback){
+	rx_callback = callback;
+}
+
+void w3_wlan_platform_ethernet_free_queue_entry_notify(){
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
-	wlan_eth_dma_update();
+	_wlan_eth_dma_update();
 #endif
 }
+
+
+
+//---------------------------------------
+// Private Functions for this file
+//  The following functions are helper functions scoped locally to this file
+
+
 
 /*****************************************************************************/
 /**
@@ -287,7 +321,7 @@ void wlan_platform_ethernet_handle_freed_queue_entry(){
  *
  * @return 0 on success, -1 otherwise
  */
-int wlan_eth_dma_init() {
+int _wlan_eth_dma_init() {
     int                 i;
     int                 status;
     int                 bd_count;
@@ -357,12 +391,12 @@ int wlan_eth_dma_init() {
         curr_tx_queue_element = queue_checkout();
 
         if (curr_tx_queue_element == NULL) {
-            xil_printf("Error during wlan_eth_dma_init: unable to check out sufficient tx_queue_element\n");
+            xil_printf("Error during _wlan_eth_dma_init: unable to check out sufficient tx_queue_element\n");
             return -1;
         }
 
         // Initialize the Rx buffer descriptor
-        status = init_rx_bd(cur_bd_ptr, curr_tx_queue_element, max_transfer_len);
+        status = _init_rx_bd(cur_bd_ptr, curr_tx_queue_element, max_transfer_len);
 
         if (status != XST_SUCCESS) {
             xil_printf("Error initializing Rx BD %d\n", i);
@@ -400,7 +434,7 @@ int wlan_eth_dma_init() {
  *
  * @return 0 on success, -1 otherwise
  */
-int init_rx_bd(XAxiDma_Bd * bd_ptr, dl_entry * tqe_ptr, u32 max_transfer_len) {
+int _init_rx_bd(XAxiDma_Bd * bd_ptr, dl_entry * tqe_ptr, u32 max_transfer_len) {
     int  status;
     u32  buf_addr;
 
@@ -436,7 +470,7 @@ int init_rx_bd(XAxiDma_Bd * bd_ptr, dl_entry * tqe_ptr, u32 max_transfer_len) {
  * @param void* callbarck_arg
  *  - Argument passed in by interrupt controller (pointer to axi_dma Rx BD ring for Eth Rx)
  */
-void eth_rx_interrupt_handler(void *callbarck_arg) {
+void _eth_rx_interrupt_handler(void *callbarck_arg) {
     XAxiDma_BdRing    * rx_ring_ptr = (XAxiDma_BdRing *) callbarck_arg;
 
 #ifdef _ISR_PERF_MON_EN_
@@ -471,7 +505,7 @@ void eth_rx_interrupt_handler(void *callbarck_arg) {
         // Process all Ethernet packets
         //     NOTE:  Interrupt will be re-enabled in this function when finished processing
         //         all Ethernet packets.
-        wlan_process_all_eth_pkts(SCHEDULE_ID_RESERVED_MAX);
+        _wlan_process_all_eth_pkts(SCHEDULE_ID_RESERVED_MAX);
 
     } else {
         // Acknowledge the error interrupt
@@ -504,7 +538,7 @@ void eth_rx_interrupt_handler(void *callbarck_arg) {
  *
  * NOTE:  This function must be able to handle the case where bd_set_count = 0.
  */
-void wlan_process_all_eth_pkts(u32 schedule_id) {
+void _wlan_process_all_eth_pkts(u32 schedule_id) {
 	u32					wlan_process_eth_rx_return;
     u32                 num_pkt_enqueued   = 0;
     u32					num_pkt_total	   = 0;
@@ -528,7 +562,7 @@ void wlan_process_all_eth_pkts(u32 schedule_id) {
         eth_rx_len     = XAxiDma_BdGetActualLength(bd_set_to_process_ptr, rx_ring_ptr->MaxTransferLen);
         eth_rx_buf     = XAxiDma_BdGetBufAddr(bd_set_to_process_ptr);
 
-    	wlan_process_eth_rx_return = wlan_process_eth_rx((void*)eth_rx_buf, eth_rx_len);
+    	wlan_process_eth_rx_return = rx_callback((void*)eth_rx_buf, eth_rx_len);
 
         // Free the ETH DMA buffer descriptor
         status = XAxiDma_BdRingFree(rx_ring_ptr, 1, bd_set_to_process_ptr);
@@ -564,14 +598,14 @@ void wlan_process_all_eth_pkts(u32 schedule_id) {
     }
 
     // Reassign any free DMA buffer descriptors to a new queue entry
-    wlan_eth_dma_update();
+    _wlan_eth_dma_update();
 
     if (bd_set_count > 0) {
 
     	if(rx_schedule_dl_entry == NULL){
 			// Set up scheduled event for processing next packets
 			//     NOTE:  All global variables have been updated
-			wlan_mac_schedule_event_repeated(SCHEDULE_FINE, 0, SCHEDULE_REPEAT_FOREVER, (void*)wlan_process_all_eth_pkts);
+			wlan_mac_schedule_event_repeated(SCHEDULE_FINE, 0, SCHEDULE_REPEAT_FOREVER, (void*)_wlan_process_all_eth_pkts);
     	} else {
     		// We have already previously configured this schedule, so we should just enable it again
     		wlan_mac_schedule_enable(SCHEDULE_FINE, rx_schedule_dl_entry);
@@ -611,7 +645,7 @@ void wlan_process_all_eth_pkts(u32 schedule_id) {
  *   - A Tx queue entry has finished being processed
  * This will assure that enough Rx BDs are available to the DMA hardware.
  */
-void wlan_eth_dma_update() {
+void _wlan_eth_dma_update() {
     int                 status;
     int                 iter;
     int                 bd_count;
@@ -679,7 +713,7 @@ void wlan_eth_dma_update() {
 #endif
 
             // Initialize the Rx buffer descriptor
-            status = init_rx_bd(cur_bd_ptr, tx_queue_entry, max_transfer_len);
+            status = _init_rx_bd(cur_bd_ptr, tx_queue_entry, max_transfer_len);
 
             if (status != XST_SUCCESS) {
                 // Clean up buffer descriptors and Tx queues

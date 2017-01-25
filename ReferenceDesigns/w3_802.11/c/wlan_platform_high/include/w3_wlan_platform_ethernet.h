@@ -1,9 +1,8 @@
 #ifndef WLAN_PLATFORM_ETHERNET_H_
 #define WLAN_PLATFORM_ETHERNET_H_
 
-#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
-#include "xintc.h"
 
+#include "xintc.h"
 //-----------------------------------------------
 // xparameter.h definitions
 //
@@ -42,12 +41,9 @@
 #define WLAN_ETH_LINK_SPEED	                               1000
 #define WLAN_ETH_PKT_BUF_SIZE                              0x800               // 2KB - space allocated per pkt
 
-// Public functions that WLAN MAC High Framework directly calls
-int 	wlan_platform_ethernet_init();
-int 	wlan_platform_ethernet_setup_interrupt(XIntc* intc);
-int 	wlan_platform_ethernet_send(u8* pkt_ptr, u32 length);
-void	wlan_platform_ethernet_handle_freed_queue_entry();
-#endif
+int w3_wlan_platform_ethernet_init();
+int w3_wlan_platform_ethernet_setup_interrupt(XIntc* intc);
+void w3_wlan_platform_ethernet_set_rx_callback(function_ptr_t callback);
+void w3_wlan_platform_ethernet_free_queue_entry_notify();
 
-
-#endif /* WLAN_PLATFORM_ETHERNET_H_ */
+#endif //WLAN_PLATFORM_ETHERNET_H_

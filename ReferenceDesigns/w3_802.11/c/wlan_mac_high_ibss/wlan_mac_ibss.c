@@ -258,9 +258,6 @@ int main() {
 	wlan_mac_high_set_rx_ant_mode(WLAN_DEFAULT_RX_ANTENNA);
 	wlan_mac_high_set_tx_ctrl_pow(WLAN_DEFAULT_TX_PWR);
 
-	// Initialize interrupts
-	wlan_mac_high_interrupt_init();
-
 #if WLAN_SW_CONFIG_ENABLE_LOGGING
 	// Reset the event log
 	event_log_reset();

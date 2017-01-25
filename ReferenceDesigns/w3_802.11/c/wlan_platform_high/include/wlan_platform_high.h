@@ -12,6 +12,9 @@
 #ifndef WLAN_PLATFORM_HIGH_H_
 #define WLAN_PLATFORM_HIGH_H_
 
+#include "xintc.h"
+#include "wlan_mac_common.h"
+
 /*********************************************************************
  * Mapping macros from xparameters.h
  *
@@ -34,7 +37,6 @@
 
 #define ILMB_BASEADDR			XPAR_MB_HIGH_ILMB_BRAM_CNTLR_0_BASEADDR
 #define ILMB_HIGHADDR			XPAR_MB_HIGH_ILMB_BRAM_CNTLR_1_HIGHADDR
-
 
 // On-chip Aux BRAM
 #define AUX_BRAM_BASEADDR       XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_BASEADDR
@@ -71,6 +73,21 @@
 // Central DMA (CMDA)
 #define PLATFORM_DEV_ID_CMDA				 XPAR_AXI_CDMA_0_DEVICE_ID
 
+//---------------------------------------
+// Platform configuration struct
+typedef struct{
+	XIntc* intc;
+	function_ptr_t eth_rx_callback;
+} platform_config_t;
 
+//---------------------------------------
+// Public functions that WLAN MAC High Framework directly calls
+int 	wlan_platform_high_init(platform_config_t platform_config);
+void	wlan_platform_free_queue_entry_notify();
+
+// Functions implemented in files other than wlan_platform_high.c
+#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
+int 	wlan_platform_ethernet_send(u8* pkt_ptr, u32 length);
+#endif //WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 
 #endif /* WLAN_PLATFORM_HIGH_H_ */

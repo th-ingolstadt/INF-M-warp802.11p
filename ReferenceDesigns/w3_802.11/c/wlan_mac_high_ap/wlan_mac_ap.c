@@ -248,9 +248,6 @@ int main(){
 	wlan_mac_high_set_rx_ant_mode(WLAN_DEFAULT_RX_ANTENNA);
 	wlan_mac_high_set_tx_ctrl_pow(WLAN_DEFAULT_TX_PWR);
 
-	// Initialize interrupts
-	wlan_mac_high_interrupt_init();
-
 	// Initialize TIM management tag that will be postpended to a beacon
 	mgmt_tag_tim_update_schedule_id = SCHEDULE_ID_RESERVED_MAX;
 	mgmt_tag_tim_template = NULL;
