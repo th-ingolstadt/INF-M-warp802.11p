@@ -45,11 +45,6 @@
 #define RC_BASEADDR          XPAR_RADIO_CONTROLLER_BASEADDR
 #define AD_BASEADDR          XPAR_W3_AD_CONTROLLER_BASEADDR
 
-// Timer parameters
-#define TMRCTR_DEVICE_ID  XPAR_TMRCTR_0_DEVICE_ID
-#define TIMER_FREQ  XPAR_TMRCTR_0_CLOCK_FREQ_HZ
-
-
 // ****************************************************************************
 // Timing Constants
 // Empirically measured a 2.2usec latency from RC PHY start to observable waveform
