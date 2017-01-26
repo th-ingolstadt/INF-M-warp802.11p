@@ -193,17 +193,17 @@ int w3_wlan_platform_ethernet_init(){
 
 	// Check to see if we were given enough room by wlan_mac_high.h for our buffer descriptors
 	// At an absolute minimum, there needs to be room for 1 Tx BD and 1 Rx BD
-	if (AUX_BRAM_PLATFORM_RESERVATION < (2*XAXIDMA_BD_MINIMUM_ALIGNMENT) ) {
-		xil_printf("Only %d bytes allocated for Eth Tx BD. Must be at least %d bytes\n", AUX_BRAM_PLATFORM_RESERVATION, 2*XAXIDMA_BD_MINIMUM_ALIGNMENT);
+	if (AUX_BRAM_ETH_BD_MEM_SIZE < (2*XAXIDMA_BD_MINIMUM_ALIGNMENT) ) {
+		xil_printf("Only %d bytes allocated for Eth Tx BD. Must be at least %d bytes\n", AUX_BRAM_ETH_BD_MEM_SIZE, 2*XAXIDMA_BD_MINIMUM_ALIGNMENT);
 		wlan_platform_userio_disp_status(USERIO_DISP_STATUS_CPU_ERROR, WLAN_ERROR_CODE_INSUFFICIENT_BD_SIZE);
 	}
 
 	// Split up the memory set aside for us in ETH_MEM_BASE
-	gl_eth_tx_bd_mem_base = ETH_MEM_BASE;
+	gl_eth_tx_bd_mem_base = ETH_BD_MEM_BASE;
 	gl_eth_tx_bd_mem_size = XAXIDMA_BD_MINIMUM_ALIGNMENT;
 	gl_eth_tx_bd_mem_high = CALC_HIGH_ADDR(gl_eth_tx_bd_mem_base, gl_eth_tx_bd_mem_size);
 	gl_eth_rx_bd_mem_base = gl_eth_tx_bd_mem_high+1;
-	gl_eth_rx_bd_mem_size = AUX_BRAM_PLATFORM_RESERVATION - gl_eth_tx_bd_mem_size;
+	gl_eth_rx_bd_mem_size = AUX_BRAM_ETH_BD_MEM_SIZE - gl_eth_tx_bd_mem_size;
 	gl_eth_rx_bd_mem_high = CALC_HIGH_ADDR(gl_eth_rx_bd_mem_base, gl_eth_rx_bd_mem_size);
 
 

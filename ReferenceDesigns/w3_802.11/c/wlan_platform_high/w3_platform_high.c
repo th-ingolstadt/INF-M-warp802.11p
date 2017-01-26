@@ -12,7 +12,7 @@ platform_high_dev_info_t wlan_platform_high_get_dev_info(){
 	w3_platform_high_dev_info.ilmb_baseaddr = ILMB_BASEADDR;
 	w3_platform_high_dev_info.ilmb_size = ILMB_HIGHADDR - ILMB_BASEADDR + 1;
 	w3_platform_high_dev_info.aux_bram_baseaddr = AUX_BRAM_BASEADDR;
-	w3_platform_high_dev_info.aux_bram_size = AUX_BRAM_HIGHADDR - AUX_BRAM_BASEADDR - AUX_BRAM_PLATFORM_RESERVATION + 1;
+	w3_platform_high_dev_info.aux_bram_size = ETH_BD_MEM_BASE - AUX_BRAM_BASEADDR;
 	w3_platform_high_dev_info.dram_baseaddr = DRAM_BASEADDR;
 	w3_platform_high_dev_info.dram_size = DRAM_HIGHADDR - DRAM_BASEADDR + 1;
 	w3_platform_high_dev_info.intc_dev_id = PLATFORM_DEV_ID_INTC;

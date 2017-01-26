@@ -29,7 +29,7 @@
 #define AUX_BRAM_HIGHADDR       XPAR_MB_HIGH_AUX_BRAM_CTRL_S_AXI_HIGHADDR
 
 // Aux BRAM set aside for w3 platform usage
-#define AUX_BRAM_PLATFORM_RESERVATION	(240 * 64)
+#define AUX_BRAM_ETH_BD_MEM_SIZE	(240 * 64)
 
 /********************************************************************
  * Ethernet TX Aux. Space
@@ -37,7 +37,7 @@
  * Space is set aside for the use of wlan_platform's Ethernet
  * implementation
  ********************************************************************/
-#define ETH_MEM_BASE                     	(AUX_BRAM_BASEADDR + AUX_BRAM_PLATFORM_RESERVATION)
+#define ETH_BD_MEM_BASE         (AUX_BRAM_HIGHADDR - AUX_BRAM_ETH_BD_MEM_SIZE + 1)
 
 
 
