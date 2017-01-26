@@ -13,16 +13,11 @@
 /***************************** Include Files *********************************/
 
 // Xilinx / Standard library includes
-#include <xparameters.h>
 #include <xil_io.h>
 #include <xio.h>
 #include <stdlib.h>
 #include <string.h>
-
-// WARP Includes
-#include "w3_ad_controller.h"
-#include "w3_clock_controller.h"
-#include "radio_controller.h"
+#include <xstatus.h>
 
 // WLAN includes
 #include "wlan_platform_common.h"
@@ -133,7 +128,7 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
 
 
     mac_param_dsss_en        = 1;
-    mac_param_band           = RC_24GHZ;
+    mac_param_band           = CHAN_BAND_24GHz;
     mac_param_ctrl_tx_pow    = 10;
     cpu_low_status           = 0;
     cpu_low_type			 = type;
@@ -352,7 +347,7 @@ void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
     	break;
     	case PHY_20M:
 			// Enable DSSS if global variable indicates it should be enabled and RF band allows it
-    		if ((mac_param_dsss_en) && (mac_param_band == RC_24GHZ)) {
+    		if ((mac_param_dsss_en) && (mac_param_band == CHAN_BAND_24GHz)) {
     			wlan_phy_DSSS_rx_enable();
 			}
     	break;
@@ -917,14 +912,14 @@ int wlan_mac_low_set_radio_channel(u32 channel){
 
 	if (wlan_verify_channel(mac_param_chan) == XST_SUCCESS) {
 		if(mac_param_chan <= 14){
-			mac_param_band = RC_24GHZ;
+			mac_param_band = CHAN_BAND_24GHz;
 
 			// Enable DSSS if global variable indicates it should be enabled and PHY sample rate allows it
 			if ((mac_param_dsss_en) && (gl_phy_samp_rate == PHY_20M)) {
 				wlan_phy_DSSS_rx_enable();
 			}
 		} else {
-			mac_param_band = RC_5GHZ;
+			mac_param_band = CHAN_BAND_5GHz;
 
 			// Always disable DSSS when in the 5 GHZ band
 			wlan_phy_DSSS_rx_disable();
@@ -958,7 +953,7 @@ void wlan_mac_low_DSSS_rx_enable() {
 	mac_param_dsss_en = 1;
 
 	// Only enable DSSS if in 2.4 GHz band and phy sample rate is 20
-	if ((mac_param_band == RC_24GHZ) && (gl_phy_samp_rate == PHY_20M)) {
+	if ((mac_param_band == CHAN_BAND_24GHz) && (gl_phy_samp_rate == PHY_20M)) {
 		wlan_phy_DSSS_rx_enable();
 	}
 }
@@ -1361,7 +1356,7 @@ inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain){
 
     band = mac_param_band;
 
-    if(band == RC_24GHZ){
+    if(band == CHAN_BAND_24GHz){
         switch(lna_gain){
             case 0:
             case 1:
@@ -1382,7 +1377,7 @@ inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain){
 
         power = pow_lookup_B24[(adj_rssi >> (PHY_RX_RSSI_SUM_LEN_BITS+POW_LOOKUP_SHIFT))];
 
-    } else if(band == RC_5GHZ){
+    } else if(band == CHAN_BAND_5GHz){
         switch(lna_gain){
             case 0:
             case 1:
@@ -1446,9 +1441,9 @@ int wlan_mac_low_rx_power_to_rssi(s8 rx_pow){
     band = mac_param_band;
 
     if ((rx_pow <= PKT_DET_MIN_POWER_MAX) && (rx_pow >= PKT_DET_MIN_POWER_MIN)) {
-        if(band == RC_24GHZ){
+        if(band == CHAN_BAND_24GHz){
             rssi_val = rssi_lookup_B24[rx_pow-PKT_DET_MIN_POWER_MIN];
-        } else if(band == RC_5GHZ){
+        } else if(band == CHAN_BAND_5GHz){
             rssi_val = rssi_lookup_B5[rx_pow-PKT_DET_MIN_POWER_MIN];
         }
 

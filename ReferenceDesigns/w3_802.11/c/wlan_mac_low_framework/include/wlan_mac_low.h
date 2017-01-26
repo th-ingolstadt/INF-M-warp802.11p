@@ -30,6 +30,12 @@
 #define PKT_DET_MIN_POWER_MIN -90
 #define PKT_DET_MIN_POWER_MAX -30
 
+//-----------------------------------------------
+// Channel band defines
+//
+#define CHAN_BAND_24GHz		0
+#define CHAN_BAND_5GHz		1
+
 
 
 //-----------------------------------------------

@@ -13,7 +13,6 @@
 /***************************** Include Files *********************************/
 
 // Xilinx SDK includes
-#include "xparameters.h"
 #include "stdio.h"
 #include "stdarg.h"
 #include "xio.h"
@@ -21,9 +20,6 @@
 
 // WARP includes
 #include "w3_userio.h"
-#include "w3_ad_controller.h"
-#include "w3_clock_controller.h"
-#include "radio_controller.h"
 
 // WLAN includes
 #include "wlan_mac_mailbox_util.h"
