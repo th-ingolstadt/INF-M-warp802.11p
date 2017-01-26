@@ -95,7 +95,7 @@
  * DRAM allocation.
  *
  ********************************************************************/
-#define WLAN_EXP_ETH_BUFFERS_SECTION_BASE   (DRAM_BASEADDR)
+#define WLAN_EXP_ETH_BUFFERS_SECTION_BASE   (platform_high_dev_info.dram_baseaddr)
 #define WLAN_EXP_ETH_BUFFERS_SECTION_SIZE   (1024 * 1024)
 #define WLAN_EXP_ETH_BUFFERS_SECTION_HIGH   CALC_HIGH_ADDR(WLAN_EXP_ETH_BUFFERS_SECTION_BASE, WLAN_EXP_ETH_BUFFERS_SECTION_SIZE)
 
@@ -118,7 +118,7 @@
  *
  ********************************************************************/
 
-#define TX_QUEUE_DL_ENTRY_MEM_BASE         (AUX_BRAM_BASEADDR)
+#define TX_QUEUE_DL_ENTRY_MEM_BASE         (platform_high_dev_info.aux_bram_baseaddr)
 #define TX_QUEUE_DL_ENTRY_MEM_SIZE         (40 * 1024)
 #define TX_QUEUE_DL_ENTRY_MEM_HIGH          CALC_HIGH_ADDR(TX_QUEUE_DL_ENTRY_MEM_BASE, TX_QUEUE_DL_ENTRY_MEM_SIZE)
 
@@ -162,18 +162,6 @@
 #define STATION_INFO_BUFFER_SIZE		  ((STATION_INFO_DL_ENTRY_MEM_SIZE/sizeof(dl_entry))*sizeof(station_info_t))
 #define STATION_INFO_BUFFER_HIGH           CALC_HIGH_ADDR(STATION_INFO_BUFFER_BASE, STATION_INFO_BUFFER_SIZE)
 
-
-/********************************************************************
- * Ethernet TX Aux. Space
- *
- * Space is set aside for the use of wlan_platform's Ethernet
- * implementation
- ********************************************************************/
-
-#define ETH_MEM_BASE                     	(STATION_INFO_DL_ENTRY_MEM_HIGH + 1)
-#define ETH_MEM_SIZE                      	(240 * 64)
-#define ETH_MEM_HIGH                     	CALC_HIGH_ADDR(ETH_MEM_BASE, ETH_MEM_SIZE)
-
 /********************************************************************
  * User Scratch Space
  *
@@ -195,9 +183,13 @@
  *
  ********************************************************************/
 #define EVENT_LOG_BASE                     (USER_SCRATCH_HIGH + 1)
-#define EVENT_LOG_SIZE                     (DRAM_HIGHADDR - EVENT_LOG_BASE + 1) // log occupies all remaining DRAM
+#define EVENT_LOG_SIZE                     ((CALC_HIGH_ADDR(platform_high_dev_info.dram_baseaddr, platform_high_dev_info.dram_size)) - EVENT_LOG_BASE + 1) // log occupies all remaining DRAM
 #define EVENT_LOG_HIGH                      CALC_HIGH_ADDR(EVENT_LOG_BASE, EVENT_LOG_SIZE)
 
+
+//FIXME: Below defines should be platformized. I'll tackle it when dealing with User I/O inputs
+#define GPIO_USERIO_INPUT_CHANNEL            1                                  ///< Channel used as input user IO inputs (buttons, DIP switch)
+#define GPIO_USERIO_INPUT_IR_CH_MASK         XGPIO_IR_CH1_MASK                  ///< Mask for enabling interrupts on GPIO input
 
 //-----------------------------------------------
 // WLAN Constants

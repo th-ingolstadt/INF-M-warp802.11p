@@ -41,6 +41,7 @@
 #define WLAN_ETH_LINK_SPEED	                               1000
 #define WLAN_ETH_PKT_BUF_SIZE                              0x800               // 2KB - space allocated per pkt
 
+int wlan_platform_ethernet_send(u8* pkt_ptr, u32 length);
 int w3_wlan_platform_ethernet_init();
 int w3_wlan_platform_ethernet_setup_interrupt(XIntc* intc);
 void w3_wlan_platform_ethernet_set_rx_callback(function_ptr_t callback);

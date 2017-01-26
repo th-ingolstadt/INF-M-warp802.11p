@@ -30,7 +30,7 @@
 // Timer defines
 //
 
-#define TIMER_CLKS_PER_US                                  (TIMER_FREQ / 1000000)
+#define TIMER_CLKS_PER_US                                  (platform_high_dev_info.timer_freq / 1000000)
 
 #define TIMER_CNTR_FAST                                    0
 #define TIMER_CNTR_SLOW                                    1

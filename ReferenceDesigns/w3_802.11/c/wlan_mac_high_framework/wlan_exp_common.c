@@ -62,6 +62,8 @@ const char   * print_type_counts        = "COUNTS";
 const char   * print_type_ltg           = "LTG";
 const char   * print_type_queue         = "QUEUE";
 
+extern platform_high_dev_info_t	 platform_high_dev_info;
+
 
 void wlan_exp_print_header(u8 level, const char * type, char* filename, u32 line) {
     char * basename = NULL;
@@ -210,8 +212,8 @@ void clear_ddr(u32 verbose) {
     u64 end_timestamp;
     u32 processing_time;
 
-    u32 start_address = DRAM_BASEADDR;
-    u32 size          = (DRAM_HIGHADDR - DRAM_BASEADDR + 1);
+    u32 start_address = platform_high_dev_info.dram_baseaddr;
+    u32 size          = platform_high_dev_info.dram_size;
 
     start_timestamp = get_system_time_usec();
 

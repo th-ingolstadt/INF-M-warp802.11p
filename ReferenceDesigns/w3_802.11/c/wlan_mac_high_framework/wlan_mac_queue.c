@@ -43,6 +43,8 @@
 extern function_ptr_t        tx_poll_callback;
 static function_ptr_t        queue_state_change_callback;
 
+extern platform_high_dev_info_t	 platform_high_dev_info;
+
 
 /*************************** Functions Prototypes ****************************/
 

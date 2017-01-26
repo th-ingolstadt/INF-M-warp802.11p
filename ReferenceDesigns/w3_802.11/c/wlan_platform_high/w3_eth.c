@@ -2,7 +2,8 @@
 
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 #include "wlan_platform_high.h"
-#include "w3_wlan_platform_ethernet.h"
+#include "include/w3_platform_high.h"
+#include "include/w3_eth.h"
 #include "xparameters.h"
 
 #include "stdlib.h"
@@ -79,15 +80,6 @@ int      _init_rx_bd(XAxiDma_Bd * bd_ptr, dl_entry * tqe_ptr, u32 max_transfer_l
 void     _wlan_process_all_eth_pkts(u32 schedule_id);
 void 	 _eth_rx_interrupt_handler(void *callbarck_arg);
 void 	 _wlan_eth_dma_update();
-
-
-
-
-
-//---------------------------------------
-// Public Function for WLAN MAC High Framework
-//  These functions are intended to be called directly to the WLAN MAC High Framework
-
 
 
 /*****************************************************************************/
@@ -180,15 +172,6 @@ int wlan_platform_ethernet_send(u8* pkt_ptr, u32 length) {
     return 0;
 }
 
-
-
-//---------------------------------------
-// Private Functions for WLAN Platform High
-//  These functions are intended to be called directly to the by the high-level platform code,
-//  but not by the WLAN MAC High Framework.
-
-
-
 int w3_wlan_platform_ethernet_init(){
 	int status = 0;
 
@@ -210,8 +193,8 @@ int w3_wlan_platform_ethernet_init(){
 
 	// Check to see if we were given enough room by wlan_mac_high.h for our buffer descriptors
 	// At an absolute minimum, there needs to be room for 1 Tx BD and 1 Rx BD
-	if (ETH_MEM_SIZE < (2*XAXIDMA_BD_MINIMUM_ALIGNMENT) ) {
-		xil_printf("Only %d bytes allocated for Eth Tx BD. Must be at least %d bytes\n", ETH_MEM_SIZE, 2*XAXIDMA_BD_MINIMUM_ALIGNMENT);
+	if (AUX_BRAM_PLATFORM_RESERVATION < (2*XAXIDMA_BD_MINIMUM_ALIGNMENT) ) {
+		xil_printf("Only %d bytes allocated for Eth Tx BD. Must be at least %d bytes\n", AUX_BRAM_PLATFORM_RESERVATION, 2*XAXIDMA_BD_MINIMUM_ALIGNMENT);
 		wlan_platform_userio_disp_status(USERIO_DISP_STATUS_CPU_ERROR, WLAN_ERROR_CODE_INSUFFICIENT_BD_SIZE);
 	}
 
@@ -220,7 +203,7 @@ int w3_wlan_platform_ethernet_init(){
 	gl_eth_tx_bd_mem_size = XAXIDMA_BD_MINIMUM_ALIGNMENT;
 	gl_eth_tx_bd_mem_high = CALC_HIGH_ADDR(gl_eth_tx_bd_mem_base, gl_eth_tx_bd_mem_size);
 	gl_eth_rx_bd_mem_base = gl_eth_tx_bd_mem_high+1;
-	gl_eth_rx_bd_mem_size = ETH_MEM_SIZE - gl_eth_tx_bd_mem_size;
+	gl_eth_rx_bd_mem_size = AUX_BRAM_PLATFORM_RESERVATION - gl_eth_tx_bd_mem_size;
 	gl_eth_rx_bd_mem_high = CALC_HIGH_ADDR(gl_eth_rx_bd_mem_base, gl_eth_rx_bd_mem_size);
 
 

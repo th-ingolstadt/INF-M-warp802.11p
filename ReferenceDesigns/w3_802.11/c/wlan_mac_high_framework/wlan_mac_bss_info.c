@@ -36,6 +36,7 @@
 
 /*********************** Global Variable Definitions *************************/
 
+extern platform_high_dev_info_t	 platform_high_dev_info;
 
 /*************************** Variable Definitions ****************************/
 

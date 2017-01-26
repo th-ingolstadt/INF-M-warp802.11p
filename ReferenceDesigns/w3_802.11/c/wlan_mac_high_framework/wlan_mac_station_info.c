@@ -33,6 +33,8 @@
 /*********************** Global Variable Definitions *************************/
 
 
+extern platform_high_dev_info_t	 platform_high_dev_info;
+
 /*************************** Variable Definitions ****************************/
 
 static dl_list               station_info_free;              ///< Free Counts

@@ -67,6 +67,8 @@ const  u8                    bcast_addr[MAC_ADDR_LEN]    = { 0xFF, 0xFF, 0xFF, 0
 const  u8                    zero_addr[MAC_ADDR_LEN]     = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 // HW structures
+platform_high_dev_info_t	 platform_high_dev_info;
+
 static XGpio                 Gpio_userio;                  ///< GPIO driver instnace for user IO inputs
 
 XIntc                        InterruptController;          ///< Interrupt Controller instance
@@ -200,6 +202,9 @@ void wlan_mac_high_init(){
 #endif //WLAN_SW_CONFIG_ENABLE_LOGGING
 	XAxiCdma_Config* cdma_cfg_ptr;
 
+
+	platform_high_dev_info = wlan_platform_high_get_dev_info();
+
 	// ***************************************************
 	// Initialize XIntc
 	// ***************************************************
@@ -212,7 +217,7 @@ void wlan_mac_high_init(){
 	 * - Disable all interrupt sources
 	 * - Acknowledge all sources
 	 */
-	XIntc_Config *CfgPtr = XIntc_LookupConfig(PLATFORM_DEV_ID_INTC);
+	XIntc_Config *CfgPtr = XIntc_LookupConfig(platform_high_dev_info.intc_dev_id);
 
 	XIntc_Out32(CfgPtr->BaseAddress + XIN_MER_OFFSET, 0);
 	XIntc_Out32(CfgPtr->BaseAddress + XIN_IER_OFFSET, 0);
@@ -220,7 +225,7 @@ void wlan_mac_high_init(){
 
 	bzero(&InterruptController, sizeof(XIntc));
 
-	Status = XIntc_Initialize(&InterruptController, PLATFORM_DEV_ID_INTC);
+	Status = XIntc_Initialize(&InterruptController, platform_high_dev_info.intc_dev_id);
 	if ((Status != XST_SUCCESS)) {
 		xil_printf("Error in initializing Interrupt Controller\n");
 	}
@@ -233,23 +238,20 @@ void wlan_mac_high_init(){
 
 	// Sanity check memory map of aux. BRAM and DRAM
 	//Aux. BRAM Check
-	Status = (AUX_BRAM_BASEADDR <= TX_QUEUE_DL_ENTRY_MEM_BASE) &&
-			 (TX_QUEUE_DL_ENTRY_MEM_HIGH < BSS_INFO_DL_ENTRY_MEM_BASE) &&
+	Status = (TX_QUEUE_DL_ENTRY_MEM_HIGH < BSS_INFO_DL_ENTRY_MEM_BASE) &&
 			 (BSS_INFO_DL_ENTRY_MEM_HIGH < STATION_INFO_DL_ENTRY_MEM_BASE ) &&
-			 (STATION_INFO_DL_ENTRY_MEM_HIGH < ETH_MEM_BASE) &&
-			 (ETH_MEM_HIGH <= AUX_BRAM_HIGHADDR);
+			 (STATION_INFO_DL_ENTRY_MEM_HIGH <= CALC_HIGH_ADDR(platform_high_dev_info.aux_bram_baseaddr, platform_high_dev_info.aux_bram_size));
 
 	if(Status != 1){
 		xil_printf("Error: Overlap detected in Aux. BRAM. Check address assignments\n");
 	}
 
 	//DRAM Check
-	Status = (DRAM_BASEADDR <= TX_QUEUE_BUFFER_BASE) &&
-			 (TX_QUEUE_BUFFER_HIGH < BSS_INFO_BUFFER_BASE) &&
+	Status = (TX_QUEUE_BUFFER_HIGH < BSS_INFO_BUFFER_BASE) &&
 			 (BSS_INFO_BUFFER_HIGH < STATION_INFO_BUFFER_BASE) &&
 			 (STATION_INFO_BUFFER_HIGH < USER_SCRATCH_BASE) &&
 			 (USER_SCRATCH_HIGH < EVENT_LOG_BASE) &&
-			 (EVENT_LOG_HIGH <= DRAM_HIGHADDR);
+			 (EVENT_LOG_HIGH <= CALC_HIGH_ADDR(platform_high_dev_info.dram_baseaddr, platform_high_dev_info.dram_size));
 
 	if(Status != 1){
 		xil_printf("Error: Overlap detected in DRAM. Check address assignments\n");
@@ -398,7 +400,7 @@ void wlan_mac_high_init(){
 	// ***************************************************
 
 	// Initialize the central DMA (CDMA) driver
-	cdma_cfg_ptr = XAxiCdma_LookupConfig(PLATFORM_DEV_ID_CMDA);
+	cdma_cfg_ptr = XAxiCdma_LookupConfig(platform_high_dev_info.cdma_dev_id);
 	Status = XAxiCdma_CfgInitialize(&cdma_inst, cdma_cfg_ptr, cdma_cfg_ptr->BaseAddress);
 	if (Status != XST_SUCCESS) {
 		wlan_printf(PL_ERROR, "ERROR: Could not initialize CDMA: %d\n", Status);
@@ -406,18 +408,19 @@ void wlan_mac_high_init(){
 	XAxiCdma_IntrDisable(&cdma_inst, XAXICDMA_XR_IRQ_ALL_MASK);
 
 	// Initialize the GPIO driver instances
-	Status = XGpio_Initialize(&Gpio_userio, PLATFORM_DEV_ID_USRIO_GPIO);
+	Status = XGpio_Initialize(&Gpio_userio, platform_high_dev_info.gpio_dev_id);
 
 	if (Status != XST_SUCCESS) {
 		wlan_printf(PL_ERROR, "ERROR: Could not initialize GPIO\n");
 		return;
 	}
+
 	// Set direction of GPIO channels
 	//  User IO GPIO instance has 1 channel, all inputs
 	XGpio_SetDataDirection(&Gpio_userio, GPIO_USERIO_INPUT_CHANNEL, 0xFFFFFFFF);
 
 	// Initialize the UART driver
-	Status = XUartLite_Initialize(&UartLite, PLATFORM_DEV_ID_UART);
+	Status = XUartLite_Initialize(&UartLite, platform_high_dev_info.uart_dev_id);
 	if (Status != XST_SUCCESS) {
 		wlan_printf(PL_ERROR, "ERROR: Could not initialize UART\n");
 		return;
@@ -500,22 +503,22 @@ int wlan_mac_high_interrupt_init(){
 	// ***************************************************
 
 	// GPIO for User IO inputs
-	Result = XIntc_Connect(&InterruptController, PLATFORM_INT_ID_USRIO_GPIO, (XInterruptHandler)wlan_mac_high_userio_gpio_handler, &Gpio_userio);
+	Result = XIntc_Connect(&InterruptController, platform_high_dev_info.gpio_int_id, (XInterruptHandler)wlan_mac_high_userio_gpio_handler, &Gpio_userio);
 	if (Result != XST_SUCCESS) {
 		wlan_printf(PL_ERROR, "Failed to set up GPIO interrupt\n");
 		return Result;
 	}
-	XIntc_Enable(&InterruptController, PLATFORM_INT_ID_USRIO_GPIO);
+	XIntc_Enable(&InterruptController, platform_high_dev_info.gpio_int_id);
 	XGpio_InterruptEnable(&Gpio_userio, GPIO_USERIO_INPUT_IR_CH_MASK);
 	XGpio_InterruptGlobalEnable(&Gpio_userio);
 
 	// UART
-	Result = XIntc_Connect(&InterruptController, PLATFORM_INT_ID_UART, (XInterruptHandler)XUartLite_InterruptHandler, &UartLite);
+	Result = XIntc_Connect(&InterruptController, platform_high_dev_info.uart_int_id, (XInterruptHandler)XUartLite_InterruptHandler, &UartLite);
 	if (Result != XST_SUCCESS) {
 		wlan_printf(PL_ERROR, "Failed to set up UART interrupt\n");
 		return Result;
 	}
-	XIntc_Enable(&InterruptController, PLATFORM_INT_ID_UART);
+	XIntc_Enable(&InterruptController, platform_high_dev_info.uart_int_id);
 	XUartLite_SetRecvHandler(&UartLite, wlan_mac_high_uart_rx_handler, &UartLite);
 	XUartLite_EnableInterrupt(&UartLite);
 
@@ -534,12 +537,11 @@ int wlan_mac_high_interrupt_init(){
 		return -1;
 	}
 
+	platform_high_config_t platform_high_config;
+	platform_high_config.intc = &InterruptController;
+	platform_high_config.eth_rx_callback = (void*)wlan_process_eth_rx;
 
-	platform_config_t platform_config;
-	platform_config.intc = &InterruptController;
-	platform_config.eth_rx_callback = (void*)wlan_process_eth_rx;
-
-	Result = wlan_platform_high_init(platform_config);
+	Result = wlan_platform_high_init(platform_high_config);
 	if (Result != XST_SUCCESS) {
 		wlan_printf(PL_ERROR,"Failed to set up Ethernet interrupt\n");
 		return Result;
@@ -1077,7 +1079,7 @@ int wlan_mac_high_memory_test(){
 	volatile void* memory_ptr;
 
 	for(i=0;i<6;i++){
-		memory_ptr = (void*)((u8*)DRAM_BASEADDR + (i*100000*1024));
+		memory_ptr = (void*)((u8*)platform_high_dev_info.dram_baseaddr + (i*100000*1024));
 		for(j=0;j<3;j++){
 			//Test 1 byte offsets to make sure byte enables are all working
 			test_u8 = rand()&0xFF;
@@ -1193,9 +1195,9 @@ int wlan_mac_high_cdma_start_transfer(void* dest, void* src, u32 size){
 	u8 out_of_range  = 0;
 
 
-	if((u32)src >= DLMB_BASEADDR && (u32)src <= DLMB_HIGHADDR){
+	if((u32)src >= platform_high_dev_info.dram_baseaddr && (u32)src <= CALC_HIGH_ADDR(platform_high_dev_info.dlmb_baseaddr, platform_high_dev_info.dlmb_size)){
 		out_of_range = 1;
-	} else if((u32)dest >= DLMB_BASEADDR && (u32)dest <= DLMB_HIGHADDR){
+	} else if((u32)dest >= platform_high_dev_info.dlmb_baseaddr && (u32)dest <= CALC_HIGH_ADDR(platform_high_dev_info.dlmb_baseaddr, platform_high_dev_info.dlmb_size)){
 		out_of_range = 1;
 	}
 
