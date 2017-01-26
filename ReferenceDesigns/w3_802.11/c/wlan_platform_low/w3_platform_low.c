@@ -72,34 +72,28 @@ void wlan_platform_low_set_rx_ant_mode(u32 ant_mode) {
     switch (ant_mode) {
         case RX_ANTMODE_SISO_ANTA:
             radio_controller_setCtrlSource(RC_BASEADDR, RC_RFA, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
-            wlan_agc_config(RX_ANTMODE_SISO_ANTA);
         break;
 
         case RX_ANTMODE_SISO_ANTB:
             radio_controller_setCtrlSource(RC_BASEADDR, RC_RFB, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
-            wlan_agc_config(RX_ANTMODE_SISO_ANTB);
         break;
 
         case RX_ANTMODE_SISO_ANTC:
             radio_controller_setCtrlSource(RC_BASEADDR, RC_RFC, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
-            wlan_agc_config(RX_ANTMODE_SISO_ANTC);
         break;
 
         case RX_ANTMODE_SISO_ANTD:
             radio_controller_setCtrlSource(RC_BASEADDR, RC_RFD, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
-            wlan_agc_config(RX_ANTMODE_SISO_ANTD);
         break;
 
         case RX_ANTMODE_SISO_SELDIV_2ANT:
             // By enabling the antenna switching, the I/Q stream is automatically switched for Rx PHY
             radio_controller_setCtrlSource(RC_BASEADDR, (RC_RFA | RC_RFB), RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
-            wlan_agc_config(RX_ANTMODE_SISO_SELDIV_2ANT);
         break;
 
         case RX_ANTMODE_SISO_SELDIV_4ANT:
             // By enabling the antenna switching, the I/Q stream is automatically switched for Rx PHY
             radio_controller_setCtrlSource(RC_BASEADDR, RC_ALL_RF, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
-            wlan_agc_config(RX_ANTMODE_SISO_SELDIV_4ANT);
         break;
 
         default:
@@ -107,7 +101,6 @@ void wlan_platform_low_set_rx_ant_mode(u32 ant_mode) {
             xil_printf("wlan_platform_low_set_rx_ant_mode ERROR: Invalid Mode - Defaulting to SISO on A\n");
 
             radio_controller_setCtrlSource(RC_BASEADDR, RC_RFA, RC_REG0_RXEN_CTRLSRC, RC_CTRLSRC_HW);
-            wlan_agc_config(RX_ANTMODE_SISO_ANTA);
         break;
     }
 	return;

@@ -911,7 +911,7 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
  * @return  None
  *
  */
-void wlan_mac_low_set_radio_channel(u32 channel){
+int wlan_mac_low_set_radio_channel(u32 channel){
 
 	mac_param_chan = channel;
 
@@ -936,6 +936,7 @@ void wlan_mac_low_set_radio_channel(u32 channel){
 
 	} else {
 		xil_printf("Invalid channel selection %d\n", mac_param_chan);
+		return -1;
 	}
 }
 

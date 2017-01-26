@@ -208,7 +208,7 @@ void wlan_phy_init() {
 
 	/*********** AGC ***************/
 
-    wlan_agc_config(RX_ANTMODE_SISO_ANTA);
+    wlan_agc_init();
 
     /************ Wrap Up ************/
 
@@ -237,10 +237,7 @@ void wlan_phy_init() {
  * @return  None
  *
  *****************************************************************************/
-void wlan_agc_config(u32 ant_mode) {
-    // ant_mode argument allows per-antenna AGC settings, in case FMC module has different
-    // response than on-board RF interfaces. Testing so far indicates the settings below
-    // work fine for all RF interfaces
+void wlan_agc_init() {
 
     // Post Rx_done reset delays for [rxhp, g_rf, g_bb]
     wlan_agc_set_reset_timing(4, 250, 250);
