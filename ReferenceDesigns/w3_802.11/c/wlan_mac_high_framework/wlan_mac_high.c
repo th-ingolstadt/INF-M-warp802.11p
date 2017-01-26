@@ -279,7 +279,7 @@ void wlan_mac_high_init(){
 	mtslr(&_stack_end);
 
 	// Initialize HW platform
-    wlan_platform_init();
+    wlan_platform_common_init();
 
 	// Initialize the HW info structure
 	init_mac_hw_info();
