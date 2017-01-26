@@ -525,7 +525,7 @@ inline void poll_tbtt_and_send_beacon(){
 					//	   of DTIM (11.2.1.5.f 802.11-2007)
 					if( ((send_beacon_return & SEND_BEACON_RETURN_DTIM) && (gl_dtim_mcast_buffer_enable == 1)) ||
 						((poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_TRANSMITTED) && (poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_MORE_DATA)) ||
-						 poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_PAUSED){
+						 (poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_PAUSED)) {
 
 						while( gl_tx_pkt_buf_ready_list_dtim_mcast.length > 0 ){
 							// There is at least one mcast frame for us to send. We will loop over this list until either we have fully emptied it
@@ -725,7 +725,7 @@ inline u32 send_beacon(u8 tx_pkt_buf){
 
 		// Poll the DCF core status register
 		mac_hw_status = wlan_mac_get_status();
-		if( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE && (tx_has_started == 0)){
+		if( (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE) && (tx_has_started == 0)){
 			if((tx_frame_info->flags) & TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP){
 				// Insert the TX START timestamp
 				*((u64*)(((u8*)header + 24))) = ((u64)wlan_mac_low_get_tx_start_timestamp())+T_TIMESTAMP_FIELD_OFFSET;
