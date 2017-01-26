@@ -21,8 +21,8 @@ platform_high_dev_info_t wlan_platform_high_get_dev_info(){
 	w3_platform_high_dev_info.gpio_dev_id = PLATFORM_DEV_ID_USRIO_GPIO;
 	w3_platform_high_dev_info.gpio_int_id = PLATFORM_INT_ID_USRIO_GPIO;
 	w3_platform_high_dev_info.timer_dev_id = PLATFORM_DEV_ID_TIMER;
-	w3_platform_high_dev_info.timer_int_id = TIMER_FREQ;
-	w3_platform_high_dev_info.timer_freq = PLATFORM_INT_ID_TIMER;
+	w3_platform_high_dev_info.timer_int_id = PLATFORM_INT_ID_TIMER;
+	w3_platform_high_dev_info.timer_freq = TIMER_FREQ;
 	w3_platform_high_dev_info.cdma_dev_id = PLATFORM_DEV_ID_CMDA;
 
 	return w3_platform_high_dev_info;
