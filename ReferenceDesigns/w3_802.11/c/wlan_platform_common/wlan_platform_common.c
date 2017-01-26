@@ -12,11 +12,13 @@
 #include "w3_iic_eeprom.h"
 
 
-void wlan_platform_init(){
+int wlan_platform_common_init(){
     u32 iter = 0;
     while (iic_eeprom_init(EEPROM_BASEADDR, 0x64, XPAR_CPU_ID) != IIC_EEPROM_SUCCESS){
     	iter++;
     };
+
+    return 0;
 }
 
 wlan_mac_hw_info_t wlan_platform_get_hw_info(){
