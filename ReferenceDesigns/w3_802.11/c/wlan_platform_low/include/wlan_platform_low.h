@@ -15,8 +15,15 @@
 #ifndef WLAN_PLATFORM_LOW_
 #define WLAN_PLATFORM_LOW_
 
+// Low platform must implement macros for accessing MAC/PHY registers
+//  These macros rename the platform-specific macros from xparameters.h
 #include "w3_mac_phy_regs.h"
 
-
+// Functions the low framework must implement
+int wlan_platform_low_init();
+void wlan_platform_low_set_samp_rate();
+void wlan_platform_low_param_handler(u8 mode, u32* payload);
+int wlan_platform_low_set_radio_channel(u32 channel);
+void wlan_platform_low_set_rx_ant_mode(u32 ant_mode);
 
 #endif /* WLAN_PLATFORM_LOW_ */

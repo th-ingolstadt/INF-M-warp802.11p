@@ -21,22 +21,6 @@
 
 
 // ****************************************************************************
-// Uncomment this macro to enable software support for RF C and D interfaces on the FMC-RF-2X245 module
-//
-// IMPORTANT: Do not use a 4-radio hardware project on a kit with a different FMC module
-//
-//#define WLAN_4RF_EN
-
-#ifdef WLAN_4RF_EN
-    #define RC_ALL_RF  (RC_RFA | RC_RFB | RC_RFC | RC_RFD)
-    #define AD_ALL_RF  (RFA_AD_CS | RFB_AD_CS | RFC_AD_CS | RFD_AD_CS)
-#else
-    #define RC_ALL_RF  (RC_RFA | RC_RFB)
-    #define AD_ALL_RF  (RFA_AD_CS | RFB_AD_CS)
-#endif
-
-
-// ****************************************************************************
 // Define standard macros for base addresses and device IDs
 //     XPAR_ names will change with instance names in hardware
 //

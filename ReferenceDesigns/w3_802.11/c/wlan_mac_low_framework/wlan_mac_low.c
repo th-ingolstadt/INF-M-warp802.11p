@@ -104,6 +104,34 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
 	tx_frame_info_t* tx_frame_info;
     u32			     i;
 
+    /**********************************************************************************
+     * Initialize the low platform first - this must happen before the low application
+     *  attempts to use any hardware resources
+     **********************************************************************************/
+    status = wlan_platform_common_init();
+    if(status != 0) {
+        xil_printf("Error in wlan_platform_common_init()! Exiting\n");
+        return -1;
+    }
+    status = wlan_platform_low_init();
+
+    if(status != 0) {
+        xil_printf("Error in wlan_platform_low_init()! Exiting\n");
+        return -1;
+    }
+    /**********************************************************************************/
+
+
+    /**********************************************************************************
+     * Initialize the MAC and PHY cores - this must happen before the low application
+     *  attempts any wireless Tx/Rx operations
+     * These calls will reset the MAC and PHY cores, safely interrupting any ongoing
+     *  Tx/Rx events and clearing old MAC state that may remain from a previous boot
+     **********************************************************************************/
+    wlan_phy_init();
+    wlan_mac_hw_init();
+
+
     mac_param_dsss_en        = 1;
     mac_param_band           = RC_24GHZ;
     mac_param_ctrl_tx_pow    = 10;
@@ -125,13 +153,6 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
     mactime_change_callback		 = (function_ptr_t) wlan_null_callback;
     sample_rate_change_callback  = (function_ptr_t) wlan_null_callback;
     handle_tx_pkt_buf_ready		 = (function_ptr_t) wlan_null_callback;
-
-    status = w3_node_init();
-
-    if(status != 0) {
-        xil_printf("Error in w3_node_init()! Exiting\n");
-        return -1;
-    }
 
 #if 0
 
@@ -237,11 +258,6 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
     wlan_phy_rx_pkt_buf_phy_hdr_offset(PHY_RX_PKT_BUF_PHY_HDR_OFFSET);
     wlan_phy_tx_pkt_buf_phy_hdr_offset(PHY_TX_PKT_BUF_PHY_HDR_OFFSET);
 
-    wlan_mac_reset(1);
-    wlan_radio_init();
-    wlan_phy_init();
-    wlan_mac_hw_init();
-    wlan_mac_reset(0);
 
 	// Unpause MAC Tx Controllers
 	wlan_mac_pause_tx_ctrl_A(0);
@@ -323,6 +339,9 @@ void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
     REG_SET_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);
     REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_RESET);
     wlan_mac_reset(1);
+
+    // Call the platform's set_samp_rate first
+    wlan_platform_low_set_samp_rate(phy_samp_rate);
 
     // DSSS Rx only supported at 20Msps
     switch(phy_samp_rate){
@@ -410,57 +429,7 @@ void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
 		break;
 	}
 
-	// Set RF interface clocking and interp/decimation filters
-	switch(phy_samp_rate){
-		case PHY_40M:
-			// Set ADC_CLK=DAC_CLK=40MHz, interp_rate=decim_rate=1
-			clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
-			ad_config_filters(AD_BASEADDR, AD_ALL_RF, 1, 1);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x2F);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x00);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
-		break;
-		case PHY_20M:
-			// Set ADC_CLK=DAC_CLK=40MHz, interp_rate=decim_rate=2
-			clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
 
-			ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x27);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x00);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
-		break;
-		case PHY_10M:
-			// Set ADC_CLK=DAC_CLK=20MHz, interp_rate=decim_rate=2
-			clk_config_dividers(CLK_BASEADDR, 4, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
-			ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x27);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x00);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
-		break;
-	}
-
-    switch(phy_samp_rate){
-    	case PHY_40M:
-    	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 3);
-    	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 3);
-		break;
-    	case PHY_10M:
-    	case PHY_20M:
-    	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 1);
-    	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 1);
-    	break;
-    }
-
-    // AGC timing: capt_rssi_1, capt_rssi_2, capt_v_db, agc_done
-    switch(phy_samp_rate){
-    	case PHY_40M:
-    		wlan_agc_set_AGC_timing(10, 30, 90, 96);
-		break;
-    	case PHY_10M:
-    	case PHY_20M:
-    		wlan_agc_set_AGC_timing(1, 30, 90, 96);
-    	break;
-    }
 
     // Call user callback so it can deal with any changes that need to happen due to a change in sampling rate
 	sample_rate_change_callback(gl_phy_samp_rate);
@@ -486,6 +455,10 @@ void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
  * @return  None
  */
 void wlan_mac_hw_init(){
+
+	// Reset the MAC core - this clears any stale state in the Tx controllers, NAV counter, backoff counters, etc.
+	wlan_mac_reset(1);
+
     // Enable blocking of the Rx PHY following good-FCS receptions and bad-FCS receptions
     //     BLOCK_RX_ON_VALID_RXEND will block the Rx PHY on all RX_END events following valid RX_START events
     //     This allows the wlan_exp framework to count and log bad FCS receptions
@@ -512,6 +485,11 @@ void wlan_mac_hw_init(){
 
     // Clear any stale Rx events
     wlan_mac_hw_clear_rx_started();
+
+    // Clear the reset
+    wlan_mac_reset(0);
+
+    return;
 }
 
 
@@ -789,45 +767,11 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
         }
         break;
 
-        //---------------------------------------------------------------------
+        //---------------------------------------------------------------------------------------
         case IPC_MBOX_LOW_PARAM: {
             switch(msg->arg0){
                 case IPC_REG_WRITE_MODE: {
                     switch(ipc_msg_from_high_payload[0]){
-                        case LOW_PARAM_BB_GAIN: {
-                            if(ipc_msg_from_high_payload[1] <= 3){
-                                radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXGAIN_BB, ipc_msg_from_high_payload[1]);
-                            }
-                        }
-                        break;
-
-                        case LOW_PARAM_LINEARITY_PA: {
-                            if(ipc_msg_from_high_payload[1] <= 3){
-                                radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLINEARITY_PADRIVER, ipc_msg_from_high_payload[1]);
-                            }
-                        }
-                        break;
-
-                        case LOW_PARAM_LINEARITY_VGA: {
-                            if(ipc_msg_from_high_payload[1] <= 3){
-                                radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLINEARITY_VGA, ipc_msg_from_high_payload[1]);
-                            }
-                        }
-                        break;
-
-                        case LOW_PARAM_LINEARITY_UPCONV: {
-                            if(ipc_msg_from_high_payload[1] <= 3){
-                                radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLINEARITY_UPCONV, ipc_msg_from_high_payload[1]);
-                            }
-                        }
-                        break;
-
-                        case LOW_PARAM_AD_SCALING: {
-                            ad_spi_write(AD_BASEADDR, AD_ALL_RF, 0x36, (0x1F & ipc_msg_from_high_payload[1]));
-                            ad_spi_write(AD_BASEADDR, AD_ALL_RF, 0x37, (0x1F & ipc_msg_from_high_payload[2]));
-                            ad_spi_write(AD_BASEADDR, AD_ALL_RF, 0x35, (0x1F & ipc_msg_from_high_payload[3]));
-                        }
-                        break;
 
                         case LOW_PARAM_PKT_DET_MIN_POWER: {
                             if( ipc_msg_from_high_payload[1]&0xFF000000 ){
@@ -847,7 +791,10 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
                         break;
 
                         default: {
+                        	// Low framework doesn't recognize this low param ID - call the application
+                        	//  and platform handlers to process with this param write
                             ipc_low_param_callback(IPC_REG_WRITE_MODE, ipc_msg_from_high_payload);
+                            wlan_platform_low_param_handler(IPC_REG_WRITE_MODE, ipc_msg_from_high_payload);
                         }
                         break;
                     }
@@ -983,16 +930,9 @@ void wlan_mac_low_set_radio_channel(u32 channel){
 			wlan_phy_DSSS_rx_disable();
 		}
 
-	    if(channel >= 36){
-	        // Adjust Tx baseband gain when switching to 5GHz channels; this adjustment makes
-	    	//  the actual Tx power set via the Tx VGA more accurate
-	        radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXGAIN_BB, 3);
-	    } else {
-	        radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXGAIN_BB, 1);
-	    }
-
-		radio_controller_setCenterFrequency(RC_BASEADDR, (RC_ALL_RF), mac_param_band, wlan_mac_low_wlan_chan_to_rc_chan(mac_param_chan));
 		wlan_mac_reset_NAV_counter();
+
+		return wlan_platform_low_set_radio_channel(channel);
 
 	} else {
 		xil_printf("Invalid channel selection %d\n", mac_param_chan);
@@ -1690,166 +1630,6 @@ inline u8 wlan_mac_low_dbm_to_gain_target(s8 power){
 }
 
 
-
-/*****************************************************************************/
-/**
- * @brief Map the WLAN channel frequencies onto the convention used by the radio controller
- */
-inline u32 wlan_mac_low_wlan_chan_to_rc_chan(u32 mac_channel) {
-    int return_value = 0;
-
-    switch(mac_channel){
-        // 2.4GHz channels
-        case 1:
-        case 2:
-        case 3:
-        case 4:
-        case 5:
-        case 6:
-        case 7:
-        case 8:
-        case 9:
-        case 10:
-        case 11:
-            return_value = mac_channel;
-        break;
-
-        // 5GHz channels
-        case 36: // 5180 MHz
-            return_value = 1;
-        break;
-        case 38: // 5190 MHz
-            return_value = 2;
-        break;
-        case 40: // 5200 MHz
-            return_value = 3;
-        break;
-        case 44: // 5220 MHz
-            return_value = 4;
-        break;
-        case 46: // 5230 MHz
-            return_value = 5;
-        break;
-        case 48: // 5240 MHz
-            return_value = 6;
-        break;
-#if 0 // Disable these channels by default
-        case 52: // 5260 MHz
-            return_value = 7;
-        break;
-        case 54: // 5270 MHz
-            return_value = 8;
-        break;
-        case 56: // 5280 MHz
-            return_value = 9;
-        break;
-        case 60: // 5300 MHz
-            return_value = 10;
-        break;
-        case 62: // 5310 MHz
-            return_value = 11;
-        break;
-        case 64: // 5320 MHz
-            return_value = 12;
-        break;
-        case 100: // 5500 MHz
-            return_value = 13;
-        break;
-        case 102: // 5510 MHz
-            return_value = 14;
-        break;
-        case 104: // 5520 MHz
-            return_value = 15;
-        break;
-        case 108: // 5540 MHz
-            return_value = 16;
-        break;
-        case 110: // 5550 MHz
-            return_value = 17;
-        break;
-        case 112: // 5560 MHz
-            return_value = 18;
-        break;
-        case 116: // 5580 MHz
-            return_value = 19;
-        break;
-        case 118: // 5590 MHz
-            return_value = 20;
-        break;
-        case 120: // 5600 MHz
-            return_value = 21;
-        break;
-        case 124: // 5620 MHz
-            return_value = 22;
-        break;
-        case 126: // 5630 MHz
-            return_value = 23;
-        break;
-        case 128: // 5640 MHz
-            return_value = 24;
-        break;
-        case 132: // 5660 MHz
-            return_value = 25;
-        break;
-        case 134: // 5670 MHz
-            return_value = 26;
-        break;
-        case 136: // 5680 MHz
-            return_value = 27;
-        break;
-        case 140: // 5700 MHz
-            return_value = 28;
-        break;
-        case 142: // 5710 MHz
-            return_value = 29;
-        break;
-        case 144: // 5720 MHz
-            return_value = 30;
-        break;
-        case 149: // 5745 MHz
-            return_value = 31;
-        break;
-        case 151: // 5755 MHz
-            return_value = 32;
-        break;
-        case 153: // 5765 MHz
-            return_value = 33;
-        break;
-        case 157: // 5785 MHz
-            return_value = 34;
-        break;
-        case 159: // 5795 MHz
-            return_value = 35;
-        break;
-        case 161: // 5805 MHz
-            return_value = 36;
-        break;
-        case 165: // 5825 MHz
-            return_value = 37;
-        break;
-        case 172: // 5860 MHz
-            return_value = 38;
-        break;
-        case 174: // 5870 MHz
-        	return_value = 39;
-		break;
-        case 175: // 5875 MHz
-        	return_value = 40;
-		break;
-        case 176: // 5880 MHz
-        	return_value = 41;
-		break;
-        case 177: // 5885 MHz
-        	return_value = 42;
-		break;
-        case 178: // 5890 MHz
-        	return_value = 43;
-		break;
-#endif
-    }
-
-    return return_value;
-}
 
 
 
