@@ -282,7 +282,6 @@ void wlan_phy_init();
 void wlan_radio_init();
 
 // Configuration commands
-void wlan_agc_init();
 void wlan_rx_config_ant_mode(u32 ant_mode);
 
 // PHY commands

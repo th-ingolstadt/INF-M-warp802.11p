@@ -32,6 +32,7 @@
 int w3_node_init();
 void w3_radio_init();
 inline u32 w3_wlan_chan_to_rc_chan(u32 mac_channel);
+int w3_agc_init();
 
 /*****************************************************************************
  * Public functions - the functions below are exported to the low framework
@@ -46,8 +47,43 @@ int wlan_platform_low_init() {
 	}
 
 	w3_radio_init();
+	w3_agc_init();
 
 	return 0;
+}
+
+int w3_agc_init() {
+
+	// Post Rx_done reset delays for [rxhp, g_rf, g_bb]
+	wlan_agc_set_reset_timing(4, 250, 250);
+
+	// AGC config:
+	//     RFG Thresh 3->2, 2->1, Avg_len_sel, V_DB_Adj, Init G_BB
+	wlan_agc_set_config((256 - 56), (256 - 37), 0, 6, 24);
+
+	// AGC RSSI->Rx power offsets
+	wlan_agc_set_RSSI_pwr_calib(100, 85, 70);
+
+	// AGC timing: start_dco, en_iir_filt
+	wlan_agc_set_DCO_timing(100, (100 + 34));
+
+	// AGC target output power (log scale)
+	wlan_agc_set_target((64 - 16));
+
+#if 0
+	// To set the gains manually:
+
+	//xil_printf("Switching to MGC\n");
+	radio_controller_setCtrlSource(RC_BASEADDR, RC_ALL_RF, RC_REG0_RXHP_CTRLSRC, RC_CTRLSRC_REG);
+	radio_controller_setRxHP(RC_BASEADDR, RC_ALL_RF, RC_RXHP_OFF);
+	radio_controller_setRxGainSource(RC_BASEADDR, RC_ALL_RF, RC_GAINSRC_SPI);
+
+	// Set Rx gains
+	radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXGAIN_RF, 2);
+	radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXGAIN_BB, 8);
+#endif
+
+    return 0;
 }
 
 void wlan_platform_low_param_handler(u8 mode, u32* payload) {
