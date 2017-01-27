@@ -20,7 +20,6 @@
 #include "xgpio.h"
 #include "xil_exception.h"
 #include "xintc.h"
-#include "xuartlite.h"
 #include "xaxicdma.h"
 
 // WLAN Includes
@@ -72,11 +71,7 @@ platform_high_dev_info_t	 platform_high_dev_info;
 static XGpio                 Gpio_userio;                  ///< GPIO driver instnace for user IO inputs
 
 XIntc                        InterruptController;          ///< Interrupt Controller instance
-XUartLite                    UartLite;                     ///< UART Device instance
 XAxiCdma                     cdma_inst;                    ///< Central DMA instance
-
-// UART interface
-u8                           uart_rx_buffer[UART_BUFFER_SIZE];       ///< Buffer for received byte from UART
 
 // Callback function pointers
 volatile function_ptr_t      		pb_u_callback;                ///< User callback for "up" pushbutton
@@ -419,13 +414,6 @@ void wlan_mac_high_init(){
 	//  User IO GPIO instance has 1 channel, all inputs
 	XGpio_SetDataDirection(&Gpio_userio, GPIO_USERIO_INPUT_CHANNEL, 0xFFFFFFFF);
 
-	// Initialize the UART driver
-	Status = XUartLite_Initialize(&UartLite, platform_high_dev_info.uart_dev_id);
-	if (Status != XST_SUCCESS) {
-		wlan_printf(PL_ERROR, "ERROR: Could not initialize UART\n");
-		return;
-	}
-
 	// Test to see if DRAM SODIMM is connected to board
 	timestamp = get_system_time_usec();
 
@@ -512,16 +500,6 @@ int wlan_mac_high_interrupt_init(){
 	XGpio_InterruptEnable(&Gpio_userio, GPIO_USERIO_INPUT_IR_CH_MASK);
 	XGpio_InterruptGlobalEnable(&Gpio_userio);
 
-	// UART
-	Result = XIntc_Connect(&InterruptController, platform_high_dev_info.uart_int_id, (XInterruptHandler)XUartLite_InterruptHandler, &UartLite);
-	if (Result != XST_SUCCESS) {
-		wlan_printf(PL_ERROR, "Failed to set up UART interrupt\n");
-		return Result;
-	}
-	XIntc_Enable(&InterruptController, platform_high_dev_info.uart_int_id);
-	XUartLite_SetRecvHandler(&UartLite, wlan_mac_high_uart_rx_handler, &UartLite);
-	XUartLite_EnableInterrupt(&UartLite);
-
 	// ***************************************************
 	// Connect interrupt devices in other subsystems
 	// ***************************************************
@@ -540,6 +518,7 @@ int wlan_mac_high_interrupt_init(){
 	platform_high_config_t platform_high_config;
 	platform_high_config.intc = &InterruptController;
 	platform_high_config.eth_rx_callback = (void*)wlan_process_eth_rx;
+	platform_high_config.uart_rx_callback = (void*)wlan_mac_high_uart_rx_callback;
 
 	Result = wlan_platform_high_init(platform_high_config);
 	if (Result != XST_SUCCESS) {
@@ -567,6 +546,9 @@ int wlan_mac_high_interrupt_init(){
 	return 0;
 }
 
+void wlan_mac_high_uart_rx_callback(u8 rxByte){
+	uart_callback(rxByte);
+}
 
 
 /**
@@ -618,33 +600,6 @@ inline interrupt_state_t wlan_mac_high_interrupt_stop(){
 	if(InterruptController.IsReady && InterruptController.IsStarted) XIntc_Stop(&InterruptController);
 	interrupt_state = INTERRUPTS_DISABLED;
 	return curr_state;
-}
-
-
-
-/**
- * @brief UART Receive Interrupt Handler
- *
- * This function is the interrupt handler for UART receptions. It, in turn,
- * will execute a callback that the user has previously registered.
- *
- * @param void* CallBackRef
- *  - Argument supplied by the XUartLite driver. Unused in this application.
- * @param unsigned int EventData
- *  - Argument supplied by the XUartLite driver. Unused in this application.
- * @return None
- *
- * @see wlan_mac_high_set_uart_rx_callback()
- */
-void wlan_mac_high_uart_rx_handler(void* CallBackRef, unsigned int EventData){
-#ifdef _ISR_PERF_MON_EN_
-	wlan_mac_set_dbg_hdr_out(ISR_PERF_MON_GPIO_MASK);
-#endif
-	XUartLite_Recv(&UartLite, uart_rx_buffer, UART_BUFFER_SIZE);
-	uart_callback(uart_rx_buffer[0]);
-#ifdef _ISR_PERF_MON_EN_
-	wlan_mac_clear_dbg_hdr_out(ISR_PERF_MON_GPIO_MASK);
-#endif
 }
 
 /**

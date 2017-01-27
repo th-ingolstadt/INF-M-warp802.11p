@@ -27,8 +27,6 @@ typedef struct{
 	u32		dram_baseaddr;
 	u32		dram_size;
 	u32		intc_dev_id;
-	u32		uart_dev_id;
-	u32		uart_int_id;
 	u32		gpio_dev_id;
 	u32		gpio_int_id;
 	u32		timer_dev_id;
@@ -41,9 +39,9 @@ typedef struct{
 // Platform configuration struct
 typedef struct{
 	XIntc* intc;
-	function_ptr_t eth_rx_callback;
-	function_ptr_t uart_rx_callback;
-	function_ptr_t userio_inputs_callback;
+	function_ptr_t  eth_rx_callback;
+	function_ptr_t* uart_rx_callback;
+	function_ptr_t  userio_inputs_callback;
 } platform_high_config_t;
 
 //---------------------------------------

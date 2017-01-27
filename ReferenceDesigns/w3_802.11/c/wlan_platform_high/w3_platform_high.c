@@ -2,6 +2,7 @@
 #include "wlan_platform_high.h"
 #include "include/w3_platform_high.h"
 #include "include/w3_eth.h"
+#include "include/w3_uart.h"
 
 static platform_high_dev_info_t w3_platform_high_dev_info;
 
@@ -16,8 +17,7 @@ platform_high_dev_info_t wlan_platform_high_get_dev_info(){
 	w3_platform_high_dev_info.dram_baseaddr = DRAM_BASEADDR;
 	w3_platform_high_dev_info.dram_size = DRAM_HIGHADDR - DRAM_BASEADDR + 1;
 	w3_platform_high_dev_info.intc_dev_id = PLATFORM_DEV_ID_INTC;
-	w3_platform_high_dev_info.uart_dev_id = PLATFORM_DEV_ID_UART;
-	w3_platform_high_dev_info.uart_int_id = PLATFORM_INT_ID_UART;
+//	w3_platform_high_dev_info.uart_int_id = PLATFORM_INT_ID_UART; //FIXME
 	w3_platform_high_dev_info.gpio_dev_id = PLATFORM_DEV_ID_USRIO_GPIO;
 	w3_platform_high_dev_info.gpio_int_id = PLATFORM_INT_ID_USRIO_GPIO;
 	w3_platform_high_dev_info.timer_dev_id = PLATFORM_DEV_ID_TIMER;
@@ -31,11 +31,16 @@ platform_high_dev_info_t wlan_platform_high_get_dev_info(){
 int wlan_platform_high_init(platform_high_config_t platform_config){
 	int return_value = XST_SUCCESS;
 
+	return_value = w3_wlan_platform_uart_init();
+	w3_wlan_platform_uart_set_rx_callback(platform_config.uart_rx_callback);
+	return_value |= w3_wlan_platform_uart_setup_interrupt(platform_config.intc);
+
+
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 	// Initialize Ethernet in wlan_platform
 	return_value = w3_wlan_platform_ethernet_init();
-	return_value |= w3_wlan_platform_ethernet_setup_interrupt(platform_config.intc);
 	w3_wlan_platform_ethernet_set_rx_callback(platform_config.eth_rx_callback);
+	return_value |= w3_wlan_platform_ethernet_setup_interrupt(platform_config.intc);
 #endif //WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 
 	return return_value;

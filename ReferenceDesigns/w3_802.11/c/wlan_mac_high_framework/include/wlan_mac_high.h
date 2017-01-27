@@ -201,8 +201,6 @@
 #define GPIO_MASK_PB_D                                     0x00000010                         ///< Mask for GPIO -- "Down" Pushbutton
 #define GPIO_MASK_DS_3                                     0x00000008                         ///< Mask for GPIO -- MSB of Dip Switch
 
-#define UART_BUFFER_SIZE                                   1                                  ///< UART is configured to read 1 byte at a time
-
 //-----------------------------------------------
 // Callback Return Flags
 //
@@ -245,11 +243,10 @@ void               wlan_mac_high_init();
 void 			   wlan_mac_high_malloc_init();
 
 int                          wlan_mac_high_interrupt_init();
-
+void 						 wlan_mac_high_uart_rx_callback(u8 rxByte);
 inline int                   wlan_mac_high_interrupt_restore_state(interrupt_state_t new_interrupt_state);
 inline interrupt_state_t     wlan_mac_high_interrupt_stop();
 
-void               wlan_mac_high_uart_rx_handler(void *CallBackRef, unsigned int EventData);
 void               wlan_mac_high_userio_gpio_handler(void *InstancePtr);
 
 dl_entry*          wlan_mac_high_find_counts_ADDR(dl_list* list, u8* addr);

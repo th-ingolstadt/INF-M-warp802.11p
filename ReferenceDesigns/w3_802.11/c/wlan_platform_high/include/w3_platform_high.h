@@ -53,13 +53,9 @@
 // Interrupt controller
 #define PLATFORM_DEV_ID_INTC                 XPAR_INTC_0_DEVICE_ID              ///< XParameters rename of interrupt controller device ID
 
-// UART
-#define PLATFORM_DEV_ID_UART                 XPAR_UARTLITE_0_DEVICE_ID          ///< XParameters rename for UART
-#define PLATFORM_INT_ID_UART                 XPAR_INTC_0_UARTLITE_0_VEC_ID      ///< XParameters rename of UART interrupt ID
-
 // GPIO for user I/O inputs
 #define PLATFORM_DEV_ID_USRIO_GPIO           XPAR_MB_HIGH_SW_GPIO_DEVICE_ID     ///< XParameters rename of device ID of GPIO
-#define PLATFORM_INT_ID_USRIO_GPIO           XPAR_INTC_0_GPIO_0_VEC_ID               ///< XParameters rename of GPIO interrupt ID
+#define PLATFORM_INT_ID_USRIO_GPIO           XPAR_INTC_0_GPIO_0_VEC_ID          ///< XParameters rename of GPIO interrupt ID
 
 // Timer
 #define PLATFORM_DEV_ID_TIMER                XPAR_TMRCTR_0_DEVICE_ID
