@@ -4,26 +4,25 @@
 #include "include/w3_eth.h"
 #include "include/w3_uart.h"
 
-static platform_high_dev_info_t w3_platform_high_dev_info;
+static const platform_high_dev_info_t w3_platform_high_dev_info = {
+		.dlmb_baseaddr = DLMB_BASEADDR,
+		.dlmb_size = DLMB_HIGHADDR - DLMB_BASEADDR + 1,
+		.ilmb_baseaddr = ILMB_BASEADDR,
+		.ilmb_size = ILMB_HIGHADDR - ILMB_BASEADDR + 1,
+		.aux_bram_baseaddr = AUX_BRAM_BASEADDR,
+		.aux_bram_size = ETH_BD_MEM_BASE - AUX_BRAM_BASEADDR,
+		.dram_baseaddr = DRAM_BASEADDR,
+		.dram_size = DRAM_HIGHADDR - DRAM_BASEADDR + 1,
+		.intc_dev_id = PLATFORM_DEV_ID_INTC,
+		.gpio_dev_id = PLATFORM_DEV_ID_USRIO_GPIO,
+		.gpio_int_id = PLATFORM_INT_ID_USRIO_GPIO,
+		.timer_dev_id = PLATFORM_DEV_ID_TIMER,
+		.timer_int_id = PLATFORM_INT_ID_TIMER,
+		.timer_freq = TIMER_FREQ,
+		.cdma_dev_id = PLATFORM_DEV_ID_CMDA
+};
 
 platform_high_dev_info_t wlan_platform_high_get_dev_info(){
-
-	w3_platform_high_dev_info.dlmb_baseaddr = DLMB_BASEADDR;
-	w3_platform_high_dev_info.dlmb_size = DLMB_HIGHADDR - DLMB_BASEADDR + 1;
-	w3_platform_high_dev_info.ilmb_baseaddr = ILMB_BASEADDR;
-	w3_platform_high_dev_info.ilmb_size = ILMB_HIGHADDR - ILMB_BASEADDR + 1;
-	w3_platform_high_dev_info.aux_bram_baseaddr = AUX_BRAM_BASEADDR;
-	w3_platform_high_dev_info.aux_bram_size = ETH_BD_MEM_BASE - AUX_BRAM_BASEADDR;
-	w3_platform_high_dev_info.dram_baseaddr = DRAM_BASEADDR;
-	w3_platform_high_dev_info.dram_size = DRAM_HIGHADDR - DRAM_BASEADDR + 1;
-	w3_platform_high_dev_info.intc_dev_id = PLATFORM_DEV_ID_INTC;
-	w3_platform_high_dev_info.gpio_dev_id = PLATFORM_DEV_ID_USRIO_GPIO;
-	w3_platform_high_dev_info.gpio_int_id = PLATFORM_INT_ID_USRIO_GPIO;
-	w3_platform_high_dev_info.timer_dev_id = PLATFORM_DEV_ID_TIMER;
-	w3_platform_high_dev_info.timer_int_id = PLATFORM_INT_ID_TIMER;
-	w3_platform_high_dev_info.timer_freq = TIMER_FREQ;
-	w3_platform_high_dev_info.cdma_dev_id = PLATFORM_DEV_ID_CMDA;
-
 	return w3_platform_high_dev_info;
 }
 
