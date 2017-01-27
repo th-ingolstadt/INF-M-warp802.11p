@@ -21,6 +21,7 @@
 #include "xparameters.h"
 #include "xmbox.h"
 
+#include "wlan_platform_common.h"
 #include "wlan_mac_common.h"
 #include "wlan_mac_mailbox_util.h"
 

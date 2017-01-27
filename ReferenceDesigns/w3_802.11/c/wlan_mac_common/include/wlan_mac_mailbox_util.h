@@ -11,13 +11,6 @@
  *
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
-
-
-/***************************** Include Files *********************************/
-
-#include "wlan_platform_common.h"
-
-/*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_MAILBOX_UTIL_H_
 #define WLAN_MAC_MAILBOX_UTIL_H_
 
