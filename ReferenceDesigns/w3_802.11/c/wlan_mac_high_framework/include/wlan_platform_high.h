@@ -40,7 +40,7 @@ typedef struct{
 typedef struct{
 	XIntc* intc;
 	function_ptr_t  eth_rx_callback;
-	function_ptr_t* uart_rx_callback;
+	function_ptr_t  uart_rx_callback;
 	function_ptr_t  userio_inputs_callback;
 } platform_high_config_t;
 

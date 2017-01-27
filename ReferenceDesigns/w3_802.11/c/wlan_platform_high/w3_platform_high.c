@@ -17,7 +17,6 @@ platform_high_dev_info_t wlan_platform_high_get_dev_info(){
 	w3_platform_high_dev_info.dram_baseaddr = DRAM_BASEADDR;
 	w3_platform_high_dev_info.dram_size = DRAM_HIGHADDR - DRAM_BASEADDR + 1;
 	w3_platform_high_dev_info.intc_dev_id = PLATFORM_DEV_ID_INTC;
-//	w3_platform_high_dev_info.uart_int_id = PLATFORM_INT_ID_UART; //FIXME
 	w3_platform_high_dev_info.gpio_dev_id = PLATFORM_DEV_ID_USRIO_GPIO;
 	w3_platform_high_dev_info.gpio_int_id = PLATFORM_INT_ID_USRIO_GPIO;
 	w3_platform_high_dev_info.timer_dev_id = PLATFORM_DEV_ID_TIMER;
