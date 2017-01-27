@@ -15,11 +15,15 @@
  **********************************************************************/
 
 // CPU IDs
-#define CPU_ID	         XPAR_CPU_ID
-#define CPU_ID_MB_LOW	 0
-#define CPU_ID_MB_HIGH	 1
+#ifdef XPAR_MB_HIGH_FREQ
+#define WLAN_COMPILE_FOR_CPU_HIGH                          1
+#define WLAN_COMPILE_FOR_CPU_LOW                           0
+#endif
 
-#define IS_CPU_HIGH	    (CPU_ID == CPU_ID_MB_HIGH)
+#ifdef XPAR_MB_LOW_FREQ
+#define WLAN_COMPILE_FOR_CPU_HIGH                          0
+#define WLAN_COMPILE_FOR_CPU_LOW                           1
+#endif
 
 // --------------------------------------------------------------------
 // Peripherals accessible by both CPUs

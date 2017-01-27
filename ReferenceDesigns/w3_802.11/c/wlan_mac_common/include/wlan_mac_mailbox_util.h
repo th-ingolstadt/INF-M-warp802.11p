@@ -42,7 +42,7 @@
 //    Determine if the interrupt controller is present to allow mailbox driver
 //    to support both interrupt and polled modes of operation.
 //
-#if IS_CPU_HIGH
+#if WLAN_COMPILE_FOR_CPU_HIGH
 
 // Set define to indicate INTC is present
 #define MAILBOX_INTC_PRESENT                               1
