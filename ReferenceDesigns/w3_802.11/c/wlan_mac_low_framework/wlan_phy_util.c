@@ -17,17 +17,18 @@
 #include "stdarg.h"
 #include "xio.h"
 #include "string.h"
+#include "xparameters.h"
 
 // WARP includes
 #include "w3_userio.h"
 
 // WLAN includes
+#include "wlan_platform_low.h"
+#include "wlan_platform_common.h"
 #include "wlan_mac_mailbox_util.h"
 #include "wlan_phy_util.h"
-#include "wlan_platform_low.h"
 #include "wlan_mac_low.h"
 #include "wlan_mac_common.h"
-#include "wlan_platform_common.h"
 
 // LUT of number of ones in each byte (used to calculate PARITY in SIGNAL)
 const u8 ones_in_chars[256] = {

@@ -17,7 +17,6 @@
 #define WLAN_MAC_USERIO_UTIL_H_
 
 // HW includes
-#include "xparameters.h"
 #include "w3_userio.h"
 
 

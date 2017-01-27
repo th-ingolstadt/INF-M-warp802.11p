@@ -12,7 +12,6 @@
 /***************************** Include Files *********************************/
 
 // Xilinx SDK includes
-#include "xparameters.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
