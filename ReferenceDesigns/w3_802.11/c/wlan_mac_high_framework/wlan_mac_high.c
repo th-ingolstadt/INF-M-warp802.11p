@@ -716,11 +716,8 @@ void wlan_mac_high_set_pb_d_callback(function_ptr_t callback){
  *
  */
 void wlan_mac_high_set_uart_rx_callback(function_ptr_t callback){
-	// xil_printf("assigning uart_callback = 0x%08x\n", (u32)uart_callback);
 	uart_callback = callback;
 }
-
-
 
 /**
  * @brief Set MPDU Transmission Complete Callback (High-level)
