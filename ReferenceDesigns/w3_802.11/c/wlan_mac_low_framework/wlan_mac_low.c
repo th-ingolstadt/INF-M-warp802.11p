@@ -77,6 +77,8 @@ static function_ptr_t        ipc_low_param_callback;                            
 volatile static u64	         unique_seq;
 
 // Constant LUTs for MCS
+// FIXME
+#define WLAN_MAC_NUM_MCS                                   8                                  ///< Number of MCS indexes [0 .. (num - 1)]
 const static u16 mcs_to_n_dbps_nonht_lut[WLAN_MAC_NUM_MCS] = {24, 36, 48, 72, 96, 144, 192, 216};
 const static u16 mcs_to_n_dbps_htmf_lut[WLAN_MAC_NUM_MCS] = {26, 52, 78, 104, 156, 208, 234, 260};
 

@@ -1,5 +1,14 @@
-#ifndef WLAN_PLATFORM_COMMON_H_
-#define WLAN_PLATFORM_COMMON_H_
+/*
+ * w3_platform_common.h
+ *
+ *  Created on: Jan 27, 2017
+ *      Author: chunter
+ */
+
+#ifndef W3_PLATFORM_COMMON_H_
+#define W3_PLATFORM_COMMON_H_
+
+#include "xparameters.h"
 
 /*********************************************************************
  * Mapping macros from xparameters.h
@@ -14,17 +23,6 @@
  *
  **********************************************************************/
 
-// CPU IDs
-#ifdef XPAR_MB_HIGH_FREQ
-#define WLAN_COMPILE_FOR_CPU_HIGH                          1
-#define WLAN_COMPILE_FOR_CPU_LOW                           0
-#endif
-
-#ifdef XPAR_MB_LOW_FREQ
-#define WLAN_COMPILE_FOR_CPU_HIGH                          0
-#define WLAN_COMPILE_FOR_CPU_LOW                           1
-#endif
-
 // --------------------------------------------------------------------
 // Peripherals accessible by both CPUs
 
@@ -36,7 +34,6 @@
 //  Only CPU High uses the mailbox interrupt. INT_ID defined here
 //  so mailbox_util.h can be shared between projects.
 #define PLATFORM_DEV_ID_MAILBOX    XPAR_MBOX_0_DEVICE_ID
-#define PLATFORM_INT_ID_MAILBOX    XPAR_INTC_0_MBOX_0_VEC_ID
 
 // System monitor
 #define PLATFORM_BASEADDR_SYSMON   XPAR_SYSMON_0_BASEADDR
@@ -47,14 +44,23 @@
  #define PLATFORM_SYSMON_PRESENT    0
 #endif
 
+// CPU IDs
+#ifdef XPAR_MB_HIGH_FREQ
+#define WLAN_COMPILE_FOR_CPU_HIGH                          1
+#define WLAN_COMPILE_FOR_CPU_LOW                           0
+
+#define PLATFORM_INT_ID_MAILBOX    XPAR_INTC_0_MBOX_0_VEC_ID
+
+#endif
+
+#ifdef XPAR_MB_LOW_FREQ
+#define WLAN_COMPILE_FOR_CPU_HIGH                          0
+#define WLAN_COMPILE_FOR_CPU_LOW                           1
+#endif
+
 
 // Mutex for Tx/Rx packet buffers
 #define PLATFORM_DEV_ID_PKT_BUF_MUTEX	XPAR_MUTEX_0_DEVICE_ID
 
-#include "wlan_mac_common.h"
 
-int wlan_platform_common_init();
-wlan_mac_hw_info_t wlan_platform_get_hw_info();
-void wlan_platform_userio_disp_status(userio_disp_status_t status, ...);
-
-#endif /* WLAN_PLATFORM_COMMON_H_ */
+#endif /* W3_PLATFORM_COMMON_H_ */

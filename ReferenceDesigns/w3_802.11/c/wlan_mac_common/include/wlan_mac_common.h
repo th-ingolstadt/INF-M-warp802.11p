@@ -15,9 +15,8 @@
 /***************************** Include Files *********************************/
 
 #include "xil_io.h"
-
 #include "wlan_mac_802_11_defs.h"
-#include "xparameters.h"
+#include "wlan_platform_common.h"
 
 
 /*************************** Constant Definitions ****************************/
@@ -174,16 +173,6 @@ typedef enum {
 	APPLICATION_ROLE_UNKNOWN	= 0xFF
 } application_role_t;
 
-typedef enum {
-	USERIO_DISP_STATUS_IDENTIFY     		= 0,
-	USERIO_DISP_STATUS_APPLICATION_ROLE     = 1,
-	USERIO_DISP_STATUS_MEMBER_LIST_UPDATE   = 2,
-	USERIO_DISP_STATUS_WLAN_EXP_CONFIGURE   = 3,
-	USERIO_DISP_STATUS_GOOD_FCS_EVENT       = 4,
-	USERIO_DISP_STATUS_BAD_FCS_EVENT        = 5,
-	USERIO_DISP_STATUS_CPU_ERROR    		= 255
-} userio_disp_status_t;
-
 //-----------------------------------------------
 // PHY Bandwidth Configuration
 //
@@ -260,22 +249,6 @@ typedef struct __attribute__((__packed__)){
 CASSERT(sizeof(beacon_txrx_configure_t) == 20, beacon_txrx_configure_t_alignment_check);
 
 
-
-//-----------------------------------------------
-// Hardware information struct to share data between the
-//   low and high CPUs
-
-#define WLAN_MAC_FPGA_DNA_LEN         2
-
-
-typedef struct {
-    u32  serial_number;
-    u32  fpga_dna[WLAN_MAC_FPGA_DNA_LEN];
-    u8   hw_addr_wlan[MAC_ADDR_LEN];
-    u8   hw_addr_wlan_exp[MAC_ADDR_LEN];
-} wlan_mac_hw_info_t;
-
-
 /*************************** Function Prototypes *****************************/
 
 int                     wlan_null_callback(void * param);
@@ -283,6 +256,7 @@ int                     wlan_null_callback(void * param);
 int                     wlan_verify_channel(u32 channel);
 
 void                    init_mac_hw_info();
+
 wlan_mac_hw_info_t    * get_mac_hw_info();
 u8                    * get_mac_hw_addr_wlan();
 u8                    * get_mac_hw_addr_wlan_exp();

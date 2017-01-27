@@ -1,0 +1,46 @@
+#ifndef WLAN_PLATFORM_COMMON_H_
+#define WLAN_PLATFORM_COMMON_H_
+
+#include "xil_types.h"
+#include "wlan_mac_802_11_defs.h"
+
+//-----------------------------------------------
+// Hardware information struct to share data between the
+//   low and high CPUs
+
+#define WLAN_MAC_FPGA_DNA_LEN         2
+
+typedef struct {
+    u32  serial_number;
+    u32  fpga_dna[WLAN_MAC_FPGA_DNA_LEN];
+    u8   hw_addr_wlan[MAC_ADDR_LEN];
+    u8   hw_addr_wlan_exp[MAC_ADDR_LEN];
+} wlan_mac_hw_info_t;
+
+typedef enum {
+	USERIO_DISP_STATUS_IDENTIFY     		= 0,
+	USERIO_DISP_STATUS_APPLICATION_ROLE     = 1,
+	USERIO_DISP_STATUS_MEMBER_LIST_UPDATE   = 2,
+	USERIO_DISP_STATUS_WLAN_EXP_CONFIGURE   = 3,
+	USERIO_DISP_STATUS_GOOD_FCS_EVENT       = 4,
+	USERIO_DISP_STATUS_BAD_FCS_EVENT        = 5,
+	USERIO_DISP_STATUS_CPU_ERROR    		= 255
+} userio_disp_status_t;
+
+//---------------------------------------
+// Platform information struct
+typedef struct{
+	u32 cpu_id;
+	u32 is_cpu_high;
+	u32 is_cpu_low;
+	u32 mailbox_dev_id;
+	u32 mailbox_int_id;
+	u32	pkt_buf_mutex_dev_id;
+} platform_common_dev_info_t;
+
+platform_common_dev_info_t wlan_platform_common_get_dev_info();
+int wlan_platform_common_init();
+wlan_mac_hw_info_t wlan_platform_get_hw_info();
+void wlan_platform_userio_disp_status(userio_disp_status_t status, ...);
+
+#endif /* WLAN_PLATFORM_COMMON_H_ */

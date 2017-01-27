@@ -25,6 +25,7 @@
 /*************************** Variable Definitions ****************************/
 
 static XMutex                pkt_buf_mutex;
+static platform_common_dev_info_t platform_common_dev_info;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -36,8 +37,10 @@ int init_pkt_buf() {
     u32            i;
     XMutex_Config *mutex_config_ptr;
 
+    platform_common_dev_info = wlan_platform_common_get_dev_info();
+
     //Initialize the pkt buffer mutex core
-    mutex_config_ptr = XMutex_LookupConfig(PLATFORM_DEV_ID_PKT_BUF_MUTEX);
+    mutex_config_ptr = XMutex_LookupConfig(platform_common_dev_info.pkt_buf_mutex_dev_id);
     XMutex_CfgInitialize(&pkt_buf_mutex, mutex_config_ptr, mutex_config_ptr->BaseAddress);
 
     // Unlock all mutexes this CPU might own at boot
@@ -96,7 +99,7 @@ int force_lock_tx_pkt_buf(u8 pkt_buf_ind) {
     //Unlock the packet buffer
     if(unlock_tx_pkt_buf(pkt_buf_ind) == PKT_BUF_MUTEX_FAIL_NOT_LOCK_OWNER ){
     	//Force an unlock as the other CPU_ID
-		UnLockPattern = (((XPAR_CPU_ID+1)%2 << OWNER_SHIFT) | 0x0);
+		UnLockPattern = (((platform_common_dev_info.cpu_id+1)%2 << OWNER_SHIFT) | 0x0);
 
 		XMutex_ReadReg(pkt_buf_mutex.Config.BaseAddress, (pkt_buf_ind + PKT_BUF_MUTEX_TX_BASE),
 					XMU_MUTEX_REG_OFFSET);
@@ -122,7 +125,7 @@ int force_lock_rx_pkt_buf(u8 pkt_buf_ind) {
     //Unlock the packet buffer
     if(unlock_rx_pkt_buf(pkt_buf_ind) == PKT_BUF_MUTEX_FAIL_NOT_LOCK_OWNER ){
     	//Force an unlock as the other CPU_ID
-		UnLockPattern = (((XPAR_CPU_ID+1)%2 << OWNER_SHIFT) | 0x0);
+		UnLockPattern = (((platform_common_dev_info.cpu_id+1)%2 << OWNER_SHIFT) | 0x0);
 
 		XMutex_ReadReg(pkt_buf_mutex.Config.BaseAddress, (pkt_buf_ind + PKT_BUF_MUTEX_RX_BASE),
 					XMU_MUTEX_REG_OFFSET);

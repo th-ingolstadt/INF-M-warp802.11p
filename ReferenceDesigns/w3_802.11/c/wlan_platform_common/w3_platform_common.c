@@ -7,10 +7,32 @@
 #include "xparameters.h"
 
 #include "wlan_platform_common.h"
-#include "wlan_platform_userio_util_w3.h"
+#include "include/w3_platform_common.h"
+#include "include/w3_userio_util.h"
 #include "wlan_mac_common.h"
 #include "w3_iic_eeprom.h"
 
+
+static const platform_common_dev_info_t platform_common_dev_info = {
+		.cpu_id = XPAR_CPU_ID,
+#if WLAN_COMPILE_FOR_CPU_HIGH
+		.is_cpu_high = 1,
+		.is_cpu_low = 0,
+#endif
+#if WLAN_COMPILE_FOR_CPU_LOW
+		.is_cpu_high = 0,
+		.is_cpu_low = 1,
+#endif
+		.mailbox_dev_id = PLATFORM_DEV_ID_MAILBOX,
+#if WLAN_COMPILE_FOR_CPU_HIGH
+		.mailbox_int_id = PLATFORM_INT_ID_MAILBOX,
+#endif
+		.pkt_buf_mutex_dev_id = PLATFORM_DEV_ID_PKT_BUF_MUTEX
+};
+
+platform_common_dev_info_t wlan_platform_common_get_dev_info(){
+	return platform_common_dev_info;
+}
 
 int wlan_platform_common_init(){
     u32 iter = 0;

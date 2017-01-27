@@ -42,12 +42,13 @@ static XMbox                 ipc_mailbox;
 
 #define MAILBOX_RIT                                        0         /* mailbox receive interrupt threshold */
 #define MAILBOX_SIT                                        0         /* mailbox send interrupt threshold */
-#define MBOX_INTR_ID                                       PLATFORM_INT_ID_MAILBOX
 
 static XIntc*                intc_ptr;
 static function_ptr_t        mailbox_rx_callback;
 
 #endif
+
+static platform_common_dev_info_t platform_common_dev_info;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -68,6 +69,9 @@ static function_ptr_t        mailbox_rx_callback;
  *                                 XST_SUCCESS - Command completed successfully
  *****************************************************************************/
 int init_mailbox() {
+
+	platform_common_dev_info = wlan_platform_common_get_dev_info();
+
     XMbox_Config *mbox_config_ptr;
 
 #if MAILBOX_INTC_PRESENT
@@ -76,7 +80,7 @@ int init_mailbox() {
 #endif
 
     // Initialize the IPC mailbox core
-    mbox_config_ptr = XMbox_LookupConfig(PLATFORM_DEV_ID_MAILBOX);
+    mbox_config_ptr = XMbox_LookupConfig(platform_common_dev_info.mailbox_dev_id);
     XMbox_CfgInitialize(&ipc_mailbox, mbox_config_ptr, mbox_config_ptr->BaseAddress);
 
     return XST_SUCCESS;

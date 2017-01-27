@@ -33,7 +33,7 @@
 // WLAN includes
 #include "wlan_mac_common.h"
 #include "wlan_mac_pkt_buf_util.h"
-#include "wlan_platform_sysmon_util.h"
+//#include "wlan_platform_sysmon_util.h" //FIXME
 #include "wlan_mac_time_util.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_entries.h"
@@ -1227,6 +1227,9 @@ void add_time_info_entry(u64 timestamp, u64 mac_time, u64 system_time, u64 host_
  *****************************************************************************/
 u32 add_temperature_to_log() {
 
+#if 0
+
+	//FIXME SYSMON needs to be added to common platform
 
     temperature_entry  * entry;
     u32                  entry_size        = sizeof(temperature_entry);
@@ -1263,6 +1266,9 @@ u32 add_temperature_to_log() {
     }
 
     return XST_FAILURE;
-}
+#else
+    return XST_FAILURE;
+#endif
 
+}
 #endif //WLAN_SW_CONFIG_ENABLE_LOGGING

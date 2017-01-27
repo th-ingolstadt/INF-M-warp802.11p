@@ -15,7 +15,7 @@
 /***************************** Include Files *********************************/
 
 #include "w3_userio.h"
-#include "wlan_platform_userio_util_w3.h"
+#include "include/w3_userio_util.h"
 #include "wlan_mac_time_util.h"
 #include "xparameters.h"
 

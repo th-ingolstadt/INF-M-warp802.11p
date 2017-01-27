@@ -25,7 +25,7 @@
 
 // WLAN includes
 #include "wlan_mac_pkt_buf_util.h"
-#include "wlan_platform_sysmon_util.h"
+//#include "wlan_platform_sysmon_util.h"
 #include "wlan_mac_time_util.h"
 #include "wlan_platform_common.h"
 #include "wlan_mac_event_log.h"
@@ -248,10 +248,12 @@ int wlan_exp_node_init(u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wl
     add_time_info_entry(mac_timestamp, mac_timestamp, system_timestamp, TIME_INFO_ENTRY_TIME_RSVD_VAL_64, TIME_INFO_ENTRY_SYSTEM, 0, 0);
 #endif
 
+#if 0
+    //FIXME move to platform common
     // ------------------------------------------
     // Initialize the System Monitor
     init_sysmon();
-
+#endif
 
     // ------------------------------------------
     // Initialize the default IP address
@@ -868,6 +870,8 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
         //---------------------------------------------------------------------
         case CMDID_NODE_TEMPERATURE: {
+#if 0
+        	//FIXME: move to platform common
             // NODE_TEMPERATURE
             //   - If the system monitor exists, return the current, min and max temperature of the node
             //
@@ -877,6 +881,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
+#endif
         }
         break;
 
