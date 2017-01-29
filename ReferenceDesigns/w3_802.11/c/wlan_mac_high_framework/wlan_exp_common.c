@@ -30,7 +30,6 @@
 #include "stdarg.h"
 
 // WLAN includes
-#include "wlan_mac_time_util.h"
 #include "wlan_mac_high.h"
 
 // WLAN Exp includes

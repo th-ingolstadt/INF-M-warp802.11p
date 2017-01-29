@@ -17,6 +17,7 @@
 // Platform includes
 #include "w3_mac_phy_regs.h"
 #include "w3_platform_low.h"
+#include "w3_platform_common.h"
 #include "wlan_platform_common.h"
 
 // Low framework includes

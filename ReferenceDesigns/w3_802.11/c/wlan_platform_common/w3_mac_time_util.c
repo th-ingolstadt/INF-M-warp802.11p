@@ -23,7 +23,7 @@
 #include "wlan_mac_mailbox_util.h"
 #include "wlan_platform_common.h"
 
-#include "include/w3_time_util.h"
+#include "include/w3_mac_time_util.h"
 
 
 /*********************** Global Variable Definitions *************************/

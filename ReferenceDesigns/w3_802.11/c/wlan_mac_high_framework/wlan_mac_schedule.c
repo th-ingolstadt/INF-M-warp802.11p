@@ -23,7 +23,6 @@
 #include "xtmrctr.h"
 #include "xintc.h"
 
-#include "wlan_mac_time_util.h"
 #include "wlan_mac_high.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_schedule.h"

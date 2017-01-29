@@ -30,6 +30,7 @@
 #include "wlan_platform_low.h"
 #include "wlan_mac_nomac.h"
 #include "wlan_platform_common.h"
+#include "xparameters.h"
 
 // WLAN Exp includes
 #include "wlan_exp.h"

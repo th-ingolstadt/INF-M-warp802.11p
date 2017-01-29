@@ -24,7 +24,6 @@
 #include "wlan_mac_high.h"
 #include "wlan_mac_ap.h"
 #include "wlan_mac_addr_filter.h"
-#include "wlan_mac_time_util.h"
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_schedule.h"

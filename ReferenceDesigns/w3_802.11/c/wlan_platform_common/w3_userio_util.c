@@ -16,7 +16,7 @@
 
 #include "w3_userio.h"
 #include "include/w3_userio_util.h"
-#include "wlan_mac_time_util.h"
+#include "wlan_platform_common.h"
 #include "xparameters.h"
 
 

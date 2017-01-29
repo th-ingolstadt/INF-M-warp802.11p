@@ -29,7 +29,6 @@
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_mailbox_util.h"
 #include "wlan_mac_pkt_buf_util.h"
-#include "wlan_mac_time_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"

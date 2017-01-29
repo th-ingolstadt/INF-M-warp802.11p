@@ -34,7 +34,6 @@
 #include "wlan_mac_common.h"
 #include "wlan_mac_pkt_buf_util.h"
 //#include "wlan_platform_sysmon_util.h" //FIXME
-#include "wlan_mac_time_util.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_entries.h"
 
