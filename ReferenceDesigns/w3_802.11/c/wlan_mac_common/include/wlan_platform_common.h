@@ -38,9 +38,19 @@ typedef struct{
 	u32	pkt_buf_mutex_dev_id;
 } platform_common_dev_info_t;
 
+// Common platform init functions
 platform_common_dev_info_t wlan_platform_common_get_dev_info();
 int wlan_platform_common_init();
 wlan_mac_hw_info_t wlan_platform_get_hw_info();
+
+// User IO functions
 void wlan_platform_userio_disp_status(userio_disp_status_t status, ...);
+
+// MAC time functions
+u64                get_mac_time_usec();
+void               set_mac_time_usec(u64 new_time);
+void               apply_mac_time_delta_usec(s64 time_delta);
+u64                get_system_time_usec();
+void               wlan_usleep(u64 delay);
 
 #endif /* WLAN_PLATFORM_COMMON_H_ */
