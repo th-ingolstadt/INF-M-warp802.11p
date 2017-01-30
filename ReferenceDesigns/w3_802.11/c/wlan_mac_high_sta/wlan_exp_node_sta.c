@@ -33,7 +33,6 @@
 #include "stdlib.h"
 
 // WLAN includes
-#include "wlan_mac_time_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_event_log.h"

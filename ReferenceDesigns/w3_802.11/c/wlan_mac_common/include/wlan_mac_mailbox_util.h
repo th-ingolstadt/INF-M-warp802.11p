@@ -14,6 +14,8 @@
 #ifndef WLAN_MAC_MAILBOX_UTIL_H_
 #define WLAN_MAC_MAILBOX_UTIL_H_
 
+#include "xil_types.h"
+#include "xmbox.h"
 
 //-----------------------------------------------
 // Hardware defines
@@ -27,23 +29,7 @@
 //	  We intend to break this dependence in the future, which will limit all
 //	  IPC messages to a fixed size. We can revisit the definition of
 //	  MAILBOX_BUFFER_MAX_NUM_WORDS at that time.
-#define MAILBOX_BUFFER_MAX_NUM_WORDS                       100
-
-
-//-----------------------------------------------
-// Interrupt support
-//    Determine if the interrupt controller is present to allow mailbox driver
-//    to support both interrupt and polled modes of operation.
-//
-#if WLAN_COMPILE_FOR_CPU_HIGH
-
-// Set define to indicate INTC is present
-#define MAILBOX_INTC_PRESENT                               1
-
-// Include Interrupt Controller header file
-#include "xintc.h"
-#endif
-
+#define MAILBOX_BUFFER_MAX_NUM_WORDS                       22
 
 //-----------------------------------------------
 // Mailbox Message ID delimiter
@@ -134,13 +120,7 @@ typedef struct{
 
 /*************************** Function Prototypes *****************************/
 
-int           init_mailbox();
-
-#if MAILBOX_INTC_PRESENT
-int           setup_mailbox_interrupt(XIntc * intc);
-void          set_mailbox_rx_callback(function_ptr_t callback);
-void          mailbox_int_handler(void * callback_ref);
-#endif
+XMbox*        init_mailbox();
 
 int           read_mailbox_msg(wlan_ipc_msg_t * msg);
 int           write_mailbox_msg(wlan_ipc_msg_t * msg);

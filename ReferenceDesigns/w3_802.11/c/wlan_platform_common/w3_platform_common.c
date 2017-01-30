@@ -24,9 +24,6 @@ static const platform_common_dev_info_t platform_common_dev_info = {
 		.is_cpu_low = 1,
 #endif
 		.mailbox_dev_id = PLATFORM_DEV_ID_MAILBOX,
-#if WLAN_COMPILE_FOR_CPU_HIGH
-		.mailbox_int_id = PLATFORM_INT_ID_MAILBOX,
-#endif
 		.pkt_buf_mutex_dev_id = PLATFORM_DEV_ID_PKT_BUF_MUTEX
 };
 

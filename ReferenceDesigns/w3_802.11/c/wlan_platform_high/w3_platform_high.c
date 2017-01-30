@@ -19,7 +19,8 @@ static const platform_high_dev_info_t w3_platform_high_dev_info = {
 		.timer_dev_id = PLATFORM_DEV_ID_TIMER,
 		.timer_int_id = PLATFORM_INT_ID_TIMER,
 		.timer_freq = TIMER_FREQ,
-		.cdma_dev_id = PLATFORM_DEV_ID_CMDA
+		.cdma_dev_id = PLATFORM_DEV_ID_CMDA,
+		.mailbox_int_id = PLATFORM_INT_ID_MAILBOX
 };
 
 platform_high_dev_info_t wlan_platform_high_get_dev_info(){

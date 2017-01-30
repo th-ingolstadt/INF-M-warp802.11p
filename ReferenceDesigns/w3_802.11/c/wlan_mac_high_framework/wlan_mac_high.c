@@ -44,6 +44,7 @@
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
 #include "wlan_mac_scan.h"
+#include "wlan_mac_high_mailbox_util.h"
 
 /*********************** Global Variable Definitions *************************/
 
@@ -110,10 +111,6 @@ volatile static u8           cpu_low_reg_read_buffer_status;
 
 // Interrupt State
 volatile static interrupt_state_t interrupt_state;
-
-// IPC variables
-wlan_ipc_msg_t               ipc_msg_from_low;                                           ///< IPC message from lower-level
-u32                          ipc_msg_from_low_payload[MAILBOX_BUFFER_MAX_NUM_WORDS];     ///< Buffer space for IPC message from lower-level
 
 // Memory Allocation Debugging
 volatile static u32          num_malloc;                   ///< Tracking variable for number of times malloc has been called
@@ -196,7 +193,6 @@ void wlan_mac_high_init(){
 #endif //WLAN_SW_CONFIG_ENABLE_LOGGING
 	XAxiCdma_Config* cdma_cfg_ptr;
 
-
 	platform_high_dev_info = wlan_platform_high_get_dev_info();
 
 	// ***************************************************
@@ -265,7 +261,7 @@ void wlan_mac_high_init(){
 	// ***************************************************
 
 	// Initialize mailbox
-	init_mailbox();
+	wlan_mac_high_init_mailbox();
 
     // Initialize packet buffers
 	init_pkt_buf();
@@ -294,8 +290,6 @@ void wlan_mac_high_init(){
 	tx_poll_callback         		= (function_ptr_t)wlan_null_callback;
 	mpdu_tx_dequeue_callback 		= (function_ptr_t)wlan_null_callback;
 	cpu_low_reboot_callback  		= (function_ptr_t)wlan_null_callback;
-
-	set_mailbox_rx_callback((function_ptr_t)wlan_mac_high_ipc_rx);
 
 	interrupt_state = INTERRUPTS_DISABLED;
 
@@ -462,9 +456,6 @@ void wlan_mac_high_init(){
 	wlan_mac_high_request_low_state();
 
 	wlan_mac_high_set_radio_channel(1); // Set a sane default channel. The top-level project (AP/STA/IBSS/etc) is free to change this
-
-	//Create IPC message to receive into
-	ipc_msg_from_low.payload_ptr = &(ipc_msg_from_low_payload[0]);
 
 	// Initialize Interrupts
 	wlan_mac_high_interrupt_init();
@@ -1373,39 +1364,6 @@ void wlan_mac_high_setup_tx_frame_info(mac_header_80211_common * header, dl_entr
 
 }
 
-
-
-/**
- * @brief WLAN MAC IPC receive
- *
- * IPC receive function that will poll the mailbox for as many messages as are
- * available and then call the CPU high IPC processing function on each message
- *
- * @param  None
- * @return None
- */
-void wlan_mac_high_ipc_rx(){
-
-#ifdef _DEBUG_
-	u32 numMsg = 0;
-	xil_printf("Mailbox Rx:  ");
-#endif
-
-	while (read_mailbox_msg(&ipc_msg_from_low) == IPC_MBOX_SUCCESS) {
-		wlan_mac_high_process_ipc_msg(&ipc_msg_from_low);
-
-#ifdef _DEBUG_
-		numMsg++;
-#endif
-	}
-
-#ifdef _DEBUG_
-	xil_printf("Processed %d msg in one ISR\n", numMsg);
-#endif
-}
-
-
-
 /**
  * @brief WLAN MAC IPC processing function for CPU High
  *
@@ -1413,9 +1371,11 @@ void wlan_mac_high_ipc_rx(){
  *
  * @param  wlan_ipc_msg* msg
  *     - Pointer to the IPC message
+ * @param  u32* ipc_msg_from_low_payload
+ *     - Pointer to the payload of the IPC message
  * @return None
  */
-void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg) {
+void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg, u32* ipc_msg_from_low_payload) {
 
 	u8                  		rx_pkt_buf;
 	u8							tx_pkt_buf;

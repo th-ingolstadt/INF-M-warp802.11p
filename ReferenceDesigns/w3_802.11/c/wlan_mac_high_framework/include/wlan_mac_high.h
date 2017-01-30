@@ -284,8 +284,7 @@ void               wlan_mac_high_tagged_rate_to_readable_rate(u8 rate, char* str
 void               wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_1, u8 * addr_3 );
 void 			   wlan_mac_high_setup_tx_frame_info(mac_header_80211_common * header, dl_entry * curr_tx_queue_element, u32 tx_length, u8 flags, u8 queue_id, pkt_buf_group_t pkt_buf_group);
 
-void               wlan_mac_high_ipc_rx();
-void               wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg);
+void 			   wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg, u32* ipc_msg_from_low_payload);
 
 void               wlan_mac_high_set_srand(u32 seed);
 u8                 wlan_mac_high_bss_channel_spec_to_radio_chan(chan_spec_t chan_spec);

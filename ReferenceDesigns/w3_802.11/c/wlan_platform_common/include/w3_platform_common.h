@@ -48,9 +48,6 @@
 #ifdef XPAR_MB_HIGH_FREQ
 #define WLAN_COMPILE_FOR_CPU_HIGH                          1
 #define WLAN_COMPILE_FOR_CPU_LOW                           0
-
-#define PLATFORM_INT_ID_MAILBOX    XPAR_INTC_0_MBOX_0_VEC_ID
-
 #endif
 
 #ifdef XPAR_MB_LOW_FREQ

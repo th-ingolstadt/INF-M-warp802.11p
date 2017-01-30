@@ -65,4 +65,7 @@
 // Central DMA (CMDA)
 #define PLATFORM_DEV_ID_CMDA				 XPAR_AXI_CDMA_0_DEVICE_ID
 
+// Mailbox Interrupt
+#define PLATFORM_INT_ID_MAILBOX    			 XPAR_INTC_0_MBOX_0_VEC_ID
+
 #endif /* W3_PLATFORM_HIGH_H_ */

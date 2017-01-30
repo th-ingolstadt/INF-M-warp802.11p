@@ -33,6 +33,7 @@ typedef struct{
 	u32		timer_int_id;
 	u32		timer_freq;
 	u32		cdma_dev_id;
+	u32 	mailbox_int_id;
 } platform_high_dev_info_t;
 
 //---------------------------------------

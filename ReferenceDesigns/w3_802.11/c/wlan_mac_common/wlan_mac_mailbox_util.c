@@ -25,28 +25,12 @@
 #include "wlan_mac_common.h"
 #include "wlan_mac_mailbox_util.h"
 
-#if MAILBOX_INTC_PRESENT
-#include "wlan_mac_high.h"
-#endif
-
-
 /*********************** Global Variable Definitions *************************/
 
 /*************************** Variable Definitions ****************************/
 
 
 static XMbox                 ipc_mailbox;
-
-
-#if MAILBOX_INTC_PRESENT
-
-#define MAILBOX_RIT                                        0         /* mailbox receive interrupt threshold */
-#define MAILBOX_SIT                                        0         /* mailbox send interrupt threshold */
-
-static XIntc*                intc_ptr;
-static function_ptr_t        mailbox_rx_callback;
-
-#endif
 
 static platform_common_dev_info_t platform_common_dev_info;
 
@@ -65,121 +49,20 @@ static platform_common_dev_info_t platform_common_dev_info;
  * the mailbox peripheral used for IPC messages.  This function supports both
  * using the mailbox in a polling mode or with interrupts.
  *
- * @return  int              - Status:
- *                                 XST_SUCCESS - Command completed successfully
+ * @return  XMbox*              - pointer to mailbox driver instance
  *****************************************************************************/
-int init_mailbox() {
+XMbox* init_mailbox() {
 
 	platform_common_dev_info = wlan_platform_common_get_dev_info();
 
     XMbox_Config *mbox_config_ptr;
 
-#if MAILBOX_INTC_PRESENT
-    // Initialize interrupt callback
-    mailbox_rx_callback = (function_ptr_t)wlan_null_callback;
-#endif
-
     // Initialize the IPC mailbox core
     mbox_config_ptr = XMbox_LookupConfig(platform_common_dev_info.mailbox_dev_id);
     XMbox_CfgInitialize(&ipc_mailbox, mbox_config_ptr, mbox_config_ptr->BaseAddress);
 
-    return XST_SUCCESS;
+    return &ipc_mailbox;
 }
-
-
-
-#if MAILBOX_INTC_PRESENT
-
-/*****************************************************************************/
-/**
- * Setup mailbox interrupt
- *
- * @param   intc             - Pointer to the interrupt controller instance
- *
- * @return  int              - Status:
- *                                 XST_SUCCESS - Command completed successfully
- *                                 XST_FAILURE - Command failed
- *****************************************************************************/
-int setup_mailbox_interrupt(XIntc* intc){
-    int status;
-
-    // Set global interrupt controller pointer
-    intc_ptr = intc;
-
-    // Set Send / Receive threshold for interrupts
-    XMbox_SetSendThreshold(&ipc_mailbox, MAILBOX_SIT);
-    XMbox_SetReceiveThreshold(&ipc_mailbox, MAILBOX_RIT);
-
-    // Connect interrupt handler
-    status = XIntc_Connect(intc_ptr, MBOX_INTR_ID, (XInterruptHandler)mailbox_int_handler, (void *)&ipc_mailbox);
-
-    if (status != XST_SUCCESS) {
-        return XST_FAILURE;
-    }
-
-    // Enable interrupt
-    XMbox_SetInterruptEnable(&ipc_mailbox, XMB_IX_RTA);
-    XIntc_Enable(intc_ptr, MBOX_INTR_ID);
-
-    return XST_SUCCESS;
-}
-
-
-
-/*****************************************************************************/
-/**
- * Setup mailbox interrupt RX callback
- *
- * @param   callback         - Pointer to the callback function
- *
- *****************************************************************************/
-void set_mailbox_rx_callback(function_ptr_t callback) {
-    mailbox_rx_callback = callback;
-}
-
-
-
-/*****************************************************************************/
-/**
- * Mailbox interrupt handler
- *
- * @param   callback_ref     - Callback reference (set by interrupt framework)
- *
- *****************************************************************************/
-void mailbox_int_handler(void * callback_ref){
-    u32       mask;
-    XMbox *   mbox_ptr = (XMbox *)callback_ref;
-
-#ifdef _ISR_PERF_MON_EN_
-    wlan_mac_set_dbg_hdr_out(ISR_PERF_MON_GPIO_MASK);
-#endif
-
-    // Stop the interrupt controller
-    XIntc_Stop(intc_ptr);
-
-    // Get the interrupt status
-    mask = XMbox_GetInterruptStatus(mbox_ptr);
-
-    // Clear the interrupt
-    //     - Since only the XMB_IX_RTA interrupt was enabled in setup_mailbox_interrupt()
-    //       that is the only interrupt that will ever need to be cleared
-    XMbox_ClearInterrupt(mbox_ptr, XMB_IX_RTA);
-
-    // If this is a receive interrupt, then call the callback function
-    if (mask & XMB_IX_RTA) {
-        mailbox_rx_callback();
-    }
-
-    // Restart the interrupt conroller
-    XIntc_Start(intc_ptr, XIN_REAL_MODE);
-
-#ifdef _ISR_PERF_MON_EN_
-    wlan_mac_clear_dbg_hdr_out(ISR_PERF_MON_GPIO_MASK);
-#endif
-}
-
-#endif
-
 
 
 /*****************************************************************************/
@@ -197,11 +80,6 @@ void mailbox_int_handler(void * callback_ref){
  *                                 IPC_MBOX_INVALID_MSG - Message invalid
  *****************************************************************************/
 int write_mailbox_msg(wlan_ipc_msg_t * msg) {
-
-#if MAILBOX_INTC_PRESENT
-    interrupt_state_t prev_interrupt_state;
-#endif
-
     // Check that msg points to a valid IPC message
     if (((msg->msg_id) & IPC_MBOX_MSG_ID_DELIM) != IPC_MBOX_MSG_ID_DELIM) {
         return IPC_MBOX_INVALID_MSG;
@@ -212,11 +90,6 @@ int write_mailbox_msg(wlan_ipc_msg_t * msg) {
         return IPC_MBOX_INVALID_MSG;
     }
 
-#if MAILBOX_INTC_PRESENT
-    // Stop the intterupts
-    prev_interrupt_state = wlan_mac_high_interrupt_stop();
-#endif
-
     // Write msg header (first 32b word)
     XMbox_WriteBlocking(&ipc_mailbox, (u32*)msg, 4);
 
@@ -224,12 +97,6 @@ int write_mailbox_msg(wlan_ipc_msg_t * msg) {
     if ((msg->num_payload_words) > 0) {
         XMbox_WriteBlocking(&ipc_mailbox, (u32*)(msg->payload_ptr), (u32)(4 * (msg->num_payload_words)));
     }
-
-#if MAILBOX_INTC_PRESENT
-    // Restor the interrupt state
-    wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
-#endif
-
     return IPC_MBOX_SUCCESS;
 }
 
