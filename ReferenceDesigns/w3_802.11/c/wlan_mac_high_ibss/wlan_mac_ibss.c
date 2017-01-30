@@ -109,6 +109,9 @@ static u8 	                      wlan_mac_addr[MAC_ADDR_LEN];
 // Beacon configuration
 static	beacon_txrx_configure_t	  gl_beacon_txrx_config;
 
+// Common Platform Device Info
+platform_common_dev_info_t	 platform_common_dev_info;
+
 
 /*************************** Functions Prototypes ****************************/
 
@@ -189,6 +192,9 @@ int main() {
 
 	// Initialize the utility library
     wlan_mac_high_init();
+
+    // Get the device info
+	platform_common_dev_info = wlan_platform_common_get_dev_info();
 
     // IBSS is not currently a member of BSS
     configure_bss(NULL);
@@ -1274,7 +1280,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				active_bss_info = NULL;
 
 				// Disable beacons immediately
-				((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON))->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+				((tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_BEACON))->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 				gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
 				bzero(gl_beacon_txrx_config.bssid_match, MAC_ADDR_LEN);
 				wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
@@ -1390,7 +1396,7 @@ u32	configure_bss(bss_config_t* bss_config){
 
 				if ((active_bss_info->beacon_interval == BEACON_INTERVAL_NO_BEACON_TX) ||
 					(active_bss_info->beacon_interval == BEACON_INTERVAL_UNKNOWN)) {
-					((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON))->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+					((tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_BEACON))->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 					gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
 				} else {
 					gl_beacon_txrx_config.beacon_tx_mode = IBSS_BEACON_TX;

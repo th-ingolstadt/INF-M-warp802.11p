@@ -58,6 +58,9 @@ static u32                        cpu_low_status;                               
 static u32						  cpu_low_type;										///< wlan_exp CPU_LOW type that is reported to upper-level MAC
 static compilation_details_t	  cpu_low_compilation_details;
 
+// Common Platform Device Info
+platform_common_dev_info_t	 platform_common_dev_info;
+
 static wlan_ipc_msg_t        	  ipc_msg_from_high;                                          ///< Buffer for incoming IPC messages
 static u32                   	  ipc_msg_from_high_payload[MAILBOX_BUFFER_MAX_NUM_WORDS];    ///< Buffer for payload of incoming IPC messages
 
@@ -118,6 +121,8 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
     }
     /**********************************************************************************/
 
+    // Get the device info
+	platform_common_dev_info = wlan_platform_common_get_dev_info();
 
     /**********************************************************************************
      * Initialize the MAC and PHY cores - this must happen before the low application
@@ -173,7 +178,7 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
 	// Initialize Transmit Packet Buffers
 	// ***************************************************
 	for(i = 0; i < NUM_TX_PKT_BUFS; i++){
-		tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(i);
+		tx_frame_info = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, i);
 		switch(i){
 			case TX_PKT_BUF_MPDU_1:
 			case TX_PKT_BUF_MPDU_2:
@@ -223,7 +228,7 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
 	// Initialize Receive Packet Buffers
 	// ***************************************************
 	for(i = 0; i < NUM_RX_PKT_BUFS; i++){
-		rx_frame_info = (rx_frame_info_t*)RX_PKT_BUF_TO_ADDR(i);
+		rx_frame_info = (rx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, i);
 		switch(rx_frame_info->rx_pkt_buf_state){
 		   case RX_PKT_BUF_UNINITIALIZED:
 		   case RX_PKT_BUF_LOW_CTRL:
@@ -981,7 +986,7 @@ int wlan_mac_low_finish_frame_transmit(u16 tx_pkt_buf){
     	return return_value;
     }
 
-    tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+    tx_frame_info = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf);
 
 	switch(tx_frame_info->tx_pkt_buf_state){
 		case TX_PKT_BUF_LOW_CTRL:
@@ -1049,7 +1054,7 @@ u32 wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf){
 		return return_value;
 	}
 
-	tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+	tx_frame_info = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf);
 
 	if( tx_frame_info->flags & TX_FRAME_INFO_FLAGS_WAIT_FOR_LOCK ){
 		// This packet buffer has been flagged to ensure that CPU_LOW will wait until a mutex lock
@@ -1111,7 +1116,7 @@ u32 wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf){
 	tx_frame_info->delay_accept = (u32)(get_mac_time_usec() - tx_frame_info->timestamp_create);
 
 	// Get pointer to start of MAC header in packet buffer
-	tx_80211_header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
+	tx_80211_header = (mac_header_80211*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
 
 	// Insert sequence number here
 	tx_80211_header->sequence_control = ((tx_80211_header->sequence_control) & 0xF) | ( (unique_seq&0xFFF)<<4 );
@@ -1512,7 +1517,7 @@ inline void wlan_mac_low_lock_empty_rx_pkt_buf(){
     	// select the "oldest" packet buffer, the one that is most likely to have already
     	// been processed and released by CPU High
     	rx_pkt_buf = (rx_pkt_buf+1) % NUM_RX_PKT_BUFS;
-    	rx_frame_info    = (rx_frame_info_t*) RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
+    	rx_frame_info    = (rx_frame_info_t*) CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf);
 
         if((rx_frame_info->rx_pkt_buf_state) == RX_PKT_BUF_LOW_CTRL){
 			// By default Rx pkt buffers are not zeroed out, to save the performance penalty of bzero'ing 2KB

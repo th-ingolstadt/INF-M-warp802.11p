@@ -35,6 +35,8 @@ typedef struct{
 	u32 is_cpu_low;
 	u32 mailbox_dev_id;
 	u32	pkt_buf_mutex_dev_id;
+	u32	tx_pkt_buf_baseaddr;
+	u32	rx_pkt_buf_baseaddr;
 } platform_common_dev_info_t;
 
 // Common platform init functions

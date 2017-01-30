@@ -105,6 +105,8 @@ static beacon_txrx_configure_t         gl_beacon_txrx_config;
 // DTIM Multicast Buffer
 u8 									   gl_dtim_mcast_buffer_enable;	   // Enable buffering of multicast packets until after DTIM transmission
 
+// Common Platform Device Info
+platform_common_dev_info_t	 platform_common_dev_info;
 
 /*************************** Functions Prototypes ****************************/
 
@@ -137,6 +139,9 @@ int main(){
 
 	//Initialize the MAC framework
 	wlan_mac_high_init();
+
+	// Get the device info
+	platform_common_dev_info = wlan_platform_common_get_dev_info();
 
 	// Before any queue entries are used, calculate the maximum number of
 	// allowed enqueues based on the number that are free
@@ -415,7 +420,7 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 	u16 				tim_byte_idx           		= 0;
 	u8					tim_bit_idx            		= 0;
 	u8 					bit_val 					= (bit_val_in & 1);
-	tx_frame_info_t*  	tx_frame_info 				= (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON);
+	tx_frame_info_t*  	tx_frame_info 				= (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_BEACON);
 
 	if(active_bss_info == NULL) return;
 	if( ((aid==0) && (gl_dtim_mcast_buffer_enable == 0)) ) return;
@@ -504,7 +509,7 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
  *****************************************************************************/
 void update_tim_tag_all(u32 sched_id){
 
-	tx_frame_info_t*  	tx_frame_info 				= (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON);
+	tx_frame_info_t*  	tx_frame_info 				= (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_BEACON);
 	u32 				existing_mgmt_tag_length 	= 0;	// Size of the management tag that is currently in the packet buffer
 	u32					next_mgmt_tag_length		= 0;	// Size that we will update the management tag to be.
 															// Note: a third size we have to track is present in the global mgmt_tag_tim
@@ -2124,7 +2129,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				active_bss_info = NULL;
 
 				// Disable beacons immediately
-				((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON))->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+				((tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_BEACON))->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 				gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
 				bzero(gl_beacon_txrx_config.bssid_match, MAC_ADDR_LEN);
 				wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
@@ -2197,7 +2202,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				memcpy(gl_beacon_txrx_config.bssid_match, active_bss_info->bssid, MAC_ADDR_LEN);
 				if ((active_bss_info->beacon_interval == BEACON_INTERVAL_NO_BEACON_TX) ||
 					(active_bss_info->beacon_interval == BEACON_INTERVAL_UNKNOWN)) {
-					((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON))->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+					((tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_BEACON))->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 					gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
 				} else {
 					gl_beacon_txrx_config.beacon_tx_mode = AP_BEACON_TX;

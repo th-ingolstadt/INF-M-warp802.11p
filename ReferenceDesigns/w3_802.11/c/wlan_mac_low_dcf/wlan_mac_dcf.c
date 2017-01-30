@@ -76,6 +76,9 @@ static dl_list				   		gl_tx_pkt_buf_ready_list_free;	///< List of unused Tx pac
 static dl_entry						gl_tx_pkt_buf_entry[MAX_NUM_PENDING_TX_PKT_BUFS]; ///< Array of entries that will belong to one of the above lists
 static u8						 	gl_tx_pkt_buf_entry_data[MAX_NUM_PENDING_TX_PKT_BUFS]; ///< Byte array to serve as the data payload for the above entries
 
+// Common Platform Device Info
+platform_common_dev_info_t	 platform_common_dev_info;
+
 /*************************** Functions Prototypes ****************************/
 
 int process_low_param(u8 mode, u32* payload); ///< Implementation of DCF-specific processing of low params from wlan_exp
@@ -123,6 +126,9 @@ int main(){
 
     wlan_mac_low_init(WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW, compilation_details);
 
+    // Get the device info
+	platform_common_dev_info = wlan_platform_common_get_dev_info();
+
     gl_cw_exp = gl_cw_exp_min;
 
     hw_info = get_mac_hw_info();
@@ -147,8 +153,8 @@ int main(){
 
     // wlan_mac_low_init() has placed a mutex lock on TX_PKT_BUF_ACK_CTS and
     // TX_PKT_BUF_RTS already. We should set their packet buffer states to LOW_CTRL
-    ((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK_CTS))->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
-    ((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_RTS))->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
+    ((tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_ACK_CTS))->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
+    ((tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_RTS))->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
 
     wlan_mac_low_init_finish();
 
@@ -228,8 +234,8 @@ void update_tx_pkt_buf_lists(){
 
 			pkt_buf = *( (u8*)curr_entry->data);
 
-			tx_frame_info	= (tx_frame_info_t*)  (TX_PKT_BUF_TO_ADDR(pkt_buf));
-			header          = (mac_header_80211*) (TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
+			tx_frame_info	= (tx_frame_info_t*)  (CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf));
+			header          = (mac_header_80211*) (CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
 
 			// The pkt_buf_group_t in the frame_info_t cannot be used to find the existing multicast packets in the
 			// general list. When DTIM multicast buffering is disabled, all pkt_buf_group_t are PKT_BUF_GROUP_GENERAL.
@@ -260,7 +266,7 @@ void update_tx_pkt_buf_lists(){
 
 				pkt_buf = *( (u8*)curr_entry->data);
 
-				tx_frame_info	= (tx_frame_info_t*)  (TX_PKT_BUF_TO_ADDR(pkt_buf));
+				tx_frame_info	= (tx_frame_info_t*)  (CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf));
 
 				tx_frame_info->queue_info.pkt_buf_group = PKT_BUF_GROUP_GENERAL;
 				dl_entry_remove(&gl_tx_pkt_buf_ready_list_dtim_mcast, curr_entry);
@@ -584,8 +590,8 @@ inline u32 send_beacon(u8 tx_pkt_buf){
 	int tx_gain;
 	u8 mpdu_tx_ant_mask;
 	//Note: This needs to be a volatile to allow the tx_pkt_buf_state to be re-read in the initial while loop below
-	volatile tx_frame_info_t* tx_frame_info			= (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(tx_pkt_buf));
-	mac_header_80211* header             			= (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
+	volatile tx_frame_info_t* tx_frame_info			= (tx_frame_info_t*) (CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf));
+	mac_header_80211* header             			= (mac_header_80211*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
 	tx_mode_t tx_mode;
 	u32 rx_status;
 	mgmt_tag_template_t*	mgmt_tag_tim_template = NULL;
@@ -875,7 +881,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     u8				  * mac_payload_ptr_u8;
 
     // Translate Rx pkt buf index into actual memory address
-    void* pkt_buf_addr = (void *) RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
+    void* pkt_buf_addr = (void *) CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf);
 
     // Get pointer to MPDU info struct (stored at 0 offset in the pkt buffer)
     rx_frame_info = (rx_frame_info_t*) pkt_buf_addr;
@@ -958,7 +964,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         }
 
         // Construct the ACK frame in the dedicated Tx pkt buf
-        tx_length = wlan_create_ack_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK_CTS) + PHY_TX_PKT_BUF_MPDU_OFFSET), rx_header->address_2);
+        tx_length = wlan_create_ack_frame((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_ACK_CTS) + PHY_TX_PKT_BUF_MPDU_OFFSET), rx_header->address_2);
 
         // Write the SIGNAL field for the ACK
         write_phy_preamble(TX_PKT_BUF_ACK_CTS, PHY_MODE_NONHT, tx_mcs, tx_length);
@@ -995,7 +1001,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
             //     - The frame_transmit() context already configured the SIGNAL field,
             //       so we do not have to worry about it in this context
             //
-        	tx_frame_info = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(gl_long_mpdu_pkt_buf));
+        	tx_frame_info = (tx_frame_info_t*) (CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, gl_long_mpdu_pkt_buf));
 
             switch(tx_frame_info->params.phy.antenna_mode) {
                 case TX_ANTMODE_SISO_ANTA:  mpdu_tx_ant_mask |= 0x1;  break;
@@ -1032,7 +1038,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         			wlan_ofdm_calc_txtime(sizeof(mac_header_80211_CTS) + WLAN_PHY_FCS_NBYTES, tx_mcs, PHY_MODE_NONHT, wlan_mac_low_get_phy_samp_rate()));
 
         // Construct the ACK frame in the dedicated Tx pkt buf
-        tx_length = wlan_create_cts_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK_CTS) + PHY_TX_PKT_BUF_MPDU_OFFSET),
+        tx_length = wlan_create_cts_frame((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_ACK_CTS) + PHY_TX_PKT_BUF_MPDU_OFFSET),
                                           rx_header->address_2,
                                           cts_duration);
 
@@ -1383,7 +1389,7 @@ int handle_tx_pkt_buf_ready(u8 pkt_buf){
 	int return_value = 0;
 	dl_entry* entry;
 	dl_list* list = NULL;
-	tx_frame_info_t* tx_frame_info = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
+	tx_frame_info_t* tx_frame_info = (tx_frame_info_t*) (CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf));
 
 	if(gl_tx_pkt_buf_ready_list_free.length > 0){
 		entry = gl_tx_pkt_buf_ready_list_free.first;
@@ -1473,7 +1479,7 @@ u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 
 				// In the special case of sending a DTIM MCAST packet, the DCF is responsible for maintaining the
 				// MAC_FRAME_CTRL2_FLAG_MORE_DATA bit in the header.
-				header  = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
+				header  = (mac_header_80211*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
 
 				if( gl_tx_pkt_buf_ready_list_dtim_mcast.length == 1 ){
 					// If there is a second mcast frame in the READY state, we can safely raise
@@ -1556,7 +1562,7 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
     u32 mac_hw_status;
     u32 mac_tx_ctrl_status;
 
-    tx_frame_info_t   * tx_frame_info       = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
+    tx_frame_info_t   * tx_frame_info       = (tx_frame_info_t*) (CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf));
 
     if( resume == 0 ){
     	int curr_tx_pow;
@@ -1787,8 +1793,8 @@ void frame_transmit_general(u8 pkt_buf) {
     u16                 n_slots             = 0;
     u16                 n_slots_readback    = 0;
     u8                  mpdu_tx_ant_mask    = 0;
-    tx_frame_info_t   * tx_frame_info       = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
-    mac_header_80211  * header              = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
+    tx_frame_info_t   * tx_frame_info       = (tx_frame_info_t*) (CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf));
+    mac_header_80211  * header              = (mac_header_80211*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
 
     // Extract waveform params from the tx_frame_info
     u8  mcs      = tx_frame_info->params.phy.mcs;
@@ -1914,7 +1920,7 @@ void frame_transmit_general(u8 pkt_buf) {
 			low_tx_details.duration = rts_header_duration;
 
 			// Construct the RTS frame in the dedicated Tx pkt buf for control frames
-			mac_cfg_length = wlan_create_rts_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_RTS) + PHY_TX_PKT_BUF_MPDU_OFFSET),
+			mac_cfg_length = wlan_create_rts_frame((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_RTS) + PHY_TX_PKT_BUF_MPDU_OFFSET),
 												   header->address_1,
 												   header->address_2,
 												   rts_header_duration);

@@ -46,6 +46,10 @@ const u8 ones_in_chars[256] = {
          3, 4, 4, 5, 4, 5, 5, 6, 4, 5, 5, 6, 5, 6, 6, 7,   // 0xE0 - 0xEF
          4, 5, 5, 6, 5, 6, 6, 7, 5, 6, 6, 7, 6, 7, 7, 8};  // 0xF0 - 0xFF
 
+
+// Common Platform Device Info
+extern platform_common_dev_info_t	 platform_common_dev_info;
+
 /*****************************************************************************/
 /**
  * Initialize the PHY
@@ -320,16 +324,16 @@ void write_phy_preamble(u8 pkt_buf, u8 phy_mode, u8 mcs, u16 length) {
 		//11a mode - write SIGNAL (3 bytes)
 
 		//Zero-out any stale header, also properly sets SERVICE and reserved bytes to 0
-		bzero((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), PHY_TX_PKT_BUF_PHY_HDR_SIZE);
+		bzero((u32*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), PHY_TX_PKT_BUF_PHY_HDR_SIZE);
 
 		//Set SIGNAL with actual rate/length
-	    Xil_Out32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), WLAN_TX_SIGNAL_CALC(sig_rate_vals[mcs], length));
+	    Xil_Out32((u32*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), WLAN_TX_SIGNAL_CALC(sig_rate_vals[mcs], length));
 
 	} else if((phy_mode & PHY_MODE_HTMF) == PHY_MODE_HTMF) {
 		//11n mode - write L-SIG (3 bytes) and HT-SIG (6 bytes)
 
 		//Zero-out any stale header, also properly sets SERVICE, reserved bytes, and auto-filled bytes of HT-SIG to 0
-		bzero((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), PHY_TX_PKT_BUF_PHY_HDR_SIZE);
+		bzero((u32*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), PHY_TX_PKT_BUF_PHY_HDR_SIZE);
 
 	    // L-SIG is same format as 11a SIGNAL, but with RATE always 6Mb and LENGTH
 	    //  set such that LENGTH/6Mb matches duration of HT transmission
@@ -342,10 +346,10 @@ void write_phy_preamble(u8 pkt_buf, u8 phy_mode, u8 mcs, u16 length) {
 		// Calc (3*(num_payload_syms+num_ht_preamble_syms) = (3*(num_payload_syms+4))
 		lsig_length = 3*wlan_ofdm_calc_num_payload_syms(length, mcs, phy_mode) + 12;
 
-		Xil_Out32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), WLAN_TX_SIGNAL_CALC(sig_rate_vals[0], lsig_length));
+		Xil_Out32((u32*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), WLAN_TX_SIGNAL_CALC(sig_rate_vals[0], lsig_length));
 
 		//Assign pointer to first byte of HTSIG (PHY header base + 3 for sizeof(L-SIG))
-	    htsig_ptr = (u8*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET + 3);
+	    htsig_ptr = (u8*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET + 3);
 
 		//Set HTSIG bytes
 	    // PHY logic fills in bytes 4 and 5; ok to ignore here

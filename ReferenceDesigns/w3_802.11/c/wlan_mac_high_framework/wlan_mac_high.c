@@ -67,6 +67,7 @@ const  u8                    zero_addr[MAC_ADDR_LEN]     = { 0x00, 0x00, 0x00, 0
 
 // HW structures
 platform_high_dev_info_t	 platform_high_dev_info;
+platform_common_dev_info_t	 platform_common_dev_info;
 
 static XGpio                 Gpio_userio;                  ///< GPIO driver instnace for user IO inputs
 
@@ -193,7 +194,8 @@ void wlan_mac_high_init(){
 #endif //WLAN_SW_CONFIG_ENABLE_LOGGING
 	XAxiCdma_Config* cdma_cfg_ptr;
 
-	platform_high_dev_info = wlan_platform_high_get_dev_info();
+	platform_high_dev_info   = wlan_platform_high_get_dev_info();
+	platform_common_dev_info = wlan_platform_common_get_dev_info();
 
 	// ***************************************************
 	// Initialize XIntc
@@ -310,7 +312,7 @@ void wlan_mac_high_init(){
 	// Initialize Transmit Packet Buffers
 	// ***************************************************
 	for(i = 0; i < NUM_TX_PKT_BUFS; i++){
-		tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(i);
+		tx_frame_info = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, i);
 		switch(i){
 			case TX_PKT_BUF_MPDU_1:
 			case TX_PKT_BUF_MPDU_2:
@@ -356,7 +358,7 @@ void wlan_mac_high_init(){
 	// Initialize Receive Packet Buffers
 	// ***************************************************
 	for(i = 0; i < NUM_RX_PKT_BUFS; i++){
-		rx_frame_info = (rx_frame_info_t*)RX_PKT_BUF_TO_ADDR(i);
+		rx_frame_info = (rx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, i);
 		switch(rx_frame_info->rx_pkt_buf_state){
 			case RX_PKT_BUF_UNINITIALIZED:
 			case RX_PKT_BUF_LOW_CTRL:
@@ -1202,7 +1204,7 @@ void wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf) {
 	u32 				xfer_len;
 
 
-	tx_frame_info   = (tx_frame_info_t*) TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+	tx_frame_info   = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf);
 
     // Call user code to notify it of dequeue
 	mpdu_tx_dequeue_callback(packet);
@@ -1210,7 +1212,7 @@ void wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf) {
     // Set local variables
     //     NOTE:  This must be done after the mpdu_tx_dequeue_callback since that call can
     //         modify the packet contents.
-	dest_addr = (void*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+	dest_addr = (void*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf);
 	src_addr  = (void*) (&(((tx_queue_buffer_t*)(packet->data))->tx_frame_info));
 	xfer_len  = ((tx_queue_buffer_t*)(packet->data))->tx_frame_info.length + sizeof(tx_frame_info_t) + PHY_TX_PKT_BUF_PHY_HDR_SIZE - WLAN_PHY_FCS_NBYTES;
 
@@ -1395,7 +1397,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg, u32* ipc_msg_from_low_p
 				if(lock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 					xil_printf("Error: CPU_LOW had lock on Beacon packet buffer during IPC_MBOX_TX_BEACON_DONE\n");
 				} else {
-					tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+					tx_frame_info = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf);
 					tx_low_details = (wlan_mac_low_tx_details_t*)(msg->payload_ptr);
 
 					tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
@@ -1430,7 +1432,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg, u32* ipc_msg_from_low_p
 
 			rx_pkt_buf = msg->arg0;
 			if(rx_pkt_buf < NUM_RX_PKT_BUFS){
-				rx_frame_info = (rx_frame_info_t*)RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
+				rx_frame_info = (rx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf);
 
 				switch(rx_frame_info->rx_pkt_buf_state){
 				   case RX_PKT_BUF_READY:
@@ -1443,10 +1445,10 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg, u32* ipc_msg_from_low_p
 							rx_frame_info->rx_pkt_buf_state = RX_PKT_BUF_HIGH_CTRL;
 
 							//Before calling the user's callback, we'll pass this reception off to the BSS info subsystem so it can scrape for BSS metadata
-							bss_info_rx_process((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)));
+							bss_info_rx_process((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf)));
 
 							//We will also pass this reception off to the Station Info subsystem
-							station_info = station_info_rx_process((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)));
+							station_info = station_info_rx_process((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf)));
 
 #if WLAN_SW_CONFIG_ENABLE_LOGGING
 							//Log this RX event
@@ -1454,14 +1456,14 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg, u32* ipc_msg_from_low_p
 #endif
 
 							// Call the RX callback function to process the received packet
-							mpdu_rx_process_flags = mpdu_rx_callback((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), station_info, rx_event_log_entry);
+							mpdu_rx_process_flags = mpdu_rx_callback((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf)), station_info, rx_event_log_entry);
 
 #if	WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
 							if( (mpdu_rx_process_flags & MAC_RX_CALLBACK_RETURN_FLAG_NO_COUNTS) == 0 ){
 								if(mpdu_rx_process_flags & MAC_RX_CALLBACK_RETURN_FLAG_DUP){
-									station_info_rx_process_counts((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), station_info, RX_PROCESS_COUNTS_OPTION_FLAG_IS_DUPLICATE);
+									station_info_rx_process_counts((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf)), station_info, RX_PROCESS_COUNTS_OPTION_FLAG_IS_DUPLICATE);
 								} else {
-									station_info_rx_process_counts((void*)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), station_info, 0);
+									station_info_rx_process_counts((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf)), station_info, 0);
 								}
 							}
 #endif
@@ -1496,7 +1498,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg, u32* ipc_msg_from_low_p
 
 			tx_pkt_buf = msg->arg0;
 			if(tx_pkt_buf < NUM_TX_PKT_BUFS){
-				tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+				tx_frame_info = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf);
 				tx_low_details = (wlan_mac_low_tx_details_t*)(msg->payload_ptr);
 #if WLAN_SW_CONFIG_ENABLE_LOGGING
 				tx_low_event_log_entry = wlan_exp_log_create_tx_low_entry(tx_frame_info, tx_low_details);
@@ -1517,7 +1519,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg, u32* ipc_msg_from_low_p
 
 			tx_pkt_buf = msg->arg0;
 			if(tx_pkt_buf < NUM_TX_PKT_BUFS){
-				tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+				tx_frame_info = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf);
 				switch(tx_frame_info->tx_pkt_buf_state){
 					case TX_PKT_BUF_DONE:
 						// Expected state after CPU Low finishes Tx
@@ -1534,7 +1536,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg, u32* ipc_msg_from_low_p
 						tx_poll_callback(tx_frame_info->queue_info.pkt_buf_group);
 
 						//We will pass this completed transmission off to the Station Info subsystem
-						station_info = station_info_tx_process((void*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)));
+						station_info = station_info_tx_process((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf)));
 
 #if WLAN_SW_CONFIG_ENABLE_LOGGING
 						// Log the high-level transmission and call the application callback
@@ -2043,12 +2045,12 @@ inline int wlan_mac_high_is_dequeue_allowed(pkt_buf_group_t pkt_buf_group){
 	num_low_owned = 0;
 
 	for( i = 0; i < NUM_TX_PKT_BUF_MPDU; i++ ){
-		if( ((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state == TX_PKT_BUF_HIGH_CTRL ){
+		if( ((tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, i))->tx_pkt_buf_state == TX_PKT_BUF_HIGH_CTRL ){
 			num_empty++;
 		}
-		if( (((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(i))->queue_info.pkt_buf_group == pkt_buf_group) &&
-			(	(((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state == TX_PKT_BUF_READY) ||
-				(((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state == TX_PKT_BUF_LOW_CTRL)	) ){
+		if( (((tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, i))->queue_info.pkt_buf_group == pkt_buf_group) &&
+			(	(((tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, i))->tx_pkt_buf_state == TX_PKT_BUF_READY) ||
+				(((tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, i))->tx_pkt_buf_state == TX_PKT_BUF_LOW_CTRL)	) ){
 			num_low_owned++;
 		}
 	}
@@ -2087,7 +2089,7 @@ int wlan_mac_high_get_empty_tx_packet_buffer(){
 	int pkt_buf_sel = -1;
 
 	for( i = 0; i < NUM_TX_PKT_BUF_MPDU; i++ ){
-		if( ((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(i))->tx_pkt_buf_state == TX_PKT_BUF_HIGH_CTRL ){
+		if( ((tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, i))->tx_pkt_buf_state == TX_PKT_BUF_HIGH_CTRL ){
 			pkt_buf_sel = i;
 			break;
 		}
@@ -2150,7 +2152,7 @@ u8 wlan_mac_high_is_pkt_ltg(void* mac_payload, u16 length){
 int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, bss_info_t* bss_info, tx_params_t* tx_params_ptr, u8 flags) {
 	u16 tx_length;
 
-	tx_frame_info_t*  tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON);
+	tx_frame_info_t*  tx_frame_info = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_BEACON);
 	if(lock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS){
 		xil_printf("Error: CPU_LOW had lock on Beacon packet buffer during initial configuration\n");
 		return -1;
@@ -2203,7 +2205,7 @@ int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_heade
  * @return status            - 0 - Success;   -1 Failure
  */
 int wlan_mac_high_update_beacon_tx_params(tx_params_t* tx_params_ptr) {
-	tx_frame_info_t*  tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_BEACON);
+	tx_frame_info_t*  tx_frame_info = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_BEACON);
 
 	if (lock_tx_pkt_buf(TX_PKT_BUF_BEACON) != PKT_BUF_MUTEX_SUCCESS) {
 		xil_printf("Error: CPU_LOW had lock on Beacon packet buffer during initial configuration\n");

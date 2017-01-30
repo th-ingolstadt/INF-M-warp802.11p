@@ -88,8 +88,8 @@
 //   - [(M +  N):(M + 16)] - MAC payload          (N is the size of the MAC payload)
 //                           - Standard 802.11 MAC payload
 //
-#define TX_PKT_BUF_TO_ADDR(n)                             (XPAR_PKT_BUFF_TX_BRAM_CTRL_S_AXI_BASEADDR + ((n) & 0xF) * PKT_BUF_SIZE)
-#define RX_PKT_BUF_TO_ADDR(n)                             (XPAR_PKT_BUFF_RX_BRAM_CTRL_S_AXI_BASEADDR + ((n) & 0x7) * PKT_BUF_SIZE)
+
+#define CALC_PKT_BUF_ADDR(baseaddr, buf_idx)			  ( (baseaddr) + (((buf_idx) & 0xF) * PKT_BUF_SIZE) )
 
 #define PHY_RX_PKT_BUF_PHY_HDR_OFFSET                     (sizeof(rx_frame_info_t))
 #define PHY_TX_PKT_BUF_PHY_HDR_OFFSET                     (sizeof(tx_frame_info_t))

@@ -44,6 +44,9 @@
 /*************************** Variable Definitions ****************************/
 static u8                              eeprom_addr[MAC_ADDR_LEN];
 
+// Common Platform Device Info
+platform_common_dev_info_t	 platform_common_dev_info;
+
 
 /*************************** Functions Prototypes ****************************/
 
@@ -73,6 +76,9 @@ int main(){
 
     // Initialize the Low Framework
     wlan_mac_low_init(WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW, compilation_details);
+
+    // Get the device info
+	platform_common_dev_info = wlan_platform_common_get_dev_info();
 
     // Get the node's HW address
     hw_info = get_mac_hw_info();
@@ -134,7 +140,7 @@ int main(){
  */
 u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details){
 
-    void              * pkt_buf_addr        = (void *) RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
+    void              * pkt_buf_addr        = (void *) CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf);
     rx_frame_info_t   * rx_frame_info       = (rx_frame_info_t *) pkt_buf_addr;
 
     // Fill in the MPDU info fields for the reception. These values are known at RX_START. The other fields below
@@ -217,7 +223,7 @@ int frame_transmit(u8 pkt_buf) {
     u8 tx_gain;
     wlan_mac_low_tx_details_t low_tx_details;
 
-    tx_frame_info_t   * tx_frame_info       = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
+    tx_frame_info_t   * tx_frame_info       = (tx_frame_info_t*) (CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf));
     u8                  mpdu_tx_ant_mask    = 0;
 
     // Extract waveform params from the tx_frame_info

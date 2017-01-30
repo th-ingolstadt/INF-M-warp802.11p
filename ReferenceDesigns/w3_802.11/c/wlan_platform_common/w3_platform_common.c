@@ -24,7 +24,9 @@ static const platform_common_dev_info_t platform_common_dev_info = {
 		.is_cpu_low = 1,
 #endif
 		.mailbox_dev_id = PLATFORM_DEV_ID_MAILBOX,
-		.pkt_buf_mutex_dev_id = PLATFORM_DEV_ID_PKT_BUF_MUTEX
+		.pkt_buf_mutex_dev_id = PLATFORM_DEV_ID_PKT_BUF_MUTEX,
+		.tx_pkt_buf_baseaddr = XPAR_PKT_BUFF_TX_BRAM_CTRL_S_AXI_BASEADDR,
+		.rx_pkt_buf_baseaddr = XPAR_PKT_BUFF_RX_BRAM_CTRL_S_AXI_BASEADDR
 };
 
 platform_common_dev_info_t wlan_platform_common_get_dev_info(){

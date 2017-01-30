@@ -40,6 +40,7 @@
 
 // User callback to see if the higher-level framework can send a packet to
 // the lower-level framework to be transmitted.
+extern platform_common_dev_info_t	 platform_common_dev_info;
 extern function_ptr_t        tx_poll_callback;
 static function_ptr_t        queue_state_change_callback;
 
@@ -563,7 +564,7 @@ inline int dequeue_transmit_checkin(u16 queue_sel){
 			return_value = 1;
 		} else {
 			// Release the packet buffer because there is no Tx queue element to transmit
-			((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf))->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+			((tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf))->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 		}
 	}
 
