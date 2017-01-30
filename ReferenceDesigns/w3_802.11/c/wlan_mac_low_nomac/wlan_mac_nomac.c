@@ -18,10 +18,6 @@
 #include "xio.h"
 #include "math.h"
 
-// WARP includes
-#include "w3_userio.h"
-#include "radio_controller.h"
-
 // WLAN includes
 #include "wlan_mac_low.h"
 #include "wlan_mac_pkt_buf_util.h"

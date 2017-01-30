@@ -19,9 +19,6 @@
 #include "string.h"
 #include "xparameters.h"
 
-// WARP includes
-#include "w3_userio.h"
-
 // WLAN includes
 #include "wlan_platform_low.h"
 #include "wlan_platform_common.h"
@@ -167,10 +164,6 @@ void wlan_phy_init() {
 
     // WLAN_RX_PKT_BUF_MAXADDR reg
     wlan_phy_rx_set_max_pktbuf_addr(3800);
-
-    // WLAN_RX_RSSI_THRESH reg
-    //  Set MSB of RSSI_THRESH register to use summed RSSI for energy det debug output
-    Xil_Out32(XPAR_WLAN_PHY_RX_MEMMAP_RSSI_THRESH, ((1<<31) | (PHY_RX_RSSI_SUM_LEN * 150)));
 
     // Configure the default antenna selections as SISO Tx/Rx on RF A
     wlan_rx_config_ant_mode(RX_ANTMODE_SISO_ANTA);

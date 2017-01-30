@@ -137,6 +137,7 @@
 		(((cp_len) & 0xFF)  <<  8) | \
 		((num_sc) & 0xFF))
 
+#ifdef WLAN_RX_PKT_RSSI_AB
 // RSSI register files:
 //     WLAN_RX_PKT_RSSI_AB:
 //         [15: 0] - RFA
@@ -175,6 +176,11 @@
                                        ((ant) == 1) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >>  8) : \
                                        ((ant) == 2) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >> 16) : \
                                        (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >> 24)) & 0x1F)
+#else
+#define wlan_phy_rx_get_pkt_rssi(ant) (0)
+#define wlan_phy_rx_get_agc_RFG(ant)  (0)
+#define wlan_phy_rx_get_agc_BBG(ant)  (0)
+#endif
 
 #define wlan_phy_DSSS_rx_enable()  Xil_Out32(WLAN_RX_REG_CFG, Xil_In32(WLAN_RX_REG_CFG) | WLAN_RX_REG_CFG_DSSS_RX_EN)
 #define wlan_phy_DSSS_rx_disable() Xil_Out32(WLAN_RX_REG_CFG, Xil_In32(WLAN_RX_REG_CFG) & ~WLAN_RX_REG_CFG_DSSS_RX_EN)
@@ -288,10 +294,10 @@ void wlan_rx_config_ant_mode(u32 ant_mode);
 void write_phy_preamble(u8 pkt_buf, u8 phy_mode, u8 mcs, u16 length);
 
 // TX debug commands
-inline void wlan_tx_start();
+void wlan_tx_start();
 
 // Calculate transmit times
-inline u16 wlan_ofdm_calc_txtime(u16 length, u8 mcs, u8 phy_mode, phy_samp_rate_t phy_samp_rate);
-inline u16 wlan_ofdm_calc_num_payload_syms(u16 length, u8 mcs, u8 phy_mode);
+u16 wlan_ofdm_calc_txtime(u16 length, u8 mcs, u8 phy_mode, phy_samp_rate_t phy_samp_rate);
+u16 wlan_ofdm_calc_num_payload_syms(u16 length, u8 mcs, u8 phy_mode);
 
 #endif /* WLAN_PHY_UTIL_H_ */
