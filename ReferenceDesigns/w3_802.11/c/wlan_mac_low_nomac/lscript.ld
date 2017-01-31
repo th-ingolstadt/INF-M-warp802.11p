@@ -17,9 +17,7 @@ _HEAP_SIZE = DEFINED(_HEAP_SIZE) ? _HEAP_SIZE : 0x400;
 
 MEMORY
 {
-   mb_low_ilmb_bram_cntlr_mb_low_dlmb_bram_cntlr : ORIGIN = 0x00000050, LENGTH = 0x0000FFB0
-   pkt_buff_tx_bram_ctrl_S_AXI_BASEADDR : ORIGIN = 0xBF570000, LENGTH = 0x00010000
-   pkt_buff_rx_bram_ctrl_S_AXI_BASEADDR : ORIGIN = 0xBF560000, LENGTH = 0x00010000
+   mb_low_ilmb_bram_cntlr_mb_low_dlmb_bram_cntlr : ORIGIN = 0x00000050, LENGTH = 0x0001FFB0
 }
 
 /* Specify the default entry point to the program */
