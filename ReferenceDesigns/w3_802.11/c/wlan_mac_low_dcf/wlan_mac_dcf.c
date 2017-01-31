@@ -20,7 +20,6 @@
 #include "math.h"
 
 // WARP includes
-#include "w3_userio.h"
 #include "radio_controller.h"
 
 // WLAN includes
