@@ -1,6 +1,6 @@
 #include "wlan_mac_high_sw_config.h"
 #include "wlan_platform_high.h"
-#include "include/w3_platform_high.h"
+#include "include/w3_high.h"
 #include "include/w3_eth.h"
 #include "include/w3_uart.h"
 

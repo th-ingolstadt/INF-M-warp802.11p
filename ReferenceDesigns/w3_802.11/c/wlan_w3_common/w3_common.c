@@ -7,7 +7,7 @@
 #include "xparameters.h"
 
 #include "wlan_platform_common.h"
-#include "include/w3_platform_common.h"
+#include "include/w3_common.h"
 #include "include/w3_userio_util.h"
 #include "wlan_mac_common.h"
 #include "w3_iic_eeprom.h"
@@ -25,6 +25,7 @@ static const platform_common_dev_info_t platform_common_dev_info = {
 #endif
 		.mailbox_dev_id = PLATFORM_DEV_ID_MAILBOX,
 		.pkt_buf_mutex_dev_id = PLATFORM_DEV_ID_PKT_BUF_MUTEX,
+		.eeprom_baseaddr = EEPROM_BASEADDR,
 		.tx_pkt_buf_baseaddr = XPAR_PKT_BUFF_TX_BRAM_CTRL_S_AXI_BASEADDR,
 		.rx_pkt_buf_baseaddr = XPAR_PKT_BUFF_RX_BRAM_CTRL_S_AXI_BASEADDR
 };

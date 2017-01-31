@@ -1,7 +1,7 @@
 #include "xuartlite.h"
 
 #include "wlan_platform_high.h"
-#include "include/w3_platform_high.h"
+#include "include/w3_high.h"
 #include "include/w3_uart.h"
 #include "wlan_mac_common.h"
 #include "xparameters.h"

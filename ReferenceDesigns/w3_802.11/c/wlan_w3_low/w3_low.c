@@ -16,8 +16,7 @@
 
 // Platform includes
 #include "w3_mac_phy_regs.h"
-#include "w3_platform_low.h"
-#include "w3_platform_common.h"
+#include "w3_low.h"
 #include "wlan_platform_common.h"
 
 // Low framework includes
@@ -29,11 +28,17 @@
 #include "w3_clock_controller.h"
 #include "radio_controller.h"
 
+// Common Platform Device Info
+static platform_common_dev_info_t	 platform_common_dev_info;
+
 /*****************************************************************************
  * Public functions - the functions below are exported to the low framework
  *****************************************************************************/
 int wlan_platform_low_init() {
 	int status;
+
+	// Get the device info
+	platform_common_dev_info = wlan_platform_common_get_dev_info();
 
 	status = w3_node_init();
 	if(status != 0) {
@@ -393,7 +398,7 @@ void w3_radio_init() {
     // Setup all RF interfaces
     radio_controller_TxRxDisable(RC_BASEADDR, RC_ALL_RF);
 
-    radio_controller_apply_TxDCO_calibration(AD_BASEADDR, EEPROM_BASEADDR, (RC_RFA | RC_RFB));
+    radio_controller_apply_TxDCO_calibration(AD_BASEADDR, platform_common_dev_info.eeprom_baseaddr, (RC_RFA | RC_RFB));
 #ifdef WLAN_4RF_EN
     radio_controller_apply_TxDCO_calibration(AD_BASEADDR, FMC_EEPROM_BASEADDR, (RC_RFC | RC_RFD));
 #endif

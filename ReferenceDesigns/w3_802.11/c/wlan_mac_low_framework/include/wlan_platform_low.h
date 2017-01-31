@@ -24,7 +24,7 @@ int wlan_platform_low_init();
 
 void wlan_platform_low_set_samp_rate();
 void wlan_platform_low_param_handler(u8 mode, u32* payload);
-int wlan_platform_low_set_radio_channel(u32 channel);
+int  wlan_platform_low_set_radio_channel(u32 channel);
 void wlan_platform_low_set_rx_ant_mode(u32 ant_mode);
 
 #endif /* WLAN_PLATFORM_LOW_ */

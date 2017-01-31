@@ -2,7 +2,7 @@
 
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 #include "wlan_platform_high.h"
-#include "include/w3_platform_high.h"
+#include "include/w3_high.h"
 #include "include/w3_eth.h"
 #include "xparameters.h"
 
