@@ -25,6 +25,13 @@
 //
 #define USERIO_BASEADDR                                    XPAR_W3_USERIO_BASEADDR            ///< XParameters rename of base address of User I/O
 
+//-----------------------------------------------
+// Extra definitions not provided by driver
+#define W3_USERIO_DIPSW_0	0x08
+#define W3_USERIO_DIPSW_1	0x04
+#define W3_USERIO_DIPSW_2	0x02
+#define W3_USERIO_DIPSW_3	0x01
+
 // Wrapper macros for debug header IO
 #define wlan_mac_set_dbg_hdr_dir(dir, pin_mask) userio_set_dbg_hdr_io_dir(USERIO_BASEADDR, (dir), (pin_mask))
 #define wlan_mac_set_dbg_hdr_ctrlsrc(src, pin_mask) userio_set_dbg_hdr_out_ctrlsrc(USERIO_BASEADDR, (src), (pin_mask))

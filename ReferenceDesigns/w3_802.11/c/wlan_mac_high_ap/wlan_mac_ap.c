@@ -196,7 +196,8 @@ int main(){
 	wlan_mac_util_set_eth_rx_callback(          		(void*)ethernet_receive);
 #endif
 	wlan_mac_high_set_mpdu_rx_callback(         		(void*)mpdu_rx_process);
-	wlan_mac_high_set_pb_u_callback(            		(void*)up_button);
+	wlan_mac_high_set_press_pb_0_callback(            	(void*)button_0_press);
+	wlan_mac_high_set_release_pb_0_callback(            (void*)button_0_release);
 
 	wlan_mac_high_set_uart_rx_callback(         		(void*)uart_rx);
 	wlan_mac_high_set_poll_tx_queues_callback(  		(void*)poll_tx_queues);
@@ -267,7 +268,7 @@ int main(){
 #endif //WLAN_SW_CONFIG_ENABLE_LOGGING
 
 	// If the DIP switch allows it, set up BSS description
-	if ((wlan_mac_high_get_user_io_state() & GPIO_MASK_DS_3) == 0) {
+	if ((wlan_platform_userio_get_state() & USERIO_INPUT_MASK_SW_3) == 0) {
 		memcpy(bss_config.bssid, wlan_mac_addr, MAC_ADDR_LEN);
 		strncpy(bss_config.ssid, default_AP_SSID, SSID_LEN_MAX);
 
@@ -285,6 +286,7 @@ int main(){
 								  BSS_FIELD_MASK_DTIM_MCAST_BUFFER);
 		configure_bss(&bss_config);
 	}
+
 
 	gl_dtim_mcast_buffer_enable	= 1;
 	wlan_mac_high_enable_mcast_buffering(gl_dtim_mcast_buffer_enable);
@@ -2281,18 +2283,29 @@ u32	configure_bss(bss_config_t* bss_config){
 
 /*****************************************************************************/
 /**
- * @brief Callback to handle push of up button
+ * @brief Callback to handle push of User I/O button 0
  *
  * Reference implementation does nothing.
  *
  * @param None
  * @return None
  *****************************************************************************/
-void up_button(){
+void button_0_press(){
     return;
 }
 
-
+/*****************************************************************************/
+/**
+ * @brief Callback to handle release of User I/O button 0
+ *
+ * Reference implementation does nothing.
+ *
+ * @param None
+ * @return None
+ *****************************************************************************/
+void button_0_release(){
+    return;
+}
 
 /*****************************************************************************/
 /**

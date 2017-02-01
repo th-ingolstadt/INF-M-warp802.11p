@@ -92,7 +92,6 @@ bss_info_t * 	   active_bss_info_getter();
 int  sta_disassociate();
 u32  configure_bss(bss_config_t* bss_config);
 
-void up_button();
 void uart_rx(u8 rxByte);
 
 #endif /* WLAN_MAC_STA_H_ */

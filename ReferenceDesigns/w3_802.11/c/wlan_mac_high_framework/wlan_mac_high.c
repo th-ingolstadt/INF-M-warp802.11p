@@ -17,7 +17,6 @@
 // Xilinx Includes
 #include "stdlib.h"
 #include "malloc.h"
-#include "xgpio.h"
 #include "xil_exception.h"
 #include "xintc.h"
 #include "xaxicdma.h"
@@ -69,15 +68,18 @@ const  u8                    zero_addr[MAC_ADDR_LEN]     = { 0x00, 0x00, 0x00, 0
 platform_high_dev_info_t	 platform_high_dev_info;
 platform_common_dev_info_t	 platform_common_dev_info;
 
-static XGpio                 Gpio_userio;                  ///< GPIO driver instnace for user IO inputs
-
 XIntc                        InterruptController;          ///< Interrupt Controller instance
 XAxiCdma                     cdma_inst;                    ///< Central DMA instance
 
 // Callback function pointers
-volatile function_ptr_t      		pb_u_callback;                ///< User callback for "up" pushbutton
-volatile function_ptr_t      		pb_m_callback;                ///< User callback for "middle" pushbutton
-volatile function_ptr_t      		pb_d_callback;                ///< User callback for "down" pushbutton
+volatile function_ptr_t      		press_pb_0_callback;          ///< User callback for pressing pushbutton 0
+volatile function_ptr_t      		release_pb_0_callback;        ///< User callback for releasing pushbutton 0
+volatile function_ptr_t      		press_pb_1_callback;          ///< User callback for pressing pushbutton 1
+volatile function_ptr_t      		release_pb_1_callback;        ///< User callback for releasing pushbutton 1
+volatile function_ptr_t      		press_pb_2_callback;          ///< User callback for pressing pushbutton 2
+volatile function_ptr_t      		release_pb_2_callback;        ///< User callback for releasing pushbutton 2
+
+
 volatile function_ptr_t      		uart_callback;                ///< User callback for UART reception
 volatile function_ptr_t      		mpdu_tx_high_done_callback;   ///< User callback for lower-level message that MPDU transmission is complete
 volatile function_ptr_t      		mpdu_tx_low_done_callback;    ///< User callback for lower-level message that MPDU transmission is complete
@@ -281,9 +283,12 @@ void wlan_mac_high_init(){
 	// ***************************************************
     // Initialize callbacks and global state variables
 	// ***************************************************
-	pb_u_callback            		= (function_ptr_t)wlan_null_callback;
-	pb_m_callback            		= (function_ptr_t)wlan_null_callback;
-	pb_d_callback            		= (function_ptr_t)wlan_null_callback;
+	press_pb_0_callback             = (function_ptr_t)wlan_null_callback;
+	release_pb_0_callback           = (function_ptr_t)wlan_null_callback;
+	press_pb_1_callback             = (function_ptr_t)wlan_null_callback;
+	release_pb_1_callback           = (function_ptr_t)wlan_null_callback;
+	press_pb_2_callback             = (function_ptr_t)wlan_null_callback;
+	release_pb_2_callback           = (function_ptr_t)wlan_null_callback;
 	uart_callback            		= (function_ptr_t)wlan_null_callback;
 	mpdu_rx_callback         		= (function_ptr_t)wlan_null_callback;
 	mpdu_tx_high_done_callback    	= (function_ptr_t)wlan_null_callback;
@@ -397,21 +402,11 @@ void wlan_mac_high_init(){
 	}
 	XAxiCdma_IntrDisable(&cdma_inst, XAXICDMA_XR_IRQ_ALL_MASK);
 
-	// Initialize the GPIO driver instances
-	Status = XGpio_Initialize(&Gpio_userio, platform_high_dev_info.gpio_dev_id);
-
-	if (Status != XST_SUCCESS) {
-		wlan_printf(PL_ERROR, "ERROR: Could not initialize GPIO\n");
-		return;
-	}
-
-	// Set direction of GPIO channels
-	//  User IO GPIO instance has 1 channel, all inputs
-	XGpio_SetDataDirection(&Gpio_userio, GPIO_USERIO_INPUT_CHANNEL, 0xFFFFFFFF);
-
 	// Test to see if DRAM SODIMM is connected to board
 	timestamp = get_system_time_usec();
 
+#if 0
+	//FIXME: Should we just remove this check entirely?
 	while((get_system_time_usec() - timestamp) < 100000){
 		if((XGpio_DiscreteRead(&Gpio_userio, GPIO_USERIO_INPUT_CHANNEL) & GPIO_MASK_DRAM_INIT_DONE)) {
 			xil_printf("------------------------\nDRAM SODIMM Detected\n");
@@ -424,6 +419,7 @@ void wlan_mac_high_init(){
 			break;
 		}
 	}
+#endif
 
 	// ***************************************************
 	// Initialize various subsystems in the MAC High Framework
@@ -482,16 +478,6 @@ int wlan_mac_high_interrupt_init(){
 	// Connect interrupt devices "owned" by wlan_mac_high
 	// ***************************************************
 
-	// GPIO for User IO inputs
-	Result = XIntc_Connect(&InterruptController, platform_high_dev_info.gpio_int_id, (XInterruptHandler)wlan_mac_high_userio_gpio_handler, &Gpio_userio);
-	if (Result != XST_SUCCESS) {
-		wlan_printf(PL_ERROR, "Failed to set up GPIO interrupt\n");
-		return Result;
-	}
-	XIntc_Enable(&InterruptController, platform_high_dev_info.gpio_int_id);
-	XGpio_InterruptEnable(&Gpio_userio, GPIO_USERIO_INPUT_IR_CH_MASK);
-	XGpio_InterruptGlobalEnable(&Gpio_userio);
-
 	// ***************************************************
 	// Connect interrupt devices in other subsystems
 	// ***************************************************
@@ -511,6 +497,7 @@ int wlan_mac_high_interrupt_init(){
 	platform_high_config.intc = &InterruptController;
 	platform_high_config.eth_rx_callback = (void*)wlan_process_eth_rx;
 	platform_high_config.uart_rx_callback = (void*)wlan_mac_high_uart_rx_callback;
+	platform_high_config.userio_inputs_callback = (void*)wlan_mac_high_userio_inputs_callback;
 
 	Result = wlan_platform_high_init(platform_high_config);
 	if (Result != XST_SUCCESS) {
@@ -594,106 +581,56 @@ inline interrupt_state_t wlan_mac_high_interrupt_stop(){
 	return curr_state;
 }
 
-/**
- * @brief User IO GPIO Interrupt Handler
- *
- * Handles GPIO interrupts that occur from the user IO GPIO core's input
- * channel. Depending on the signal, this function will execute
- * one of several different user-provided callbacks.
- *
- * @param void* InstancePtr
- *  - Pointer to the GPIO instance
- * @return None
- *
- * @see wlan_mac_high_set_pb_u_callback()
- * @see wlan_mac_high_set_pb_m_callback()
- * @see wlan_mac_high_set_pb_d_callback()
- *
- */
-void wlan_mac_high_userio_gpio_handler(void *InstancePtr){
-	XGpio *GpioPtr;
-	u32 gpio_read;
 
-#ifdef _ISR_PERF_MON_EN_
-	wlan_mac_set_dbg_hdr_out(ISR_PERF_MON_GPIO_MASK);
-#endif
 
-	GpioPtr = (XGpio *)InstancePtr;
-
-	XGpio_InterruptDisable(GpioPtr, GPIO_USERIO_INPUT_IR_CH_MASK);
-	gpio_read = XGpio_DiscreteRead(GpioPtr, GPIO_USERIO_INPUT_CHANNEL);
-
-	if(gpio_read & GPIO_MASK_PB_U) pb_u_callback();
-	if(gpio_read & GPIO_MASK_PB_M) pb_m_callback();
-	if(gpio_read & GPIO_MASK_PB_D) pb_d_callback();
-
-	(void)XGpio_InterruptClear(GpioPtr, GPIO_USERIO_INPUT_IR_CH_MASK);
-	XGpio_InterruptEnable(GpioPtr, GPIO_USERIO_INPUT_IR_CH_MASK);
-
-#ifdef _ISR_PERF_MON_EN_
-	wlan_mac_clear_dbg_hdr_out(ISR_PERF_MON_GPIO_MASK);
-#endif
-	return;
+void wlan_mac_high_userio_inputs_callback(u32 userio_state, userio_input_mask_t userio_delta){
+	switch(userio_delta){
+		case USERIO_INPUT_MASK_PB_0:
+			if(userio_state){
+				press_pb_0_callback();
+			} else {
+				release_pb_0_callback();
+			}
+		break;
+		case USERIO_INPUT_MASK_PB_1:
+			if(userio_state){
+				press_pb_1_callback();
+			} else {
+				release_pb_1_callback();
+			}
+		break;
+		case USERIO_INPUT_MASK_PB_2:
+			if(userio_state){
+				press_pb_2_callback();
+			} else {
+				release_pb_2_callback();
+			}
+		break;
+		default:
+		//Not implemented
+		break;
+	}
 }
 
 
-u32 wlan_mac_high_get_user_io_state(){
-	return XGpio_DiscreteRead(&Gpio_userio, GPIO_USERIO_INPUT_CHANNEL);
+void wlan_mac_high_set_press_pb_0_callback(function_ptr_t callback){
+	press_pb_0_callback = callback;
 }
-
-
-/**
- * @brief Set "Up" Pushbutton Callback
- *
- * Tells the framework which function should be called when
- * the "up" button in the User I/O section of the hardware
- * is pressed.
- *
- * @param function_ptr_t callback
- *  - Pointer to callback function
- * @return None
- *
- */
-void wlan_mac_high_set_pb_u_callback(function_ptr_t callback){
-	pb_u_callback = callback;
+void wlan_mac_high_set_release_pb_0_callback(function_ptr_t callback){
+	release_pb_0_callback = callback;
 }
-
-
-
-/**
- * @brief Set "Middle" Pushbutton Callback
- *
- * Tells the framework which function should be called when
- * the "middle" button in the User I/O section of the hardware
- * is pressed.
- *
- * @param function_ptr_t callback
- *  - Pointer to callback function
- * @return None
- *
- */
-void wlan_mac_high_set_pb_m_callback(function_ptr_t callback){
-	pb_m_callback = callback;
+void wlan_mac_high_set_press_pb_1_callback(function_ptr_t callback){
+	press_pb_1_callback = callback;
 }
-
-
-
-/**
- * @brief Set "Down" Pushbutton Callback
- *
- * Tells the framework which function should be called when
- * the "down" button in the User I/O section of the hardware
- * is pressed.
- *
- * @param function_ptr_t callback
- *  - Pointer to callback function
- * @return None
- *
- */
-void wlan_mac_high_set_pb_d_callback(function_ptr_t callback){
-	pb_d_callback = callback;
+void wlan_mac_high_set_release_pb_1_callback(function_ptr_t callback){
+	release_pb_1_callback = callback;
 }
-
+void wlan_mac_high_set_press_pb_2_callback(function_ptr_t callback){
+	press_pb_2_callback = callback;
+}
+void wlan_mac_high_set_release_pb_2_callback(function_ptr_t callback){
+	release_pb_2_callback = callback;
+}
 
 
 /**

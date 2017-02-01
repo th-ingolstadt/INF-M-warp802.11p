@@ -14,6 +14,7 @@
 /***************************** Include Files *********************************/
 
 #include "wlan_mac_high_sw_config.h"
+#include "wlan_mac_high.h"
 
 #ifndef WLAN_MAC_ETH_UTIL_H_
 #define WLAN_MAC_ETH_UTIL_H_

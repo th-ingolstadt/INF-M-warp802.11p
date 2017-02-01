@@ -27,6 +27,17 @@ typedef enum {
 	USERIO_DISP_STATUS_CPU_ERROR    		= 255
 } userio_disp_status_t;
 
+typedef enum {
+	USERIO_INPUT_MASK_PB_0		= 0x00000001,
+	USERIO_INPUT_MASK_PB_1		= 0x00000002,
+	USERIO_INPUT_MASK_PB_2		= 0x00000004,
+	USERIO_INPUT_MASK_PB_3		= 0x00000008,
+	USERIO_INPUT_MASK_SW_0		= 0x00000010,
+	USERIO_INPUT_MASK_SW_1		= 0x00000020,
+	USERIO_INPUT_MASK_SW_2		= 0x00000040,
+	USERIO_INPUT_MASK_SW_3		= 0x00000080,
+} userio_input_mask_t;
+
 //---------------------------------------
 // Platform information struct
 typedef struct{
@@ -47,6 +58,7 @@ wlan_mac_hw_info_t wlan_platform_get_hw_info();
 
 // User IO functions
 void wlan_platform_userio_disp_status(userio_disp_status_t status, ...);
+u32  wlan_platform_userio_get_state();
 
 // MAC time functions
 u64                get_mac_time_usec();

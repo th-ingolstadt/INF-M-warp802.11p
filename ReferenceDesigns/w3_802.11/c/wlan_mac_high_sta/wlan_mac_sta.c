@@ -211,7 +211,6 @@ int main() {
 #if WLAN_SW_CONFIG_ENABLE_LTG
 	wlan_mac_ltg_sched_set_callback(             (void *) ltg_event);
 #endif //WLAN_SW_CONFIG_ENABLE_LTG
-	wlan_mac_high_set_pb_u_callback(             (void *) up_button);
 	wlan_mac_scan_set_tx_probe_request_callback( (void *) send_probe_req);
 	wlan_mac_scan_set_state_change_callback(     (void *) process_scan_state_change);
 
@@ -286,7 +285,7 @@ int main() {
 	wlan_mac_high_interrupt_restore_state(INTERRUPTS_ENABLED);
 
 	// If there is a default SSID and the DIP switch allows it, initiate a probe request
-	if ((strlen(access_point_ssid) > 0) && ((wlan_mac_high_get_user_io_state() & GPIO_MASK_DS_3) == 0)) {
+	if ((strlen(access_point_ssid) > 0) && ((wlan_platform_userio_get_state() & USERIO_INPUT_MASK_SW_3) == 0)) {
 		// Get current join parameters
 		join_parameters = wlan_mac_sta_get_join_parameters();
 
@@ -1284,23 +1283,6 @@ void sta_set_beacon_ts_update_mode(u32 enable){
     // Push beacon configuration to CPU_LOW
     wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
 }
-
-
-
-/*****************************************************************************/
-/**
- * @brief Callback to handle push of up button
- *
- * Reference implementation does nothing.
- *
- * @param None
- * @return None
- *****************************************************************************/
-void up_button(){
-	return;
-}
-
-
 
 /*****************************************************************************/
 /**

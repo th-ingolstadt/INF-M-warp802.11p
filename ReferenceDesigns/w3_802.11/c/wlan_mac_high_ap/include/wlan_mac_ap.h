@@ -103,7 +103,8 @@ void handle_cpu_low_reboot();
 u32  configure_bss(bss_config_t* bss_config);
 void mpdu_dequeue(dl_entry* packet);
 
-void up_button();
+void button_0_press();
+void button_0_release();
 
 void uart_rx(u8 rxByte);
 

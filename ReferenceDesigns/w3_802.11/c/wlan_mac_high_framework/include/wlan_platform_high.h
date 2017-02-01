@@ -27,8 +27,6 @@ typedef struct{
 	u32		dram_baseaddr;
 	u32		dram_size;
 	u32		intc_dev_id;
-	u32		gpio_dev_id;
-	u32		gpio_int_id;
 	u32		timer_dev_id;
 	u32		timer_int_id;
 	u32		timer_freq;

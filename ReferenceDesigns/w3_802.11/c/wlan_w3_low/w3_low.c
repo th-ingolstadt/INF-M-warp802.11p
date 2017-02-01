@@ -13,11 +13,13 @@
 #include "xil_types.h"
 #include "xstatus.h"
 #include "xparameters.h"
+#include "stdarg.h"
 
 // Platform includes
 #include "w3_mac_phy_regs.h"
 #include "w3_low.h"
 #include "wlan_platform_common.h"
+#include "w3_userio_util.h"
 
 // Low framework includes
 #include "wlan_phy_util.h"
@@ -34,6 +36,53 @@ static platform_common_dev_info_t	 platform_common_dev_info;
 /*****************************************************************************
  * Public functions - the functions below are exported to the low framework
  *****************************************************************************/
+
+
+void wlan_platform_userio_disp_status(userio_disp_status_t status, ...){
+   va_list valist;
+   static u8 red_led_index = 0;
+   static u8 green_led_index = 0;
+
+   /* initialize valist for num number of arguments */
+   va_start(valist, status);
+
+   switch(status){
+
+   	   case USERIO_DISP_STATUS_GOOD_FCS_EVENT: {
+           green_led_index = (green_led_index + 1) % 4;
+           userio_write_leds_green(USERIO_BASEADDR, (1<<green_led_index));
+   	   } break;
+
+   	   case USERIO_DISP_STATUS_BAD_FCS_EVENT: {
+           red_led_index = (red_led_index + 1) % 4;
+           userio_write_leds_red(USERIO_BASEADDR, (1<<red_led_index));
+   	   } break;
+   	   case USERIO_DISP_STATUS_CPU_ERROR: {
+   		   u32 error_code = va_arg(valist, u32);
+   		   if (error_code != WLAN_ERROR_CPU_STOP) {
+   			   // Print error message
+   			   xil_printf("\n\nERROR:  CPU is halting with error code: E%X\n\n", (error_code & 0xF));
+
+   			   // Set the error code on the hex display
+   			   set_hex_display_error_status(error_code & 0xF);
+
+   			   // Enter infinite loop blinking the hex display
+   			   blink_hex_display(0, 250000);
+			} else {
+				// Stop execution
+				while (1) {};
+			}
+   	   } break;
+
+   	   default:
+	   break;
+   }
+
+   /* clean memory reserved for valist */
+   va_end(valist);
+   return;
+}
+
 int wlan_platform_low_init() {
 	int status;
 

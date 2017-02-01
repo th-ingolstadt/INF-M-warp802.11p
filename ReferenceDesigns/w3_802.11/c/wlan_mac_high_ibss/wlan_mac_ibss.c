@@ -284,7 +284,7 @@ int main() {
 
 	// If there is a default SSID and the DIP switch allows it, start an active scan
 	//     - Uses default scan parameters
-	if ((strlen(default_ssid) > 0) && ((wlan_mac_high_get_user_io_state()&GPIO_MASK_DS_3) == 0)) {
+	if ((strlen(default_ssid) > 0) && ((wlan_platform_userio_get_state() & USERIO_INPUT_MASK_SW_3) == 0)) {
 
 		scan_start_timestamp = get_system_time_usec();
 

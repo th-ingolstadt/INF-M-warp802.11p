@@ -7,8 +7,8 @@
 #include "xparameters.h"
 
 #include "wlan_platform_common.h"
-#include "include/w3_common.h"
-#include "include/w3_userio_util.h"
+#include "w3_common.h"
+#include "w3_userio_util.h"
 #include "wlan_mac_common.h"
 #include "w3_iic_eeprom.h"
 
@@ -64,101 +64,20 @@ wlan_mac_hw_info_t wlan_platform_get_hw_info(){
     return mac_hw_info;
 }
 
+u32  wlan_platform_userio_get_state(){
+	u32 return_value = 0;
+	u32 user_io_inputs;
 
-void wlan_platform_userio_disp_status(userio_disp_status_t status, ...){
-   va_list valist;
+	user_io_inputs = userio_read_inputs(USERIO_BASEADDR);
 
-#if WLAN_COMPILE_FOR_CPU_HIGH
-   static application_role_t application_role = APPLICATION_ROLE_UNKNOWN;
-#endif
+	if(user_io_inputs & W3_USERIO_PB_U) return_value |= USERIO_INPUT_MASK_PB_0;
+	if(user_io_inputs & W3_USERIO_PB_M) return_value |= USERIO_INPUT_MASK_PB_1;
+	if(user_io_inputs & W3_USERIO_PB_D) return_value |= USERIO_INPUT_MASK_PB_2;
 
-#if WLAN_COMPILE_FOR_CPU_LOW
-   static u8 red_led_index = 0;
-   static u8 green_led_index = 0;
-#endif
+	if(user_io_inputs & W3_USERIO_DIPSW_0) return_value |= USERIO_INPUT_MASK_SW_0;
+	if(user_io_inputs & W3_USERIO_DIPSW_1) return_value |= USERIO_INPUT_MASK_SW_1;
+	if(user_io_inputs & W3_USERIO_DIPSW_2) return_value |= USERIO_INPUT_MASK_SW_2;
+	if(user_io_inputs & W3_USERIO_DIPSW_3) return_value |= USERIO_INPUT_MASK_SW_3;
 
-   /* initialize valist for num number of arguments */
-   va_start(valist, status);
-
-   switch(status){
-
-#if WLAN_COMPILE_FOR_CPU_HIGH
-   	   case USERIO_DISP_STATUS_IDENTIFY: {
-   		   blink_hex_display(10, 5);
-   	   } break;
-
-   	   case USERIO_DISP_STATUS_APPLICATION_ROLE: {
-   		   application_role = va_arg(valist, application_role_t);
-
-   		   if(application_role == APPLICATION_ROLE_AP){
-				// Set Periodic blinking of hex display (period of 500 with min of 2 and max of 400)
-				set_hex_pwm_period(500);
-				set_hex_pwm_min_max(2, 400);
-				enable_hex_pwm();
-   		   }
-   	   } break;
-
-   	   case USERIO_DISP_STATUS_MEMBER_LIST_UPDATE: {
-   		   	u32 val = va_arg(valist, u32);
-
-			if(application_role == APPLICATION_ROLE_AP){
-				write_hex_display_with_pwm((u8)val);
-			} else {
-				write_hex_display((u8)val);
-			}
-
-   	   } break;
-
-   	   case USERIO_DISP_STATUS_WLAN_EXP_CONFIGURE: {
-   		   u32 wlan_exp_is_configured = va_arg(valist, u32);
-
-   		   if( wlan_exp_is_configured ){
-   			   set_hex_display_right_dp(1);
-   		   } else {
-   			   set_hex_display_right_dp(0);
-   		   }
-   	   } break;
-#endif
-
-#if WLAN_COMPILE_FOR_CPU_LOW
-   	   case USERIO_DISP_STATUS_GOOD_FCS_EVENT: {
-           green_led_index = (green_led_index + 1) % 4;
-           userio_write_leds_green(USERIO_BASEADDR, (1<<green_led_index));
-   	   } break;
-
-   	   case USERIO_DISP_STATUS_BAD_FCS_EVENT: {
-           red_led_index = (red_led_index + 1) % 4;
-           userio_write_leds_red(USERIO_BASEADDR, (1<<red_led_index));
-   	   } break;
-#endif
-
-   	   case USERIO_DISP_STATUS_CPU_ERROR: {
-
-   		   u32 error_code = va_arg(valist, u32);
-   		   if (error_code != WLAN_ERROR_CPU_STOP) {
-   			   // Print error message
-   			   xil_printf("\n\nERROR:  CPU is halting with error code: E%X\n\n", (error_code & 0xF));
-
-   			   // Set the error code on the hex display
-   			   set_hex_display_error_status(error_code & 0xF);
-
-   			   // Enter infinite loop blinking the hex display
-   			   blink_hex_display(0, 250000);
-			} else {
-				// Stop execution
-				while (1) {};
-			}
-
-   	   } break;
-
-   	   default:
-	   break;
-   }
-
-
-   /* clean memory reserved for valist */
-   va_end(valist);
-
-   return;
-
+	return return_value;
 }

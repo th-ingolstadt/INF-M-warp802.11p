@@ -186,20 +186,17 @@
 #define EVENT_LOG_SIZE                     ((CALC_HIGH_ADDR(platform_high_dev_info.dram_baseaddr, platform_high_dev_info.dram_size)) - EVENT_LOG_BASE + 1) // log occupies all remaining DRAM
 #define EVENT_LOG_HIGH                      CALC_HIGH_ADDR(EVENT_LOG_BASE, EVENT_LOG_SIZE)
 
-
-//FIXME: Below defines should be platformized. I'll tackle it when dealing with User I/O inputs
-#define GPIO_USERIO_INPUT_CHANNEL            1                                  ///< Channel used as input user IO inputs (buttons, DIP switch)
-#define GPIO_USERIO_INPUT_IR_CH_MASK         XGPIO_IR_CH1_MASK                  ///< Mask for enabling interrupts on GPIO input
+//FIXME: wlan_exp should be updated to use this enum to report node type
+typedef enum {
+	APPLICATION_ROLE_AP			= 1,
+	APPLICATION_ROLE_STA		= 2,
+	APPLICATION_ROLE_IBSS		= 3,
+	APPLICATION_ROLE_UNKNOWN	= 0xFF
+} application_role_t;
 
 //-----------------------------------------------
 // WLAN Constants
 //
-
-#define GPIO_MASK_DRAM_INIT_DONE                           0x00000100                         ///< Mask for GPIO -- DRAM initialization bit
-#define GPIO_MASK_PB_U                                     0x00000040                         ///< Mask for GPIO -- "Up" Pushbutton
-#define GPIO_MASK_PB_M                                     0x00000020                         ///< Mask for GPIO -- "Middle" Pushbutton
-#define GPIO_MASK_PB_D                                     0x00000010                         ///< Mask for GPIO -- "Down" Pushbutton
-#define GPIO_MASK_DS_3                                     0x00000008                         ///< Mask for GPIO -- MSB of Dip Switch
 
 //-----------------------------------------------
 // Callback Return Flags
@@ -247,15 +244,17 @@ void 						 wlan_mac_high_uart_rx_callback(u8 rxByte);
 inline int                   wlan_mac_high_interrupt_restore_state(interrupt_state_t new_interrupt_state);
 inline interrupt_state_t     wlan_mac_high_interrupt_stop();
 
-void               wlan_mac_high_userio_gpio_handler(void *InstancePtr);
+void 			   wlan_mac_high_userio_inputs_callback(u32 userio_state, userio_input_mask_t userio_delta);
 
 dl_entry*          wlan_mac_high_find_counts_ADDR(dl_list* list, u8* addr);
 
-u32                wlan_mac_high_get_user_io_state();
+void               wlan_mac_high_set_press_pb_0_callback(function_ptr_t callback);
+void               wlan_mac_high_set_release_pb_0_callback(function_ptr_t callback);
+void               wlan_mac_high_set_press_pb_1_callback(function_ptr_t callback);
+void               wlan_mac_high_set_release_pb_1_callback(function_ptr_t callback);
+void               wlan_mac_high_set_press_pb_2_callback(function_ptr_t callback);
+void               wlan_mac_high_set_release_pb_2_callback(function_ptr_t callback);
 
-void               wlan_mac_high_set_pb_u_callback(function_ptr_t callback);
-void               wlan_mac_high_set_pb_m_callback(function_ptr_t callback);
-void               wlan_mac_high_set_pb_d_callback(function_ptr_t callback);
 void               wlan_mac_high_set_uart_rx_callback(function_ptr_t callback);
 void               wlan_mac_high_set_mpdu_tx_high_done_callback(function_ptr_t callback);
 void               wlan_mac_high_set_mpdu_tx_low_done_callback(function_ptr_t callback);

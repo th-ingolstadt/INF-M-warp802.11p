@@ -165,14 +165,6 @@
 //
 typedef int (*function_ptr_t)();
 
-//FIXME: wlan_exp should be updated to use this enum to report node type
-typedef enum {
-	APPLICATION_ROLE_AP			= 1,
-	APPLICATION_ROLE_STA		= 2,
-	APPLICATION_ROLE_IBSS		= 3,
-	APPLICATION_ROLE_UNKNOWN	= 0xFF
-} application_role_t;
-
 //-----------------------------------------------
 // PHY Bandwidth Configuration
 //
