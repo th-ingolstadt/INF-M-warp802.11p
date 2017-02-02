@@ -156,18 +156,6 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
     sample_rate_change_callback  = (function_ptr_t) wlan_null_callback;
     handle_tx_pkt_buf_ready		 = (function_ptr_t) wlan_null_callback;
 
-#if 0
-
-    //FIXME: this needs further discussion.
-
-    // Initialize Debug Header
-    //  Allow HW to control Pins 0:11
-    wlan_mac_set_dbg_hdr_ctrlsrc(DBG_HDR_CTRLSRC_HW, 0x0FFF);
-    //  Allow SW to control Pins 12:15
-    wlan_mac_set_dbg_hdr_ctrlsrc(DBG_HDR_CTRLSRC_SW, 0xF000);
-    wlan_mac_set_dbg_hdr_dir(DBG_HDR_DIR_OUTPUT, 0xF000);
-#endif
-
     // Initialize mailbox
 	init_mailbox();
 
