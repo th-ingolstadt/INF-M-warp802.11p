@@ -2918,7 +2918,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
         	u8 cmd_processed;
 
         	// Call function in platform code
-        	wlan_platform_wlan_exp_process_node_cmd(&cmd_processed, cmd_id, socket_index, from, command, response, max_resp_len);
+        	resp_sent = wlan_platform_wlan_exp_process_node_cmd(&cmd_processed, cmd_id, socket_index, from, command, response, max_resp_len);
 
         	if(cmd_processed == 0){
         		// If platform code did not deal with this command, then
