@@ -262,9 +262,6 @@ int w3_node_init() {
     int            status;
     u32            clkmod_status;
 
-    // Enable excpetions
-    microblaze_enable_exceptions();
-
     // Initialize w3_clock_controller hardware and AD9512 buffers
     //   NOTE:  The clock initialization will set the clock divider to 2 (for 40MHz clock) to RF A/B AD9963's
     status = clk_init(CLK_BASEADDR, 2);

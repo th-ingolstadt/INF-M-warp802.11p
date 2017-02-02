@@ -17,7 +17,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include "xio.h"
-#include "math.h"
+#include "xil_cache.h"
 
 // WARP includes
 #include "radio_controller.h"
@@ -85,6 +85,13 @@ int process_low_param(u8 mode, u32* payload); ///< Implementation of DCF-specifi
 /******************************** Functions **********************************/
 
 int main(){
+	// Initialize Microblaze --
+	//  these functions should be called before anything
+	//  else is executed
+	Xil_DCacheDisable();
+	Xil_ICacheDisable();
+	microblaze_enable_exceptions();
+
 	u32 i;
     wlan_mac_hw_info_t* hw_info;
     compilation_details_t	compilation_details;
