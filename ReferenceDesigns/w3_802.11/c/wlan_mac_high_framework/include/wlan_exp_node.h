@@ -268,7 +268,7 @@ typedef struct {
 
     u32                      node_type;                    // Type of node
     u32                      node_id;                      // Node ID (Only bits [15:0] are valid)
-    u32                      hw_generation;                // Node Hardware generation
+    u32                      platform_id;                  // Platform ID
 
     u32                      serial_number;                // Node serial number
     u32                      fpga_dna[FPGA_DNA_LEN];       // Node FPGA DNA number

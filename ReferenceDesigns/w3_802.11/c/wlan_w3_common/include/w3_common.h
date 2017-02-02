@@ -10,6 +10,9 @@
 
 #include "xparameters.h"
 
+
+#define PLATFORM_ID 3
+
 /*********************************************************************
  * Mapping macros from xparameters.h
  *

@@ -14,7 +14,6 @@
 /***************************** Include Files *********************************/
 // Include xil_types so function prototypes can use u8/u16/u32 data types
 #include "xil_types.h"
-#include "warp_hw_ver.h"
 
 
 /*************************** Constant Definitions ****************************/
@@ -65,19 +64,6 @@
 #define WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW_MASK            0x000000FF
 #define WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW_DCF             0x00000001
 #define WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW_NOMAC           0x00000002
-
-
-
-// WARP Hardware Version Information:
-//
-#ifdef  WARP_HW_VER_v3
-#    define WLAN_EXP_HW_VERSION                            0x00000003
-#else
-#    define WLAN_EXP_HW_VERSION                            0xFFFFFFFF
-#endif
-
-
-
 
 /*********************** Global Structure Definitions ************************/
 

@@ -41,6 +41,7 @@ typedef enum {
 //---------------------------------------
 // Platform information struct
 typedef struct{
+	u32	platform_id;
 	u32 cpu_id;
 	u32 is_cpu_high;
 	u32 is_cpu_low;

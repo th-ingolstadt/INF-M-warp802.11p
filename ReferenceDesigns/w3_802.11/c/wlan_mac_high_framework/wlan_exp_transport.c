@@ -28,10 +28,6 @@
 #include "wlan_mac_high.h"
 
 
-// WARP includes
-#include "warp_hw_ver.h"
-
-
 // WLAN EXP includes
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"

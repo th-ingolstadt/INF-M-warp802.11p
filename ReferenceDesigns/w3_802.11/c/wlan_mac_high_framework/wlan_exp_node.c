@@ -75,6 +75,7 @@
 // Declared in wlan_mac_high.c
 extern u8                  low_param_rx_ant_mode;
 extern u8				   low_param_channel;
+extern platform_common_dev_info_t platform_common_dev_info;
 
 extern tx_params_t         default_unicast_mgmt_tx_params;
 extern tx_params_t         default_unicast_data_tx_params;
@@ -197,7 +198,7 @@ int wlan_exp_node_init(u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wl
 	wlan_exp_node_set_type_design(WLAN_EXP_TYPE_DESIGN_80211);
 
     node_info.node_id                       = 0xFFFF;
-    node_info.hw_generation                 = WLAN_EXP_HW_VERSION;
+    node_info.platform_id                   = platform_common_dev_info.platform_id;
     node_info.serial_number                 = serial_number;
 
     // Process both 32 bit arguments of the FPGA DNA

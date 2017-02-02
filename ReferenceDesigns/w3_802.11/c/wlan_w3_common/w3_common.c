@@ -15,6 +15,7 @@
 
 
 static const platform_common_dev_info_t platform_common_dev_info = {
+		.platform_id = PLATFORM_ID,
 		.cpu_id = XPAR_CPU_ID,
 #if WLAN_COMPILE_FOR_CPU_HIGH
 		.is_cpu_high = 1,

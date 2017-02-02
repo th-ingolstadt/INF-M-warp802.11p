@@ -18,7 +18,6 @@
 
 // Include xil_types so function prototypes can use u8/u16/u32 data types
 #include "xil_types.h"
-#include "warp_hw_ver.h"
 
 #include "wlan_exp.h"
 
