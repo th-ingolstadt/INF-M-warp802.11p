@@ -25,8 +25,8 @@
 
 // WLAN includes
 #include "wlan_mac_pkt_buf_util.h"
-//#include "wlan_platform_sysmon_util.h"
 #include "wlan_platform_common.h"
+#include "wlan_platform_high.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_entries.h"
 #include "wlan_mac_ltg.h"
@@ -245,13 +245,6 @@ int wlan_exp_node_init(u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wl
     system_timestamp = get_system_time_usec();
 
     add_time_info_entry(mac_timestamp, mac_timestamp, system_timestamp, TIME_INFO_ENTRY_TIME_RSVD_VAL_64, TIME_INFO_ENTRY_SYSTEM, 0, 0);
-#endif
-
-#if 0
-    //FIXME move to platform common
-    // ------------------------------------------
-    // Initialize the System Monitor
-    init_sysmon();
 #endif
 
     // ------------------------------------------
@@ -869,18 +862,17 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
         //---------------------------------------------------------------------
         case CMDID_NODE_TEMPERATURE: {
-#if 0
-        	//FIXME: move to platform common
+
             // NODE_TEMPERATURE
             //   - If the system monitor exists, return the current, min and max temperature of the node
             //
-            resp_args_32[resp_index++] = Xil_Htonl(get_current_temp());
-            resp_args_32[resp_index++] = Xil_Htonl(get_min_temp());
-            resp_args_32[resp_index++] = Xil_Htonl(get_max_temp());
+            resp_args_32[resp_index++] = Xil_Htonl(wlan_platform_get_current_temp());
+            resp_args_32[resp_index++] = Xil_Htonl(wlan_platform_get_min_temp());
+            resp_args_32[resp_index++] = Xil_Htonl(wlan_platform_get_max_temp());
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
             resp_hdr->num_args = resp_index;
-#endif
+
         }
         break;
 
@@ -2915,145 +2907,6 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
         break;
 
 
-        //---------------------------------------------------------------------
-        case CMDID_DEV_EEPROM: {
-#if 0
-        	//FIXME: Replace or Remove
-
-            // Read / Write values from / to EEPROM
-            //
-            // Write Message format:
-            //     cmd_args_32[0]      Command == CMD_PARAM_WRITE_VAL
-            //     cmd_args_32[1]      EEPROM (0 = ON_BOARD / 1 = FMC)
-            //     cmd_args_32[2]      Address
-            //     cmd_args_32[3]      Length (Number of u8 bytes to write)
-            //     cmd_args_32[4:]     Values to write (Length u32 values each containing a single byte to write)
-            // Response format:
-            //     resp_args_32[0]     Status
-            //
-            // Read Message format:
-            //     cmd_args_32[0]      Command == CMD_PARAM_READ_VAL
-            //     cmd_args_32[1]      EEPROM Device (1 = ON_BOARD / 0 = FMC)
-            //     cmd_args_32[2]      Address
-            //     cmd_args_32[3]      Length (number of u8 bytes to read)
-            // Response format:
-            //     resp_args_32[0]     Status
-            //     resp_args_32[1]     Length (Number of u8 bytes read)
-            //     resp_args_32[2:]    EEPROM values (Length u32 values each containing a single byte read)
-            //
-            #define EEPROM_BASEADDR                        XPAR_W3_IIC_EEPROM_ONBOARD_BASEADDR
-            #define FMC_EEPROM_BASEADDR                    XPAR_W3_IIC_EEPROM_FMC_BASEADDR
-
-            u32    eeprom_idx;
-            int    eeprom_status;
-            u8     byte_to_write;
-            u32    status              = CMD_PARAM_SUCCESS;
-            u32    msg_cmd             = Xil_Ntohl(cmd_args_32[0]);
-            u32    eeprom_device       = Xil_Ntohl(cmd_args_32[1]);
-            u32    eeprom_addr         = (Xil_Ntohl(cmd_args_32[2]) & 0xFFFF);
-            u32    eeprom_length       = Xil_Ntohl(cmd_args_32[3]);
-            u32    use_default_resp    = WLAN_EXP_TRUE;
-            u32    eeprom_ba           = EEPROM_BASEADDR;
-
-            // Select EEPROM device
-            if (eeprom_device) {
-                eeprom_ba = EEPROM_BASEADDR;
-            } else {
-                #if FMC_EEPROM_BASEADDR
-                    eeprom_ba = FMC_EEPROM_BASEADDR;
-                #else
-                    wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "FMC EEPROM not supported\n");
-                    msg_cmd = CMD_PARAM_RSVD;
-                #endif
-            }
-
-            switch (msg_cmd) {
-                case CMD_PARAM_WRITE_VAL:
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Write EEPROM:\n");
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Addr: 0x%08x\n", eeprom_addr);
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Len:  %d\n", eeprom_length);
-
-                    // Don't bother if length is clearly bogus
-                    if(eeprom_length < max_resp_len) {
-                        for (eeprom_idx = 0; eeprom_idx < eeprom_length; eeprom_idx++) {
-                            // Endian swap payload and extract the byte to write
-                            byte_to_write = (Xil_Ntohl(cmd_args_32[eeprom_idx + 4]) & 0xFF);
-
-                            // Write the byte and break if there was an EEPROM failure
-                            eeprom_status = iic_eeprom_write_byte(eeprom_ba, (eeprom_addr + eeprom_idx), byte_to_write, XPAR_CPU_ID);
-
-                            if (eeprom_status == IIC_EEPROM_FAILURE) {
-                                wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "CMDID_DEV_EEPROM write failed at byte %d\n", eeprom_idx);
-                                status = CMD_PARAM_ERROR;
-                                break;
-                            }
-                        }
-                    } else {
-                        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "CMDID_DEV_EEPROM write longer than %d bytes\n", max_resp_len);
-                        status = CMD_PARAM_ERROR;
-                    }
-                break;
-
-                case CMD_PARAM_READ_VAL:
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Read EEPROM:\n");
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Addr: 0x%08x\n", eeprom_addr);
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Len:  %d\n", eeprom_length);
-
-                    if (eeprom_length < max_resp_len) {
-                        // Don't set the default response
-                        use_default_resp = WLAN_EXP_FALSE;
-
-                        for (eeprom_idx = 0; eeprom_idx < eeprom_length; eeprom_idx++) {
-                            // Read the byte and break if there was an EEPROM failure
-                            eeprom_status = iic_eeprom_read_byte(eeprom_ba, (eeprom_addr + eeprom_idx), XPAR_CPU_ID);
-
-                            if (eeprom_status == IIC_EEPROM_FAILURE) {
-                                wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "CMDID_DEV_EEPROM write failed at byte %d\n", eeprom_idx);
-                                status = CMD_PARAM_ERROR;
-                                break;
-                            }
-
-                            // Add the byte read and Endian swap the payload
-                            //     - This modified the output Ethernet packet but does not update the resp_index variable
-                            resp_args_32[resp_index + eeprom_idx + 2] = Xil_Htonl(eeprom_status & 0xFF);
-                        }
-
-                        // Add length argument to response
-                        resp_args_32[resp_index++] = Xil_Htonl(status);
-                        resp_args_32[resp_index++] = Xil_Htonl(eeprom_idx);
-                        resp_index        += eeprom_idx;                       // Update response index for all EEPROM bytes
-                        resp_hdr->length  += (resp_index * sizeof(resp_args_32));
-                        resp_hdr->num_args = resp_index;
-
-                    } else {
-                        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "CMDID_DEV_EEPROM read longer than %d bytes\n", max_resp_len);
-                        status = CMD_PARAM_ERROR;
-                    }
-                break;
-
-                case CMD_PARAM_RSVD:
-                    status = CMD_PARAM_ERROR;
-                break;
-
-                default:
-                    wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmd_id, msg_cmd);
-                    status = CMD_PARAM_ERROR;
-                break;
-            }
-
-            if (use_default_resp) {
-                // Send default response
-                resp_args_32[resp_index++] = Xil_Htonl(status);
-                resp_hdr->length  += (resp_index * sizeof(resp_args_32));
-                resp_hdr->num_args = resp_index;
-            }
-#endif
-        }
-
-        break;
-
-
-
 //-----------------------------------------------------------------------------
 // Child Commands
 //-----------------------------------------------------------------------------
@@ -3061,8 +2914,16 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
         //---------------------------------------------------------------------
         default: {
-            // Call standard function in child class to parse parameters implemented there
-            resp_sent = wlan_exp_process_node_cmd_callback(cmd_id, socket_index, from, command, response, max_resp_len);
+        	u8 cmd_processed;
+
+        	// Call function in platform code
+        	wlan_platform_wlan_exp_process_node_cmd(&cmd_processed, cmd_id, socket_index, from, command, response, max_resp_len);
+
+        	if(cmd_processed == 0){
+        		// If platform code did not deal with this command, then
+        		// call standard function in child class to parse parameters implemented there
+        		resp_sent = wlan_exp_process_node_cmd_callback(cmd_id, socket_index, from, command, response, max_resp_len);
+        	}
         }
         break;
     }

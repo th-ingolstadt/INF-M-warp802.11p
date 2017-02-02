@@ -14,6 +14,7 @@
 
 #include "xintc.h"
 #include "wlan_mac_common.h"
+#include "wlan_exp_common.h"
 
 //---------------------------------------
 // Platform information struct
@@ -48,6 +49,7 @@ typedef struct{
 platform_high_dev_info_t wlan_platform_high_get_dev_info();
 int wlan_platform_high_init(platform_high_config_t platform_high_config);
 void wlan_platform_free_queue_entry_notify();
+int wlan_platform_wlan_exp_process_node_cmd(u8* cmd_processed, u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len);
 
 // Functions implemented in files other than wlan_platform_high.c
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE

@@ -421,6 +421,13 @@ void wlan_mac_high_init(){
 	}
 #endif
 
+	if(wlan_mac_high_memory_test() != 0 ){
+		xil_printf("A working DRAM SODIMM has not been detected on this board.\n");
+		xil_printf("The 802.11 Reference Design requires at least 1GB of DRAM.\n");
+		xil_printf("This CPU will now halt.\n");
+		wlan_platform_userio_disp_status(USERIO_DISP_STATUS_CPU_ERROR, WLAN_ERROR_CODE_DRAM_NOT_PRESENT);
+	}
+
 	// ***************************************************
 	// Initialize various subsystems in the MAC High Framework
 	// ***************************************************

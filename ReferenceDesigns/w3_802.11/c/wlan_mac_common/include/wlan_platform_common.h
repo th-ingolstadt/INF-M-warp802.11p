@@ -59,6 +59,11 @@ wlan_mac_hw_info_t wlan_platform_get_hw_info();
 void wlan_platform_userio_disp_status(userio_disp_status_t status, ...);
 u32  wlan_platform_userio_get_state();
 
+// Temperature functions
+u32 wlan_platform_get_current_temp();
+u32 wlan_platform_get_min_temp();
+u32 wlan_platform_get_max_temp();
+
 // MAC time functions
 u64                get_mac_time_usec();
 void               set_mac_time_usec(u64 new_time);

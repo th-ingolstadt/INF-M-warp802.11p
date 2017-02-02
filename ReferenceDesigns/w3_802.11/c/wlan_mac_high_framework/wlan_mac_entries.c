@@ -33,7 +33,6 @@
 // WLAN includes
 #include "wlan_mac_common.h"
 #include "wlan_mac_pkt_buf_util.h"
-//#include "wlan_platform_sysmon_util.h" //FIXME
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_entries.h"
 
@@ -1226,10 +1225,6 @@ void add_time_info_entry(u64 timestamp, u64 mac_time, u64 system_time, u64 host_
  *****************************************************************************/
 u32 add_temperature_to_log() {
 
-#if 0
-
-	//FIXME SYSMON needs to be added to common platform
-
     temperature_entry  * entry;
     u32                  entry_size        = sizeof(temperature_entry);
     wlan_mac_hw_info_t * hw_info;
@@ -1252,9 +1247,9 @@ u32 add_temperature_to_log() {
 
         // TODO: serial number unnecessary for the same reason as above.
         entry->serial_number = hw_info->serial_number;
-        entry->curr_temp     = get_current_temp();
-        entry->min_temp      = get_min_temp();
-        entry->max_temp      = get_max_temp();
+        entry->curr_temp     = wlan_platform_get_current_temp();
+        entry->min_temp      = wlan_platform_get_min_temp();
+        entry->max_temp      = wlan_platform_get_max_temp();
 
 #ifdef _DEBUG_
         xil_printf("[%d] Node %d (W3-a-%05d)= (%d %d %d)\n", (u32)entry->timestamp, entry->id, entry->serial_number,
@@ -1265,9 +1260,7 @@ u32 add_temperature_to_log() {
     }
 
     return XST_FAILURE;
-#else
-    return XST_FAILURE;
-#endif
+
 
 }
 #endif //WLAN_SW_CONFIG_ENABLE_LOGGING

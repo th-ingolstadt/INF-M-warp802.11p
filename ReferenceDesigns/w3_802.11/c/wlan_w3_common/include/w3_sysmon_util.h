@@ -23,9 +23,4 @@
 /*************************** Function Prototypes *****************************/
 void               init_sysmon();
 
-u32                get_current_temp();
-u32                get_min_temp();
-u32                get_max_temp();
-
-
 #endif

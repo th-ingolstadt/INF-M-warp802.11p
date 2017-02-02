@@ -38,12 +38,6 @@
 // System monitor
 #define PLATFORM_BASEADDR_SYSMON   XPAR_SYSMON_0_BASEADDR
 
-#ifdef XPAR_XSYSMON_NUM_INSTANCES
- #define PLATFORM_SYSMON_PRESENT    1
-#else
- #define PLATFORM_SYSMON_PRESENT    0
-#endif
-
 // CPU IDs
 #ifdef XPAR_MB_HIGH_FREQ
 #define WLAN_COMPILE_FOR_CPU_HIGH                          1

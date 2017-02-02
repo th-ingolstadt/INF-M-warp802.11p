@@ -11,6 +11,7 @@
 #include "w3_userio_util.h"
 #include "wlan_mac_common.h"
 #include "w3_iic_eeprom.h"
+#include "w3_sysmon_util.h"
 
 
 static const platform_common_dev_info_t platform_common_dev_info = {
@@ -38,6 +39,10 @@ int wlan_platform_common_init(){
     while (iic_eeprom_init(EEPROM_BASEADDR, 0x64, XPAR_CPU_ID) != IIC_EEPROM_SUCCESS){
     	iter++;
     };
+
+    // ------------------------------------------
+	// Initialize the System Monitor
+	init_sysmon();
 
     return 0;
 }

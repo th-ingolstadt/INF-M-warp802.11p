@@ -12,11 +12,8 @@
 
 // Xilinx / Standard library includes
 #include "wlan_platform_common.h"
+#include "w3_common.h"
 #include <xil_io.h>
-
-
-// Condition functions if System Monitor present
-#if PLATFORM_SYSMON_PRESENT
 
 // Hardware includes
 #include <xsysmon_hw.h>
@@ -106,27 +103,8 @@ void init_sysmon() {
  * @return  None
  *
  *****************************************************************************/
-u32  get_current_temp   ( void ) { return XSysMon_ReadReg(PLATFORM_BASEADDR_SYSMON, XSM_TEMP_OFFSET);     }
-u32  get_min_temp       ( void ) { return XSysMon_ReadReg(PLATFORM_BASEADDR_SYSMON, XSM_MIN_TEMP_OFFSET); }
-u32  get_max_temp       ( void ) { return XSysMon_ReadReg(PLATFORM_BASEADDR_SYSMON, XSM_MAX_TEMP_OFFSET); }
+u32  wlan_platform_get_current_temp   ( void ) { return XSysMon_ReadReg(PLATFORM_BASEADDR_SYSMON, XSM_TEMP_OFFSET);     }
+u32  wlan_platform_get_min_temp       ( void ) { return XSysMon_ReadReg(PLATFORM_BASEADDR_SYSMON, XSM_MIN_TEMP_OFFSET); }
+u32  wlan_platform_get_max_temp       ( void ) { return XSysMon_ReadReg(PLATFORM_BASEADDR_SYSMON, XSM_MAX_TEMP_OFFSET); }
 
-
-
-#else
-
-
-
-/*****************************************************************************/
-/**
- * Default functions if System Monitor is not present
- *
- *****************************************************************************/
-void init_sysmon        ( void ) { }
-u32  get_current_temp   ( void ) { return 0; }
-u32  get_min_temp       ( void ) { return 0; }
-u32  get_max_temp       ( void ) { return 0; }
-
-
-
-#endif
 
