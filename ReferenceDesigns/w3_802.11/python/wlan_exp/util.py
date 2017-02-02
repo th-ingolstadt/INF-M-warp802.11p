@@ -979,20 +979,20 @@ def is_locally_administered_bssid(bssid):
 # End def
 
 
-def sn_to_str(hw_generation, serial_number):
+def sn_to_str(platform_id, serial_number):
     """Convert serial number to a string for a given hardware generation.
 
     Args:
-        hw_generation (int):  WARP hardware generation (currently only '3' is supported)
+        platform_id   (int):  Platform ID (currently only '3' is supported)
         serial_number (int):  Integer representation of the WARP serial number
 
     Returns:
         serial_number (str):  String representation of the WARP serial number (of the form 'W3-a-XXXXX')
     """
-    if(hw_generation == 3):
+    if(platform_id == 3):
         return ('W3-a-{0:05d}'.format(int(serial_number)))
     else:
-        print("ERROR:  Not valid Hardware Generation: {0}".format(hw_generation))
+        print("ERROR:  Not a valid Platform ID: {0}".format(platform_id))
 
 # End def
 

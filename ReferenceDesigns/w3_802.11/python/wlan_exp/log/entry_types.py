@@ -978,7 +978,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('timestamp',                           'Q',    'uint64',  'Value of MAC Time in microseconds when log entry created'),
         ('node_type',                           'I',    'uint32',  'Code identifying applications in CPU High and CPU Low'),
         ('node_id',                             'I',    'uint32',  'Node ID, as set during wlan_exp init'),
-        ('hw_generation',                       'I',    'uint32',  'WARP hardware generation; always 3 for WARP v3'),
+        ('platform_id',                         'I',    'uint32',  'WARP hardware generation; always 3 for WARP v3'),
         ('serial_num',                          'I',    'uint32',  'Serial number of WARP board'),
         ('fpga_dna',                            'Q',    'uint64',  'DNA value of node FPGA'),
         ('version',                             'I',    'uint32',  'wlan_exp version, as packed values [(u8)major (u8)minor (u16)rev]'),
