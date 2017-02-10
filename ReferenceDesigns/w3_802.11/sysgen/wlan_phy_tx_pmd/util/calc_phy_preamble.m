@@ -56,7 +56,6 @@ elseif phy_mode == 2
     ht_txtime_usec = 16 + 5*4 + ((2+len)*8 + 6)/mcs_datarates(mcs+1) + 6; %approx, good enough for sim
     LSIG_LENGTH = 3*ceil((ht_txtime_usec - 6 - 20)/4) - 3;
     LSIG_RATE = uint8(11); %6Mb
-    LSIG_RATE = uint8(10); %12Mb - TESTING HT-SIG DECODE - DELETE THIS LINE!
     
     signal_bytes = calc_signal_field(LSIG_LENGTH, LSIG_RATE);
     
