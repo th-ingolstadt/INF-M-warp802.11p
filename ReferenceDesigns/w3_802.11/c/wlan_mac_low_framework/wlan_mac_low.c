@@ -958,9 +958,9 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
  */
 void wlan_mac_low_set_radio_channel(u32 channel){
 
-	mac_param_chan = channel;
-
 	if (wlan_verify_channel(mac_param_chan) == XST_SUCCESS) {
+        mac_param_chan = channel;
+
 		if(mac_param_chan <= 14){
 			mac_param_band = RC_24GHZ;
 
