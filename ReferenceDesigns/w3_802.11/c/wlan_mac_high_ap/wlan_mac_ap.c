@@ -22,6 +22,7 @@
 #include "string.h"
 #include "xintc.h"
 #include "xparameters.h"
+#include "xil_cache.h"
 
 // 802.11 ref design includes
 #include "wlan_mac_station_info.h"
@@ -140,6 +141,13 @@ int  wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_re
 /******************************** Functions **********************************/
 
 int main(){
+	// Initialize Microblaze --
+	//  these functions should be called before anything
+	//  else is executed
+	Xil_DCacheDisable();
+	Xil_ICacheDisable();
+	microblaze_enable_exceptions();
+
 	bss_config_t      		bss_config;
 	compilation_details_t	compilation_details;
 	bzero(&compilation_details, sizeof(compilation_details_t));

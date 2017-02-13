@@ -22,6 +22,7 @@
 #include "xio.h"
 #include "string.h"
 #include "xintc.h"
+#include "xil_cache.h"
 
 // WLAN includes
 #include "wlan_mac_time_util.h"
@@ -124,6 +125,13 @@ void sta_set_beacon_ts_update_mode(u32 enable);
 
 
 int main() {
+	// Initialize Microblaze --
+	//  these functions should be called before anything
+	//  else is executed
+	Xil_DCacheDisable();
+	Xil_ICacheDisable();
+	microblaze_enable_exceptions();
+
 	// This list of channels will be used by the active scan state machine. The STA will scan
 	//  each channel looking for a network with the default SSID
 	//
