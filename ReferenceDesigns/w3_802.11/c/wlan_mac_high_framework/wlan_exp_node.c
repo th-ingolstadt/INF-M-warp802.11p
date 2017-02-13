@@ -3000,7 +3000,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
                         for (eeprom_idx = 0; eeprom_idx < eeprom_length; eeprom_idx++) {
                             // Read the byte and break if there was an EEPROM failure
-                            eeprom_status = iic_eeprom_read_byte(EEPROM_BASEADDR, (eeprom_addr + eeprom_idx), XPAR_CPU_ID);
+                            eeprom_status = iic_eeprom_read_byte(eeprom_ba, (eeprom_addr + eeprom_idx), XPAR_CPU_ID);
 
                             if (eeprom_status == IIC_EEPROM_FAILURE) {
                                 wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "CMDID_DEV_EEPROM write failed at byte %d\n", eeprom_idx);
