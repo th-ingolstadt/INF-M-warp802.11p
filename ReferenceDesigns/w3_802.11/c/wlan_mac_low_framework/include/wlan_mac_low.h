@@ -459,18 +459,19 @@
 #define wlan_mac_get_tu_target()    (u64)(((u64)Xil_In32(WLAN_MAC_REG_TU_TARGET_MSB)<<32) + (u64)Xil_In32(WLAN_MAC_REG_TU_TARGET_LSB))
 
 //-----------------------------------------------
-// MAC Polling defines
+// MAC Rx callback return defines
 //
-#define POLL_MAC_STATUS_RECEIVED_PKT 0x00000001     // b[0]
-#define POLL_MAC_STATUS_GOOD         0x00000002     // b[1]
-#define POLL_MAC_ADDR_MATCH          0x00000004     // b[2]
-#define POLL_MAC_CANCEL_TX           0x00000008     // b[3]
-#define POLL_MAC_STATUS_TYPE         0x0000FF00     // b[15:8]
+#define FRAME_RX_RET_STATUS_RECEIVED_PKT 		0x00000001     // b[0]
+#define FRAME_RX_RET_STATUS_GOOD         		0x00000002     // b[1]
+#define FRAME_RX_RET_ADDR_MATCH          		0x00000004     // b[2]
+#define FRAME_RX_RET_CANCEL_TX          		0x00000008     // b[3]
+#define FRAME_RX_RET_SKIP_RX_STARTED_RESET      0x00000010     // b[4]
+#define FRAME_RX_RET_STATUS_TYPE         		0x0000FF00     // b[15:8]
 
-#define POLL_MAC_TYPE_DATA  (1 <<  8)
-#define POLL_MAC_TYPE_ACK   (1 <<  9)
-#define POLL_MAC_TYPE_CTS   (1 << 10)
-#define POLL_MAC_TYPE_OTHER (1 << 11)
+#define FRAME_RX_RET_TYPE_DATA  (1 <<  8)
+#define FRAME_RX_RET_TYPE_ACK   (1 <<  9)
+#define FRAME_RX_RET_TYPE_CTS   (1 << 10)
+#define FRAME_RX_RET_TYPE_OTHER (1 << 11)
 
 //-----------------------------------------------
 // WLAN Exp low parameter defines

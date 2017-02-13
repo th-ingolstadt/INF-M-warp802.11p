@@ -1383,7 +1383,7 @@ void wlan_mac_high_tagged_rate_to_readable_rate(u8 rate, char* str){
 		case 0x6c:  strcpy(str,"54");   break;
 
 		default:    // Unknown rate
-			*str = NULL;
+			*str = 0;
 		break;
 	}
 }
