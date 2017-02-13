@@ -481,10 +481,7 @@ void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
  * @return  None
  */
 void wlan_mac_hw_init(){
-    // Enable blocking of the Rx PHY following good-FCS receptions and bad-FCS receptions
-    //     BLOCK_RX_ON_VALID_RXEND will block the Rx PHY on all RX_END events following valid RX_START events
-    //     This allows the wlan_exp framework to count and log bad FCS receptions
-    //
+    // Enable blocking of Rx pkt det events during Tx
     REG_SET_BITS(WLAN_MAC_REG_CONTROL, WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_TX);
 
     // Enable the NAV counter
