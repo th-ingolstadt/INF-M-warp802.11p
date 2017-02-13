@@ -714,6 +714,13 @@ void poll_tx_queues(pkt_buf_group_t pkt_buf_group){
 
 	if( active_bss_info == NULL ) return;
 
+	if((gl_dtim_mcast_buffer_enable == 0) && (pkt_buf_group == PKT_BUF_GROUP_DTIM_MCAST)){
+		//We are asked to poll the DTIM MCAST group, but DTIM multicast buffering is disabled.
+		//As such, we will overwrite the input to this function and carry on with the
+		//general dequeue operation
+		pkt_buf_group = PKT_BUF_GROUP_GENERAL;
+	}
+
 #define NUM_QUEUE_GROUPS 2
 typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 
@@ -739,6 +746,7 @@ typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 	}
 
 	switch(pkt_buf_group){
+
 		case PKT_BUF_GROUP_OTHER:
 		break;
 		case PKT_BUF_GROUP_DTIM_MCAST:
@@ -747,6 +755,7 @@ typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 			}
 		break;
 		case PKT_BUF_GROUP_GENERAL:
+
 			for(k = 0; k < NUM_QUEUE_GROUPS; k++){
 				curr_queue_group = next_queue_group;
 
@@ -766,6 +775,7 @@ typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 							curr_station_info_entry = next_station_info_entry;
 
 							for(i = 0; i < (active_bss_info->members.length + 1); i++) {
+
 								// Loop through all associated stations' queues and the broadcast queue
 								if(curr_station_info_entry == NULL){
 									// Check the broadcast queue
