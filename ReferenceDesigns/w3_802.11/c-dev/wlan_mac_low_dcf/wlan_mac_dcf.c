@@ -779,7 +779,7 @@ inline u32 send_beacon(u8 tx_pkt_buf){
 				gl_waiting_for_response = 0;
 				rx_status = wlan_mac_low_poll_frame_rx();
 				// Check if the new reception met the conditions to cancel the already-submitted transmission
-				if (((rx_status & POLL_MAC_CANCEL_TX) != 0)) {
+				if (((rx_status & FRAME_RX_RET_CANCEL_TX) != 0)) {
 					// The Rx handler halted this transmission already by resetting the MAC core
 					// Our return_status should still be considered a success -- we successfully did not
 					// transmit the beacon. This will tell the TBTT logic to move on to the next beacon interval
@@ -1025,7 +1025,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
 
             rx_finish_state = RX_FINISH_SEND_A;
 
-            return_value |= POLL_MAC_TYPE_CTS;
+            return_value |= FRAME_RX_RET_TYPE_CTS;
         } else {
             //Unexpected CTS to me.
         	//This clause can execute on a bad FCS (e.g. it's actually a bad FCS ACK)
@@ -1114,7 +1114,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     // Check if this reception is an ACK
     //TODO: we could add a unicast to me check here. It should be redundant. Then again, the POLL_MAC_TYPE_CTS does have the unicast requirement
     if((rx_header->frame_control_1) == MAC_FRAME_CTRL1_SUBTYPE_ACK){
-        return_value |= POLL_MAC_TYPE_ACK;
+        return_value |= FRAME_RX_RET_TYPE_ACK;
     }
 
     // Update metadata about this reception
@@ -1154,7 +1154,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     if(rx_frame_info->flags & RX_FRAME_INFO_FLAGS_FCS_GOOD) {
     	if(unicast_to_me &&
     			(gl_waiting_for_response == 0) &&
-    			( (return_value & POLL_MAC_TYPE_CTS) || (return_value & POLL_MAC_TYPE_ACK) )){
+    			( (return_value & FRAME_RX_RET_TYPE_CTS) || (return_value & FRAME_RX_RET_TYPE_ACK) )){
     		rx_frame_info->flags |= RX_FRAME_INFO_UNEXPECTED_RESPONSE;
     	} else {
     		rx_frame_info->flags &= ~RX_FRAME_INFO_UNEXPECTED_RESPONSE;
@@ -1164,7 +1164,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         // Increment green LEDs
     	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_GOOD_FCS_EVENT);
 
-        return_value |= POLL_MAC_STATUS_GOOD;
+        return_value |= FRAME_RX_RET_STATUS_GOOD;
 
         // Check if this packet should be passed up to CPU High for further processing
         rx_filter = wlan_mac_low_get_current_rx_filter();
@@ -1192,7 +1192,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         }
 
         if(unicast_to_me) {
-            return_value |= POLL_MAC_ADDR_MATCH;
+            return_value |= FRAME_RX_RET_ADDR_MATCH;
         }
 
         if ((phy_details->length) > RX_LEN_THRESH) {
@@ -1227,7 +1227,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
 					// Reset all state in the DCF core - this cancels deferrals and pending transmissions
 					wlan_mac_reset_tx_ctrl_C(1);
 					wlan_mac_reset_tx_ctrl_C(0);
-					return_value |= POLL_MAC_CANCEL_TX;
+					return_value |= FRAME_RX_RET_CANCEL_TX;
 				}
 
 				// Move the packet pointer to after the header
@@ -1379,6 +1379,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         }
     }
 
+    wlan_mac_hw_clear_rx_started();
     return return_value;
 }
 
@@ -2145,10 +2146,10 @@ void frame_transmit_general(u8 pkt_buf) {
 
 						// Check if the reception is an ACK addressed to this node, received with a valid checksum
 						if ((tx_wait_state == TX_WAIT_CTS) &&
-							(rx_status & POLL_MAC_STATUS_RECEIVED_PKT) &&
-							(rx_status & POLL_MAC_TYPE_CTS) &&
-							(rx_status & POLL_MAC_STATUS_GOOD) &&
-							(rx_status & POLL_MAC_ADDR_MATCH)) {
+							(rx_status & FRAME_RX_RET_STATUS_RECEIVED_PKT) &&
+							(rx_status & FRAME_RX_RET_TYPE_CTS) &&
+							(rx_status & FRAME_RX_RET_STATUS_GOOD) &&
+							(rx_status & FRAME_RX_RET_ADDR_MATCH)) {
 
 							low_tx_details.flags |= TX_DETAILS_FLAGS_RECEIVED_RESPONSE;
 
@@ -2175,10 +2176,10 @@ void frame_transmit_general(u8 pkt_buf) {
 							continue;
 
 						} else if ((tx_wait_state == TX_WAIT_ACK) &&
-								   (rx_status & POLL_MAC_STATUS_RECEIVED_PKT) &&
-								   (rx_status & POLL_MAC_TYPE_ACK) &&
-								   (rx_status & POLL_MAC_STATUS_GOOD) &&
-								   (rx_status & POLL_MAC_ADDR_MATCH)) {
+								   (rx_status & FRAME_RX_RET_STATUS_RECEIVED_PKT) &&
+								   (rx_status & FRAME_RX_RET_TYPE_ACK) &&
+								   (rx_status & FRAME_RX_RET_STATUS_GOOD) &&
+								   (rx_status & FRAME_RX_RET_ADDR_MATCH)) {
 
 								low_tx_details.flags |= TX_DETAILS_FLAGS_RECEIVED_RESPONSE;
 

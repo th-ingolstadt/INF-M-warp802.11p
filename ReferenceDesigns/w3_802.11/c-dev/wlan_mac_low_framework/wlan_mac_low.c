@@ -557,7 +557,7 @@ inline u32 wlan_mac_low_poll_frame_rx(){
             phy_details.mcs      = 0;
 
             // Call the user callback to handle this Rx, capture return value
-        	return_status |= POLL_MAC_STATUS_RECEIVED_PKT;
+        	return_status |= FRAME_RX_RET_STATUS_RECEIVED_PKT;
         	return_status |= frame_rx_callback(rx_pkt_buf, &phy_details);
 
         } else {
@@ -627,7 +627,7 @@ inline u32 wlan_mac_low_poll_frame_rx(){
                     phy_details.mcs      = wlan_mac_get_rx_phy_mcs();
                     phy_details.N_DBPS   = wlan_mac_low_mcs_to_n_dbps(phy_details.mcs, phy_details.phy_mode);
 
-                	return_status |= POLL_MAC_STATUS_RECEIVED_PKT;
+                	return_status |= FRAME_RX_RET_STATUS_RECEIVED_PKT;
                 	return_status |= frame_rx_callback(rx_pkt_buf, &phy_details);
                 }
             } else {
@@ -647,7 +647,7 @@ inline u32 wlan_mac_low_poll_frame_rx(){
     	//  By this point the framework and MAC are done with the current waveform, however it was handled.
     	//   The RX_STARTED bit is cleared in every case. It is important to only call clear_rx_started() after
         //   the RX_STARTED latch has asserted. Calling it any other time creates a race that can miss Rx events
-    	wlan_mac_hw_clear_rx_started();
+        if((return_status & FRAME_RX_RET_SKIP_RX_STARTED_RESET) == 0) wlan_mac_hw_clear_rx_started();
 
     } //END if(PHY_RX_STARTED)
 
