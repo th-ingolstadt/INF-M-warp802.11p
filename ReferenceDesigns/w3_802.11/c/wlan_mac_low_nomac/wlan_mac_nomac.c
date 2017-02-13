@@ -278,6 +278,7 @@ int frame_transmit(u8 pkt_buf) {
     wlan_mac_tx_ctrl_A_start(0);
 
     // Fill in the Tx low details
+	low_tx_details.tx_details_type = TX_DETAILS_MPDU;
 	low_tx_details.phy_params_mpdu.mcs          = mcs;
 	low_tx_details.phy_params_mpdu.phy_mode     = phy_mode;
 	low_tx_details.phy_params_mpdu.power        = tx_frame_info->params.phy.power;
