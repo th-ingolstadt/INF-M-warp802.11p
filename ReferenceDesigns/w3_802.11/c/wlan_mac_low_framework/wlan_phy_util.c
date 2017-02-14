@@ -276,6 +276,11 @@ void wlan_phy_init() {
     //  every reception is handled as NONHT (11a)
     REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_ENABLE_HTMF_DET);
 
+    // Enable VHT waveform detection - the PHY can't decode VHT waveforms
+    //  but enabling detection allows early termination with a header error
+    //  instead of attempting to decode the VHT waveform as NONHT
+    REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_ENABLE_VHT_DET);
+
     // Keep CCA.BUSY asserted when DSSS Rx is active
     REG_SET_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_DSSS_ASSERTS_CCA);
 
