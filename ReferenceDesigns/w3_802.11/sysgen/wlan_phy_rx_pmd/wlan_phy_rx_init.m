@@ -21,14 +21,13 @@ if(~exist('sim_many_waveform_mode','var'))
     
     %PHY debugging with ChipScope captures of I/Q
     % ChipScope waveforms must be saved in ASCII format with (at least) ADC_I and ADC_Q signals
-    xlLoadChipScopeData('good_fcs_54M_v151.prn'); cs_interp = 1; cs_start = 11500; cs_end = length(ADC_I);
+    %xlLoadChipScopeData('rx_sigs/agc_5_good_fcs_2.prn'); cs_interp = 1; cs_start = 450; cs_end = 10e3;%length(ADC_I);
     %sim_sig = complex(ADC_I([cs_start:cs_interp:cs_end]), ADC_Q(cs_start:cs_interp:cs_end));
 
     if 1
     %Output of PHY Tx simulation
     % .mat files from Tx PHY sim store I/Q signal in 'wlan_tx_out' variable
     load('rx_sigs/wlan_tx_NONHT_MCS4_52B.mat');wlan_tx_out = wlan_tx_out.';
-    %load('rx_sigs/wlan_tx_NONHT_MCS7_52B');wlan_tx_out = wlan_tx_out.';
     
     %CFO
     %wlan_tx_out = wlan_tx_out .* exp(j*2*pi*-1e-4*(0:length(wlan_tx_out)-1));
@@ -197,7 +196,7 @@ REG_RX_LTS_Corr_PeakType_Thresh = ...
 REG_RX_Chan_Est_Smoothing = ...
     2^0  *  (PHY_CONFIG_H_EST_SMOOTHING_A) +... %b[11:0]
     2^12  * (PHY_CONFIG_H_EST_SMOOTHING_B) +... %b[23:12]
-    2^24  * 25; %PHY mode det threshold
+    2^24  * 18; %PHY mode det threshold
     0;
 
 REG_RX_LTS_Corr_Confg = ...
@@ -240,6 +239,7 @@ REG_RX_Config = ...
     2^22 * 0 + ... %Rate-Length Busy holds pkt det high
     2^23 * 1 + ... %DSSS asserts CCA busy
     2^24 * 1 + ... %Enable 11n Rx support
+    2^25 * 1 + ... %Enable detection of 11ac waveforms based on VHT-SIG modulation
     0;
 
 REG_RX_DSSS_RX_CONFIG = ...
