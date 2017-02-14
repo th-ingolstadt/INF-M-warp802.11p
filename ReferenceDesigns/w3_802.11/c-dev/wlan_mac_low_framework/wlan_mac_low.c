@@ -903,7 +903,7 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
  */
 int wlan_mac_low_set_radio_channel(u32 channel){
 
-	if (wlan_verify_channel(mac_param_chan) == XST_SUCCESS) {
+	if (wlan_verify_channel(channel) == XST_SUCCESS) {
 	mac_param_chan = channel;
 
 		if(mac_param_chan <= 14){
