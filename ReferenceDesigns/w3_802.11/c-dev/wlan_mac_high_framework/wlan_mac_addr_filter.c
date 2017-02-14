@@ -138,7 +138,7 @@ int   wlan_mac_addr_filter_add(u8* mask, u8* compare) {
     range = wlan_mac_high_malloc(sizeof(whitelist_range));
 
     if (range == NULL) {
-        free(entry);
+        wlan_mac_high_free(entry);
         return -1;
     }
 
