@@ -667,10 +667,10 @@ inline u32 wlan_mac_low_poll_frame_rx(){
             }//END if(PHY_HDR_DONE)
         } //END if(OFDM Rx)
 
-    	// Clear the MAC status register RX_STARTED bit
-    	//  By this point the framework and MAC are done with the current waveform, however it was handled.
-    	//   The RX_STARTED bit is cleared in every case. It is important to only call clear_rx_started() after
-        //   the RX_STARTED latch has asserted. Calling it any other time creates a race that can miss Rx events
+    	// Clear the MAC status register RX_STARTED bit unless the MAC application requested it stay asserted
+    	//  By this point the framework and MAC are typically done with the current waveform, however it was handled.
+    	//  The MAC application can request the RX_STARTED latch stay asserted by returning the FRAME_RX_RET_SKIP_RX_STARTED_RESET flag
+        //  In this case the application *must* clear the latch directly whenever it completes its Rx processing
         if((return_status & FRAME_RX_RET_SKIP_RX_STARTED_RESET) == 0) wlan_mac_hw_clear_rx_started();
 
     } //END if(PHY_RX_STARTED)
