@@ -771,7 +771,7 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 
 		station_info = station_info_create(addr);
 		if(station_info == NULL){
-			free(entry);
+			wlan_mac_high_free(entry);
 			return NULL;
 		}
 
