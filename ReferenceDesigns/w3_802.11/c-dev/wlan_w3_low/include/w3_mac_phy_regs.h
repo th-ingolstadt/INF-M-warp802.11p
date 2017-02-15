@@ -80,6 +80,7 @@
 #define WLAN_RX_REG_CFG_BUSY_HOLD_PKT_DET  0x00400000     // Valid SIGNAL holds pkt det for rate*lengh duration, even if unsupported
 #define WLAN_RX_REG_CFG_DSSS_ASSERTS_CCA   0x00800000     // DSSS active holds CCA busy
 #define WLAN_RX_REG_CFG_ENABLE_HTMF_DET	   0x01000000     // Enables 11n Rx support; when disabled all Rx are processed as 11a waveforms
+#define WLAN_RX_REG_CFG_ENABLE_VHT_DET     0x02000000     // Enables VHT phy_mode detecection; when disabled VHT waveforms are detected as NONHT
 
 //-----------------------------------------------
 // RX STATUS
