@@ -330,7 +330,7 @@ void wlan_phy_init() {
     // WLAN_RX_CHAN_EST_SMOOTHING reg
     //Disable channel estimate smoothing
     wlan_phy_rx_chan_est_smoothing(0xFFF, 0x0);
-    wlan_phy_rx_phy_mode_det_thresh(20);
+    wlan_phy_rx_phy_mode_det_thresh(12);
 
     // WLAN_RX_PKT_BUF_MAXADDR reg
     wlan_phy_rx_set_max_pktbuf_addr(3800);
