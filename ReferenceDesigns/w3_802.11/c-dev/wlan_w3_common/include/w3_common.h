@@ -34,8 +34,6 @@
 #define FMC_EEPROM_BASEADDR  	XPAR_W3_IIC_EEPROM_FMC_BASEADDR
 
 // IPC mailbox
-//  Only CPU High uses the mailbox interrupt. INT_ID defined here
-//  so mailbox_util.h can be shared between projects.
 #define PLATFORM_DEV_ID_MAILBOX    XPAR_MBOX_0_DEVICE_ID
 
 // System monitor
