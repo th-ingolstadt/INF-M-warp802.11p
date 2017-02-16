@@ -66,10 +66,10 @@ u32 wlan_platform_get_min_temp();
 u32 wlan_platform_get_max_temp();
 
 // MAC time functions
-u64                get_mac_time_usec();
+volatile u64       get_mac_time_usec();
 void               set_mac_time_usec(u64 new_time);
 void               apply_mac_time_delta_usec(s64 time_delta);
-u64                get_system_time_usec();
+volatile u64       get_system_time_usec();
 void               wlan_usleep(u64 delay);
 
 #endif /* WLAN_PLATFORM_COMMON_H_ */

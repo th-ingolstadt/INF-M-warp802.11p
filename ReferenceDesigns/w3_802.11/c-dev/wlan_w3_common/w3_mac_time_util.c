@@ -51,7 +51,7 @@
  * @param   None
  * @return  u64              - Current number of microseconds of MAC time.
  */
-u64 get_mac_time_usec() {
+volatile u64 get_mac_time_usec() {
     //The MAC time core register interface is only 32-bit, so the 64-bit time
     // is read from two 32-bit registers and reconstructed here.
 
@@ -90,7 +90,7 @@ u64 get_mac_time_usec() {
  * @return  u64              - Current number of microseconds that have elapsed
  *                             since the hardware has booted.
  */
-u64 get_system_time_usec() {
+volatile u64 get_system_time_usec() {
     // The MAC time core register interface is only 32-bit, so the 64-bit time
     // is read from two 32-bit registers and reconstructed here.
 
