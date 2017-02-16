@@ -221,8 +221,6 @@ int handle_tx_pkt_buf_ready(u8 pkt_buf){
  * @return  int              - Transmission result
  */
 int frame_transmit(u8 pkt_buf) {
-    // The pkt_buf, rate, and length arguments provided to this function specifically relate to
-    // the MPDU that the WLAN MAC LOW framework wants to send.
 
     u32 mac_hw_status;
     u32 mac_tx_ctrl_status;
