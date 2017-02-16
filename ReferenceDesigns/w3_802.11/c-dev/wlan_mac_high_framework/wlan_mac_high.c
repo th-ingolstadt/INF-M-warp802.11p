@@ -502,7 +502,11 @@ int wlan_mac_high_interrupt_init(){
 
 	platform_high_config_t platform_high_config;
 	platform_high_config.intc = &InterruptController;
+#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 	platform_high_config.eth_rx_callback = (void*)wlan_process_eth_rx;
+#else
+	platform_high_config.eth_rx_callback = wlan_null_callback;
+#endif
 	platform_high_config.uart_rx_callback = (void*)wlan_mac_high_uart_rx_callback;
 	platform_high_config.userio_inputs_callback = (void*)wlan_mac_high_userio_inputs_callback;
 
