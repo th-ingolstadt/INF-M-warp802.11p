@@ -49,13 +49,13 @@
  * @param   None
  * @return  u64              - Current number of microseconds of MAC time.
  */
-u64 get_mac_time_usec() {
+volatile u64 get_mac_time_usec() {
     //The MAC time core register interface is only 32-bit, so the 64-bit time
     // is read from two 32-bit registers and reconstructed here.
 
-    u32 time_high_u32;
-    u32 time_low_u32;
-    u64 time_u64;
+    volatile u32 time_high_u32;
+    volatile u32 time_low_u32;
+    volatile u64 time_u64;
 
     time_high_u32 = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_MSB);
     time_low_u32  = Xil_In32(WLAN_MAC_TIME_REG_MAC_TIME_LSB);
@@ -88,13 +88,13 @@ u64 get_mac_time_usec() {
  * @return  u64              - Current number of microseconds that have elapsed
  *                             since the hardware has booted.
  */
-u64 get_system_time_usec() {
+volatile u64 get_system_time_usec() {
     // The MAC time core register interface is only 32-bit, so the 64-bit time
     // is read from two 32-bit registers and reconstructed here.
 
-    u32 time_high_u32;
-    u32 time_low_u32;
-    u64 time_u64;
+    volatile u32 time_high_u32;
+    volatile u32 time_low_u32;
+    volatile u64 time_u64;
 
     time_high_u32 = Xil_In32(WLAN_MAC_TIME_REG_SYSTEM_TIME_MSB);
     time_low_u32  = Xil_In32(WLAN_MAC_TIME_REG_SYSTEM_TIME_LSB);
