@@ -51,6 +51,13 @@ volatile static u8           schedule_running;
 /*************************** Functions Prototypes ****************************/
 
 
+void ltg_sched_check();
+int ltg_sched_start_l(dl_entry* curr_tg_dl_entry);
+int ltg_sched_stop_l(dl_entry* curr_tg_dl_entry);
+dl_entry* ltg_sched_create_l();
+void ltg_sched_destroy_l(dl_entry* tg_dl_entry);
+void ltg_sched_destroy_params(tg_schedule *tg);
+dl_entry* ltg_sched_find_tg_schedule(u32 id);
 
 
 /******************************** Functions **********************************/

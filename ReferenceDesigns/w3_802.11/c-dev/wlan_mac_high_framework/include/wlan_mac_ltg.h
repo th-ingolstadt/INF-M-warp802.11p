@@ -133,8 +133,6 @@ int ltg_sched_start(u32 id);
 int ltg_sched_start_all();
 int ltg_sched_stop(u32 id);
 int ltg_sched_stop_all();
-int ltg_sched_start_l(dl_entry* curr_tg_dl_entry);
-int ltg_sched_stop_l(dl_entry* curr_tg_dl_entry);
 int ltg_sched_get_state(u32 id, u32* type, void** state);
 int ltg_sched_get_params(u32 id, void** params);
 int ltg_sched_get_callback_arg(u32 id, void** callback_arg);
@@ -143,12 +141,5 @@ int wlan_create_ltg_frame(void* pkt_buf, mac_header_80211_common* common, u8 tx_
 // WLAN Exp function to LTG -- users may call these directly or modify if needed
 void * ltg_sched_deserialize(u32 * src, u32 * ret_type, u32 * ret_size);
 void * ltg_payload_deserialize(u32 * src, u32 * ret_type, u32 * ret_size);
-
-//Internal functions to LTG -- users should not need to call these directly
-void ltg_sched_check();
-dl_entry* ltg_sched_create_l();
-void ltg_sched_destroy_l(dl_entry* tg_dl_entry);
-void ltg_sched_destroy_params(tg_schedule *tg);
-dl_entry* ltg_sched_find_tg_schedule(u32 id);
 
 #endif /* WLAN_MAC_LTG_H_ */
