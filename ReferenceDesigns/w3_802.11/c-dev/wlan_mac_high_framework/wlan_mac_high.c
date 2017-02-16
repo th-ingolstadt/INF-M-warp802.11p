@@ -1087,7 +1087,7 @@ int wlan_mac_high_cdma_start_transfer(void* dest, void* src, u32 size){
 	u8 out_of_range  = 0;
 
 
-	if((u32)src >= platform_high_dev_info.dram_baseaddr && (u32)src <= CALC_HIGH_ADDR(platform_high_dev_info.dlmb_baseaddr, platform_high_dev_info.dlmb_size)){
+	if((u32)src >= platform_high_dev_info.dlmb_baseaddr && (u32)src <= CALC_HIGH_ADDR(platform_high_dev_info.dlmb_baseaddr, platform_high_dev_info.dlmb_size)){
 		out_of_range = 1;
 	} else if((u32)dest >= platform_high_dev_info.dlmb_baseaddr && (u32)dest <= CALC_HIGH_ADDR(platform_high_dev_info.dlmb_baseaddr, platform_high_dev_info.dlmb_size)){
 		out_of_range = 1;
@@ -2112,7 +2112,7 @@ int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_heade
 		tx_header_common_ptr,
 		bss_info);
 
-	bzero(tx_frame_info, sizeof(tx_frame_info));
+	bzero(tx_frame_info, sizeof(tx_frame_info_t));
 
 	// Set up frame info data
 	tx_frame_info->timestamp_create            = get_mac_time_usec();
