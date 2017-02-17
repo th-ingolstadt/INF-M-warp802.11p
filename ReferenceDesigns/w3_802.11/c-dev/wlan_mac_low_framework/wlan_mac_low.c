@@ -1028,8 +1028,7 @@ int wlan_mac_low_finish_frame_transmit(u16 tx_pkt_buf){
 	return return_value;
 }
 
-u32 wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf){
-	u32						 return_value = 0;
+int wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf){
 	tx_frame_info_t* 		 tx_frame_info;
 	mac_header_80211       * tx_80211_header;
 	u32                      is_locked, owner;
@@ -1038,8 +1037,7 @@ u32 wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf){
 
 	if(tx_pkt_buf >= NUM_TX_PKT_BUFS){
 		xil_printf("Error: Tx Pkt Buf index exceeds NUM_TX_PKT_BUFS\n");
-		return_value |= PREPARE_FRAME_TRANSMIT_ERROR_INVALID_PKT_BUF;
-		return return_value;
+		return PREPARE_FRAME_TRANSMIT_ERROR_INVALID_PKT_BUF;
 	}
 
 	tx_frame_info = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf);
@@ -1050,8 +1048,7 @@ u32 wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf){
 		// contract in this flag is that CPU_HIGH will only briefly lock the packet buffer while updating
 		// its contents.
 		if(tx_frame_info->tx_pkt_buf_state == TX_PKT_BUF_DONE){
-			return_value |= PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE;
-			return return_value;
+			return PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE;
 		}
 
 		while(lock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
@@ -1065,8 +1062,7 @@ u32 wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf){
 		}
 
 		if(tx_frame_info->tx_pkt_buf_state != TX_PKT_BUF_READY){
-			return_value |= PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE;
-			return return_value;
+			return PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE;
 		}
 
 	} else {
@@ -1082,8 +1078,7 @@ u32 wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf){
 			//  CPU High will handle it eventually
 			//  Ensure CPU Low doesn't own lock then return
 			unlock_tx_pkt_buf(tx_pkt_buf);
-			return_value |= PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE;
-			return return_value;
+			return PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE;
 		}
 
 		// Attempt to lock the packet buffer. If this fails, we will not wait for it to succeed. Something
@@ -1093,8 +1088,7 @@ u32 wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf){
 			get_tx_pkt_buf_status(tx_pkt_buf, &is_locked, &owner);
 			wlan_printf(PL_ERROR, "    TX pkt_buf %d status: isLocked = %d, owner = %d\n", tx_pkt_buf, is_locked, owner);
 			tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
-			return_value |= PREPARE_FRAME_TRANSMIT_ERROR_LOCK_FAIL;
-			return return_value;
+			return PREPARE_FRAME_TRANSMIT_ERROR_LOCK_FAIL;
 		}
 	}
 
@@ -1123,7 +1117,7 @@ u32 wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf){
 	//Increment the global unique sequence number
 	unique_seq++;
 
-	return return_value;
+	return 0;
 }
 
 void wlan_mac_low_send_low_tx_details(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details){
