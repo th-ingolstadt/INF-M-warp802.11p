@@ -525,11 +525,11 @@ void               wlan_mac_low_set_radio_channel(u32 channel);
 void               wlan_mac_low_DSSS_rx_enable();
 void               wlan_mac_low_DSSS_rx_disable();
 
-#define			   PREPARE_FRAME_TRANSMIT_ERROR_INVALID_PKT_BUF				0x00000001
-#define			   PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE	0x00000002
-#define 		   PREPARE_FRAME_TRANSMIT_ERROR_LOCK_FAIL					0x00000004
+#define			   PREPARE_FRAME_TRANSMIT_ERROR_INVALID_PKT_BUF				-1
+#define			   PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE	-2
+#define 		   PREPARE_FRAME_TRANSMIT_ERROR_LOCK_FAIL					-3
 
-u32 			   wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf);
+int 			   wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf);
 int 			   wlan_mac_low_finish_frame_transmit(u16 tx_pkt_buf);
 
 int                wlan_mac_low_rx_power_to_rssi(s8 rx_pow);
