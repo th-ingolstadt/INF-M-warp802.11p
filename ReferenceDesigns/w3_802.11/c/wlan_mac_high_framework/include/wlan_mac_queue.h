@@ -63,8 +63,8 @@ void                queue_init();
 
 void                enqueue_after_tail(u16 queue_sel, dl_entry* tqe);
 dl_entry* 			dequeue_from_head(u16 queue_sel);
-inline int          dequeue_transmit_checkin(u16 queue_sel);
-inline void 	    queue_set_state_change_callback(function_ptr_t callback);
+int          		dequeue_transmit_checkin(u16 queue_sel);
+void 	    		queue_set_state_change_callback(function_ptr_t callback);
 
 dl_entry* 			queue_checkout();
 void                queue_checkin(dl_entry* tqe);
@@ -72,8 +72,8 @@ void                queue_checkin(dl_entry* tqe);
 int                 queue_checkout_list(dl_list* new_list, u16 num_tqe);
 int                 queue_checkin_list(dl_list * list);
 
-inline u32          queue_num_free();
-inline u32          queue_num_queued(u16 queue_sel);
+u32          		queue_num_free();
+u32          		queue_num_queued(u16 queue_sel);
 u32                 queue_total_size();
 
 void                purge_queue(u16 queue_sel);

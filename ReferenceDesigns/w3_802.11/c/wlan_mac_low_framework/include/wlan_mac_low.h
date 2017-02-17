@@ -495,10 +495,10 @@ void 			   set_phy_samp_rate(phy_samp_rate_t phy_samp_rate);
 void               wlan_mac_hw_init();
 void               wlan_mac_low_init_hw_info(u32 type);
 
-inline void        wlan_mac_low_send_exception(u32 reason);
+void        	   wlan_mac_low_send_exception(u32 reason);
 
-inline u32         wlan_mac_low_poll_frame_rx();
-inline int         wlan_mac_low_poll_ipc_rx();
+u32   		       wlan_mac_low_poll_frame_rx();
+int 	           wlan_mac_low_poll_ipc_rx();
 
 void               wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg);
 void               wlan_mac_low_frame_ipc_send();
@@ -512,12 +512,12 @@ void 			   wlan_mac_low_set_sample_rate_change_callback(function_ptr_t callback)
 void 			   wlan_mac_low_set_handle_tx_pkt_buf_ready(function_ptr_t callback);
 void               wlan_mac_low_set_ipc_low_param_callback(function_ptr_t callback);
 
-inline u64         wlan_mac_low_get_rx_start_timestamp();
-inline u64         wlan_mac_low_get_tx_start_timestamp();
-inline u32         wlan_mac_low_get_active_channel();
-inline s8          wlan_mac_low_get_current_ctrl_tx_pow();
-inline u32         wlan_mac_low_get_current_rx_filter();
-inline phy_samp_rate_t  wlan_mac_low_get_phy_samp_rate();
+u64        		   wlan_mac_low_get_rx_start_timestamp();
+u64         	   wlan_mac_low_get_tx_start_timestamp();
+u32         	   wlan_mac_low_get_active_channel();
+s8          	   wlan_mac_low_get_current_ctrl_tx_pow();
+u32         	   wlan_mac_low_get_current_rx_filter();
+phy_samp_rate_t    wlan_mac_low_get_phy_samp_rate();
 
 void               wlan_mac_low_set_nav_check_addr(u8* addr);
 void               wlan_mac_low_set_radio_channel(u32 channel);
@@ -534,23 +534,23 @@ int 			   wlan_mac_low_finish_frame_transmit(u16 tx_pkt_buf);
 
 int                wlan_mac_low_rx_power_to_rssi(s8 rx_pow);
 int                wlan_mac_low_set_pkt_det_min_power(s8 rx_pow);
-inline int         wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain);
+int         	   wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain);
 
-inline void        wlan_mac_low_lock_empty_rx_pkt_buf();
+void        	   wlan_mac_low_lock_empty_rx_pkt_buf();
 
-inline u32         wlan_mac_hw_rx_finish();
+u32         	   wlan_mac_hw_rx_finish();
 
-inline void        wlan_mac_reset_backoff_counter();
-inline void        wlan_mac_reset_NAV_counter();
+void        	   wlan_mac_reset_backoff_counter();
+void        	   wlan_mac_reset_NAV_counter();
 
-inline u8          wlan_mac_low_dbm_to_gain_target(s8 power);
-inline u32         wlan_mac_low_wlan_chan_to_rc_chan(u32 mac_channel);
-inline u16         wlan_mac_low_mcs_to_n_dbps(u8 mcs, u8 phy_mode);
-inline u8 		   wlan_mac_low_mcs_to_ctrl_resp_mcs(u8 mcs, u8 phy_mode);
+u8          	   wlan_mac_low_dbm_to_gain_target(s8 power);
+u32         	   wlan_mac_low_wlan_chan_to_rc_chan(u32 mac_channel);
+u16         	   wlan_mac_low_mcs_to_n_dbps(u8 mcs, u8 phy_mode);
+u8 				   wlan_mac_low_mcs_to_ctrl_resp_mcs(u8 mcs, u8 phy_mode);
 
-inline void 	   wlan_mac_hw_clear_rx_started();
+void 	   		   wlan_mac_hw_clear_rx_started();
 
-inline void 	   wlan_mac_set_tu_target(u64 tu_target);
+void 	   		   wlan_mac_set_tu_target(u64 tu_target);
 
 
 #endif /* WLAN_MAC_LOW_H_ */

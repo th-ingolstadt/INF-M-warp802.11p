@@ -935,6 +935,9 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
         	u8 tx_pkt_buf;
 
         	tx_pkt_buf = msg->arg0;
+
+        	xil_printf("%d\n",msg->arg0);//FIXME DEBUG
+
         	if(tx_pkt_buf < NUM_TX_PKT_BUFS){
 				// Message is an indication that a Tx Pkt Buf needs processing
         		handle_tx_pkt_buf_ready(tx_pkt_buf);

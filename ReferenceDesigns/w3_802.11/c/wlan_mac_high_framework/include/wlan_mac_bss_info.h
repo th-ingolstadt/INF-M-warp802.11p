@@ -182,7 +182,7 @@ void             bss_info_init_finish();
 dl_entry       * bss_info_checkout();
 void             bss_info_checkin(dl_entry* bsi);
 
-inline void      bss_info_rx_process(void* pkt_buf_addr);
+void      bss_info_rx_process(void* pkt_buf_addr);
 
 void             print_bss_info();
 void             bss_info_timestamp_check();
@@ -194,6 +194,6 @@ bss_info_t     * wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan);
 void             wlan_mac_high_reset_network_list();
 void             wlan_mac_high_clear_bss_info(bss_info_t * info);
 
-inline dl_list * wlan_mac_high_get_bss_info_list();
+dl_list * wlan_mac_high_get_bss_info_list();
 
 #endif

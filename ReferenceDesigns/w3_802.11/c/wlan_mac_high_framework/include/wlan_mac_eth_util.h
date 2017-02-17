@@ -173,7 +173,7 @@ void          wlan_mac_util_set_eth_rx_callback(void(*callback)());
 void 		  wlan_mac_util_set_eth_rx_early_rejection_callback(void(*callback)());
 void          wlan_mac_util_set_eth_encap_mode(u8 mode);
 
-inline int    eth_get_num_rx_bd();
+int    		  eth_get_num_rx_bd();
 
 int           wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset);
 

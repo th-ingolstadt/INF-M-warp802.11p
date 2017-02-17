@@ -131,20 +131,20 @@ int 			   handle_tx_pkt_buf_ready(u8 pkt_buf);
 #define			   POLL_TX_PKT_BUF_LIST_RETURN_MORE_DATA		0x00000004
 u32 			   poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group);
 
-inline void        increment_src(u16* src_ptr);
-inline void        increment_lrc(u16* lrc_ptr);
+void        	   increment_src(u16* src_ptr);
+void        	   increment_lrc(u16* lrc_ptr);
 
-inline void 	   poll_tbtt_and_send_beacon();
+void 	   		   poll_tbtt_and_send_beacon();
 
 #define 		   SEND_BEACON_RETURN_DTIM			0x00000001
 #define 		   SEND_BEACON_RETURN_CANCELLED		0x00000002
-inline u32 		   send_beacon(u8 tx_pkt_buf);
+u32 		   	   send_beacon(u8 tx_pkt_buf);
 
-inline void        reset_cw();
-inline void        reset_ssrc();
-inline void        reset_slrc();
+void        	   reset_cw();
+void        	   reset_ssrc();
+void        	   reset_slrc();
 
-inline u32         rand_num_slots(u8 reason);
+u32         	   rand_num_slots(u8 reason);
 
 void               wlan_mac_dcf_hw_start_backoff(u16 num_slots);
 

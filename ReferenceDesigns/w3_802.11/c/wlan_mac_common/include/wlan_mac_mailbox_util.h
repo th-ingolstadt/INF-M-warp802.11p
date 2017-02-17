@@ -150,7 +150,7 @@ void          set_mailbox_rx_callback(function_ptr_t callback);
 void          mailbox_int_handler(void * callback_ref);
 #endif
 
-inline int    read_mailbox_isempty();
+int    		  read_mailbox_isempty();
 int           read_mailbox_msg(wlan_ipc_msg_t * msg);
 int           write_mailbox_msg(wlan_ipc_msg_t * msg);
 int           send_msg(u16 msg_id, u8 arg, u8 num_words, u32 * payload);

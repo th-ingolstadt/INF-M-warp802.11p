@@ -327,7 +327,7 @@ int main(){
 		configure_bss(&bss_config);
 	}
 
-	gl_dtim_mcast_buffer_enable	= 1;
+	gl_dtim_mcast_buffer_enable	= 0;
 	wlan_mac_high_enable_mcast_buffering(gl_dtim_mcast_buffer_enable);
 
     // Print AP information to the terminal
