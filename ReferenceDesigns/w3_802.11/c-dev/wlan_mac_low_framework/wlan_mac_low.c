@@ -1083,6 +1083,7 @@ u32 wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf){
 			//  Ensure CPU Low doesn't own lock then return
 			unlock_tx_pkt_buf(tx_pkt_buf);
 			return_value |= PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE;
+			return return_value;
 		}
 
 		// Attempt to lock the packet buffer. If this fails, we will not wait for it to succeed. Something
@@ -1093,6 +1094,7 @@ u32 wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf){
 			wlan_printf(PL_ERROR, "    TX pkt_buf %d status: isLocked = %d, owner = %d\n", tx_pkt_buf, is_locked, owner);
 			tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 			return_value |= PREPARE_FRAME_TRANSMIT_ERROR_LOCK_FAIL;
+			return return_value;
 		}
 	}
 
