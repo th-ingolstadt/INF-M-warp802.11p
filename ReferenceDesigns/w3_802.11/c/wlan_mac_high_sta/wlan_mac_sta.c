@@ -1329,7 +1329,6 @@ dl_list * get_bss_member_list(){
 	}
 }
 
-u8         * get_wlan_mac_addr()     { return (u8 *)&wlan_mac_addr; }
 bss_info_t * active_bss_info_getter(){ return active_bss_info; }
 
 

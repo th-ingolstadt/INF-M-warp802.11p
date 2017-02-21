@@ -76,31 +76,31 @@
 /*************************** Variable Definitions ****************************/
 
 // Log definition variables
-volatile static u32          log_start_address;        // Absolute start address of the log
-volatile static u32          log_soft_end_address;     // Soft end address of the log
-volatile static u32          log_max_address;          // Absolute end address of the log
+static volatile u32          log_start_address;        // Absolute start address of the log
+static volatile u32          log_soft_end_address;     // Soft end address of the log
+static volatile u32          log_max_address;          // Absolute end address of the log
 
-volatile static u32          log_size;                 // Size of the log in bytes
+static volatile u32          log_size;                 // Size of the log in bytes
 
 // Log index variables
-volatile static u32          log_oldest_address;       // Pointer to the oldest entry
-volatile static u32          log_next_address;         // Pointer to the next entry
-volatile static u32          log_num_wraps;            // Number of times the log has wrapped
+static volatile u32          log_oldest_address;       // Pointer to the oldest entry
+static volatile u32          log_next_address;         // Pointer to the next entry
+static volatile u32          log_num_wraps;            // Number of times the log has wrapped
 
 // Log config variables
-volatile static u8           log_wrap_enabled;         // Will the log wrap or stop; By default wrapping is DISABLED
-volatile static u8           event_logging_enabled;    // Will events be logged or not; By default logging is ENABLED
-volatile static u16          wrap_buffer;              // Number of additional bytes that will be "erased" when
+static volatile u8           log_wrap_enabled;         // Will the log wrap or stop; By default wrapping is DISABLED
+static volatile u8           event_logging_enabled;    // Will events be logged or not; By default logging is ENABLED
+static volatile u16          wrap_buffer;              // Number of additional bytes that will be "erased" when
                                                        //   the log increments the oldest address (default = EVENT_LOG_WRAP_BUFFER)
 
 // Log status variables
-volatile static u8           log_empty;                // log_empty = (log_oldest_address == log_next_address);
-volatile static u8           log_full;                 // log_full  = (log_tail_address == log_next_address);
-volatile static u16          log_count;                // Monotonic counter for log entry sequence number
+static volatile u8           log_empty;                // log_empty = (log_oldest_address == log_next_address);
+static volatile u8           log_full;                 // log_full  = (log_tail_address == log_next_address);
+static volatile u16          log_count;                // Monotonic counter for log entry sequence number
                                                        //   (wraps every (2^16 - 1) entries)
 
 // Mutex for critical allocation loop
-volatile static u8           allocation_mutex;
+static volatile u8           allocation_mutex;
 
 
 /*************************** Functions Prototypes ****************************/

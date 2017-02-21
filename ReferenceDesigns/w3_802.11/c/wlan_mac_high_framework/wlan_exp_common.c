@@ -248,7 +248,7 @@ void clear_ddr(u32 verbose) {
     processing_time = (end_timestamp - start_timestamp) & 0xFFFFFFFF;
 
     if (verbose == WLAN_EXP_VERBOSE) {
-        wlan_exp_printf(WLAN_EXP_PRINT_NONE, NULL, "  Contents cleared in %d (usec)\n", processing_time);
+        xil_printf("  Contents cleared in %d (usec)\n", processing_time);
     }
 }
 

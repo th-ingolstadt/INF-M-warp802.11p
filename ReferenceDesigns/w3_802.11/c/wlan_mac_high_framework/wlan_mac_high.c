@@ -104,11 +104,11 @@ volatile u8                  dram_present;                 ///< Indication varia
 
 // Status information
 wlan_mac_hw_info_t         * hw_info;
-volatile static u32          cpu_low_status;               ///< Tracking variable for lower-level CPU status
+static volatile u32          cpu_low_status;               ///< Tracking variable for lower-level CPU status
 
 // CPU Low Register Read Buffer
-volatile static u32        * cpu_low_reg_read_buffer;
-volatile static u8           cpu_low_reg_read_buffer_status;
+static volatile u32        * cpu_low_reg_read_buffer;
+static volatile u8           cpu_low_reg_read_buffer_status;
 
 #define EEPROM_BASEADDR                                    XPAR_W3_IIC_EEPROM_ONBOARD_BASEADDR
 
@@ -116,16 +116,16 @@ volatile static u8           cpu_low_reg_read_buffer_status;
 #define CPU_LOW_REG_READ_BUFFER_STATUS_NOT_READY           0
 
 // Interrupt State
-volatile static interrupt_state_t interrupt_state;
+static volatile interrupt_state_t interrupt_state;
 
 // IPC variables
 wlan_ipc_msg_t               ipc_msg_from_low;                                           ///< IPC message from lower-level
 u32                          ipc_msg_from_low_payload[MAILBOX_BUFFER_MAX_NUM_WORDS];     ///< Buffer space for IPC message from lower-level
 
 // Memory Allocation Debugging
-volatile static u32          num_malloc;                   ///< Tracking variable for number of times malloc has been called
-volatile static u32          num_free;                     ///< Tracking variable for number of times free has been called
-volatile static u32          num_realloc;                  ///< Tracking variable for number of times realloc has been called
+static volatile u32          num_malloc;                   ///< Tracking variable for number of times malloc has been called
+static volatile u32          num_free;                     ///< Tracking variable for number of times free has been called
+static volatile u32          num_realloc;                  ///< Tracking variable for number of times realloc has been called
 
 /*************************** Functions Prototypes ****************************/
 
@@ -453,7 +453,7 @@ void wlan_mac_high_init(){
 	if(MAX_EVENT_LOG == -1){
 		log_size = EVENT_LOG_SIZE;
 	} else {
-		log_size = min(EVENT_LOG_SIZE, MAX_EVENT_LOG );
+		log_size = min(EVENT_LOG_SIZE, (u32)MAX_EVENT_LOG );
 	}
 
 	event_log_init( (void*)EVENT_LOG_BASE, log_size );
@@ -1190,6 +1190,11 @@ int wlan_mac_high_cdma_start_transfer(void* dest, void* src, u32 size){
 	int return_value = XST_SUCCESS;
 	u8 out_of_range  = 0;
 
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wtype-limits"
+	// The -Wtype-limits flag catches the below checks when any of the base addresses are 0 since the
+	// evaluation will always be true. Nevertheless, these checks are useful if the memory map changes.
+	// So, we can explicitly disable the warning around these sets of lines.
 
 	if((u32)src >= XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_BASEADDR && (u32)src <= XPAR_MB_HIGH_DLMB_BRAM_CNTLR_0_HIGHADDR){
 		out_of_range = 1;
@@ -1200,7 +1205,7 @@ int wlan_mac_high_cdma_start_transfer(void* dest, void* src, u32 size){
 	} else if((u32)dest >= XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_BASEADDR && (u32)dest <= XPAR_MB_HIGH_DLMB_BRAM_CNTLR_1_HIGHADDR){
 		out_of_range = 1;
 	}
-
+#pragma GCC diagnostic pop
 	if( size == 0 ){
 		xil_printf("CDMA Error: size argument must be > 0\n");
 		return XST_FAILURE;

@@ -56,7 +56,7 @@ static transport_eth_dev_info     eth_devices[TRANSPORT_NUM_ETH_DEVICES];
 static wlan_exp_tag_parameter     transport_parameters[TRANSPORT_NUM_ETH_DEVICES][TRANSPORT_PARAM_MAX_PARAMETER];
 
 // Callbacks
-volatile wlan_exp_function_ptr_t  process_hton_msg_callback;
+volatile function_ptr_t  process_hton_msg_callback;
 
 
 
@@ -96,7 +96,7 @@ int transport_init(u32 eth_dev_num, void * node_info, u8 * ip_addr, u8 * hw_addr
     int       status = XST_SUCCESS;
 
     // Print initialization message
-    wlan_exp_printf(WLAN_EXP_PRINT_NONE, NULL, "Configuring transport ...\n");
+    xil_printf("Configuring transport ...\n");
 
     // Initialize the User callback for processing a packet
     process_hton_msg_callback = wlan_exp_null_callback;
@@ -110,9 +110,9 @@ int transport_init(u32 eth_dev_num, void * node_info, u8 * ip_addr, u8 * hw_addr
     warp_ip_udp_init();
 
     // Print MAC address and IP address
-    wlan_exp_printf(WLAN_EXP_PRINT_NONE, NULL, "  ETH %c MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n",
+    xil_printf("  ETH %c MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n",
             warp_conv_eth_dev_num(eth_dev_num), hw_addr[0], hw_addr[1], hw_addr[2], hw_addr[3], hw_addr[4], hw_addr[5]);
-    wlan_exp_printf(WLAN_EXP_PRINT_NONE, NULL, "  ETH %c IP  Address: %d.%d.%d.%d\n",
+    xil_printf("  ETH %c IP  Address: %d.%d.%d.%d\n",
             warp_conv_eth_dev_num(eth_dev_num), ip_addr[0], ip_addr[1], ip_addr[2], ip_addr[3]);
 
     // Initialize the Ethernet device (use verbose mode)
@@ -805,7 +805,7 @@ int transport_config_sockets(u32 eth_dev_num, u32 unicast_port, u32 broadcast_po
     eth_devices[eth_dev_num].info.broadcast_port = broadcast_port;
 
     if (verbose) {
-        wlan_exp_printf(WLAN_EXP_PRINT_NONE, NULL, "  Listening on UDP ports %d (unicast) and %d (broadcast)\n", unicast_port, broadcast_port);
+        xil_printf("  Listening on UDP ports %d (unicast) and %d (broadcast)\n", unicast_port, broadcast_port);
     }
 
     return status;
@@ -926,7 +926,7 @@ u32 transport_update_link_speed(u32 eth_dev_num, u32 wait_for_negotiation) {
         wlan_usleep(1 * 10000);
 
     } else {
-        wlan_exp_printf(WLAN_EXP_PRINT_NONE, NULL, "  ETH %c not initialized.  Link speed not updated.\n", warp_conv_eth_dev_num(eth_dev_num));
+        xil_printf("  ETH %c not initialized.  Link speed not updated.\n", warp_conv_eth_dev_num(eth_dev_num));
     }
 
     if (negotiated) {

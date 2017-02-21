@@ -909,7 +909,7 @@ void wlan_exp_log_get_txrx_entry_sizes( u32 entry_type, u16 packet_payload_size,
         case ENTRY_TYPE_TX_HIGH:
         case ENTRY_TYPE_TX_HIGH_LTG:
             // Determine if we need to log the minimum entry payload size or the 32-bit aligned packet payload, whichever is larger
-            pkt_bytes_to_log       = max(tmp_min_entry_payload_size, ((1 + ((packet_payload_size - 1) / 4))*4));
+            pkt_bytes_to_log       = max(tmp_min_entry_payload_size, ((1 + ((packet_payload_size - 1U) / 4U))*4U));
 
             // Determine if we need to log the mimimum entry payload size or the mac_payload_log_len, whichever is larger
             log_bytes_to_log       = max(tmp_min_entry_payload_size, mac_payload_log_len);

@@ -204,7 +204,7 @@ typedef struct {
     // END ADD NEW TAG PARAMETERS HERE
     //
 
-} transport_info;
+} transport_info_t;
 
 
 // Ethernet Device Information
@@ -227,7 +227,7 @@ typedef struct {
 #endif //WLAN_SW_CONFIG_ENABLE_WLAN_EXP
     cmd_resp                 async_cmd_resp;               // Command / Response structure for Asynchronous send socket
 
-    transport_info           info;                         // Transport info structure
+    transport_info_t         info;                         // Transport info structure
 
 } transport_eth_dev_info;
 

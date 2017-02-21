@@ -228,9 +228,9 @@ int wlan_eth_init() {
  * @return 0 on success, -1 otherwise
  */
 int wlan_eth_dma_init() {
-    int                 i;
+    u32                 i;
     int                 status;
-    int                 bd_count;
+    u32                 bd_count;
     u32                 max_transfer_len;
 
     XAxiDma_Config    * eth_dma_cfg_ptr;
@@ -914,7 +914,7 @@ int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_
 void wlan_eth_dma_update() {
     int                 status;
     int                 iter;
-    int                 bd_count;
+    u32                 bd_count;
     u32                 bd_queue_pairs_to_process;
     u32                 bd_queue_pairs_processed;
     u32                 max_transfer_len;

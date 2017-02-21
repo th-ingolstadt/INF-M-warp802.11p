@@ -151,20 +151,21 @@
 // **********************************************************************
 // WLAN Exp print levels
 //
-#define WLAN_EXP_PRINT_NONE                      0
-#define WLAN_EXP_PRINT_ERROR                     1
-#define WLAN_EXP_PRINT_WARNING                   2
-#define WLAN_EXP_PRINT_INFO                      3
-#define WLAN_EXP_PRINT_DEBUG                     4
+#define WLAN_EXP_PRINT_NONE                      0U
+#define WLAN_EXP_PRINT_ERROR                     1U
+#define WLAN_EXP_PRINT_WARNING                   2U
+#define WLAN_EXP_PRINT_INFO                      3U
+#define WLAN_EXP_PRINT_DEBUG                     4U
 
 
 #define wlan_exp_printf(level, type, format, args...) \
             do {  \
-                if (level <= wlan_exp_print_level) { \
+                if ((u8)level <= (u8)wlan_exp_print_level) { \
                     wlan_exp_print_header(level, type, __FILE__, __LINE__); \
                     xil_printf(format, ##args); \
                 } \
             } while (0)
+
 
 
 extern u8       wlan_exp_print_level;
@@ -242,15 +243,6 @@ typedef struct {
     cmd_resp_hdr           * header;
     u32                    * args;
 } cmd_resp;
-
-
-
-// **********************************************************************
-// WLAN Exp Function pointer
-//
-typedef int (*wlan_exp_function_ptr_t)();
-
-
 
 // **********************************************************************
 // WLAN Exp Tag Parameter Structure

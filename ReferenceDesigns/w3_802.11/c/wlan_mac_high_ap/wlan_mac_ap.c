@@ -245,7 +245,7 @@ int main(){
 	wlan_mac_util_set_eth_encap_mode(ENCAP_MODE_AP);
 #endif
 
-    wlan_mac_hw_info_t * hw_info;
+    wlan_mac_hw_info_t* hw_info;
     // Get the hardware info that has been collected from CPU low
     hw_info = get_mac_hw_info();
 
@@ -485,7 +485,7 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 	existing_mgmt_tag_length 	= mgmt_tag_tim_template->header.tag_length;
 	tim_byte_idx 				= aid / 8;
 
-	if((tim_byte_idx + 4) > existing_mgmt_tag_length){
+	if((tim_byte_idx + 4U) > existing_mgmt_tag_length){
 		//The current byte we intend to modify is larger than the existing tag. In this case,
 		//we fall back on the update_tim_tag_all function since we cannnot simply modify a single
 		//bit.
@@ -2361,8 +2361,8 @@ dl_list * get_bss_member_list(){
 		return NULL;
 	}
 }
-u8         * get_wlan_mac_addr()    { return (u8 *)&wlan_mac_addr;      }
-bss_info_t * active_bss_info_getter(){ return active_bss_info; }
+
+bss_info_t* active_bss_info_getter(){ return active_bss_info; }
 
 
 /*****************************************************************************/

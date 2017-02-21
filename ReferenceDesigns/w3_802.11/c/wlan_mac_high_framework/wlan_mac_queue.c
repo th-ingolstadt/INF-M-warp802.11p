@@ -71,7 +71,7 @@ static u16                   num_tx_queues;
 
 
 // Total number of Tx queue entries
-volatile static u32          total_tx_queue_entries;
+static volatile u32          total_tx_queue_entries;
 
 
 /******************************** Functions **********************************/

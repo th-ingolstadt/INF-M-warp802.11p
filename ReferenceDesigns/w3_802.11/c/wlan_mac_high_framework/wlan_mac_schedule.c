@@ -38,7 +38,7 @@
 /*************************** Variable Definitions ****************************/
 static XTmrCtr               timer_instance;
 
-volatile static u32          schedule_count;
+static volatile u32          schedule_count;
 
 
 static wlan_sched_state_t    wlan_sched_coarse;
@@ -532,7 +532,7 @@ void schedule_handler(void * callback_ref, u8 timer_number){
 
 	u64            curr_system_time;
 
-	volatile static 		u8 debug_print = 0;
+	static volatile 		u8 debug_print = 0;
 
 	// Get current system time
 	curr_system_time = get_system_time_usec();

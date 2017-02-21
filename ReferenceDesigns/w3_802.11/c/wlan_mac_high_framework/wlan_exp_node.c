@@ -133,13 +133,13 @@ int           null_process_cmd_callback(u32 cmd_id, void* param);
 wlan_exp_node_info                node_info;
 static wlan_exp_tag_parameter     node_parameters[NODE_PARAM_MAX_PARAMETER];
 
-static wlan_exp_function_ptr_t    wlan_exp_process_node_cmd_callback;
-	   wlan_exp_function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback;
-       wlan_exp_function_ptr_t    wlan_exp_tx_cmd_add_association_callback;
-       wlan_exp_function_ptr_t    wlan_exp_process_user_cmd_callback;
-       wlan_exp_function_ptr_t    wlan_exp_beacon_ts_update_mode_callback;
-       wlan_exp_function_ptr_t    wlan_exp_process_config_bss_callback;
-       wlan_exp_function_ptr_t    wlan_exp_active_bss_info_getter_callback;
+static function_ptr_t    wlan_exp_process_node_cmd_callback;
+function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback;
+function_ptr_t    wlan_exp_tx_cmd_add_association_callback;
+function_ptr_t    wlan_exp_process_user_cmd_callback;
+function_ptr_t    wlan_exp_beacon_ts_update_mode_callback;
+function_ptr_t    wlan_exp_process_config_bss_callback;
+function_ptr_t    wlan_exp_active_bss_info_getter_callback;
 
 // Allocate Ethernet Header buffer
 //     NOTE:  The buffer memory must be placed in DMA accessible DDR such that it can be fetched by the AXI DMA
@@ -291,8 +291,7 @@ int wlan_exp_node_init(u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wl
     // Wait for Ethernet to finish initializing the link
     //
     if (WLAN_EXP_WAIT_FOR_ETH) {
-        wlan_exp_printf(WLAN_EXP_PRINT_NONE, NULL, "  Waiting for Ethernet link ... \n");
-
+        xil_printf("  Waiting for Ethernet link ... \n");
         while(link_status == LINK_NOT_READY) {
 
             // Check the link status of the Ethernet device
@@ -326,7 +325,7 @@ int wlan_exp_node_init(u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wl
     //
     transport_set_process_hton_msg_callback((void *)process_hton_msg);
 
-    wlan_exp_printf(WLAN_EXP_PRINT_NONE, NULL, "WLAN EXP Initialization complete\n");
+    xil_printf("WLAN EXP Initialization complete\n");
 
     return status;
 }
@@ -693,11 +692,11 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - cmd_args_32[1] - Number of blinks
             //   - cmd_args_32[2] - Microseconds per blink (must be an even number)
             //
-            u32              serial_number;
-            u32              num_blinks;
-            u32              time_per_blink;
-            transport_info * transport_info;
-            u8               ip_addr[IP_ADDR_LEN];
+            u32               serial_number;
+            u32               num_blinks;
+            u32               time_per_blink;
+            transport_info_t* transport_info;
+            u8                ip_addr[IP_ADDR_LEN];
 
             // Get command parameters
             serial_number  = Xil_Ntohl(cmd_args_32[0]);
@@ -751,10 +750,10 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - cmd_args_32[3] - Unicast Port
             //   - cmd_args_32[4] - Broadcast Port
             // 
-            int              status;
-            u32              node_id;
-            transport_info * transport_info;
-            u8               ip_addr[IP_ADDR_LEN];
+            int               status;
+            u32               node_id;
+            transport_info_t* transport_info;
+            u8                ip_addr[IP_ADDR_LEN];
 
             // Only update the parameters if the serial numbers match
             if (node_info.serial_number ==  Xil_Ntohl(cmd_args_32[0])) {
@@ -812,9 +811,9 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //
             //   - cmd_args_32[0] - Serial Number
             // 
-            u32              serial_number;
-            transport_info * transport_info;
-            u8               ip_addr[IP_ADDR_LEN];
+            u32               serial_number;
+            transport_info_t* transport_info;
+            u8                ip_addr[IP_ADDR_LEN];
             
             // If the command was sent directly to the node (ie not a broadcast packet), then the node
             // needs to send a response before the IP address changes.
@@ -1556,7 +1555,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Send response of status
             resp_args_32[resp_index++] = Xil_Htonl(status);
 
-            wlan_exp_put_mac_addr(get_wlan_mac_addr(), &resp_args_32[resp_index]);
+            wlan_exp_put_mac_addr(get_mac_hw_addr_wlan(), &resp_args_32[resp_index]);
             resp_index += 2;
 
             resp_hdr->length  += (resp_index * sizeof(resp_args_32));
@@ -3742,46 +3741,46 @@ void copy_bss_info_to_dest(void * source, void * dest, u8* mac_addr) {
  *
  *****************************************************************************/
 void wlan_exp_reset_all_callbacks(){
-    wlan_exp_process_node_cmd_callback         = (wlan_exp_function_ptr_t) null_process_cmd_callback;
-    wlan_exp_purge_all_data_tx_queue_callback  = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
-    wlan_exp_tx_cmd_add_association_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
-    wlan_exp_process_user_cmd_callback         = (wlan_exp_function_ptr_t) null_process_cmd_callback;
-    wlan_exp_beacon_ts_update_mode_callback    = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
-    wlan_exp_process_config_bss_callback       = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
-    wlan_exp_active_bss_info_getter_callback   = (wlan_exp_function_ptr_t) wlan_exp_null_callback;
+    wlan_exp_process_node_cmd_callback         = (function_ptr_t) null_process_cmd_callback;
+    wlan_exp_purge_all_data_tx_queue_callback  = (function_ptr_t) wlan_exp_null_callback;
+    wlan_exp_tx_cmd_add_association_callback   = (function_ptr_t) wlan_exp_null_callback;
+    wlan_exp_process_user_cmd_callback         = (function_ptr_t) null_process_cmd_callback;
+    wlan_exp_beacon_ts_update_mode_callback    = (function_ptr_t) wlan_exp_null_callback;
+    wlan_exp_process_config_bss_callback       = (function_ptr_t) wlan_exp_null_callback;
+    wlan_exp_active_bss_info_getter_callback   = (function_ptr_t) wlan_exp_null_callback;
 }
 
 void wlan_exp_set_process_node_cmd_callback(void(*callback)()){
-	wlan_exp_process_node_cmd_callback = (wlan_exp_function_ptr_t) callback;
+	wlan_exp_process_node_cmd_callback = (function_ptr_t) callback;
 }
 
 
 void wlan_exp_set_purge_all_data_tx_queue_callback(void(*callback)()){
-    wlan_exp_purge_all_data_tx_queue_callback = (wlan_exp_function_ptr_t) callback;
+    wlan_exp_purge_all_data_tx_queue_callback = (function_ptr_t) callback;
 }
 
 
 void wlan_exp_set_tx_cmd_add_association_callback(void(*callback)()){
-    wlan_exp_tx_cmd_add_association_callback = (wlan_exp_function_ptr_t) callback;
+    wlan_exp_tx_cmd_add_association_callback = (function_ptr_t) callback;
 }
 
 
 void wlan_exp_set_process_user_cmd_callback(void(*callback)()){
-    wlan_exp_process_user_cmd_callback = (wlan_exp_function_ptr_t) callback;
+    wlan_exp_process_user_cmd_callback = (function_ptr_t) callback;
 }
 
 
 void wlan_exp_set_beacon_ts_update_mode_callback(void(*callback)()){
-    wlan_exp_beacon_ts_update_mode_callback = (wlan_exp_function_ptr_t) callback;
+    wlan_exp_beacon_ts_update_mode_callback = (function_ptr_t) callback;
 }
 
 
 void wlan_exp_set_process_config_bss_callback(void(*callback)()){
-    wlan_exp_process_config_bss_callback = (wlan_exp_function_ptr_t) callback;
+    wlan_exp_process_config_bss_callback = (function_ptr_t) callback;
 }
 
 void wlan_exp_set_active_bss_info_getter_callback(void(*callback)()){
-	wlan_exp_active_bss_info_getter_callback = (wlan_exp_function_ptr_t) callback;
+	wlan_exp_active_bss_info_getter_callback = (function_ptr_t) callback;
 }
 
 

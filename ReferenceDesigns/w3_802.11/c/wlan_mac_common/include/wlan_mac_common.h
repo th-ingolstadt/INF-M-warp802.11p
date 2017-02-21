@@ -85,7 +85,7 @@
 //-----------------------------------------------
 // PHY defines
 //
-#define WLAN_PHY_FCS_NBYTES                                4
+#define WLAN_PHY_FCS_NBYTES                                4U
 
 #define PHY_MODE_DSSS                                      0x0
 #define PHY_MODE_NONHT                                     0x1       // 11a OFDM
@@ -98,7 +98,7 @@
 //-----------------------------------------------
 // Unique sequence number defines
 //
-#define UNIQUE_SEQ_INVALID                                 0xFFFFFFFFFFFFFFFF
+#define UNIQUE_SEQ_INVALID                                 0xFFFFFFFFFFFFFFFFULL
 
 
 //-----------------------------------------------
@@ -282,8 +282,8 @@ int                     wlan_verify_channel(u32 channel);
 void                    cpu_error_halt(u32 error_code);
 
 void                    init_mac_hw_info();
-wlan_mac_hw_info_t    * get_mac_hw_info();
-u8                    * get_mac_hw_addr_wlan();
-u8                    * get_mac_hw_addr_wlan_exp();
+wlan_mac_hw_info_t* get_mac_hw_info();
+u8* get_mac_hw_addr_wlan();
+u8* get_mac_hw_addr_wlan_exp();
 
 #endif   // END WLAN_MAC_COMMON_H_
