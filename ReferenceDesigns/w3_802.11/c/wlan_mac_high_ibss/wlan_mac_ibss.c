@@ -1151,10 +1151,10 @@ void ltg_event(u32 id, void* callback_arg){
  * This function is called to tell us that we should re-apply any previous
  * parameters we had set.
  *
- * @param  None
+ * @param  u32 type - type of MAC running in CPU_LOW
  * @return None
  *****************************************************************************/
-void handle_cpu_low_reboot(){
+void handle_cpu_low_reboot(u32 type){
 	if(active_bss_info){
 		// Re-apply any Beacon Tx configurations
 		wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
