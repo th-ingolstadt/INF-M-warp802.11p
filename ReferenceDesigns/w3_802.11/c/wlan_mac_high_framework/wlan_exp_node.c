@@ -642,7 +642,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             xil_printf("WLAN Exp Type = 0x%08x \n", node_info.node_type);
 #endif
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;
@@ -679,7 +679,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // --------------------------------
                         
             // Finalize response
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;
@@ -721,7 +721,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 //   The host is responsible for waiting until the LED blinking is done before issuing the
                 //   node another command.
                 resp_args_32[resp_index++] = Xil_Htonl(CMD_PARAM_SUCCESS);
-                resp_hdr->length          += (resp_index * sizeof(resp_args_32));
+                resp_hdr->length          += (resp_index * sizeof(u32));
                 resp_hdr->num_args         = resp_index;
 
                 send_early_resp(socket_index, from, response->header, response->buffer);
@@ -732,7 +732,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             } else {
                 resp_args_32[resp_index++] = Xil_Htonl(CMD_PARAM_ERROR);
-                resp_hdr->length          += (resp_index * sizeof(resp_args_32));
+                resp_hdr->length          += (resp_index * sizeof(u32));
                 resp_hdr->num_args         = resp_index;
             }
         }
@@ -876,7 +876,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             resp_args_32[resp_index++] = Xil_Htonl(get_min_temp());
             resp_args_32[resp_index++] = Xil_Htonl(get_max_temp());
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;
@@ -954,7 +954,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Send response of status
             resp_args_32[resp_index++] = Xil_Htonl(status);
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
 #endif //WLAN_SW_CONFIG_ENABLE_LOGGING
         }
@@ -998,7 +998,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             resp_args_32[resp_index++] = Xil_Htonl(flags);
 
             // Send response of current info
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
 #endif //WLAN_SW_CONFIG_ENABLE_LOGGING
         }
@@ -1016,7 +1016,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             resp_args_32[resp_index++] = Xil_Htonl(event_log_get_total_size());
 
             // Send response of current info
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
 #endif //WLAN_SW_CONFIG_ENABLE_LOGGING
         }
@@ -1100,7 +1100,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 entry_size = sizeof(exp_info_entry);
             } else {
                 // 32-bit align size; EXP INFO structure already contains 4 bytes of the payload
-                entry_size = sizeof(exp_info_entry) + (((size - 1) / 4)*4);
+                entry_size = sizeof(exp_info_entry) + (((size - 1) / sizeof(u32))*sizeof(u32));
             }
 
             exp_info = (exp_info_entry *) wlan_exp_log_create_entry(ENTRY_TYPE_EXP_INFO, entry_size);
@@ -1240,7 +1240,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             resp_args_32[resp_index++] = Xil_Htonl(status);
             resp_args_32[resp_index++] = Xil_Htonl(id);
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
 #endif //WLAN_SW_CONFIG_ENABLE_LTG
         }
@@ -1278,7 +1278,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Send response of current rate
             resp_args_32[resp_index++] = Xil_Htonl(status);
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
 #endif
         }
@@ -1316,7 +1316,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Send response of current rate
             resp_args_32[resp_index++] = Xil_Htonl(status);
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
 #endif
         }
@@ -1354,7 +1354,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Send response of status
             resp_args_32[resp_index++] = Xil_Htonl(status);
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
 #endif //WLAN_SW_CONFIG_ENABLE_LTG
         }
@@ -1402,7 +1402,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 }
             }
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
 #endif //WLAN_SW_CONFIG_ENABLE_LTG
         }
@@ -1441,7 +1441,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 		   resp_args_32[resp_index++] = Xil_Htonl(status);
 		   resp_args_32[resp_index++] = Xil_Htonl(low_param_channel);
 
-		   resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+		   resp_hdr->length  += (resp_index * sizeof(u32));
 		   resp_hdr->num_args = resp_index;
 	   }
 	   break;
@@ -1514,7 +1514,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Send response of status
             resp_args_32[resp_index++] = Xil_Htonl(status);
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;
@@ -1558,7 +1558,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             wlan_exp_put_mac_addr(get_mac_hw_addr_wlan(), &resp_args_32[resp_index]);
             resp_index += 2;
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;
@@ -1660,7 +1660,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             resp_args_32[resp_index++] = Xil_Htonl(temp_hi);
 
             // Complete the response
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;
@@ -1696,7 +1696,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Send response
             resp_args_32[resp_index++] = Xil_Htonl(status);
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;
@@ -1749,7 +1749,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Send response
             resp_args_32[resp_index++] = Xil_Htonl(status);
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;
@@ -1801,7 +1801,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Send default response
             resp_args_32[resp_index++] = Xil_Htonl(status);
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;
@@ -1969,7 +1969,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             resp_args_32[resp_index++] = Xil_Htonl(status);
             resp_args_32[resp_index++] = Xil_Htonl(power_xmit);
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;
@@ -2117,7 +2117,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             resp_args_32[resp_index++] = Xil_Htonl(ret_mcs);
             resp_args_32[resp_index++] = Xil_Htonl(ret_phy_mode);
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;
@@ -2281,7 +2281,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             resp_args_32[resp_index++] = Xil_Htonl(status);
             resp_args_32[resp_index++] = Xil_Htonl(ant_mode & 0xFF);
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;
@@ -2322,7 +2322,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             resp_args_32[resp_index++] = Xil_Htonl(status);
             resp_args_32[resp_index++] = Xil_Htonl(ant_mode);
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;
@@ -2482,7 +2482,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Send response of status
             resp_args_32[resp_index++] = Xil_Htonl(status);
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;
@@ -2533,7 +2533,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             resp_args_32[resp_index++] = Xil_Htonl(status);
             resp_args_32[resp_index++] = Xil_Htonl(wlan_mac_scan_is_scanning());
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;
@@ -2568,7 +2568,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             // Send response
             resp_args_32[resp_index++] = Xil_Htonl(status);
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;
@@ -2677,7 +2677,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     resp_args_32[4] = 0;
 
                     // Set the length and number of response args
-                    resp_hdr->length  += (5 * sizeof(resp_args_32));
+                    resp_hdr->length  += (5 * sizeof(u32));
                     resp_hdr->num_args = resp_index;
                 }
             }
@@ -2774,7 +2774,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                         // Add length argument to response
                         resp_args_32[resp_index++] = Xil_Htonl(status);
                         resp_args_32[resp_index++] = Xil_Htonl(mem_length);
-                        resp_hdr->length += (resp_index * sizeof(resp_args_32));
+                        resp_hdr->length += (resp_index * sizeof(u32));
                         resp_hdr->num_args = resp_index;
 
                         for (mem_idx = 0; mem_idx < mem_length; mem_idx++) {
@@ -2799,7 +2799,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             if (use_default_resp) {
                 // Send default response
                 resp_args_32[resp_index++] = Xil_Htonl(status);
-                resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+                resp_hdr->length  += (resp_index * sizeof(u32));
                 resp_hdr->num_args = resp_index;
             }
         }
@@ -2875,7 +2875,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                             // Add length argument to response
                             resp_args_32[resp_index++] = Xil_Htonl(status);
                             resp_args_32[resp_index++] = Xil_Htonl(mem_length);
-                            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+                            resp_hdr->length  += (resp_index * sizeof(u32));
                             resp_hdr->num_args = resp_index;
 
                             // Endian swap payload returned by CPU Low
@@ -2905,7 +2905,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             if (use_default_resp) {
                 // Send default response
                 resp_args_32[resp_index++] = Xil_Htonl(status);
-                resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+                resp_hdr->length  += (resp_index * sizeof(u32));
                 resp_hdr->num_args = resp_index;
             }
         }
@@ -3016,7 +3016,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                         resp_args_32[resp_index++] = Xil_Htonl(status);
                         resp_args_32[resp_index++] = Xil_Htonl(eeprom_idx);
                         resp_index        += eeprom_idx;                       // Update response index for all EEPROM bytes
-                        resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+                        resp_hdr->length  += (resp_index * sizeof(u32));
                         resp_hdr->num_args = resp_index;
 
                     } else {
@@ -3038,7 +3038,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             if (use_default_resp) {
                 // Send default response
                 resp_args_32[resp_index++] = Xil_Htonl(status);
-                resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+                resp_hdr->length  += (resp_index * sizeof(u32));
                 resp_hdr->num_args = resp_index;
             }
         }
@@ -3269,7 +3269,7 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
     }
 
     // Set the length and number of response args
-    resp_hdr->length  += (5 * sizeof(resp_args_32));
+    resp_hdr->length  += (5 * sizeof(u32));
     resp_hdr->num_args = resp_index;
 
     return resp_sent;

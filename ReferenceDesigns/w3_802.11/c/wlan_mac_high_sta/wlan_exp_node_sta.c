@@ -198,7 +198,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             // Send response of success
             resp_args_32[resp_index++] = Xil_Htonl(status);
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;
@@ -250,7 +250,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             // Send response
             resp_args_32[resp_index++] = Xil_Htonl(status);
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;
@@ -282,7 +282,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             // Send response of status
             resp_args_32[resp_index++] = Xil_Htonl(status);
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;
@@ -348,7 +348,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             // Send response of status
             resp_args_32[resp_index++] = Xil_Htonl(status);
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;
@@ -372,7 +372,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             resp_args_32[resp_index++] = Xil_Htonl(status);
             resp_args_32[resp_index++] = Xil_Htonl(is_joining);
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;

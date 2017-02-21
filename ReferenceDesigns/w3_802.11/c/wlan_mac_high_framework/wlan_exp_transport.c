@@ -657,7 +657,7 @@ int process_transport_cmd(int socket_index, void * from, cmd_resp * command, cmd
             u32              header_size;
 
             header_size        = (sizeof(transport_header) + sizeof(cmd_resp_hdr));                               // Transport / Command headers
-            payload_index      = (((warp_ip_udp_buffer *)(command->buffer))->length - sizeof(cmd_resp_hdr)) / 4;  // Final index into command args (/4 truncates)
+            payload_index      = (((warp_ip_udp_buffer *)(command->buffer))->length - sizeof(cmd_resp_hdr)) / sizeof(u32);  // Final index into command args (/4 truncates)
 
             // Check the value in the command args to make sure it matches the size_index
             payload_num_words  = Xil_Htonl(cmd_args_32[payload_index - 1]) + 1;     // NOTE:  Add 1 since the payload is zero indexed
@@ -675,7 +675,7 @@ int process_transport_cmd(int socket_index, void * from, cmd_resp * command, cmd
 
             resp_args_32[resp_index++] = Xil_Ntohl(payload_size);
 
-            resp_hdr->length  += (resp_index * sizeof(resp_args_32));
+            resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = 1;
         }
         break;

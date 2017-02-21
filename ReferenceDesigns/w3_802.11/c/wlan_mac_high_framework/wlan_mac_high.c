@@ -2283,7 +2283,7 @@ int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_heade
 		tx_header_common_ptr,
 		bss_info);
 
-	bzero(tx_frame_info, sizeof(tx_frame_info));
+	bzero(tx_frame_info, sizeof(tx_frame_info_t));
 
 	// Set up frame info data
 	tx_frame_info->timestamp_create            = get_mac_time_usec();

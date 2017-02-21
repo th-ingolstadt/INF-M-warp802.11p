@@ -81,8 +81,8 @@ static function_ptr_t        ipc_low_param_callback;                            
 static volatile u64	         unique_seq;
 
 // Constant LUTs for MCS
-static const u16 mcs_to_n_dbps_nonht_lut[WLAN_MAC_NUM_MCS] = {24, 36, 48, 72, 96, 144, 192, 216};
-static const u16 mcs_to_n_dbps_htmf_lut[WLAN_MAC_NUM_MCS] = {26, 52, 78, 104, 156, 208, 234, 260};
+static const u16 mcs_to_n_dbps_nonht_lut[] = {24, 36, 48, 72, 96, 144, 192, 216};
+static const u16 mcs_to_n_dbps_htmf_lut[] = {26, 52, 78, 104, 156, 208, 234, 260};
 
 /******************************** Functions **********************************/
 
@@ -1187,7 +1187,7 @@ void wlan_mac_low_send_low_tx_details(u8 pkt_buf, wlan_mac_low_tx_details_t* low
 
 	ipc_msg_to_high.payload_ptr = (u32*)low_tx_details;
 	ipc_msg_to_high.arg0 = pkt_buf;
-	ipc_msg_to_high.num_payload_words = (sizeof(wlan_mac_low_tx_details_t) / 4);
+	ipc_msg_to_high.num_payload_words = (sizeof(wlan_mac_low_tx_details_t) / sizeof(u32));
 
 	ipc_msg_to_high.msg_id =  IPC_MBOX_MSG_ID(IPC_MBOX_PHY_TX_REPORT);
 	write_mailbox_msg(&ipc_msg_to_high);
