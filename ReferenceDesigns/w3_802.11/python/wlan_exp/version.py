@@ -34,7 +34,6 @@ WLAN_EXP_REVISION       = 2
 WLAN_EXP_XTRA           = str('')
 WLAN_EXP_RELEASE        = True
 
-
 # Version string
 version  = "wlan_exp v"
 version += "{0:d}.".format(WLAN_EXP_MAJOR)
