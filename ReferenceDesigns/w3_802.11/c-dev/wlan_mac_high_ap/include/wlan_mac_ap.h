@@ -86,7 +86,7 @@ bss_info_t* 			active_bss_info_getter();
 void 					process_scan_state_change(scan_state_t scan_state);
 
 void queue_state_change(u32 QID, u8 queue_len);
-inline void update_tim_tag_aid(u8 aid, u8 bit_val_in);
+void update_tim_tag_aid(u8 aid, u8 bit_val_in);
 void update_tim_tag_all(u32 sched_id);
 
 void poll_tx_queues(pkt_buf_group_t pkt_buf_group);

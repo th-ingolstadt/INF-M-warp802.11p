@@ -541,15 +541,6 @@ inline int dequeue_transmit_checkin(u16 queue_sel){
 		// Get the Tx queue element to transmit
 		curr_tx_queue_element = dequeue_from_head(queue_sel);
 
-		// Add a flag that indicates whether any other queue elements remain in queue_sel
-		// after dequeue
-		if(queue_num_queued(queue_sel) == 0){
-			((tx_queue_buffer_t*)(curr_tx_queue_element->data))->tx_frame_info.flags |= TX_FRAME_INFO_FLAGS_EMPTY_AT_DEQUEUE;
-		} else {
-			((tx_queue_buffer_t*)(curr_tx_queue_element->data))->tx_frame_info.flags &= ~TX_FRAME_INFO_FLAGS_EMPTY_AT_DEQUEUE;
-		}
-
-
 		if(curr_tx_queue_element != NULL){
 			// Transmit the Tx Queue element
 			//     NOTE:  This copies all the contents of the queue element to the

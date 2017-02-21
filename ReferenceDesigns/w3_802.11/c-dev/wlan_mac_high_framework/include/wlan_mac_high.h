@@ -239,10 +239,10 @@ extern const  u8 zero_addr[MAC_ADDR_LEN];
 void               wlan_mac_high_init();
 void 			   wlan_mac_high_malloc_init();
 
-int                          wlan_mac_high_interrupt_init();
+int                wlan_mac_high_interrupt_init();
 void 						 wlan_mac_high_uart_rx_callback(u8 rxByte);
-inline int                   wlan_mac_high_interrupt_restore_state(interrupt_state_t new_interrupt_state);
-inline interrupt_state_t     wlan_mac_high_interrupt_stop();
+int                wlan_mac_high_interrupt_restore_state(interrupt_state_t new_interrupt_state);
+interrupt_state_t  wlan_mac_high_interrupt_stop();
 
 void 			   wlan_mac_high_userio_inputs_callback(u32 userio_state, userio_input_mask_t userio_delta);
 
@@ -301,7 +301,7 @@ int                wlan_mac_high_write_low_param(u32 num_words, u32* payload);
 
 void               wlan_mac_high_request_low_state();
 int 			   wlan_mac_high_is_cpu_low_initialized();
-inline int         wlan_mac_high_is_dequeue_allowed(pkt_buf_group_t pkt_buf_group);
+int         	   wlan_mac_high_is_dequeue_allowed(pkt_buf_group_t pkt_buf_group);
 int                wlan_mac_high_get_empty_tx_packet_buffer();
 u8                 wlan_mac_high_is_pkt_ltg(void* mac_payload, u16 length);
 

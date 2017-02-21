@@ -151,8 +151,8 @@ void             station_info_init_finish();
 dl_entry* 		 station_info_checkout();
 void             station_info_checkin(dl_entry* entry);
 
-inline station_info_t*  station_info_tx_process(void* pkt_buf_addr);
-inline station_info_t*	station_info_rx_process(void* pkt_buf_addr);
+station_info_t*  station_info_tx_process(void* pkt_buf_addr);
+station_info_t*	 station_info_rx_process(void* pkt_buf_addr);
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
 void   					station_info_rx_process_counts(void* pkt_buf_addr, station_info_t* station_info, u32 option_flags);
 #endif
@@ -170,7 +170,7 @@ station_info_t*  station_info_create(u8* addr);
 void             station_info_reset_all();
 void 			 station_info_clear(station_info_t* station_info);
 
-inline dl_list*  station_info_get_list();
+dl_list*  		 station_info_get_list();
 
 dl_entry*        station_info_find_by_id(u32 id, dl_list* list);
 dl_entry*        station_info_find_by_addr(u8* addr, dl_list* list);
