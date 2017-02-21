@@ -119,7 +119,7 @@ int wlan_mac_scan_init(){
 
     if (gl_scan_parameters.channel_vec != NULL) {
         memcpy(gl_scan_parameters.channel_vec, default_channel_selections, sizeof(default_channel_selections));
-        gl_scan_parameters.channel_vec_len = sizeof(default_channel_selections);
+        gl_scan_parameters.channel_vec_len = sizeof(default_channel_selections)/sizeof(default_channel_selections[0]);
     }
 
     gl_scan_parameters.probe_tx_interval_usec   = DEFAULT_SCAN_PROBE_TX_INTERVAL_USEC;
