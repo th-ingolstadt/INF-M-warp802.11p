@@ -568,7 +568,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
             } else {
                 // This is an OFDM packet that contains channel estimates
     #ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
-                if (NUM_CHAN_EST < packet_payload_size) {
+                if (sizeof(rx_frame_info->channel_est) < packet_payload_size) {
                     copy_order = CHAN_EST_FIRST;
                 } else {
                     copy_order = PAYLOAD_FIRST;
@@ -615,7 +615,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
 
                 case CHAN_EST_FIRST:
     #ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
-                    if (phy_mode != PHY_MODE_DSSS) wlan_mac_high_cdma_start_transfer(((rx_ofdm_entry*)rx_event_log_entry)->channel_est, rx_frame_info->channel_est, NUM_CHAN_EST);
+                    if (phy_mode != PHY_MODE_DSSS) wlan_mac_high_cdma_start_transfer(((rx_ofdm_entry*)rx_event_log_entry)->channel_est, rx_frame_info->channel_est, sizeof(rx_frame_info->channel_est));
     #endif
                 break;
             }
@@ -661,7 +661,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
             switch(copy_order){
                 case PAYLOAD_FIRST:
     #ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
-                    if(phy_mode != PHY_MODE_DSSS) wlan_mac_high_cdma_start_transfer(((rx_ofdm_entry*)rx_event_log_entry)->channel_est, rx_frame_info->channel_est, NUM_CHAN_EST);
+                    if(phy_mode != PHY_MODE_DSSS) wlan_mac_high_cdma_start_transfer(((rx_ofdm_entry*)rx_event_log_entry)->channel_est, rx_frame_info->channel_est, sizeof(rx_frame_info->channel_est));
     #endif
                 break;
 

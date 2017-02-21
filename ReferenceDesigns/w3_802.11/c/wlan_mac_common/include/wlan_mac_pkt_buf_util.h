@@ -300,8 +300,6 @@ CASSERT(sizeof(tx_frame_info_t) == 48, tx_frame_info_alignment_check);
 #define TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ                        0x20
 
 
-#define NUM_CHAN_EST 64
-
 //-----------------------------------------------
 // RX frame information
 //     - Defines the information passed in the packet buffer between CPU High and
@@ -335,7 +333,7 @@ typedef struct __attribute__ ((__packed__)){
     //----- 8-byte boundary ------
     u64                      	  	timestamp;                    ///< MAC timestamp at time of reception
     //----- 8-byte boundary ------
-    u32                      	  	channel_est[NUM_CHAN_EST];              ///< Rx PHY channel estimates
+    u32                      	  	channel_est[64];              ///< Rx PHY channel estimates
 } rx_frame_info_t;
 // The above structure assumes that pkt_buf_state_t is a u8.  However, that is architecture dependent.
 // Therefore, the code will check the size of the structure using a compile-time assertion.  This check
