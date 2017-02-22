@@ -47,23 +47,23 @@
 
 /*********************** Global Variable Definitions *************************/
 
-volatile static u8                  gl_eeprom_addr[MAC_ADDR_LEN]; ///< HW address of this node that is stored in the EEPROM
+static volatile u8                  gl_eeprom_addr[MAC_ADDR_LEN]; ///< HW address of this node that is stored in the EEPROM
 
-volatile static mac_timing          gl_mac_timing_values; ///< Struct of IFS values for the DCF. These are not constants because they depend on sample rate									
+static volatile mac_timing          gl_mac_timing_values; ///< Struct of IFS values for the DCF. These are not constants because they depend on sample rate
 
 // Retry Limits & Backoff parameters
-volatile static u32                 gl_stationShortRetryCount; ///< Station Short Retry Count (SSRC) variable
-volatile static u32                 gl_stationLongRetryCount; ///< Station Long Retry Count (SLRC) variable
-volatile static u32                 gl_cw_exp; ///< Current Contention Window exponent
-volatile static u8                  gl_cw_exp_min; ///< Maximum Contention Window exponent
-volatile static u8                  gl_cw_exp_max; ///< Minimum Contention Window exponent
-volatile static u32                 gl_dot11RTSThreshold; ///< Length threshold (in bytes) for enabling/disabling RTS/CTS protection
-volatile static u32                 gl_dot11ShortRetryLimit; ///< Short Retry Limit (i.e. not using RTS/CTS)
-volatile static u32                 gl_dot11LongRetryLimit; ///< Long Retry Limit (i.e. using RTS/CTS)
+static volatile u32                 gl_stationShortRetryCount; ///< Station Short Retry Count (SSRC) variable
+static volatile u32                 gl_stationLongRetryCount; ///< Station Long Retry Count (SLRC) variable
+static volatile u32                 gl_cw_exp; ///< Current Contention Window exponent
+static volatile u8                  gl_cw_exp_min; ///< Maximum Contention Window exponent
+static volatile u8                  gl_cw_exp_max; ///< Minimum Contention Window exponent
+static volatile u32                 gl_dot11RTSThreshold; ///< Length threshold (in bytes) for enabling/disabling RTS/CTS protection
+static volatile u32                 gl_dot11ShortRetryLimit; ///< Short Retry Limit (i.e. not using RTS/CTS)
+static volatile u32                 gl_dot11LongRetryLimit; ///< Long Retry Limit (i.e. using RTS/CTS)
 
 // Variables for shared state between Tx and Rx contexts for RTS/CTS
-volatile static u8					gl_waiting_for_response; ///< Informs the Rx context that Tx is expecting a control response
-volatile static u8                  gl_long_mpdu_pkt_buf; ///< Packet buffer index for a long MPDU that should be sent in the frame reception context (i.e. CTS reception)
+static volatile u8					gl_waiting_for_response; ///< Informs the Rx context that Tx is expecting a control response
+static volatile u8                  gl_long_mpdu_pkt_buf; ///< Packet buffer index for a long MPDU that should be sent in the frame reception context (i.e. CTS reception)
 
 // Status variables for User I/O
 volatile u8                         gl_red_led_index; ///< Variable that enables User I/O visualization of bad FCS receptions
