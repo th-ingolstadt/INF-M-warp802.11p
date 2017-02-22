@@ -238,7 +238,7 @@ typedef struct{
 typedef struct {
     u32                      flags;                        // Flags for the command / response
                                                            //     [0] - Is the packet broadcast?  WLAN_EXP_TRUE / WLAN_EXP_FALSE
-    void                   * buffer;                       // In general, assumed to be a (warp_ip_udp_buffer *)
+    void                   * buffer;                       // In general, assumed to be a (wlan_exp_ip_udp_buffer *)
     cmd_resp_hdr           * header;
     u32                    * args;
 } cmd_resp;

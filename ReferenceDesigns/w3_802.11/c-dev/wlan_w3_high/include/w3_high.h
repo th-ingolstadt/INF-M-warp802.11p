@@ -68,4 +68,8 @@
 // Mailbox Interrupt
 #define PLATFORM_INT_ID_MAILBOX    			 XPAR_INTC_0_MBOX_0_VEC_ID
 
+// wlan_exp Ethernet ID
+#define WLAN_EXP_ETH_MAC_ID						ETH_B_MAC_DEVICE_ID
+#define WLAN_EXP_ETH_DMA_ID						ETH_B_DMA_DEVICE_ID
+
 #endif /* W3_PLATFORM_HIGH_H_ */

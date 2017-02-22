@@ -21,8 +21,8 @@
 
 // WARP UDP transport includes
 #if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
-#include <WARP_ip_udp.h>
-#include <WARP_ip_udp_device.h>
+#include "wlan_exp_ip_udp.h"
+#include "wlan_exp_ip_udp_device.h"
 #endif //WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
 
@@ -86,7 +86,7 @@
 // ****************************************************************************
 // Define Transport Ethernet Information
 //
-#define TRANSPORT_NUM_ETH_DEVICES                          WARP_IP_UDP_NUM_ETH_DEVICES
+#define TRANSPORT_NUM_ETH_DEVICES                          WLAN_EXP_IP_UDP_NUM_ETH_DEVICES
 #define TRANSPORT_ETH_DEV_INITIALIZED                      1
 
 // Ethernet A constants
@@ -242,8 +242,8 @@ int  transport_set_process_hton_msg_callback(void(*handler));
 int  process_transport_cmd(int socket_index, void* from, cmd_resp* command, cmd_resp* response, u32 max_resp_len);
 
 void transport_poll(u32 eth_dev_num);
-void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr * from, warp_ip_udp_buffer * recv_buffer, warp_ip_udp_buffer * send_buffer);
-void transport_send(int socket_index, struct sockaddr* to, warp_ip_udp_buffer** buffers, u32 num_buffers);
+void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr * from, wlan_exp_ip_udp_buffer * recv_buffer, wlan_exp_ip_udp_buffer * send_buffer);
+void transport_send(int socket_index, struct sockaddr* to, wlan_exp_ip_udp_buffer** buffers, u32 num_buffers);
 void transport_send_async(u32 eth_dev_num, u8 * payload, u32 length);
 void transport_close(u32 eth_dev_num);
 

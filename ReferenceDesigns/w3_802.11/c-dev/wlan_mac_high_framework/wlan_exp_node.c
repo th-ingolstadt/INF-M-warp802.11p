@@ -63,7 +63,7 @@
 //     2)  8 buffers are allocated which is more than the minimum number of buffers needed (ie 5) for 
 //         the default transport setting of 10 TX BDs.
 //     3)  Use 64 byte alignment for the buffers which is the same as the WARP IP/UDP transport
-//         (ie it is the same as WARP_IP_UDP_BUFFER_ALIGNMENT in WARP_ip_udp_config.h)
+//         (ie it is the same as wlan_exp_ip_udp_buffer_ALIGNMENT in WARP_ip_udp_config.h)
 //
 #define WLAN_EXP_ETH_BUFFER_SIZE                           0x80                // Number of bytes per buffer
 #define WLAN_EXP_ETH_NUM_BUFFER                            0x08                // Number of buffers allocated
@@ -86,7 +86,7 @@ extern tx_params_t         default_multicast_data_tx_params;
 /*************************** Functions Prototypes ****************************/
 
 int node_init_parameters(u32 *info);
-int process_hton_msg(int socket_index, struct sockaddr * from, warp_ip_udp_buffer * recv_buffer, u32 recv_flags, warp_ip_udp_buffer * send_buffer);
+int process_hton_msg(int socket_index, struct sockaddr * from, wlan_exp_ip_udp_buffer * recv_buffer, u32 recv_flags, wlan_exp_ip_udp_buffer * send_buffer);
 void send_early_resp(int socket_index, void * to, cmd_resp_hdr * resp_hdr, void * buffer);
 int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len);
 
@@ -300,7 +300,7 @@ int wlan_exp_node_init(u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wl
 
     } else {
         xil_printf("  Not waiting for Ethernet link.  Current status:\n");
-        xil_printf("      ETH %c ", warp_conv_eth_dev_num(eth_dev_num));
+        xil_printf("      ETH %c ", wlan_exp_conv_eth_dev_num(eth_dev_num));
 
         if ((transport_link_status(eth_dev_num) == LINK_READY)) {
             xil_printf("ready\n");
@@ -424,7 +424,7 @@ int null_process_cmd_callback(u32 cmd_id, void * param){
  *          Transport header for future packet processing.
  *
  *****************************************************************************/
-int  process_hton_msg(int socket_index, struct sockaddr * from, warp_ip_udp_buffer * recv_buffer, u32 recv_flags, warp_ip_udp_buffer * send_buffer) {
+int  process_hton_msg(int socket_index, struct sockaddr * from, wlan_exp_ip_udp_buffer * recv_buffer, u32 recv_flags, wlan_exp_ip_udp_buffer * send_buffer) {
 
     u8                  cmd_group;
     u32                 resp_sent      = NO_RESP_SENT;
@@ -529,11 +529,11 @@ void send_early_resp(int socket_index, void * to, cmd_resp_hdr * resp_hdr, void 
     u32                      tmp_buffer_length;
     u32                      tmp_buffer_size;
 
-    warp_ip_udp_buffer     * buffer_ptr;
+    wlan_exp_ip_udp_buffer     * buffer_ptr;
     u32                      resp_length;
 
     // Cast the buffer pointer so it is easier to use
-    buffer_ptr               = (warp_ip_udp_buffer *) buffer;
+    buffer_ptr               = (wlan_exp_ip_udp_buffer *) buffer;
 
     // Get the current values in the buffer so we can restore them after transmission
     tmp_cmd                  = resp_hdr->cmd;
@@ -553,7 +553,7 @@ void send_early_resp(int socket_index, void * to, cmd_resp_hdr * resp_hdr, void 
     resp_hdr->num_args       = Xil_Ntohs(tmp_num_args);
 
     // Send the packet
-    transport_send(socket_index, (struct sockaddr *)to, (warp_ip_udp_buffer **)&buffer, 0x1);
+    transport_send(socket_index, (struct sockaddr *)to, (wlan_exp_ip_udp_buffer **)&buffer, 0x1);
 
     // Restore the values in the buffer
     resp_hdr->cmd      = tmp_cmd;
@@ -1062,7 +1062,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             // Transfer data to host
             transfer_log_data(socket_index, from,
-                              (void *)(((warp_ip_udp_buffer *)(response->buffer))->data),
+                              (void *)(((wlan_exp_ip_udp_buffer *)(response->buffer))->data),
                               eth_dev_num, max_resp_len,
                               id, flags, start_index, size);
 
@@ -3213,12 +3213,12 @@ void transfer_log_data(u32 socket_index, void * from,
     u32                      num_bytes;
     u32                      num_pkts;
 
-    warp_ip_udp_buffer       header_buffer;
-    warp_ip_udp_buffer       data_buffer;
-    warp_ip_udp_buffer     * resp_array[2];
+    wlan_exp_ip_udp_buffer       header_buffer;
+    wlan_exp_ip_udp_buffer       data_buffer;
+    wlan_exp_ip_udp_buffer     * resp_array[2];
     u8                       tmp_header[100];              // NOTE:  Size must be larger than entire header.
 
-    warp_ip_udp_header     * tx_eth_ip_udp_header;
+    wlan_exp_ip_udp_header     * tx_eth_ip_udp_header;
     transport_header       * tx_transport_header;
     cmd_resp_hdr           * tx_resp_header;
     u32                    * tx_resp_args;
@@ -3252,22 +3252,22 @@ void transfer_log_data(u32 socket_index, void * from,
     bytes_remaining       = size;
 
     // Initialize the response buffer array
-    resp_array[0]         = (warp_ip_udp_buffer *)&header_buffer;    // Contains all header information
-    resp_array[1]         = (warp_ip_udp_buffer *)&data_buffer;      // Contains log entry data
+    resp_array[0]         = (wlan_exp_ip_udp_buffer *)&header_buffer;    // Contains all header information
+    resp_array[1]         = (wlan_exp_ip_udp_buffer *)&data_buffer;      // Contains log entry data
 
     // Set up temporary pointers to the header data
     //     NOTE:  The memory space for the temporary header must be large enough for the entire header.
     //
-    tx_eth_ip_udp_header  = (warp_ip_udp_header *)(&tmp_header[0]);
-    tx_transport_header   = (transport_header   *)(&tmp_header[sizeof(warp_ip_udp_header)]);
-    tx_resp_header        = (cmd_resp_hdr       *)(&tmp_header[sizeof(warp_ip_udp_header) + sizeof(transport_header)]);
-    tx_resp_args          = (u32                *)(&tmp_header[sizeof(warp_ip_udp_header) + sizeof(transport_header) + sizeof(cmd_resp_hdr)]);
+    tx_eth_ip_udp_header  = (wlan_exp_ip_udp_header *)(&tmp_header[0]);
+    tx_transport_header   = (transport_header   *)(&tmp_header[sizeof(wlan_exp_ip_udp_header)]);
+    tx_resp_header        = (cmd_resp_hdr       *)(&tmp_header[sizeof(wlan_exp_ip_udp_header) + sizeof(transport_header)]);
+    tx_resp_args          = (u32                *)(&tmp_header[sizeof(wlan_exp_ip_udp_header) + sizeof(transport_header) + sizeof(cmd_resp_hdr)]);
 
     // Set up temporary variables with the length values of the header
-    ip_length             = WARP_IP_UDP_DELIM_LEN + UDP_HEADER_LEN + IP_HEADER_LEN_BYTES;
-    udp_length            = WARP_IP_UDP_DELIM_LEN + UDP_HEADER_LEN;
+    ip_length             = WLAN_EXP_IP_UDP_DELIM_LEN + UDP_HEADER_LEN + IP_HEADER_LEN_BYTES;
+    udp_length            = WLAN_EXP_IP_UDP_DELIM_LEN + UDP_HEADER_LEN;
     header_length         = sizeof(transport_header) + sizeof(cmd_resp_hdr) + WLAN_EXP_BUFFER_HEADER_SIZE;
-    total_hdr_length      = sizeof(warp_ip_udp_header) + header_length;
+    total_hdr_length      = sizeof(wlan_exp_ip_udp_header) + header_length;
 
     // Get values out of the socket address structure
     dest_ip_addr          = ((struct sockaddr_in*)from)->sin_addr.s_addr;    // NOTE:  Value big endian
@@ -3280,7 +3280,7 @@ void transfer_log_data(u32 socket_index, void * from,
     //   - Copy the header information from the socket
     //   - Copy the information from the response
     //
-    memcpy((void *)tx_eth_ip_udp_header, (void *)socket_get_warp_ip_udp_header(socket_index), sizeof(warp_ip_udp_header));
+    memcpy((void *)tx_eth_ip_udp_header, (void *)socket_get_wlan_exp_ip_udp_header(socket_index), sizeof(wlan_exp_ip_udp_header));
     memcpy((void *)tx_transport_header, resp_buffer_data, header_length);
 
     // Initialize header buffer size/length (see above for description)
@@ -3363,7 +3363,7 @@ void transfer_log_data(u32 socket_index, void * from,
         tx_resp_header->length = Xil_Ntohs(transfer_length + WLAN_EXP_BUFFER_HEADER_SIZE);
 
         // Populate transport header fields with per packet data
-        tx_transport_header->length = Xil_Htons(data_length + WARP_IP_UDP_DELIM_LEN);
+        tx_transport_header->length = Xil_Htons(data_length + WLAN_EXP_IP_UDP_DELIM_LEN);
 
         // Update the UDP header
         //     NOTE:  Requires dest_port to be big-endian; udp_length to be little-endian
@@ -3413,7 +3413,7 @@ void transfer_log_data(u32 socket_index, void * from,
             // wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
             // Check that the packet was sent correctly
-            if (status == WARP_IP_UDP_FAILURE) {
+            if (status == WLAN_EXP_IP_UDP_FAILURE) {
                 wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_event_log,
                             "Issue sending log entry packet to host.\n");
             }

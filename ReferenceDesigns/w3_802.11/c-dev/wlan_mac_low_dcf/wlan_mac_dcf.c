@@ -1821,7 +1821,7 @@ void frame_transmit_general(u8 pkt_buf) {
     // waiting for anything.
     tx_wait_state = TX_WAIT_NONE;
 
-    tx_frame_info->num_tx_attempts   = 0;
+    tx_frame_info->num_tx_attempts    = 0;
     tx_frame_info->phy_samp_rate	  = (u8)wlan_mac_low_get_phy_samp_rate();
 
 	// Compare the length of this frame to the RTS Threshold
