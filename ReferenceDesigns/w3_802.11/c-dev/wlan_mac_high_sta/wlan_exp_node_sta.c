@@ -53,7 +53,7 @@ extern dl_list                    association_table;
 
 extern u8                         my_aid;
 
-extern wlan_exp_function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback;
+extern function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback;
 
 
 /*************************** Variable Definitions ****************************/

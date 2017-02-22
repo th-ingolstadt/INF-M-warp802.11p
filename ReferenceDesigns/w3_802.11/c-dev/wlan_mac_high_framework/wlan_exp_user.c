@@ -40,7 +40,7 @@
 
 /*********************** Global Variable Definitions *************************/
 
-extern wlan_exp_function_ptr_t    wlan_exp_process_user_cmd_callback;
+extern function_ptr_t    wlan_exp_process_user_cmd_callback;
 
 
 /*************************** Functions Prototypes ****************************/

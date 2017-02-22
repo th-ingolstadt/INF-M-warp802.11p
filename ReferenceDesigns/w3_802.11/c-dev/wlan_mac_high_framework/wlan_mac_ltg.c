@@ -43,9 +43,9 @@ static dl_list               tg_list;
 
 static function_ptr_t        ltg_callback;
 
-volatile static u64          num_ltg_checks;
-volatile static u32          schedule_id;
-volatile static u8           schedule_running;
+static volatile u64          num_ltg_checks;
+static volatile u32          schedule_id;
+static volatile u8           schedule_running;
 
 
 /*************************** Functions Prototypes ****************************/

@@ -305,9 +305,9 @@ void w3_wlan_platform_ethernet_free_queue_entry_notify(){
  * @return 0 on success, -1 otherwise
  */
 int _wlan_eth_dma_init() {
-    int                 i;
+    u32                 i;
     int                 status;
-    int                 bd_count;
+    u32                 bd_count;
     u32                 max_transfer_len;
 
     XAxiDma_Config    * eth_dma_cfg_ptr;
@@ -631,7 +631,7 @@ void _wlan_process_all_eth_pkts(u32 schedule_id) {
 void _wlan_eth_dma_update() {
     int                 status;
     int                 iter;
-    int                 bd_count;
+    u32                 bd_count;
     u32                 bd_queue_pairs_to_process;
     u32                 bd_queue_pairs_processed;
     u32                 max_transfer_len;

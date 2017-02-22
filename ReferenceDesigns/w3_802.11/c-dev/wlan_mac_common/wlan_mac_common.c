@@ -197,7 +197,7 @@ void init_mac_hw_info() {
  * @return  wlan_mac_hw_info_t *  - Pointer to HW info structure
  *
  *****************************************************************************/
-wlan_mac_hw_info_t * get_mac_hw_info()          { return &mac_hw_info; }
-u8                 * get_mac_hw_addr_wlan()     { return mac_hw_info.hw_addr_wlan; }
-u8                 * get_mac_hw_addr_wlan_exp() { return mac_hw_info.hw_addr_wlan_exp; }
+wlan_mac_hw_info_t* get_mac_hw_info() { return &mac_hw_info; }
+u8* get_mac_hw_addr_wlan() { return mac_hw_info.hw_addr_wlan; }
+u8* get_mac_hw_addr_wlan_exp() { return mac_hw_info.hw_addr_wlan_exp; }
 

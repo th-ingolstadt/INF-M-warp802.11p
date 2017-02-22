@@ -46,13 +46,13 @@
 
 
 /*************************** Variable Definitions ****************************/
-volatile static phy_samp_rate_t   gl_phy_samp_rate;                                 ///< Current PHY sampling rate
-volatile static u32               mac_param_chan;                                   ///< Current channel of the lower-level MAC
-volatile static u8                mac_param_band;                                   ///< Current band of the lower-level MAC
-volatile static u8                mac_param_dsss_en;                                ///< Enable / Disable DSSS when possible
-volatile static s8                mac_param_ctrl_tx_pow;                            ///< Current transmit power (dBm) for control packets
-volatile static u32               mac_param_rx_filter;                              ///< Current filter applied to packet receptions
-volatile static u8                rx_pkt_buf;                                       ///< Current receive buffer of the lower-level MAC
+static volatile phy_samp_rate_t   gl_phy_samp_rate;                                 ///< Current PHY sampling rate
+static volatile u32               mac_param_chan;                                   ///< Current channel of the lower-level MAC
+static volatile u8                mac_param_band;                                   ///< Current band of the lower-level MAC
+static volatile u8                mac_param_dsss_en;                                ///< Enable / Disable DSSS when possible
+static volatile s8                mac_param_ctrl_tx_pow;                            ///< Current transmit power (dBm) for control packets
+static volatile u32               mac_param_rx_filter;                              ///< Current filter applied to packet receptions
+static volatile u8                rx_pkt_buf;                                       ///< Current receive buffer of the lower-level MAC
 
 static u32                        cpu_low_status;                                   ///< Status flags that are reported to upper-level MAC
 static u32						  cpu_low_type;										///< wlan_exp CPU_LOW type that is reported to upper-level MAC
@@ -76,13 +76,11 @@ static function_ptr_t		 handle_tx_pkt_buf_ready;
 static function_ptr_t        ipc_low_param_callback;                                ///< User callback for IPC_MBOX_LOW_PARAM ipc calls
 
 // Unique transmit sequence number
-volatile static u64	         unique_seq;
+static volatile u64	         unique_seq;
 
 // Constant LUTs for MCS
-// FIXME
-#define WLAN_MAC_NUM_MCS                                   8                                  ///< Number of MCS indexes [0 .. (num - 1)]
-const static u16 mcs_to_n_dbps_nonht_lut[WLAN_MAC_NUM_MCS] = {24, 36, 48, 72, 96, 144, 192, 216};
-const static u16 mcs_to_n_dbps_htmf_lut[WLAN_MAC_NUM_MCS] = {26, 52, 78, 104, 156, 208, 234, 260};
+static const u16 mcs_to_n_dbps_nonht_lut[WLAN_MAC_NUM_MCS] = {24, 36, 48, 72, 96, 144, 192, 216};
+static const u16 mcs_to_n_dbps_htmf_lut[WLAN_MAC_NUM_MCS] = {26, 52, 78, 104, 156, 208, 234, 260};
 
 /******************************** Functions **********************************/
 

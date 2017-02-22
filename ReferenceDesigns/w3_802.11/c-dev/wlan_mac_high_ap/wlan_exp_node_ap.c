@@ -39,7 +39,7 @@
 extern tx_params_t                default_unicast_data_tx_params;
 extern bss_info_t*                active_bss_info;
 
-extern wlan_exp_function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback;
+extern function_ptr_t    		  wlan_exp_purge_all_data_tx_queue_callback;
 extern u8						  gl_dtim_mcast_buffer_enable;
 
 
