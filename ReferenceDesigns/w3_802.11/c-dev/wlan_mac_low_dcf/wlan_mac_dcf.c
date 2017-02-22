@@ -2483,8 +2483,7 @@ inline u32 rand_num_slots(u8 reason){
         break;
     }
 
-    //return n_slots;
-    return 0; //FIXME DEBUG
+    return n_slots;
 }
 
 
