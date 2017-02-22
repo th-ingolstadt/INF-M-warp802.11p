@@ -65,11 +65,8 @@
 //     These channels will be scanned by default at boot.  This uses the standard
 //     channel numbering scheme.
 //
-// #define SCAN_NUM_CHANNELS 11
-//const u8 default_channel_selections[11] = {1,2,3,4,5,6,7,8,9,10,11};             // Scan only 2.4GHz channels
-
-#define SCAN_NUM_CHANNELS 15
-const u8 default_channel_selections[SCAN_NUM_CHANNELS] = {1,2,3,4,5,6,7,8,9,10,11,36,40,44,48}; // Scan 2.4GHz and 5GHz channels
+//const u8 default_channel_selections[] = {1,2,3,4,5,6,7,8,9,10,11};             // Scan only 2.4GHz channels
+const u8 default_channel_selections[] = {1,2,3,4,5,6,7,8,9,10,11,36,40,44,48}; // Scan 2.4GHz and 5GHz channels
 
 
 // Global scan parameters
@@ -118,11 +115,11 @@ int wlan_mac_scan_init(){
     scan_state_change_callback = (function_ptr_t)wlan_null_callback;
 
     // Set default scan parameters
-    gl_scan_parameters.channel_vec = wlan_mac_high_malloc(SCAN_NUM_CHANNELS);
+    gl_scan_parameters.channel_vec = wlan_mac_high_malloc(sizeof(default_channel_selections));
 
     if (gl_scan_parameters.channel_vec != NULL) {
-        memcpy(gl_scan_parameters.channel_vec, default_channel_selections, SCAN_NUM_CHANNELS);
-        gl_scan_parameters.channel_vec_len = SCAN_NUM_CHANNELS;
+        memcpy(gl_scan_parameters.channel_vec, default_channel_selections, sizeof(default_channel_selections));
+        gl_scan_parameters.channel_vec_len = sizeof(default_channel_selections)/sizeof(default_channel_selections[0]);
     }
 
     gl_scan_parameters.probe_tx_interval_usec   = DEFAULT_SCAN_PROBE_TX_INTERVAL_USEC;
