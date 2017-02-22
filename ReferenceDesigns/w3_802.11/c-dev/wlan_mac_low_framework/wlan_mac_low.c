@@ -1505,6 +1505,8 @@ inline void wlan_mac_low_lock_empty_rx_pkt_buf(){
     	rx_frame_info    = (rx_frame_info_t*) CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf);
 
         if((rx_frame_info->rx_pkt_buf_state) == RX_PKT_BUF_LOW_CTRL){
+
+        	if(lock_rx_pkt_buf(rx_pkt_buf) == PKT_BUF_MUTEX_SUCCESS){
 			// By default Rx pkt buffers are not zeroed out, to save the performance penalty of bzero'ing 2KB
 			//     However zeroing out the pkt buffer can be helpful when debugging Rx MAC/PHY behaviors
 			// bzero((void *)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), 2048);
@@ -1516,7 +1518,10 @@ inline void wlan_mac_low_lock_empty_rx_pkt_buf(){
 			if (i > 1) { xil_printf("found in %d iterations.\n", i); }
 
 			return;
-
+        	} else {
+        		xil_printf("Error: unable to lock Rx pkt_buf %d despite RX_PKT_BUF_LOW_CTRL\n", rx_pkt_buf);
+        		unlock_rx_pkt_buf(rx_pkt_buf);
+        }
         }
 
         if (i == 1) { xil_printf("Searching for empty packet buff ... "); }

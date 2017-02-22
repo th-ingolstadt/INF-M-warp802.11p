@@ -106,6 +106,7 @@ static beacon_txrx_configure_t         gl_beacon_txrx_config;
 
 // DTIM Multicast Buffer
 u8 									   gl_dtim_mcast_buffer_enable;	   // Enable buffering of multicast packets until after DTIM transmission
+u8									   gl_cpu_low_supports_dtim_mcast;
 
 // Common Platform Device Info
 platform_common_dev_info_t	 platform_common_dev_info;
@@ -157,6 +158,8 @@ int main(){
 	max_queue_size = min( queue_num_free(), MAX_TX_QUEUE_LEN );
 
 	pause_data_queue = 0;
+
+	gl_cpu_low_supports_dtim_mcast = 0;
 
 	//Set a sane default for the TIM tag byte offset
 	gl_beacon_txrx_config.dtim_tag_byte_offset = 0;
@@ -296,7 +299,6 @@ int main(){
 		configure_bss(&bss_config);
 	}
 
-
 	gl_dtim_mcast_buffer_enable	= 1;
 	wlan_mac_high_enable_mcast_buffering(gl_dtim_mcast_buffer_enable);
 
@@ -434,7 +436,7 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 	tx_frame_info_t*  	tx_frame_info 				= (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_BEACON);
 
 	if(active_bss_info == NULL) return;
-	if( ((aid==0) && (gl_dtim_mcast_buffer_enable == 0)) ) return;
+	if( ((aid==0) && (gl_dtim_mcast_buffer_enable == 1)) ) return;
 
 	//First, we should determine whether a call to update_tim_tag_all_tag_all is scheduled
 	//for some time in the future. If it is, we can just return immediately and let that
@@ -684,7 +686,7 @@ void poll_tx_queues(pkt_buf_group_t pkt_buf_group){
 
 	if( active_bss_info == NULL ) return;
 
-	if((gl_dtim_mcast_buffer_enable == 0) && (pkt_buf_group == PKT_BUF_GROUP_DTIM_MCAST)){
+	if(((gl_dtim_mcast_buffer_enable == 0) || (gl_cpu_low_supports_dtim_mcast == 0)) && (pkt_buf_group == PKT_BUF_GROUP_DTIM_MCAST)){
 		//We are asked to poll the DTIM MCAST group, but DTIM multicast buffering is disabled.
 		//As such, we will overwrite the input to this function and carry on with the
 		//general dequeue operation
@@ -720,7 +722,7 @@ typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 		case PKT_BUF_GROUP_OTHER:
 		break;
 		case PKT_BUF_GROUP_DTIM_MCAST:
-			if((gl_dtim_mcast_buffer_enable == 1) && (gl_beacon_txrx_config.beacon_tx_mode != NO_BEACON_TX)){
+			if(((gl_dtim_mcast_buffer_enable == 1) && (gl_cpu_low_supports_dtim_mcast)) && (gl_beacon_txrx_config.beacon_tx_mode != NO_BEACON_TX)){
 				dequeue_transmit_checkin(MCAST_QID);
 			}
 		break;
@@ -750,7 +752,7 @@ typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 								if(curr_station_info_entry == NULL){
 									// Check the broadcast queue
 									next_station_info_entry = active_bss_info->members.first;
-									if( ((gl_dtim_mcast_buffer_enable == 0) && dequeue_transmit_checkin(MCAST_QID))){
+									if( (((gl_dtim_mcast_buffer_enable == 0) || (gl_cpu_low_supports_dtim_mcast == 0)) && dequeue_transmit_checkin(MCAST_QID))){
 										// Found a not-empty queue, transmitted a packet
 										goto poll_cleanup;
 										return;
@@ -1860,7 +1862,7 @@ void mpdu_dequeue(dl_entry* packet){
 
 	// Here, we will overwrite the pkt_buf_group_t that was set by wlan_mac_high_setup_tx_frame_info(). This allows
 	// DTIM mcast buffering to be enabled or disabled after a packet has been created and is sitting in the queue.
-	if(		(gl_dtim_mcast_buffer_enable == 1) &&
+	if(		((gl_dtim_mcast_buffer_enable == 1) && gl_cpu_low_supports_dtim_mcast) &&
 			(gl_beacon_txrx_config.beacon_tx_mode != NO_BEACON_TX ) &&
 			wlan_addr_mcast(header->address_1)	){
 		tx_frame_info->queue_info.pkt_buf_group = PKT_BUF_GROUP_DTIM_MCAST;
@@ -2008,13 +2010,23 @@ void deauthenticate_all_stations(){
  * This function is called to tell us that we should re-apply any previous
  * parameters we had set.
  *
- * @param  None
+ * @param  u32 type - type of MAC running in CPU_LOW
  * @return None
  *****************************************************************************/
-void handle_cpu_low_reboot(){
+void handle_cpu_low_reboot(u32 type){
+
+	if(type & WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW_DCF) {
+		gl_cpu_low_supports_dtim_mcast = 1;
+	} else {
+		gl_cpu_low_supports_dtim_mcast = 0;
+	}
+
 	if(active_bss_info){
 		// Re-apply any Beacon Tx configurations
 		wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
+
+		// Re-apply DTIM mcast buffering settings
+		wlan_mac_high_enable_mcast_buffering(gl_dtim_mcast_buffer_enable);
 	}
 }
 
