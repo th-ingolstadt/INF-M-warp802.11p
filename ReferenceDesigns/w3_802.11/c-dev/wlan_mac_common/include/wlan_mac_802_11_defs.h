@@ -15,7 +15,6 @@
 #ifndef WLAN_MAC_802_11_H
 #define WLAN_MAC_802_11_H
 
-//#include "wlan_mac_common.h"
 
 //-----------------------------------------------
 // Field size defines

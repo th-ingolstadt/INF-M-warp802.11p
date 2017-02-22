@@ -808,7 +808,7 @@ inline u32 send_beacon(u8 tx_pkt_buf){
 		xil_printf("Error: Unable to unlock Beacon packet buffer (beacon sent) %d\n", unlock_tx_pkt_buf(tx_pkt_buf));
 	}
 	ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TX_BEACON_DONE);
-	ipc_msg_to_high.num_payload_words = sizeof(wlan_mac_low_tx_details_t)/4;
+	ipc_msg_to_high.num_payload_words = sizeof(wlan_mac_low_tx_details_t)/sizeof(u32);
 	ipc_msg_to_high.arg0              = tx_pkt_buf;
 	ipc_msg_to_high.payload_ptr       = (u32*)&low_tx_details;
 	write_mailbox_msg(&ipc_msg_to_high);
