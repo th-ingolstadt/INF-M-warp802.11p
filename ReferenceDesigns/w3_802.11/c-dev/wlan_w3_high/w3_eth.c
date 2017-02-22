@@ -130,10 +130,16 @@ int wlan_platform_ethernet_send(u8* pkt_ptr, u32 length) {
     // Xil_DCacheFlushRange((u32)TxPacket, MAX_PKT_LEN);
 
     // Check if the user-supplied pointer is in the DLMB, unreachable by the DMA
+#pragma GCC diagnostic push
+#pragma GCC diagnostic ignored "-Wtype-limits"
+	// The -Wtype-limits flag catches the below checks when any of the base addresses are 0 since the
+	// evaluation will always be true. Nevertheless, these checks are useful if the memory map changes.
+	// So, we can explicitly disable the warning around these sets of lines.
     if (((u32)pkt_ptr >= DLMB_BASEADDR && (u32)pkt_ptr <= DLMB_HIGHADDR)) {
         xil_printf("ERROR: Eth DMA send -- DLMB source address (0x%08x) not reachable by DMA\n", pkt_ptr);
         return -1;
     }
+#pragma GCC diagnostic pop
 
     // Get pointer to the axi_dma Tx buffer descriptor ring
     tx_ring_ptr = XAxiDma_GetTxRing(&eth_dma_instance);
