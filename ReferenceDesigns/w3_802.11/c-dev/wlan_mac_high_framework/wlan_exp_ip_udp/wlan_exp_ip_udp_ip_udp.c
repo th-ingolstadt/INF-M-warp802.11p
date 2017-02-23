@@ -495,7 +495,7 @@ void arp_reply(u32 eth_dev_num, wlan_exp_ip_udp_buffer * arp_request) {
     u32                      arp_size       = ETH_HEADER_LEN + ARP_IPV4_PACKET_LEN;
 
     wlan_exp_ip_udp_buffer     * send_buffer    = NULL;
-    arp_ipv4_packet        * arp_reply;
+    arp_ipv4_packet            * arp_reply_packet;
 
     // Allocate a send buffer from the library
     send_buffer = socket_alloc_send_buffer();
@@ -518,23 +518,23 @@ void arp_reply(u32 eth_dev_num, wlan_exp_ip_udp_buffer * arp_request) {
         send_buffer->length -= ETH_HEADER_LEN;
         
         // Get the pointer to the ARP reply packet
-        arp_reply  = (arp_ipv4_packet *) send_buffer->offset;   
+        arp_reply_packet  = (arp_ipv4_packet *) send_buffer->offset;
 
         // Populate the ARP reply
-        arp_reply->htype     = Xil_Htons(ARP_HTYPE_ETH);
-        arp_reply->ptype     = Xil_Htons(ETHERTYPE_IP_V4);
-        arp_reply->hlen      = ETH_ADDR_LEN;
-        arp_reply->plen      = IP_ADDR_LEN;
-        arp_reply->oper      = Xil_Htons(ARP_REPLY);
+        arp_reply_packet->htype     = Xil_Htons(ARP_HTYPE_ETH);
+        arp_reply_packet->ptype     = Xil_Htons(ETHERTYPE_IP_V4);
+        arp_reply_packet->hlen      = ETH_ADDR_LEN;
+        arp_reply_packet->plen      = IP_ADDR_LEN;
+        arp_reply_packet->oper      = Xil_Htons(ARP_REPLY);
 
         for (i = 0; i < ETH_ADDR_LEN; i++) {
-            arp_reply->sender_haddr[i] = eth_hw_addr[i];
-            arp_reply->target_haddr[i] = request->sender_haddr[i];
+        	arp_reply_packet->sender_haddr[i] = eth_hw_addr[i];
+        	arp_reply_packet->target_haddr[i] = request->sender_haddr[i];
         }
       
         for (i = 0; i < IP_ADDR_LEN ; i++) {
-            arp_reply->sender_paddr[i] = eth_ip_addr[i];
-            arp_reply->target_paddr[i] = request->sender_paddr[i];
+        	arp_reply_packet->sender_paddr[i] = eth_ip_addr[i];
+        	arp_reply_packet->target_paddr[i] = request->sender_paddr[i];
         }
 
         // Update the Ethernet header
@@ -582,7 +582,7 @@ void arp_request(u32 eth_dev_num, u8 * target_haddr, u8 * target_paddr) {
     u32                      arp_size       = ETH_HEADER_LEN + ARP_IPV4_PACKET_LEN;
 
     wlan_exp_ip_udp_buffer     * send_buffer    = NULL;
-    arp_ipv4_packet        * arp_reply;
+    arp_ipv4_packet        * arp_reply_packet;
     ethernet_header        * eth_header;
     
     // Allocate a send buffer
@@ -610,23 +610,23 @@ void arp_request(u32 eth_dev_num, u8 * target_haddr, u8 * target_paddr) {
         send_buffer->length -= ETH_HEADER_LEN;
         
         // Get the pointer to the ARP reply packet
-        arp_reply  = (arp_ipv4_packet *) send_buffer->offset;
+        arp_reply_packet  = (arp_ipv4_packet *) send_buffer->offset;
 
         // Populate the ARP request
-        arp_reply->htype     = Xil_Htons(ARP_HTYPE_ETH);
-        arp_reply->ptype     = Xil_Htons(ETHERTYPE_IP_V4);
-        arp_reply->hlen      = ETH_ADDR_LEN;
-        arp_reply->plen      = IP_ADDR_LEN;
-        arp_reply->oper      = Xil_Htons(ARP_REQUEST);
+        arp_reply_packet->htype     = Xil_Htons(ARP_HTYPE_ETH);
+        arp_reply_packet->ptype     = Xil_Htons(ETHERTYPE_IP_V4);
+        arp_reply_packet->hlen      = ETH_ADDR_LEN;
+        arp_reply_packet->plen      = IP_ADDR_LEN;
+        arp_reply_packet->oper      = Xil_Htons(ARP_REQUEST);
 
         for (i = 0; i < ETH_ADDR_LEN; i++) {
-            arp_reply->sender_haddr[i] = eth_hw_addr[i];
-            arp_reply->target_haddr[i] = target_haddr[i];
+        	arp_reply_packet->sender_haddr[i] = eth_hw_addr[i];
+        	arp_reply_packet->target_haddr[i] = target_haddr[i];
         }
       
         for (i = 0; i < IP_ADDR_LEN ; i++) {
-            arp_reply->sender_paddr[i] = eth_ip_addr[i];
-            arp_reply->target_paddr[i] = target_paddr[i];
+        	arp_reply_packet->sender_paddr[i] = eth_ip_addr[i];
+        	arp_reply_packet->target_paddr[i] = target_paddr[i];
         }
 
         // Send the packet not using a socket
