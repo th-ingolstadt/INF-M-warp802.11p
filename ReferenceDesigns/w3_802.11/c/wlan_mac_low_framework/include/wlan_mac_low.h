@@ -520,6 +520,7 @@ u32         	   wlan_mac_low_get_current_rx_filter();
 phy_samp_rate_t    wlan_mac_low_get_phy_samp_rate();
 
 void               wlan_mac_low_set_nav_check_addr(u8* addr);
+u32 			   wlan_mac_low_lock_tx_pkt_buf(u16 tx_pkt_buf);
 void               wlan_mac_low_set_radio_channel(u32 channel);
 
 void               wlan_mac_low_DSSS_rx_enable();

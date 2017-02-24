@@ -81,6 +81,9 @@ static dl_list				   		gl_tx_pkt_buf_ready_list_free;	///< List of unused Tx pac
 static dl_entry						gl_tx_pkt_buf_entry[MAX_NUM_PENDING_TX_PKT_BUFS]; ///< Array of entries that will belong to one of the above lists
 static u8						 	gl_tx_pkt_buf_entry_data[MAX_NUM_PENDING_TX_PKT_BUFS]; ///< Byte array to serve as the data payload for the above entries
 
+// Precalculated durations for short (non-RTS) frames
+static u16							gl_precalc_duration[3][8]; ///< To improve reliability in achieving slot-0 transmissions, we precompute duration fields to insert into frames.
+
 /*************************** Functions Prototypes ****************************/
 
 int process_low_param(u8 mode, u32* payload); ///< Implementation of DCF-specific processing of low params from wlan_exp
@@ -95,7 +98,7 @@ int main(){
 	Xil_ICacheDisable();
 	microblaze_enable_exceptions();
 
-	u32 i;
+	u32 i, poll_tx_pkt_buf_list_return;
     wlan_mac_hw_info_t* hw_info;
     compilation_details_t	compilation_details;
     bzero(&compilation_details, sizeof(compilation_details_t));
@@ -121,6 +124,7 @@ int main(){
     gl_dtim_mcast_buffer_enable = 0;
 
     bzero((void*)gl_beacon_txrx_configure.bssid_match, MAC_ADDR_LEN);
+    bzero(gl_precalc_duration, sizeof(gl_precalc_duration));
 
     gl_dot11ShortRetryLimit      = 7;
     gl_dot11LongRetryLimit       = 4;
@@ -185,7 +189,11 @@ int main(){
         wlan_mac_low_poll_ipc_rx();
 
     	// Poll for new Tx Ready
-        poll_tx_pkt_buf_list(PKT_BUF_GROUP_GENERAL);
+
+        do {
+        	poll_tx_pkt_buf_list_return = poll_tx_pkt_buf_list(PKT_BUF_GROUP_GENERAL);
+        } while( poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_TRANSMITTED);
+
 
         // Poll the timestamp (for periodic transmissions like beacons)
         poll_tbtt_and_send_beacon();
@@ -300,6 +308,8 @@ void update_tx_pkt_buf_lists(){
  */
 void handle_sample_rate_change(phy_samp_rate_t phy_samp_rate){
 	// TODO: Add an argument to specify the phy_mode in case that changes MAC timings
+	u8 idx_phy_mode, idx_mcs;
+	u8 phy_mode, mcs;
 
     switch(phy_samp_rate){
     	default:
@@ -339,6 +349,19 @@ void handle_sample_rate_change(phy_samp_rate_t phy_samp_rate){
 	//     NAV adjust time - signed char (Fix8_0) value
 	wlan_mac_set_NAV_adj(0*10);
 	wlan_mac_set_EIFS(gl_mac_timing_values.t_eifs*10);
+
+    // Precompute duration values;
+	for (idx_phy_mode = 1; idx_phy_mode < 3; idx_phy_mode++){
+		for(idx_mcs = 0; idx_mcs < 8; idx_mcs++){
+
+			//Map indices onto PHY mode and MCS.
+			phy_mode = idx_phy_mode;
+			mcs = wlan_mac_low_mcs_to_ctrl_resp_mcs(idx_mcs, phy_mode);
+
+			gl_precalc_duration[idx_phy_mode][idx_mcs] = wlan_ofdm_calc_txtime(sizeof(mac_header_80211_ACK) + WLAN_PHY_FCS_NBYTES, mcs, PHY_MODE_NONHT, wlan_mac_low_get_phy_samp_rate()) + gl_mac_timing_values.t_sifs;
+		}
+	}
+
 }
 
 /*****************************************************************************/
@@ -505,7 +528,7 @@ inline void poll_tbtt_and_send_beacon(){
 					// twice. This is intentional. This structure ensures we do not toggle the pause state on
 					// Tx controller A across many mcast transmissions spanning multiple beacon TBTTs
 
-					prepare_frame_transmit_return = wlan_mac_low_prepare_frame_transmit( gl_beacon_txrx_configure.beacon_template_pkt_buf );
+					prepare_frame_transmit_return = wlan_mac_low_lock_tx_pkt_buf(gl_beacon_txrx_configure.beacon_template_pkt_buf);
 
 					if(prepare_frame_transmit_return & PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE){
 						// Update TU target
@@ -520,6 +543,8 @@ inline void poll_tbtt_and_send_beacon(){
 						wlan_mac_pause_tx_ctrl_D(0);
 						return;
 					}
+					wlan_mac_low_prepare_frame_transmit( gl_beacon_txrx_configure.beacon_template_pkt_buf );
+
 					send_beacon_return = send_beacon(gl_beacon_txrx_configure.beacon_template_pkt_buf);
 					// Note: the above send_beacon() call will send the IPC message directly to CPU_HIGH
 					// upon completion. We should not call wlan_mac_low_finish_frame_transmit() for the
@@ -713,7 +738,7 @@ inline u32 send_beacon(u8 tx_pkt_buf){
 	//  we allow CPU_HIGH to determine whether or not a backoff occurred before the beacon transmission
 	//  when it is creating the TX_LOW log entry for the beacon.
 	tx_frame_info->timestamp_create  = get_mac_time_usec();
-	tx_frame_info->delay_accept		 = 0;
+	tx_frame_info->timestamp_accept  = 0;
 
 	low_tx_details.tx_details_type  = TX_DETAILS_MPDU;
 	low_tx_details.phy_params_mpdu.mcs          = tx_frame_info->params.phy.mcs;
@@ -1472,6 +1497,8 @@ u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 
 				if( wlan_mac_low_prepare_frame_transmit(pkt_buf) == 0 ){
 					frame_transmit_general(pkt_buf);
+
+					return_value |= POLL_TX_PKT_BUF_LIST_RETURN_TRANSMITTED;
 					wlan_mac_low_finish_frame_transmit(pkt_buf);
 				} else {
 					xil_printf("Error in wlan_mac_low_prepare_frame_transmit(%d)\n", pkt_buf);
@@ -1479,11 +1506,6 @@ u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 
 				dl_entry_remove(&gl_tx_pkt_buf_ready_list_general, entry);
 				dl_entry_insertEnd(&gl_tx_pkt_buf_ready_list_free, entry);
-
-				//We just removed a packet from the to-be-transmitted list.
-				//Now is a good time to see if another one is available in
-				//the mailbox to refill it.
-				wlan_mac_low_poll_ipc_rx();
 			}
 		break;
 		case PKT_BUF_GROUP_DTIM_MCAST:
@@ -1781,8 +1803,6 @@ void frame_transmit_general(u8 pkt_buf) {
     u8  mac_cfg_mcs;
     u16 mac_cfg_length;
     u8  mac_cfg_pkt_buf;
-    u8	ack_phy_mode;
-    u8	ack_mcs;
 
     u16 rts_header_duration;
     u16 cts_header_duration;
@@ -1834,12 +1854,13 @@ void frame_transmit_general(u8 pkt_buf) {
 		// ACK_N_DBPS is used to calculate duration of the ACK waveform which might be received in response to this transmission
 		//  The ACK duration is used to calculate the DURATION field in the MAC header
 		//  The selection of ACK rate for a given DATA rate is specified in IEEE 802.11-2012 9.7.6.5.2
-		ack_mcs = wlan_mac_low_mcs_to_ctrl_resp_mcs(tx_frame_info->params.phy.mcs, tx_frame_info->params.phy.phy_mode);
-		ack_phy_mode = PHY_MODE_HTMF;
+		//ack_mcs = wlan_mac_low_mcs_to_ctrl_resp_mcs(tx_frame_info->params.phy.mcs, tx_frame_info->params.phy.phy_mode);
+		//ack_phy_mode = PHY_MODE_HTMF;
 
 		// Compute and fill in the duration of any time-on-air following this packet's transmission
 		//     For DATA Tx, DURATION = T_SIFS + T_ACK, where T_ACK is function of the ACK Tx rate
-		header->duration_id = wlan_ofdm_calc_txtime(sizeof(mac_header_80211_ACK) + WLAN_PHY_FCS_NBYTES, ack_mcs, ack_phy_mode, wlan_mac_low_get_phy_samp_rate()) + gl_mac_timing_values.t_sifs;
+		//header->duration_id = wlan_ofdm_calc_txtime(sizeof(mac_header_80211_ACK) + WLAN_PHY_FCS_NBYTES, ack_mcs, ack_phy_mode, wlan_mac_low_get_phy_samp_rate()) + gl_mac_timing_values.t_sifs;
+		header->duration_id = gl_precalc_duration[tx_frame_info->params.phy.phy_mode][tx_frame_info->params.phy.mcs];
 	}
 
 
@@ -1858,7 +1879,6 @@ void frame_transmit_general(u8 pkt_buf) {
 
 		//wlan_phy_set_tx_signal(mpdu_pkt_buf, mpdu_rate, mpdu_length);
 		write_phy_preamble(pkt_buf, phy_mode, mcs, length);
-
 
 		if ((tx_mode == TX_MODE_LONG) && (req_timeout == 1)) {
 			// This is a long MPDU that requires an RTS/CTS handshake prior to the MPDU transmission.
@@ -2167,7 +2187,6 @@ void frame_transmit_general(u8 pkt_buf) {
 
 							// Send IPC message containing the details about this low-level transmission
 							wlan_mac_low_send_low_tx_details(pkt_buf, &low_tx_details);
-
 							continue;
 
 						} else if ((tx_wait_state == TX_WAIT_ACK) &&
@@ -2308,7 +2327,6 @@ void frame_transmit_general(u8 pkt_buf) {
 						}
 						poll_tbtt_and_send_beacon();
 
-
 						// Poll IPC rx
 						// TODO: Need to handle implications of an IPC message changing something like channel
 						wlan_mac_low_poll_ipc_rx();
@@ -2319,16 +2337,16 @@ void frame_transmit_general(u8 pkt_buf) {
 				}
 
 			// else for if(mac_hw_status & WLAN_MAC_STATUS_MASK_TX_A_DONE)
-			} else if (tx_has_started == 0) {
+			} else {
 				//  This is the same MAC status check performed in the framework wlan_mac_low_poll_frame_rx()
 				//  It is critical to check the Rx status here using the same status register read that was
 				//  used in the Tx state checking above. Skipping this and calling wlan_mac_low_poll_frame_rx()
 				//  directly leads to a race between the Tx status checking above and Rx status checking
-				if (mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_STARTED) {
+				if ((tx_has_started == 0) && (mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_STARTED)) {
 					gl_waiting_for_response = 0;
 					rx_status = wlan_mac_low_poll_frame_rx();
 				} else{
-					poll_tbtt_and_send_beacon();
+					if(tx_has_started == 0) poll_tbtt_and_send_beacon();
 
 					// Poll IPC rx
 					// TODO: Need to handle implications of an IPC message changing something like channel

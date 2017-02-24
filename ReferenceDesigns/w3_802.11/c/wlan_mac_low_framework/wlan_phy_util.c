@@ -31,6 +31,7 @@
 #include "wlan_phy_util.h"
 #include "wlan_mac_low.h"
 #include "wlan_mac_common.h"
+#include "wlan_mac_userio_util.h"
 
 // LUT of number of ones in each byte (used to calculate PARITY in SIGNAL)
 const u8 ones_in_chars[256] = {
@@ -659,31 +660,46 @@ void wlan_rx_config_ant_mode(u32 ant_mode) {
  * @return  None
  *
  *****************************************************************************/
+const u8 sig_rate_vals[8] = {0xB, 0xF, 0xA, 0xE, 0x9, 0xD, 0x8, 0xC};
+
 void write_phy_preamble(u8 pkt_buf, u8 phy_mode, u8 mcs, u16 length) {
 
 	u8* htsig_ptr;
 	u16 lsig_length;
+	u8* phy_hdr_ptr;
+
+	phy_hdr_ptr = ((u8*)TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET);
 
 	// RATE field values for SIGNAL/L-SIG in PHY preamble (IEEE 802.11-2012 18.3.4.2)
 	//  RATE field in SIGNAL/L-SIG is one of 8 4-bit values indicating modulation scheme and coding rate
 	//  For 11a (NONHT) transmissions we map mcs index to SIGNAL.RATE directly
 	//  For 11n (HTMF) transmissions the L-SIG.RATE field is always the lowest (BSPK 1/2)
-	const u8 sig_rate_vals[8] = {0xB, 0xF, 0xA, 0xE, 0x9, 0xD, 0x8, 0xC};
 
 	if((phy_mode & PHY_MODE_NONHT) == PHY_MODE_NONHT) {
 		//11a mode - write SIGNAL (3 bytes)
 
 		//Zero-out any stale header, also properly sets SERVICE and reserved bytes to 0
-		bzero((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), PHY_TX_PKT_BUF_PHY_HDR_SIZE);
+		//Old: takes longer than necessary. We only really need the SERVICE bits 0.
+		//bzero((u32*)phy_hdr_ptr, PHY_TX_PKT_BUF_PHY_HDR_SIZE);
+
+		// Set SERVICE to 0.
+		// Unfortunately, SERVICE spans a 32-bit boundary so we need two write 2 words.
+		Xil_Out32(phy_hdr_ptr + 8, 0);
+		Xil_Out32(phy_hdr_ptr + 8, 4);
 
 		//Set SIGNAL with actual rate/length
-	    Xil_Out32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), WLAN_TX_SIGNAL_CALC(sig_rate_vals[mcs], length));
+	    Xil_Out32((u32*)(phy_hdr_ptr), WLAN_TX_SIGNAL_CALC(sig_rate_vals[mcs], length));
 
 	} else if((phy_mode & PHY_MODE_HTMF) == PHY_MODE_HTMF) {
 		//11n mode - write L-SIG (3 bytes) and HT-SIG (6 bytes)
 
 		//Zero-out any stale header, also properly sets SERVICE, reserved bytes, and auto-filled bytes of HT-SIG to 0
-		bzero((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), PHY_TX_PKT_BUF_PHY_HDR_SIZE);
+		//Old: takes longer than necessary. We only really need the SERVICE bits 0.
+		//bzero((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), PHY_TX_PKT_BUF_PHY_HDR_SIZE);
+
+		// Set SERVICE to 0.
+		Xil_Out32(phy_hdr_ptr + 8, 0);
+
 
 	    // L-SIG is same format as 11a SIGNAL, but with RATE always 6Mb and LENGTH
 	    //  set such that LENGTH/6Mb matches duration of HT transmission
@@ -694,12 +710,14 @@ void write_phy_preamble(u8 pkt_buf, u8 phy_mode, u8 mcs, u16 length) {
 		//  (-6-20) are (T_EXT-T_NONHT_PREAMBLE); (-3) accounts for service/tail
 
 		// Calc (3*(num_payload_syms+num_ht_preamble_syms) = (3*(num_payload_syms+4))
+
 		lsig_length = 3*wlan_ofdm_calc_num_payload_syms(length, mcs, phy_mode) + 12;
 
-		Xil_Out32((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), WLAN_TX_SIGNAL_CALC(sig_rate_vals[0], lsig_length));
+
+		Xil_Out32((u32*)(phy_hdr_ptr), WLAN_TX_SIGNAL_CALC(sig_rate_vals[0], lsig_length));
 
 		//Assign pointer to first byte of HTSIG (PHY header base + 3 for sizeof(L-SIG))
-	    htsig_ptr = (u8*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET + 3);
+	    htsig_ptr = (u8*)(phy_hdr_ptr + 3);
 
 		//Set HTSIG bytes
 	    // PHY logic fills in bytes 4 and 5; ok to ignore here

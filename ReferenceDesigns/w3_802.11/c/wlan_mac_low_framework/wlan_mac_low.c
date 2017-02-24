@@ -933,10 +933,12 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
         //---------------------------------------------------------------------
         case IPC_MBOX_TX_PKT_BUF_READY: {
         	u8 tx_pkt_buf;
-
         	tx_pkt_buf = msg->arg0;
-
         	if(tx_pkt_buf < NUM_TX_PKT_BUFS){
+
+        		// Lock and change state of packet buffer
+        		wlan_mac_low_lock_tx_pkt_buf(tx_pkt_buf);
+
 				// Message is an indication that a Tx Pkt Buf needs processing
         		handle_tx_pkt_buf_ready(tx_pkt_buf);
         		// TODO: check return status and inform CPU_HIGH of error?
@@ -945,6 +947,69 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
         }
         break;
     }
+}
+
+inline u32 wlan_mac_low_lock_tx_pkt_buf(u16 tx_pkt_buf){
+	u32 is_locked, owner;
+	u32	iter = 0;
+	tx_frame_info_t* tx_frame_info;
+
+	tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+
+	if( tx_frame_info->flags & TX_FRAME_INFO_FLAGS_WAIT_FOR_LOCK ){
+		// This packet buffer has been flagged to ensure that CPU_LOW will wait until a mutex lock
+		// is achieved before proceeding (as opposed to aborting and raising an error). The implicit
+		// contract in this flag is that CPU_HIGH will only briefly lock the packet buffer while updating
+		// its contents.
+		if(tx_frame_info->tx_pkt_buf_state == TX_PKT_BUF_DONE){
+			return PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE;
+		}
+
+		while(lock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+			// This frame was flagged with
+			if(iter > 1000000) {
+				xil_printf("ERROR (wlan_mac_low_lock_tx_pkt_buf): stuck waiting for CPU High to unlock Tx pkt buf %d\n", tx_pkt_buf);
+			}
+			else {
+				iter++;
+			}
+		}
+
+		if(tx_frame_info->tx_pkt_buf_state != TX_PKT_BUF_READY){
+			return PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE;
+		}
+
+	} else {
+		// This packet buffer should be lockable and there is no need for CPU_LOW to wait on a mutex
+		// lock if it is not. In that case, CPU_LOW should print an error and quit this function.
+
+		if(tx_frame_info->tx_pkt_buf_state != TX_PKT_BUF_READY){
+			if(tx_frame_info->tx_pkt_buf_state == TX_PKT_BUF_LOW_CTRL ){
+				// CPU Low responsible for any LOW_CTRL buffers
+				//  Don't transmit - just clean up and return
+				tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+			}
+			//  CPU High will handle it eventually
+			//  Ensure CPU Low doesn't own lock then return
+			unlock_tx_pkt_buf(tx_pkt_buf);
+			return PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE;
+		}
+
+		// Attempt to lock the packet buffer. If this fails, we will not wait for it to succeed. Something
+		// has gone wrong and we should print an error.
+		if(lock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
+			wlan_printf(PL_ERROR, "Error: unable to lock TX pkt_buf %d\n", tx_pkt_buf);
+			get_tx_pkt_buf_status(tx_pkt_buf, &is_locked, &owner);
+			wlan_printf(PL_ERROR, "    TX pkt_buf %d status: isLocked = %d, owner = %d\n", tx_pkt_buf, is_locked, owner);
+			tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+			return PREPARE_FRAME_TRANSMIT_ERROR_LOCK_FAIL;
+		}
+	}
+	// By this point in the function, we have verified that the packet buffer was in an expected state
+	// and have successfully locked the mutex.
+
+	tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
+	return 0;
 }
 
 /*****************************************************************************/
@@ -1051,8 +1116,8 @@ int wlan_mac_low_finish_frame_transmit(u16 tx_pkt_buf){
 				return_value = -1;
 
 			} else {
-				//Record the total time this MPDU spent in the Tx state machine
-				tx_frame_info->delay_done = (u32)(get_mac_time_usec() - (tx_frame_info->timestamp_create + (u64)(tx_frame_info->delay_accept)));
+				//Record the time when we completed this MPDU
+				tx_frame_info->timestamp_done = get_mac_time_usec();
 
 				tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_DONE;
 
@@ -1093,10 +1158,7 @@ int wlan_mac_low_finish_frame_transmit(u16 tx_pkt_buf){
 int wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf){
 	tx_frame_info_t* 		 tx_frame_info;
 	mac_header_80211       * tx_80211_header;
-	u32                      is_locked, owner;
 	ltg_packet_id_t*         pkt_id;
-	u32						 iter = 0;
-
 	if(tx_pkt_buf >= NUM_TX_PKT_BUFS){
 		xil_printf("Error: Tx Pkt Buf index exceeds NUM_TX_PKT_BUFS\n");
 		return PREPARE_FRAME_TRANSMIT_ERROR_INVALID_PKT_BUF;
@@ -1104,62 +1166,7 @@ int wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf){
 
 	tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
 
-	if( tx_frame_info->flags & TX_FRAME_INFO_FLAGS_WAIT_FOR_LOCK ){
-		// This packet buffer has been flagged to ensure that CPU_LOW will wait until a mutex lock
-		// is achieved before proceeding (as opposed to aborting and raising an error). The implicit
-		// contract in this flag is that CPU_HIGH will only briefly lock the packet buffer while updating
-		// its contents.
-		if(tx_frame_info->tx_pkt_buf_state == TX_PKT_BUF_DONE){
-			return PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE;
-		}
-
-		while(lock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-			// This frame was flagged with
-			if(iter > 1000000) {
-				xil_printf("ERROR (poll_tbtt_and_send_beacon): stuck waiting for CPU High to unlock Tx pkt buf %d\n", tx_pkt_buf);
-			}
-			else {
-				iter++;
-			}
-		}
-
-		if(tx_frame_info->tx_pkt_buf_state != TX_PKT_BUF_READY){
-			return PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE;
-		}
-
-	} else {
-		// This packet buffer should be lockable and there is no need for CPU_LOW to wait on a mutex
-		// lock if it is not. In that case, CPU_LOW should print an error and quit this function.
-
-		if(tx_frame_info->tx_pkt_buf_state != TX_PKT_BUF_READY){
-			if(tx_frame_info->tx_pkt_buf_state == TX_PKT_BUF_LOW_CTRL ){
-				// CPU Low responsible for any LOW_CTRL buffers
-				//  Don't transmit - just clean up and return
-				tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
-			}
-			//  CPU High will handle it eventually
-			//  Ensure CPU Low doesn't own lock then return
-			unlock_tx_pkt_buf(tx_pkt_buf);
-			return PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE;
-		}
-
-		// Attempt to lock the packet buffer. If this fails, we will not wait for it to succeed. Something
-		// has gone wrong and we should print an error.
-		if(lock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
-			wlan_printf(PL_ERROR, "Error: unable to lock TX pkt_buf %d\n", tx_pkt_buf);
-			get_tx_pkt_buf_status(tx_pkt_buf, &is_locked, &owner);
-			wlan_printf(PL_ERROR, "    TX pkt_buf %d status: isLocked = %d, owner = %d\n", tx_pkt_buf, is_locked, owner);
-			tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
-			return PREPARE_FRAME_TRANSMIT_ERROR_LOCK_FAIL;
-		}
-	}
-
-	// By this point in the function, we have verified that the packet buffer was in an expected state
-	// and have successfully locked the mutex.
-
-	tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
-
-	tx_frame_info->delay_accept = (u32)(get_mac_time_usec() - tx_frame_info->timestamp_create);
+	tx_frame_info->timestamp_accept = get_mac_time_usec();
 
 	// Get pointer to start of MAC header in packet buffer
 	tx_80211_header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
@@ -1178,7 +1185,6 @@ int wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf){
 
 	//Increment the global unique sequence number
 	unique_seq++;
-
 	return 0;
 }
 
