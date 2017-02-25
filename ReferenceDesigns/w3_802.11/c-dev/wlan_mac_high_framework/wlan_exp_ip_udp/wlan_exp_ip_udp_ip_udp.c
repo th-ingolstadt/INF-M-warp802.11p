@@ -598,7 +598,7 @@ void arp_request(u32 eth_dev_num, u8 * target_haddr, u8 * target_paddr) {
         // Construct the Ethernet header
         eth_header = (ethernet_header *)(send_buffer->offset);
         
-        for (i = 0; i < ETH_HEADER_LEN; i++) {
+        for (i = 0; i < ETH_ADDR_LEN; i++) {
             eth_header->dest_mac_addr[i] = 0xFF;
             eth_header->src_mac_addr[i]  = eth_hw_addr[i];
         }
