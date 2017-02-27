@@ -456,8 +456,8 @@ tx_high_entry * wlan_exp_log_create_tx_high_entry(tx_frame_info_t* tx_frame_info
 
         // Populate the log entry
         tx_high_event_log_entry->timestamp_create         = tx_frame_info->timestamp_create;
-        tx_high_event_log_entry->delay_accept             = tx_frame_info->delay_accept;
-        tx_high_event_log_entry->delay_done               = tx_frame_info->delay_done;
+        tx_high_event_log_entry->delay_accept             = (u32)(tx_frame_info->timestamp_accept - tx_frame_info->timestamp_create);
+        tx_high_event_log_entry->delay_done               = (u32)(tx_frame_info->timestamp_done - tx_frame_info->timestamp_accept);
         tx_high_event_log_entry->unique_seq               = tx_frame_info->unique_seq;
         tx_high_event_log_entry->num_tx                   = tx_frame_info->num_tx_attempts;              // TODO: Add long/short distinction to event log
         tx_high_event_log_entry->length                   = tx_frame_info->length;

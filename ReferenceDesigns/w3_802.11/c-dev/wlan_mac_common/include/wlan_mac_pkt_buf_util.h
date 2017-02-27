@@ -238,9 +238,8 @@ CASSERT(sizeof(tx_queue_details_t) == 4, tx_queue_details_t_alignment_check);
 //
 typedef struct{
     u64                      	timestamp_create;             ///< MAC timestamp of packet creation
-    //----- 8-byte boundary ------
-    u32                      	delay_accept;                 ///< Time in microseconds between timestamp_create and packet acceptance by CPU Low
-    u32                      	delay_done;                   ///< Time in microseconds between acceptance and transmit completion
+    u64                      	timestamp_accept;                 ///< Time in microseconds between timestamp_create and packet acceptance by CPU Low
+    u64                      	timestamp_done;                   ///< Time in microseconds between acceptance and transmit completion
     //----- 8-byte boundary ------
     u64                      	unique_seq;                   ///< Unique sequence number for this packet (12 LSB used as 802.11 MAC sequence number)
     //----- 8-byte boundary ------
@@ -270,7 +269,7 @@ typedef struct{
 // Therefore, the code will check the size of the structure using a compile-time assertion.  This check
 // will need to be updated if fields are added to the structure
 //
-CASSERT(sizeof(tx_frame_info_t) == 48, tx_frame_info_alignment_check);
+CASSERT(sizeof(tx_frame_info_t) == 56, tx_frame_info_alignment_check);
 
 
 // Defines for power field in phy_tx_params_t in tx_params_t

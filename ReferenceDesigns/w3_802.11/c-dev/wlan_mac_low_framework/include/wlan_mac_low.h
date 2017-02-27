@@ -336,6 +336,7 @@ phy_samp_rate_t  wlan_mac_low_get_phy_samp_rate();
 
 void               wlan_mac_low_set_nav_check_addr(u8* addr);
 int                wlan_mac_low_set_radio_channel(u32 channel);
+u32 			   wlan_mac_low_lock_tx_pkt_buf(u16 tx_pkt_buf);
 
 void               wlan_mac_low_DSSS_rx_enable();
 void               wlan_mac_low_DSSS_rx_disable();
