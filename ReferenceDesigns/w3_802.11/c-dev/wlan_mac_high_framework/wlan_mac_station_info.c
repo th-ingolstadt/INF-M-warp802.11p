@@ -46,16 +46,16 @@ static dl_list               station_info_list;              ///< Filled Counts
 
 /*************************** Functions Prototypes ****************************/
 
-dl_entry* station_info_find_oldest();
+station_info_entry_t* station_info_find_oldest();
 
 
 /******************************** Functions **********************************/
 
 void station_info_init() {
 
-	u32       i;
-	u32       num_station_info;
-	dl_entry* dl_entry_base;
+	u32       				i;
+	u32       				num_station_info;
+	station_info_entry_t*   station_info_entry_base;
 
 	dl_list_init(&station_info_free);
 	dl_list_init(&station_info_list);
@@ -66,16 +66,16 @@ void station_info_init() {
 	// The number of elements we can initialize is limited by the smaller of two values:
 	//     (1) The number of dl_entry structs we can squeeze into STATION_INFO_DL_ENTRY_MEM_SIZE
 	//     (2) The number of station_info_t structs we can squeeze into STATION_INFO_BUFFER_SIZE
-	num_station_info = min(STATION_INFO_DL_ENTRY_MEM_SIZE/sizeof(dl_entry), STATION_INFO_BUFFER_SIZE/sizeof(station_info_t));
+	num_station_info = min(STATION_INFO_DL_ENTRY_MEM_SIZE/sizeof(station_info_entry_t), STATION_INFO_BUFFER_SIZE/sizeof(station_info_t));
 
 	// At boot, every dl_entry buffer descriptor is free
 	// To set up the doubly linked list, we exploit the fact that we know the starting state is sequential.
 	// This matrix addressing is not safe once the queue is used. The insert/remove helper functions should be used
-	dl_entry_base = (dl_entry*)(STATION_INFO_DL_ENTRY_MEM_BASE);
+	station_info_entry_base = (station_info_entry_t*)(STATION_INFO_DL_ENTRY_MEM_BASE);
 
 	for (i = 0; i < num_station_info; i++) {
-		dl_entry_base[i].data = (void*)(STATION_INFO_BUFFER_BASE + (i*sizeof(station_info_t)));
-		dl_entry_insertEnd(&station_info_free, &(dl_entry_base[i]));
+		station_info_entry_base[i].data = (station_info_t*)(STATION_INFO_BUFFER_BASE + (i*sizeof(station_info_t)));
+		dl_entry_insertEnd(&station_info_free, (dl_entry*)&(station_info_entry_base[i]));
 	}
 
 	xil_printf("Station Info list (len %d) placed in DRAM: using %d kB\n", num_station_info, (num_station_info*sizeof(station_info_t))/1024);
@@ -93,7 +93,7 @@ void station_info_init_finish(){
 inline station_info_t* station_info_tx_process(void* pkt_buf_addr) {
 	tx_frame_info_t*      	tx_frame_info  	  = (tx_frame_info_t*)pkt_buf_addr;
 	mac_header_80211* 		tx_80211_header   = (mac_header_80211*)((u8*)tx_frame_info + PHY_TX_PKT_BUF_MPDU_OFFSET);
-	dl_entry*				curr_dl_entry;
+	station_info_entry_t*	curr_station_info_entry;
 	station_info_t*			curr_station_info;
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
 	station_txrx_counts_t*	curr_txrx_counts;
@@ -104,39 +104,45 @@ inline station_info_t* station_info_tx_process(void* pkt_buf_addr) {
 	pkt_type = (tx_80211_header->frame_control_1 & MAC_FRAME_CTRL1_MASK_TYPE);
 #endif
 
-	curr_dl_entry = station_info_find_by_addr(tx_80211_header->address_1, NULL);
+	curr_station_info_entry = station_info_find_by_addr(tx_80211_header->address_1, NULL);
 
-	if(curr_dl_entry != NULL){
-		curr_station_info = (station_info_t*)(curr_dl_entry->data);
+	if(curr_station_info_entry != NULL){
+		curr_station_info = curr_station_info_entry->data;
 
 		// Remove entry from station_info_list; Will be added back at the bottom of the function
 		// This serves to sort the list and keep the most recently updated entries at the tail.
-		dl_entry_remove(&station_info_list, curr_dl_entry);
+		dl_entry_remove(&station_info_list, (dl_entry*)curr_station_info_entry);
 	} else {
 		// We haven't seen this addr before, so we'll attempt to checkout a new dl_entry
 		// struct from the free pool
-		curr_dl_entry = station_info_checkout();
+		curr_station_info_entry = station_info_checkout();
 
-		if (curr_dl_entry == NULL){
+		if (curr_station_info_entry == NULL){
 			// No free dl_entry!
 			// We'll have to reallocate the oldest entry in the filled list
-			curr_dl_entry = station_info_find_oldest();
+			curr_station_info_entry = station_info_find_oldest();
 
-			if (curr_dl_entry != NULL) {
-				dl_entry_remove(&station_info_list, curr_dl_entry);
+			if (curr_station_info_entry != NULL) {
+				dl_entry_remove(&station_info_list, (dl_entry*)curr_station_info_entry);
 			} else {
 				xil_printf("Cannot create station_info_t.\n");
 				return NULL;
 			}
 		}
 
-		curr_station_info = (station_info_t*)(curr_dl_entry->data);
+		curr_station_info = curr_station_info_entry->data;
 
 		// Clear any old information from the Tx/Rx counts
 		station_info_clear(curr_station_info);
 
 		// Copy addr into station_info_t struct
 		memcpy(curr_station_info->addr, tx_80211_header->address_1, MAC_ADDR_LEN);
+
+		// Copy addr into station_info_entry_t struct
+		memcpy(curr_station_info_entry->addr, tx_80211_header->address_1, MAC_ADDR_LEN);
+
+		// Zero the station_info_entry_t id field
+		curr_station_info_entry->id = 0;
 	}
 
 	// By this point in the function, curr_station_info is guaranteed to be pointing to a valid station_info_t struct
@@ -149,7 +155,7 @@ inline station_info_t* station_info_tx_process(void* pkt_buf_addr) {
 	// ACK was received. So, we can update the latest Rx-only timestamp as well.
 	// Note: The success <-> ACK Rx assumption holds here because this code
 	// cannot be executed on the transmission of a multicast frame.
-	// TODO: This structure doesn't work with NOMAC, where there is
+	// FIXME: This structure doesn't work with NOMAC, where there is
 	//   no ACK Rx on a successful unicast Data Tx.
 	if(((tx_frame_info->tx_result) == TX_FRAME_INFO_RESULT_SUCCESS)){
 		curr_station_info->latest_rx_timestamp = get_system_time_usec();
@@ -182,7 +188,7 @@ inline station_info_t* station_info_tx_process(void* pkt_buf_addr) {
 #endif
 
 	// Add Station Info into station_info_list
-	dl_entry_insertEnd(&station_info_list, curr_dl_entry);
+	dl_entry_insertEnd(&station_info_list, (dl_entry*)curr_station_info_entry);
 
 	return curr_station_info;
 
@@ -192,7 +198,7 @@ inline station_info_t* station_info_rx_process(void* pkt_buf_addr) {
 	rx_frame_info_t*    	rx_frame_info   	     = (rx_frame_info_t*)pkt_buf_addr;
 	void*               	mac_payload              = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
 	mac_header_80211*   	rx_80211_header          = (mac_header_80211*)((void *)mac_payload);
-	dl_entry*				curr_dl_entry;
+	station_info_entry_t*	curr_station_info_entry;
 	station_info_t*			curr_station_info		 = NULL;
 	u8						pkt_type;
 
@@ -205,38 +211,44 @@ inline station_info_t* station_info_rx_process(void* pkt_buf_addr) {
 		// control frames will not be considered for counts either since the CTS
 		// and ACK frames have no addr2 field.
 
-		curr_dl_entry = station_info_find_by_addr(rx_80211_header->address_2, NULL);
+		curr_station_info_entry = station_info_find_by_addr(rx_80211_header->address_2, NULL);
 
-		if(curr_dl_entry != NULL){
-			curr_station_info = (station_info_t*)(curr_dl_entry->data);
+		if(curr_station_info_entry != NULL){
+			curr_station_info = curr_station_info_entry->data;
 			// Remove entry from station_info_list; Will be added back at the bottom of the function
 			// This serves to sort the list and keep the most recently updated entries at the tail.
-			dl_entry_remove(&station_info_list, curr_dl_entry);
+			dl_entry_remove(&station_info_list, (dl_entry*)curr_station_info_entry);
 		} else {
 			// We haven't seen this addr before, so we'll attempt to checkout a new dl_entry
 			// struct from the free pool
-			curr_dl_entry = station_info_checkout();
+			curr_station_info_entry = station_info_checkout();
 
-			if (curr_dl_entry == NULL){
+			if (curr_station_info_entry == NULL){
 				// No free dl_entry!
 				// We'll have to reallocate the oldest entry in the filled list
-				curr_dl_entry = station_info_find_oldest();
+				curr_station_info_entry = station_info_find_oldest();
 
-				if (curr_dl_entry != NULL) {
-					dl_entry_remove(&station_info_list, curr_dl_entry);
+				if (curr_station_info_entry != NULL) {
+					dl_entry_remove(&station_info_list, (dl_entry*)curr_station_info_entry);
 				} else {
 					xil_printf("Cannot create station_info_t.\n");
 					return NULL;
 				}
 			}
 
-			curr_station_info = (station_info_t*)(curr_dl_entry->data);
+			curr_station_info = curr_station_info_entry->data;
 
 			// Clear any old information from the Tx/Rx counts
 			station_info_clear(curr_station_info);
 
 			// Copy addr into station_info_t struct
 			memcpy(curr_station_info->addr, rx_80211_header->address_2, MAC_ADDR_LEN);
+
+			// Copy addr into station_info_entry_t struct
+			memcpy(curr_station_info_entry->addr, rx_80211_header->address_2, MAC_ADDR_LEN);
+
+			// Zero the station_info_entry_t id field
+			curr_station_info_entry->id = 0;
 		}
 
 		// By this point in the function, curr_station_info is guaranteed to be pointing to a valid station_info_t struct
@@ -249,7 +261,7 @@ inline station_info_t* station_info_rx_process(void* pkt_buf_addr) {
 		curr_station_info->latest_rx_timestamp = get_system_time_usec();
 
 		// Add Station Info into station_info_list
-		dl_entry_insertEnd(&station_info_list, curr_dl_entry);
+		dl_entry_insertEnd(&station_info_list, (dl_entry*)curr_station_info_entry);
 	}
 
 	return curr_station_info;
@@ -427,11 +439,11 @@ void station_info_timestamp_check() {
 	}
 }
 
-dl_entry* station_info_checkout(){
-	dl_entry* entry;
+station_info_entry_t* station_info_checkout(){
+	station_info_entry_t* entry;
 
 	if(station_info_free.length > 0){
-		entry = ((dl_entry*)(station_info_free.first));
+		entry = ((station_info_entry_t*)(station_info_free.first));
 		dl_entry_remove(&station_info_free,station_info_free.first);
 		return entry;
 	} else {
@@ -444,11 +456,10 @@ void station_info_checkin(dl_entry* entry){
 	return;
 }
 
-dl_entry* station_info_find_by_id(u32 id, dl_list* list){
-	int       			iter;
-	dl_entry* 			curr_dl_entry;
-	station_info_t* 	curr_station_info;
-	dl_list*			list_to_search;
+station_info_entry_t* station_info_find_by_id(u32 id, dl_list* list){
+	int iter;
+	station_info_entry_t* curr_station_info_entry;
+	dl_list* list_to_search;
 
 	if(list == NULL){
 		// Error. "List" must be provided. ID has no meaning for the
@@ -459,26 +470,24 @@ dl_entry* station_info_find_by_id(u32 id, dl_list* list){
 		list_to_search = list;
 	}
 
-	iter          = list_to_search->length;
-	curr_dl_entry = list_to_search->last;
+	iter = list_to_search->length;
+	curr_station_info_entry = (station_info_entry_t*)(list_to_search->last);
 
-	while ((curr_dl_entry != NULL) && (iter-- > 0)) {
-		curr_station_info = (station_info_t*)(curr_dl_entry->data);
+	while ((curr_station_info_entry != NULL) && (iter-- > 0)) {
 
-		if (curr_station_info->ID == id) {
-			return curr_dl_entry;
+		if (curr_station_info_entry->id == id) {
+			return curr_station_info_entry;
 		}
 
-		curr_dl_entry = dl_entry_prev(curr_dl_entry);
+		curr_station_info_entry = dl_entry_prev(curr_station_info_entry);
 	}
 	return NULL;
 }
 
-dl_entry* station_info_find_by_addr(u8* addr, dl_list* list){
-	int       			iter;
-	dl_entry* 			curr_dl_entry;
-	station_info_t* 	curr_station_info;
-	dl_list*			list_to_search;
+station_info_entry_t* station_info_find_by_addr(u8* addr, dl_list* list){
+	int       				iter;
+	station_info_entry_t* 	curr_station_info_entry;
+	dl_list*				list_to_search;
 
 	if(list == NULL){
 		//Optional "list" argument not provided. Search will occur over
@@ -489,36 +498,35 @@ dl_entry* station_info_find_by_addr(u8* addr, dl_list* list){
 	}
 
 	iter          = list_to_search->length;
-	curr_dl_entry = list_to_search->last;
+	curr_station_info_entry = (station_info_entry_t*)(list_to_search->last);
 
-	while ((curr_dl_entry != NULL) && (iter-- > 0)) {
-		curr_station_info = (station_info_t*)(curr_dl_entry->data);
+	while ((curr_station_info_entry != NULL) && (iter-- > 0)) {
 
-		if (wlan_addr_eq(addr,curr_station_info->addr)) {
-			return curr_dl_entry;
+		if (wlan_addr_eq(addr, curr_station_info_entry->addr)) {
+			return curr_station_info_entry;
 		}
 
-		curr_dl_entry = dl_entry_prev(curr_dl_entry);
+		curr_station_info_entry = dl_entry_prev(curr_station_info_entry);
 	}
 	return NULL;
 }
 
-dl_entry* station_info_find_oldest(){
-	int       iter;
-	dl_entry* curr_dl_entry;
+station_info_entry_t* station_info_find_oldest(){
+	int iter;
+	station_info_entry_t* curr_station_info_entry;
 	station_info_t* station_info;
 
-	iter          = station_info_list.length;
-	curr_dl_entry = station_info_list.first;
+	iter          			= station_info_list.length;
+	curr_station_info_entry = (station_info_entry_t*)(station_info_list.first);
 
-	while ((curr_dl_entry != NULL) && (iter-- > 0)) {
-		station_info = (station_info_t*)(curr_dl_entry->data);
+	while ((curr_station_info_entry != NULL) && (iter-- > 0)) {
+		station_info = curr_station_info_entry->data;
 
 		if ((station_info->flags & STATION_INFO_FLAG_KEEP) == 0) {
-			return curr_dl_entry;
+			return curr_station_info_entry;
 		}
 
-		curr_dl_entry = dl_entry_next(curr_dl_entry);
+		curr_station_info_entry = dl_entry_next(curr_station_info_entry);
 	}
 	return NULL;
 }
@@ -529,28 +537,28 @@ dl_entry* station_info_find_oldest(){
 // in the flat station_info_list.
 //
 station_info_t* station_info_create(u8* addr){
-	dl_entry* 		curr_dl_entry;
+	station_info_entry_t* curr_station_info_entry;
 	station_info_t* curr_station_info = NULL;
 
-	curr_dl_entry = station_info_find_by_addr(addr, NULL);
+	curr_station_info_entry = station_info_find_by_addr(addr, NULL);
 
-	if (curr_dl_entry != NULL){
+	if (curr_station_info_entry != NULL){
 		// Get the Tx/Rx Counts from the entry
-		curr_station_info = (station_info_t*)(curr_dl_entry->data);
+		curr_station_info = curr_station_info_entry->data;
 
 		// Remove the entry from the info list so it can be added back later
-		dl_entry_remove(&station_info_list, curr_dl_entry);
+		dl_entry_remove(&station_info_list, (dl_entry*)curr_station_info_entry);
 	} else {
 		// Have not seen this addr before; attempt to grab a new dl_entry
 		// struct from the free pool
-		curr_dl_entry = station_info_checkout();
+		curr_station_info_entry = station_info_checkout();
 
-		if (curr_dl_entry == NULL){
+		if (curr_station_info_entry == NULL){
 			// No free dl_entry; Re-allocate the oldest entry in the filled list
-			curr_dl_entry = station_info_find_oldest();
+			curr_station_info_entry = station_info_find_oldest();
 
-			if (curr_dl_entry != NULL) {
-				dl_entry_remove(&station_info_list, curr_dl_entry);
+			if (curr_station_info_entry != NULL) {
+				dl_entry_remove(&station_info_list, (dl_entry*)curr_station_info_entry);
 			} else {
 				xil_printf("Cannot create station_info.\n");
 				return NULL;
@@ -558,7 +566,7 @@ station_info_t* station_info_create(u8* addr){
 		}
 
 		// Get the Station Info from the entry
-		curr_station_info = (station_info_t*)(curr_dl_entry->data);
+		curr_station_info = curr_station_info_entry->data;
 
 		// Clear any old information
 		station_info_clear(curr_station_info);
@@ -582,7 +590,7 @@ station_info_t* station_info_create(u8* addr){
 	curr_station_info->latest_txrx_timestamp = get_system_time_usec();
 
 	// Insert the updated entry into the network list
-	dl_entry_insertEnd(&station_info_list, curr_dl_entry);
+	dl_entry_insertEnd(&station_info_list, (dl_entry*)curr_station_info_entry);
 
 	return curr_station_info;
 }
@@ -660,46 +668,6 @@ inline dl_list* station_info_get_list(){
 	return &station_info_list;
 }
 
-
-/**
- * @brief Find Station Information within a doubly-linked list from a station ID
- *
- * Given a doubly-linked list of station_info structures, this function will return
- * the pointer to a particular entry whose station ID field matches the argument
- * to this function.
- *
- * @param dl_list* list
- *  - Doubly-linked list of station_info structures
- * @param u32 id
- *  - ID to search for
- * @return curr_station_info_entry*
- *  - Returns the pointer to the entry in the doubly-linked list that has the
- *    provided AID.
- *  - Returns NULL if no station_info pointer is found that matches the search
- *    criteria
- *
- */
-dl_entry* wlan_mac_high_find_station_info_ID(dl_list* list, u32 id){
-	dl_entry*			curr_station_info_entry;
-	station_info_t* 	station_info;
-
-	curr_station_info_entry = list->first;
-	int iter = list->length;
-
-	while( (curr_station_info_entry != NULL) && (iter-- > 0) ){
-		station_info = (station_info_t*)(curr_station_info_entry->data);
-
-		if(station_info->ID == id){
-			return curr_station_info_entry;
-		} else {
-			curr_station_info_entry = dl_entry_next(curr_station_info_entry);
-		}
-	}
-
-	return NULL;
-}
-
-
 /**
  * @brief Add Station Info
  *
@@ -725,12 +693,12 @@ dl_entry* wlan_mac_high_find_station_info_ID(dl_list* list, u32 id){
  * @note   This function will not perform any filtering on the addr field
  */
 station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 requested_ID, tx_params_t* tx_params, u8 ht_capable){
-	dl_entry*           entry;
-	station_info_t*     station_info;
-	dl_entry*           curr_station_info_entry;
-	station_info_t*     station_info_temp;
-	u16                 curr_ID;
-	int                 iter;
+	station_info_entry_t* entry;
+	station_info_t*       station_info;
+	station_info_entry_t* curr_station_info_entry;
+	station_info_t*       station_info_temp;
+	u16                   curr_ID;
+	int                   iter;
 
 	curr_ID = 0;
 
@@ -765,10 +733,13 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 	} else {
 
 		// This addr is new, so we'll have to add an entry into the list
-		entry = wlan_mac_high_malloc(sizeof(dl_entry));
+		entry = wlan_mac_high_malloc(sizeof(station_info_entry_t));
 		if(entry == NULL){
 			return NULL;
 		}
+
+		entry->id = 0;
+		memcpy(entry->addr, addr, MAC_ADDR_LEN);
 
 		station_info = station_info_create(addr);
 		if(station_info == NULL){
@@ -820,7 +791,7 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 		// Set up the station ID
 		if(requested_ID == ADD_STATION_INFO_ANY_ID){
 			// Find the minimum AID that can be issued to this station.
-			curr_station_info_entry = app_station_info_list->first;
+			curr_station_info_entry = (station_info_entry_t*)(app_station_info_list->first);
 			iter = app_station_info_list->length;
 
 			while((curr_station_info_entry != NULL) && (iter-- > 0)){
@@ -830,9 +801,10 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 				if((station_info_temp->ID - curr_ID) > 1){
 					// There is a hole in the list and we can re-issue a previously issued station ID.
 					station_info->ID = station_info_temp->ID - 1;
+					entry->id = station_info->ID;
 
 					// Add this station into the list just before the curr_station_info
-					dl_entry_insertBefore(app_station_info_list, curr_station_info_entry, entry);
+					dl_entry_insertBefore(app_station_info_list, (dl_entry*)curr_station_info_entry, (dl_entry*)entry);
 
 					break;
 				} else {
@@ -848,18 +820,20 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 				if(app_station_info_list->length == 0){
 					// This is the first entry in the list;
 					station_info->ID = 1;
+					entry->id = station_info->ID;
 				} else {
-					curr_station_info_entry = app_station_info_list->last;
+					curr_station_info_entry = (station_info_entry_t*)(app_station_info_list->last);
 					station_info_temp = (station_info_t*)(curr_station_info_entry->data);
 					station_info->ID = (station_info_temp->ID)+1;
+					entry->id = station_info->ID;
 				}
 
 				// Add this station into the list at the end
-				dl_entry_insertEnd(app_station_info_list, entry);
+				dl_entry_insertEnd(app_station_info_list, (dl_entry*)entry);
 			}
 		} else {
 			// Find the right place in the dl_list to insert this station_info with the requested AID
-			curr_station_info_entry = app_station_info_list->first;
+			curr_station_info_entry = (station_info_entry_t*)(app_station_info_list->first);
 			iter = app_station_info_list->length;
 
 			while( (curr_station_info_entry != NULL) && (iter-- > 0)){
@@ -868,8 +842,9 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 
 				if(station_info_temp->ID > requested_ID){
 					station_info->ID = requested_ID;
+					entry->id = station_info->ID;
 					// Add this station into the list just before the curr_station_info
-					dl_entry_insertBefore(app_station_info_list, curr_station_info_entry, entry);
+					dl_entry_insertBefore(app_station_info_list, (dl_entry*)curr_station_info_entry, (dl_entry*)entry);
 				}
 
 				curr_station_info_entry = dl_entry_next(curr_station_info_entry);
@@ -878,9 +853,10 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 			if(station_info->ID == 0){
 				// There was no hole in the list, so we insert it at the end
 				station_info->ID = requested_ID;
+				entry->id = station_info->ID;
 
 				// Add this station into the list at the end
-				dl_entry_insertEnd(app_station_info_list, entry);
+				dl_entry_insertEnd(app_station_info_list, (dl_entry*)entry);
 			}
 		}
 
@@ -904,7 +880,7 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
  *     - -1  - Failed to remove station
  */
 int station_info_remove(dl_list* app_station_info_list, u8* addr){
-	dl_entry* 		entry;
+	station_info_entry_t* 		entry;
 
 	entry = station_info_find_by_addr(addr, app_station_info_list);
 
@@ -916,7 +892,7 @@ int station_info_remove(dl_list* app_station_info_list, u8* addr){
 	} else {
 
 		// Remove station from the list;
-		dl_entry_remove(app_station_info_list, entry);
+		dl_entry_remove(app_station_info_list, (dl_entry*)entry);
 
 		wlan_mac_high_free(entry);
 
@@ -939,7 +915,8 @@ int station_info_remove(dl_list* app_station_info_list, u8* addr){
  *     - Station info pointer to check
  * @return u8
  *     - 0  - Station is not a member of the provided list
- *     - 1  - Station is a member of the provided list
+ *     - 1  - Station is a member of the provided listp_
+ *
  */
 u8	station_info_is_member(dl_list* app_station_info_list, station_info_t* station_info){
 	dl_entry*	  	curr_station_info_entry;

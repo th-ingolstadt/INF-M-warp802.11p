@@ -24,8 +24,8 @@
 //-----------------------------------------------
 // Macros
 //
-#define dl_entry_next(x)                                (((dl_entry*)(x))->next)
-#define dl_entry_prev(x)                                (((dl_entry*)(x))->prev)
+#define dl_entry_next(x)                                (((x))->next)
+#define dl_entry_prev(x)                                (((x))->prev)
 
 
 
@@ -38,6 +38,7 @@ struct dl_entry{
     dl_entry* prev;
     void*     data;
 };
+
 
 typedef struct {
     dl_entry* first;

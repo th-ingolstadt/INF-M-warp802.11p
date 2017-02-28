@@ -3447,10 +3447,14 @@ void transfer_log_data(u32 socket_index, void * from,
  *
  *****************************************************************************/
 dl_entry * find_station_info(u8 * mac_addr) {
+	//TODO: When process_buffer_cmds gets refactored, we should teach it about
+	//the difference between a dl_entry and a station_info_entry_t. In the meantime,
+	//we'll just cast the return of the station_info_find_by_addr to be the
+	//the less-capable dl_entry type;
     dl_list * source_list = get_bss_member_list();
 
     if (source_list != NULL) {
-        return station_info_find_by_addr(mac_addr, source_list);
+        return ((dl_entry*)(station_info_find_by_addr(mac_addr, source_list)));
     } else {
         return NULL;
     }
@@ -3495,9 +3499,11 @@ void copy_station_info_to_dest(void * source, void * dest, u8* mac_addr) {
 }
 
 dl_entry * find_counts_txrx(u8 * mac_addr) {
-
-	return station_info_find_by_addr(mac_addr, NULL);
-
+	//TODO: When process_buffer_cmds gets refactored, we should teach it about
+	//the difference between a dl_entry and a station_info_entry_t. In the meantime,
+	//we'll just cast the return of the station_info_find_by_addr to be the
+	//the less-capable dl_entry type;
+	return ((dl_entry*)(station_info_find_by_addr(mac_addr, NULL)));
 }
 
 void zero_counts_txrx(void * dest) {
@@ -3779,10 +3785,9 @@ void ltg_cleanup(u32 id, void* callback_arg){
  *
  *****************************************************************************/
 u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr) {
-    u32            		id;
-    dl_entry     	* 	entry;
-    station_info_t  * 	station_info;
-    bss_info_t* 		active_bss_info = ((bss_info_t*)wlan_exp_active_bss_info_getter_callback());
+    u32 id;
+    station_info_entry_t* entry;
+    bss_info_t* active_bss_info = ((bss_info_t*)wlan_exp_active_bss_info_getter_callback());
 
     if (wlan_addr_eq(mac_addr, zero_addr)) {
         id = WLAN_EXP_AID_ALL;
@@ -3794,8 +3799,7 @@ u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr) {
                 entry = station_info_find_by_addr(mac_addr, &(active_bss_info->members));
 
                 if (entry != NULL) {
-                	station_info = (station_info_t*)(entry->data);
-                    id = station_info->ID;
+                    id = entry->id;
                 } else {
                     id = WLAN_EXP_AID_NONE;
                 }
@@ -3810,9 +3814,9 @@ u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr) {
 
 
 u32  wlan_exp_get_id_in_counts(u8 * mac_addr) {
-    u32         	id;
-    dl_entry* 		entry;
-    bss_info_t* 	active_bss_info = ((bss_info_t*)wlan_exp_active_bss_info_getter_callback());
+    u32 id;
+    station_info_entry_t* entry;
+    bss_info_t* active_bss_info = ((bss_info_t*)wlan_exp_active_bss_info_getter_callback());
 
     if (wlan_addr_eq(mac_addr, zero_addr)) {
         id = WLAN_EXP_AID_ALL;

@@ -15,13 +15,9 @@
 #include "wlan_mac_high_sw_config.h"
 
 // Xilinx SDK includes
-#include "xparameters.h"
 #include "stdio.h"
 #include "stdlib.h"
-#include "xtmrctr.h"
-#include "xio.h"
 #include "string.h"
-#include "xintc.h"
 #include "xil_cache.h"
 
 // WLAN includes
@@ -498,8 +494,8 @@ void poll_tx_queues(pkt_buf_group_t pkt_buf_group){
 
 	// Remember the last queue polled between calls to this function
 	//   This implements the round-robin poll of queues in the DATA_QGRP group
-	static dl_entry* next_station_info_entry = NULL;
-	dl_entry* curr_station_info_entry;
+	static station_info_entry_t* next_station_info_entry = NULL;
+	station_info_entry_t* curr_station_info_entry;
 
 	station_info_t* curr_station_info;
 
@@ -531,7 +527,7 @@ void poll_tx_queues(pkt_buf_group_t pkt_buf_group){
 							// Loop through all associated stations' queues and the broadcast queue
 							if(curr_station_info_entry == NULL){
 								// Check the broadcast queue
-								next_station_info_entry = active_bss_info->members.first;
+								next_station_info_entry = (station_info_entry_t*)(active_bss_info->members.first);
 								if(dequeue_transmit_checkin(MCAST_QID)){
 									// Found a not-empty queue, transmitted a packet
 									return;
@@ -541,14 +537,14 @@ void poll_tx_queues(pkt_buf_group_t pkt_buf_group){
 							} else {
 								curr_station_info = (station_info_t*)(curr_station_info_entry->data);
 								if( station_info_is_member(&active_bss_info->members, curr_station_info) ){
-									if(curr_station_info_entry == active_bss_info->members.last){
+									if(curr_station_info_entry == (station_info_entry_t*)(active_bss_info->members.last)){
 										// We've reached the end of the table, so we wrap around to the beginning
 										next_station_info_entry = NULL;
 									} else {
 										next_station_info_entry = dl_entry_next(curr_station_info_entry);
 									}
 
-									if(dequeue_transmit_checkin(STATION_ID_TO_QUEUE_ID(curr_station_info->ID))){
+									if(dequeue_transmit_checkin(STATION_ID_TO_QUEUE_ID(curr_station_info_entry->id))){
 										// Found a not-empty queue, transmitted a packet
 										return;
 									} else {
@@ -590,18 +586,16 @@ void poll_tx_queues(pkt_buf_group_t pkt_buf_group){
  * @return None
  *****************************************************************************/
 void purge_all_data_tx_queue(){
-	dl_entry*	    curr_station_info_entry;
-	station_info_t* curr_station_info;
-	int			  iter = active_bss_info->members.length;
+	station_info_entry_t* curr_station_info_entry;
+	int iter = active_bss_info->members.length;
 
 	// Purge all data transmit queues
 	purge_queue(MCAST_QID);                                    		// Broadcast Queue
 
 	if(active_bss_info != NULL){
-		curr_station_info_entry = active_bss_info->members.first;
+		curr_station_info_entry = (station_info_entry_t*)(active_bss_info->members.first);
 		while( (curr_station_info_entry != NULL) && (iter-- > 0) ){
-			curr_station_info = (station_info_t*)(curr_station_info_entry->data);
-			purge_queue(STATION_ID_TO_QUEUE_ID(curr_station_info->ID));       		// Each unicast queue
+			purge_queue(STATION_ID_TO_QUEUE_ID(curr_station_info_entry->id));       		// Each unicast queue
 			curr_station_info_entry = dl_entry_next(curr_station_info_entry);
 		}
 	}
@@ -631,7 +625,7 @@ int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src,
 
 	tx_queue_buffer_t* 	curr_tx_queue_buffer;
 	station_info_t*     station_info;
-	dl_entry*			station_info_entry;
+	station_info_entry_t* station_info_entry;
 	u32                 queue_sel;
 
 	if(active_bss_info != NULL){
@@ -684,12 +678,12 @@ int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src,
 				curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_data_tx_params);
 				curr_tx_queue_buffer->tx_frame_info.ID         = 0;
 			} else {
-				queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
+				queue_sel = STATION_ID_TO_QUEUE_ID(station_info_entry->id);
 				// Setup the TX frame info
 				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO), queue_sel, PKT_BUF_GROUP_GENERAL );
 				curr_tx_queue_buffer->metadata.metadata_type  = QUEUE_METADATA_TYPE_STATION_INFO;
 				curr_tx_queue_buffer->metadata.metadata_ptr   = (u32)station_info;
-				curr_tx_queue_buffer->tx_frame_info.ID          = station_info->ID;
+				curr_tx_queue_buffer->tx_frame_info.ID          = station_info_entry->id;
 			}
 		}
 
@@ -940,11 +934,11 @@ void remove_inactive_station_infos() {
 
 	u64 				time_since_last_activity;
 	station_info_t*     curr_station_info;
-	dl_entry*           curr_station_info_entry;
-	dl_entry*           next_station_info_entry;
+	station_info_entry_t* curr_station_info_entry;
+	station_info_entry_t* next_station_info_entry;
 
 	if(active_bss_info != NULL){
-		next_station_info_entry = active_bss_info->members.first;
+		next_station_info_entry = (station_info_entry_t*)active_bss_info->members.first;
 
 		while(next_station_info_entry != NULL) {
 			curr_station_info_entry = next_station_info_entry;
@@ -955,7 +949,7 @@ void remove_inactive_station_infos() {
 
 			// De-authenticate the station if we have timed out and we have not disabled this check for the station
 			if((time_since_last_activity > ASSOCIATION_TIMEOUT_US) && ((curr_station_info->flags & STATION_INFO_FLAG_DISABLE_ASSOC_CHECK) == 0)){
-                purge_queue(STATION_ID_TO_QUEUE_ID(curr_station_info->ID));
+                purge_queue(STATION_ID_TO_QUEUE_ID(curr_station_info_entry->id));
                 curr_station_info->flags &= ~STATION_INFO_FLAG_KEEP;
                 station_info_remove( &active_bss_info->members, curr_station_info->addr );
 				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_bss_info->members.length);
@@ -988,7 +982,7 @@ void ltg_event(u32 id, void* callback_arg){
 
 	u32                 payload_length;
 	u32                 min_ltg_payload_length;
-	dl_entry*	        station_info_entry           = NULL;
+	station_info_entry_t* station_info_entry           = NULL;
 	station_info_t*     station_info                 = NULL;
 	u8*                 addr_da;
 	u8                  is_multicast;
@@ -1009,7 +1003,7 @@ void ltg_event(u32 id, void* callback_arg){
 					station_info_entry = station_info_find_by_addr(addr_da, &active_bss_info->members);
 					if(station_info_entry != NULL){
 						station_info = (station_info_t*)(station_info_entry->data);
-						queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
+						queue_sel = STATION_ID_TO_QUEUE_ID(station_info_entry->id);
 					} else {
 						//Unlike the AP, this isn't necessarily a criteria for giving up on this LTG event.
 						//In the IBSS, it's possible that there simply wasn't room in the heap for a station_info,
@@ -1030,7 +1024,7 @@ void ltg_event(u32 id, void* callback_arg){
 					station_info_entry = station_info_find_by_addr(addr_da, &active_bss_info->members);
 					if(station_info_entry != NULL){
 						station_info = (station_info_t*)(station_info_entry->data);
-						queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
+						queue_sel = STATION_ID_TO_QUEUE_ID(station_info_entry->id);
 					} else {
 						//Unlike the AP, this isn't necessarily a criteria for giving up on this LTG event.
 						//In the IBSS, it's possible that there simply wasn't room in the heap for a station_info,
@@ -1042,10 +1036,10 @@ void ltg_event(u32 id, void* callback_arg){
 
 			case LTG_PYLD_TYPE_ALL_ASSOC_FIXED:
 				if(active_bss_info->members.length > 0){
-					station_info_entry = active_bss_info->members.first;
+					station_info_entry = (station_info_entry_t*)(active_bss_info->members.first);
 					station_info = (station_info_t*)station_info_entry->data;
 					addr_da = station_info->addr;
-					queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
+					queue_sel = STATION_ID_TO_QUEUE_ID(station_info_entry->id);
 					is_multicast = 0;
 					payload_length = ((ltg_pyld_all_assoc_fixed*)callback_arg)->length;
 				} else {
@@ -1113,7 +1107,7 @@ void ltg_event(u32 id, void* callback_arg){
 
 					    curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
 					    curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)station_info;
-						curr_tx_queue_buffer->tx_frame_info.ID         = station_info->ID;
+						curr_tx_queue_buffer->tx_frame_info.ID         = station_info_entry->id;
 					}
 
 					// Submit the new packet to the appropriate queue
@@ -1133,7 +1127,7 @@ void ltg_event(u32 id, void* callback_arg){
 				if(station_info_entry != NULL){
 					station_info = (station_info_t*)station_info_entry->data;
 					addr_da = station_info->addr;
-					queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
+					queue_sel = STATION_ID_TO_QUEUE_ID(station_info_entry->id);
 					is_multicast = 0;
 					continue_loop = 1;
 				} else {

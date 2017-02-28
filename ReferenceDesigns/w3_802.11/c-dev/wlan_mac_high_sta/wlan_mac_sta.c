@@ -15,13 +15,9 @@
 #include "wlan_mac_high_sw_config.h"
 
 // Xilinx SDK includes
-#include "xparameters.h"
 #include "stdio.h"
 #include "stdlib.h"
-#include "xtmrctr.h"
-#include "xio.h"
 #include "string.h"
-#include "xintc.h"
 #include "xil_cache.h"
 
 // WLAN includes
@@ -923,8 +919,7 @@ void ltg_event(u32 id, void* callback_arg){
  *****************************************************************************/
 int  sta_disassociate( void ) {
 	int                 status = 0;
-	station_info_t*     ap_station_info          = NULL;
-	dl_entry*           ap_station_info_entry;
+	station_info_entry_t* ap_station_info_entry;
 	dl_entry* curr_tx_queue_element;
 	tx_queue_buffer_t*  curr_tx_queue_buffer;
 	u32                 tx_length;
@@ -933,8 +928,7 @@ int  sta_disassociate( void ) {
 	if(active_bss_info != NULL){
 
 		// Get the AP station info
-		ap_station_info_entry = active_bss_info->members.first;
-		ap_station_info       = (station_info_t*)ap_station_info_entry->data;
+		ap_station_info_entry = (station_info_entry_t*)(active_bss_info->members.first);
 
 		//
 		// TODO:  (Optional) Log association state change
@@ -953,7 +947,7 @@ int  sta_disassociate( void ) {
 			curr_tx_queue_buffer = (tx_queue_buffer_t*)(curr_tx_queue_element->data);
 
 			// Setup the TX header
-			wlan_mac_high_setup_tx_header(&tx_header_common, ap_station_info->addr, wlan_mac_addr );
+			wlan_mac_high_setup_tx_header(&tx_header_common, ap_station_info_entry->addr, wlan_mac_addr );
 
 			// Fill in the data
 			tx_length = wlan_create_disassoc_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, DISASSOC_REASON_STA_IS_LEAVING);
@@ -997,7 +991,7 @@ u32	configure_bss(bss_config_t* bss_config){
 	bss_info_t*           local_bss_info;
 	interrupt_state_t   curr_interrupt_state;
 	station_info_t*     curr_station_info;
-	dl_entry*           curr_station_info_entry;
+	station_info_entry_t* curr_station_info_entry;
 	station_info_t*     ap_station_info		        = NULL;
 
 	//---------------------------------------------------------
@@ -1074,7 +1068,7 @@ u32	configure_bss(bss_config_t* bss_config){
 			// This will not result in any OTA transmissions to the stations.
 
 			if (active_bss_info != NULL) {
-				curr_station_info_entry = active_bss_info->members.first;
+				curr_station_info_entry = (station_info_entry_t*)(active_bss_info->members.first);
 				curr_station_info = (station_info_t*)(curr_station_info_entry->data);
 
 				// Purge any data for the AP
@@ -1084,7 +1078,7 @@ u32	configure_bss(bss_config_t* bss_config){
 				curr_station_info->flags &= ~STATION_INFO_FLAG_KEEP;
 
 				// Remove the association
-				station_info_remove( &active_bss_info->members, curr_station_info->addr );
+				station_info_remove( &active_bss_info->members, curr_station_info_entry->addr );
 
 				// Update the hex display to show STA is not currently associated
 				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0);
@@ -1206,7 +1200,7 @@ u32	configure_bss(bss_config_t* bss_config){
 
 				// Get the AP station info
 				if (ap_station_info == NULL) {
-					dl_entry * entry = station_info_find_by_addr(active_bss_info->bssid, &(active_bss_info->members));
+					station_info_entry_t* entry = station_info_find_by_addr(active_bss_info->bssid, &(active_bss_info->members));
 
 					if (entry != NULL) {
 						ap_station_info = (station_info_t*)(entry->data);

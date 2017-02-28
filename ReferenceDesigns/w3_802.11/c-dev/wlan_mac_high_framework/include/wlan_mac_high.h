@@ -45,8 +45,8 @@
  * Description                                            | Size
  * -------------------------------------------------------------------------------------------------
  * Tx Queue list entries (entry.data points to DRAM)      | 40960 B (TX_QUEUE_DL_ENTRY_MEM_SIZE)
- * BSS Info list entries (entry.data points to DRAM)      |  4608 B (BSS_INFO_DL_ENTRY_MEM_SIZE)
- * Station Info list entries (entry.data points to DRAM)  |  4608 B (STATION_INFO_DL_ENTRY_MEM_SIZE)
+ * BSS Info list entries (entry.data points to DRAM)      |  2560 B (BSS_INFO_DL_ENTRY_MEM_SIZE)
+ * Station Info list entries (entry.data points to DRAM)  |  6656 B (STATION_INFO_DL_ENTRY_MEM_SIZE)
  * Space for wlan_platform_ethernet use                   | 15360 B (ETH_MEM_SIZE)
  * -------------------------------------------------------------------------------------------------
  *
@@ -137,7 +137,7 @@
  *
  ********************************************************************/
 #define BSS_INFO_DL_ENTRY_MEM_BASE         (TX_QUEUE_DL_ENTRY_MEM_BASE + TX_QUEUE_DL_ENTRY_MEM_SIZE)
-#define BSS_INFO_DL_ENTRY_MEM_SIZE         (4608)
+#define BSS_INFO_DL_ENTRY_MEM_SIZE         (2560)
 #define BSS_INFO_DL_ENTRY_MEM_HIGH          CALC_HIGH_ADDR(BSS_INFO_DL_ENTRY_MEM_BASE, BSS_INFO_DL_ENTRY_MEM_SIZE)
 
 #define BSS_INFO_BUFFER_BASE               (TX_QUEUE_BUFFER_HIGH + 1)
@@ -154,7 +154,7 @@
  *
  ********************************************************************/
 #define STATION_INFO_DL_ENTRY_MEM_BASE     (BSS_INFO_DL_ENTRY_MEM_HIGH + 1)
-#define STATION_INFO_DL_ENTRY_MEM_SIZE     (4608)
+#define STATION_INFO_DL_ENTRY_MEM_SIZE     (6656)
 #define STATION_INFO_DL_ENTRY_MEM_NUM      (STATION_INFO_DL_ENTRY_MEM_SIZE/sizeof(dl_entry))
 #define STATION_INFO_DL_ENTRY_MEM_HIGH      CALC_HIGH_ADDR(STATION_INFO_DL_ENTRY_MEM_BASE, STATION_INFO_DL_ENTRY_MEM_SIZE)
 

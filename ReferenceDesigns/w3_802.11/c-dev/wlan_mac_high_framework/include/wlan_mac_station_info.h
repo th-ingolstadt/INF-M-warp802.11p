@@ -36,6 +36,7 @@
 //
 #define STATION_INFO_TIMEOUT_USEC                           600000000
 
+
 /********************************************************************
  * @brief Tx/Rx Counts Sub-structure
  *
@@ -143,12 +144,28 @@ CASSERT(sizeof(station_info_t) == 72, station_info_alignment_check);
 
 #define STATION_INFO_PRINT_OPTION_FLAG_INCLUDE_COUNTS	   0x00000001
 
+
+//Define a new type of dl_entry for pointing to station_info_t
+// structs that contains some extra fields for faster searching
+// without needing to jump to DRAM.
+typedef struct station_info_entry_t station_info_entry_t;
+struct station_info_entry_t{
+	station_info_entry_t* next;
+	station_info_entry_t* prev;
+	station_info_t*     data;
+	u8				    addr[6];
+	u16					id;
+};
+CASSERT(sizeof(station_info_entry_t) == 20, station_info_entry_t_alignment_check);
+
+
+
 /*************************** Function Prototypes *****************************/
 
 void             station_info_init();
 void             station_info_init_finish();
 
-dl_entry* 		 station_info_checkout();
+station_info_entry_t* station_info_checkout();
 void             station_info_checkin(dl_entry* entry);
 
 station_info_t*  station_info_tx_process(void* pkt_buf_addr);
@@ -172,8 +189,8 @@ void 			 station_info_clear(station_info_t* station_info);
 
 dl_list*  		 station_info_get_list();
 
-dl_entry*        station_info_find_by_id(u32 id, dl_list* list);
-dl_entry*        station_info_find_by_addr(u8* addr, dl_list* list);
+station_info_entry_t* station_info_find_by_id(u32 id, dl_list* list);
+station_info_entry_t* station_info_find_by_addr(u8* addr, dl_list* list);
 
 station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 requested_ID, tx_params_t* tx_params, u8 ht_capable);
 int              station_info_remove(dl_list* app_station_info_list, u8* addr);
