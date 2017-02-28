@@ -204,7 +204,6 @@ int eth_init_dma(u32 eth_dev_num, u32 verbose) {
     u32                      dma_tx_bd_cnt;
 
     XAxiDma_Bd               bd_template;
-    XAxiDma_Bd            ** bd_set_ptr          = NULL;
     XAxiDma_Bd             * bd_ptr              = NULL;
     
     u32                      num_recv_buffers;
@@ -287,15 +286,12 @@ int eth_init_dma(u32 eth_dev_num, u32 verbose) {
     //   - Set up each descriptor to use a portion of the allocated receive buffer
     //
     // Allocate receive buffers
-    status = XAxiDma_BdRingAlloc(dma_rx_ring_ptr, num_recv_buffers, bd_set_ptr);
-    
+    status = XAxiDma_BdRingAlloc(dma_rx_ring_ptr, num_recv_buffers, &bd_ptr);
+
     if (status != XST_SUCCESS) {
         eth_print_err_msg(eth_dev_num, WLAN_EXP_IP_UDP_ETH_ERROR_CODE, ETH_ERROR_CODE_DMA_RX_BD_RING_ALLOC, &status, 1);
         return XST_FAILURE;
     }
-
-    // Set up the buffer descriptors
-    bd_ptr = bd_set_ptr[0];
     
     for ( i = 0; i < num_recv_buffers; i++ ){    
         XAxiDma_BdSetBufAddr(bd_ptr, (u32)(recv_buffers[i].data));
@@ -307,7 +303,7 @@ int eth_init_dma(u32 eth_dev_num, u32 verbose) {
     }
 
     // Enqueue buffer descriptors to hardware
-    status = XAxiDma_BdRingToHw(dma_rx_ring_ptr, num_recv_buffers, bd_set_ptr[0]);
+    status = XAxiDma_BdRingToHw(dma_rx_ring_ptr, num_recv_buffers, bd_ptr);
     
     if (status != XST_SUCCESS) {
         eth_print_err_msg(eth_dev_num, WLAN_EXP_IP_UDP_ETH_ERROR_CODE, ETH_ERROR_CODE_DMA_RX_BD_RING_TO_HW, &status, 1);
