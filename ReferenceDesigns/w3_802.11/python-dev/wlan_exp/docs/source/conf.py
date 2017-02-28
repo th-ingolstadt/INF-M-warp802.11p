@@ -80,7 +80,7 @@ master_doc = 'index'
 
 # General information about the project.
 project = u'mango_wlan_exp'
-copyright = u'2016, Mango Communications, Inc.'
+copyright = u'2017, Mango Communications, Inc.'
 
 # Napoleon settings
 napoleon_use_ivar = True
