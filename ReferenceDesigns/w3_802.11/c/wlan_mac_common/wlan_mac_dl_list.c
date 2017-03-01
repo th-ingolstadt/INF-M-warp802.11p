@@ -284,6 +284,7 @@ int dl_entry_move(dl_list* src_list, dl_list* dest_list, u16 num_entries){
     	dl_entry_prev(src_remaining) = NULL;
     } else {
     	src_list->first = NULL;
+    	src_list->last = NULL;
     }
     src_list->length -= num_moved;
 
