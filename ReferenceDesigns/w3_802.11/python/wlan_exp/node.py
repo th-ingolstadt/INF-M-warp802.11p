@@ -1501,7 +1501,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
             * - ``'cw_exp_min'`` and
                 ``'cw_exp_max'``
-              - [1 .. 16]
+              - [0 .. 16]
               - Contention window exponent bounds. Contention window is set to random number in [0, (2^CW - 1)], 
                 where CW is bounded by [cw_exp_min, cw_exp_max]
 
@@ -1547,16 +1547,16 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_PHYSICAL_CS_THRESH, param_values=param_val)
             
         elif (param_name == 'cw_exp_min'):
-            if ((param_val < 1) or (param_val > 16)):
-                raise AttributeError("'cw_exp_min' must be in [1 .. 16].")
+            if ((param_val < 0) or (param_val > 16)):
+                raise AttributeError("'cw_exp_min' must be in [0 .. 16].")
                 
             self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_param('cw_exp_min')")
     
             self.set_low_param(param_id=cmds.CMD_PARAM_LOW_PARAM_DCF_CW_EXP_MIN, param_values=param_val)
             
         elif (param_name == 'cw_exp_max'):
-            if ((param_val < 1) or (param_val > 16)):
-                raise AttributeError("'cw_exp_max' must be in [1 .. 16].")
+            if ((param_val < 0) or (param_val > 16)):
+                raise AttributeError("'cw_exp_max' must be in [0 .. 16].")
                 
             self._check_cpu_low_type(low_type=defaults.WLAN_EXP_LOW_DCF, command_name="set_dcf_param('cw_exp_max')")
     
