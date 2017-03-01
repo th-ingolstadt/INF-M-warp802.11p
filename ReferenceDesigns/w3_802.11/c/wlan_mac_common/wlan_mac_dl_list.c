@@ -222,11 +222,13 @@ void dl_entry_insertEnd(dl_list* list, dl_entry* new_entry) {
  * @return  int                   - Number of entries moved
  *
  *****************************************************************************/
-int dl_entry_move(dl_list * src_list, dl_list * dest_list, u16 num_entries){
-    u32                 i;
-    u32                 num_moved;
-    dl_entry          * curr_dl_entry;
-    dl_entry          * next_dl_entry;
+int dl_entry_move(dl_list* src_list, dl_list* dest_list, u16 num_entries){
+	int num_moved;
+	u32 idx;
+	dl_entry* src_first;      //Pointer to the first entry of the list that will be moved
+	dl_entry* src_last;       //Pointer to the last entry of the list that will be moved
+	dl_entry* src_remaining;  //Pointer to the first entry that remains in the src list after the move (can be NULL if none remain)
+
 #if WLAN_COMPILE_FOR_CPU_HIGH
     interrupt_state_t   curr_interrupt_state;
 #endif
@@ -235,95 +237,56 @@ int dl_entry_move(dl_list * src_list, dl_list * dest_list, u16 num_entries){
     // in the source list, then just return
     if ((num_entries == 0) || (src_list->length == 0)) { return 0; }
 
-    //
-    // NOTE:  At this point, the caller is trying to move at least 1
-    //     entry and the source list has at least one entry to move.
-    //
-
 #if WLAN_COMPILE_FOR_CPU_HIGH
     // Stop the interrupts since we are modifying list state
     curr_interrupt_state = wlan_mac_high_interrupt_stop();
 #endif
 
-    if (num_entries < src_list->length) {
-        // There will be entries left in the source list after moving
-        //
-        // Process:
-        //   - Get the head of the src_list
-        //   - Move thru the src_list for num_entries
-        //   - Update the dest_list to add the moved entries
-        //   - Update the src_list to remove the moved entries
-        //   - Separate the lists by modifying the last entry of the
-        //     dest_list and the new first entry of the src_list
-        //
-        num_moved     = num_entries;
-        curr_dl_entry = src_list->first;
 
-        // Move thru the src_list to find the last item to be moved
-        //     NOTE:  This iteration starts at 1 since we have already "moved"
-        //         one item to the dest_list.
-        for (i = 1; i < num_moved; i++) {
-            next_dl_entry = dl_entry_next(curr_dl_entry);
+    //1. Assign the dl_entry* endpoint markers
+    src_first = src_list->first;
 
-            if (next_dl_entry == NULL) {
-                xil_printf("WARNING:  List not in sync:  Length = %d but only had %d entries.\n", src_list->length, i);
-                num_moved = i;
-                break;
-            }
-
-            curr_dl_entry = next_dl_entry;
-        }
-
-        //
-        // NOTE: At this point, curr_dl_entry should be pointing to the last
-        //     entry to be moved and num_moved should have the number of
-        //     entries being moved.
-        //
-
-        // Update the dest_list to add the moved entries
-        if (dest_list->length == 0) {
-            // Transfer entries to beginning of the list
-            dest_list->first                = src_list->first;
-        } else {
-            // Transfer entries to end of the list
-            dl_entry_next(dest_list->last)  = src_list->first;
-            dl_entry_prev(src_list->first)  = dest_list->last;
-        }
-
-        dest_list->last      = curr_dl_entry;
-        dest_list->length   += num_moved;
-
-        // Update the src_list to remove the moved entries
-        src_list->first      = dl_entry_next(curr_dl_entry);
-        src_list->length    -= num_moved;
-
-        // Modify the entries to break the two lists
-        dl_entry_next(dest_list->last)      = NULL;
-        dl_entry_prev(src_list->first)      = NULL;
-
+    if( num_entries >= src_list->length) {
+    	num_moved = src_list->length;
+    	src_last = src_list->last;
+    	src_remaining = NULL;
     } else {
-        // The src_list will be empty after move
-        num_moved     = src_list->length;
-        curr_dl_entry = src_list->last;
-
-        // Update the dest_list to add the moved entries
-        if (dest_list->length == 0) {
-            // Transfer entries to beginning of the list
-            dest_list->first                = src_list->first;
-        } else {
-            // Transfer entries to end of the list
-            dl_entry_next(dest_list->last)  = src_list->first;
-            dl_entry_prev(src_list->first)  = dest_list->last;
-        }
-
-        dest_list->last      = curr_dl_entry;
-        dest_list->length   += num_moved;
-
-        // Update the src_list to be empty
-        src_list->first      = NULL;
-        src_list->last       = NULL;
-        src_list->length     = 0;
+    	num_moved = num_entries;
+    	//Because we are moving a subset of the src_list,
+    	//we need to traverse it and find the last entry
+    	//we will move
+    	src_last = src_list->first;
+    	for(idx = 0; idx < (num_entries - 1); idx++){
+    		src_last = dl_entry_next(src_last);
+    	}
+    	src_remaining = dl_entry_next(src_last);
     }
+
+    //2. Stitch together the endpoints on the two lists
+    if(dest_list->length > 0){
+    	// There are currently entries in the destination list, so we will have to touch
+    	// the last entry to connect it to src_first
+    	dl_entry_next(dest_list->last) = src_first;
+    	dl_entry_prev(src_first) = dest_list->last;
+    } else {
+    	dest_list->first = src_first;
+    	dl_entry_prev(src_first) = NULL;
+    }
+
+    dl_entry_next(src_last) = NULL;
+    dest_list->last = src_last;
+    dest_list->length += num_moved;
+
+    //3. Clean up the source list
+    if (src_remaining != NULL){
+    	// There are remaining entries in the source list that we need to clean up
+    	src_list->first = src_remaining;
+    	dl_entry_prev(src_remaining) = NULL;
+    } else {
+    	src_list->first = NULL;
+    }
+    src_list->length -= num_moved;
+
 #if WLAN_COMPILE_FOR_CPU_HIGH
     // Restore interrupts
     wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
