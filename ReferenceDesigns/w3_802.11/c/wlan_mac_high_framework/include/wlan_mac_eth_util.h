@@ -170,7 +170,6 @@ int           wlan_eth_init();
 int           wlan_eth_setup_interrupt(XIntc* intc);
 
 void          wlan_mac_util_set_eth_rx_callback(void(*callback)());
-void 		  wlan_mac_util_set_eth_rx_early_rejection_callback(void(*callback)());
 void          wlan_mac_util_set_eth_encap_mode(u8 mode);
 
 int    		  eth_get_num_rx_bd();
