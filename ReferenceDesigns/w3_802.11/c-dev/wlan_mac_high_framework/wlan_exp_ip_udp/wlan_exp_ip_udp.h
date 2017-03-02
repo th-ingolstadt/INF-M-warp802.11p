@@ -373,7 +373,7 @@
 //
 
 // Convert Ethernet device number to WARP convention (ie ETH A or ETH B)
-#define wlan_exp_conv_eth_dev_num(x)                           (char)(((int)'A') + x)
+#define wlan_exp_conv_eth_dev_num(x)                           (char)(((int)'A') + (x))
 
 
 
