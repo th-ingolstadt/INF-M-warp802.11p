@@ -132,7 +132,6 @@ typedef struct {
 int           wlan_eth_util_init();
 
 void          wlan_mac_util_set_eth_rx_callback(void(*callback)());
-void 		  wlan_mac_util_set_eth_rx_early_rejection_callback(void(*callback)());
 void          wlan_mac_util_set_eth_encap_mode(application_role_t mode);
 
 int           wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset);
