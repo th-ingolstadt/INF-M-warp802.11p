@@ -172,28 +172,39 @@ typedef struct __attribute__((__packed__)){
 CASSERT(sizeof(bss_config_t) == 56, bss_config_t_alignment_check);
 
 
-
+//Define a new type of dl_entry for pointing to bss_info_t
+// structs that contains some extra fields for faster searching
+// without needing to jump to DRAM.
+typedef struct bss_info_entry_t bss_info_entry_t;
+struct bss_info_entry_t{
+	bss_info_entry_t* next;
+	bss_info_entry_t* prev;
+	bss_info_t*       data;
+	u8				  bssid[6];
+	u16			      padding;
+};
+CASSERT(sizeof(bss_info_entry_t) == 20, bss_info_entry_t_alignment_check);
 
 /*************************** Function Prototypes *****************************/
 
-void             bss_info_init();
-void             bss_info_init_finish();
+void bss_info_init();
+void bss_info_init_finish();
 
-dl_entry       * bss_info_checkout();
-void             bss_info_checkin(dl_entry* bsi);
+bss_info_entry_t* bss_info_checkout();
+void bss_info_checkin(bss_info_entry_t* bsi);
 
-void      bss_info_rx_process(void* pkt_buf_addr);
+void bss_info_rx_process(void* pkt_buf_addr);
 
-void             print_bss_info();
-void             bss_info_timestamp_check();
+void print_bss_info();
+void bss_info_timestamp_check();
 
-dl_list        * wlan_mac_high_find_bss_info_SSID(char* ssid);
-dl_entry       * wlan_mac_high_find_bss_info_BSSID(u8* bssid);
+dl_list* wlan_mac_high_find_bss_info_SSID(char* ssid);
+bss_info_entry_t* wlan_mac_high_find_bss_info_BSSID(u8* bssid);
 
-bss_info_t     * wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan);
-void             wlan_mac_high_reset_network_list();
-void             wlan_mac_high_clear_bss_info(bss_info_t * info);
+bss_info_t* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan);
+void wlan_mac_high_reset_network_list();
+void wlan_mac_high_clear_bss_info(bss_info_t * info);
 
-dl_list * wlan_mac_high_get_bss_info_list();
+dl_list* wlan_mac_high_get_bss_info_list();
 
 #endif
