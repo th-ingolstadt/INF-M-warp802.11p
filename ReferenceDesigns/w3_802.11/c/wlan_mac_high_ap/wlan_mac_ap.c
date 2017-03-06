@@ -2305,6 +2305,8 @@ u32	configure_bss(bss_config_t* bss_config){
 				wlan_mac_high_setup_tx_header(&tx_header_common, (u8 *)bcast_addr, active_bss_info->bssid);
 				while (wlan_mac_high_configure_beacon_tx_template( &tx_header_common, active_bss_info, &default_multicast_mgmt_tx_params,
 																	TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP | TX_FRAME_INFO_FLAGS_WAIT_FOR_LOCK ) != 0) {}
+
+				mgmt_tag_tim_template = NULL;
 				//Add the TIM tag
 				update_tim_tag_all(SCHEDULE_ID_RESERVED_MAX);
 			}
