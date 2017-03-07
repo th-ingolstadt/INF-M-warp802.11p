@@ -424,6 +424,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             dl_entry*			  station_info_entry  = NULL;
             station_info_t* 	  curr_station_info   = NULL;
             u32                   station_flags       = 0;
+            u32					  error_reason        = 0;
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "AP: Associate\n");
 
@@ -451,40 +452,41 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 //       flags of the command.
                 curr_station_info = station_info_add(&active_bss_info->members, &mac_addr[0], ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, 0);
 
-                // Update the new station_info flags field
-                //  Only override the defaults set by the framework add_station_info if the wlan_exp command explicitly included a flag
-                station_flags = curr_station_info->flags;
-
-                // Raise the KEEP flag to prevent the MAC High Framework from removing the struct
-                station_flags |= STATION_INFO_FLAG_KEEP;
-
-                if (mask & CMD_PARAM_AP_ASSOCIATE_FLAG_DISABLE_INACTIVITY_TIMEOUT) {
-                    if (flags & CMD_PARAM_AP_ASSOCIATE_FLAG_DISABLE_INACTIVITY_TIMEOUT) {
-                        station_flags |= STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
-                    } else {
-                        station_flags &= ~STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
-                    }
-                }
-
-                if (mask & CMD_PARAM_AP_ASSOCIATE_FLAG_HT_CAPABLE_STA) {
-                    if (flags & CMD_PARAM_AP_ASSOCIATE_FLAG_HT_CAPABLE_STA) {
-                        station_flags |= STATION_INFO_FLAG_HT_CAPABLE;
-                    } else {
-                        station_flags &= ~STATION_INFO_FLAG_HT_CAPABLE;
-                    }
-                }
-
-                // Update the station_info flags
-                curr_station_info->flags = station_flags;
-
-                // Update the rate based on the flags that were set
-                station_info_update_rate(curr_station_info, default_unicast_data_tx_params.phy.mcs, default_unicast_data_tx_params.phy.phy_mode);
-
-                // Re-enable interrupts
-                wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
-
                 // Set return parameters and print info to console
                 if (curr_station_info != NULL) {
+
+					// Update the new station_info flags field
+					//  Only override the defaults set by the framework add_station_info if the wlan_exp command explicitly included a flag
+					station_flags = curr_station_info->flags;
+
+					// Raise the KEEP flag to prevent the MAC High Framework from removing the struct
+					station_flags |= STATION_INFO_FLAG_KEEP;
+
+					if (mask & CMD_PARAM_AP_ASSOCIATE_FLAG_DISABLE_INACTIVITY_TIMEOUT) {
+						if (flags & CMD_PARAM_AP_ASSOCIATE_FLAG_DISABLE_INACTIVITY_TIMEOUT) {
+							station_flags |= STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
+						} else {
+							station_flags &= ~STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
+						}
+					}
+
+					if (mask & CMD_PARAM_AP_ASSOCIATE_FLAG_HT_CAPABLE_STA) {
+						if (flags & CMD_PARAM_AP_ASSOCIATE_FLAG_HT_CAPABLE_STA) {
+							station_flags |= STATION_INFO_FLAG_HT_CAPABLE;
+						} else {
+							station_flags &= ~STATION_INFO_FLAG_HT_CAPABLE;
+						}
+					}
+
+					// Update the station_info flags
+					curr_station_info->flags = station_flags;
+
+					// Update the rate based on the flags that were set
+					station_info_update_rate(curr_station_info, default_unicast_data_tx_params.phy.mcs, default_unicast_data_tx_params.phy.phy_mode);
+
+					// Re-enable interrupts
+					wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
+
 
                     //
                     // TODO:  (Optional) Log association state change
@@ -495,12 +497,19 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Associated with node: ");
                 } else {
+
+                	// Re-enable interrupts
+					wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
+
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Could not associate with node: ");
                     status = CMD_PARAM_ERROR;
+                    error_reason |= NODE_ASSOCIATE_ERROR_MEMORY;
+
                 }
             } else {
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Could not associate with node: ");
                 status = CMD_PARAM_ERROR;
+                error_reason |= NODE_ASSOCIATE_ERROR_TOO_MANY_ASSOC;
             }
 
             wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, &mac_addr[0]); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
@@ -511,7 +520,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             if (curr_station_info != NULL) {
                 resp_args_32[resp_index++] = Xil_Htonl(curr_station_info->ID);
             } else {
-                resp_args_32[resp_index++] = Xil_Htonl(0);
+                resp_args_32[resp_index++] = Xil_Htonl(error_reason);
             }
 
             resp_hdr->length  += (resp_index * sizeof(u32));

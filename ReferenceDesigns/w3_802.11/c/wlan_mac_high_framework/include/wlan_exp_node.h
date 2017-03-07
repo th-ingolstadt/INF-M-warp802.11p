@@ -185,6 +185,8 @@
 
 #define CMDID_NODE_DISASSOCIATE                            0x007010
 #define CMDID_NODE_ASSOCIATE                               0x007011
+	#define NODE_ASSOCIATE_ERROR_MEMORY			  	 	   0x000001
+	#define NODE_ASSOCIATE_ERROR_TOO_MANY_ASSOC			   0x000002
 
 
 //-----------------------------------------------
