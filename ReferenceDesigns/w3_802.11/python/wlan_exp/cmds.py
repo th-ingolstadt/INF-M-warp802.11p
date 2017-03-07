@@ -203,6 +203,8 @@ CMDID_GET_STATION_INFO_LIST                      = 0x007003
 
 CMDID_NODE_DISASSOCIATE                          = 0x007010
 CMDID_NODE_ADD_ASSOCIATION                       = 0x007011
+NODE_ASSOCIATE_ERROR_MEMORY                      = 0x00000001
+NODE_ASSOCIATE_ERROR_TOO_MANY_ASSOC              = 0x00000002
 
 CMD_PARAM_ADD_ASSOCIATION_DISABLE_INACTIVITY_TIMEOUT = 0x00000001
 CMD_PARAM_ADD_ASSOCIATION_HT_CAPABLE_STA         = 0x00000004
@@ -1759,16 +1761,17 @@ class NodeAPAddAssociation(message.Cmd):
 
 
     def process_resp(self, resp):
-        error_code    = CMD_PARAM_ERROR
-        error_msg     = "Could not add AP association to {0}.".format(self.description)
-        status_errors = { error_code : error_msg }
-
-        if (resp.resp_is_valid(num_args=2, status_errors=status_errors,
-                               name='from AP associate command')):
-            args = resp.get_args()
-            return args[1]
-        else:
+        args = resp.get_args()                        
+        
+        if(args[0] == CMD_PARAM_ERROR):
+            print("Error: AP rejected association of {0}.".format(self.description))
+            if(args[1] & NODE_ASSOCIATE_ERROR_MEMORY):
+                print("Reason: An unknown memory error occured. Likely insufficient heap space for malloc of station_info_entry_t.")
+            elif (args[1] & NODE_ASSOCIATE_ERROR_TOO_MANY_ASSOC):
+                print("Reason: Maximum number of associations are already members of the network.")
             return CMD_PARAM_ERROR
+        else:                
+            return args[1]                
 
 # End Class
 
