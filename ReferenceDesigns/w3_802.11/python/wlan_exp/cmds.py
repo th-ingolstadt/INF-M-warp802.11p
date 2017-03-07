@@ -1768,7 +1768,7 @@ class NodeAPAddAssociation(message.Cmd):
             if(args[1] & NODE_ASSOCIATE_ERROR_MEMORY):
                 print("Reason: An unknown memory error occured. Likely insufficient heap space for malloc of station_info_entry_t.")
             elif (args[1] & NODE_ASSOCIATE_ERROR_TOO_MANY_ASSOC):
-                print("Reason: Maximum number of associations are already members of the network.")
+                print("Reason: Maximum number of STAs are already members of the network.")
             return CMD_PARAM_ERROR
         else:                
             return args[1]                
