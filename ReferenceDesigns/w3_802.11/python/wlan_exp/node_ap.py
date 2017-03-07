@@ -421,7 +421,7 @@ class WlanExpNodeAp(node.WlanExpNode):
 
         import wlan_exp.node_ibss as node_ibss
 
-        if isinstance(device, node_ibss.WlanExpNodeIBSS):
+        if isinstance(device, node_ibss.WlanExpNodeIBSS) or isinstance(device, node_ibss.WlanExpNodeAP):
             print("WARNING:  Could not add association for IBSS node '{0}'".format(device.description))
             return ret_val
 
