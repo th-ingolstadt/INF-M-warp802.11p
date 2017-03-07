@@ -421,15 +421,20 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             u8                    mac_addr[MAC_ADDR_LEN];
             interrupt_state_t     prev_interrupt_state;
             u32                   status              = CMD_PARAM_SUCCESS;
-            station_info_t      * curr_station_info   = NULL;
+            dl_entry*			  station_info_entry  = NULL;
+            station_info_t* 	  curr_station_info   = NULL;
             u32                   station_flags       = 0;
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "AP: Associate\n");
 
-            if ((active_bss_info != NULL) &&(active_bss_info->members.length < MAX_NUM_ASSOC)) {
+            // Get MAC Address
+			wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[2], &mac_addr[0]);
 
-                // Get MAC Address
-                wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[2], &mac_addr[0]);
+            if(active_bss_info != NULL){
+            	station_info_entry = station_info_find_by_addr(mac_addr, &(active_bss_info->members));
+            }
+
+            if ((active_bss_info != NULL) && ((station_info_entry != NULL) || (active_bss_info->members.length < MAX_NUM_ASSOC)) ) {
 
                 // Get flags
                 flags = Xil_Ntohl(cmd_args_32[0]);
