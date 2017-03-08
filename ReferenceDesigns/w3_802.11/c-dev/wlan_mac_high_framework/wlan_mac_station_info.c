@@ -571,8 +571,11 @@ station_info_t* station_info_create(u8* addr){
 		// Clear any old information
 		station_info_clear(curr_station_info);
 
-		// Copy the addr to the entry
+		// Copy the addr to the station_info_t
 		memcpy(curr_station_info->addr, addr, MAC_ADDR_LEN);
+
+		// Copy the addr to the station_info_entry_t
+		memcpy(curr_station_info_entry->addr, addr, MAC_ADDR_LEN);
 	}
 
 	// Update the timestamp
