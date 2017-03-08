@@ -99,6 +99,7 @@ inline station_info_t* station_info_tx_process(void* pkt_buf_addr) {
 	station_txrx_counts_t*	curr_txrx_counts;
 	txrx_counts_sub_t*		txrx_counts_sub;
 	u8						pkt_type;
+	u64						curr_system_time = get_system_time_usec();
 
 
 	pkt_type = (tx_80211_header->frame_control_1 & MAC_FRAME_CTRL1_MASK_TYPE);
@@ -149,7 +150,7 @@ inline station_info_t* station_info_tx_process(void* pkt_buf_addr) {
 	// that we should update with this reception.
 
 	// Update the latest TXRX time
-	curr_station_info->latest_txrx_timestamp = get_system_time_usec();
+	curr_station_info->latest_txrx_timestamp = curr_system_time;
 
 	// If this transmission was a successful transmission, we implicitly know than an
 	// ACK was received. So, we can update the latest Rx-only timestamp as well.
@@ -158,7 +159,7 @@ inline station_info_t* station_info_tx_process(void* pkt_buf_addr) {
 	// FIXME: This structure doesn't work with NOMAC, where there is
 	//   no ACK Rx on a successful unicast Data Tx.
 	if(((tx_frame_info->tx_result) == TX_FRAME_INFO_RESULT_SUCCESS)){
-		curr_station_info->latest_rx_timestamp = get_system_time_usec();
+		curr_station_info->latest_rx_timestamp = curr_system_time;
 	}
 
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
@@ -201,6 +202,7 @@ inline station_info_t* station_info_rx_process(void* pkt_buf_addr) {
 	station_info_entry_t*	curr_station_info_entry;
 	station_info_t*			curr_station_info		 = NULL;
 	u8						pkt_type;
+	u64						curr_system_time 		 = get_system_time_usec();
 
 	pkt_type = (rx_80211_header->frame_control_1 & MAC_FRAME_CTRL1_MASK_TYPE);
 
@@ -255,10 +257,10 @@ inline station_info_t* station_info_rx_process(void* pkt_buf_addr) {
 		// that we should update with this reception.
 
 		// Update the latest TXRX time
-		curr_station_info->latest_txrx_timestamp = get_system_time_usec();
+		curr_station_info->latest_txrx_timestamp = curr_system_time;
 
 		// Update the latest RX time
-		curr_station_info->latest_rx_timestamp = get_system_time_usec();
+		curr_station_info->latest_rx_timestamp = curr_system_time;
 
 		// Add Station Info into station_info_list
 		dl_entry_insertEnd(&station_info_list, (dl_entry*)curr_station_info_entry);
@@ -586,7 +588,7 @@ station_info_t* station_info_create(u8* addr){
 	// if care is taken to either:
 	//	(1) Update the timestamp after this function is called and before
 	//		an interrupt context is left.
-	//  (2) Set the STATION_INFO_FLAGS_KEEP bit to 1 after this fucntion
+	//  (2) Set the STATION_INFO_FLAGS_KEEP bit to 1 after this function
 	//		is called and before an interrupt context is left.
 	// This update is just for extra safety and makes it more difficult
 	// to accidentally have the framework delete this struct.
@@ -749,8 +751,6 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 			wlan_mac_high_free(entry);
 			return NULL;
 		}
-
-
 
 		bzero(&(station_info->rate_info),sizeof(rate_selection_info_t));
 		station_info->rate_info.rate_selection_scheme = RATE_SELECTION_SCHEME_STATIC;
