@@ -36,7 +36,7 @@
 #define  WLAN_EXP_ETH                            TRANSPORT_ETH_B
 #define  WLAN_EXP_NODE_TYPE                      WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_AP
 
-#define  WLAN_DEFAULT_CHANNEL                    1
+#define  WLAN_DEFAULT_CHANNEL                    4
 #define  WLAN_DEFAULT_TX_PWR                     15
 #define  WLAN_DEFAULT_TX_ANTENNA                 TX_ANTMODE_SISO_ANTA
 #define  WLAN_DEFAULT_RX_ANTENNA                 RX_ANTMODE_SISO_ANTA
@@ -1641,6 +1641,11 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 				//---------------------------------------------------------------------
 				case (MAC_FRAME_CTRL1_SUBTYPE_ASSOC_REQ):
 				case (MAC_FRAME_CTRL1_SUBTYPE_REASSOC_REQ):
+				{
+					u32 reject_association = 1;
+
+					if(station_info != NULL){
+
 					// Association Request / Re-association Request
 
 					// Parse the tagged parameters
@@ -1680,9 +1685,11 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 						// Check if we have authenticated this TA yet have not associated it.
 						// Note: We cannot use the sta_is_authenticated boolean for this, as this also
 						//  includes fully associated stations.
-						if(station_info_is_member(&authenticated_unassociated_stations, station_info)){
 
-							xil_printf("Authenticated, Unassociated Stations:\n");
+							if( sta_is_associated || (active_bss_info->members.length < MAX_NUM_ASSOC) ) reject_association = 0;
+
+							if((reject_association == 0) && station_info_is_member(&authenticated_unassociated_stations, station_info)){
+
 							station_info_remove(&authenticated_unassociated_stations, rx_80211_header->address_2);
 
 							// NOTE: The STATION_INFO_FLAG_KEEP bit will still be raised despite having removed the
@@ -1699,7 +1706,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 							wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_bss_info->members.length);
 						}
 
-						if(station_info != NULL) {
+							if( reject_association == 0 ) {
 
 							// Zero the HT_CAPABLE flag
 							if(sta_is_ht_capable){
@@ -1782,6 +1789,8 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 							goto mpdu_rx_process_end;
 						}
 					}
+					}
+				}
 				break;
 
 
@@ -1799,10 +1808,8 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 						// Note: Since we are no longer keeping this station_info, we should ensure it is present
 						//  in neither the fully associated list or the authenticated-only list
 
-						xil_printf("Authenticated, Associated Stations:\n");
 						station_info_remove(&active_bss_info->members, rx_80211_header->address_2);
 
-						xil_printf("Authenticated, Unassociated Stations:\n");
 						station_info_remove(&authenticated_unassociated_stations, rx_80211_header->address_2);
 
 						wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_bss_info->members.length);
@@ -1944,7 +1951,6 @@ u32  deauthenticate_station( station_info_t* station_info ) {
 	//
 
 	// Remove this STA from association list
-	xil_printf("Authenticated, Associated Stations:\n");
 
 	// Remove the "keep" flag for this station_info so the framework can cleanup later.
 	station_info->flags &= ~STATION_INFO_FLAG_KEEP;
@@ -2268,6 +2274,8 @@ u32	configure_bss(bss_config_t* bss_config){
 				wlan_mac_high_setup_tx_header(&tx_header_common, (u8 *)bcast_addr, active_bss_info->bssid);
 				while (wlan_mac_high_configure_beacon_tx_template( &tx_header_common, active_bss_info, &default_multicast_mgmt_tx_params,
 																	TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP | TX_FRAME_INFO_FLAGS_WAIT_FOR_LOCK ) != 0) {}
+
+				mgmt_tag_tim_template = NULL;
 				//Add the TIM tag
 				update_tim_tag_all(SCHEDULE_ID_RESERVED_MAX);
 			}

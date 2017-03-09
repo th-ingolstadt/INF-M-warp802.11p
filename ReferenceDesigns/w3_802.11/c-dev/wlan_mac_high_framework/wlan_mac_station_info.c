@@ -899,8 +899,6 @@ int station_info_remove(dl_list* app_station_info_list, u8* addr){
 
 		wlan_mac_high_free(entry);
 
-		station_info_print(app_station_info_list, 0);
-
 		return 0;
 	}
 }
