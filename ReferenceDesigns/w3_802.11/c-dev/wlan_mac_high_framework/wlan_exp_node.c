@@ -32,7 +32,7 @@
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_scan.h"
-#include "wlan_mac_bss_info.h"
+#include "wlan_mac_network_info.h"
 #include "wlan_mac_station_info.h"
 #include "wlan_mac_eth_util.h"
 
@@ -137,7 +137,7 @@ function_ptr_t    wlan_exp_tx_cmd_add_association_callback;
 function_ptr_t    wlan_exp_process_user_cmd_callback;
 function_ptr_t    wlan_exp_beacon_ts_update_mode_callback;
 function_ptr_t    wlan_exp_process_config_bss_callback;
-function_ptr_t    wlan_exp_active_bss_info_getter_callback;
+function_ptr_t    wlan_exp_active_network_info_getter_callback;
 
 // Allocate Ethernet Header buffer
 //     NOTE:  The buffer memory must be placed in DMA accessible DDR such that it can be fetched by the AXI DMA
@@ -2502,12 +2502,12 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //
             u32    		status         = CMD_PARAM_SUCCESS;
             u32    		enable         = Xil_Ntohl(cmd_args_32[0]);
-            bss_info_t* 	active_bss_info = ((bss_info_t*)wlan_exp_active_bss_info_getter_callback());
+            network_info_t* 	active_network_info = ((network_info_t*)wlan_exp_active_network_info_getter_callback());
 
             switch (enable) {
                 case CMD_PARAM_NODE_SCAN_ENABLE:
                     // Enable scan
-                    if (active_bss_info == NULL) {
+                    if (active_network_info == NULL) {
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Scan enabled.\n");
                         wlan_mac_scan_start();
                     } else {
@@ -2593,7 +2593,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             resp_sent = process_buffer_cmds(socket_index, from, command, response,
                                             cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_resp_len,
                                             print_type_node, "station info",
-                                            get_bss_member_list(),
+                                            get_network_member_list(),
                                             sizeof(wlan_exp_station_info_t),
                                             &wlan_exp_get_id_in_associated_stations,
                                             &find_station_info,
@@ -2650,13 +2650,13 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - byte[]          - uint8[] - Array of payload bytes
             //
             u8   			process_buffer = 1;
-            bss_info_t* 	active_bss_info = ((bss_info_t*)wlan_exp_active_bss_info_getter_callback());
+            network_info_t* active_network_info = ((network_info_t*)wlan_exp_active_network_info_getter_callback());
 
             // If MAC address is all zeros, then return my_bss_info
             if ((cmd_args_32[4] == CMD_PARAM_RSVD) && (cmd_args_32[5] == CMD_PARAM_RSVD)) {
-                if (active_bss_info != NULL) {
+                if (active_network_info != NULL) {
                     // Replace MAC address of command with my_bss_info BSSID
-                    wlan_exp_put_mac_addr(active_bss_info->bssid, &cmd_args_32[4]);
+                    wlan_exp_put_mac_addr(active_network_info->bss_config.bssid, &cmd_args_32[4]);
                 } else {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Return NULL BSS info\n");
 
@@ -2681,10 +2681,10 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 resp_sent = process_buffer_cmds(socket_index, from, command, response,
                                                 cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_resp_len,
                                                 print_type_node, "bss info",
-                                                wlan_mac_high_get_bss_info_list(),
-                                                sizeof(wlan_exp_bss_info_t),
+                                                wlan_mac_high_get_network_info_list(),
+                                                sizeof(wlan_exp_network_info_t),
                                                 &wlan_exp_get_id_in_bss_info,
-                                                &wlan_mac_high_find_bss_info_BSSID,
+                                                &wlan_mac_high_find_network_info_BSSID,
                                                 &copy_bss_info_to_dest,
                                                 &zero_bss_info);
             }
@@ -3451,7 +3451,7 @@ dl_entry * find_station_info(u8 * mac_addr) {
 	//the difference between a dl_entry and a station_info_entry_t. In the meantime,
 	//we'll just cast the return of the station_info_find_by_addr to be the
 	//the less-capable dl_entry type;
-    dl_list * source_list = get_bss_member_list();
+    dl_list * source_list = get_network_member_list();
 
     if (source_list != NULL) {
         return ((dl_entry*)(station_info_find_by_addr(mac_addr, source_list)));
@@ -3569,33 +3569,33 @@ void copy_counts_txrx_to_dest(void* source, void* dest, u8* mac_addr) {
 
 
 void zero_bss_info(void * dest) {
-    bzero(dest, sizeof(wlan_exp_bss_info_t));
+    bzero(dest, sizeof(wlan_exp_network_info_t));
 }
 
 
 
 void copy_bss_info_to_dest(void * source, void * dest, u8* mac_addr) {
 
-    bss_info_t          * curr_source  = (bss_info_t *)(source);
-    wlan_exp_bss_info_t * curr_dest    = (wlan_exp_bss_info_t *)(dest);
+    network_info_t* curr_source = (network_info_t *)(source);
+    wlan_exp_network_info_t* curr_dest = (wlan_exp_network_info_t *)(dest);
 
     // Fill in zeroed entry if source is NULL
     if (source == NULL) {
-        curr_source = wlan_mac_high_malloc(sizeof(bss_info_t));
+        curr_source = wlan_mac_high_malloc(sizeof(network_info_t));
 
         if (curr_source != NULL) {
-            bzero(curr_source, sizeof(bss_info_t));
+            bzero(curr_source, sizeof(network_info_t));
 
             // Add in MAC address
-            memcpy(curr_source->bssid, mac_addr, MAC_ADDR_LEN);
+            memcpy(curr_source->bss_config.bssid, mac_addr, MAC_ADDR_LEN);
         }
     }
 
     // Copy the source information to the destination log entry
     if (curr_source != NULL) {
-        memcpy((void *)(curr_dest), (void *)(curr_source), sizeof(wlan_exp_bss_info_t));
+        memcpy((void *)(curr_dest), (void *)(curr_source), sizeof(wlan_exp_network_info_t));
     } else {
-        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Could not copy bss_info to entry\n");
+        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Could not copy network_info to entry\n");
     }
 
     // Free curr_source if source was NULL
@@ -3622,7 +3622,7 @@ void wlan_exp_reset_all_callbacks(){
     wlan_exp_process_user_cmd_callback         = (function_ptr_t) null_process_cmd_callback;
     wlan_exp_beacon_ts_update_mode_callback    = (function_ptr_t) wlan_exp_null_callback;
     wlan_exp_process_config_bss_callback       = (function_ptr_t) wlan_exp_null_callback;
-    wlan_exp_active_bss_info_getter_callback   = (function_ptr_t) wlan_exp_null_callback;
+    wlan_exp_active_network_info_getter_callback   = (function_ptr_t) wlan_exp_null_callback;
 }
 
 void wlan_exp_set_process_node_cmd_callback(void(*callback)()){
@@ -3654,8 +3654,8 @@ void wlan_exp_set_process_config_bss_callback(void(*callback)()){
     wlan_exp_process_config_bss_callback = (function_ptr_t) callback;
 }
 
-void wlan_exp_set_active_bss_info_getter_callback(void(*callback)()){
-	wlan_exp_active_bss_info_getter_callback = (function_ptr_t) callback;
+void wlan_exp_set_active_network_info_getter_callback(void(*callback)()){
+	wlan_exp_active_network_info_getter_callback = (function_ptr_t) callback;
 }
 
 
@@ -3787,16 +3787,16 @@ void ltg_cleanup(u32 id, void* callback_arg){
 u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr) {
     u32 id;
     station_info_entry_t* entry;
-    bss_info_t* active_bss_info = ((bss_info_t*)wlan_exp_active_bss_info_getter_callback());
+    network_info_t* active_network_info = ((network_info_t*)wlan_exp_active_network_info_getter_callback());
 
     if (wlan_addr_eq(mac_addr, zero_addr)) {
         id = WLAN_EXP_AID_ALL;
     } else {
-        if(active_bss_info != NULL){
-            if (wlan_addr_eq(mac_addr, active_bss_info->bssid)) {
+        if(active_network_info != NULL){
+            if (wlan_addr_eq(mac_addr, active_network_info->bss_config.bssid)) {
                 id = WLAN_EXP_AID_ME;
             } else {
-                entry = station_info_find_by_addr(mac_addr, &(active_bss_info->members));
+                entry = station_info_find_by_addr(mac_addr, &(active_network_info->members));
 
                 if (entry != NULL) {
                     id = entry->id;
@@ -3816,12 +3816,12 @@ u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr) {
 u32  wlan_exp_get_id_in_counts(u8 * mac_addr) {
     u32 id;
     station_info_entry_t* entry;
-    bss_info_t* active_bss_info = ((bss_info_t*)wlan_exp_active_bss_info_getter_callback());
+    network_info_t* active_network_info = ((network_info_t*)wlan_exp_active_network_info_getter_callback());
 
     if (wlan_addr_eq(mac_addr, zero_addr)) {
         id = WLAN_EXP_AID_ALL;
     } else {
-		entry = station_info_find_by_addr(mac_addr, &(active_bss_info->members));
+		entry = station_info_find_by_addr(mac_addr, &(active_network_info->members));
 
 		if (entry != NULL) {
 			id = WLAN_EXP_AID_DEFAULT;            // Only returns the default AID if found
@@ -3835,13 +3835,13 @@ u32  wlan_exp_get_id_in_counts(u8 * mac_addr) {
 
 
 u32  wlan_exp_get_id_in_bss_info(u8 * bssid) {
-    u32            id;
-    dl_entry*       entry;
+    u32 id;
+    network_info_entry_t* entry;
 
     if (wlan_addr_eq(bssid, zero_addr)) {
         id = WLAN_EXP_AID_ALL;
     } else {
-        entry = wlan_mac_high_find_bss_info_BSSID(bssid);
+        entry = wlan_mac_high_find_network_info_BSSID(bssid);
 
         if (entry != NULL) {
             id = WLAN_EXP_AID_DEFAULT;
@@ -3879,7 +3879,7 @@ int process_tx_power(u32 cmd, u32 aid, int tx_power) {
 
     // For Writes
     if (cmd == CMD_PARAM_WRITE_VAL) {
-        curr_list  = get_bss_member_list();
+        curr_list  = get_network_member_list();
 
         if (curr_list != NULL) {
             if (curr_list->length == 0) { return tx_power; }
@@ -3916,7 +3916,7 @@ int process_tx_power(u32 cmd, u32 aid, int tx_power) {
     // For Reads
     } else {
         if (aid != WLAN_EXP_AID_ALL) {
-            curr_list  = get_bss_member_list();
+            curr_list  = get_network_member_list();
 
             if (curr_list != NULL) {
                 iter       = curr_list->length;
@@ -3968,7 +3968,7 @@ u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 
 
     // For Writes
     if (cmd == CMD_PARAM_WRITE_VAL) {
-        curr_list  = get_bss_member_list();
+        curr_list  = get_network_member_list();
 
         if (curr_list != NULL) {
             if (curr_list->length == 0) { return CMD_PARAM_SUCCESS; }
@@ -4017,7 +4017,7 @@ u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 
     // For Reads
     } else {
         if (aid != WLAN_EXP_AID_ALL) {
-            curr_list  = get_bss_member_list();
+            curr_list  = get_network_member_list();
 
             if (curr_list != NULL) {
                 iter       = curr_list->length;
@@ -4068,7 +4068,7 @@ u32 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
 
     // For Writes
     if (cmd == CMD_PARAM_WRITE_VAL) {
-        curr_list  = get_bss_member_list();
+        curr_list  = get_network_member_list();
 
         if (curr_list != NULL) {
             if (curr_list->length == 0) { return ant_mode; }
@@ -4105,7 +4105,7 @@ u32 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
     // For Reads
     } else {
         if (aid != WLAN_EXP_AID_ALL) {
-            curr_list  = get_bss_member_list();
+            curr_list  = get_network_member_list();
 
             if (curr_list != NULL) {
                 iter       = curr_list->length;

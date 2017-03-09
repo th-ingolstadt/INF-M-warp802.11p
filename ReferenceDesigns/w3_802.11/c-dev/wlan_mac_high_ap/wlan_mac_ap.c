@@ -71,8 +71,8 @@ tx_params_t default_unicast_data_tx_params;
 tx_params_t default_multicast_mgmt_tx_params;
 tx_params_t default_multicast_data_tx_params;
 
-// "active_bss_info" is a pointer to the bss_info that describes this AP.
-// Inside this structure is a dl_list of station_info. This is a list
+// "active_network_info" is a pointer to the network_info that describes this AP.
+// Inside this structure is a dl_list of members. This is a list
 // of all stations that are currently associated with this AP. In the
 // 802.11-2012 Section 10.3 parlance, these stations are currently
 // in State 4 (Authenticated, Associated). As part of the association
@@ -81,7 +81,7 @@ tx_params_t default_multicast_data_tx_params;
 // station_info that represent stations in State 2
 // (Authenticated, Unassociated). Only members of this list will be allowed
 // to elevate to State 4 in the active_bss_info.
-bss_info_t*	              		  active_bss_info;
+network_info_t*	              	  active_network_info;
 
 dl_list		                      authenticated_unassociated_stations;
 
@@ -126,13 +126,13 @@ int main(){
 	Xil_ICacheDisable();
 	microblaze_enable_exceptions();
 
-	bss_config_t      		bss_config;
+	bss_config_update_t     bss_config_update;
 	compilation_details_t	compilation_details;
 	bzero(&compilation_details, sizeof(compilation_details_t));
 
 	xil_printf("\f");
 	xil_printf("----- Mango 802.11 Reference Design -----\n");
-	xil_printf("----- v1.6.2 ----------------------------\n");
+	xil_printf("----- v1.7.0 ----------------------------\n");
 	xil_printf("----- wlan_mac_ap -----------------------\n");
 
 	xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
@@ -244,7 +244,7 @@ int main(){
     wlan_exp_set_process_user_cmd_callback(        (void *) wlan_exp_process_user_cmd);
     //   - wlan_exp_set_beacon_ts_update_mode_callback()  currently not supported by the AP
     wlan_exp_set_process_config_bss_callback(      (void *) configure_bss);
-    wlan_exp_set_active_bss_info_getter_callback(  (void *) active_bss_info_getter);
+    wlan_exp_set_active_network_info_getter_callback(  (void *) active_network_info_getter);
 
     // Set CPU_HIGH Type in wlan_exp's node_info struct;
     wlan_exp_node_set_type_high(WLAN_EXP_NODE_TYPE, &compilation_details);
@@ -279,22 +279,22 @@ int main(){
 
 	// If the DIP switch allows it, set up BSS description
 	if ((wlan_platform_userio_get_state() & USERIO_INPUT_MASK_SW_3) == 0) {
-		memcpy(bss_config.bssid, wlan_mac_addr, MAC_ADDR_LEN);
-		strncpy(bss_config.ssid, default_AP_SSID, SSID_LEN_MAX);
+		memcpy(bss_config_update.bss_config.bssid, wlan_mac_addr, MAC_ADDR_LEN);
+		strncpy(bss_config_update.bss_config.ssid, default_AP_SSID, SSID_LEN_MAX);
 
-		bss_config.chan_spec.chan_pri  		= WLAN_DEFAULT_CHANNEL;
-		bss_config.chan_spec.chan_type 		= CHAN_TYPE_BW20;
-		bss_config.ht_capable          		= WLAN_DEFAULT_USE_HT;
-		bss_config.beacon_interval     		= WLAN_DEFAULT_BEACON_INTERVAL_TU;
-		bss_config.dtim_period		  		= 4;
+		bss_config_update.bss_config.chan_spec.chan_pri  		= WLAN_DEFAULT_CHANNEL;
+		bss_config_update.bss_config.chan_spec.chan_type 		= CHAN_TYPE_BW20;
+		bss_config_update.bss_config.ht_capable          		= WLAN_DEFAULT_USE_HT;
+		bss_config_update.bss_config.beacon_interval     		= WLAN_DEFAULT_BEACON_INTERVAL_TU;
+		bss_config_update.bss_config.dtim_period		  		= 4;
 
-		bss_config.update_mask = (BSS_FIELD_MASK_BSSID  		 |
+		bss_config_update.update_mask = (BSS_FIELD_MASK_BSSID  		 |
 								  BSS_FIELD_MASK_CHAN   		 |
 								  BSS_FIELD_MASK_SSID			 |
 								  BSS_FIELD_MASK_BEACON_INTERVAL |
 								  BSS_FIELD_MASK_HT_CAPABLE		 |
 								  BSS_FIELD_MASK_DTIM_MCAST_BUFFER);
-		configure_bss(&bss_config);
+		configure_bss(&bss_config_update);
 	}
 
 	gl_dtim_mcast_buffer_enable	= 1;
@@ -365,9 +365,9 @@ void process_scan_state_change(scan_state_t scan_state){
 		case SCAN_IDLE:
 		case SCAN_PAUSED:
 			pause_data_queue = 0;
-			if(active_bss_info != NULL){
+			if(active_network_info != NULL){
 				wlan_mac_high_set_radio_channel(
-						wlan_mac_high_bss_channel_spec_to_radio_chan(active_bss_info->chan_spec));
+						wlan_mac_high_bss_channel_spec_to_radio_chan(active_network_info->bss_config.chan_spec));
 			}
 		break;
 		case SCAN_RUNNING:
@@ -433,7 +433,7 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 	u8 					bit_val 					= (bit_val_in & 1);
 	tx_frame_info_t*  	tx_frame_info 				= (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_BEACON);
 
-	if(active_bss_info == NULL) return;
+	if(active_network_info == NULL) return;
 	if( ((aid==0) && (gl_dtim_mcast_buffer_enable == 1)) ) return;
 
 	//First, we should determine whether a call to update_tim_tag_all_tag_all is scheduled
@@ -474,7 +474,7 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 		//use the scheduler to call update_tim_tag_all() sometime later when it is likely that the
 		//packet buffer is no longer locked.
 		mgmt_tag_tim_update_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE,
-																		   (active_bss_info->beacon_interval * BSS_MICROSECONDS_IN_A_TU) / 4,
+																		   (active_network_info->bss_config.beacon_interval * BSS_MICROSECONDS_IN_A_TU) / 4,
 																		   1,
 																		   (void*)update_tim_tag_all);
 		return;
@@ -532,7 +532,7 @@ void update_tim_tag_all(u32 sched_id){
 	u16 				tim_next_byte_idx      		= 0;
 	u8					tim_bit_idx            		= 0;
 
-	if(active_bss_info == NULL) return;
+	if(active_network_info == NULL) return;
 	if(sched_id == SCHEDULE_ID_RESERVED_MAX){
 		//This function was called manually (not via the scheduler)
 
@@ -557,7 +557,7 @@ void update_tim_tag_all(u32 sched_id){
 		//use the scheduler to call update_tim_tag_all() sometime later when it is likely that the
 		//packet buffer is no longer locked.
 		mgmt_tag_tim_update_schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE,
-																		   (active_bss_info->beacon_interval * BSS_MICROSECONDS_IN_A_TU) / 4,
+																		   (active_network_info->bss_config.beacon_interval * BSS_MICROSECONDS_IN_A_TU) / 4,
 																		   1,
 																		   (void*)update_tim_tag_all);
 		return;
@@ -575,7 +575,7 @@ void update_tim_tag_all(u32 sched_id){
 	//Since we know that the WLAN MAC High Framework keeps the dl_list of
 	//associated stations in increasing AID order, we can use this final
 	//station's AID to define the size of the TIM tag.
-	curr_station_entry = (station_info_entry_t*)(active_bss_info->members.last);
+	curr_station_entry = (station_info_entry_t*)(active_network_info->members.last);
 
 	if(curr_station_entry != NULL){
 		station_info = (station_info_t*)(curr_station_entry->data);
@@ -607,7 +607,7 @@ void update_tim_tag_all(u32 sched_id){
 		tim_control |= 0x01; //Raise the multicast bit in the TIM control field
 	}
 
-	curr_station_entry = (station_info_entry_t*)(active_bss_info->members.first);
+	curr_station_entry = (station_info_entry_t*)(active_network_info->members.first);
 	while(curr_station_entry != NULL){
 		station_info = (station_info_t*)(curr_station_entry->data);
 
@@ -682,7 +682,7 @@ void poll_tx_queues(pkt_buf_group_t pkt_buf_group){
 	interrupt_state_t curr_interrupt_state;
 	u32 i,k;
 
-	if( active_bss_info == NULL ) return;
+	if( active_network_info == NULL ) return;
 
 	if(((gl_dtim_mcast_buffer_enable == 0) || (gl_cpu_low_supports_dtim_mcast == 0)) && (pkt_buf_group == PKT_BUF_GROUP_DTIM_MCAST)){
 		//We are asked to poll the DTIM MCAST group, but DTIM multicast buffering is disabled.
@@ -744,12 +744,12 @@ typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 						if(pause_data_queue == 0){
 							curr_station_info_entry = next_station_info_entry;
 
-							for(i = 0; i < (active_bss_info->members.length + 1); i++) {
+							for(i = 0; i < (active_network_info->members.length + 1); i++) {
 
 								// Loop through all associated stations' queues and the broadcast queue
 								if(curr_station_info_entry == NULL){
 									// Check the broadcast queue
-									next_station_info_entry = (station_info_entry_t*)(active_bss_info->members.first);
+									next_station_info_entry = (station_info_entry_t*)(active_network_info->members.first);
 									if( (((gl_dtim_mcast_buffer_enable == 0) || (gl_cpu_low_supports_dtim_mcast == 0)) && dequeue_transmit_checkin(MCAST_QID))){
 										// Found a not-empty queue, transmitted a packet
 										goto poll_cleanup;
@@ -758,8 +758,8 @@ typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 									curr_station_info_entry = next_station_info_entry;
 								} else {
 									curr_station_info = (station_info_t*)(curr_station_info_entry->data);
-									if( station_info_is_member(&active_bss_info->members, curr_station_info) ){
-										if(curr_station_info_entry == (station_info_entry_t*)(active_bss_info->members.last)){
+									if( station_info_is_member(&active_network_info->members, curr_station_info) ){
+										if(curr_station_info_entry == (station_info_entry_t*)(active_network_info->members.last)){
 											// We've reached the end of the table, so we wrap around to the beginning
 											next_station_info_entry = NULL;
 										} else {
@@ -778,7 +778,7 @@ typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 										// This curr_station_info is invalid. Perhaps it was removed from
 										// the association table before poll_tx_queues was called. We will
 										// start the round robin checking back at broadcast.
-										next_station_info_entry = (station_info_entry_t*)(active_bss_info->members.first);
+										next_station_info_entry = (station_info_entry_t*)(active_network_info->members.first);
 										goto poll_cleanup;
 										return;
 									} // END if(is_valid_association)
@@ -814,13 +814,13 @@ typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 void purge_all_data_tx_queue(){
 	station_info_entry_t* curr_station_info_entry;
 
-	if(active_bss_info == NULL) return;
+	if(active_network_info == NULL) return;
 
-	int			  iter = active_bss_info->members.length;
+	int			  iter = active_network_info->members.length;
 
 	// Purge all data transmit queues
 	purge_queue(MCAST_QID);                                    		// Broadcast Queue
-	curr_station_info_entry = (station_info_entry_t*)(active_bss_info->members.first);
+	curr_station_info_entry = (station_info_entry_t*)(active_network_info->members.first);
 
 	while( (curr_station_info_entry != NULL) && (iter-- > 0)){
 		purge_queue(STATION_ID_TO_QUEUE_ID(curr_station_info_entry->id));       		// Each unicast queue
@@ -859,7 +859,7 @@ void ltg_event(u32 id, void* callback_arg){
 	tx_queue_buffer_t*  curr_tx_queue_buffer = NULL;
 	u8                  continue_loop;
 
-	if(active_bss_info != NULL){
+	if(active_network_info != NULL){
 		switch(((ltg_pyld_hdr*)callback_arg)->type){
 			case LTG_PYLD_TYPE_FIXED:
 				payload_length = ((ltg_pyld_fixed*)callback_arg)->length;
@@ -869,7 +869,7 @@ void ltg_event(u32 id, void* callback_arg){
 				if(is_multicast){
 					queue_sel = MCAST_QID;
 				} else {
-					station_info_entry = station_info_find_by_addr(addr_da, &active_bss_info->members);
+					station_info_entry = station_info_find_by_addr(addr_da, &active_network_info->members);
 					if(station_info_entry != NULL){
 						station_info = (station_info_t*)(station_info_entry->data);
 						queue_sel = STATION_ID_TO_QUEUE_ID(station_info_entry->id);
@@ -887,7 +887,7 @@ void ltg_event(u32 id, void* callback_arg){
 				if(is_multicast){
 					queue_sel = MCAST_QID;
 				} else {
-					station_info_entry = station_info_find_by_addr(addr_da, &active_bss_info->members);
+					station_info_entry = station_info_find_by_addr(addr_da, &active_network_info->members);
 					if(station_info_entry != NULL){
 						station_info = (station_info_t*)(station_info_entry->data);
 						queue_sel = STATION_ID_TO_QUEUE_ID(station_info_entry->id);
@@ -898,8 +898,8 @@ void ltg_event(u32 id, void* callback_arg){
 			break;
 
 			case LTG_PYLD_TYPE_ALL_ASSOC_FIXED:
-				if(active_bss_info->members.length > 0){
-					station_info_entry = (station_info_entry_t*)(active_bss_info->members.first);
+				if(active_network_info->members.length > 0){
+					station_info_entry = (station_info_entry_t*)(active_network_info->members.first);
 					station_info = (station_info_t*)station_info_entry->data;
 					addr_da = station_info_entry->addr;
 					queue_sel = STATION_ID_TO_QUEUE_ID(station_info_entry->id);
@@ -1015,7 +1015,7 @@ int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src,
 	station_info_entry_t* entry;
 	station_info_t* station_info;
 
-	if(active_bss_info == NULL) return 0;
+	if(active_network_info == NULL) return 0;
 
 	// Determine how to send the packet
 	if( wlan_addr_mcast(eth_dest) ) {
@@ -1057,7 +1057,7 @@ int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src,
 		// Check associations
 		//     Is this packet meant for a station we are associated with?
 
-		entry = station_info_find_by_addr(eth_dest, &active_bss_info->members);
+		entry = station_info_find_by_addr(eth_dest, &active_network_info->members);
 
 		if( entry != NULL ) {
 			station_info = (station_info_t*)(entry->data);
@@ -1130,9 +1130,9 @@ void remove_inactive_station_infos() {
 	dl_entry*           curr_station_info_entry;
 	dl_entry*           next_station_info_entry;
 
-	if(active_bss_info == NULL) return;
+	if(active_network_info == NULL) return;
 
-	next_station_info_entry = active_bss_info->members.first;
+	next_station_info_entry = active_network_info->members.first;
 
 	while(next_station_info_entry != NULL) {
 		curr_station_info_entry = next_station_info_entry;
@@ -1234,7 +1234,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 	}
 
 	// Determine if this STA is currently associated to the active_bss_info
-	sta_is_associated = station_info_is_member(&active_bss_info->members, station_info);
+	sta_is_associated = station_info_is_member(&active_network_info->members, station_info);
 	sta_is_authenticated = (sta_is_associated || station_info_is_member(&authenticated_unassociated_stations, station_info));
 
 	// Determine destination of packet
@@ -1338,8 +1338,8 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 								}
 							} else {
 								// Packet is not a multicast packet.  Check if it is destined for one of our stations
-								if(active_bss_info != NULL){
-									associated_station_entry = station_info_find_by_addr(rx_80211_header->address_3, &active_bss_info->members);
+								if(active_network_info != NULL){
+									associated_station_entry = station_info_find_by_addr(rx_80211_header->address_3, &active_network_info->members);
 								}
 								if(associated_station_entry != NULL){
 									//TODO: Needs fix for QoS case to handle u16 offset of QoS Control
@@ -1459,10 +1459,10 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 								//-----------------------------------------------------
 								case TAG_SSID_PARAMS:
 									// SSID parameter set
-									if((active_bss_info != NULL) && 
+									if((active_network_info != NULL) &&
 									   ((mac_payload_ptr_u8[1]==0) || // Wildcard SSID is zero-length
-									    ((mac_payload_ptr_u8[1] == strnlen(active_bss_info->ssid, SSID_LEN_MAX)) && // Check for equal lengths first
-										(memcmp(mac_payload_ptr_u8+2, (u8*)active_bss_info->ssid, mac_payload_ptr_u8[1])==0)))) {
+									    ((mac_payload_ptr_u8[1] == strnlen(active_network_info->bss_config.ssid, SSID_LEN_MAX)) && // Check for equal lengths first
+										(memcmp(mac_payload_ptr_u8+2, (u8*)active_network_info->bss_config.ssid, mac_payload_ptr_u8[1])==0)))) {
 										// Send response if Probe Request contained wildcard SSID
 										//  or SSID matching the SSID of this AP's BSS
 										send_response = 1;
@@ -1489,7 +1489,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 							mac_payload_ptr_u8 += mac_payload_ptr_u8[1]+2;
 						}
 
-						if((active_bss_info != NULL) && send_response) {
+						if((active_network_info != NULL) && send_response) {
 							// Create a probe response frame
 							curr_tx_queue_element = queue_checkout();
 
@@ -1502,7 +1502,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 								// Fill in the data
 								tx_length = wlan_create_probe_resp_frame((void*)(curr_tx_queue_buffer->frame),
 																		 &tx_header_common,
-																		 active_bss_info);
+																		 active_network_info);
 
 								// Setup the TX frame info
 								wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
@@ -1545,7 +1545,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 
 					// Only send response if the packet was from a requester
 					//
-					if((active_bss_info != NULL) && ((authentication_frame*)mac_payload_ptr_u8)->auth_sequence == AUTH_SEQ_REQ){
+					if((active_network_info != NULL) && ((authentication_frame*)mac_payload_ptr_u8)->auth_sequence == AUTH_SEQ_REQ){
 
 						// Only send response if we are allowing authentication and there is room in the authenticated_unassociated_stations list.
 						//	Note: the station from which this MAC_FRAME_CTRL1_SUBTYPE_AUTH was received may already be in the authenticated_unassociated_stations
@@ -1679,14 +1679,14 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 					//		- SSID string in payload of reception matches this BSS's SSID string
 					//		- BSSID matches this BSS's ID
 					if( unicast_to_me &&
-						(strncmp(ssid, active_bss_info->ssid, ssid_length) == 0) &&
-						(active_bss_info != NULL) && wlan_addr_eq(rx_80211_header->address_3, active_bss_info->bssid)) {
+						(strncmp(ssid, active_network_info->bss_config.ssid, ssid_length) == 0) &&
+						(active_network_info != NULL) && wlan_addr_eq(rx_80211_header->address_3, active_network_info->bss_config.bssid)) {
 
 						// Check if we have authenticated this TA yet have not associated it.
 						// Note: We cannot use the sta_is_authenticated boolean for this, as this also
 						//  includes fully associated stations.
 
-							if( sta_is_associated || (active_bss_info->members.length < MAX_NUM_ASSOC) ) reject_association = 0;
+							if( sta_is_associated || (active_network_info->members.length < MAX_NUM_ASSOC) ) reject_association = 0;
 
 							if((reject_association == 0) && station_info_is_member(&authenticated_unassociated_stations, station_info)){
 
@@ -1701,9 +1701,9 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 							// Add the station info
 							//     - Set ht_capable argument to WLAN_DEFAULT_USE_HT.  This will be updated below with the
 							//       correct value from the tagged parameters in the association request.
-							station_info_add(&active_bss_info->members, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, WLAN_DEFAULT_USE_HT);
+							station_info_add(&active_network_info->members, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, WLAN_DEFAULT_USE_HT);
 
-							wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_bss_info->members.length);
+							wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 						}
 
 							if( reject_association == 0 ) {
@@ -1729,10 +1729,10 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 								curr_tx_queue_buffer = (tx_queue_buffer_t*)(curr_tx_queue_element->data);
 
 								// Setup the TX header
-								wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, active_bss_info->bssid );
+								wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, active_network_info->bss_config.bssid );
 
 								// Fill in the data
-								tx_length = wlan_create_association_response_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, STATUS_SUCCESS, station_info->ID, active_bss_info);
+								tx_length = wlan_create_association_response_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, STATUS_SUCCESS, station_info->ID, active_network_info);
 
 								// Setup the TX frame info
 								wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
@@ -1762,10 +1762,10 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 								curr_tx_queue_buffer = (tx_queue_buffer_t*)(curr_tx_queue_element->data);
 
 								// Setup the TX header
-								wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, active_bss_info->bssid );
+								wlan_mac_high_setup_tx_header( &tx_header_common, rx_80211_header->address_2, active_network_info->bss_config.bssid );
 
 								// Fill in the data
-								tx_length = wlan_create_association_response_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, STATUS_REJECT_TOO_MANY_ASSOCIATIONS, 0, active_bss_info);
+								tx_length = wlan_create_association_response_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, STATUS_REJECT_TOO_MANY_ASSOCIATIONS, 0, active_network_info);
 
 								// Setup the TX frame info
 								wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
@@ -1800,7 +1800,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 					//   - Log the association state change
 					//   - Remove the association and update the display
 					//
-					if(active_bss_info != NULL){
+					if(active_network_info != NULL){
 
 						// Lower the KEEP flag so that the station_info_
 						if(station_info != NULL) station_info->flags &= ~STATION_INFO_FLAG_KEEP;
@@ -1808,11 +1808,11 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 						// Note: Since we are no longer keeping this station_info, we should ensure it is present
 						//  in neither the fully associated list or the authenticated-only list
 
-						station_info_remove(&active_bss_info->members, rx_80211_header->address_2);
+						station_info_remove(&active_network_info->members, rx_80211_header->address_2);
 
 						station_info_remove(&authenticated_unassociated_stations, rx_80211_header->address_2);
 
-						wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_bss_info->members.length);
+						wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 					}
 				break;
 
@@ -1872,10 +1872,10 @@ void mpdu_dequeue(dl_entry* packet){
 		tx_frame_info->queue_info.pkt_buf_group = PKT_BUF_GROUP_GENERAL;
 	}
 
-	if(active_bss_info != NULL){
+	if(active_network_info != NULL){
 		//The below line assumes that each dequeued MPDU will explicitly have a 0-valued ID field for
 		//frames that aren't tied to a particular STA (e.g. management frames).
-		curr_station_entry = station_info_find_by_id(tx_frame_info->ID, &(active_bss_info->members));
+		curr_station_entry = station_info_find_by_id(tx_frame_info->ID, &(active_network_info->members));
 		if(curr_station_entry != NULL){
 			if(queue_num_queued(STATION_ID_TO_QUEUE_ID(curr_station_entry->id)) > 0){
 				//If the is more data (in addition to this packet) queued for this station, we can let it know
@@ -1907,7 +1907,7 @@ u32  deauthenticate_station( station_info_t* station_info ) {
 	u32            tx_length;
 	u32            aid;
 
-	if((active_bss_info == NULL) || (station_info == NULL)){
+	if((active_network_info == NULL) || (station_info == NULL)){
 		return 0;
 	}
 
@@ -1955,9 +1955,9 @@ u32  deauthenticate_station( station_info_t* station_info ) {
 	// Remove the "keep" flag for this station_info so the framework can cleanup later.
 	station_info->flags &= ~STATION_INFO_FLAG_KEEP;
 
-	station_info_remove(&active_bss_info->members, station_info->addr);
+	station_info_remove(&active_network_info->members, station_info->addr);
 
-	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_bss_info->members.length);
+	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 
 	return aid;
 }
@@ -1980,12 +1980,12 @@ void deauthenticate_all_stations(){
 	dl_entry*		curr_station_info_entry;
 	int 			iter;
 
-	if(active_bss_info == NULL) return;
+	if(active_network_info == NULL) return;
 
-	iter = active_bss_info->members.length;
+	iter = active_network_info->members.length;
 	curr_interrupt_state = wlan_mac_high_interrupt_stop();
 
-	next_station_info_entry = active_bss_info->members.first;
+	next_station_info_entry = active_network_info->members.first;
 
 	// Deauthenticate all stations and remove from the association table
 	//
@@ -2021,7 +2021,7 @@ void handle_cpu_low_reboot(u32 type){
 		gl_cpu_low_supports_dtim_mcast = 0;
 	}
 
-	if(active_bss_info){
+	if(active_network_info != NULL){
 		// Re-apply any Beacon Tx configurations
 		wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
 
@@ -2034,13 +2034,13 @@ void handle_cpu_low_reboot(u32 type){
 /**
  *
  *****************************************************************************/
-u32	configure_bss(bss_config_t* bss_config){
+u32	configure_bss(bss_config_update_t* bss_config_update){
 	u32					return_status 				= 0;
 	u8					update_beacon_template 		= 0;
 	u8					send_beacon_config_to_low 	= 0;
 	u8					send_channel_switch_to_low	= 0;
 
-	bss_info_t*			local_bss_info;
+	network_info_t*		local_network_info;
 	interrupt_state_t   curr_interrupt_state;
 	station_info_t* 	curr_station_info;
 	dl_entry* 			next_station_info_entry;
@@ -2054,49 +2054,49 @@ u32	configure_bss(bss_config_t* bss_config){
 	//      configuration with valid parameters before discovering an invalid
 	//      parameter.
 
-	if (bss_config != NULL){
-		if (bss_config->update_mask & BSS_FIELD_MASK_BSSID) {
-			if (wlan_addr_eq(bss_config->bssid, zero_addr) == 0) {
-				if ((active_bss_info != NULL) && wlan_addr_eq(bss_config->bssid, active_bss_info->bssid)) {
+	if (bss_config_update != NULL){
+		if (bss_config_update->update_mask & BSS_FIELD_MASK_BSSID) {
+			if (wlan_addr_eq(bss_config_update->bss_config.bssid, zero_addr) == 0) {
+				if ((active_network_info != NULL) && wlan_addr_eq(bss_config_update->bss_config.bssid, active_network_info->bss_config.bssid)) {
 					// The caller of this function claimed that it was updating the BSSID,
 					// but the new BSSID matches the one already specified in active_bss_info.
 					// Complete the rest of this function as if that bit in the update mask
 					// were not set
-					bss_config->update_mask &= ~BSS_FIELD_MASK_BSSID;
+					bss_config_update->update_mask &= ~BSS_FIELD_MASK_BSSID;
 				} else {
 					// Changing the BSSID, perform necessary argument checks
-					if (wlan_addr_eq(bss_config->bssid, wlan_mac_addr) == 0) {
+					if (wlan_addr_eq(bss_config_update->bss_config.bssid, wlan_mac_addr) == 0) {
 						// In the AP implementation, the BSSID provided must be
 						// the hardware MAC address of the node
 						return_status |= BSS_CONFIG_FAILURE_BSSID_INVALID;
 					}
-					if (((bss_config->update_mask & BSS_FIELD_MASK_SSID) == 0) ||
-						((bss_config->update_mask & BSS_FIELD_MASK_CHAN) == 0) ||
-						((bss_config->update_mask & BSS_FIELD_MASK_BEACON_INTERVAL) == 0)) {
+					if (((bss_config_update->update_mask & BSS_FIELD_MASK_SSID) == 0) ||
+						((bss_config_update->update_mask & BSS_FIELD_MASK_CHAN) == 0) ||
+						((bss_config_update->update_mask & BSS_FIELD_MASK_BEACON_INTERVAL) == 0)) {
 						return_status |= BSS_CONFIG_FAILURE_BSSID_INSUFFICIENT_ARGUMENTS;
 					}
 				}
 			}
 		} else {
-			if (active_bss_info == NULL) {
+			if (active_network_info == NULL) {
 				// Cannot update BSS without specifying BSSID
 				return_status |= BSS_CONFIG_FAILURE_BSSID_INSUFFICIENT_ARGUMENTS;
 			}
 		}
-		if (bss_config->update_mask & BSS_FIELD_MASK_CHAN) {
+		if (bss_config_update->update_mask & BSS_FIELD_MASK_CHAN) {
 			if (wlan_verify_channel(
-					wlan_mac_high_bss_channel_spec_to_radio_chan(bss_config->chan_spec)) != XST_SUCCESS) {
+					wlan_mac_high_bss_channel_spec_to_radio_chan(bss_config_update->bss_config.chan_spec)) != XST_SUCCESS) {
 				return_status |= BSS_CONFIG_FAILURE_CHANNEL_INVALID;
 			}
 		}
-		if (bss_config->update_mask & BSS_FIELD_MASK_BEACON_INTERVAL) {
-			if ((bss_config->beacon_interval != BEACON_INTERVAL_NO_BEACON_TX) &&
-				(bss_config->beacon_interval <  10)) {
+		if (bss_config_update->update_mask & BSS_FIELD_MASK_BEACON_INTERVAL) {
+			if ((bss_config_update->bss_config.beacon_interval != BEACON_INTERVAL_NO_BEACON_TX) &&
+				(bss_config_update->bss_config.beacon_interval <  10)) {
 				return_status |= BSS_CONFIG_FAILURE_BEACON_INTERVAL_INVALID;
 			}
 		}
-		if (bss_config->update_mask & BSS_FIELD_MASK_HT_CAPABLE) {
-			if (bss_config->ht_capable > 1) {
+		if (bss_config_update->update_mask & BSS_FIELD_MASK_HT_CAPABLE) {
+			if (bss_config_update->bss_config.ht_capable > 1) {
 				return_status |= BSS_CONFIG_FAILURE_HT_CAPABLE_INVALID;
 			}
 		}
@@ -2112,7 +2112,7 @@ u32	configure_bss(bss_config_t* bss_config){
 		// configuration parameters are only partially updated.
 		curr_interrupt_state = wlan_mac_high_interrupt_stop();
 
-		if ((bss_config == NULL) || (bss_config->update_mask & BSS_FIELD_MASK_BSSID)) {
+		if ((bss_config_update == NULL) || (bss_config_update->update_mask & BSS_FIELD_MASK_BSSID)) {
 			// Adopting a new BSSID. This could mean either
 			//    1) Shutting the BSS down
 			// or 2) Shutting the BSS down and then starting a new BSS.
@@ -2123,13 +2123,13 @@ u32	configure_bss(bss_config_t* bss_config){
 			//
 			// This will not result in any OTA transmissions to the stations.
 
-			if (active_bss_info != NULL) {
+			if (active_network_info != NULL) {
 				//Purge all tranmissions queues
 				purge_all_data_tx_queue();
 
 				// Remove all associations
-				next_station_info_entry = active_bss_info->members.first;
-				iter = active_bss_info->members.length;
+				next_station_info_entry = active_network_info->members.first;
+				iter = active_network_info->members.length;
 
 				while ((next_station_info_entry != NULL) && (iter-- > 0)) {
 					curr_station_info_entry = next_station_info_entry;
@@ -2141,25 +2141,25 @@ u32	configure_bss(bss_config_t* bss_config){
 					curr_station_info->flags &= ~STATION_INFO_FLAG_KEEP;
 
 					// Remove the associations
-					station_info_remove(&active_bss_info->members, curr_station_info->addr);
+					station_info_remove(&active_network_info->members, curr_station_info->addr);
 
 					// Update the hex display to show station was removed
-					wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_bss_info->members.length);
+					wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 				}
 
 				// Remove the bss_info from the network list
 				//     - When the AP "leaves" a BSS, the BSS actually no longer exists.  Therefore, it should
 				//       not continue to exist in the network list.
-				dl_list  * bss_info_list = wlan_mac_high_get_bss_info_list();
-				dl_entry * bss_entry     = wlan_mac_high_find_bss_info_BSSID(active_bss_info->bssid);
+				dl_list* network_info_list = wlan_mac_high_get_network_info_list();
+				network_info_entry_t* network_entry     = wlan_mac_high_find_network_info_BSSID(active_network_info->bss_config.bssid);
 
-				wlan_mac_high_clear_bss_info(active_bss_info);
-				dl_entry_remove(bss_info_list, bss_entry);
-				bss_info_checkin(bss_entry);
+				wlan_mac_high_clear_network_info(active_network_info);
+				dl_entry_remove(network_info_list, (dl_entry*)network_entry);
+				network_info_checkin(network_entry);
 
-				// Set "active_bss_info" to NULL
-				//     - All functions must be able to handle active_bss_info = NULL
-				active_bss_info = NULL;
+				// Set "active_network_info" to NULL
+				//     - All functions must be able to handle active_network_info = NULL
+				active_network_info = NULL;
 
 				// Disable beacons immediately
 				((tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_BEACON))->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
@@ -2171,95 +2171,95 @@ u32	configure_bss(bss_config_t* bss_config){
 				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0xFF);
 			}
 
-			// (bss_config == NULL) is one way to remove the BSS state of the node. This operation
-			// was executed just above.  Rather that continuing to check non-NULLness of bss_config
+			// (bss_config_update == NULL) is one way to remove the BSS state of the node. This operation
+			// was executed just above.  Rather that continuing to check non-NULLness of bss_config_update
 			// throughout the rest of this function, just re-enable interrupts and return early.
 
-			if (bss_config == NULL) {
+			if (bss_config_update == NULL) {
 				wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
 				return return_status;
 			}
 
-			// active_bss_info is guaranteed to be NULL at this point in the code
-			// bss_config is guaranteed to be non-NULL at this point in the code
+			// active_network_info is guaranteed to be NULL at this point in the code
+			// bss_config_update is guaranteed to be non-NULL at this point in the code
 
 			// Update BSS
 			//     - BSSID must not be zero_addr (reserved address)
-			if (wlan_addr_eq(bss_config->bssid, zero_addr) == 0) {
+			if (wlan_addr_eq(bss_config_update->bss_config.bssid, zero_addr) == 0) {
 				// Stop the scan state machine if it is running
 				if (wlan_mac_scan_is_scanning()) {
 					wlan_mac_scan_stop();
 				}
 
-				// Create a new bss_info or overwrite an existing one with matching BSSID.
+				// Create a new network_info_t or overwrite an existing one with matching BSSID.
 				//     Note:  The wildcard SSID and 0-valued channel arguments are temporary. Because
 				//         of the error checking at the top of this function, the bss_config will
 				//         contain a valid SSID as well as channel. These fields will be updated
 				//         in step 3).
-				local_bss_info = wlan_mac_high_create_bss_info(bss_config->bssid, "", 0);
+				local_network_info = wlan_mac_high_create_network_info(bss_config_update->bss_config.bssid, "", 0);
 
-				if (local_bss_info != NULL) {
-					local_bss_info->flags |= BSS_FLAGS_KEEP;
+				if (local_network_info != NULL) {
+					local_network_info->flags |= NETWORK_FLAGS_KEEP;
 #if WLAN_DEFAULT_USE_HT
-						local_bss_info->capabilities = (BSS_CAPABILITIES_ESS | BSS_CAPABILITIES_HT_CAPABLE);
+						local_network_info->capabilities = (BSS_CAPABILITIES_ESS | BSS_CAPABILITIES_HT_CAPABLE);
 #else
-						local_bss_info->capabilities = (BSS_CAPABILITIES_ESS);
+						local_network_info->capabilities = (BSS_CAPABILITIES_ESS);
 #endif
-					active_bss_info = local_bss_info;
+					active_network_info = local_network_info;
 				}
 
 				// Set hex display
-				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_bss_info->members.length);
+				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 			}
 		}
 
 		//---------------------------------------------------------
 		// 3. Clean up
-		//      Now that active_bss_info has been updated, CPU_HIGH can communicate
+		//      Now that active_network_info has been updated, CPU_HIGH can communicate
 		//      the changes to CPU_LOW so that the node is tuned to the correct channel,
 		//		send beacons at the correct interval, and update the beacon
 		//		template packet buffer.
-		if (active_bss_info != NULL) {
+		if (active_network_info != NULL) {
 
-			if (bss_config->update_mask & BSS_FIELD_MASK_CHAN) {
-				active_bss_info->chan_spec = bss_config->chan_spec;
+			if (bss_config_update->update_mask & BSS_FIELD_MASK_CHAN) {
+				active_network_info->bss_config.chan_spec = bss_config_update->bss_config.chan_spec;
 				send_channel_switch_to_low = 1;
 				update_beacon_template = 1;
 			}
-			if (bss_config->update_mask & BSS_FIELD_MASK_SSID) {
-				strncpy(active_bss_info->ssid, bss_config->ssid, SSID_LEN_MAX);
+			if (bss_config_update->update_mask & BSS_FIELD_MASK_SSID) {
+				strncpy(active_network_info->bss_config.ssid, bss_config_update->bss_config.ssid, SSID_LEN_MAX);
 				update_beacon_template = 1;
 			}
-			if (bss_config->update_mask & BSS_FIELD_MASK_BEACON_INTERVAL) {
-				active_bss_info->beacon_interval = bss_config->beacon_interval;
-				memcpy(gl_beacon_txrx_config.bssid_match, active_bss_info->bssid, MAC_ADDR_LEN);
-				if ((active_bss_info->beacon_interval == BEACON_INTERVAL_NO_BEACON_TX) ||
-					(active_bss_info->beacon_interval == BEACON_INTERVAL_UNKNOWN)) {
+			if (bss_config_update->update_mask & BSS_FIELD_MASK_BEACON_INTERVAL) {
+				active_network_info->bss_config.beacon_interval = bss_config_update->bss_config.beacon_interval;
+				memcpy(gl_beacon_txrx_config.bssid_match, active_network_info->bss_config.bssid, MAC_ADDR_LEN);
+				if ((active_network_info->bss_config.beacon_interval == BEACON_INTERVAL_NO_BEACON_TX) ||
+					(active_network_info->bss_config.beacon_interval == BEACON_INTERVAL_UNKNOWN)) {
 					((tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_BEACON))->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 					gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
 				} else {
 					gl_beacon_txrx_config.beacon_tx_mode = AP_BEACON_TX;
 				}
 
-				gl_beacon_txrx_config.beacon_interval_tu = active_bss_info->beacon_interval;
+				gl_beacon_txrx_config.beacon_interval_tu = active_network_info->bss_config.beacon_interval;
 				gl_beacon_txrx_config.beacon_template_pkt_buf = TX_PKT_BUF_BEACON;
 				update_beacon_template = 1;
 				send_beacon_config_to_low = 1;
 			}
-			if (bss_config->update_mask & BSS_FIELD_MASK_DTIM_MCAST_BUFFER) {
-				gl_beacon_txrx_config.dtim_period = bss_config->dtim_period;
+			if (bss_config_update->update_mask & BSS_FIELD_MASK_DTIM_MCAST_BUFFER) {
+				gl_beacon_txrx_config.dtim_period = bss_config_update->bss_config.dtim_period;
 				send_beacon_config_to_low = 1;
 			}
-			if (bss_config->update_mask & BSS_FIELD_MASK_HT_CAPABLE) {
+			if (bss_config_update->update_mask & BSS_FIELD_MASK_HT_CAPABLE) {
 				// Changing the BSS HT_CAPABLE capabilities only affects what is advertised in
 				// the BSS beacons.  It does not affect the HT capabilities of nodes in the
 				// network.  It should also not change any of the default TX params since the
 				// AP is still capable of sending and receiving HT packets.
 
-				if (bss_config->ht_capable) {
-					active_bss_info->capabilities |= BSS_CAPABILITIES_HT_CAPABLE;
+				if (bss_config_update->bss_config.ht_capable) {
+					active_network_info->capabilities |= BSS_CAPABILITIES_HT_CAPABLE;
 				} else {
-					active_bss_info->capabilities &= ~BSS_CAPABILITIES_HT_CAPABLE;
+					active_network_info->capabilities &= ~BSS_CAPABILITIES_HT_CAPABLE;
 				}
 
 				// Update the beacon template to match capabilities
@@ -2271,8 +2271,8 @@ u32	configure_bss(bss_config_t* bss_config){
 			//     block for now until it unlocks.  This will guarantee that beacon are updated
 			//     before the function returns.
 			if (update_beacon_template) {
-				wlan_mac_high_setup_tx_header(&tx_header_common, (u8 *)bcast_addr, active_bss_info->bssid);
-				while (wlan_mac_high_configure_beacon_tx_template( &tx_header_common, active_bss_info, &default_multicast_mgmt_tx_params,
+				wlan_mac_high_setup_tx_header(&tx_header_common, (u8 *)bcast_addr, active_network_info->bss_config.bssid);
+				while (wlan_mac_high_configure_beacon_tx_template( &tx_header_common, active_network_info, &default_multicast_mgmt_tx_params,
 																	TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP | TX_FRAME_INFO_FLAGS_WAIT_FOR_LOCK ) != 0) {}
 
 				mgmt_tag_tim_template = NULL;
@@ -2283,7 +2283,7 @@ u32	configure_bss(bss_config_t* bss_config){
 			// Update the channel
 			if (send_channel_switch_to_low) {
 				wlan_mac_high_set_radio_channel(
-						wlan_mac_high_bss_channel_spec_to_radio_chan(active_bss_info->chan_spec));
+						wlan_mac_high_bss_channel_spec_to_radio_chan(active_network_info->bss_config.chan_spec));
 			}
 
 			// Update Beacon configuration
@@ -2293,15 +2293,17 @@ u32	configure_bss(bss_config_t* bss_config){
 
 			// Print new BSS information
 			xil_printf("BSS Details: \n");
-			xil_printf("  BSSID           : %02x-%02x-%02x-%02x-%02x-%02x\n",active_bss_info->bssid[0],active_bss_info->bssid[1],active_bss_info->bssid[2],active_bss_info->bssid[3],active_bss_info->bssid[4],active_bss_info->bssid[5]);
-			xil_printf("   SSID           : %s\n", active_bss_info->ssid);
-			xil_printf("   Channel        : %d\n", wlan_mac_high_bss_channel_spec_to_radio_chan(active_bss_info->chan_spec));
-			if (active_bss_info->beacon_interval == BEACON_INTERVAL_NO_BEACON_TX) {
+			xil_printf("  BSSID           : %02x-%02x-%02x-%02x-%02x-%02x\n",	active_network_info->bss_config.bssid[0],active_network_info->bss_config.bssid[1],
+																				active_network_info->bss_config.bssid[2],active_network_info->bss_config.bssid[3],
+																				active_network_info->bss_config.bssid[4],active_network_info->bss_config.bssid[5]);
+			xil_printf("   SSID           : %s\n", active_network_info->bss_config.ssid);
+			xil_printf("   Channel        : %d\n", wlan_mac_high_bss_channel_spec_to_radio_chan(active_network_info->bss_config.chan_spec));
+			if (active_network_info->bss_config.beacon_interval == BEACON_INTERVAL_NO_BEACON_TX) {
 				xil_printf("   Beacon Interval: No Beacon Tx\n");
-			} else if (active_bss_info->beacon_interval == BEACON_INTERVAL_UNKNOWN) {
+			} else if (active_network_info->bss_config.beacon_interval == BEACON_INTERVAL_UNKNOWN) {
 				xil_printf("   Beacon Interval: Unknown\n");
 			} else {
-				xil_printf("   Beacon Interval: %d TU (%d us)\n", active_bss_info->beacon_interval, active_bss_info->beacon_interval*1024);
+				xil_printf("   Beacon Interval: %d TU (%d us)\n", active_network_info->bss_config.beacon_interval, active_network_info->bss_config.beacon_interval*1024);
 			}
 		}
 
@@ -2349,16 +2351,15 @@ void button_0_release(){
  * @param  None
  * @return None
  *****************************************************************************/
-dl_list * get_bss_member_list(){
-	if(active_bss_info != NULL){
-		return &(active_bss_info->members);
+dl_list * get_network_member_list(){
+	if(active_network_info != NULL){
+		return &(active_network_info->members);
 	} else {
 		return NULL;
 	}
 }
 
-bss_info_t* active_bss_info_getter(){ return active_bss_info; }
-
+network_info_t* active_network_info_getter(){ return active_network_info; }
 
 #if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 

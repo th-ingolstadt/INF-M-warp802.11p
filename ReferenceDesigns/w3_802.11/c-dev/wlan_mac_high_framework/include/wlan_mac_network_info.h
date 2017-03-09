@@ -12,8 +12,8 @@
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
-#ifndef WLAN_MAC_BSS_INFO_H_
-#define WLAN_MAC_BSS_INFO_H_
+#ifndef WLAN_MAC_NETWORK_INFO_H_
+#define WLAN_MAC_NETWORK_INFO_H_
 
 /***************************** Include Files *********************************/
 
@@ -27,10 +27,10 @@
 /*************************** Constant Definitions ****************************/
 
 //-----------------------------------------------
-// Timeout used to remove inactive BSS infos
+// Timeout used to remove inactive network_info_t structs
 //     - Part of bss_info_timestamp_check()
 //
-#define BSS_INFO_TIMEOUT_USEC                              600000000
+#define NETWORK_INFO_TIMEOUT_USEC                              600000000
 
 
 //-----------------------------------------------
@@ -60,9 +60,9 @@
 
 
 //-----------------------------------------------
-// BSS Flags defines
+// Network Flags defines
 //
-#define BSS_FLAGS_KEEP                                     0x0001
+#define NETWORK_FLAGS_KEEP                                     0x0001
 
 
 //-----------------------------------------------
@@ -85,22 +85,6 @@
 #define BSS_CONFIG_FAILURE_BEACON_INTERVAL_INVALID         0x00000008
 #define BSS_CONFIG_FAILURE_HT_CAPABLE_INVALID              0x00000010
 
-
-//-----------------------------------------------
-// Define common BSS info fields
-//   Note: These fields have been 32 bit aligned using padding bytes
-
-#define BSS_INFO_COMMON_FIELDS                                                                               \
-        u8              bssid[MAC_ADDR_LEN];               /* BSS ID - 48 bit HW address */                  \
-        chan_spec_t     chan_spec;                         /* Channel Specification */                       \
-        u64             latest_beacon_rx_time;	           /* Timestamp - Last interaction with BSS */       \
-        char            ssid[SSID_LEN_MAX + 1];            /* SSID of the BSS - 33 bytes */                  \
-        s8              latest_beacon_rx_power;            /* Last observed Rx Power (dBm) */                \
-        u16             padding0;                                                                            \
-        u16             capabilities;                      /* Supported capabilities */                      \
-        u16             beacon_interval;                   /* Beacon interval - In time units of 1024 us */
-
-
 /*********************** Global Structure Definitions ************************/
 
 /********************************************************************
@@ -122,7 +106,13 @@ typedef enum __attribute__((__packed__)) {
 
 CASSERT(sizeof(chan_type_t) == 1, chan_type_t_alignment_check);
 
-
+#define NETWORK_INFO_COMMON_FIELDS              \
+		bss_config_t bss_config;				\
+		u32     flags;							\
+		u32		capabilities;					\
+		u64     latest_beacon_rx_time;			\
+		s8      latest_beacon_rx_power;			\
+		u8		padding1[3];					\
 
 /********************************************************************
  * @brief Channel Specifications Struct
@@ -135,22 +125,32 @@ typedef struct __attribute__((__packed__)){
 	u8             chan_pri;
 	chan_type_t    chan_type;
 } chan_spec_t;
-
 CASSERT(sizeof(chan_spec_t) == 2, chan_spec_t_alignment_check);
 
+typedef struct __attribute__((__packed__)){
+    u8              bssid[MAC_ADDR_LEN];               /* BSS ID - 48 bit HW address */
+    chan_spec_t     chan_spec;                         /* Channel Specification */
+    //----- 4-byte boundary ------
+    char            ssid[SSID_LEN_MAX + 1];            /* SSID of the BSS - 33 bytes */
+    u8              ht_capable;                        /* Support HTMF Tx/Rx */
+    u16             beacon_interval;                   /* Beacon interval - In time units of 1024 us */
+    //----- 4-byte boundary ------
+    u8				dtim_period;					   /* DTIM Period (in beacon intervals) */
+    u8				padding[3];
+    //----- 4-byte boundary ------
+} bss_config_t;
+CASSERT(sizeof(bss_config_t) == 48, bss_config_t_alignment_check);
+
 /********************************************************************
- * @brief Basic Service Set (BSS) Information Structure
+ * @brief Network Information Structure
  *
  * This struct contains information about the basic service set for the node.
  ********************************************************************/
-typedef struct{
-    BSS_INFO_COMMON_FIELDS
-
-    u32     flags;
+typedef struct __attribute__((__packed__)){
+	NETWORK_INFO_COMMON_FIELDS
     dl_list members;
-} bss_info_t;
-
-CASSERT(sizeof(bss_info_t) == 72, bss_info_t_alignment_check);
+} network_info_t;
+CASSERT(sizeof(network_info_t) == 80, network_info_t_alignment_check);
 
 
 
@@ -161,50 +161,44 @@ CASSERT(sizeof(bss_info_t) == 72, bss_info_t_alignment_check);
  ********************************************************************/
 typedef struct __attribute__((__packed__)){
     u32            update_mask;                       /* Mask of fields that were updated */
-    u8             bssid[MAC_ADDR_LEN];               /* BSS ID */
-    u16            beacon_interval;                   /* Beacon interval - In time units of 1024 us */
-    char           ssid[SSID_LEN_MAX + 1];            /* SSID of the BSS - 33 bytes */
-    chan_spec_t    chan_spec;                         /* Channel Specification*/
-    u8             ht_capable;                        /* Support HTMF Tx/Rx */
-    u8  		   dtim_period;				          /* DTIM Period (in beacon intervals) */
-    u8			   reserved[7];
-} bss_config_t;
-CASSERT(sizeof(bss_config_t) == 56, bss_config_t_alignment_check);
+    bss_config_t   bss_config;
+} bss_config_update_t;
+CASSERT(sizeof(bss_config_update_t) == 52, bss_config_update_t_alignment_check);
 
 
-//Define a new type of dl_entry for pointing to bss_info_t
+//Define a new type of dl_entry for pointing to network_info_t
 // structs that contains some extra fields for faster searching
 // without needing to jump to DRAM.
-typedef struct bss_info_entry_t bss_info_entry_t;
-struct bss_info_entry_t{
-	bss_info_entry_t* next;
-	bss_info_entry_t* prev;
-	bss_info_t*       data;
-	u8				  bssid[6];
-	u16			      padding;
+typedef struct network_info_entry_t network_info_entry_t;
+struct network_info_entry_t{
+	network_info_entry_t* next;
+	network_info_entry_t* prev;
+	network_info_t*       data;
+	u8			    	  bssid[6];
+	u16			          padding;
 };
-CASSERT(sizeof(bss_info_entry_t) == 20, bss_info_entry_t_alignment_check);
+CASSERT(sizeof(network_info_entry_t) == 20, network_info_entry_t_alignment_check);
 
 /*************************** Function Prototypes *****************************/
 
-void bss_info_init();
-void bss_info_init_finish();
+void network_info_init();
+void network_info_init_finish();
 
-bss_info_entry_t* bss_info_checkout();
-void bss_info_checkin(bss_info_entry_t* bsi);
+network_info_entry_t* network_info_checkout();
+void network_info_checkin(network_info_entry_t* network_info_entry);
 
-void bss_info_rx_process(void* pkt_buf_addr);
+void network_info_rx_process(void* pkt_buf_addr);
 
-void print_bss_info();
-void bss_info_timestamp_check();
+void print_network_info();
+void network_info_timestamp_check();
 
-dl_list* wlan_mac_high_find_bss_info_SSID(char* ssid);
-bss_info_entry_t* wlan_mac_high_find_bss_info_BSSID(u8* bssid);
+dl_list* wlan_mac_high_find_network_info_SSID(char* ssid);
+network_info_entry_t* wlan_mac_high_find_network_info_BSSID(u8* bssid);
 
-bss_info_t* wlan_mac_high_create_bss_info(u8* bssid, char* ssid, u8 chan);
+network_info_t* wlan_mac_high_create_network_info(u8* bssid, char* ssid, u8 chan);
 void wlan_mac_high_reset_network_list();
-void wlan_mac_high_clear_bss_info(bss_info_t * info);
+void wlan_mac_high_clear_network_info(network_info_t* info);
 
-dl_list* wlan_mac_high_get_bss_info_list();
+dl_list* wlan_mac_high_get_network_info_list();
 
 #endif

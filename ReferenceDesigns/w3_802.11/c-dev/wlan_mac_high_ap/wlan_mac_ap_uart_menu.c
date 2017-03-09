@@ -52,7 +52,7 @@ void uart_rx(u8 rxByte){ };
 /*********************** Global Variable Definitions *************************/
 extern tx_params_t                          default_unicast_data_tx_params;
 
-extern bss_info_t*                          active_bss_info;
+extern network_info_t*                      active_network_info;
 
 /*************************** Variable Definitions ****************************/
 
@@ -155,7 +155,7 @@ void uart_rx(u8 rxByte){
 				// 'a' - Print BSS information
 				//
 				case ASCII_a:
-					print_bss_info();
+					print_network_info();
 				break;
 
 				// ----------------------------------------
@@ -222,11 +222,11 @@ void print_station_status(){
 
 	u64 timestamp;
 
-	if((active_bss_info != NULL) && (uart_mode == UART_MODE_INTERACTIVE)){
+	if((active_network_info != NULL) && (uart_mode == UART_MODE_INTERACTIVE)){
 		timestamp = get_system_time_usec();
 		xil_printf("\f");
 
-		curr_entry = active_bss_info->members.first;
+		curr_entry = active_network_info->members.first;
 
 		while(curr_entry != NULL){
 			curr_station_info = (station_info_t*)(curr_entry->data);
@@ -257,8 +257,8 @@ void print_queue_status(){
 	xil_printf("\nQueue Status:\n");
 	xil_printf(" FREE || MCAST|");
 
-	if(active_bss_info != NULL){
-		curr_entry = active_bss_info->members.first;
+	if(active_network_info != NULL){
+		curr_entry = active_network_info->members.first;
 		while(curr_entry != NULL){
 			curr_station_info = (station_info_t*)(curr_entry->data);
 			xil_printf("%6d|", curr_station_info->ID);
@@ -269,8 +269,8 @@ void print_queue_status(){
 
 
 	xil_printf("%6d||%6d|",queue_num_free(),queue_num_queued(MCAST_QID));
-	if(active_bss_info != NULL){
-		curr_entry = active_bss_info->members.first;
+	if(active_network_info != NULL){
+		curr_entry = active_network_info->members.first;
 		while(curr_entry != NULL){
 			curr_station_info = (station_info_t*)(curr_entry->data);
 			xil_printf("%6d|", queue_num_queued(STATION_ID_TO_QUEUE_ID(curr_station_info->ID)));

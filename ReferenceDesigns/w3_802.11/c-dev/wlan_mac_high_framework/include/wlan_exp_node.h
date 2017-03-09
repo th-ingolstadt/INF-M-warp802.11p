@@ -18,7 +18,7 @@
 #include "wlan_exp_common.h"
 #include "wlan_exp_transport.h"
 
-#include "wlan_mac_bss_info.h"
+#include "wlan_mac_network_info.h"
 #include "wlan_mac_station_info.h"
 #include "wlan_mac_high.h"
 
@@ -328,11 +328,12 @@ CASSERT(sizeof(wlan_exp_station_info_t) == 64, wlan_exp_station_info_alignment_c
 //     Only used to communicate with WLAN Exp Host.
 //
 typedef struct __attribute__((__packed__)){
-    // All bss_info_t common fields
-    BSS_INFO_COMMON_FIELDS
-} wlan_exp_bss_info_t;
-
-CASSERT(sizeof(wlan_exp_bss_info_t) == 56, wlan_exp_bss_info_alignment_check);
+    // All network_info_t common fields
+    NETWORK_INFO_COMMON_FIELDS
+    u16		num_members;
+    u16 	padding2;
+} wlan_exp_network_info_t; //FIXME change name & update Python
+CASSERT(sizeof(wlan_exp_network_info_t) == 72, wlan_exp_network_info_t_alignment_check);
 
 
 
@@ -372,7 +373,7 @@ void wlan_exp_set_tx_cmd_add_association_callback     (void(*callback)());
 void wlan_exp_set_process_user_cmd_callback           (void(*callback)());
 void wlan_exp_set_beacon_ts_update_mode_callback      (void(*callback)());
 void wlan_exp_set_process_config_bss_callback         (void(*callback)());
-void wlan_exp_set_active_bss_info_getter_callback	  (void(*callback)());
+void wlan_exp_set_active_network_info_getter_callback	  (void(*callback)());
 
 
 // WLAN Exp commands

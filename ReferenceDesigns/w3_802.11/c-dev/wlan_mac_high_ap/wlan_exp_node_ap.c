@@ -37,7 +37,7 @@
 /*********************** Global Variable Definitions *************************/
 
 extern tx_params_t                default_unicast_data_tx_params;
-extern bss_info_t*                active_bss_info;
+extern network_info_t*            active_network_info;
 
 extern function_ptr_t    		  wlan_exp_purge_all_data_tx_queue_callback;
 extern u8						  gl_dtim_mcast_buffer_enable;
@@ -199,8 +199,8 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             //
             u32                   id;
             u8                    mac_addr[MAC_ADDR_LEN];
-            dl_entry            * curr_entry;
-            station_info_t      * curr_station_info;
+            station_info_entry_t* curr_entry;
+            station_info_t*       curr_station_info;
             interrupt_state_t     prev_interrupt_state;
             u32                   status         = CMD_PARAM_SUCCESS;
 
@@ -221,7 +221,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 // If parameter is not the magic number to disassociate all stations
                 if (id != WLAN_EXP_AID_ALL) {
                     // Find the station_info entry
-                    curr_entry = station_info_find_by_addr( &mac_addr[0], get_bss_member_list() );
+                    curr_entry = station_info_find_by_addr( &mac_addr[0], get_network_member_list() );
 
                     if (curr_entry != NULL) {
                         curr_station_info = (station_info_t*)(curr_entry->data);
@@ -400,21 +400,21 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             u8                    mac_addr[MAC_ADDR_LEN];
             interrupt_state_t     prev_interrupt_state;
             u32                   status              = CMD_PARAM_SUCCESS;
-            dl_entry*			  station_info_entry  = NULL;
+            station_info_entry_t* station_info_entry  = NULL;
             station_info_t* 	  curr_station_info   = NULL;
             u32                   station_flags       = 0;
             u32					  error_reason        = 0;
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "AP: Associate\n");
 
-            // Get MAC Address
-			wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[2], &mac_addr[0]);
+                // Get MAC Address
+                wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[2], &mac_addr[0]);
 
-            if(active_bss_info != NULL){
-            	station_info_entry = station_info_find_by_addr(mac_addr, &(active_bss_info->members));
+            if(active_network_info != NULL){
+            	station_info_entry = station_info_find_by_addr(mac_addr, &(active_network_info->members));
             }
 
-            if ((active_bss_info != NULL) && ((station_info_entry != NULL) || (active_bss_info->members.length < MAX_NUM_ASSOC)) ) {
+            if ((active_network_info != NULL) && ((station_info_entry != NULL) || (active_network_info->members.length < MAX_NUM_ASSOC)) ) {
 
                 // Get flags
                 flags = Xil_Ntohl(cmd_args_32[0]);
@@ -429,42 +429,42 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 // Add association
                 //     - Set ht_capable argument to zero.  This will be set correctly by the code below based on the
                 //       flags of the command.
-                curr_station_info = station_info_add(&active_bss_info->members, &mac_addr[0], ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, 0);
+                curr_station_info = station_info_add(&active_network_info->members, &mac_addr[0], ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, 0);
 
                 // Set return parameters and print info to console
                 if (curr_station_info != NULL) {
 
-					// Update the new station_info flags field
-					//  Only override the defaults set by the framework add_station_info if the wlan_exp command explicitly included a flag
-					station_flags = curr_station_info->flags;
+                // Update the new station_info flags field
+                //  Only override the defaults set by the framework add_station_info if the wlan_exp command explicitly included a flag
+                station_flags = curr_station_info->flags;
 
-					// Raise the KEEP flag to prevent the MAC High Framework from removing the struct
-					station_flags |= STATION_INFO_FLAG_KEEP;
+                // Raise the KEEP flag to prevent the MAC High Framework from removing the struct
+                station_flags |= STATION_INFO_FLAG_KEEP;
 
-					if (mask & CMD_PARAM_AP_ASSOCIATE_FLAG_DISABLE_INACTIVITY_TIMEOUT) {
-						if (flags & CMD_PARAM_AP_ASSOCIATE_FLAG_DISABLE_INACTIVITY_TIMEOUT) {
-							station_flags |= STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
-						} else {
-							station_flags &= ~STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
-						}
-					}
+                if (mask & CMD_PARAM_AP_ASSOCIATE_FLAG_DISABLE_INACTIVITY_TIMEOUT) {
+                    if (flags & CMD_PARAM_AP_ASSOCIATE_FLAG_DISABLE_INACTIVITY_TIMEOUT) {
+                        station_flags |= STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
+                    } else {
+                        station_flags &= ~STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
+                    }
+                }
 
-					if (mask & CMD_PARAM_AP_ASSOCIATE_FLAG_HT_CAPABLE_STA) {
-						if (flags & CMD_PARAM_AP_ASSOCIATE_FLAG_HT_CAPABLE_STA) {
-							station_flags |= STATION_INFO_FLAG_HT_CAPABLE;
-						} else {
-							station_flags &= ~STATION_INFO_FLAG_HT_CAPABLE;
-						}
-					}
+                if (mask & CMD_PARAM_AP_ASSOCIATE_FLAG_HT_CAPABLE_STA) {
+                    if (flags & CMD_PARAM_AP_ASSOCIATE_FLAG_HT_CAPABLE_STA) {
+                        station_flags |= STATION_INFO_FLAG_HT_CAPABLE;
+                    } else {
+                        station_flags &= ~STATION_INFO_FLAG_HT_CAPABLE;
+                    }
+                }
 
-					// Update the station_info flags
-					curr_station_info->flags = station_flags;
+                // Update the station_info flags
+                curr_station_info->flags = station_flags;
 
-					// Update the rate based on the flags that were set
-					station_info_update_rate(curr_station_info, default_unicast_data_tx_params.phy.mcs, default_unicast_data_tx_params.phy.phy_mode);
+                // Update the rate based on the flags that were set
+                station_info_update_rate(curr_station_info, default_unicast_data_tx_params.phy.mcs, default_unicast_data_tx_params.phy.phy_mode);
 
-					// Re-enable interrupts
-					wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
+                // Re-enable interrupts
+                wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
 
                     //
@@ -472,7 +472,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                     //
 
                     // Update the hex display
-                    wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_bss_info->members.length);
+                    wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Associated with node: ");
                 } else {

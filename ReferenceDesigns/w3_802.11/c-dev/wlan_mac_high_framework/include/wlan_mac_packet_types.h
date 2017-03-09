@@ -17,7 +17,7 @@
 
 #include "wlan_mac_high_sw_config.h"
 
-#include "wlan_mac_bss_info.h"
+#include "wlan_mac_network_info.h"
 
 typedef struct{
 	u8* address_1;
@@ -114,20 +114,20 @@ typedef struct{
 #define wlan_create_beacon_frame(a,b,c) wlan_create_beacon_probe_resp_frame(MAC_FRAME_CTRL1_SUBTYPE_BEACON, a, b, c)
 #define wlan_create_probe_resp_frame(a,b,c) wlan_create_beacon_probe_resp_frame(MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP, a, b, c)
 
-int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_header_80211_common* common, bss_info_t* bss_info);
+int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_header_80211_common* common, network_info_t* network_info);
 int wlan_create_probe_req_frame(void* pkt_buf, mac_header_80211_common* common, char* ssid);
 int wlan_create_auth_frame(void* pkt_buf, mac_header_80211_common* common, u16 auth_algorithm,  u16 auth_seq, u16 status_code);
 
-#define wlan_create_deauth_frame(pkt_buf, common, attempt_bss_info)   wlan_create_deauth_disassoc_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_DEAUTH,   common, attempt_bss_info)
-#define wlan_create_disassoc_frame(pkt_buf, common, attempt_bss_info) wlan_create_deauth_disassoc_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_DISASSOC, common, attempt_bss_info)
+#define wlan_create_deauth_frame(pkt_buf, common, attempt_network_info)   wlan_create_deauth_disassoc_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_DEAUTH,   common, attempt_network_info)
+#define wlan_create_disassoc_frame(pkt_buf, common, attempt_network_info) wlan_create_deauth_disassoc_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_DISASSOC, common, attempt_network_info)
 
 int wlan_create_deauth_disassoc_frame(void* pkt_buf, u8 frame_control_1, mac_header_80211_common* common, u16 reason_code);
-int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_common* common, u16 status, u16 AID, bss_info_t* bss_info);
+int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_common* common, u16 status, u16 AID, network_info_t* network_info);
 
-#define wlan_create_association_req_frame(pkt_buf, common, attempt_bss_info) wlan_create_reassoc_assoc_req_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_ASSOC_REQ, common, attempt_bss_info)
-#define wlan_create_reassociation_req_frame(pkt_buf, common, attempt_bss_info) wlan_create_reassoc_assoc_req_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_REASSOC_REQ, common, attempt_bss_info)
+#define wlan_create_association_req_frame(pkt_buf, common, attempt_network_info) wlan_create_reassoc_assoc_req_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_ASSOC_REQ, common, attempt_network_info)
+#define wlan_create_reassociation_req_frame(pkt_buf, common, attempt_network_info) wlan_create_reassoc_assoc_req_frame(pkt_buf, MAC_FRAME_CTRL1_SUBTYPE_REASSOC_REQ, common, attempt_network_info)
 
-int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_header_80211_common* common, bss_info_t* bss_info);
+int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_header_80211_common* common, network_info_t* network_info);
 int wlan_create_data_frame(void* pkt_buf, mac_header_80211_common* common, u8 flags);
 int wlan_create_rts_frame(void* pkt_buf_addr, u8* address_ra, u8* address_ta, u16 duration);
 int wlan_create_cts_frame(void* pkt_buf_addr, u8* address_ra, u16 duration);

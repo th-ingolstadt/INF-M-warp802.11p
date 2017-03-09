@@ -82,7 +82,7 @@ void ltg_event(u32 id, void* callback_arg);
 
 int  ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length);
 u32 					mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_entry* rx_event_log_entry);
-bss_info_t* 			active_bss_info_getter();
+network_info_t* 		active_network_info_getter();
 void 					process_scan_state_change(scan_state_t scan_state);
 
 void queue_state_change(u32 QID, u8 queue_len);
@@ -100,7 +100,7 @@ void association_timestamp_adjust(s64 timestamp_diff);
 u32  deauthenticate_station( station_info_t* station_info );
 void deauthenticate_all_stations();
 void handle_cpu_low_reboot(u32 type);
-u32  configure_bss(bss_config_t* bss_config);
+u32  configure_bss(bss_config_update_t* bss_config_update);
 void mpdu_dequeue(dl_entry* packet);
 
 void button_0_press();

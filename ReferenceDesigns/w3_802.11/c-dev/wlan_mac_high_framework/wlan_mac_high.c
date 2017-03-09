@@ -38,7 +38,7 @@
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_addr_filter.h"
-#include "wlan_mac_bss_info.h"
+#include "wlan_mac_network_info.h"
 #include "wlan_mac_station_info.h"
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
@@ -444,7 +444,7 @@ void wlan_mac_high_init(){
 	event_log_init( (void*)EVENT_LOG_BASE, log_size );
 #endif //WLAN_SW_CONFIG_ENABLE_LOGGING
 
-	bss_info_init();
+	network_info_init();
 	station_info_init();
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 	wlan_eth_util_init();
@@ -530,7 +530,7 @@ int wlan_mac_high_interrupt_init(){
 
 
 	// Finish setting up any subsystems that were waiting on interrupts to be configured
-	bss_info_init_finish();
+	network_info_init_finish();
 
 
 	return 0;
@@ -1398,7 +1398,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg, u32* ipc_msg_from_low_p
 							rx_frame_info->rx_pkt_buf_state = RX_PKT_BUF_HIGH_CTRL;
 
 							//Before calling the user's callback, we'll pass this reception off to the BSS info subsystem so it can scrape for BSS metadata
-							bss_info_rx_process((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf)));
+							network_info_rx_process((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf)));
 
 							//We will also pass this reception off to the Station Info subsystem
 							station_info = station_info_rx_process((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf)));
@@ -2102,7 +2102,7 @@ u8 wlan_mac_high_is_pkt_ltg(void* mac_payload, u16 length){
  * @param  None
  * @return None
  */
-int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, bss_info_t* bss_info, tx_params_t* tx_params_ptr, u8 flags) {
+int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, network_info_t* network_info, tx_params_t* tx_params_ptr, u8 flags) {
 	u16 tx_length;
 
 	tx_frame_info_t*  tx_frame_info = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_BEACON);
@@ -2115,7 +2115,7 @@ int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_heade
 	tx_length = wlan_create_beacon_frame(
 		(void*)(tx_frame_info)+PHY_TX_PKT_BUF_MPDU_OFFSET,
 		tx_header_common_ptr,
-		bss_info);
+		network_info);
 
 	bzero(tx_frame_info, sizeof(tx_frame_info_t));
 

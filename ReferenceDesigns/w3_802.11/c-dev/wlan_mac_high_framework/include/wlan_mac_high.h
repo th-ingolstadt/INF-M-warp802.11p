@@ -133,7 +133,7 @@
  *
  * The BSS Info storage consists of two pieces:
  *     (1) dl_entry structs that live in the aux. BRAM and
- *     (2) bss_info_t buffers with the actual content that live in DRAM
+ *     (2) network_info_t buffers with the actual content that live in DRAM
  *
  ********************************************************************/
 #define BSS_INFO_DL_ENTRY_MEM_BASE         (TX_QUEUE_DL_ENTRY_MEM_BASE + TX_QUEUE_DL_ENTRY_MEM_SIZE)
@@ -141,7 +141,7 @@
 #define BSS_INFO_DL_ENTRY_MEM_HIGH          CALC_HIGH_ADDR(BSS_INFO_DL_ENTRY_MEM_BASE, BSS_INFO_DL_ENTRY_MEM_SIZE)
 
 #define BSS_INFO_BUFFER_BASE               (TX_QUEUE_BUFFER_HIGH + 1)
-#define BSS_INFO_BUFFER_SIZE			   ((BSS_INFO_DL_ENTRY_MEM_SIZE/sizeof(dl_entry))*sizeof(bss_info_t))
+#define BSS_INFO_BUFFER_SIZE			   ((BSS_INFO_DL_ENTRY_MEM_SIZE/sizeof(dl_entry))*sizeof(network_info_t))
 #define BSS_INFO_BUFFER_HIGH                CALC_HIGH_ADDR(BSS_INFO_BUFFER_BASE, BSS_INFO_BUFFER_SIZE)
 
 
@@ -306,7 +306,7 @@ int                wlan_mac_high_get_empty_tx_packet_buffer();
 u8                 wlan_mac_high_is_pkt_ltg(void* mac_payload, u16 length);
 
 
-int                wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, bss_info_t* bss_info, tx_params_t* tx_params_ptr, u8 flags);
+int                wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, network_info_t* network_info, tx_params_t* tx_params_ptr, u8 flags);
 int                wlan_mac_high_update_beacon_tx_params(tx_params_t* tx_params_ptr);
 
 
@@ -315,6 +315,6 @@ void               wlan_mac_high_print_station_infos(dl_list* assoc_tbl);
 
 // Common functions that must be implemented by users of the framework
 // TODO: Make these into callback. We should not require these implementations
-dl_list*          get_bss_member_list();
+dl_list*           get_network_member_list();
 
 #endif /* WLAN_MAC_HIGH_H_ */
