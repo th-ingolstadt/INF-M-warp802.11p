@@ -711,7 +711,7 @@ void write_phy_preamble(u8 pkt_buf, u8 phy_mode, u8 mcs, u16 length) {
 
 		// Calc (3*(num_payload_syms+num_ht_preamble_syms) = (3*(num_payload_syms+4))
 
-		lsig_length = 3*wlan_ofdm_calc_num_payload_syms(length, mcs, phy_mode) + 12;
+		lsig_length = 3*wlan_ofdm_calc_num_payload_syms(length, mcs, phy_mode) + 12 - 3;
 
 
 		Xil_Out32((u32*)(phy_hdr_ptr), WLAN_TX_SIGNAL_CALC(sig_rate_vals[0], lsig_length));
