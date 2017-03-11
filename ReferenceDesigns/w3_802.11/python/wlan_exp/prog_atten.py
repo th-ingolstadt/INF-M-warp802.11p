@@ -128,8 +128,10 @@ class ProgAttenController(object):
 
         # Constrain to supported attenuation range
         if(atten_actual > 95.5):
+            print('WARNING: attenuation limited to 95.5 dB')
             atten_actual = 95.5
         elif(atten_actual < 0):
+            print('WARNING: attenuation limited to 0 dB')
             atten_actual = 0.0
 
         # Round to nearest 0.1 dB
