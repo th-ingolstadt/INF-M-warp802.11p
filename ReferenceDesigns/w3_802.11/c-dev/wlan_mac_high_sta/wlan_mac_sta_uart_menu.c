@@ -34,7 +34,7 @@
 #include "ascii_characters.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_event_log.h"
-#include "wlan_mac_bss_info.h"
+#include "wlan_mac_network_info.h"
 #include "wlan_mac_scan.h"
 #include "wlan_mac_station_info.h"
 
@@ -64,7 +64,7 @@ void uart_rx(u8 rxByte){ };
 /*********************** Global Variable Definitions *************************/
 extern tx_params_t                          default_unicast_data_tx_params;
 
-extern bss_info_t*                          active_bss_info;
+extern network_info_t*                      active_network_info;
 
 /*************************** Variable Definitions ****************************/
 
@@ -172,7 +172,7 @@ void uart_rx(u8 rxByte){
 				// 'a' - Print BSS information
 				//
 				case ASCII_a:
-					print_bss_info();
+					print_network_info();
 				break;
 
 				// ----------------------------------------
@@ -236,7 +236,7 @@ void uart_rx(u8 rxByte){
 					}
 
 					// Print results of the scan
-					print_bss_info();
+					print_network_info();
 
 					// Print prompt
 					xil_printf("Enter SSID to join, please type a new string and press enter\n");
@@ -377,8 +377,8 @@ void print_station_status(){
     dl_entry     	* access_point_entry  = NULL;
     station_info_t  * access_point        = NULL;
 
-    if(active_bss_info != NULL){
-        access_point_entry = active_bss_info->members.first;
+    if(active_network_info != NULL){
+        access_point_entry = active_network_info->members.first;
         access_point = ((station_info_t*)(access_point_entry->data));
     }
 
@@ -387,7 +387,7 @@ void print_station_status(){
         xil_printf("\f");
         xil_printf("---------------------------------------------------\n");
 
-            if(active_bss_info != NULL){
+            if(active_network_info != NULL){
                 xil_printf(" MAC Addr: %02x:%02x:%02x:%02x:%02x:%02x\n",
                             access_point->addr[0],access_point->addr[1],access_point->addr[2],access_point->addr[3],access_point->addr[4],access_point->addr[5]);
                 xil_printf("     - Last heard from         %d ms ago\n",((u32)(timestamp - (access_point->latest_rx_timestamp)))/1000);
@@ -411,9 +411,9 @@ void check_join_status() {
 		// Return to main menu
 		uart_mode = UART_MODE_MAIN;
 
-		if (active_bss_info != NULL) {
+		if (active_network_info != NULL) {
 			// Print success message
-			xil_printf("\nSuccessfully Joined: %s\n", active_bss_info->ssid);
+			xil_printf("\nSuccessfully Joined: %s\n", active_network_info->bss_config.ssid);
 		} else {
 			// Print error message
 			xil_printf("\nJoin not successful.  Returning to Main Menu.\n");

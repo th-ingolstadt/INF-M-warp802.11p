@@ -16,7 +16,7 @@
 
 #include "wlan_mac_high.h"
 #include "wlan_mac_dl_list.h"
-#include "wlan_mac_bss_info.h"
+#include "wlan_mac_network_info.h"
 #include "wlan_mac_scan.h"
 #include "wlan_mac_station_info.h"
 #include "wlan_mac_entries.h"
@@ -87,10 +87,10 @@ void send_probe_req();
 void process_scan_state_change(scan_state_t scan_state);
 void poll_tx_queues(pkt_buf_group_t pkt_buf_group);
 void purge_all_data_tx_queue();
-bss_info_t * 	   active_bss_info_getter();
+network_info_t * 	   active_network_info_getter();
 
 int  sta_disassociate();
-u32  configure_bss(bss_config_update_t* bss_config_update);
+u32	configure_bss(bss_config_update_t* bss_config_update);
 
 void uart_rx(u8 rxByte);
 

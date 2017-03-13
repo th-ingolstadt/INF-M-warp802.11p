@@ -39,7 +39,7 @@
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
-#include "wlan_mac_bss_info.h"
+#include "wlan_mac_network_info.h"
 #include "wlan_mac_sta_join.h"
 #include "wlan_mac_entries.h"
 #include "wlan_mac_sta.h"

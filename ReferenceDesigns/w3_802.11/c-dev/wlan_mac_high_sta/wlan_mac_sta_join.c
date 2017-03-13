@@ -43,7 +43,7 @@
 #include "wlan_mac_scan.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_dl_list.h"
-#include "wlan_mac_bss_info.h"
+#include "wlan_mac_network_info.h"
 #include "wlan_mac_sta_join.h"
 #include "wlan_mac_sta.h"
 
@@ -57,7 +57,7 @@ extern mac_header_80211_common    tx_header_common;
 extern u8                         pause_data_queue;
 extern tx_params_t                default_unicast_mgmt_tx_params;
 extern u8                         my_aid;
-extern bss_info_t* 				  active_bss_info;
+extern network_info_t* 			  active_network_info;
 
 /*************************** Variable Definitions ****************************/
 
@@ -83,7 +83,7 @@ volatile join_parameters_t        gl_join_parameters;
 // Scan state variables
 static join_state_t               join_state;
 static authentication_state_t	  authentication_state;
-static bss_info_t*                attempt_bss_info;
+static network_info_t*            attempt_network_info;
 char*                             scan_ssid_save;
 
 static u32                        search_sched_id;
@@ -130,7 +130,7 @@ int wlan_mac_sta_join_init(){
     join_state       	 = IDLE;
     authentication_state = UNAUTHENTICATED;
 
-    attempt_bss_info = NULL;
+    attempt_network_info = NULL;
     scan_ssid_save   = NULL;
 
     search_sched_id  = SCHEDULE_ID_RESERVED_MAX;
@@ -169,12 +169,12 @@ volatile join_parameters_t* wlan_mac_sta_get_join_parameters(){
 /**
  * Get global bss_info pointer that STA is attempting to join
  *
- * @return  volatile bss_info*     - Pointer to bss_info
+ * @return  volatile network_info_t*     - Pointer to network_info
  *
  *****************************************************************************/
-volatile bss_info_t* wlan_mac_sta_get_attempt_bss_info(){
+volatile network_info_t* wlan_mac_sta_get_attempt_network_info(){
 	if(wlan_mac_sta_is_joining()){
-		return attempt_bss_info;
+		return attempt_network_info;
 	} else {
 		return NULL;
 	}
@@ -199,7 +199,7 @@ u32 wlan_mac_sta_is_joining(){
 }
 
 void wlan_mac_sta_successfully_authenticated(u8* bssid){
-	if(attempt_bss_info && wlan_addr_eq(bssid, attempt_bss_info->bssid)){
+	if(attempt_network_info && wlan_addr_eq(bssid, attempt_network_info->bss_config.bssid)){
 		if(authentication_state == UNAUTHENTICATED){
 			authentication_state = AUTHENTICATED;
 			wlan_mac_sta_join_bss_attempt_poll(0);
@@ -208,7 +208,7 @@ void wlan_mac_sta_successfully_authenticated(u8* bssid){
 }
 
 void wlan_mac_sta_successfully_associated(u8* bssid, u16 AID){
-	if(attempt_bss_info && wlan_addr_eq(bssid, attempt_bss_info->bssid)){
+	if(attempt_network_info && wlan_addr_eq(bssid, attempt_network_info->bss_config.bssid)){
 		if(authentication_state == AUTHENTICATED){
 			authentication_state = ASSOCIATED;
 			wlan_mac_sta_join_bss_attempt_poll(AID);
@@ -279,8 +279,8 @@ void wlan_mac_sta_join(){
             search_sched_id = wlan_mac_schedule_event_repeated(SCHEDULE_FINE, BSS_SEARCH_POLL_INTERVAL_USEC, SCHEDULE_REPEAT_FOREVER, (void*)wlan_mac_sta_join_bss_search_poll);
 
         } else {
-            // Create a BSS info from the current join parameters
-            attempt_bss_info = wlan_mac_high_create_bss_info((u8*)gl_join_parameters.bssid,
+            // Create a network info from the current join parameters
+            attempt_network_info = wlan_mac_high_create_network_info((u8*)gl_join_parameters.bssid,
                                                              (char*)gl_join_parameters.ssid,
                                                              (u8)gl_join_parameters.channel);
 
@@ -304,8 +304,8 @@ void wlan_mac_sta_join(){
  *****************************************************************************/
 void start_join_attempt() {
 
-    // Check the BSS info that STA is attempting to join
-    if (attempt_bss_info == NULL) {
+    // Check the network info that STA is attempting to join
+    if (attempt_network_info == NULL) {
         xil_printf("Join FSM Error: attempting to join BSS without setting attempt_bss_info\n");
         return;
     }
@@ -314,8 +314,8 @@ void start_join_attempt() {
     join_state = ATTEMPTING;
 
     // Check the current association
-    if (active_bss_info != NULL) {
-        if (wlan_addr_eq(gl_join_parameters.bssid, active_bss_info->bssid)) {
+    if (active_network_info != NULL) {
+        if (wlan_addr_eq(gl_join_parameters.bssid, active_network_info->bss_config.bssid)) {
             // Already associated with this BSS
             wlan_mac_sta_join_return_to_idle();
             return;
@@ -333,7 +333,7 @@ void start_join_attempt() {
     pause_data_queue = 1;
 
     // Move the AP's channel
-    wlan_mac_high_set_radio_channel(wlan_mac_high_bss_channel_spec_to_radio_chan(attempt_bss_info->chan_spec));
+    wlan_mac_high_set_radio_channel(wlan_mac_high_bss_channel_spec_to_radio_chan(attempt_network_info->bss_config.chan_spec));
 
     // Attempt to join the BSS
     wlan_mac_sta_join_bss_attempt_poll(0);
@@ -384,7 +384,7 @@ void wlan_mac_sta_join_return_to_idle(){
     wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
     // Remove "attempt_bss_info"
-    attempt_bss_info = NULL;
+    attempt_network_info = NULL;
 
     // Return the scan SSID parameter back to its previous state
     //     - Since wlan_mac_sta_return_to_idle() can be called at any time, the
@@ -436,7 +436,7 @@ void wlan_mac_sta_join_bss_search_poll(u32 schedule_id){
             	// networks with matching SSIDs. In this scenario, the condition on
             	// wlan_mac_scan_get_num_scans() may be made more strict to require at least
             	// one full "loop" through all channels.
-                ssid_match_list = wlan_mac_high_find_bss_info_SSID(gl_join_parameters.ssid);
+                ssid_match_list = wlan_mac_high_find_network_info_SSID(gl_join_parameters.ssid);
 
                 if (ssid_match_list->length > 0) {
                     // Join the first entry in the list
@@ -450,8 +450,8 @@ void wlan_mac_sta_join_bss_search_poll(u32 schedule_id){
                     //     - This must be done before setting "attempt_bss_info"
                     wlan_mac_sta_join_return_to_idle();
 
-                    // Set bss info to attempt to join
-                    attempt_bss_info = (bss_info_t*)(curr_dl_entry->data);
+                    // Set network info to attempt to join
+                    attempt_network_info = (network_info_t*)(curr_dl_entry->data);
 
 	               // Start the "ATTEMPTING" process
 	               start_join_attempt();
@@ -502,9 +502,9 @@ void wlan_mac_sta_join_bss_search_poll(u32 schedule_id){
  *
  *****************************************************************************/
 void wlan_mac_sta_join_bss_attempt_poll(u32 aid){
-    bss_config_t   bss_config;
+    bss_config_update_t   bss_config_update;
 
-    if (attempt_bss_info == NULL) {
+    if (attempt_network_info == NULL) {
         wlan_mac_sta_join_return_to_idle();
         return;
     }
@@ -535,25 +535,25 @@ void wlan_mac_sta_join_bss_attempt_poll(u32 aid){
                     // Set AID
                     my_aid = aid;
 
-                    // Create BSS config from attempt_bss_info
-                    memcpy(bss_config.bssid, attempt_bss_info->bssid, MAC_ADDR_LEN);
-                    strncpy(bss_config.ssid, attempt_bss_info->ssid, SSID_LEN_MAX);
+                    // Create network config from attempt_bss_info
+                    memcpy(bss_config_update.bss_config.bssid, attempt_network_info->bss_config.bssid, MAC_ADDR_LEN);
+                    strncpy(bss_config_update.bss_config.ssid, attempt_network_info->bss_config.ssid, SSID_LEN_MAX);
 
-                    bss_config.chan_spec       = attempt_bss_info->chan_spec;
-                    bss_config.ht_capable      = 1;
-                    bss_config.beacon_interval = attempt_bss_info->beacon_interval;
-                    bss_config.update_mask     = (BSS_FIELD_MASK_BSSID           |
-                                                  BSS_FIELD_MASK_CHAN            |
-                                                  BSS_FIELD_MASK_SSID            |
-                                                  BSS_FIELD_MASK_BEACON_INTERVAL |
-                                                  BSS_FIELD_MASK_HT_CAPABLE);
+                    bss_config_update.bss_config.chan_spec       = attempt_network_info->bss_config.chan_spec;
+                    bss_config_update.bss_config.ht_capable      = 1;
+                    bss_config_update.bss_config.beacon_interval = attempt_network_info->bss_config.beacon_interval;
+                    bss_config_update.update_mask     = (BSS_FIELD_MASK_BSSID           |
+                                                  	     BSS_FIELD_MASK_CHAN            |
+                                                  	     BSS_FIELD_MASK_SSID            |
+                                                  	     BSS_FIELD_MASK_BEACON_INTERVAL |
+                                                  	     BSS_FIELD_MASK_HT_CAPABLE);
 
-                    if (configure_bss(&bss_config) == 0) {
+                    if (configure_bss(&bss_config_update) == 0) {
                         // Join was successful, so execute callback
-                        join_success_callback(attempt_bss_info);
+                        join_success_callback(attempt_network_info);
                     } else {
                         // Join was not successful
-                        xil_printf("Unable to associate with BSS %s\n", attempt_bss_info->ssid);
+                        xil_printf("Unable to associate with BSS %s\n", attempt_network_info->bss_config.ssid);
                     }
 
                     // Stop the join process
@@ -561,7 +561,7 @@ void wlan_mac_sta_join_bss_attempt_poll(u32 aid){
                 break;
 
                 default:
-                    xil_printf("Error: STA attempt poll: Unknown state %d for BSS info %s\n", authentication_state, attempt_bss_info->ssid);
+                    xil_printf("Error: STA attempt poll: Unknown state %d for BSS info %s\n", authentication_state, attempt_network_info->bss_config.ssid);
                 break;
             }
         break;
@@ -592,7 +592,7 @@ void transmit_join_auth_req(){
             curr_tx_queue_buffer = (tx_queue_buffer_t*)(curr_tx_queue_element->data);
 
             // Setup the TX header
-            wlan_mac_high_setup_tx_header(&tx_header_common, attempt_bss_info->bssid, attempt_bss_info->bssid);
+            wlan_mac_high_setup_tx_header(&tx_header_common, attempt_network_info->bss_config.bssid, attempt_network_info->bss_config.bssid);
 
             // Fill in the data
             tx_length = wlan_create_auth_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_REQ, STATUS_SUCCESS);
@@ -638,10 +638,10 @@ void transmit_join_assoc_req(){
             curr_tx_queue_buffer = (tx_queue_buffer_t*)(curr_tx_queue_element->data);
 
             // Setup the TX header
-            wlan_mac_high_setup_tx_header(&tx_header_common, attempt_bss_info->bssid, attempt_bss_info->bssid);
+            wlan_mac_high_setup_tx_header(&tx_header_common, attempt_network_info->bss_config.bssid, attempt_network_info->bss_config.bssid);
 
             // Fill in the association request frame
-            tx_length = wlan_create_association_req_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, attempt_bss_info);
+            tx_length = wlan_create_association_req_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, attempt_network_info);
 
             // Setup the TX frame info
             wlan_mac_high_setup_tx_frame_info(&tx_header_common, curr_tx_queue_element, tx_length, (TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO), MANAGEMENT_QID, PKT_BUF_GROUP_GENERAL);

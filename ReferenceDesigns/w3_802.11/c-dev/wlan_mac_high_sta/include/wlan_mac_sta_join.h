@@ -42,7 +42,7 @@ int  wlan_mac_sta_join_init();
 void wlan_mac_sta_set_join_success_callback(function_ptr_t callback);
 
 volatile join_parameters_t* wlan_mac_sta_get_join_parameters();
-volatile bss_info_t* wlan_mac_sta_get_attempt_bss_info();
+volatile network_info_t* wlan_mac_sta_get_attempt_network_info();
 
 void wlan_mac_sta_join();
 void wlan_mac_sta_join_return_to_idle();
