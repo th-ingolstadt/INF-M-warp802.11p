@@ -30,7 +30,7 @@
 #include "ascii_characters.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_event_log.h"
-#include "wlan_mac_bss_info.h"
+#include "wlan_mac_network_info.h"
 #include "wlan_mac_station_info.h"
 
 
@@ -60,7 +60,7 @@ void uart_rx(u8 rxByte){ };
 
 extern tx_params_t                          default_unicast_data_tx_params;
 
-extern bss_info_t*                          active_bss_info;
+extern network_info_t*                      active_network_info;
 
 
 /*************************** Variable Definitions ****************************/
@@ -162,7 +162,7 @@ void uart_rx(u8 rxByte){
 				// 'a' - Print BSS information
 				//
 				case ASCII_a:
-					print_bss_info();
+					print_network_info();
 				break;
 
 				// ----------------------------------------
@@ -226,8 +226,8 @@ void print_station_status() {
 		timestamp = get_system_time_usec();
 		xil_printf("\f");
 
-		if(active_bss_info != NULL){
-			curr_entry = active_bss_info->members.first;
+		if(active_network_info != NULL){
+			curr_entry = active_network_info->members.first;
 
 			while(curr_entry != NULL){
 				curr_station_info = (station_info_t*)(curr_entry->data);
@@ -251,16 +251,14 @@ void print_station_status() {
 	}
 }
 
-
-
 void print_queue_status(){
 	dl_entry* curr_entry;
 	station_info_t* curr_station_info;
 	xil_printf("\nQueue Status:\n");
 	xil_printf(" FREE || MCAST|");
 
-	if(active_bss_info != NULL){
-		curr_entry = active_bss_info->members.first;
+	if(active_network_info != NULL){
+		curr_entry = active_network_info->members.first;
 		while(curr_entry != NULL){
 			curr_station_info = (station_info_t*)(curr_entry->data);
 			xil_printf("%6d|", curr_station_info->ID);
@@ -271,8 +269,8 @@ void print_queue_status(){
 
 	xil_printf("%6d||%6d|",queue_num_free(),queue_num_queued(MCAST_QID));
 
-	if(active_bss_info != NULL){
-		curr_entry = active_bss_info->members.first;
+	if(active_network_info != NULL){
+		curr_entry = active_network_info->members.first;
 		while(curr_entry != NULL){
 			curr_station_info = (station_info_t*)(curr_entry->data);
 			xil_printf("%6d|", queue_num_queued(STATION_ID_TO_QUEUE_ID(curr_station_info->ID)));
@@ -289,8 +287,6 @@ void start_periodic_print(){
 	print_scheduled = 1;
 	schedule_id = wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, 1000000, SCHEDULE_REPEAT_FOREVER, (void*)print_station_status);
 }
-
-
 
 void stop_periodic_print(){
 	if (print_scheduled) {

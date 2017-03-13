@@ -63,7 +63,7 @@
 /*************************** Function Prototypes *****************************/
 int  main();
 void handle_cpu_low_reboot();
-u32  configure_bss(bss_config_update_t* bss_config_update);
+u32	configure_bss(bss_config_update_t* bss_config_update);
 
 void remove_inactive_station_infos();
 
@@ -73,7 +73,7 @@ void association_timestamp_adjust(s64 timestamp_diff);
 int  ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length);
 
 u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_entry* rx_event_log_entry);
-bss_info_t* active_bss_info_getter();
+network_info_t* active_network_info_getter();
 void process_scan_state_change(scan_state_t scan_state);
 void poll_tx_queues(pkt_buf_group_t pkt_buf_group);
 void purge_all_data_tx_queue();
