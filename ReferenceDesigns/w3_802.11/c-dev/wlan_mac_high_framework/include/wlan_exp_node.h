@@ -332,7 +332,7 @@ typedef struct __attribute__((__packed__)){
     NETWORK_INFO_COMMON_FIELDS
     u16		num_members;
     u16 	padding2;
-} wlan_exp_network_info_t; //FIXME change name & update Python
+} wlan_exp_network_info_t;
 CASSERT(sizeof(wlan_exp_network_info_t) == 72, wlan_exp_network_info_t_alignment_check);
 
 

@@ -2550,11 +2550,11 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Response format:
             //     resp_args_32[0]     - Status
             //
-            u32              status         = CMD_PARAM_SUCCESS;
-            bss_config_t   * bss_config     = (bss_config_t *)(&cmd_args_32[1]);
+            u32 status         = CMD_PARAM_SUCCESS;
+            bss_config_update_t* bss_config_update     = (bss_config_update_t*)(&cmd_args_32[1]);
 
             // Each MAC implementation is responsible for the implementation of this command.
-            status = wlan_exp_process_config_bss_callback(bss_config);
+            status = wlan_exp_process_config_bss_callback(bss_config_update);
 
             // If there was an error, add CMD_PARAM_ERROR bits on return value
             if (status != CMD_PARAM_SUCCESS) {
