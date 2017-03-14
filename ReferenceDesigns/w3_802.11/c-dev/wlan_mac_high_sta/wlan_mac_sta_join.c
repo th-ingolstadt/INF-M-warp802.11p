@@ -502,7 +502,8 @@ void wlan_mac_sta_join_bss_search_poll(u32 schedule_id){
  *
  *****************************************************************************/
 void wlan_mac_sta_join_bss_attempt_poll(u32 aid){
-    bss_config_update_t   bss_config_update;
+    bss_config_t    bss_config;
+    u32				update_mask;
 
     if (attempt_network_info == NULL) {
         wlan_mac_sta_join_return_to_idle();
@@ -536,19 +537,19 @@ void wlan_mac_sta_join_bss_attempt_poll(u32 aid){
                     my_aid = aid;
 
                     // Create network config from attempt_bss_info
-                    memcpy(bss_config_update.bss_config.bssid, attempt_network_info->bss_config.bssid, MAC_ADDR_LEN);
-                    strncpy(bss_config_update.bss_config.ssid, attempt_network_info->bss_config.ssid, SSID_LEN_MAX);
+                    memcpy(bss_config.bssid, attempt_network_info->bss_config.bssid, MAC_ADDR_LEN);
+                    strncpy(bss_config.ssid, attempt_network_info->bss_config.ssid, SSID_LEN_MAX);
 
-                    bss_config_update.bss_config.chan_spec       = attempt_network_info->bss_config.chan_spec;
-                    bss_config_update.bss_config.ht_capable      = 1;
-                    bss_config_update.bss_config.beacon_interval = attempt_network_info->bss_config.beacon_interval;
-                    bss_config_update.update_mask     = (BSS_FIELD_MASK_BSSID           |
-                                                  	     BSS_FIELD_MASK_CHAN            |
-                                                  	     BSS_FIELD_MASK_SSID            |
-                                                  	     BSS_FIELD_MASK_BEACON_INTERVAL |
-                                                  	     BSS_FIELD_MASK_HT_CAPABLE);
+                    bss_config.chan_spec       = attempt_network_info->bss_config.chan_spec;
+                    bss_config.ht_capable      = 1;
+                    bss_config.beacon_interval = attempt_network_info->bss_config.beacon_interval;
+                    update_mask     = (BSS_FIELD_MASK_BSSID           |
+                                       BSS_FIELD_MASK_CHAN            |
+                                       BSS_FIELD_MASK_SSID            |
+                                       BSS_FIELD_MASK_BEACON_INTERVAL |
+                                       BSS_FIELD_MASK_HT_CAPABLE);
 
-                    if (configure_bss(&bss_config_update) == 0) {
+                    if (configure_bss(&bss_config, update_mask) == 0) {
                         // Join was successful, so execute callback
                         join_success_callback(attempt_network_info);
                     } else {

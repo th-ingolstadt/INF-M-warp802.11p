@@ -181,7 +181,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 sta_disassociate();
 
                 // Set "my_bss_info" to NULL
-                configure_bss(NULL);
+                configure_bss(NULL, 0);
             }
 
             if (flags & CMD_PARAM_NODE_RESET_FLAG_NETWORK_LIST) {

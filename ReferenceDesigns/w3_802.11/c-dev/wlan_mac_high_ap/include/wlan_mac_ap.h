@@ -100,7 +100,7 @@ void association_timestamp_adjust(s64 timestamp_diff);
 u32  deauthenticate_station( station_info_t* station_info );
 void deauthenticate_all_stations();
 void handle_cpu_low_reboot(u32 type);
-u32  configure_bss(bss_config_update_t* bss_config_update);
+u32  configure_bss(bss_config_t* bss_config, u32 update_mask);
 void mpdu_dequeue(dl_entry* packet);
 
 void button_0_press();

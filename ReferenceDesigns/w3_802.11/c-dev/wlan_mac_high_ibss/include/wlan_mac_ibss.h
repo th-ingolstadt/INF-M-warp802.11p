@@ -63,7 +63,7 @@
 /*************************** Function Prototypes *****************************/
 int  main();
 void handle_cpu_low_reboot();
-u32	configure_bss(bss_config_update_t* bss_config_update);
+u32  configure_bss(bss_config_t* bss_config, u32 update_mask);
 
 void remove_inactive_station_infos();
 

@@ -90,7 +90,7 @@ void purge_all_data_tx_queue();
 network_info_t * 	   active_network_info_getter();
 
 int  sta_disassociate();
-u32	configure_bss(bss_config_update_t* bss_config_update);
+u32  configure_bss(bss_config_t* bss_config, u32 update_mask);
 
 void uart_rx(u8 rxByte);
 

@@ -106,14 +106,6 @@ typedef enum __attribute__((__packed__)) {
 
 CASSERT(sizeof(chan_type_t) == 1, chan_type_t_alignment_check);
 
-#define NETWORK_INFO_COMMON_FIELDS              \
-		bss_config_t bss_config;				\
-		u32     flags;							\
-		u32		capabilities;					\
-		u64     latest_beacon_rx_time;			\
-		s8      latest_beacon_rx_power;			\
-		u8		padding1[3];					\
-
 /********************************************************************
  * @brief Channel Specifications Struct
  *
@@ -126,6 +118,15 @@ typedef struct __attribute__((__packed__)){
 	chan_type_t    chan_type;
 } chan_spec_t;
 CASSERT(sizeof(chan_spec_t) == 2, chan_spec_t_alignment_check);
+
+#define NETWORK_INFO_COMMON_FIELDS              \
+		bss_config_t bss_config;				\
+		u32     flags;							\
+		u32		capabilities;					\
+		u64     latest_beacon_rx_time;			\
+		s8      latest_beacon_rx_power;			\
+		u8		padding1[3];					\
+
 
 typedef struct __attribute__((__packed__)){
     u8              bssid[MAC_ADDR_LEN];               /* BSS ID - 48 bit HW address */
@@ -151,20 +152,6 @@ typedef struct __attribute__((__packed__)){
     dl_list members;
 } network_info_t;
 CASSERT(sizeof(network_info_t) == 80, network_info_t_alignment_check);
-
-
-
-/********************************************************************
- * @brief BSS Configuration Structure
- *
- * This struct contains all the BSS info fields that can be modified.
- ********************************************************************/
-typedef struct __attribute__((__packed__)){
-    u32            update_mask;                       /* Mask of fields that were updated */
-    bss_config_t   bss_config;
-} bss_config_update_t;
-CASSERT(sizeof(bss_config_update_t) == 52, bss_config_update_t_alignment_check);
-
 
 //Define a new type of dl_entry for pointing to network_info_t
 // structs that contains some extra fields for faster searching

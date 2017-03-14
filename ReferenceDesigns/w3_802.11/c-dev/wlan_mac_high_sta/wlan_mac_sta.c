@@ -197,7 +197,7 @@ int main() {
 	wlan_mac_high_init();
 
 	// STA is not currently a member of a BSS
-	configure_bss(NULL);
+	configure_bss(NULL, 0);
 
 	// Initialize hex display to "No BSS"
 	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0xFF);
@@ -785,7 +785,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 
 							// Remove the association
 							curr_network_info = active_network_info;
-							configure_bss(NULL);
+							configure_bss(NULL, 0);
 
 							//
 							// Note:  This is the place in the code where it would be easy to add new
@@ -972,7 +972,7 @@ int  sta_disassociate( void ) {
 		}
 
 		// Set BSS to NULL
-		configure_bss(NULL);
+		configure_bss(NULL, 0);
 	}
 
 	return status;
@@ -982,7 +982,7 @@ int  sta_disassociate( void ) {
 /**
  *
  *****************************************************************************/
-u32	configure_bss(bss_config_update_t* bss_config_update){
+u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 	u32                 return_status               = 0;
 	u8                  send_channel_switch_to_low  = 0;
 	u8                  send_beacon_config_to_low   = 0;
@@ -1000,24 +1000,24 @@ u32	configure_bss(bss_config_update_t* bss_config_update){
 	//      configuration with valid parameters before discovering an invalid
 	//      parameter.
 
-	if (bss_config_update != NULL) {
-		if (bss_config_update->update_mask & BSS_FIELD_MASK_BSSID) {
-			if (wlan_addr_eq(bss_config_update->bss_config.bssid, zero_addr) == 0) {
-				if ((active_network_info != NULL) && wlan_addr_eq(bss_config_update->bss_config.bssid, active_network_info->bss_config.bssid)) {
+	if (bss_config != NULL) {
+		if (update_mask & BSS_FIELD_MASK_BSSID) {
+			if (wlan_addr_eq(bss_config->bssid, zero_addr) == 0) {
+				if ((active_network_info != NULL) && wlan_addr_eq(bss_config->bssid, active_network_info->bss_config.bssid)) {
 					// The caller of this function claimed that it was updating the BSSID,
 					// but the new BSSID matches the one already specified in active_bss_info.
 					// Complete the rest of this function as if that bit in the update mask
 					// were not set
-					bss_config_update->update_mask &= ~BSS_FIELD_MASK_BSSID;
+					update_mask &= ~BSS_FIELD_MASK_BSSID;
 				} else {
 					// Changing the BSSID, perform necessary argument checks
-					if ((bss_config_update->bss_config.bssid[0] & MAC_ADDR_MSB_MASK_LOCAL) == 1) {
+					if ((bss_config->bssid[0] & MAC_ADDR_MSB_MASK_LOCAL) == 1) {
 						// In the STA implementation, the BSSID provided must not
 						// be locally generated.
 						return_status |= BSS_CONFIG_FAILURE_BSSID_INVALID;
 					}
-					if (((bss_config_update->update_mask & BSS_FIELD_MASK_SSID) == 0) ||
-						((bss_config_update->update_mask & BSS_FIELD_MASK_CHAN) == 0)) {
+					if (((update_mask & BSS_FIELD_MASK_SSID) == 0) ||
+						((update_mask & BSS_FIELD_MASK_CHAN) == 0)) {
 						return_status |= BSS_CONFIG_FAILURE_BSSID_INSUFFICIENT_ARGUMENTS;
 					}
 				}
@@ -1028,18 +1028,18 @@ u32	configure_bss(bss_config_update_t* bss_config_update){
 				return_status |= BSS_CONFIG_FAILURE_BSSID_INSUFFICIENT_ARGUMENTS;
 			}
 		}
-		if (bss_config_update->update_mask & BSS_FIELD_MASK_CHAN) {
+		if (update_mask & BSS_FIELD_MASK_CHAN) {
 			if (wlan_verify_channel(
-					wlan_mac_high_bss_channel_spec_to_radio_chan(bss_config_update->bss_config.chan_spec)) != XST_SUCCESS) {
+					wlan_mac_high_bss_channel_spec_to_radio_chan(bss_config->chan_spec)) != XST_SUCCESS) {
 				return_status |= BSS_CONFIG_FAILURE_CHANNEL_INVALID;
 			}
 		}
-		if (bss_config_update->update_mask & BSS_FIELD_MASK_BEACON_INTERVAL) {
+		if (update_mask & BSS_FIELD_MASK_BEACON_INTERVAL) {
 			// There is no error condition for setting the beacon interval
 			// at the STA since a STA is incapable of sending beacons
 		}
-		if (bss_config_update->update_mask & BSS_FIELD_MASK_HT_CAPABLE) {
-			if (bss_config_update->bss_config.ht_capable > 1) {
+		if (update_mask & BSS_FIELD_MASK_HT_CAPABLE) {
+			if (bss_config->ht_capable > 1) {
 				return_status |= BSS_CONFIG_FAILURE_HT_CAPABLE_INVALID;
 			}
 		}
@@ -1055,7 +1055,7 @@ u32	configure_bss(bss_config_update_t* bss_config_update){
 		// configuration parameters are only partially updated.
 		curr_interrupt_state = wlan_mac_high_interrupt_stop();
 
-		if ((bss_config_update == NULL) || (bss_config_update->update_mask & BSS_FIELD_MASK_BSSID)) {
+		if ((bss_config == NULL) || (update_mask & BSS_FIELD_MASK_BSSID)) {
 			// Adopting a new BSSID. This could mean either
 			//    1) Shutting the BSS down
 			// or 2) Shutting the BSS down and then starting a new BSS.
@@ -1108,7 +1108,7 @@ u32	configure_bss(bss_config_update_t* bss_config_update){
 			// was executed just above.  Rather that continuing to check non-NULLness of bss_config
 			// throughout the rest of this function, just re-enable interrupts and return early.
 
-			if (bss_config_update == NULL) {
+			if (bss_config == NULL) {
 				wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
 				return return_status;
 			}
@@ -1118,7 +1118,7 @@ u32	configure_bss(bss_config_update_t* bss_config_update){
 
 			// Update BSS
 			//     - BSSID must not be zero_addr (reserved address)
-			if (wlan_addr_eq(bss_config_update->bss_config.bssid, zero_addr) == 0) {
+			if (wlan_addr_eq(bss_config->bssid, zero_addr) == 0) {
 				// Stop the join state machine if it is running
 				if (wlan_mac_sta_is_joining()) {
 					wlan_mac_sta_join_return_to_idle();
@@ -1134,7 +1134,7 @@ u32	configure_bss(bss_config_update_t* bss_config_update){
 				//         of the error checking at the top of this function, the bss_config will
 				//         contain a valid SSID as well as channel. These fields will be updated
 				//         in step 3).
-				local_network_info = wlan_mac_high_create_network_info(bss_config_update->bss_config.bssid, "", 0);
+				local_network_info = wlan_mac_high_create_network_info(bss_config->bssid, "", 0);
 
 				if (local_network_info != NULL) {
 					local_network_info->flags |= NETWORK_FLAGS_KEEP;
@@ -1175,19 +1175,19 @@ u32	configure_bss(bss_config_update_t* bss_config_update){
 		//      template packet buffer.
 		if (active_network_info != NULL) {
 
-			if (bss_config_update->update_mask & BSS_FIELD_MASK_CHAN) {
-				active_network_info->bss_config.chan_spec = bss_config_update->bss_config.chan_spec;
+			if (update_mask & BSS_FIELD_MASK_CHAN) {
+				active_network_info->bss_config.chan_spec = bss_config->chan_spec;
 				send_channel_switch_to_low = 1;
 			}
-			if (bss_config_update->update_mask & BSS_FIELD_MASK_SSID) {
-				strncpy(active_network_info->bss_config.ssid, bss_config_update->bss_config.ssid, SSID_LEN_MAX);
+			if (update_mask & BSS_FIELD_MASK_SSID) {
+				strncpy(active_network_info->bss_config.ssid, bss_config->ssid, SSID_LEN_MAX);
 			}
-			if (bss_config_update->update_mask & BSS_FIELD_MASK_BEACON_INTERVAL) {
-				active_network_info->bss_config.beacon_interval = bss_config_update->bss_config.beacon_interval;
+			if (update_mask & BSS_FIELD_MASK_BEACON_INTERVAL) {
+				active_network_info->bss_config.beacon_interval = bss_config->beacon_interval;
 				send_beacon_config_to_low = 1;
 			}
-			if (bss_config_update->update_mask & BSS_FIELD_MASK_HT_CAPABLE) {
-				if (bss_config_update->bss_config.ht_capable) {
+			if (update_mask & BSS_FIELD_MASK_HT_CAPABLE) {
+				if (bss_config->ht_capable) {
 					active_network_info->capabilities |= BSS_CAPABILITIES_HT_CAPABLE;
 				} else {
 					active_network_info->capabilities &= ~BSS_CAPABILITIES_HT_CAPABLE;
