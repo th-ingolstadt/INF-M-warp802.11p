@@ -38,7 +38,7 @@ class WlanExpNodeSta(node.WlanExpNode):
             #. Channel: Logical channel for Tx/Rx by BSS members
             #. SSID: Variable length string (ie the name of the network)
 
-        If a node is not a member of a BSS (i.e. ``n.get_bss_info()`` returns
+        If a node is not a member of a BSS (i.e. ``n.get_network_info()`` returns
         ``None``), then the node requires all parameters of a minimum valid 
         set of BSS information be specified (i.e. BSSID, Channel, and SSID).  
         
@@ -184,7 +184,7 @@ class WlanExpNodeSta(node.WlanExpNode):
         scan parameters, this timeout value may need to be adjusted to allow
         the STA to scan all channels before the timeout period is exceeded.  
         If the timeout is None, then the method will return immediately and
-        the methods is_joining() and get_bss_info() can be used to determine 
+        the methods is_joining() and get_network_info() can be used to determine 
         if the STA has joined the BSS.
         
         If this method starts an active scan, the scan will use the parameters
@@ -239,7 +239,7 @@ class WlanExpNodeSta(node.WlanExpNode):
         state machine runs until the target network is successfully joined or
         the joing process is terminated by the user. This method tests whether
         the join process is still running. To check success or failure of the
-        join process, use node.get_bss_info().
+        join process, use node.get_network_info().
         
         Returns:
             status (bool):
@@ -272,16 +272,16 @@ class WlanExpNodeSta(node.WlanExpNode):
             associated (bool): Do the SSID / BSSID matche the BSS of the node?
         """
         if ssid is not None:
-            bss_info = self.get_bss_info()
+            network_info = self.get_network_info()
         
-            if bss_info is None:
+            if network_info is None:
                 return False
             
-            if (bss_info['ssid'] != ssid):
+            if (network_info['ssid'] != ssid):
                 return False
         
             if bssid is not None:
-                if (bss_info['bssid'] != bssid):
+                if (network_info['bssid'] != bssid):
                     return False
         
         return True

@@ -723,12 +723,12 @@ def check_bss_membership(nodes, verbose=False):
     ###################################
     # Infrastructure network (1 AP and 1+ STA and 0 IBSS)
     if (len(ap) == 1):
-        # Check AP BSS info
+        # Check AP network info
         ap     = ap[0]
-        ap_bss = ap.get_bss_info()
+        ap_network = ap.get_network_info()
         
-        if (ap_bss is None):
-            msg += 'AP BSS is None - No BSS membership possible\n'
+        if (ap_network is None):
+            msg += 'AP network is None - No BSS membership possible\n'
             network_good = False
         
         # Check AP station_infos
@@ -741,16 +741,16 @@ def check_bss_membership(nodes, verbose=False):
         # Check STA BSS info
         if (network_good):
             for s in stas:
-                sta_bss = s.get_bss_info()
+                sta_network = s.get_network_info()
 
-                if (sta_bss is None):
-                    msg += '"{0}" BSS is None - No BSS membership possible\n'.format(repr(s))
+                if (sta_network is None):
+                    msg += '"{0}" network is None - No BSS membership possible\n'.format(repr(s))
                     network_good = False
                 else:
-                    if (not bss_cfg_eq(ap_bss, sta_bss)):
-                        msg += 'Mismatch between BSS Info:\n\n'
-                        msg += '"{0}":\n{1}\n\n'.format(repr(ap), print_bss_info(ap_bss))
-                        msg += '"{0}":\n{1}\n'.format(repr(s), print_bss_info(sta_bss))
+                    if (not bss_cfg_eq(ap_network, sta_network)):
+                        msg += 'Mismatch between Network Info:\n\n'
+                        msg += '"{0}":\n{1}\n\n'.format(repr(ap), print_bss_info(ap_network))
+                        msg += '"{0}":\n{1}\n'.format(repr(s), print_bss_info(sta_network))
                         network_good = False
         
     ###################################
@@ -758,24 +758,24 @@ def check_bss_membership(nodes, verbose=False):
     elif (len(ibsss) > 1):
         # Check that all BSS infos match and are non-null
         #     - Use first node as arbitrary 'golden' config
-        golden_bss = ibsss[0].get_bss_info()
+        golden_network = ibsss[0].get_network_info()
 
-        if (golden_bss is None):
-            msg += '"{0}" BSS is None - No BSS membership possible\n'.format(repr(ibsss[0]))
+        if (golden_network is None):
+            msg += '"{0}" network is None - No BSS membership possible\n'.format(repr(ibsss[0]))
             network_good = False
             
         if (network_good):
             for n in ibsss[1:]:
-                n_bss = n.get_bss_info()
+                n_network = n.get_network_info()
 
-                if (n_bss is None):
-                    msg += '"{0}" BSS is None - No BSS membership possible\n'.format(repr(n))
+                if (n_network is None):
+                    msg += '"{0}" network is None - No BSS membership possible\n'.format(repr(n))
                     network_good = False
                 else:
-                    if (not bss_cfg_eq(golden_bss, n_bss)):
-                        msg += 'Mismatch between BSS Info:\n\n'
-                        msg += '"{0}":\n{1}\n\n'.format(repr(ibsss[0]), print_bss_info(golden_bss))
-                        msg += '"{0}":\n{1}\n'.format(repr(n), print_bss_info(n_bss))
+                    if (not bss_cfg_eq(golden_network, n_network)):
+                        msg += 'Mismatch between Network Info:\n\n'
+                        msg += '"{0}":\n{1}\n\n'.format(repr(ibsss[0]), print_bss_info(golden_network))
+                        msg += '"{0}":\n{1}\n'.format(repr(n), print_bss_info(n_network))
                         network_good = False
     else:
         # Other combination of nodes that somehow passed the nodes type checking above

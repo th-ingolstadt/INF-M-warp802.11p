@@ -130,7 +130,7 @@ Association State
 These ``WlanExpNode`` commands are used to modify / query the association state of the node.
 
 .. automethod:: wlan_exp.node.WlanExpNode.configure_bss
-.. automethod:: wlan_exp.node.WlanExpNode.get_bss_info
+.. automethod:: wlan_exp.node.WlanExpNode.get_network_info
 .. automethod:: wlan_exp.node.WlanExpNode.get_bss_members
 .. automethod:: wlan_exp.node.WlanExpNode.get_station_info_list
 .. automethod:: wlan_exp.node.WlanExpNode.get_network_list

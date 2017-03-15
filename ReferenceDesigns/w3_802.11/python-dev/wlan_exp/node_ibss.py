@@ -110,7 +110,7 @@ class WlanExpNodeIBSS(node.WlanExpNode):
             #. SSID: Variable length string (ie the name of the network)
             #. Beacon Interval:  Interval (in TUs) for beacons
 
-        If a node is not a member of a BSS (i.e. ``n.get_bss_info()`` returns
+        If a node is not a member of a BSS (i.e. ``n.get_network_info()`` returns
         ``None``), then the node requires all parameters of a minimum valid 
         set of BSS information be specified (i.e. BSSID, Channel, SSID, and
         Beacon Interval).  

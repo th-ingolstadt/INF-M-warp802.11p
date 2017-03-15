@@ -1,4 +1,4 @@
-== wlan_exp v1.6.2   Log Entry Types ==
+== wlan_exp v1.7.0   Log Entry Types ==
 
 
 ----

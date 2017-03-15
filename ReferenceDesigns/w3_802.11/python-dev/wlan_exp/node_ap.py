@@ -39,7 +39,7 @@ class WlanExpNodeAp(node.WlanExpNode):
             #. SSID: Variable length string (ie the name of the network)
             #. Beacon Interval:  Interval (in TUs) for beacons
 
-        If a node is not a member of a BSS (i.e. ``n.get_bss_info()`` returns
+        If a node is not a member of a BSS (i.e. ``n.get_network_info()`` returns
         ``None``), then the node requires all parameters of a minimum valid 
         set of BSS information be specified (i.e. Channel, SSID, and
         Beacon Interval).  For an AP, if BSSID is not specified, then it is 
@@ -83,7 +83,6 @@ class WlanExpNodeAp(node.WlanExpNode):
             else:
                 # User did not provide a BSSID argument - use the AP's MAC address
                 bssid = self.wlan_mac_address
-
         resp_args = self.send_cmd(cmds.NodeConfigBSS(bssid=bssid, ssid=ssid, channel=channel,
                                                      beacon_interval=beacon_interval, dtim_period=dtim_period, ht_capable=ht_capable))
         
@@ -375,20 +374,20 @@ class WlanExpNodeAp(node.WlanExpNode):
             device_list = [device_list]
             ret_list    = False
 
-        # Get the AP's current BSS configuration
-        bss_info = self.get_bss_info()
+        # Get the AP's current Network information
+        network_info = self.get_network_info()
 
-        if bss_info is None:
-            msg  = "\n    Cannot add association:  AP BSS configuration is currently null."
-            msg += "\n    Configure the AP's BSS using configure_bss() before calling add_association()."
+        if network_info is None:
+            msg  = "\n    Cannot add association:  AP network configuration is currently null."
+            msg += "\n    Configure the AP's network using configure_bss() before calling add_association()."
             raise Exception(msg)
 
-        bssid           = bss_info['bssid']
-        channel         = bss_info['channel']
-        ssid            = bss_info['ssid']
-        beacon_interval = bss_info['beacon_interval']
+        bssid           = network_info['bssid']
+        channel         = network_info['channel']
+        ssid            = network_info['ssid']
+        beacon_interval = network_info['beacon_interval']
         
-        if (bss_info['capabilities'] & bss_info.get_consts().capabilities.HT_CAPABLE):
+        if (network_info['capabilities'] & network_info.get_consts().capabilities.HT_CAPABLE):
             ht_capable  = True
         else:
             ht_capable  = False

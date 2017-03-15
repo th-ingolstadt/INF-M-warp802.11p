@@ -133,7 +133,7 @@ for node in [node1, node2]:
     node.enable_ethernet_portal(enable=False)
     node.set_tx_rate_unicast(mcs, phy_mode, curr_assoc=True, new_assoc=True)
     node.reset(log=True, txrx_counts=True, ltg=True, queue_data=True) # Do not reset associations/bss_info
-    bss_info = node.get_bss_info()
+    network_info = node.get_network_info()
 
     msg = ""
     if (node == node1):
@@ -142,7 +142,7 @@ for node in [node1, node2]:
         msg += "\nNode 2: \n"
 
     msg += "    Description = {0}\n".format(node.description)
-    msg += "    Channel     = {0}\n".format(util.channel_info_to_str(util.get_channel_info(bss_info['channel'])))
+    msg += "    Channel     = {0}\n".format(util.channel_info_to_str(util.get_channel_info(network_info['channel'])))
     msg += "    Rate        = {0}\n".format(util.rate_info_to_str(rate_info))
     print(msg)
 

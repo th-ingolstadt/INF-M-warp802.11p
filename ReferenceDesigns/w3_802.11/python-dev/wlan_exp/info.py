@@ -13,7 +13,7 @@ This module provides class definitions for information classes.
 Classes (see below for more information):
     Info()            -- Base class for information classes
     StationInfo()     -- Base class for station information
-    BSSInfo()         -- Base class for basic service set (BSS) information
+    NetworkInfo()     -- Base class for network information
     CountsInfo()      -- Base class for information on node counts
 
 """
@@ -22,7 +22,7 @@ import sys
 
 import wlan_exp.util as util
 
-__all__ = ['StationInfo', 'BSSInfo', 'TxRxCounts']
+__all__ = ['StationInfo', 'NetworkInfo', 'TxRxCounts']
 
 # Fix to support Python 2.x and 3.x
 if sys.version[0]=="3": long=None
@@ -66,27 +66,33 @@ info_field_defs = {
         ('tx_mac_flags',                   'B',      'uint8',   'Flags for Tx MAC config for new transmissions to device'),
         ('padding2',                       '3x',     '3uint8',  '')],
 
-    'BSS_INFO' : [
+    'NETWORK_INFO' : [
         ('bssid',                       '6s',     '6uint8',  'BSS ID'),
         ('channel',                     'B',      'uint8',   'Primary channel'),
         ('channel_type',                'B',      'uint8',   'Channel Type'),
-        ('latest_beacon_rx_time',       'Q',      'uint64',  'Value of System Time in microseconds of last beacon Rx'),
         ('ssid',                        '33s',    '33uint8', 'SSID (32 chars max)'),
-        ('latest_beacon_rx_power',      'b',      'int8',    'Last observed beacon Rx Power (dBm)'),
-        ('padding0',                    '2x',     'uint16',  ''),
-        ('capabilities',                'H',      'uint16',  'Supported capabilities of the BSS'),
-        ('beacon_interval',             'H',      'uint16',  'Beacon interval - In time units of 1024 us')],
-
-    'BSS_CONFIG' : [
-        ('update_mask',                 'I',      'uint32',  'Bit mask indicating which fields were updated'),    
-        ('bssid',                       '6s',     '6uint8',  'BSS ID'),
-        ('beacon_interval',             'H',      'uint16',  'Beacon interval - In time units of 1024 us'),
-        ('ssid',                        '33s',    '33uint8', 'SSID (32 chars max)'),
-        ('channel',                     'B',      'uint8',   'Primary channel'),
-        ('channel_type',                'B',      'uint8',   'Channel Type'),
         ('ht_capable',                  'B',      'uint8',   'Support for HTMF Tx/Rx'),
+        ('beacon_interval',             'H',      'uint16',  'Beacon interval - In time units of 1024 us'),
         ('dtim_period',                 'B',      'uint8',   'DTIM Period - In units of beacon intervals'),
-        ('reserved',                    '6x',     '6uint8',  'Reserved')],
+        ('padding0',                    '3x',     '3uint8',  ''),
+        ('flags',                       'I',      'uint32',  'Bit Flags'),
+        ('capabilities',                'I',      'uint32',  'Supported capabilities of the BSS'),
+        ('latest_beacon_rx_time',       'Q',      'uint64',  'Value of System Time in microseconds of last beacon Rx'),
+        ('latest_beacon_rx_power',      'b',      'int8',    'Last observed beacon Rx Power (dBm)'),
+        ('padding1',                    '3x',     '3uint8',  ''),
+        ('num_members',                 'H',      'uint16',  'Number of members in the BSS'),
+        ('padding2',                    '2x',     '2uint8',  '')],
+
+    'BSS_CONFIG_UPDATE' : [
+        ('bssid',                       '6s',     '6uint8',  'BSS ID'),
+        ('channel',                     'B',      'uint8',   'Primary channel'),
+        ('channel_type',                'B',      'uint8',   'Channel Type'),
+        ('ssid',                        '33s',    '33uint8', 'SSID (32 chars max)'),
+        ('ht_capable',                  'B',      'uint8',   'Support for HTMF Tx/Rx'),
+        ('beacon_interval',             'H',      'uint16',  'Beacon interval - In time units of 1024 us'),
+        ('dtim_period',                 'B',      'uint8',   'DTIM Period - In units of beacon intervals'),
+        ('padding0',                    '3x',     '3uint8',  ''),
+        ('update_mask',                 'I',      'uint32',  'Bit mask indicating which fields were updated')],
 
     'TXRX_COUNTS' : [
         ('retrieval_timestamp',         'Q',      'uint64',  'Value of System Time in microseconds when structure retrieved from the node'),
@@ -125,7 +131,10 @@ info_consts_defs = {
         'tx_mac_flags'  : util.consts_dict()
     }),
 
-    'BSS_INFO'     : util.consts_dict({
+    'NETWORK_INFO'     : util.consts_dict({
+        'flags'         : util.consts_dict({
+            'KEEP'                     : 0x00000001,
+        }),
         'channel_type'  : util.consts_dict({
             'BW20'                     : 0x0000,
             'BW40_SEC_BELOW'           : 0x0001,
@@ -139,7 +148,7 @@ info_consts_defs = {
         })
     }),
 
-    'BSS_CONFIG'   : util.consts_dict({
+    'BSS_CONFIG_UPDATE'   : util.consts_dict({
         'update_mask'  : util.consts_dict({
             'BSSID'                    : 0x00000001,
             'CHANNEL'                  : 0x00000002,
@@ -523,11 +532,11 @@ class StationInfo(InfoStruct):
 
 
 # -----------------------------------------------------------------------------
-# BSS Info Class
+# Network Info Class
 # -----------------------------------------------------------------------------
 
-class BSSInfo(InfoStruct):
-    """Class for Basic Service Set (BSS) Information
+class NetworkInfo(InfoStruct):
+    """Class for Network Information
 
     Attributes:
         bssid (int, str):  40-bit ID of the BSS either as a integer or colon delimited
@@ -542,9 +551,9 @@ class BSSInfo(InfoStruct):
             (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds)
     """
     def __init__(self, bssid=None, ssid=None, channel=None, ibss_status=None, beacon_interval=None):
-        super(BSSInfo, self).__init__(field_name='BSS_INFO')
+        super(NetworkInfo, self).__init__(field_name='NETWORK_INFO')
         
-        # Only initialize the BSSInfo() if one of the fields is provided.
+        # Only initialize the NetworkInfo() if one of the fields is provided.
         init_fields = False
         
         if ((bssid is not None) or (ssid is not None) or (channel is not None) or 
@@ -559,13 +568,13 @@ class BSSInfo(InfoStruct):
         #     beacon_interval - 100
         #
         # This is done so there is no issue during serialization when instantiating 
-        # a BSSInfo() with initialized fields.
+        # a NetworkInfo() with initialized fields.
         #
         if init_fields:
             # Set default values for fields not set by this method
             self['timestamp']                  = 0
             self['latest_beacon_rx_time']      = 0
-            self['state']                      = self._consts.state.UNAUTHENTICATED
+            self['state']                      = self._consts.state.UNAUTHENTICATED #FIXME: I don't track this -- where does `state` come from?
             self['latest_beacon_rx_power']     = 0
             self['flags']                      = 0
 
@@ -597,7 +606,7 @@ class BSSInfo(InfoStruct):
                 self['channel']      = channel
                 self['channel_type'] = self._consts.channel_type.BW20
             else:
-                raise AttributeError("Channel must be provided when initializing BSSInfo() fields")
+                raise AttributeError("Channel must be provided when initializing NetworkInfo() fields")
                 
 
             # Set the beacon interval
@@ -639,7 +648,7 @@ class BSSInfo(InfoStruct):
                 if type(bssid) in [int, long]:
                     self['bssid']        = util.mac_addr_to_str(self['bssid'])
             else:
-                raise AttributeError("BSSID must be provided when initializing BSSInfo() fields")
+                raise AttributeError("BSSID must be provided when initializing NetworkInfo() fields")
 
 
     def serialize(self):
@@ -648,7 +657,7 @@ class BSSInfo(InfoStruct):
         self['bssid'] = util.str_to_mac_addr(self['bssid'])
         self['bssid'] = util.mac_addr_to_byte_str(self['bssid'])
 
-        ret_val = super(BSSInfo, self).serialize()
+        ret_val = super(NetworkInfo, self).serialize()
 
         # Revert bssid to colon delimited string
         self['bssid'] = bssid_tmp
@@ -657,10 +666,10 @@ class BSSInfo(InfoStruct):
 
 
     def deserialize(self, buf):
-        super(BSSInfo, self).deserialize(buf)
+        super(NetworkInfo, self).deserialize(buf)
 
         if (False):
-            msg  = "BSS Info Data buffer:\n"
+            msg  = "Network Info Data buffer:\n"
             msg += util.buffer_to_str(buf)
             print(msg)
 
@@ -688,11 +697,11 @@ class BSSInfo(InfoStruct):
 
 
 # -----------------------------------------------------------------------------
-# BSS Info Class
+# BSS Config Update Class
 # -----------------------------------------------------------------------------
 
-class BSSConfig(InfoStruct):
-    """Class for Basic Service Set (BSS) Configuration Information
+class BSSConfigUpdate(InfoStruct):
+    """Class for updating Basic Service Set (BSS) Configuration Information
 
     Attributes:
         bssid (int):  48-bit ID of the BSS either as a integer; A value of 
@@ -714,7 +723,7 @@ class BSSConfig(InfoStruct):
             
     """
     def __init__(self, bssid=False, ssid=None, channel=None, beacon_interval=False, dtim_period=None, ht_capable=None):                       
-        super(BSSConfig, self).__init__(field_name='BSS_CONFIG')
+        super(BSSConfigUpdate, self).__init__(field_name='BSS_CONFIG_UPDATE')
 
         # Default values used if value not provided:
         #     bssid           - 00:00:00:00:00:00
@@ -845,7 +854,7 @@ class BSSConfig(InfoStruct):
         self['bssid'] = util.str_to_mac_addr(self['bssid'])
         self['bssid'] = util.mac_addr_to_byte_str(self['bssid'])
 
-        ret_val = super(BSSConfig, self).serialize()
+        ret_val = super(BSSConfigUpdate, self).serialize()
 
         # Revert bssid to colon delimited string
         self['bssid'] = bssid_tmp

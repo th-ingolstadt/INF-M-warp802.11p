@@ -31,7 +31,7 @@ __all__ = [# Log command classes
            'NodeProcScanParam', 'NodeProcScan', 
            # Association command classes
            'NodeConfigBSS', 'NodeDisassociate', 'NodeGetStationInfo', 
-           'NodeGetBSSInfo',
+           'NodeGetNetworkInfo',
            # Queue command classes
            'QueueTxDataPurgeAll',
            # AP command classes
@@ -1523,10 +1523,10 @@ class NodeConfigBSS(message.Cmd):
         self.command = _CMD_GROUP_NODE + CMDID_NODE_CONFIG_BSS
         
         import struct
-        import wlan_exp.info as info
+        import wlan_exp.info as info    
 
         # Create BSS Config         
-        bss_config = info.BSSConfig(bssid=bssid, ssid=ssid, channel=channel, 
+        bss_config_update = info.BSSConfigUpdate(bssid=bssid, ssid=ssid, channel=channel, 
                                     beacon_interval=beacon_interval, 
                                     dtim_period=dtim_period,
                                     ht_capable=ht_capable)
@@ -1539,8 +1539,8 @@ class NodeConfigBSS(message.Cmd):
         self.dtim_period     = dtim_period
         self.ht_capable      = ht_capable
 
-        # Convert BSSConfig() to bytes for transfer
-        data_to_send = bss_config.serialize()
+        # Convert BSSConfigUpdate() to bytes for transfer
+        data_to_send = bss_config_update.serialize()
         data_len     = len(data_to_send)
 
         self.add_args(data_len)
@@ -1646,11 +1646,12 @@ class NodeGetStationInfoList(message.BufferCmd):
 
 # End Class
 
+#FIXME: Soft deprecate NodeGetBSSInfo
 
-class NodeGetBSSInfo(message.BufferCmd):
-    """Command to get the BSS info for a given BSS ID."""
+class NodeGetNetworkInfo(message.BufferCmd):
+    """Command to get the Network info for a given BSS ID."""
     def __init__(self, bssid=None):
-        super(NodeGetBSSInfo, self).__init__()
+        super(NodeGetNetworkInfo, self).__init__()
         self.command = _CMD_GROUP_NODE + CMDID_GET_BSS_INFO
 
         if bssid is None:
@@ -1664,12 +1665,12 @@ class NodeGetBSSInfo(message.BufferCmd):
 
 
     def process_resp(self, resp):
-        # Contains a Buffer of all BSS infos.  Need to convert to a list of BSSInfo()
+        # Contains a Buffer of all Network infos.  Need to convert to a list of NetworkInfo()
         import wlan_exp.info as info
 
         index   = 0
         data    = resp.get_bytes()
-        ret_val = info.deserialize_info_buffer(data[index:], "BSSInfo()")
+        ret_val = info.deserialize_info_buffer(data[index:], "NetworkInfo()")
 
         return ret_val
 

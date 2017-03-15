@@ -2167,10 +2167,12 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
         return ret_val
 
-    def get_bss_info(self):
-        """Get the node's BSS info 
+    def get_network_info(self):
+        """Get the node's network info 
 
-        The BSSInfo() returned by this method can be accessed like a 
+        FIXME: Update for new structures
+
+        The NetworkInfo() returned by this method can be accessed like a 
         dictionary and has the following fields:
         
             +-----------------------------+----------------------------------------------------------------------------------------------------+
@@ -2208,7 +2210,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             bss_info (BSSInfo):  
                 BSS Info of node (can be None if unassociated)
         """
-        ret_val = self.send_cmd(cmds.NodeGetBSSInfo())
+        ret_val = self.send_cmd(cmds.NodeGetNetworkInfo())
         
         if (len(ret_val) == 1):
             ret_val = ret_val[0]
@@ -2219,13 +2221,13 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
 
     def get_network_list(self):
-        """Get a list of known networks (BSSInfo()s) on the node
+        """Get a list of known networks (NetworkInfo()s) on the node
 
         Returns:
-            networks (list of BSSInfo):  
-                List of BSSInfo() that are known to the node 
+            networks (list of NetworkInfo):  
+                List of NetworkInfo() that are known to the node 
         """
-        return self.send_cmd(cmds.NodeGetBSSInfo("ALL"))
+        return self.send_cmd(cmds.NodeGetNetworkInfo("ALL"))
 
 
 
