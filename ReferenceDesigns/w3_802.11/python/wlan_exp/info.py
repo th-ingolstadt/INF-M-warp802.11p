@@ -741,7 +741,7 @@ class BSSConfig(InfoStruct):
             # Set update mask
             self['update_mask'] |= self._consts.update_mask.BSSID
         else:
-            # Remove current BSS on the node
+            # Fill bssid with valid value, to be ignored by C since BSSID update mask bit is de-asserted
             self['bssid'] = "00:00:00:00:00:00"
         
         # Set SSID field
