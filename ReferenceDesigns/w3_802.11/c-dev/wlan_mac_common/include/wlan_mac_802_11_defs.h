@@ -145,13 +145,6 @@ typedef struct{
 #define CAPABILITIES_DELAYED_BLOCK_ACK		0x4000
 #define CAPABILITIES_IMMEDIATE_BLOCK_ACK	0x8000
 
-/////// Management frame Tags
-#define TAG_SSID_PARAMS				0x00
-#define TAG_SUPPORTED_RATES			0x01
-#define TAG_EXT_SUPPORTED_RATES		0x32
-#define TAG_DS_PARAMS				0x03
-#define TAG_HT_INFORMATION          0x3d
-#define TAG_HT_CAPABILITIES			0x2d
 
 #define RATE_BASIC 0x80
 

@@ -36,22 +36,22 @@
 #define  WLAN_EXP_ETH                            TRANSPORT_ETH_B
 #define  WLAN_EXP_NODE_TYPE                      WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_AP
 
-#define  WLAN_DEFAULT_CHANNEL                    4
+
+#define  WLAN_DEFAULT_BSS_CONFIG_CHANNEL   	                    1
+#define  WLAN_DEFAULT_BSS_CONFIG_DTIM_PERIOD                    3
+#define  WLAN_DEFAULT_BSS_CONFIG_BEACON_INTERVAL      			100
+// The WLAN_DEFAULT_BSS_CONFIG_HT_CAPABLE define will set the default
+// unicast TX phy mode to:  1 --> HTMF  or  0 --> NONHT.
+#define  WLAN_DEFAULT_BSS_CONFIG_HT_CAPABLE                     1
+
 #define  WLAN_DEFAULT_TX_PWR                     15
 #define  WLAN_DEFAULT_TX_ANTENNA                 TX_ANTMODE_SISO_ANTA
 #define  WLAN_DEFAULT_RX_ANTENNA                 RX_ANTMODE_SISO_ANTA
-#define  WLAN_DEFAULT_BEACON_INTERVAL_TU         100
 
-// WLAN_DEFAULT_USE_HT
-//
-// The WLAN_DEFAULT_USE_HT define will set the default unicast TX phy mode
-// to:  1 --> HTMF  or  0 --> NONHT.  It will also be used as the default
-// value for the HT_CAPABLE capability of the BSS in configure_bss() when
-// moving from a NULL to a non-NULL BSS and the ht_capable parameter is not
-// specified.  This does not affect the ability of the node to send and
-// receive HT packets.   All WARP nodes are HT capable (ie they can send
-// and receive both HTMF and NONHT packets).
-#define  WLAN_DEFAULT_USE_HT                     1
+
+
+
+
 
 
 /*********************** Global Variable Definitions *************************/
@@ -179,7 +179,7 @@ int main(){
 	// overridden via wlan_exp calls or by custom C code
 	default_unicast_data_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
 	default_unicast_data_tx_params.phy.mcs            = 3;
-#if WLAN_DEFAULT_USE_HT
+#if WLAN_DEFAULT_BSS_CONFIG_HT_CAPABLE
 	default_unicast_data_tx_params.phy.phy_mode       = PHY_MODE_HTMF;
 #else
 	default_unicast_data_tx_params.phy.phy_mode       = PHY_MODE_NONHT;
@@ -260,7 +260,7 @@ int main(){
 	// Set the at-boot MAC Time to 0 usec
 	set_mac_time_usec(0);
 
-	wlan_mac_high_set_radio_channel(WLAN_DEFAULT_CHANNEL);
+	wlan_mac_high_set_radio_channel(WLAN_DEFAULT_BSS_CONFIG_CHANNEL);
 	wlan_mac_high_set_rx_ant_mode(WLAN_DEFAULT_RX_ANTENNA);
 	wlan_mac_high_set_tx_ctrl_pow(WLAN_DEFAULT_TX_PWR);
 
@@ -283,18 +283,18 @@ int main(){
 		memcpy(bss_config.bssid, wlan_mac_addr, MAC_ADDR_LEN);
 		strncpy(bss_config.ssid, default_AP_SSID, SSID_LEN_MAX);
 
-		bss_config.chan_spec.chan_pri  		= WLAN_DEFAULT_CHANNEL;
+		bss_config.chan_spec.chan_pri  		= WLAN_DEFAULT_BSS_CONFIG_CHANNEL;
 		bss_config.chan_spec.chan_type 		= CHAN_TYPE_BW20;
-		bss_config.ht_capable          		= WLAN_DEFAULT_USE_HT;
-		bss_config.beacon_interval     		= WLAN_DEFAULT_BEACON_INTERVAL_TU;
-		bss_config.dtim_period		  		= 4;
+		bss_config.ht_capable          		= WLAN_DEFAULT_BSS_CONFIG_HT_CAPABLE;
+		bss_config.beacon_interval     		= WLAN_DEFAULT_BSS_CONFIG_BEACON_INTERVAL;
+		bss_config.dtim_period		  		= WLAN_DEFAULT_BSS_CONFIG_DTIM_PERIOD;
 
-		update_mask = (BSS_FIELD_MASK_BSSID  		 |
-					   BSS_FIELD_MASK_CHAN   		 |
-					   BSS_FIELD_MASK_SSID			 |
-					   BSS_FIELD_MASK_BEACON_INTERVAL |
+		update_mask = (BSS_FIELD_MASK_BSSID  			 |
+					   BSS_FIELD_MASK_CHAN   	 		 |
+					   BSS_FIELD_MASK_SSID				 |
+					   BSS_FIELD_MASK_BEACON_INTERVAL 	 |
 					   BSS_FIELD_MASK_HT_CAPABLE		 |
-					   BSS_FIELD_MASK_DTIM_MCAST_BUFFER);
+					   BSS_FIELD_MASK_DTIM_PERIOD);
 		configure_bss(&bss_config, update_mask);
 	}
 
@@ -1458,7 +1458,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 							// What kind of tag is this?
 							switch(mac_payload_ptr_u8[0]){
 								//-----------------------------------------------------
-								case TAG_SSID_PARAMS:
+								case MGMT_TAG_SSID:
 									// SSID parameter set
 									if((active_network_info != NULL) &&
 									   ((mac_payload_ptr_u8[1]==0) || // Wildcard SSID is zero-length
@@ -1471,17 +1471,17 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 								break;
 
 								//-----------------------------------------------------
-								case TAG_SUPPORTED_RATES:
+								case MGMT_TAG_SUPPORTED_RATES:
 									// Supported rates
 								break;
 
 								//-----------------------------------------------------
-								case TAG_EXT_SUPPORTED_RATES:
+								case MGMT_TAG_EXTENDED_SUPPORTED_RATES:
 									// Extended supported rates
 								break;
 
 								//-----------------------------------------------------
-								case TAG_DS_PARAMS:
+								case MGMT_TAG_DSSS_PARAMETER_SET:
 									// DS Parameter set (e.g. channel)
 								break;
 							}
@@ -1562,9 +1562,9 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 								xil_printf("Authenticated, Unassociated Stations:\n");
 								// This station wasn't already authenticated/associated (state 4), so manually add it to the
 								// authenticated/unassociated (state 2) list.
-								//     - Set ht_capable argument to WLAN_DEFAULT_USE_HT.  This will be updated with the correct value when the
+								//     - Set ht_capable argument to 0.  This will be updated with the correct value when the
 								//       node moves from the state 2 list during association.
-								auth_unassoc_station_info = station_info_add(&authenticated_unassociated_stations, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, WLAN_DEFAULT_USE_HT);
+								auth_unassoc_station_info = station_info_add(&authenticated_unassociated_stations, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, 0);
 								if(auth_unassoc_station_info != NULL){
 									auth_unassoc_station_info->flags |= STATION_INFO_FLAG_KEEP;
 								}
@@ -1656,7 +1656,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 						switch(mac_payload_ptr_u8[0]){
 
 							//-------------------------------------------------
-							case TAG_SSID_PARAMS:
+							case MGMT_TAG_SSID:
 								// SSID parameter set
 								//
 								strncpy(ssid, (char*)(&(mac_payload_ptr_u8[2])), SSID_LEN_MAX);
@@ -1665,7 +1665,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 
 
 							//-------------------------------------------------
-							case TAG_HT_CAPABILITIES:
+							case MGMT_TAG_HT_CAPABILITIES:
 								// This station is capable of HT Tx and Rx
 								sta_is_ht_capable = 1;
 							break;
@@ -1700,9 +1700,9 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 							xil_printf("Authenticated, Associated Stations:\n");
 
 							// Add the station info
-							//     - Set ht_capable argument to WLAN_DEFAULT_USE_HT.  This will be updated below with the
+							//     - Set ht_capable argument to 0.  This will be updated below with the
 							//       correct value from the tagged parameters in the association request.
-							station_info_add(&active_network_info->members, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, WLAN_DEFAULT_USE_HT);
+							station_info_add(&active_network_info->members, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, 0);
 
 							wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 						}
@@ -2053,9 +2053,14 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 	//      First verify the requested update to the BSS configuration before
 	//      modifying anything. This will prevent a partial update of BSS
 	//      configuration with valid parameters before discovering an invalid
-	//      parameter.
+	//      parameter. Furthermore, we can update the arguments to this function
+	//		with any relevant default values in the case that the arguments
+	//		are not updated directly by the call to this function and the
+	// 		active_network_info is NULL, preventing us from inhering whatever
+	//		might be there.
 
 	if (bss_config != NULL){
+		//////////////////
 		if (update_mask & BSS_FIELD_MASK_BSSID) {
 			if (wlan_addr_eq(bss_config->bssid, zero_addr) == 0) {
 				if ((active_network_info != NULL) && wlan_addr_eq(bss_config->bssid, active_network_info->bss_config.bssid)) {
@@ -2084,22 +2089,36 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 				return_status |= BSS_CONFIG_FAILURE_BSSID_INSUFFICIENT_ARGUMENTS;
 			}
 		}
+		//////////////////
 		if (update_mask & BSS_FIELD_MASK_CHAN) {
 			if (wlan_verify_channel(
 					wlan_mac_high_bss_channel_spec_to_radio_chan(bss_config->chan_spec)) != XST_SUCCESS) {
 				return_status |= BSS_CONFIG_FAILURE_CHANNEL_INVALID;
 			}
 		}
+		//////////////////
 		if (update_mask & BSS_FIELD_MASK_BEACON_INTERVAL) {
 			if ((bss_config->beacon_interval != BEACON_INTERVAL_NO_BEACON_TX) &&
 				(bss_config->beacon_interval <  10)) {
 				return_status |= BSS_CONFIG_FAILURE_BEACON_INTERVAL_INVALID;
 			}
 		}
+		//////////////////
 		if (update_mask & BSS_FIELD_MASK_HT_CAPABLE) {
 			if (bss_config->ht_capable > 1) {
 				return_status |= BSS_CONFIG_FAILURE_HT_CAPABLE_INVALID;
 			}
+		} else if(active_network_info == NULL) {
+			// Adopt C default value
+			bss_config->ht_capable = WLAN_DEFAULT_BSS_CONFIG_HT_CAPABLE;
+			update_mask |= BSS_FIELD_MASK_HT_CAPABLE;
+		}
+		//////////////////
+		if (update_mask & BSS_FIELD_MASK_DTIM_PERIOD) {
+			//FIXME error check here
+		} else if(active_network_info == NULL) {
+			// Adopt C default value
+			bss_config->dtim_period = WLAN_DEFAULT_BSS_CONFIG_DTIM_PERIOD;
 		}
 	}
 
@@ -2201,11 +2220,9 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 
 				if (local_network_info != NULL) {
 					local_network_info->flags |= NETWORK_FLAGS_KEEP;
-#if WLAN_DEFAULT_USE_HT
-						local_network_info->capabilities = (BSS_CAPABILITIES_ESS | BSS_CAPABILITIES_HT_CAPABLE);
-#else
-						local_network_info->capabilities = (BSS_CAPABILITIES_ESS);
-#endif
+
+					local_network_info->capabilities = (BSS_CAPABILITIES_ESS);
+
 					active_network_info = local_network_info;
 				}
 
@@ -2247,8 +2264,9 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 				update_beacon_template = 1;
 				send_beacon_config_to_low = 1;
 			}
-			if (update_mask & BSS_FIELD_MASK_DTIM_MCAST_BUFFER) {
+			if (update_mask & BSS_FIELD_MASK_DTIM_PERIOD) {
 				gl_beacon_txrx_config.dtim_period = bss_config->dtim_period;
+				active_network_info->bss_config.dtim_period = bss_config->dtim_period;
 				send_beacon_config_to_low = 1;
 			}
 			if (update_mask & BSS_FIELD_MASK_HT_CAPABLE) {
@@ -2257,11 +2275,7 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 				// network.  It should also not change any of the default TX params since the
 				// AP is still capable of sending and receiving HT packets.
 
-				if (bss_config->ht_capable) {
-					active_network_info->capabilities |= BSS_CAPABILITIES_HT_CAPABLE;
-				} else {
-					active_network_info->capabilities &= ~BSS_CAPABILITIES_HT_CAPABLE;
-				}
+				active_network_info->bss_config.ht_capable = bss_config->ht_capable;
 
 				// Update the beacon template to match capabilities
 				update_beacon_template = 1;

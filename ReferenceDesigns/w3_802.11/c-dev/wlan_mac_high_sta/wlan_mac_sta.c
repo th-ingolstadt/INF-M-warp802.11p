@@ -60,15 +60,9 @@
 #define  WLAN_DEFAULT_TX_ANTENNA                  TX_ANTMODE_SISO_ANTA
 #define  WLAN_DEFAULT_RX_ANTENNA                  RX_ANTMODE_SISO_ANTA
 
-// WLAN_DEFAULT_USE_HT
-//
+
 // The WLAN_DEFAULT_USE_HT define will set the default unicast TX phy mode
-// to:  1 --> HTMF  or  0 --> NONHT.  It will also be used as the default
-// value for the HT_CAPABLE capability of the BSS in configure_bss() when
-// moving from a NULL to a non-NULL BSS and the ht_capable parameter is not
-// specified.  This does not affect the ability of the node to send and
-// receive HT packets.   All WARP nodes are HT capable (ie they can send
-// and receive both HTMF and NONHT packets).
+// to:  1 --> HTMF  or  0 --> NONHT.
 #define  WLAN_DEFAULT_USE_HT                      1
 
 
@@ -1138,11 +1132,9 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 
 				if (local_network_info != NULL) {
 					local_network_info->flags |= NETWORK_FLAGS_KEEP;
-#if WLAN_DEFAULT_USE_HT
-					local_network_info->capabilities = (BSS_CAPABILITIES_ESS | BSS_CAPABILITIES_HT_CAPABLE);
-#else
+
 					local_network_info->capabilities = (BSS_CAPABILITIES_ESS);
-#endif
+
 					active_network_info = local_network_info;
 
 					// Add AP to association table
@@ -1150,7 +1142,7 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 					//       the HT capabilities of the AP, it is reasonable to assume that they are the same as the BSS.
 					//
 					ap_station_info = station_info_add(&(active_network_info->members), active_network_info->bss_config.bssid, 0, &default_unicast_data_tx_params,
-																	 (active_network_info->capabilities & BSS_CAPABILITIES_HT_CAPABLE));
+																	 active_network_info->bss_config.ht_capable);
 
 					if (ap_station_info != NULL) {
 
@@ -1187,36 +1179,7 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 				send_beacon_config_to_low = 1;
 			}
 			if (update_mask & BSS_FIELD_MASK_HT_CAPABLE) {
-				if (bss_config->ht_capable) {
-					active_network_info->capabilities |= BSS_CAPABILITIES_HT_CAPABLE;
-				} else {
-					active_network_info->capabilities &= ~BSS_CAPABILITIES_HT_CAPABLE;
-				}
-
-				// The HT_CAPABLE flag of the AP station_info should match the HT_CAPABLE capabilities
-				// of the BSS.  This is a reasonable assumption given that the STA cannot know the HT
-				// capabilities of the AP.
-
-				// Get the AP station info
-				if (ap_station_info == NULL) {
-					station_info_entry_t* entry = station_info_find_by_addr(active_network_info->bss_config.bssid, &(active_network_info->members));
-
-					if (entry != NULL) {
-						ap_station_info = (station_info_t*)(entry->data);
-					}
-				}
-
-				// Update the AP station info based on BSS capabilities
-				if (ap_station_info != NULL) {
-					if (active_network_info->capabilities & BSS_CAPABILITIES_HT_CAPABLE) {
-						ap_station_info->flags |= STATION_INFO_FLAG_HT_CAPABLE;
-					} else {
-						ap_station_info->flags &= ~STATION_INFO_FLAG_HT_CAPABLE;
-					}
-
-					// Update the rate based on the flags that were set
-					station_info_update_rate(ap_station_info, default_unicast_data_tx_params.phy.mcs, default_unicast_data_tx_params.phy.phy_mode);
-				}
+				bss_config->ht_capable = active_network_info->bss_config.ht_capable;
 			}
 
 			// Update the channel

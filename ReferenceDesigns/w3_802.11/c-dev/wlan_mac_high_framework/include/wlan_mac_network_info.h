@@ -55,7 +55,6 @@
 
 #define BSS_CAPABILITIES_ESS                               CAPABILITIES_ESS
 #define BSS_CAPABILITIES_IBSS                              CAPABILITIES_IBSS
-#define BSS_CAPABILITIES_HT_CAPABLE                        0x0004
 #define BSS_CAPABILITIES_PRIVACY                           CAPABILITIES_PRIVACY
 
 
@@ -73,7 +72,7 @@
 #define BSS_FIELD_MASK_SSID                                0x00000004
 #define BSS_FIELD_MASK_BEACON_INTERVAL                     0x00000008
 #define BSS_FIELD_MASK_HT_CAPABLE                          0x00000010
-#define BSS_FIELD_MASK_DTIM_MCAST_BUFFER                   0x00000020
+#define BSS_FIELD_MASK_DTIM_PERIOD		                   0x00000020
 
 
 //-----------------------------------------------

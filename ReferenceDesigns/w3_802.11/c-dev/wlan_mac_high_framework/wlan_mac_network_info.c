@@ -172,9 +172,10 @@ inline void network_info_rx_process(void* pkt_buf_addr) {
 				mac_payload_ptr_u8 += sizeof(mac_header_80211);
 
 				if((rx_80211_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_BEACON) || (rx_80211_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_PROBE_RESP)){
-					// Set capabilities to zero
-					//     - Capabilities of the BSS will be filled in below
+					//Set values to zero that will be updated when processing tags
 					curr_network_info->capabilities = 0;
+					curr_network_info->bss_config.ht_capable = 0;
+					curr_network_info->bss_config.dtim_period = 0;
 
 					// Copy beacon capabilities into bss_info struct
 					//     - Only a subset of beacon capabilities are recorded
@@ -204,7 +205,7 @@ inline void network_info_rx_process(void* pkt_buf_addr) {
 					switch(mac_payload_ptr_u8[0]){
 
 						//-------------------------------------------------
-						case TAG_SSID_PARAMS:
+						case MGMT_TAG_SSID:
 							// SSID parameter set
 							//
 							ssid        = (char*)(&(mac_payload_ptr_u8[2]));
@@ -217,12 +218,12 @@ inline void network_info_rx_process(void* pkt_buf_addr) {
 						break;
 
 						//-------------------------------------------------
-						case TAG_HT_CAPABILITIES:
-							curr_network_info->capabilities |= BSS_CAPABILITIES_HT_CAPABLE;
+						case MGMT_TAG_HT_CAPABILITIES:
+							curr_network_info->bss_config.ht_capable = 1;
 						break;
 
 						//-------------------------------------------------
-						case TAG_HT_INFORMATION:
+						case MGMT_TAG_HT_OPERATION:
 							curr_network_info->bss_config.chan_spec.chan_pri = mac_payload_ptr_u8[2];
 							if(mac_payload_ptr_u8[2] & 0x4){
 								// Channel widths larger than 20MHz are supported by this BSS
@@ -237,9 +238,14 @@ inline void network_info_rx_process(void* pkt_buf_addr) {
 						break;
 
 						//-------------------------------------------------
-						case TAG_DS_PARAMS:
+						case MGMT_TAG_DSSS_PARAMETER_SET:
 							// DS Parameter set (e.g. channel)
 							curr_network_info->bss_config.chan_spec.chan_pri = mac_payload_ptr_u8[2];
+						break;
+
+						//-------------------------------------------------
+						case MGMT_TAG_TIM:
+							curr_network_info->bss_config.dtim_period = mac_payload_ptr_u8[3];
 						break;
 					}
 

@@ -88,7 +88,7 @@ int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_h
 	mgmt_tag_template->data[7] = (0x6C); 				//54Mbps  (64-QAM, 3/4)
 	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-	if ((network_info->capabilities) & BSS_CAPABILITIES_HT_CAPABLE) {
+	if (network_info->bss_config.ht_capable) {
 		//Insert HT Capabilities and HT Information tags
 		mgmt_tag_template->header.tag_element_id = MGMT_TAG_HT_CAPABILITIES;
 		mgmt_tag_template->header.tag_length = 26;
@@ -127,7 +127,7 @@ int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_h
 	mgmt_tag_template->data[0] = 0; //Non ERP Present - not set, don't use protection, no barker preamble mode
 	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-	if ((network_info->capabilities) & BSS_CAPABILITIES_HT_CAPABLE) {
+	if (network_info->bss_config.ht_capable) {
 		//Insert WMM tag
 		mgmt_tag_template->header.tag_element_id = MGMT_TAG_VENDOR_SPECIFIC;
 		mgmt_tag_template->header.tag_length = 24;
@@ -339,7 +339,7 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 	mgmt_tag_template->data[3] = (0x60);					//48Mbps
 	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-	if ((network_info->capabilities) & BSS_CAPABILITIES_HT_CAPABLE) {
+	if (network_info->bss_config.ht_capable) {
 		//Note: This is the only place in the code where a STA decides whether or not to advertise that it is
 		// capable of HT rates. If it is joining a non-HT capable AP, it will omit these tags and pretend that
 		// it is only capable of transmitting and receiving the non-HT rates.
@@ -427,7 +427,7 @@ int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_commo
 	mgmt_tag_template->data[7] = (0x6C);                //54Mbps  (64-QAM, 3/4)
 	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-	if ((network_info->capabilities) & BSS_CAPABILITIES_HT_CAPABLE) {
+	if (network_info->bss_config.ht_capable) {
 		//Insert HT Capabilities and HT Information tags
 		mgmt_tag_template->header.tag_element_id = MGMT_TAG_HT_CAPABILITIES;
 		mgmt_tag_template->header.tag_length = 26;
