@@ -2168,9 +2168,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         return ret_val
 
     def get_network_info(self):
-        """Get the node's network info 
-
-        FIXME: Update for new structures
+        """Get information about the network the node is a member of
 
         The NetworkInfo() returned by this method can be accessed like a 
         dictionary and has the following fields:
@@ -2179,8 +2177,6 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             | Field                       | Description                                                                                        |
             +=============================+====================================================================================================+
             | bssid                       |  BSS ID: 48-bit MAC address                                                                        |
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | ssid                        |  SSID (32 chars max)                                                                               |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | channel                     |  Primary channel.  In util.wlan_channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 36, 40, 44, 48]     |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
@@ -2191,24 +2187,35 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             |                             |      * 0x02 - 'BW40_SEC_ABOVE'                                                                     |
             |                             |                                                                                                    |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | latest_beacon_rx_time       |  Value of System Time in microseconds of last beacon Rx                                            |
+            | ssid                        |  SSID (32 chars max)                                                                               |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | latest_beacon_rx_power      |  Last observed beacon Rx Power (dBm)                                                               |
+            | ht_capable                  |  1 - Network is capable of HT PHY mode                                                             |
+            |                             |  0 - Netowrk is not capable of NHT PHY mode                                                        |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | beacon_interval             |  Beacon interval - In time units of 1024 us'                                                       |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+            
+            | dtim_period                 |  
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | flags                       |  Value contains 1 bit fields:                                                                      |
+            |                             |                                                                                                    |
+            |                             |      * 0x0001 - 'KEEP'                                                                             |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | capabilities                |  Supported capabilities of the BSS.  Value contains 1 bit fields:                                  |
             |                             |                                                                                                    |
             |                             |      * 0x0001 - 'ESS'                                                                              |
             |                             |      * 0x0002 - 'IBSS'                                                                             |
-            |                             |      * 0x0004 - 'HT_CAPABLE'                                                                       |
             |                             |      * 0x0010 - 'PRIVACY'                                                                          |
             |                             |                                                                                                    |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | beacon_interval             |  Beacon interval - In time units of 1024 us'                                                       |
+            | latest_beacon_rx_time       |  Value of System Time in microseconds of last beacon Rx                                            |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | latest_beacon_rx_power      |  Last observed beacon Rx Power (dBm)                                                               |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+            
+
             
         Returns:
-            bss_info (BSSInfo):  
-                BSS Info of node (can be None if unassociated)
+            network_info (NetworkInfo):  
+                Information about network that the node is a member of (can be None)
         """
         ret_val = self.send_cmd(cmds.NodeGetNetworkInfo())
         

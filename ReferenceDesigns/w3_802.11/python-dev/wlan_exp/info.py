@@ -143,7 +143,6 @@ info_consts_defs = {
         'capabilities'  : util.consts_dict({
             'ESS'                      : 0x0001,
             'IBSS'                     : 0x0002,
-            'HT_CAPABLE'               : 0x0004,
             'PRIVACY'                  : 0x0010,
         })
     }),

@@ -387,7 +387,7 @@ class WlanExpNodeAp(node.WlanExpNode):
         ssid            = network_info['ssid']
         beacon_interval = network_info['beacon_interval']
         
-        if (network_info['capabilities'] & network_info.get_consts().capabilities.HT_CAPABLE):
+        if (network_info['ht_capable'] == 1):
             ht_capable  = True
         else:
             ht_capable  = False
