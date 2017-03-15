@@ -3576,8 +3576,8 @@ void zero_bss_info(void * dest) {
 
 void copy_bss_info_to_dest(void * source, void * dest, u8* mac_addr) {
 
-    network_info_t* curr_source = (network_info_t *)(source);
-    wlan_exp_network_info_t* curr_dest = (wlan_exp_network_info_t *)(dest);
+    network_info_t* curr_source = (network_info_t*)(source);
+    wlan_exp_network_info_t* curr_dest = (wlan_exp_network_info_t*)(dest);
 
     // Fill in zeroed entry if source is NULL
     if (source == NULL) {
@@ -3593,7 +3593,12 @@ void copy_bss_info_to_dest(void * source, void * dest, u8* mac_addr) {
 
     // Copy the source information to the destination log entry
     if (curr_source != NULL) {
-        memcpy((void *)(curr_dest), (void *)(curr_source), sizeof(wlan_exp_network_info_t));
+    	curr_dest->bss_config = curr_source->bss_config;
+    	curr_dest->capabilities = curr_source->capabilities;
+    	curr_dest->flags = curr_source->flags;
+    	curr_dest->latest_beacon_rx_power = curr_source->latest_beacon_rx_power;
+    	curr_dest->latest_beacon_rx_time = curr_source->latest_beacon_rx_time;
+    	curr_dest->num_members = curr_source->members.length;
     } else {
         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Could not copy network_info to entry\n");
     }
