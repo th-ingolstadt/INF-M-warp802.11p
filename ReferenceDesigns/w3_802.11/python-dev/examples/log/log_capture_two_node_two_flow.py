@@ -42,7 +42,7 @@ import wlan_exp.ltg as ltg
 # Change these values to match your experiment / network setup
 NETWORK              = '10.0.0.0'
 USE_JUMBO_ETH_FRAMES = False
-NODE_SERIAL_LIST     = ['W3-a-00094', 'W3-a-00611']
+NODE_SERIAL_LIST     = ['W3-a-00001', 'W3-a-00002']
 
 AP_HDF5_FILENAME     = "ap_two_node_two_flow_capture.hdf5"
 STA_HDF5_FILENAME    = "sta_two_node_two_flow_capture.hdf5"
@@ -79,7 +79,7 @@ def write_log_file(filename, node, exp_name):
                      'node_desc' : node.description}
 
         # Write the byte Log_data to the file
-        hdf_util.log_data_to_hdf5(log_data=data, filename=filename, attr_dict=attr_dict, overwrite=True)
+        hdf_util.log_data_to_hdf5(log_data=data, filename=filename, attr_dict=attr_dict)
     except AttributeError as err:
         print("Error writing log file: {0}".format(err))
 
