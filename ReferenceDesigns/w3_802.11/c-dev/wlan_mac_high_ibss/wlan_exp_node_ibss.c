@@ -219,7 +219,7 @@ void wlan_exp_ibss_tx_cmd_add_association(u8* mac_addr) {
         //       the HT capabilities of the new station, it is reasonable to assume that they are the same as the BSS.
         //
         station_info_add(&(active_network_info->members), mac_addr, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params,
-                                       (active_network_info->capabilities & BSS_CAPABILITIES_HT_CAPABLE));
+                                       active_network_info->bss_config.ht_capable);
     }
 }
 

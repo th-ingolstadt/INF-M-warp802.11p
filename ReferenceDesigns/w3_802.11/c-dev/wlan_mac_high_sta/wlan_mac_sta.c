@@ -1179,7 +1179,7 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 				send_beacon_config_to_low = 1;
 			}
 			if (update_mask & BSS_FIELD_MASK_HT_CAPABLE) {
-				bss_config->ht_capable = active_network_info->bss_config.ht_capable;
+				active_network_info->bss_config.ht_capable = bss_config->ht_capable;
 			}
 
 			// Update the channel
