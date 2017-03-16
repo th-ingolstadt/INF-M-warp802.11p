@@ -38,7 +38,7 @@
 
 
 #define  WLAN_DEFAULT_BSS_CONFIG_CHANNEL   	                    1
-#define  WLAN_DEFAULT_BSS_CONFIG_DTIM_PERIOD                    3
+#define  WLAN_DEFAULT_BSS_CONFIG_DTIM_PERIOD                    2
 #define  WLAN_DEFAULT_BSS_CONFIG_BEACON_INTERVAL      			100
 // The WLAN_DEFAULT_BSS_CONFIG_HT_CAPABLE define will set the default
 // unicast TX phy mode to:  1 --> HTMF  or  0 --> NONHT.
@@ -2119,6 +2119,7 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 		} else if(active_network_info == NULL) {
 			// Adopt C default value
 			bss_config->dtim_period = WLAN_DEFAULT_BSS_CONFIG_DTIM_PERIOD;
+			update_mask |= BSS_FIELD_MASK_DTIM_PERIOD;
 		}
 	}
 
