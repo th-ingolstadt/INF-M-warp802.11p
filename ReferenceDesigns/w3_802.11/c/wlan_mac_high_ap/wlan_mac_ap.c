@@ -61,7 +61,8 @@
 #define  WLAN_EXP_ETH                            TRANSPORT_ETH_B
 #define  WLAN_EXP_NODE_TYPE                      WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_AP
 
-#define  WLAN_DEFAULT_CHANNEL                    4
+#define  WLAN_DEFAULT_CHANNEL                    1
+#define  WLAN_DEFAULT_DTIM_PERIOD				 4
 #define  WLAN_DEFAULT_TX_PWR                     15
 #define  WLAN_DEFAULT_TX_ANTENNA                 TX_ANTMODE_SISO_ANTA
 #define  WLAN_DEFAULT_RX_ANTENNA                 RX_ANTMODE_SISO_ANTA
@@ -319,7 +320,7 @@ int main(){
 		bss_config.chan_spec.chan_type 		= CHAN_TYPE_BW20;
 		bss_config.ht_capable          		= WLAN_DEFAULT_USE_HT;
 		bss_config.beacon_interval     		= WLAN_DEFAULT_BEACON_INTERVAL_TU;
-		bss_config.dtim_period		  		= 4;
+		bss_config.dtim_period		  		= WLAN_DEFAULT_DTIM_PERIOD;
 
 		bss_config.update_mask = (BSS_FIELD_MASK_BSSID  		 |
 								  BSS_FIELD_MASK_CHAN   		 |
@@ -2135,6 +2136,13 @@ u32	configure_bss(bss_config_t* bss_config){
 		if (bss_config->update_mask & BSS_FIELD_MASK_HT_CAPABLE) {
 			if (bss_config->ht_capable > 1) {
 				return_status |= BSS_CONFIG_FAILURE_HT_CAPABLE_INVALID;
+			}
+		}
+		if (bss_config->update_mask & BSS_FIELD_MASK_DTIM_MCAST_BUFFER){
+		} else {
+			if(active_bss_info == NULL){
+				bss_config->dtim_period = WLAN_DEFAULT_DTIM_PERIOD;
+				bss_config->update_mask |= BSS_FIELD_MASK_DTIM_MCAST_BUFFER;
 			}
 		}
 	}
