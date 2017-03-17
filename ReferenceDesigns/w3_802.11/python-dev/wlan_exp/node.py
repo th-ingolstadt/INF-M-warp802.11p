@@ -2167,6 +2167,10 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
         return ret_val
 
+    def get_bss_info(self):
+       print('WARNING: get_bss_info() is deprecated and will be removed in a future version. Please use get_network_info()')
+       return self.get_network_info()
+
     def get_network_info(self):
         """Get information about the network the node is a member of
 

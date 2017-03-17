@@ -11,9 +11,9 @@ between an AP and an associated STA using the AP's local traffic generator
 
 Hardware Setup:
   - Requires two WARP v3 nodes
-    - One node configured as AP using 802.11 Reference Design v1.5 or later
-    - One node configured as STA using 802.11 Reference Design v1.5 or later
-    - Two nodes configured as IBSS using 802.11 Reference Design v1.5 or later
+    - One node configured as AP using 802.11 Reference Design v1.7 or later
+    - One node configured as STA using 802.11 Reference Design v1.7 or later
+    - Two nodes configured as IBSS using 802.11 Reference Design v1.7 or later
   - PC NIC and ETH B on WARP v3 nodes connected to common Ethernet switch
 
 Required Script Changes:
@@ -78,6 +78,7 @@ nodes = util.init_nodes(nodes_config, network_config)
 n_ap_l   = util.filter_nodes(nodes=nodes, mac_high='AP',   serial_number=NODE_SERIAL_LIST, warn=False)
 n_sta_l  = util.filter_nodes(nodes=nodes, mac_high='STA',  serial_number=NODE_SERIAL_LIST, warn=False)
 n_ibss_l = util.filter_nodes(nodes=nodes, mac_high='IBSS', serial_number=NODE_SERIAL_LIST, warn=False)
+
 
 # Check that setup is valid:
 #     1) AP and STA
