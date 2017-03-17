@@ -1038,9 +1038,10 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 			}
 		}
 		if (update_mask & BSS_FIELD_MASK_DTIM_PERIOD) {
-			if(bss_config->dtim_period == 0){
-				return_status |= BSS_CONFIG_FAILURE_DTIM_PERIOD_INVALID;
-			}
+			// For a STA, there is no invalid selection of dtim_period so we never return
+			// BSS_CONFIG_FAILURE_DTIM_PERIOD_INVALID. An AP that does not contain a TIM
+			// MGMT tag in its beacon will have a value of 0 in the dtim_period field of
+			// the corresponding network_info_t.
 		}
 	}
 

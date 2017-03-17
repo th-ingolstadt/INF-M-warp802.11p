@@ -311,6 +311,9 @@ void print_network_info(){
 																		 curr_network_info->bss_config.bssid[4], curr_network_info->bss_config.bssid[5]);
 		xil_printf("    Channel:       %d\n", wlan_mac_high_bss_channel_spec_to_radio_chan(curr_network_info->bss_config.chan_spec));
 
+		xil_printf("    DTIM Period:   %d\n", curr_network_info->bss_config.dtim_period);
+
+		xil_printf("    HT Capable:    %d\n", curr_network_info->bss_config.ht_capable);
 
 		xil_printf("    Last update:   %d msec ago\n", (u32)((get_system_time_usec() - curr_network_info->latest_beacon_rx_time)/1000));
 
