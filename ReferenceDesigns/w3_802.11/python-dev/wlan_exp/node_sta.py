@@ -95,6 +95,10 @@ class WlanExpNodeSta(node.WlanExpNode):
             if (status & cmds.ERROR_CONFIG_BSS_HT_CAPABLE_INVALID):
                 msg    += "    HT capable {0} was invalid.\n".format(ht_capable)
                 ret_val = False
+                
+            if (status & cmds.ERROR_CONFIG_BSS_DTIM_PERIOD_INVALID):
+                msg    += "    DTIM period {0} was invalid.\n".format(dtim_period)
+                ret_val = False
             
             if not ret_val:
                 print(msg)
