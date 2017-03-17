@@ -586,6 +586,22 @@ class NetworkInfo(InfoStruct):
 # End Class
 
 
+# -----------------------------------------------------------------------------
+# BSS Config Class
+# -----------------------------------------------------------------------------
+class BSSConfig(InfoStruct):
+    """Represents the BSS Config struct in hardware. This struct is created only
+    in Python. The NetworkInfo and BSSConfigUpdate structs should be used for 
+    communicating BSS details with hardware nodes"
+    """
+    def __init__(self):
+        super(BSSConfig, self).__init__(field_sets='BSS_CONFIG_COMMON')
+
+    def serialize(self):
+        raise NotImplementedError('serialize() is not supported for BSSConfig')
+
+    def deserialize(self):
+        raise NotImplementedError('deserialize() is not supported for BSSConfig')
 
 # -----------------------------------------------------------------------------
 # BSS Config Update Class
