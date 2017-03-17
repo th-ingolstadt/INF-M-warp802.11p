@@ -116,6 +116,12 @@ info_field_defs = {
 }
 
 
+info_struct_len_reqs = {
+    'TXRX_COUNTS': 56,
+    'BSS_CONFIG_UPDATE': 52
+}
+    
+
 info_consts_defs = {
     'STATION_INFO' : util.consts_dict({
         'flags'         : util.consts_dict({
@@ -668,7 +674,7 @@ class BSSConfigUpdate(InfoStruct):
             self['update_mask'] |= self._consts.update_mask.CHANNEL
         else:
             self['channel'] = 0
-        util.debug_here()
+
         self['channel_type'] = self._consts.channel_type.BW20
         
         # Set the beacon interval field
