@@ -103,7 +103,6 @@ volatile	u32			 low_param_random_seed;
 volatile u8                  dram_present;                 ///< Indication variable for whether DRAM SODIMM is present on this hardware
 
 // Status information
-wlan_mac_hw_info_t         * hw_info;
 static volatile u32          cpu_low_status;               ///< Tracking variable for lower-level CPU status
 
 // CPU Low Register Read Buffer
@@ -475,6 +474,9 @@ void wlan_mac_high_init(){
 	//CPU_HIGH reboots some point after CPU_LOW had already booted.
 	wlan_mac_high_request_low_state();
 
+
+	wlan_mac_hw_info_t* hw_info = get_mac_hw_info();
+	srand(hw_info->serial_number); //Seed the CPU_HIGH's PRNG with this node's serial number
 	wlan_mac_high_set_radio_channel(1); // Set a sane default channel. The top-level project (AP/STA/IBSS/etc) is free to change this
 
 	//Create IPC message to receive into

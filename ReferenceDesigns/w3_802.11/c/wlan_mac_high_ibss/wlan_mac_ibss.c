@@ -64,7 +64,8 @@
 #define  WLAN_DEFAULT_RX_ANTENNA                 RX_ANTMODE_SISO_ANTA
 #define  WLAN_DEFAULT_BEACON_INTERVAL_TU         100
 
-#define  WLAN_DEFAULT_SCAN_TIMEOUT_USEC          5000000
+#define  WLAN_DEFAULT_SCAN_TIMEOUT_USEC_MIN		 4000000
+#define  WLAN_DEFAULT_SCAN_TIMEOUT_USEC_MAX	     8000000
 
 // WLAN_DEFAULT_USE_HT
 //
@@ -133,12 +134,14 @@ int main() {
 	microblaze_enable_exceptions();
 
 	u64                		scan_start_timestamp;
+	u64 					scan_duration;
 	u8                 		locally_administered_addr[MAC_ADDR_LEN];
 	dl_list*           		ssid_match_list = NULL;
 	dl_entry*         		temp_dl_entry = NULL;
 	bss_info_t*        		temp_bss_info = NULL;
 	bss_config_t       		bss_config;
 	compilation_details_t	compilation_details;
+
 	bzero(&compilation_details, sizeof(compilation_details_t));
 
 	// Print initial message to UART
@@ -225,7 +228,6 @@ int main() {
 #endif
 
     wlan_mac_hw_info_t * hw_info;
-    // Get the hardware info that has been collected from CPU low
     hw_info = get_mac_hw_info();
 
 #if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
@@ -288,13 +290,20 @@ int main() {
 
 	// If there is a default SSID and the DIP switch allows it, start an active scan
 	//     - Uses default scan parameters
+
 	if ((strlen(default_ssid) > 0) && ((wlan_mac_high_get_user_io_state()&GPIO_MASK_DS_3) == 0)) {
+
+		// To prevent multiple IBSS nodes from scanning and then all creating the same network simply
+		// because they were powered on at the same time, we randomize the amount of time spent scanning
+		// for a network between [WLAN_DEFAULT_SCAN_TIMEOUT_USEC_MIN, WLAN_DEFAULT_SCAN_TIMEOUT_USEC_MAX]
+		scan_duration = WLAN_DEFAULT_SCAN_TIMEOUT_USEC_MIN +
+				(( (1000*(u64)rand()) / ((u64)RAND_MAX) ) * (WLAN_DEFAULT_SCAN_TIMEOUT_USEC_MAX - WLAN_DEFAULT_SCAN_TIMEOUT_USEC_MIN)) / 1000;
 
 		scan_start_timestamp = get_system_time_usec();
 
 		wlan_mac_scan_start();
 
-		while (((get_system_time_usec() < (scan_start_timestamp + WLAN_DEFAULT_SCAN_TIMEOUT_USEC))) &&
+		while (((get_system_time_usec() < (scan_start_timestamp + scan_duration))) &&
 				(temp_dl_entry == NULL)) {
 			// Only try to find a match if the IBSS has completed at least one full scan
 			if (wlan_mac_scan_get_num_scans() > 0) {
