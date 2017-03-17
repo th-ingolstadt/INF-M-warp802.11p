@@ -218,20 +218,20 @@ class InfoStruct(dict):
             if 'x' not in field[1]:
                 self[field[0]] = None
 
+        # Update the struct format string, used by pack/unpack/calcsize below
+        self._fields_struct_fmt = ' '.join(self.get_field_struct_formats())
+
         # Check the final struct size using the name of the last field set
         last_field_set = field_sets[-1]
         if(last_field_set in info_struct_len_reqs.keys()):
             # A struct length value was provided - confirm the field defs match this length
-            struct_fmt_str = ''.join(self.get_field_struct_formats())
-            def_size = struct.calcsize(struct_fmt_str)
+            def_size = self.sizeof()
             req_size = info_struct_len_reqs[last_field_set]
 
             if(def_size != req_size):
                 msg = 'Struct size definition mismatch - {0} field defs have size {1} vs required size {2}'.format(last_field_set, def_size, req_size)
                 raise AttributeError(msg)
 
-        # Update the struct format string, used by pack/unpack/calcsize below
-        self._fields_struct_fmt = ' '.join(self.get_field_struct_formats())
 
     # -------------------------------------------------------------------------
     # Helper methods for the Info Type
