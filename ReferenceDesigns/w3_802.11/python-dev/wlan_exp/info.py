@@ -120,7 +120,6 @@ info_struct_len_reqs = {
     'TXRX_COUNTS': 56,
     'BSS_CONFIG_UPDATE': 52
 }
-    
 
 info_consts_defs = {
     'STATION_INFO' : util.consts_dict({
@@ -195,29 +194,40 @@ class InfoStruct(dict):
     _fields_struct_fmt  = None         # Internal string of field formats, in struct module format
     _consts             = None         # Internal container for user-defined, type-specific constants
 
-    def __init__(self, field_set_name):
+    def __init__(self, field_sets):
         super(InfoStruct, self).__init__()
 
-        if(field_set_name not in info_field_defs.keys()):
-            msg  = "Field set name {0} does not exist in info_field_defs.".format(field_set_name)
-            raise AttributeError(msg)
-            
-        # Initialize variables
-        self.append_field_defs(info_field_defs[field_set_name])
+        if(type(field_sets) is str):
+            field_sets = [field_sets]
 
+        # Initialize variables
         self._consts = util.consts_dict()
-        
-        if(field_set_name in info_consts_defs.keys()):
-            self.append_const_defs(info_consts_defs[field_set_name])
+        self._field_defs = []
+        for fs in field_sets:
+            if(fs not in info_field_defs.keys()):
+                msg  = "Field set name {0} does not exist in info_field_defs.".format(fs)
+                raise AttributeError(msg)
+            
+            self.append_field_defs(info_field_defs[fs])
+
+            if(fs in info_consts_defs.keys()):
+                self.append_const_defs(info_consts_defs[fs])
 
         # Add and initialize all the fields in the info_field_defs
         for field in self._field_defs:
             if 'x' not in field[1]:
                 self[field[0]] = None
 
-        # Update the meta-data about the fields
-        self._update_field_defs()
-
+        # Check the final struct size using the name of the last field set
+        last_field_set = field_sets[-1]
+        if(last_field_set in info_struct_len_reqs.keys()):
+            # A struct length value was provided - confirm the field defs match this length
+            struct_fmt_str = ''.join(self.get_field_struct_formats())
+            def_size = struct.calcsize(struct_fmt_str)
+            req_size = info_struct_len_reqs[last_field_set]
+            if(def_size != req_size):
+                msg = 'Struct size definition mismatch - {0} field defs have size {1} vs required size {2}'.format(last_field_set, def_size, req_size)
+                raise AttributeError(msg)
 
     # -------------------------------------------------------------------------
     # Helper methods for the Info Type
@@ -414,7 +424,7 @@ class TxRxCounts(InfoStruct):
     """Class for TX/RX counts."""
 
     def __init__(self):
-        super(TxRxCounts, self).__init__(field_set_name='TXRX_COUNTS')
+        super(TxRxCounts, self).__init__(field_sets='TXRX_COUNTS')
 
         # To populate the TxRxCounts with information, use the
         # deserialize() function on a proper buffer of data
@@ -470,7 +480,7 @@ class StationInfo(InfoStruct):
     """Class for Station Information."""
 
     def __init__(self):
-        super(StationInfo, self).__init__(field_set_name='STATION_INFO')
+        super(StationInfo, self).__init__(field_sets='STATION_INFO')
 
         # To populate the TxRxCounts with information, use the
         # deserialize() function on a proper buffer of data
@@ -535,11 +545,7 @@ class NetworkInfo(InfoStruct):
         #  created by deserializing bytes from the hardware node
         
         # Initialize the field definitions with BSS_CONFIG fields first
-        super(NetworkInfo, self).__init__(field_set_name='BSS_CONFIG_COMMON')
-
-        # Then add the NETWORK_INFO field definitions 
-        self.append_field_defs(info_field_defs['NETWORK_INFO'])
-        self.append_const_defs(info_consts_defs['NETWORK_INFO'])
+        super(NetworkInfo, self).__init__(field_sets=['BSS_CONFIG_COMMON', 'NETWORK_INFO'])
 
     def serialize(self):
         print("Error:  serialize() is not supported for NetworkInfo")
@@ -605,11 +611,7 @@ class BSSConfigUpdate(InfoStruct):
     """
     def __init__(self, bssid=False, ssid=None, channel=None, beacon_interval=False, dtim_period=None, ht_capable=None):                       
         # Initialize the field definitions with BSS_CONFIG fields first
-        super(BSSConfigUpdate, self).__init__(field_set_name='BSS_CONFIG_COMMON')
-
-        # Then add the BSS_CONFIG_UPDATE field definitions 
-        self.append_field_defs(info_field_defs['BSS_CONFIG_UPDATE'])
-        self.append_const_defs(info_consts_defs['BSS_CONFIG_UPDATE'])
+        super(BSSConfigUpdate, self).__init__(field_sets=['BSS_CONFIG_COMMON', 'BSS_CONFIG_UPDATE'])
         
         # Default values used if value not provided:
         #     bssid           - 00:00:00:00:00:00
