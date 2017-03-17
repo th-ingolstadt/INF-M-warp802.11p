@@ -83,6 +83,7 @@
 #define BSS_CONFIG_FAILURE_CHANNEL_INVALID                 0x00000004
 #define BSS_CONFIG_FAILURE_BEACON_INTERVAL_INVALID         0x00000008
 #define BSS_CONFIG_FAILURE_HT_CAPABLE_INVALID              0x00000010
+#define BSS_CONFIG_FAILURE_DTIM_PERIOD_INVALID             0x00000020
 
 /*********************** Global Structure Definitions ************************/
 

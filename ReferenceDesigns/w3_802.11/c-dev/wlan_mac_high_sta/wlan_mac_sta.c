@@ -1037,6 +1037,11 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 				return_status |= BSS_CONFIG_FAILURE_HT_CAPABLE_INVALID;
 			}
 		}
+		if (update_mask & BSS_FIELD_MASK_DTIM_PERIOD) {
+			if(bss_config->dtim_period == 0){
+				return_status |= BSS_CONFIG_FAILURE_DTIM_PERIOD_INVALID;
+			}
+		}
 	}
 
 	if (return_status == 0) {
