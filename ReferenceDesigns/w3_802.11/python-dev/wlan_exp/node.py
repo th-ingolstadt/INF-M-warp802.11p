@@ -2171,6 +2171,58 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
        print('WARNING: get_bss_info() is deprecated and will be removed in a future version. Please use get_network_info()')
        return self.get_network_info()
 
+    def get_bss_config(self):
+        """Get BSS configuration of the network the node is a member of
+
+        Returns a dictionary with the following fields:
+        
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | Field                       | Description                                                                                        |
+            +=============================+====================================================================================================+
+            | bssid                       |  BSS ID: 48-bit MAC address                                                                        |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | channel                     |  Primary channel.  In util.wlan_channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 36, 40, 44, 48]     |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | channel_type                |  Channel Type.  Value is one of:                                                                   |
+            |                             |                                                                                                    |
+            |                             |      * 0x00 - 'BW20'                                                                               |
+            |                             |      * 0x01 - 'BW40_SEC_BELOW'                                                                     |
+            |                             |      * 0x02 - 'BW40_SEC_ABOVE'                                                                     |
+            |                             |                                                                                                    |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | ssid                        |  SSID (32 chars max)                                                                               |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | ht_capable                  |  1 - Network is capable of HT PHY mode                                                             |
+            |                             |  0 - Netowrk is not capable of NHT PHY mode                                                        |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | beacon_interval             |  Beacon interval - In time units of 1024 us'                                                       |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+            
+            | dtim_period                 |  
+            +-----------------------------+----------------------------------------------------------------------------------------------------+        
+            
+        Returns:
+            bss_config :  
+                BSS configuration of the network that the node is a member of (can be None)
+        """
+        network_info = self.get_network_info()
+        
+        if(network_info is None):
+            # Node has NULL active_network_info - return None
+            return None
+        
+        # Use the field names of the BSSConfig InfoStruct to transform the network_info
+        #  into a bss_config dictionary
+        from wlan_exp.info import BSSConfig
+        
+        bss_config_fields = BSSConfig().get_field_names()
+        
+        # Construct a dictionary with only BSSConfig fields
+        bss_config = {}
+        for f in bss_config_fields:
+            bss_config[f] = network_info[f]
+        
+        return bss_config
+
     def get_network_info(self):
         """Get information about the network the node is a member of
 

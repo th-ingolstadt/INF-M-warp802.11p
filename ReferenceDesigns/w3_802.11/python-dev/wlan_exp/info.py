@@ -117,7 +117,7 @@ info_field_defs = {
 
 
 info_struct_len_reqs = {
-    'TXRX_COUNTS': 56,
+    'TXRX_COUNTS': 128,
     'BSS_CONFIG_UPDATE': 52
 }
 
