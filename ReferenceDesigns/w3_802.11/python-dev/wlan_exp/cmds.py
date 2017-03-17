@@ -1647,8 +1647,6 @@ class NodeGetStationInfoList(message.BufferCmd):
 
 # End Class
 
-#FIXME: Soft deprecate NodeGetBSSInfo
-
 class NodeGetNetworkInfo(message.BufferCmd):
     """Command to get the Network info for a given BSS ID."""
     def __init__(self, bssid=None):
