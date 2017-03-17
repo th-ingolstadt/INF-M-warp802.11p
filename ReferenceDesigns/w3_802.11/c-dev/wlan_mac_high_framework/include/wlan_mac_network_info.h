@@ -73,6 +73,12 @@
 #define BSS_FIELD_MASK_BEACON_INTERVAL                     0x00000008
 #define BSS_FIELD_MASK_HT_CAPABLE                          0x00000010
 #define BSS_FIELD_MASK_DTIM_PERIOD		                   0x00000020
+#define BSS_FIELD_MASK_ALL								   (BSS_FIELD_MASK_BSSID           | \
+														    BSS_FIELD_MASK_CHAN            | \
+														    BSS_FIELD_MASK_SSID            | \
+														    BSS_FIELD_MASK_BEACON_INTERVAL | \
+														    BSS_FIELD_MASK_HT_CAPABLE	   | \
+														    BSS_FIELD_MASK_DTIM_PERIOD)
 
 
 //-----------------------------------------------

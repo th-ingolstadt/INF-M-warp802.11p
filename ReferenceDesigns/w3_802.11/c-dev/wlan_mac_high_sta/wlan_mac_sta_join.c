@@ -536,23 +536,9 @@ void wlan_mac_sta_join_bss_attempt_poll(u32 aid){
                     // Set AID
                     my_aid = aid;
 
-#if 0 //FIXME check this
-                    // Create network config from attempt_bss_info
-                    memcpy(bss_config.bssid, attempt_network_info->bss_config.bssid, MAC_ADDR_LEN);
-                    strncpy(bss_config.ssid, attempt_network_info->bss_config.ssid, SSID_LEN_MAX);
-
-                    bss_config.chan_spec       = attempt_network_info->bss_config.chan_spec;
-                    bss_config.ht_capable      = 1;
-                    bss_config.beacon_interval = attempt_network_info->bss_config.beacon_interval;
-                    update_mask     = (BSS_FIELD_MASK_BSSID           |
-                                       BSS_FIELD_MASK_CHAN            |
-                                       BSS_FIELD_MASK_SSID            |
-                                       BSS_FIELD_MASK_BEACON_INTERVAL |
-                                       BSS_FIELD_MASK_HT_CAPABLE);
-#else
                     bss_config = attempt_network_info->bss_config;
-                    update_mask = 0xFFFFFFFF;
-#endif
+                    update_mask = BSS_FIELD_MASK_ALL;
+
                     if (configure_bss(&bss_config, update_mask) == 0) {
                         // Join was successful, so execute callback
                         join_success_callback(attempt_network_info);
