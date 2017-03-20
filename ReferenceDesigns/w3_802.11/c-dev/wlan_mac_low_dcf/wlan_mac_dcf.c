@@ -23,14 +23,14 @@
 #include "radio_controller.h"
 
 // WLAN includes
+#include "wlan_platform_common.h"
+#include "wlan_platform_low.h"
 #include "wlan_mac_low.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_phy_util.h"
 #include "wlan_mac_dcf.h"
-#include "wlan_platform_low.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_mgmt_tags.h"
-#include "wlan_platform_common.h"
 #include "w3_userio_util.h" //FIXME DEBUG
 
 // WLAN Exp includes
