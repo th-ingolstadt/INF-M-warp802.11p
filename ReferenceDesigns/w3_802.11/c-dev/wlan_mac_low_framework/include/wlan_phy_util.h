@@ -177,9 +177,12 @@
                                        ((ant) == 2) ? (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >> 16) : \
                                        (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >> 24)) & 0x1F)
 #else
-#define wlan_phy_rx_get_pkt_rssi(ant) (0)
+int wlan_phy_rx_get_pkt_rssi(u8 ant);
+int wlan_phy_rx_get_agc_BBG(u8 ant);
+
+//#define wlan_phy_rx_get_pkt_rssi(ant) (0)
+//#define wlan_phy_rx_get_agc_BBG(ant)  (0)
 #define wlan_phy_rx_get_agc_RFG(ant)  (0)
-#define wlan_phy_rx_get_agc_BBG(ant)  (0)
 #endif
 
 #define wlan_phy_DSSS_rx_enable()  Xil_Out32(WLAN_RX_REG_CFG, Xil_In32(WLAN_RX_REG_CFG) | WLAN_RX_REG_CFG_DSSS_RX_EN)
