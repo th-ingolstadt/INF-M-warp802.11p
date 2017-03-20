@@ -11,10 +11,11 @@
 #define WLAN_MAC_FPGA_DNA_LEN         2
 
 typedef struct {
-    u32  serial_number;
-    u32  fpga_dna[WLAN_MAC_FPGA_DNA_LEN];
-    u8   hw_addr_wlan[MAC_ADDR_LEN];
-    u8   hw_addr_wlan_exp[MAC_ADDR_LEN];
+	const char*	serial_number_prefix;
+    u32  		serial_number;
+    u32  		fpga_dna[WLAN_MAC_FPGA_DNA_LEN];
+    u8   		hw_addr_wlan[MAC_ADDR_LEN];
+    u8   		hw_addr_wlan_exp[MAC_ADDR_LEN];
 } wlan_mac_hw_info_t;
 
 typedef enum {

@@ -304,7 +304,7 @@ int main(){
     // Print AP information to the terminal
 
     xil_printf("WLAN MAC AP boot complete: \n");
-    xil_printf("  Serial Number : W3-a-%05d\n", hw_info->serial_number);
+    xil_printf("  Serial Number : %s-%05d\n", hw_info->serial_number_prefix, hw_info->serial_number);
 
 #ifdef WLAN_USE_UART_MENU
 	xil_printf("\nPress the Esc key in your terminal to access the UART menu\n");

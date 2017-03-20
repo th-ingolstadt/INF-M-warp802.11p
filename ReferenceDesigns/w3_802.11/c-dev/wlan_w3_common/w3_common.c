@@ -31,6 +31,8 @@ static const platform_common_dev_info_t platform_common_dev_info = {
 		.rx_pkt_buf_baseaddr = XPAR_PKT_BUFF_RX_BRAM_CTRL_S_AXI_BASEADDR
 };
 
+static const char serial_number_prefix[] = "W3-a";
+
 platform_common_dev_info_t wlan_platform_common_get_dev_info(){
 	return platform_common_dev_info;
 }
@@ -60,6 +62,7 @@ wlan_mac_hw_info_t wlan_platform_get_hw_info(){
 	wlan_mac_hw_info_t mac_hw_info;
 
     // Set General Node information
+	mac_hw_info.serial_number_prefix = serial_number_prefix;
     mac_hw_info.serial_number = w3_eeprom_read_serial_num(EEPROM_BASEADDR);
     mac_hw_info.fpga_dna[1]   = w3_eeprom_read_fpga_dna(EEPROM_BASEADDR, 1);
     mac_hw_info.fpga_dna[0]   = w3_eeprom_read_fpga_dna(EEPROM_BASEADDR, 0);

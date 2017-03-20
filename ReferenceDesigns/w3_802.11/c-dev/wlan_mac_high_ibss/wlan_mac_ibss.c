@@ -284,7 +284,7 @@ int main() {
 	// Print Station information to the terminal
     xil_printf("------------------------\n");
     xil_printf("WLAN MAC IBSS boot complete: \n");
-    xil_printf("  Serial Number : W3-a-%05d\n", hw_info->serial_number);
+    xil_printf("  Serial Number : %s-%05d\n", hw_info->serial_number_prefix, hw_info->serial_number);
 	xil_printf("  MAC Addr      : %02x:%02x:%02x:%02x:%02x:%02x\n\n", wlan_mac_addr[0], wlan_mac_addr[1], wlan_mac_addr[2], wlan_mac_addr[3], wlan_mac_addr[4], wlan_mac_addr[5]);
 
 #ifdef WLAN_USE_UART_MENU
