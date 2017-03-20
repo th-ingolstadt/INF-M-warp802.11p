@@ -199,15 +199,18 @@ void ipv4_init_header(ipv4_header * header, u8 * src_ip_addr) {
     //   - Fragmentation offset
     //   - Source IP address
     //
+    // Convert IP address to u32 (big endian)
+    ip_addr = (src_ip_addr[3] << 24) + (src_ip_addr[2] << 16) + (src_ip_addr[1] << 8) + src_ip_addr[0];
+
+    header->src_ip_addr      = ip_addr;
+
     header->version_ihl      = (IP_VERSION_4 << 4) +  IP_HEADER_LEN;
     header->dscp_ecn         = (IP_DSCP_CS0 << 2) + IP_ECN_NON_ECT;
     header->fragment_offset  = IP_NO_FRAGMENTATION;
     header->ttl              = IP_DEFAULT_TTL;
     
-    // Convert IP address to u32 (big endian)
-    ip_addr = (src_ip_addr[3] << 24) + (src_ip_addr[2] << 16) + (src_ip_addr[1] << 8) + src_ip_addr[0];
 
-    header->src_ip_addr      = ip_addr;
+
 }
 
 
