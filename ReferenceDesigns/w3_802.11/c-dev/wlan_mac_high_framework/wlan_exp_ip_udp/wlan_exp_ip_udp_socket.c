@@ -317,6 +317,9 @@ int socket_recvfrom_eth(u32 eth_dev_num, int * socket_index, struct sockaddr * f
         socket_addr->sin_family      = AF_INET;
         socket_addr->sin_port        = header->udp_hdr.src_port;
         socket_addr->sin_addr.s_addr = header->ip_hdr.src_ip_addr;
+
+    } else if(recv_bytes < 0) {
+    	xil_printf("eth_recv_frame returned error: %d\n", recv_bytes);
     }
     
     return recv_bytes;
