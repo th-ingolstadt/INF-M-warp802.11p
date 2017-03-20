@@ -771,8 +771,8 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 		// de-duplicate the next reception if that sequence number is 0.
 		station_info->latest_rx_seq = 0xFFFF; //Sequence numbers are only 12 bits long. This is intentionally invalid.
 
-		// Do not allow WARP nodes to time out
-		if(wlan_mac_addr_is_warp(addr)){
+		// Do not allow Mango nodes to time out
+		if(wlan_mac_addr_is_mango(addr)){
 			// TODO: This doesn't belong here. This is an AP specific behavior.
 			station_info->flags |= STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
 		}

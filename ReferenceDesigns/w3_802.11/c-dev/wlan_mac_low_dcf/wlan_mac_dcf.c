@@ -19,7 +19,7 @@
 #include "xio.h"
 #include "xil_cache.h"
 
-// WARP includes
+// Hardware includes
 #include "radio_controller.h"
 
 // WLAN includes

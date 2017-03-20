@@ -62,7 +62,7 @@
 // code never creates instances of these structs
 
 //
-// See definitions in WARP_ip_udp.h for:
+// See definitions in wlan_exp_ip_udp.h for:
 //     ethernet_header
 //     ipv4_header
 //     udp_header

@@ -22,10 +22,6 @@
 #include <stdio.h>
 #include <string.h>
 
-// WARP Includes
-
-// WLAN includes
-
 // WLAN Exp includes
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"

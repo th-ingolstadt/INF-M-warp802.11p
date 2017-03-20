@@ -87,7 +87,7 @@
 
 // If you want this station to try to associate to a known IBSS at boot, type
 //   the string here. Otherwise, let it be an empty string.
-static char                       default_ssid[SSID_LEN_MAX + 1] = "WARP-IBSS";
+static char                       default_ssid[SSID_LEN_MAX + 1] = "MANGO-IBSS";
 // static char                       default_ssid[SSID_LEN_MAX + 1] = "";
 
 

@@ -50,7 +50,7 @@
  * Space for wlan_platform_ethernet use                   | 15360 B (ETH_MEM_SIZE)
  * -------------------------------------------------------------------------------------------------
  *
- * On WARP v3 1 GB of the DDR3 SO-DIMM DRAM is mapped into the address space of CPU High.
+ * DRAM is mapped into the address space of CPU High.
  * This memory space is used as follows:
  *
  * ******************************* DRAM Map *********************************************************

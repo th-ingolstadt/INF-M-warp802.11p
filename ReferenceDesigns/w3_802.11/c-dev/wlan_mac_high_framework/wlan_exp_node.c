@@ -3164,9 +3164,9 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
  *
  * @return  None
  *
- * @note    The WARP IP/UDP Ethernet send function only blocks when it runs out of transmit
+ * @note    The wlan_exp IP/UDP Ethernet send function only blocks when it runs out of transmit
  *     buffer descriptors.  If all header modifications are performed in place, this will
- *     cause problems when trying to get all log entries when WARP_IP_UDP_TXBD_CNT (ie the
+ *     cause problems when trying to get all log entries when WLAN_EXP_IP_UDP_TXBD_CNT (ie the
  *     number of TX BDs) is greater than 5 because the Ethernet DMA will not have transfered
  *     the header before the next round of processing that modifies the header.  Therefore,
  *     the function will create multiple copies of the packet header in the buffer allocated

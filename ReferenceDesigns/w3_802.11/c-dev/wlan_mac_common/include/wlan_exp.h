@@ -41,7 +41,7 @@
 //
 //     Define the WLAN Exp Type to communicate the type of node to the host.  The WLAN Exp
 // type is divided into two fields:  Design Mask, Type Mask.  The Design Mask (upper 16 bits)
-// communicates the design the WARP hardware that is running.  The Type Mask (lower 16 bits)
+// communicates the design the platform that is running.  The Type Mask (lower 16 bits)
 // is design specific:
 //
 //   Design Mask                       Values

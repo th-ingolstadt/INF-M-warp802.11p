@@ -101,7 +101,7 @@ int transport_init(u32 eth_dev_num, void * node_info, u8 * ip_addr, u8 * hw_addr
         return XST_FAILURE;
     }
 
-    // Initialize the WARP IP/UDP transport
+    // Initialize the wlan_exp IP/UDP transport
     wlan_exp_ip_udp_init();
 
     // Print MAC address and IP address
@@ -268,7 +268,7 @@ void transport_close(u32 eth_dev_num) {
  *
  * @return  None
  *
- * @note    Buffers are managed by the WARP UDP transport driver
+ * @note    Buffers are managed by the wlan_exp UDP transport driver
  *
  *****************************************************************************/
 void transport_poll(u32 eth_dev_num) {

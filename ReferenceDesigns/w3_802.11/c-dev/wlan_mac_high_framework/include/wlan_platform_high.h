@@ -1,5 +1,5 @@
 /** @file wlan_platform_high.h
- *  @brief WARP v3 High Platform Defines for 802.11 Ref design
+ *  @brief High Platform Defines for 802.11 Ref design
  *
  *  @copyright Copyright 2014-2017, Mango Communications. All rights reserved.
  *          Distributed under the Mango Communications Reference Design License
