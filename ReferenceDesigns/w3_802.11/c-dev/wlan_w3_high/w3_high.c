@@ -30,7 +30,8 @@ static const platform_high_dev_info_t w3_platform_high_dev_info = {
 		.cdma_dev_id = PLATFORM_DEV_ID_CMDA,
 		.mailbox_int_id = PLATFORM_INT_ID_MAILBOX,
 		.wlan_exp_eth_mac_dev_id = WLAN_EXP_ETH_MAC_ID,
-		.wlan_exp_eth_dma_dev_id = WLAN_EXP_ETH_DMA_ID
+		.wlan_exp_eth_dma_dev_id = WLAN_EXP_ETH_DMA_ID,
+		.wlan_exp_phy_addr = 0x7
 };
 
 platform_high_dev_info_t wlan_platform_high_get_dev_info(){
@@ -312,5 +313,9 @@ int wlan_platform_wlan_exp_process_node_cmd(u8* cmd_processed, u32 cmd_id, int s
 
 	return resp_sent;
 
+}
+
+int wlan_platform_wlan_exp_eth_init(){
+	return 0;
 }
 

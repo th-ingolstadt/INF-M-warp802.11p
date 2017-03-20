@@ -378,6 +378,8 @@ int eth_init_device(u32 eth_dev_num, u32 verbose) {
         return XST_FAILURE;
     }
 
+    wlan_platform_wlan_exp_eth_init();
+
     return XST_SUCCESS;
 }
 

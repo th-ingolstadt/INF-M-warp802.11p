@@ -26,6 +26,7 @@
 
 // WLAN includes
 #include "wlan_mac_high.h"
+#include "wlan_platform_high.h"
 
 
 // WLAN EXP includes
@@ -47,11 +48,15 @@
 /*************************** Variable Definitions ****************************/
 
 // Transport information
+// FIXME: Why is this a vector of size TRANSPORT_NUM_ETH_DEVICES? I think that only the struct
+// at index WLAN_EXP_ETH (from the application) actually gets touched.
 static transport_eth_dev_info     eth_devices[TRANSPORT_NUM_ETH_DEVICES];
 static wlan_exp_tag_parameter     transport_parameters[TRANSPORT_NUM_ETH_DEVICES][TRANSPORT_PARAM_MAX_PARAMETER];
 
 // Callbacks
 volatile function_ptr_t  process_hton_msg_callback;
+
+extern platform_high_dev_info_t	 platform_high_dev_info;
 
 
 
@@ -184,20 +189,7 @@ void transport_eth_dev_info_init(u32 eth_dev_num, wlan_exp_node_info * node_info
 
 
     // Initialize fields that depend on the Ethernet device
-    switch (eth_dev_num) {
-        case TRANSPORT_ETH_A:
-            eth_devices[eth_dev_num].phy_addr    = TRANSPORT_ETH_A_MDIO_PHYADDR;
-        break;
-
-        case TRANSPORT_ETH_B:
-            eth_devices[eth_dev_num].phy_addr    = TRANSPORT_ETH_B_MDIO_PHYADDR;
-        break;
-
-        default:
-            wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Ethernet device %c not configured in hardware.\n", wlan_exp_conv_eth_dev_num(eth_dev_num));
-        break;
-    }
-
+    eth_devices[eth_dev_num].phy_addr = platform_high_dev_info.wlan_exp_phy_addr;
 
     // Initialize all sockets as invalid
     eth_devices[eth_dev_num].socket_unicast      = SOCKET_INVALID_SOCKET;

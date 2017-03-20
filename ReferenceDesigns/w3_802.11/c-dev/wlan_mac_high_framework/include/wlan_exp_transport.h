@@ -91,11 +91,9 @@
 
 // Ethernet A constants
 #define TRANSPORT_ETH_A                                    ETH_A_MAC
-#define TRANSPORT_ETH_A_MDIO_PHYADDR                       0x6
 
 // Ethernet B constants
 #define TRANSPORT_ETH_B                                    ETH_B_MAC
-#define TRANSPORT_ETH_B_MDIO_PHYADDR                       0x7
 
 // Ethernet constants
 #define ETH_DO_NOT_WAIT_FOR_AUTO_NEGOTIATION               0
