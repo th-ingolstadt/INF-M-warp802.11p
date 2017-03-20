@@ -21,6 +21,7 @@
 // Mango wlan_exp IP/UDP Library includes
 #include "wlan_exp_ip_udp.h"
 #include "wlan_exp_ip_udp_internal.h"
+#include "wlan_platform_high.h"
 
 
 /*************************** Constant Definitions ****************************/
@@ -378,7 +379,7 @@ int eth_init_device(u32 eth_dev_num, u32 verbose) {
         return XST_FAILURE;
     }
 
-    wlan_platform_wlan_exp_eth_init();
+    wlan_platform_wlan_exp_eth_init((XAxiEthernet*)(eth_device[1].eth_ptr));
 
     return XST_SUCCESS;
 }

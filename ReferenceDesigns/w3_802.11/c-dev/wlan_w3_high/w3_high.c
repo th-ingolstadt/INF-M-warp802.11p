@@ -315,7 +315,7 @@ int wlan_platform_wlan_exp_process_node_cmd(u8* cmd_processed, u32 cmd_id, int s
 
 }
 
-int wlan_platform_wlan_exp_eth_init(){
+int wlan_platform_wlan_exp_eth_init(XAxiEthernet* eth_ptr){
 	return 0;
 }
 
