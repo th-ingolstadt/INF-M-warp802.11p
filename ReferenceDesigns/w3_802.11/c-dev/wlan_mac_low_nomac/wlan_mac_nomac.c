@@ -150,15 +150,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details){
     void              * pkt_buf_addr        = (void *) CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf);
     rx_frame_info_t   * rx_frame_info       = (rx_frame_info_t *) pkt_buf_addr;
 
-    // Fill in the MPDU info fields for the reception. These values are known at RX_START. The other fields below
-    //  must be written after RX_END
-    rx_frame_info->flags          = 0;
-    rx_frame_info->phy_details    = *phy_details;
-    rx_frame_info->channel        = wlan_mac_low_get_active_channel();
-    rx_frame_info->phy_samp_rate  = (u8)wlan_mac_low_get_phy_samp_rate();
-    rx_frame_info->timestamp      = wlan_mac_low_get_rx_start_timestamp();
-    rx_frame_info->timestamp_frac = wlan_mac_low_get_rx_start_timestamp_frac();
-
     // Wait for the Rx PHY to finish receiving this packet
 	if(wlan_mac_hw_rx_finish() == 1){
 		//FCS was good
@@ -167,13 +158,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details){
 		//FCS was bad
 		rx_frame_info->flags &= ~RX_FRAME_INFO_FLAGS_FCS_GOOD;
 	}
-
-    // Update the rest of the frame_info fields using post-Rx information
-	rx_frame_info->ant_mode = wlan_phy_rx_get_active_rx_ant();
-	rx_frame_info->cfo_est	 = wlan_phy_rx_get_cfo_est();
-	rx_frame_info->rf_gain  = wlan_phy_rx_get_agc_RFG(rx_frame_info->ant_mode);
-	rx_frame_info->bb_gain  = wlan_phy_rx_get_agc_BBG(rx_frame_info->ant_mode);
-	rx_frame_info->rx_power = wlan_mac_low_calculate_rx_power(wlan_phy_rx_get_pkt_rssi(rx_frame_info->ant_mode), wlan_phy_rx_get_agc_RFG(rx_frame_info->ant_mode));
 
     // Increment the LEDs based on the FCS status
     if(rx_frame_info->flags & RX_FRAME_INFO_FLAGS_FCS_GOOD){

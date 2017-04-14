@@ -889,8 +889,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     u8                  tx_mcs;
     u16                 cts_duration;
     u8                  unicast_to_me, to_multicast;
-    u16                 rssi;
-    u8                  lna_gain;
     u8                  active_rx_ant;
     u32                 rx_filter;
     u8                  report_to_mac_high;
@@ -1149,20 +1147,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     if ((rx_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_RETRY) {
     	rx_frame_info->flags |= RX_FRAME_INFO_FLAGS_RETRY;
     }
-
-    // Record information about the reception in the RX packet metadata
-    rx_frame_info->channel        = wlan_mac_low_get_active_channel();
-    rx_frame_info->phy_samp_rate  = (u8)wlan_mac_low_get_phy_samp_rate();
-    rx_frame_info->timestamp      = wlan_mac_low_get_rx_start_timestamp();
-    rx_frame_info->timestamp_frac = wlan_mac_low_get_rx_start_timestamp_frac();
-    rx_frame_info->ant_mode       = active_rx_ant;
-    rx_frame_info->cfo_est		  = wlan_phy_rx_get_cfo_est();
-    rx_frame_info->rf_gain        = wlan_phy_rx_get_agc_RFG(active_rx_ant);
-    rx_frame_info->bb_gain        = wlan_phy_rx_get_agc_BBG(active_rx_ant);
-
-    lna_gain                  = wlan_phy_rx_get_agc_RFG(active_rx_ant);
-    rssi                      = wlan_phy_rx_get_pkt_rssi(active_rx_ant);
-    rx_frame_info->rx_power   = wlan_mac_low_calculate_rx_power(rssi, lna_gain);
 
     // Block until the reception is complete, storing the checksum status in the frame_info struct
     if ((phy_details->length) > RX_LEN_THRESH) {

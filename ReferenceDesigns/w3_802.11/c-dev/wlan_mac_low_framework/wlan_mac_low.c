@@ -528,10 +528,16 @@ inline void wlan_mac_low_send_exception(u32 reason){
  * @return  u32              - Status (See MAC Polling defines in wlan_mac_low.h)
  */
 inline u32 wlan_mac_low_poll_frame_rx(){
-    phy_rx_details_t phy_details;
+    phy_rx_details_t 	phy_details;
+    u16                 rssi;
+    u8                  lna_gain;
+    u8                  active_rx_ant;
 
     volatile u32 mac_hw_status;
     volatile u32 phy_hdr_params;
+
+    void* pkt_buf_addr = (void *) CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf);
+    rx_frame_info_t* rx_frame_info = (rx_frame_info_t *) pkt_buf_addr;
 
     int i = 0;
 
@@ -565,6 +571,29 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 			//  2) Read PHY header register second
 			//  3) Check for complete PHY header - continue if complete
 			//  4) Else check for early PHY reset - quit if reset
+
+        	// Fill in whatever metadata about the reception we can into the rx_frame_info_t struct
+            phy_details.phy_mode = wlan_mac_get_rx_phy_mode();
+            phy_details.length   = wlan_mac_get_rx_phy_length();
+            phy_details.mcs      = wlan_mac_get_rx_phy_mcs();
+
+            active_rx_ant = (wlan_phy_rx_get_active_rx_ant());
+
+        	rx_frame_info->flags          = 0;
+			rx_frame_info->phy_details    = phy_details;
+			rx_frame_info->channel        = wlan_mac_low_get_active_channel();
+			rx_frame_info->phy_samp_rate  = (u8)wlan_mac_low_get_phy_samp_rate();
+			rx_frame_info->timestamp      = wlan_mac_low_get_rx_start_timestamp();
+			rx_frame_info->timestamp_frac = wlan_mac_low_get_rx_start_timestamp_frac();
+		    rx_frame_info->ant_mode       = active_rx_ant;
+		    rx_frame_info->cfo_est		  = wlan_phy_rx_get_cfo_est();
+		    rx_frame_info->rf_gain        = wlan_phy_rx_get_agc_RFG(active_rx_ant);
+		    rx_frame_info->bb_gain        = wlan_phy_rx_get_agc_BBG(active_rx_ant);
+
+		    lna_gain                  = wlan_phy_rx_get_agc_RFG(active_rx_ant);
+		    rssi                      = wlan_phy_rx_get_pkt_rssi(active_rx_ant);
+		    rx_frame_info->rx_power   = wlan_mac_low_calculate_rx_power(rssi, lna_gain);
+
 
         	while (1) {
 				mac_hw_status = wlan_mac_get_status();
@@ -620,9 +649,6 @@ inline u32 wlan_mac_low_poll_frame_rx(){
                     //  Call lower MAC Rx callback
                     //  Callback can safely return anytime (before or after RX_END)
 
-                    phy_details.phy_mode = wlan_mac_get_rx_phy_mode();
-                    phy_details.length   = wlan_mac_get_rx_phy_length();
-                    phy_details.mcs      = wlan_mac_get_rx_phy_mcs();
                     phy_details.N_DBPS   = wlan_mac_low_mcs_to_n_dbps(phy_details.mcs, phy_details.phy_mode);
 
                 	return_status |= FRAME_RX_RET_STATUS_RECEIVED_PKT;
