@@ -18,6 +18,7 @@
 // Low platform must implement macros for accessing MAC/PHY registers
 //  These macros rename the platform-specific macros from xparameters.h
 #include "w3_mac_phy_regs.h"
+#include "w3_phy_util.h"
 
 // Functions the low framework must implement
 int wlan_platform_low_init();
