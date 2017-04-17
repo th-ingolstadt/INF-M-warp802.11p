@@ -19,8 +19,6 @@
 #include "xio.h"
 #include "xil_cache.h"
 
-// Hardware includes
-#include "radio_controller.h"
 
 // WLAN includes
 #include "wlan_platform_common.h"
@@ -31,7 +29,6 @@
 #include "wlan_mac_dcf.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_mgmt_tags.h"
-#include "w3_userio_util.h" //FIXME DEBUG
 
 // WLAN Exp includes
 #include "wlan_exp.h"
@@ -1477,9 +1474,7 @@ u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 				pkt_buf = *((u8*)(entry->data));
 
 				if( wlan_mac_low_prepare_frame_transmit(pkt_buf) == 0 ){
-					wlan_mac_set_dbg_hdr_out(0x2000); //FIXME DEBUG
 					frame_transmit_general(pkt_buf);
-					wlan_mac_clear_dbg_hdr_out(0x2000); //FIXME DEBUG
 
 					return_value |= POLL_TX_PKT_BUF_LIST_RETURN_TRANSMITTED;
 					wlan_mac_low_finish_frame_transmit(pkt_buf);
@@ -1648,8 +1643,6 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 		wlan_mac_tx_ctrl_D_start(1);
 		wlan_mac_tx_ctrl_D_start(0);
 
-		wlan_mac_set_dbg_hdr_out(0x1000); //FIXME DEBUG
-
 		// Immediately re-read the current slot count.
 		n_slots_readback = wlan_mac_get_backoff_count_D();
 
@@ -1706,7 +1699,6 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 
 		// Fill in the timestamp if indicated by the flags, only possible after Tx PHY has started
 		if ( (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE) && (tx_has_started == 0)) {
-			wlan_mac_clear_dbg_hdr_out(0x1000); //FIXME DEBUG
 			tx_has_started = 1;
 			low_tx_details.tx_details_type  = TX_DETAILS_MPDU;
 			low_tx_details.tx_start_timestamp_mpdu = wlan_mac_low_get_tx_start_timestamp();
@@ -2009,8 +2001,6 @@ void frame_transmit_general(u8 pkt_buf) {
 		wlan_mac_tx_ctrl_A_start(1);
 		wlan_mac_tx_ctrl_A_start(0);
 
-		wlan_mac_set_dbg_hdr_out(0x1000); //FIXME DEBUG
-
 		// Immediately re-read the current slot count.
 		n_slots_readback = wlan_mac_get_backoff_count_A();
 
@@ -2063,8 +2053,6 @@ void frame_transmit_general(u8 pkt_buf) {
 
 			// Fill in the timestamp if indicated by the flags, only possible after Tx PHY has started
 			if ( (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE) && (tx_has_started == 0)) {
-
-				wlan_mac_clear_dbg_hdr_out(0x1000); //FIXME DEBUG
 
 				if((tx_frame_info->flags) & TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP){
 					//Note: Probe responses still need their timestamp to be filled in, so this clause remains
