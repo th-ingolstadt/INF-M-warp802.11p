@@ -312,7 +312,7 @@ void wlan_mac_low_send_status(u8 cpu_status_reason){
  * @param   phy_samp_rate_t phy_samp_rate
  * @return  None
  */
-void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
+void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate) {
 
     // Check sample rate argument
     //     - Must be in [PHY_10M, PHY_20M, PHY_40M]
@@ -322,11 +322,6 @@ void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
 
     // Set global sample rate variable
 	gl_phy_samp_rate = phy_samp_rate;
-
-    // Assert PHY Tx/Rx and MAC Resets
-    REG_SET_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);
-    REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_RESET);
-    wlan_mac_reset(1);
 
     // Call the platform's set_samp_rate first
     wlan_platform_low_set_samp_rate(phy_samp_rate);
@@ -346,92 +341,10 @@ void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
     	break;
     }
 
-    // Configure auto-correlation packet detection
-    //  wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(corr_thresh, energy_thresh, min_dur, post_wait)
-    switch(phy_samp_rate){
-    	case PHY_40M:
-    		//TODO: The 2 value is suspiciously low
-    		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 2, 15, 0x3F);
-		break;
-    	case PHY_10M:
-    	case PHY_20M:
-    		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 9, 4, 0x3F);
-    	break;
-    }
-
-    // Set post Rx extension
-    //  Number of sample periods post-Rx the PHY waits before asserting Rx END. The additional
-    //   -3 usec accounts for latency through the Rx RF chain.
-    switch(phy_samp_rate){
-    	case PHY_40M:
-    		// 6us Extension
-    		wlan_phy_rx_set_extension((6*40) - 128);
-		break;
-    	case PHY_20M:
-    		// 6us Extension
-    		wlan_phy_rx_set_extension((6*20) - 64);
-    	break;
-    	case PHY_10M:
-    		// 6us Extension
-    		wlan_phy_rx_set_extension((6*10) - 32);
-    	break;
-    }
-
-    // Set Tx duration extension, in units of sample periods
-	switch(phy_samp_rate){
-		case PHY_40M:
-			// 224 40MHz sample periods -- aligns TX_END to RX_END
-			wlan_phy_tx_set_extension(224);
-
-			// Set extension from last samp output to RF Tx -> Rx transition
-			//     This delay allows the Tx pipeline to finish driving samples into DACs
-			//     and for DAC->RF frontend to finish output Tx waveform
-			wlan_phy_tx_set_txen_extension(100);
-
-			// Set extension from RF Rx -> Tx to un-blocking Rx samples
-			wlan_phy_tx_set_rx_invalid_extension(300);
-		break;
-		case PHY_20M:
-			// 112 20MHz sample periods -- aligns TX_END to RX_END
-			wlan_phy_tx_set_extension(112);
-
-			// Set extension from last samp output to RF Tx -> Rx transition
-			//     This delay allows the Tx pipeline to finish driving samples into DACs
-			//     and for DAC->RF frontend to finish output Tx waveform
-			wlan_phy_tx_set_txen_extension(50);
-
-			// Set extension from RF Rx -> Tx to un-blocking Rx samples
-			wlan_phy_tx_set_rx_invalid_extension(150);
-		break;
-		case PHY_10M:
-			// 56 10MHz sample periods -- aligns TX_END to RX_END
-			wlan_phy_tx_set_extension(56);
-
-			// Set extension from last samp output to RF Tx -> Rx transition
-			//     This delay allows the Tx pipeline to finish driving samples into DACs
-			//     and for DAC->RF frontend to finish output Tx waveform
-			wlan_phy_tx_set_txen_extension(25);
-
-			// Set extension from RF Rx -> Tx to un-blocking Rx samples
-			wlan_phy_tx_set_rx_invalid_extension(75);
-		break;
-	}
-
-
-
     // Call user callback so it can deal with any changes that need to happen due to a change in sampling rate
 	sample_rate_change_callback(gl_phy_samp_rate);
 
-    // Deassert PHY Tx/Rx and MAC Resets
-    REG_CLEAR_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);
-    REG_CLEAR_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_RESET);
-    wlan_mac_reset(0);
-
-    // Let PHY Tx take control of radio TXEN/RXEN
-    REG_CLEAR_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_SET_RC_RXEN);
-    REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_SET_RC_RXEN);
 }
-
 
 /*****************************************************************************/
 /**
