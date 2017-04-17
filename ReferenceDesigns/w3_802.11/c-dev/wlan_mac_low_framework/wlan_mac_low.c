@@ -697,7 +697,6 @@ inline int wlan_mac_low_poll_ipc_rx(){
 }
 
 
-
 /*****************************************************************************/
 /**
  * @brief Process IPC Reception
@@ -749,14 +748,23 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
         case IPC_MBOX_MEM_READ_WRITE: {
             switch(msg->arg0){
                 case IPC_REG_WRITE_MODE: {
-                    u32    * payload_to_write = (u32*)((u8*)ipc_msg_from_high_payload + sizeof(ipc_reg_read_write_t));
 
-                    // IMPORTANT: this memcpy assumes the payload provided by CPU high is ready as-is
+                	u32    * payload_to_write = (u32*)((u8*)ipc_msg_from_high_payload + sizeof(ipc_reg_read_write_t));
+
+                	// IMPORTANT: this memcpy assumes the payload provided by CPU high is ready as-is
                     //     Any byte swapping (i.e. for payloads that arrive over Ethernet) *must* be performed
                     //     before the payload is passed to this function
-                    memcpy((u8*)(((ipc_reg_read_write_t*)ipc_msg_from_high_payload)->baseaddr),
-                           (u8*)payload_to_write,
-                           (sizeof(u32) * ((ipc_reg_read_write_t*)ipc_msg_from_high_payload)->num_words));
+
+                    // Implement memcpy with only 32-bit writes, avoids byte-select issues in Sysgen AXI slaves
+                    int word_idx;
+                    u32 num_words =  ((ipc_reg_read_write_t*)ipc_msg_from_high_payload)->num_words;
+                    u32 start_addr = (((ipc_reg_read_write_t*)ipc_msg_from_high_payload)->baseaddr) & 0xFFFFFFFC; //force 2LSB=0
+
+                    for(word_idx = 0; word_idx < num_words; word_idx++) {
+                    	// Increment target address by 4 bytes per iteration
+                    	// payload_to_write already a u32 pointer, so use count-by-1 array index to access u32 words
+                    	Xil_Out32((start_addr + word_idx*4), payload_to_write[word_idx]);
+                    }
                 }
                 break;
 
@@ -903,6 +911,7 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
         case IPC_MBOX_TX_PKT_BUF_READY: {
         	u8 tx_pkt_buf;
         	tx_pkt_buf = msg->arg0;
+
         	if(tx_pkt_buf < NUM_TX_PKT_BUFS){
 
         		// Lock and change state of packet buffer
@@ -915,6 +924,7 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
         	}
         }
         break;
+
     }
 }
 
