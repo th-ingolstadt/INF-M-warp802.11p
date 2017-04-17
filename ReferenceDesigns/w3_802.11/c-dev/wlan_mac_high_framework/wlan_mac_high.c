@@ -980,7 +980,6 @@ int wlan_mac_high_memory_test(){
 			test_u64 = (((u64)rand()&0xFFFFFFFF)<<32) + ((u64)rand()&0xFFFFFFFF);
 
 			*((u8*)memory_ptr) = test_u8;
-			wlan_usleep(READBACK_DELAY_USEC);
 			readback_u8 = *((u8*)memory_ptr);
 
 			if(readback_u8!= test_u8){
@@ -989,7 +988,6 @@ int wlan_mac_high_memory_test(){
 				return -1;
 			}
 			*((u16*)memory_ptr) = test_u16;
-			wlan_usleep(READBACK_DELAY_USEC);
 			readback_u16 = *((u16*)memory_ptr);
 
 			if(readback_u16 != test_u16){
@@ -998,7 +996,6 @@ int wlan_mac_high_memory_test(){
 				return -1;
 			}
 			*((u32*)memory_ptr) = test_u32;
-			wlan_usleep(READBACK_DELAY_USEC);
 			readback_u32 = *((u32*)memory_ptr);
 
 			if(readback_u32 != test_u32){
@@ -1007,7 +1004,6 @@ int wlan_mac_high_memory_test(){
 				return -1;
 			}
 			*((u64*)memory_ptr) = test_u64;
-			wlan_usleep(READBACK_DELAY_USEC);
 			readback_u64 = *((u64*)memory_ptr);
 
 			if(readback_u64!= test_u64){
