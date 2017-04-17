@@ -201,7 +201,7 @@ int wlan_phy_rx_get_agc_BBG(u8 ant);
 //     [31:24] - Rx timeout - max bits to SFD
 //
 #define wlan_phy_DSSS_rx_config(code_corr, despread_dly, sfd_timeout) \
-    Xil_Out32(WLAN_RX_DSSS_CFG, (((code_corr) & 0xFFFF) | (((despread_dly) & 0x1F) << 12) | (((sfd_timeout) & 0xFF) << 24)))
+    Xil_Out32(WLAN_RX_DSSS_CFG, (((code_corr) & 0xFFF) | (((despread_dly) & 0x1F) << 12) | (((sfd_timeout) & 0xFF) << 24)))
 
 // WLAN_RX_PKT_DET_DSSS_CFG register fields:
 //     [ 7: 0] - Correlation threshold as UFix8_6
