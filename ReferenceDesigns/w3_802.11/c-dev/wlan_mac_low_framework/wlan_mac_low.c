@@ -486,10 +486,6 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 			//  4) Else check for early PHY reset - quit if reset
 
         	// Fill in whatever metadata about the reception we can into the rx_frame_info_t struct
-            phy_details.phy_mode = wlan_mac_get_rx_phy_mode();
-            phy_details.length   = wlan_mac_get_rx_phy_length();
-            phy_details.mcs      = wlan_mac_get_rx_phy_mcs();
-
             active_rx_ant = (wlan_phy_rx_get_active_rx_ant());
 
         	rx_frame_info->flags          = 0;
@@ -563,6 +559,9 @@ inline u32 wlan_mac_low_poll_frame_rx(){
                     //  Callback can safely return anytime (before or after RX_END)
 
                     phy_details.N_DBPS   = wlan_mac_low_mcs_to_n_dbps(phy_details.mcs, phy_details.phy_mode);
+                    phy_details.phy_mode = wlan_mac_get_rx_phy_mode();
+                    phy_details.length   = wlan_mac_get_rx_phy_length();
+                    phy_details.mcs      = wlan_mac_get_rx_phy_mcs();
 
                 	return_status |= FRAME_RX_RET_STATUS_RECEIVED_PKT;
                 	return_status |= frame_rx_callback(rx_pkt_buf, &phy_details);

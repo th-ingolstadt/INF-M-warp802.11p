@@ -436,7 +436,7 @@ int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
     if(gl_portal_en == 0) return 0;
 
     if(length < (min_pkt_len + pre_llc_offset + WLAN_PHY_FCS_NBYTES)){
-        xil_printf("Error in wlan_mpdu_eth_send: length of %d is too small... must be at least %d\n", length, min_pkt_len);
+        xil_printf("Error in wlan_mpdu_eth_send: length of %d is too small... must be at least %d\n", length, min_pkt_len + pre_llc_offset + WLAN_PHY_FCS_NBYTES);
         return -1;
     }
 
