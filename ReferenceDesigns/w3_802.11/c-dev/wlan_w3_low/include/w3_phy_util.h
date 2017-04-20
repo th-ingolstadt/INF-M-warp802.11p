@@ -16,8 +16,8 @@
 #include "wlan_mac_mailbox_util.h"
 
 /*************************** Constant Definitions ****************************/
-#ifndef WLAN_PHY_UTIL_H_
-#define WLAN_PHY_UTIL_H_
+#ifndef W3_PHY_UTIL_H_
+#define W3_PHY_UTIL_H_
 
 
 // ****************************************************************************
@@ -303,4 +303,4 @@ void wlan_tx_start();
 u16 wlan_ofdm_calc_txtime(u16 length, u8 mcs, u8 phy_mode, phy_samp_rate_t phy_samp_rate);
 u16 wlan_ofdm_calc_num_payload_syms(u16 length, u8 mcs, u8 phy_mode);
 
-#endif /* WLAN_PHY_UTIL_H_ */
+#endif /* W3_PHY_UTIL_H_ */

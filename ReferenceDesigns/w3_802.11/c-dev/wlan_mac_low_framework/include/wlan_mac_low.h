@@ -41,7 +41,7 @@
 //-----------------------------------------------
 // Macros wrapping register read/writes in MAC core
 //
-#define wlan_mac_reset(x)                      	Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET) | ((x) ? WLAN_MAC_CTRL_MASK_RESET : 0))
+#define wlan_mac_reset(x)                      			  Xil_Out32(WLAN_MAC_REG_CONTROL, (Xil_In32(WLAN_MAC_REG_CONTROL) & ~WLAN_MAC_CTRL_MASK_RESET) | ((x) ? WLAN_MAC_CTRL_MASK_RESET : 0))
 
 #define wlan_mac_set_postTx_timer1(d)                     (Xil_Out32(WLAN_MAC_REG_POST_TX_TIMERS, ((Xil_In32(WLAN_MAC_REG_POST_TX_TIMERS) & ~WLAN_MAC_POST_TX_TIMERS_MASK_TIMER1_COUNTTO) | ((d)         & WLAN_MAC_POST_TX_TIMERS_MASK_TIMER1_COUNTTO))))
 #define wlan_mac_set_postTx_timer2(d)                     (Xil_Out32(WLAN_MAC_REG_POST_TX_TIMERS, ((Xil_In32(WLAN_MAC_REG_POST_TX_TIMERS) & ~WLAN_MAC_POST_TX_TIMERS_MASK_TIMER2_COUNTTO) | (((d) << 16) & WLAN_MAC_POST_TX_TIMERS_MASK_TIMER2_COUNTTO))))

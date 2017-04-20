@@ -24,12 +24,14 @@
 
 // Low framework includes
 #include "wlan_phy_util.h"
+#include "wlan_mac_low.h"
 
 // WARP v3 hardware includes
 #include "w3_userio.h"
 #include "w3_ad_controller.h"
 #include "w3_clock_controller.h"
 #include "radio_controller.h"
+#include "w3_phy_util.h"
 
 /*****************************************************************************
  * Public functions - the functions below are exported to the low framework
