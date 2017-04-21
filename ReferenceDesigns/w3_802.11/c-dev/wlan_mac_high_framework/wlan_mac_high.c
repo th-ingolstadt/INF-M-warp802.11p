@@ -224,6 +224,9 @@ void wlan_mac_high_init(){
 		xil_printf("Error in initializing Interrupt Controller\n");
 	}
 
+	//Make sure we process all interrupts
+	XIntc_SetOptions(&InterruptController, XIN_SVC_ALL_ISRS_OPTION);
+
 	// Check that right shift works correctly
 	//   Issue with -Os in Xilinx SDK 14.7
 	if (wlan_mac_high_right_shift_test() != 0) {
