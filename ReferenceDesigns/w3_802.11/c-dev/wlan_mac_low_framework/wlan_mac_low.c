@@ -462,16 +462,37 @@ inline u32 wlan_mac_low_poll_frame_rx(){
     // Check if PHY has started a new reception
     if(mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_STARTED) {
 
+    	// Fill in rx_frame_info_t metadata
+        active_rx_ant = (wlan_phy_rx_get_active_rx_ant());
+
+    	rx_frame_info->flags          = 0;
+		rx_frame_info->channel        = wlan_mac_low_get_active_channel();
+		rx_frame_info->phy_samp_rate  = (u8)wlan_mac_low_get_phy_samp_rate();
+		rx_frame_info->timestamp      = wlan_mac_low_get_rx_start_timestamp();
+		rx_frame_info->timestamp_frac = wlan_mac_low_get_rx_start_timestamp_frac();
+	    rx_frame_info->ant_mode       = active_rx_ant;
+	    rx_frame_info->rf_gain        = wlan_phy_rx_get_agc_RFG(active_rx_ant);
+	    rx_frame_info->bb_gain        = wlan_phy_rx_get_agc_BBG(active_rx_ant);
+
+	    lna_gain                  = wlan_phy_rx_get_agc_RFG(active_rx_ant);
+	    rssi                      = wlan_phy_rx_get_pkt_rssi(active_rx_ant);
+	    rx_frame_info->rx_power   = wlan_mac_low_calculate_rx_power(rssi, lna_gain);
+
+
     	// Check whether this is an OFDM or DSSS Rx
         if(wlan_mac_get_rx_phy_sel() == WLAN_MAC_PHY_RX_PHY_HDR_PHY_SEL_DSSS) {
             // DSSS Rx - PHY Rx length is already valid, other params unused for DSSS
-            phy_details.phy_mode = PHY_MODE_DSSS;
-            phy_details.N_DBPS   = 0;
+        	phy_details.phy_mode = PHY_MODE_DSSS;
+        	phy_details.N_DBPS   = 0;
 
             // Strip off extra pre-MAC-header bytes used in DSSS frames; this adjustment allows the next
             //     function to treat OFDM and DSSS payloads the same
-            phy_details.length   = wlan_mac_get_rx_phy_length() - 5;
-            phy_details.mcs      = 0;
+        	phy_details.length   = wlan_mac_get_rx_phy_length() - 5;
+        	phy_details.mcs      = 0;
+
+    	    rx_frame_info->cfo_est		  = 0;;
+        	rx_frame_info->phy_details    = phy_details;
+
 
             // Call the user callback to handle this Rx, capture return value
         	return_status |= FRAME_RX_RET_STATUS_RECEIVED_PKT;
@@ -484,25 +505,6 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 			//  2) Read PHY header register second
 			//  3) Check for complete PHY header - continue if complete
 			//  4) Else check for early PHY reset - quit if reset
-
-        	// Fill in whatever metadata about the reception we can into the rx_frame_info_t struct
-            active_rx_ant = (wlan_phy_rx_get_active_rx_ant());
-
-        	rx_frame_info->flags          = 0;
-			rx_frame_info->phy_details    = phy_details;
-			rx_frame_info->channel        = wlan_mac_low_get_active_channel();
-			rx_frame_info->phy_samp_rate  = (u8)wlan_mac_low_get_phy_samp_rate();
-			rx_frame_info->timestamp      = wlan_mac_low_get_rx_start_timestamp();
-			rx_frame_info->timestamp_frac = wlan_mac_low_get_rx_start_timestamp_frac();
-		    rx_frame_info->ant_mode       = active_rx_ant;
-		    rx_frame_info->cfo_est		  = wlan_phy_rx_get_cfo_est();
-		    rx_frame_info->rf_gain        = wlan_phy_rx_get_agc_RFG(active_rx_ant);
-		    rx_frame_info->bb_gain        = wlan_phy_rx_get_agc_BBG(active_rx_ant);
-
-		    lna_gain                  = wlan_phy_rx_get_agc_RFG(active_rx_ant);
-		    rssi                      = wlan_phy_rx_get_pkt_rssi(active_rx_ant);
-		    rx_frame_info->rx_power   = wlan_mac_low_calculate_rx_power(rssi, lna_gain);
-
 
         	while (1) {
 				mac_hw_status = wlan_mac_get_status();
@@ -558,10 +560,13 @@ inline u32 wlan_mac_low_poll_frame_rx(){
                     //  Call lower MAC Rx callback
                     //  Callback can safely return anytime (before or after RX_END)
 
-                    phy_details.phy_mode = wlan_mac_get_rx_phy_mode();
-				    phy_details.length   = wlan_mac_get_rx_phy_length();
-				   	phy_details.mcs      = wlan_mac_get_rx_phy_mcs();
-                    phy_details.N_DBPS   = wlan_mac_low_mcs_to_n_dbps(phy_details.mcs, phy_details.phy_mode);
+                	phy_details.phy_mode = wlan_mac_get_rx_phy_mode();
+                	phy_details.length   = wlan_mac_get_rx_phy_length();
+                	phy_details.mcs      = wlan_mac_get_rx_phy_mcs();
+                	phy_details.N_DBPS   = wlan_mac_low_mcs_to_n_dbps(phy_details.mcs, phy_details.phy_mode);
+
+            	    rx_frame_info->cfo_est		  = wlan_phy_rx_get_cfo_est();
+                    rx_frame_info->phy_details    = phy_details;
 
                 	return_status |= FRAME_RX_RET_STATUS_RECEIVED_PKT;
                 	return_status |= frame_rx_callback(rx_pkt_buf, &phy_details);
