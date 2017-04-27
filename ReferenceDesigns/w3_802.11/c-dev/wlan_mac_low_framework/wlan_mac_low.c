@@ -942,7 +942,7 @@ int wlan_mac_low_set_radio_channel(u32 channel){
 		return wlan_platform_low_set_radio_channel(channel);
 
 	} else {
-		xil_printf("Invalid channel selection %d\n", mac_param_chan);
+		xil_printf("Invalid channel selection %d\n", channel);
 		return -1;
 	}
 }
