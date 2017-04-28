@@ -297,6 +297,7 @@ CASSERT(sizeof(tx_frame_info_t) == 56, tx_frame_info_alignment_check);
 #define TX_FRAME_INFO_FLAGS_FILL_DURATION                        0x04
 #define TX_FRAME_INFO_FLAGS_WAIT_FOR_LOCK						 0x10
 #define TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ                        0x20
+#define TX_FRAME_INFO_FLAGS_PKT_BUF_PREPARED                     0x80
 
 
 //-----------------------------------------------
