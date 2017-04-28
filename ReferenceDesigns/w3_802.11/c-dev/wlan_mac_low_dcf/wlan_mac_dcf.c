@@ -252,7 +252,7 @@ void update_tx_pkt_buf_lists(){
 			// The pkt_buf_group_t in the frame_info_t cannot be used to find the existing multicast packets in the
 			// general list. When DTIM multicast buffering is disabled, all pkt_buf_group_t are PKT_BUF_GROUP_GENERAL.
 			// So, instead, we will inspect the RA of the to-be-transmitted packets to find ones that are multicast.
-			if(wlan_addr_mcast(header->address_1)){
+			if(((tx_frame_info->flags & TX_FRAME_INFO_FLAGS_PKT_BUF_PREPARED) == 0) && wlan_addr_mcast(header->address_1)){
 				tx_frame_info->queue_info.pkt_buf_group = PKT_BUF_GROUP_DTIM_MCAST;
 				dl_entry_remove(&gl_tx_pkt_buf_ready_list_general, curr_entry);
 				dl_entry_insertEnd(&gl_tx_pkt_buf_ready_list_dtim_mcast, curr_entry);
@@ -279,10 +279,11 @@ void update_tx_pkt_buf_lists(){
 				pkt_buf = *( (u8*)curr_entry->data);
 
 				tx_frame_info	= (tx_frame_info_t*)  (CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf));
-
-				tx_frame_info->queue_info.pkt_buf_group = PKT_BUF_GROUP_GENERAL;
-				dl_entry_remove(&gl_tx_pkt_buf_ready_list_dtim_mcast, curr_entry);
-				dl_entry_insertEnd(&gl_tx_pkt_buf_ready_list_general, curr_entry);
+				if(((tx_frame_info->flags & TX_FRAME_INFO_FLAGS_PKT_BUF_PREPARED) == 0)){
+					tx_frame_info->queue_info.pkt_buf_group = PKT_BUF_GROUP_GENERAL;
+					dl_entry_remove(&gl_tx_pkt_buf_ready_list_dtim_mcast, curr_entry);
+					dl_entry_insertEnd(&gl_tx_pkt_buf_ready_list_general, curr_entry);
+				}
 			}
 		}
 
