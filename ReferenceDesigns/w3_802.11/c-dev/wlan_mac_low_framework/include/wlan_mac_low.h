@@ -348,9 +348,7 @@ void               wlan_mac_low_DSSS_rx_disable();
 int 			   wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf);
 int 			   wlan_mac_low_finish_frame_transmit(u16 tx_pkt_buf);
 
-int                wlan_mac_low_rx_power_to_rssi(s8 rx_pow);
-int                wlan_mac_low_set_pkt_det_min_power(s8 rx_pow);
-int         wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain);
+
 
 void        wlan_mac_low_lock_empty_rx_pkt_buf();
 

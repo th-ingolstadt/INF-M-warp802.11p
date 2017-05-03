@@ -2603,9 +2603,9 @@ int process_low_param(u8 mode, u32* payload){
                 //---------------------------------------------------------------------
                 case LOW_PARAM_DCF_PHYSICAL_CS_THRESH: {
                     if(payload[1] < 1023){
-                        wlan_phy_rx_set_cca_thresh(payload[1] * PHY_RX_RSSI_SUM_LEN);
+                    	wlan_platform_set_phy_cs_thresh(payload[1] * PHY_RX_RSSI_SUM_LEN);
                     } else {
-                        wlan_phy_rx_set_cca_thresh(0xFFFF);
+                    	wlan_platform_set_phy_cs_thresh(0xFFFF);
                     }
                 }
                 break;

@@ -23,6 +23,8 @@
 #include "wlan_phy_util.h"
 #include "wlan_mac_low.h"
 #include "wlan_mac_common.h"
+#include "w3_low.h"
+
 
 /*****************************************************************************/
 /**
@@ -123,11 +125,13 @@ void wlan_phy_init() {
     // Configure RSSI pkt det
     //     RSSI pkt det disabled by default (auto-corr detection worked across SNRs in our testing)
     //     The summing logic realizes a sum of the length specified + 1
-     wlan_phy_rx_pktDet_RSSI_cfg( (PHY_RX_RSSI_SUM_LEN-1), ( PHY_RX_RSSI_SUM_LEN * 1023), 1);
+    wlan_phy_rx_pktDet_RSSI_cfg( (PHY_RX_RSSI_SUM_LEN-1), ( PHY_RX_RSSI_SUM_LEN * 1023), 1);
 
     // WLAN_RX_PHY_CCA_CFG reg
     // Set physical carrier sensing threshold
-    wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * wlan_mac_low_rx_power_to_rssi(-62));     // -62dBm from 802.11-2012
+    // CS thresh set by wlan_platform_set_phy_cs_thresh() - register field set to 0xFFFF here to disable
+    //  PHY CS assert until MAC code configures the desired threshold
+    wlan_phy_rx_set_cca_thresh(0xFFFF);
     wlan_phy_rx_set_extension((6*20) - 64); // Overridden later by set_phy_samp_rate()
 
     // WLAN_RX_FEC_CFG reg

@@ -36,9 +36,6 @@
 
 #define DBG_PRINT  0
 
-// Power / RSSI conversion
-#define POW_LOOKUP_SHIFT  3                   // Shift from 10 bit RSSI to 7 bit for lookup
-
 
 /*********************** Global Variable Definitions *************************/
 
@@ -442,8 +439,6 @@ inline void wlan_mac_low_send_exception(u32 reason){
  */
 inline u32 wlan_mac_low_poll_frame_rx(){
     phy_rx_details_t 	phy_details;
-    u16                 rssi;
-    u8                  lna_gain;
     u8                  active_rx_ant;
 
     volatile u32 mac_hw_status;
@@ -473,10 +468,7 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 	    rx_frame_info->ant_mode       = active_rx_ant;
 	    rx_frame_info->rf_gain        = wlan_phy_rx_get_agc_RFG(active_rx_ant);
 	    rx_frame_info->bb_gain        = wlan_phy_rx_get_agc_BBG(active_rx_ant);
-
-	    lna_gain                  = wlan_phy_rx_get_agc_RFG(active_rx_ant);
-	    rssi                      = wlan_phy_rx_get_pkt_rssi(active_rx_ant);
-	    rx_frame_info->rx_power   = wlan_mac_low_calculate_rx_power(rssi, lna_gain);
+	    rx_frame_info->rx_power       = wlan_platform_get_rx_pkt_pwr(active_rx_ant);
 
 
     	// Check whether this is an OFDM or DSSS Rx
@@ -711,18 +703,6 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
             switch(msg->arg0){
                 case IPC_REG_WRITE_MODE: {
                     switch(ipc_msg_from_high_payload[0]){
-
-                        case LOW_PARAM_PKT_DET_MIN_POWER: {
-                            if( ipc_msg_from_high_payload[1]&0xFF000000 ){
-                                wlan_phy_enable_req_both_pkt_det();
-                                //The value sent from wlan_exp will be unsigned with 0 representing PKT_DET_MIN_POWER_MIN
-                                wlan_mac_low_set_pkt_det_min_power((ipc_msg_from_high_payload[1]&0x000000FF) + PKT_DET_MIN_POWER_MIN);
-
-                            } else {
-                                wlan_phy_disable_req_both_pkt_det();
-                            }
-                        }
-                        break;
 
                         case LOW_PARAM_PHY_SAMPLE_RATE: {
                             set_phy_samp_rate(ipc_msg_from_high_payload[1]);
@@ -1243,190 +1223,17 @@ inline u64 wlan_mac_low_get_tx_start_timestamp() {
 }
 
 
-
 /*****************************************************************************/
 /**
- * @brief Various Setter Methods
+ * @brief Sets the node's MAC address in the MAC core's NAV logic
  *
- * These functions will set parameters in the low framework.
- *
- * @param   (see individual function)
+ * @param   addr - pointer to 6-byte MAC address
  * @return  None
  */
 void wlan_mac_low_set_nav_check_addr(u8* addr) {
     Xil_Out32(WLAN_MAC_REG_NAV_CHECK_ADDR_1, *((u32*)&(addr[0])) );
     Xil_Out32(WLAN_MAC_REG_NAV_CHECK_ADDR_2, *((u32*)&(addr[4])) );
 }
-
-
-
-/*****************************************************************************/
-/**
- * @brief Calculates Rx Power (in dBm)
- *
- * This function calculates receive power for a given band, RSSI and LNA gain. This
- * provides a reasonable estimate of Rx power, accurate to a few dB for standard waveforms.
- *
- * This function does not use the VGA gain setting or I/Q magnitudes. The PHY should use these
- * to refine its own power measurement if needed.
- *
- * NOTE:  These lookup tables were developed as part of the RF characterization.  See:
- *     http://warpproject.org/trac/wiki/802.11/Benchmarks/Rx_Char
- *
- *
- * @param   rssi             - RSSI value from RF frontend
- * @param   lna_gain         - Value of LNA gain stage in RF frontend
- * @return  int              - Power in dBm
- */
-const s8 pow_lookup_B24[128]  = {-90, -90, -89, -88, -88, -87, -87, -86, -86, -85, -84, -84, -83, -83, -82, -82,
-                                 -81, -81, -80, -79, -79, -78, -78, -77, -77, -76, -75, -75, -74, -74, -73, -73,
-                                 -72, -72, -71, -70, -70, -69, -69, -68, -68, -67, -66, -66, -65, -65, -64, -64,
-                                 -63, -63, -62, -61, -61, -60, -60, -59, -59, -58, -58, -57, -56, -56, -55, -55,
-                                 -54, -54, -53, -52, -52, -51, -51, -50, -50, -49, -49, -48, -47, -47, -46, -46,
-                                 -45, -45, -44, -43, -43, -42, -42, -41, -41, -40, -40, -39, -38, -38, -37, -37,
-                                 -36, -36, -35, -34, -34, -33, -33, -32, -32, -31, -31, -30, -29, -29, -28, -28,
-                                 -27, -27, -26, -26, -25, -24, -24, -23, -23, -22, -22, -21, -20, -20, -19, -19};
-
-const s8 pow_lookup_B5[128]   = {-97, -97, -96, -96, -95, -94, -94, -93, -93, -92, -92, -91, -90, -90, -89, -89,
-                                 -88, -88, -87, -87, -86, -85, -85, -84, -84, -83, -83, -82, -81, -81, -80, -80,
-                                 -79, -79, -78, -78, -77, -76, -76, -75, -75, -74, -74, -73, -72, -72, -71, -71,
-                                 -70, -70, -69, -69, -68, -67, -67, -66, -66, -65, -65, -64, -63, -63, -62, -62,
-                                 -61, -61, -60, -60, -59, -58, -58, -57, -57, -56, -56, -55, -54, -54, -53, -53,
-                                 -52, -52, -51, -51, -50, -49, -49, -48, -48, -47, -47, -46, -45, -45, -44, -44,
-                                 -43, -43, -42, -42, -41, -40, -40, -39, -39, -38, -38, -37, -36, -36, -35, -35,
-                                 -34, -34, -33, -32, -32, -31, -31, -30, -30, -29, -29, -28, -27, -27, -26, -26};
-
-
-inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain){
-
-    u8             band;
-    int            power     = -100;
-    u16            adj_rssi  = 0;
-
-    band = mac_param_band;
-
-    if(band == CHAN_BAND_24GHz){
-        switch(lna_gain){
-            case 0:
-            case 1:
-                // Low LNA Gain State
-                adj_rssi = rssi + (440 << PHY_RX_RSSI_SUM_LEN_BITS);
-            break;
-
-            case 2:
-                // Medium LNA Gain State
-                adj_rssi = rssi + (220 << PHY_RX_RSSI_SUM_LEN_BITS);
-            break;
-
-            case 3:
-                // High LNA Gain State
-                adj_rssi = rssi;
-            break;
-        }
-
-        power = pow_lookup_B24[(adj_rssi >> (PHY_RX_RSSI_SUM_LEN_BITS+POW_LOOKUP_SHIFT))];
-
-    } else if(band == CHAN_BAND_5GHz){
-        switch(lna_gain){
-            case 0:
-            case 1:
-                // Low LNA Gain State
-                adj_rssi = rssi + (540 << PHY_RX_RSSI_SUM_LEN_BITS);
-            break;
-
-            case 2:
-                // Medium LNA Gain State
-                adj_rssi = rssi + (280 << PHY_RX_RSSI_SUM_LEN_BITS);
-            break;
-
-            case 3:
-                // High LNA Gain State
-                adj_rssi = rssi;
-            break;
-        }
-
-        power = pow_lookup_B5[(adj_rssi >> (PHY_RX_RSSI_SUM_LEN_BITS+POW_LOOKUP_SHIFT))];
-    }
-
-    return power;
-}
-
-
-
-/*****************************************************************************/
-/**
- * @brief Calculates RSSI from Rx power (in dBm)
- *
- * This function calculates receive power for a given band, RSSI and LNA gain. This
- * provides a reasonable estimate of Rx power, accurate to a few dB for standard waveforms.
- *
- * This function does not use the VGA gain setting or I/Q magnitudes. The PHY should use these
- * to refine its own power measurement if needed.
- *
- * NOTE:  These lookup tables were developed as part of the RF characterization.  See:
- *     http://warpproject.org/trac/wiki/802.11/Benchmarks/Rx_Char
- *
- *
- * @param   rx_pow           - Receive power in dBm
- * @return  u16              - RSSI value
- *
- * @note    rx_pow must be in the range [PKT_DET_MIN_POWER_MIN, PKT_DET_MIN_POWER_MAX] inclusive
- */
-const u16 rssi_lookup_B24[61] = {  1,  16,  24,  40,  56,  72,  80,  96, 112, 128, 144, 152, 168, 184, 200, 208,
-                                 224, 240, 256, 272, 280, 296, 312, 328, 336, 352, 368, 384, 400, 408, 424, 440,
-                                 456, 472, 480, 496, 512, 528, 536, 552, 568, 584, 600, 608, 624, 640, 656, 664,
-                                 680, 696, 712, 728, 736, 752, 768, 784, 792, 808, 824, 840, 856};
-
-const u16 rssi_lookup_B5[61]  = { 96, 112, 128, 144, 160, 168, 184, 200, 216, 224, 240, 256, 272, 288, 296, 312,
-                                 328, 344, 352, 368, 384, 400, 416, 424, 440, 456, 472, 480, 496, 512, 528, 544,
-                                 552, 568, 584, 600, 608, 624, 640, 656, 672, 680, 696, 712, 728, 736, 752, 768,
-                                 784, 800, 808, 824, 840, 856, 864, 880, 896, 912, 920, 936, 952};
-
-
-int wlan_mac_low_rx_power_to_rssi(s8 rx_pow){
-    u8 band;
-    u16 rssi_val = 0;
-
-    band = mac_param_band;
-
-    if ((rx_pow <= PKT_DET_MIN_POWER_MAX) && (rx_pow >= PKT_DET_MIN_POWER_MIN)) {
-        if(band == CHAN_BAND_24GHz){
-            rssi_val = rssi_lookup_B24[rx_pow-PKT_DET_MIN_POWER_MIN];
-        } else if(band == CHAN_BAND_5GHz){
-            rssi_val = rssi_lookup_B5[rx_pow-PKT_DET_MIN_POWER_MIN];
-        }
-
-        return rssi_val;
-
-    } else {
-        return -1;
-    }
-}
-
-
-
-/*****************************************************************************/
-/**
- * @brief Set the minimum power for packet detection
- *
- * @param   rx_pow           - Receive power in dBm
- * @return  int              - Status:  0 - Success; -1 - Failure
- */
-int wlan_mac_low_set_pkt_det_min_power(s8 rx_pow){
-    int rssi_val;
-
-    rssi_val = wlan_mac_low_rx_power_to_rssi(rx_pow);
-
-    if(rssi_val != -1){
-        wlan_phy_rx_pktDet_RSSI_cfg( (PHY_RX_RSSI_SUM_LEN-1), (rssi_val << PHY_RX_RSSI_SUM_LEN_BITS), 1);
-
-        return  0;
-    } else {
-        return -1;
-    }
-}
-
-
 
 /*****************************************************************************/
 /**

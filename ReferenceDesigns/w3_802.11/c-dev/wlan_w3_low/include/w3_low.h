@@ -26,6 +26,17 @@ void w3_radio_init();
 inline u32 w3_wlan_chan_to_rc_chan(u32 mac_channel);
 int w3_agc_init();
 
+typedef enum {
+	BAND_24GHZ = 0,
+	BAND_5GHZ  = 1
+} channel_band_t;
+
+int  w3_rx_power_to_rssi(s8 rx_pow, channel_band_t band);
+int  w3_rssi_to_rx_power(u16 rssi, u8 lna_gain, channel_band_t band);
+
+// Power / RSSI conversion
+#define POW_LOOKUP_SHIFT  3                   // Shift from 10 bit RSSI to 7 bit for lookup
+
 
 // AGC register renames
 #define WLAN_AGC_REG_RESET           XPAR_WLAN_AGC_MEMMAP_RESET

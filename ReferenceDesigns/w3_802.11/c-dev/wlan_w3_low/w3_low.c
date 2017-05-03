@@ -20,7 +20,9 @@
 #include "w3_low.h"
 #include "w3_common.h"
 #include "wlan_platform_common.h"
+#include "wlan_platform_low.h"
 #include "w3_userio_util.h"
+#include "w3_phy_util.h"
 
 // Low framework includes
 #include "wlan_phy_util.h"
@@ -32,6 +34,8 @@
 #include "w3_clock_controller.h"
 #include "radio_controller.h"
 #include "w3_phy_util.h"
+
+static channel_band_t gl_current_band;
 
 /*****************************************************************************
  * Public functions - the functions below are exported to the low framework
@@ -99,7 +103,27 @@ int wlan_platform_low_init() {
 }
 
 void wlan_platform_low_param_handler(u8 mode, u32* payload) {
-	//FIXME: implement switch/case over W3-specific low param IDs that used to be in wlan_mac_low.c
+	if(mode != IPC_REG_WRITE_MODE) {
+		xil_printf("ERROR wlan_platform_low_param_handler: unrecognized mode (%d) - mode must be WRITE\n", mode);
+		return;
+	}
+
+	switch(payload[0]) {
+		case LOW_PARAM_PKT_DET_MIN_POWER: {
+			int min_pwr_arg = payload[1] & 0xFF;
+			if(min_pwr_arg == 0) {
+				// wlan_exp uses 0 to disable min power det logic
+				wlan_platform_set_pkt_det_min_power(0);
+			} else {
+				//The value sent from wlan_exp will be unsigned with 0 representing PKT_DET_MIN_POWER_MIN
+				wlan_platform_set_pkt_det_min_power(min_pwr_arg + PKT_DET_MIN_POWER_MIN);
+			}
+		}
+		break;
+
+		default:
+		break;
+	}
 
 	return;
 }
@@ -318,9 +342,11 @@ int wlan_platform_low_set_radio_channel(u32 channel) {
 	if(channel <= 14) {
 		// 2.4GHz channel
 		radio_controller_setCenterFrequency(RC_BASEADDR, (RC_ALL_RF), RC_24GHZ, w3_wlan_chan_to_rc_chan(channel));
+		gl_current_band = BAND_24GHZ;
 	} else {
 		// 5GHz channel
 		radio_controller_setCenterFrequency(RC_BASEADDR, (RC_ALL_RF), RC_5GHZ, w3_wlan_chan_to_rc_chan(channel));
+		gl_current_band = BAND_5GHZ;
 	}
 
 
@@ -790,4 +816,205 @@ inline u32 w3_wlan_chan_to_rc_chan(u32 mac_channel) {
     }
 
     return return_value;
+}
+
+
+/*****************************************************************************/
+/**
+ * @brief Calculates Rx Power (in dBm)
+ *
+ * This function calculates receive power for a given band, RSSI and LNA gain. This
+ * provides a reasonable estimate of Rx power, accurate to a few dB for standard waveforms.
+ *
+ * This function does not use the VGA gain setting or I/Q magnitudes. The PHY should use these
+ * to refine its own power measurement if needed.
+ *
+ * NOTE:  These lookup tables were developed as part of the RF characterization.  See:
+ *     http://warpproject.org/trac/wiki/802.11/Benchmarks/Rx_Char
+ *
+ *
+ * @param   rssi             - RSSI value from RF frontend
+ * @param   lna_gain         - Value of LNA gain stage in RF frontend
+ * @return  int              - Power in dBm
+ */
+static const s8 pow_lookup_B24[128]  = {-90, -90, -89, -88, -88, -87, -87, -86, -86, -85, -84, -84, -83, -83, -82, -82,
+                                        -81, -81, -80, -79, -79, -78, -78, -77, -77, -76, -75, -75, -74, -74, -73, -73,
+                                        -72, -72, -71, -70, -70, -69, -69, -68, -68, -67, -66, -66, -65, -65, -64, -64,
+                                        -63, -63, -62, -61, -61, -60, -60, -59, -59, -58, -58, -57, -56, -56, -55, -55,
+                                        -54, -54, -53, -52, -52, -51, -51, -50, -50, -49, -49, -48, -47, -47, -46, -46,
+                                        -45, -45, -44, -43, -43, -42, -42, -41, -41, -40, -40, -39, -38, -38, -37, -37,
+                                        -36, -36, -35, -34, -34, -33, -33, -32, -32, -31, -31, -30, -29, -29, -28, -28,
+                                        -27, -27, -26, -26, -25, -24, -24, -23, -23, -22, -22, -21, -20, -20, -19, -19};
+
+static const s8 pow_lookup_B5[128]   = {-97, -97, -96, -96, -95, -94, -94, -93, -93, -92, -92, -91, -90, -90, -89, -89,
+                                        -88, -88, -87, -87, -86, -85, -85, -84, -84, -83, -83, -82, -81, -81, -80, -80,
+                                        -79, -79, -78, -78, -77, -76, -76, -75, -75, -74, -74, -73, -72, -72, -71, -71,
+                                        -70, -70, -69, -69, -68, -67, -67, -66, -66, -65, -65, -64, -63, -63, -62, -62,
+                                        -61, -61, -60, -60, -59, -58, -58, -57, -57, -56, -56, -55, -54, -54, -53, -53,
+                                        -52, -52, -51, -51, -50, -49, -49, -48, -48, -47, -47, -46, -45, -45, -44, -44,
+                                        -43, -43, -42, -42, -41, -40, -40, -39, -39, -38, -38, -37, -36, -36, -35, -35,
+                                        -34, -34, -33, -32, -32, -31, -31, -30, -30, -29, -29, -28, -27, -27, -26, -26};
+
+
+inline int w3_rssi_to_rx_power(u16 rssi, u8 lna_gain, channel_band_t band) {
+
+    int            power     = -100;
+    u16            adj_rssi  = 0;
+
+    if(band == BAND_24GHZ) {
+        switch(lna_gain) {
+            case 0:
+            case 1:
+                // Low LNA Gain State
+                adj_rssi = rssi + (440 << PHY_RX_RSSI_SUM_LEN_BITS);
+            break;
+
+            case 2:
+                // Medium LNA Gain State
+                adj_rssi = rssi + (220 << PHY_RX_RSSI_SUM_LEN_BITS);
+            break;
+
+            case 3:
+                // High LNA Gain State
+                adj_rssi = rssi;
+            break;
+        }
+
+        power = pow_lookup_B24[(adj_rssi >> (PHY_RX_RSSI_SUM_LEN_BITS+POW_LOOKUP_SHIFT))];
+
+    } else if(band == BAND_5GHZ) {
+        switch(lna_gain){
+            case 0:
+            case 1:
+                // Low LNA Gain State
+                adj_rssi = rssi + (540 << PHY_RX_RSSI_SUM_LEN_BITS);
+            break;
+
+            case 2:
+                // Medium LNA Gain State
+                adj_rssi = rssi + (280 << PHY_RX_RSSI_SUM_LEN_BITS);
+            break;
+
+            case 3:
+                // High LNA Gain State
+                adj_rssi = rssi;
+            break;
+        }
+
+        power = pow_lookup_B5[(adj_rssi >> (PHY_RX_RSSI_SUM_LEN_BITS+POW_LOOKUP_SHIFT))];
+    }
+
+    return power;
+}
+
+
+
+/*****************************************************************************/
+/**
+ * @brief Calculates RSSI from Rx power (in dBm)
+ *
+ * This function calculates receive power for a given band, RSSI and LNA gain. This
+ * provides a reasonable estimate of Rx power, accurate to a few dB for standard waveforms.
+ *
+ * This function does not use the VGA gain setting or I/Q magnitudes. The PHY should use these
+ * to refine its own power measurement if needed.
+ *
+ * NOTE:  These lookup tables were developed as part of the RF characterization.  See:
+ *     http://warpproject.org/trac/wiki/802.11/Benchmarks/Rx_Char
+ *
+ *
+ * @param   rx_pow           - Receive power in dBm
+ * @return  u16              - RSSI value
+ *
+ * @note    rx_pow must be in the range [PKT_DET_MIN_POWER_MIN, PKT_DET_MIN_POWER_MAX] inclusive
+ */
+static const u16 rssi_lookup_B24[61] = {  1,  16,  24,  40,  56,  72,  80,  96, 112, 128, 144, 152, 168, 184, 200, 208,
+                                        224, 240, 256, 272, 280, 296, 312, 328, 336, 352, 368, 384, 400, 408, 424, 440,
+                                        456, 472, 480, 496, 512, 528, 536, 552, 568, 584, 600, 608, 624, 640, 656, 664,
+                                        680, 696, 712, 728, 736, 752, 768, 784, 792, 808, 824, 840, 856};
+
+static const u16 rssi_lookup_B5[61]  = { 96, 112, 128, 144, 160, 168, 184, 200, 216, 224, 240, 256, 272, 288, 296, 312,
+                                        328, 344, 352, 368, 384, 400, 416, 424, 440, 456, 472, 480, 496, 512, 528, 544,
+                                        552, 568, 584, 600, 608, 624, 640, 656, 672, 680, 696, 712, 728, 736, 752, 768,
+                                        784, 800, 808, 824, 840, 856, 864, 880, 896, 912, 920, 936, 952};
+
+
+int w3_rx_power_to_rssi(s8 rx_pow, channel_band_t band) {
+    u16 rssi_val = 0;
+
+    if ((rx_pow <= PKT_DET_MIN_POWER_MAX) && (rx_pow >= PKT_DET_MIN_POWER_MIN)) {
+        if(band == BAND_24GHZ){
+            rssi_val = rssi_lookup_B24[rx_pow-PKT_DET_MIN_POWER_MIN];
+        } else if(band == BAND_5GHZ){
+            rssi_val = rssi_lookup_B5[rx_pow-PKT_DET_MIN_POWER_MIN];
+        }
+
+        return rssi_val;
+
+    } else {
+        return -1;
+    }
+}
+
+int wlan_platform_get_rx_pkt_pwr(u8 ant) {
+	u16 rssi;
+	u8 lna_gain;
+	int pwr;
+
+	rssi = wlan_phy_rx_get_pkt_rssi(ant);
+	lna_gain = wlan_phy_rx_get_agc_RFG(ant);
+	pwr = w3_rssi_to_rx_power(rssi, lna_gain, gl_current_band);
+
+	return pwr;
+}
+
+void wlan_platform_set_phy_cs_thresh(int power_thresh) {
+	int safe_thresh;
+
+	if(power_thresh == 0xFFFF) {
+		// 0xFFFF means disable physical CS
+		wlan_phy_rx_set_cca_thresh(0xFFFF);
+		return;
+	}
+
+	if(power_thresh < -95) {
+		safe_thresh = -95;
+	} else if(power_thresh > -25) {
+		safe_thresh = -25;
+	} else {
+		safe_thresh = power_thresh;
+	}
+
+	wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * w3_rx_power_to_rssi(safe_thresh, gl_current_band));
+
+	return;
+}
+
+/*****************************************************************************/
+/**
+ * @brief Set the minimum power for packet detection
+ *
+ * @param   rx_pow           - Receive power in dBm
+ * @return  int              - Status:  0 - Success; -1 - Failure
+ */
+int wlan_platform_set_pkt_det_min_power(int min_power) {
+    int rssi_val;
+
+    if(min_power == 0) {
+    	// 0 disables the min-power logic
+		wlan_phy_disable_req_both_pkt_det();
+		return 0;
+
+    } else {
+		wlan_phy_enable_req_both_pkt_det();
+	    rssi_val = w3_rx_power_to_rssi(min_power, gl_current_band);
+
+	    if(rssi_val != -1) {
+	        wlan_phy_rx_pktDet_RSSI_cfg( (PHY_RX_RSSI_SUM_LEN-1), (rssi_val << PHY_RX_RSSI_SUM_LEN_BITS), 1);
+
+	        return  0;
+	    } else {
+	        return -1;
+	    }
+    }
 }

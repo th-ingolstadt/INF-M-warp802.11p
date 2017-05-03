@@ -23,9 +23,12 @@
 // Functions the low framework must implement
 int wlan_platform_low_init();
 
-void wlan_platform_low_set_samp_rate();
+int wlan_platform_low_set_samp_rate(phy_samp_rate_t phy_samp_rate);
 void wlan_platform_low_param_handler(u8 mode, u32* payload);
 int  wlan_platform_low_set_radio_channel(u32 channel);
 void wlan_platform_low_set_rx_ant_mode(u32 ant_mode);
+int  wlan_platform_get_rx_pkt_pwr(u8 antenna);
+int  wlan_platform_set_pkt_det_min_power(int min_power);
+void wlan_platform_set_phy_cs_thresh(int power_thresh);
 
 #endif /* WLAN_PLATFORM_LOW_ */
