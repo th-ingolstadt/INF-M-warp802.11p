@@ -98,6 +98,7 @@ int transport_init(u32 eth_dev_num, void * node_info, u8 * ip_addr, u8 * hw_addr
     // Print initialization message
     xil_printf("Configuring transport ...\n");
 
+
     // Initialize the User callback for processing a packet
     process_hton_msg_callback = wlan_exp_null_callback;
 
@@ -498,7 +499,7 @@ void transport_send(int socket_index, struct sockaddr * to, wlan_exp_ip_udp_buff
 
     // Check that the packet was sent correctly
     if (status == WLAN_EXP_IP_UDP_FAILURE) {
-        wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_transport, "Issue sending packet %d to host.\n", transport_header_tx->seq_num);
+        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Issue sending packet %d to host.\n", transport_header_tx->seq_num);
     }
 }
 
