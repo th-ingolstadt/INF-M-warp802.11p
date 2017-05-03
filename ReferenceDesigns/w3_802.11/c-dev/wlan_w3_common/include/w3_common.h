@@ -39,17 +39,6 @@
 // System monitor
 #define PLATFORM_BASEADDR_SYSMON   XPAR_SYSMON_0_BASEADDR
 
-// CPU IDs
-#ifdef XPAR_MB_HIGH_FREQ
-#define WLAN_COMPILE_FOR_CPU_HIGH                          1
-#define WLAN_COMPILE_FOR_CPU_LOW                           0
-#endif
-
-#ifdef XPAR_MB_LOW_FREQ
-#define WLAN_COMPILE_FOR_CPU_HIGH                          0
-#define WLAN_COMPILE_FOR_CPU_LOW                           1
-#endif
-
 
 // Mutex for Tx/Rx packet buffers
 #define PLATFORM_DEV_ID_PKT_BUF_MUTEX	XPAR_MUTEX_0_DEVICE_ID
