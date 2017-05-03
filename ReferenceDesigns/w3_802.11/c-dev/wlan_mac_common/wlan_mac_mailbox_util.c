@@ -24,6 +24,7 @@
 #include "wlan_platform_common.h"
 #include "wlan_mac_common.h"
 #include "wlan_mac_mailbox_util.h"
+#include "wlan_cpu_id.h"
 
 /*********************** Global Variable Definitions *************************/
 
@@ -65,6 +66,10 @@ XMbox* init_mailbox() {
 }
 
 
+#if WLAN_COMPILE_FOR_CPU_HIGH
+#include "wlan_mac_high.h"
+#endif
+
 /*****************************************************************************/
 /**
  * Write IPC message
@@ -90,6 +95,10 @@ int write_mailbox_msg(wlan_ipc_msg_t * msg) {
         return IPC_MBOX_INVALID_MSG;
     }
 
+#if WLAN_COMPILE_FOR_CPU_HIGH
+    interrupt_state_t     prev_interrupt_state;
+    prev_interrupt_state = wlan_mac_high_interrupt_stop();
+#endif
     // Write msg header (first 32b word)
     XMbox_WriteBlocking(&ipc_mailbox, (u32*)msg, 4);
 
@@ -97,6 +106,10 @@ int write_mailbox_msg(wlan_ipc_msg_t * msg) {
     if ((msg->num_payload_words) > 0) {
         XMbox_WriteBlocking(&ipc_mailbox, (u32*)(msg->payload_ptr), (u32)(4 * (msg->num_payload_words)));
     }
+
+#if WLAN_COMPILE_FOR_CPU_HIGH
+    wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
+#endif
     return IPC_MBOX_SUCCESS;
 }
 
