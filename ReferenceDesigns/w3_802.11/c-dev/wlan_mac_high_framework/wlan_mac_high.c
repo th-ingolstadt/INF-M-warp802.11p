@@ -190,7 +190,6 @@ void wlan_mac_high_init(){
     u32              i;
 	tx_frame_info_t* tx_frame_info;
 	rx_frame_info_t* rx_frame_info;
-	u64              timestamp;
 #if WLAN_SW_CONFIG_ENABLE_LOGGING
 	u32              log_size;
 #endif //WLAN_SW_CONFIG_ENABLE_LOGGING
@@ -405,24 +404,9 @@ void wlan_mac_high_init(){
 	}
 	XAxiCdma_IntrDisable(&cdma_inst, XAXICDMA_XR_IRQ_ALL_MASK);
 
-	// Test to see if DRAM SODIMM is connected to board
-	timestamp = get_system_time_usec();
+	xil_printf("Testing DRAM...\n");
 
-#if 0
-	//FIXME: Should we just remove this check entirely?
-	while((get_system_time_usec() - timestamp) < 100000){
-		if((XGpio_DiscreteRead(&Gpio_userio, GPIO_USERIO_INPUT_CHANNEL) & GPIO_MASK_DRAM_INIT_DONE)) {
-			xil_printf("------------------------\nDRAM SODIMM Detected\n");
-			if(wlan_mac_high_memory_test() != 0 ){
-				xil_printf("A working DRAM SODIMM has not been detected on this board.\n");
-				xil_printf("The 802.11 Reference Design requires at least 1GB of DRAM.\n");
-				xil_printf("This CPU will now halt.\n");
-				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_CPU_ERROR, WLAN_ERROR_CODE_DRAM_NOT_PRESENT);
-			}
-			break;
-		}
-	}
-#endif
+	// If the CPU hangs at this point there is probably a problem with the DRAM...
 
 	if(wlan_mac_high_memory_test() != 0 ){
 		xil_printf("A working DRAM SODIMM has not been detected on this board.\n");
