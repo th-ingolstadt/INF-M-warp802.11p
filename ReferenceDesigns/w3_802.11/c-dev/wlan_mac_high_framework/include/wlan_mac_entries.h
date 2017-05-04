@@ -227,8 +227,8 @@ typedef struct{
     u8                  pkt_type;                // Type of packet
     u8                  chan_num;                // Channel on which the packet was received
     u8                  reserved1;
-    u8                  rf_gain;                 // RF gain of the received packet
-    u8                  bb_gain;                 // Baseband gain of the received packet
+    u8                  rx_gain_index;           // Radio Rx gain index of the received packet
+    u8                  reserved2;
     u16                 flags;                   // 1-bit flags
 } rx_common_entry;
 #define RX_FLAGS_FCS_GOOD   			0x0001

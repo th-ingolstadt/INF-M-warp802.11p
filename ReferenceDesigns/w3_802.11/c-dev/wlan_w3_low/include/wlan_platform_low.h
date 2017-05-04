@@ -30,5 +30,6 @@ void wlan_platform_low_set_rx_ant_mode(u32 ant_mode);
 int  wlan_platform_get_rx_pkt_pwr(u8 antenna);
 int  wlan_platform_set_pkt_det_min_power(int min_power);
 void wlan_platform_set_phy_cs_thresh(int power_thresh);
+int wlan_platform_get_rx_pkt_gain(u8 ant);
 
 #endif /* WLAN_PLATFORM_LOW_ */

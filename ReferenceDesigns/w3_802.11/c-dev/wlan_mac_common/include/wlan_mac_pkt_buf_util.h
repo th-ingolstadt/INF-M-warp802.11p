@@ -301,11 +301,10 @@ typedef struct __attribute__ ((__packed__)){
     u8                       	  	flags;                        ///< Bit flags
     u8                       	  	ant_mode;                     ///< Rx antenna selection
     s8                       	 	rx_power;                     ///< Rx power, in dBm
-    u8                       	 	rf_gain;                      ///< Gain setting of radio Rx LNA, in [0,1,2]
-    u8                       	  	bb_gain;                      ///< Gain setting of radio Rx VGA, in [0,1,...31]
+    u8                       	 	rx_gain_index;                ///< Rx gain index - interpretation is radio-specific
     u8                       	  	channel;                      ///< Channel index
     volatile rx_pkt_buf_state_t     rx_pkt_buf_state;             ///< State of the Rx Packet Buffer
-    u8                       	  	reserved0;
+    u16                       	  	reserved0;
     //----- 8-byte boundary ------
     u32                      	  	cfo_est;                      ///< Carrier Frequency Offset Estimate
     u32							  	reserved1;

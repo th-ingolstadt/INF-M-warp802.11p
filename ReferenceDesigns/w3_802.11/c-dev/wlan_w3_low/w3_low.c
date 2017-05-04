@@ -1018,3 +1018,37 @@ int wlan_platform_set_pkt_det_min_power(int min_power) {
 	    }
     }
 }
+
+int wlan_platform_get_rx_pkt_gain(u8 ant) {
+	u8 bb_gain;
+	u8 rf_gain;
+
+	switch(ant) {
+		case 0: // RF A
+			bb_gain = (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >>  0) & 0x1F;
+			rf_gain = (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >>  5) & 0x03;
+		break;
+		case 1: // RF B
+			bb_gain = (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >>  8) & 0x1F;
+			rf_gain = (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >>  13) & 0x03;
+		break;
+		case 2: // RF C
+			bb_gain = (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >>  16) & 0x1F;
+			rf_gain = (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >>  21) & 0x03;
+		break;
+		case 3: // RF D
+			bb_gain = (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >>  24) & 0x1F;
+			rf_gain = (Xil_In32(WLAN_RX_PKT_AGC_GAINS) >>  29) & 0x03;
+		break;
+		default:
+			xil_printf("wlan_platform_get_rx_pkt_gain: invalid antenna ID: %d\n", ant);
+			return -1;
+		break;
+	}
+
+	// For MAX2829 RF interface construct 8-bit gain_index value as:
+	//  [  8]: 0
+	//  [6:5]: RF gain index (0, 1, 2)
+	//  [4:0]: BB gain index (0, 1, ..., 31)
+	return ((rf_gain << 5) | bb_gain);
+}

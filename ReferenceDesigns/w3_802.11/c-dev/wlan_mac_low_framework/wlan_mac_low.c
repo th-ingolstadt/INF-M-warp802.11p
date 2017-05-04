@@ -466,8 +466,7 @@ inline u32 wlan_mac_low_poll_frame_rx(){
 		rx_frame_info->timestamp      = wlan_mac_low_get_rx_start_timestamp();
 		rx_frame_info->timestamp_frac = wlan_mac_low_get_rx_start_timestamp_frac();
 	    rx_frame_info->ant_mode       = active_rx_ant;
-	    rx_frame_info->rf_gain        = wlan_phy_rx_get_agc_RFG(active_rx_ant);
-	    rx_frame_info->bb_gain        = wlan_phy_rx_get_agc_BBG(active_rx_ant);
+	    rx_frame_info->rx_gain_index  = wlan_platform_get_rx_pkt_gain(active_rx_ant);
 	    rx_frame_info->rx_power       = wlan_platform_get_rx_pkt_pwr(active_rx_ant);
 
 

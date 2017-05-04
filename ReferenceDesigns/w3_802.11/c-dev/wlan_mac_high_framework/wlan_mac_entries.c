@@ -652,8 +652,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
 
             rx_event_log_entry->pkt_type       = rx_80211_header->frame_control_1;
             rx_event_log_entry->chan_num       = rx_frame_info->channel;
-            rx_event_log_entry->rf_gain        = rx_frame_info->rf_gain;
-            rx_event_log_entry->bb_gain        = rx_frame_info->bb_gain;
+            rx_event_log_entry->rx_gain_index  = rx_frame_info->rx_gain_index;
 
             // Start second copy based on the copy order
             switch(copy_order){
