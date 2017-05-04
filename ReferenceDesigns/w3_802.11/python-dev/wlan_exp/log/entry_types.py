@@ -861,8 +861,8 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('pkt_type',               'B',      'uint8',   'Packet type, first frame control byte of 802.11 header'),
         ('channel',                'B',      'uint8',   'Channel (center frequency) index'),
         ('padding1',               'x',      'uint8',   ''),
-        ('rf_gain',                'B',      'uint8',   'AGC RF gain setting: [1,2,3] for [0,15,30]dB gain'),
-        ('bb_gain',                'B',      'uint8',   'AGC BB gain setting: [0:31] for approx [0:63]dB gain'),
+        ('rx_gain_index',          'B',      'uint8',   'Radio Rx gain index; larger values mean larger Rx gains, mapping to absolute dB is radio-dependent'),
+        ('padding2',               'B',      'uint8',   ''),
         ('flags',                  'H',      'uint16',  '1-bit flags')])
 
     entry_rx_common.consts = util.consts_dict({
