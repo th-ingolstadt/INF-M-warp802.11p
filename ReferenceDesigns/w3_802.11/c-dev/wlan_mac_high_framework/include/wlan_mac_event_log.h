@@ -110,8 +110,6 @@ u32       event_log_get_num_wraps( void );
 u32       event_log_get_flags( void );
 void *    event_log_get_next_empty_entry( u16 entry_type, u16 entry_size );
 
-int       event_log_update_type( void * entry_ptr, u16 entry_type );
-
 void      print_event_log( u32 num_events );
 void      print_event_log_size();
 

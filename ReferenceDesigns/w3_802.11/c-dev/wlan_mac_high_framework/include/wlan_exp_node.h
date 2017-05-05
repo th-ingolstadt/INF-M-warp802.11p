@@ -396,7 +396,6 @@ void node_info_set_max_assn       (u32 max_assn  );
 void node_info_set_event_log_size (u32 log_size  );
 void node_info_set_max_counts     (u32 max_counts);
 
-u32  node_get_node_id             (void);
 u32  node_get_serial_number       (void);
 
 #endif //WLAN_SW_CONFIG_ENABLE_WLAN_EXP

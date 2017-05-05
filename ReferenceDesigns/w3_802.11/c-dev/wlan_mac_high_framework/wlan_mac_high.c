@@ -1203,48 +1203,6 @@ void wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf) {
 	}
 }
 
-
-/**
- * @brief Convert Tagged Rate to Human-Readable String (in Mbps)
- *
- * This function takes a tagged rate as an input and fills in a provided
- * string with the rate in Mbps.
- *
- * @param u8 rate
- *  - Tagged rate
- * @param char* str
- *  - Empty string that will be filled in by this function
- * @return u8
- *  - 1 if valid
- *  - 0 if invalid
- *
- *  @note The str argument must have room for 4 bytes at most ("5.5" followed by NULL)
- *
- */
-void wlan_mac_high_tagged_rate_to_readable_rate(u8 rate, char* str){
-
-	switch(rate & ~RATE_BASIC){
-		case 0x02:  strcpy(str,"1");    break;
-		case 0x04:  strcpy(str,"2");    break;
-		case 0x0b:  strcpy(str,"5.5");  break;
-		case 0x16:  strcpy(str,"11");   break;
-		case 0x0c:  strcpy(str,"6");    break;
-		case 0x12:  strcpy(str,"9");    break;
-		case 0x18:  strcpy(str,"12");   break;
-		case 0x24:  strcpy(str,"18");   break;
-		case 0x30:  strcpy(str,"24");   break;
-		case 0x48:  strcpy(str,"36");   break;
-		case 0x60:  strcpy(str,"48");   break;
-		case 0x6c:  strcpy(str,"54");   break;
-
-		default:    // Unknown rate
-			*str = 0;
-		break;
-	}
-}
-
-
-
 /**
  * @brief Set up the 802.11 Header
  *

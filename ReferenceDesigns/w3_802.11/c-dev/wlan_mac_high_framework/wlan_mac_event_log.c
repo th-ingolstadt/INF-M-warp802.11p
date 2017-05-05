@@ -519,47 +519,6 @@ u32  event_log_get_flags(void) {
     return ((log_wrap_enabled & 0x1) << 1) + (event_logging_enabled & 0x1);
 }
 
-
-
-/*****************************************************************************/
-/**
- * Update the entry type
- *
- * @param   entry_ptr        - Pointer to entry contents
- *          entry_type       - Value to update entry_type field
- *
- * @return  int              - Status of the command
- *                               - SUCCESS = 0
- *                               - FAILURE = -1
- *
- *****************************************************************************/
-int  event_log_update_type(void * entry_ptr, u16 entry_type) {
-    int            return_value = -1;
-    entry_header * entry_hdr;
-
-    // If the entry_ptr is within the event log, then update the type field of the entry
-    if ((((u32) entry_ptr) > log_start_address) && (((u32) entry_ptr) < log_max_address)) {
-
-        entry_hdr = (entry_header *) (((u32) entry_ptr) - sizeof(entry_header));
-
-        // Check to see if the entry has a valid magic number
-        if ((entry_hdr->entry_id & 0xFFFF0000) == EVENT_LOG_MAGIC_NUMBER) {
-
-            entry_hdr->entry_type = entry_type;
-
-            return_value = 0;
-        } else {
-            xil_printf("EVENT LOG: ERROR: event_log_update_type() - entry_ptr (0x%8x) is not valid \n", entry_ptr );
-        }
-    } else {
-        xil_printf("EVENT LOG: ERROR: event_log_update_type() - entry_ptr (0x%8x) is not in event log \n", entry_ptr );
-    }
-
-    return return_value;
-}
-
-
-
 /*****************************************************************************/
 /**
  * Move the oldest address past the end_address while still being aligned

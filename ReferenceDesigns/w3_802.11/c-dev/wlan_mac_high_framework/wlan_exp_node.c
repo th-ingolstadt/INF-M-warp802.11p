@@ -3755,7 +3755,6 @@ int node_get_parameter_values(u32 * buffer, u32 max_resp_len) {
  * @return  u32              - Field value
  *
  *****************************************************************************/
-u32  node_get_node_id       ( void ) { return node_info.node_id; }
 u32  node_get_serial_number ( void ) { return node_info.serial_number; }
 
 

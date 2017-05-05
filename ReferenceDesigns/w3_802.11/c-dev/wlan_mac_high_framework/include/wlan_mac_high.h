@@ -278,8 +278,6 @@ void               wlan_mac_high_cdma_finish_transfer();
 
 void               wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf);
 
-void               wlan_mac_high_tagged_rate_to_readable_rate(u8 rate, char* str);
-
 void               wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_1, u8 * addr_3 );
 void 			   wlan_mac_high_setup_tx_frame_info(mac_header_80211_common * header, dl_entry * curr_tx_queue_element, u32 tx_length, u8 flags, u8 queue_id, pkt_buf_group_t pkt_buf_group);
 
