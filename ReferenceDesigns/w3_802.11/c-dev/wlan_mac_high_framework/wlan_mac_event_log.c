@@ -166,8 +166,8 @@ void event_log_init( char * start_address, u32 size ) {
     log_start_address = (u32) start_address;
     log_max_address   = log_start_address + log_size - 1;
 
-    // Set wrapping to be disabled
-    log_wrap_enabled  = 0;
+    // Set wrapping to be enabled
+    log_wrap_enabled  = 1;
 
     // Set the wrap buffer to EVENT_LOG_WRAP_BUFFER
     wrap_buffer       = EVENT_LOG_WRAPPING_BUFFER;
