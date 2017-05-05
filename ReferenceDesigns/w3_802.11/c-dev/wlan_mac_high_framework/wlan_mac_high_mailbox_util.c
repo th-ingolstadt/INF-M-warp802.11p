@@ -20,7 +20,14 @@ static platform_high_dev_info_t		platform_high_dev_info;
 static wlan_ipc_msg_t               ipc_msg_from_low;                                           ///< IPC message from lower-level
 static u32                          ipc_msg_from_low_payload[MAILBOX_BUFFER_MAX_NUM_WORDS];     ///< Buffer space for IPC message from lower-level
 
+u32 debug_num_total; //FIXME DEBUG
+u32 debug_num_empty;
+
 void wlan_mac_high_init_mailbox(){
+
+	debug_num_total = 0; //FIXME DEBUG
+	debug_num_empty = 0;
+
 	xmbox_ptr = init_mailbox();
 
 	//Create IPC message to receive into
@@ -40,9 +47,28 @@ void wlan_mac_high_init_mailbox(){
  * @return None
  */
 void wlan_mac_high_ipc_rx(){
+#if 0 //FIXME DEBUG
 	while (read_mailbox_msg(&ipc_msg_from_low) == IPC_MBOX_SUCCESS) {
 		wlan_mac_high_process_ipc_msg(&ipc_msg_from_low, ipc_msg_from_low_payload);
 	}
+#else
+	int status;
+	u8 first_time = 1;
+	debug_num_total++;
+	do{
+		status = read_mailbox_msg(&ipc_msg_from_low);
+		if(status == IPC_MBOX_SUCCESS){
+			wlan_mac_high_process_ipc_msg(&ipc_msg_from_low, ipc_msg_from_low_payload);
+			first_time = 0;
+		} else {
+			if(first_time){
+				//xil_printf("empty!\n");
+				debug_num_empty++;
+			}
+		}
+	} while(status == IPC_MBOX_SUCCESS);
+
+#endif
 }
 
 /*****************************************************************************/
@@ -95,24 +121,27 @@ void mailbox_int_handler(void * callback_ref){
     wlan_mac_set_dbg_hdr_out(ISR_PERF_MON_GPIO_MASK);
 #endif
 
-    // Stop the interrupt controller
-    XIntc_Stop(intc_ptr);
+    // First, we raise the receive threshold to its maximum value. The argument to the function
+    // is a u32, but only the lower log2(FIFO Depth) bits are used
+    XMbox_SetReceiveThreshold(xmbox_ptr, 0xFFFFFFFF);
 
     // Get the interrupt status
     mask = XMbox_GetInterruptStatus(mbox_ptr);
-
-    // Clear the interrupt
-    //     - Since only the XMB_IX_RTA interrupt was enabled in setup_mailbox_interrupt()
-    //       that is the only interrupt that will ever need to be cleared
-    XMbox_ClearInterrupt(mbox_ptr, XMB_IX_RTA);
 
     // If this is a receive interrupt, then call the callback function
     if (mask & XMB_IX_RTA) {
     	wlan_mac_high_ipc_rx();
     }
 
-    // Restart the interrupt conroller
-    XIntc_Start(intc_ptr, XIN_REAL_MODE);
+    // Clear the interrupt
+    //     - Since only the XMB_IX_RTA interrupt was enabled in setup_mailbox_interrupt()
+    //       that is the only interrupt that will ever need to be cleared
+    XMbox_ClearInterrupt(mbox_ptr, XMB_IX_RTA);
+
+    // Drop the receive threshold to its correct value. The purpose of this is to avoid a race condition
+    // that could occur if a reception occurs in between the call to wlan_mac_high_ipc_rx() and XMbox_ClearInterrupt().
+    // By lowering the threshold, we will force another interrupt in that scenario.
+    XMbox_SetReceiveThreshold(xmbox_ptr, MAILBOX_RIT);
 
 #ifdef _ISR_PERF_MON_EN_
     wlan_mac_clear_dbg_hdr_out(ISR_PERF_MON_GPIO_MASK);
