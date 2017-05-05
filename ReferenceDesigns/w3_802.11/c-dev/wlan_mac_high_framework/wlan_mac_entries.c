@@ -1238,18 +1238,7 @@ u32 add_temperature_to_log() {
 
     if (entry != NULL) {
         entry->timestamp     = get_mac_time_usec();
-#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
-        entry->id            = node_get_node_id();
-#else
-        // TODO: The notion of a "node ID" is very wlan_exp-centric. The temperature log entry
-        // should not have this field. I'd argue it doesn't need any identifying fields; the identity
-        // of the the source of this temperature reading is unambiguous based upon which log file
-        // it is in.
-        entry->id            = 0;
-#endif
 
-        // TODO: serial number unnecessary for the same reason as above.
-        entry->serial_number = hw_info->serial_number;
         entry->curr_temp     = wlan_platform_get_current_temp();
         entry->min_temp      = wlan_platform_get_min_temp();
         entry->max_temp      = wlan_platform_get_max_temp();

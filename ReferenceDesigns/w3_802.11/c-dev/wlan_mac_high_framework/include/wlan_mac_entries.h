@@ -170,8 +170,6 @@ typedef struct{
 //
 typedef struct{
     u64                 timestamp;               // Timestamp of the log entry
-    u32                 id;                      // Node ID
-    u32                 serial_number;           // Node serial number
     u32                 curr_temp;               // Current Temperature of the node
     u32                 min_temp;                // Minimum recorded temperature of the node
     u32                 max_temp;                // Maximum recorded temperature of the node
