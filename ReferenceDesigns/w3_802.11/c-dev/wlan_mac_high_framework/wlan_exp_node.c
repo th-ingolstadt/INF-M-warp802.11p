@@ -85,6 +85,7 @@ extern tx_params_t         default_multicast_data_tx_params;
 
 /*************************** Functions Prototypes ****************************/
 
+typedef dl_entry* (*list_search_func_ptr)(u8 *);
 int node_init_parameters(u32 *info);
 int process_hton_msg(int socket_index, struct sockaddr * from, wlan_exp_ip_udp_buffer * recv_buffer, u32 recv_flags, wlan_exp_ip_udp_buffer * send_buffer);
 void send_early_resp(int socket_index, void * to, cmd_resp_hdr * resp_hdr, void * buffer);
@@ -107,7 +108,7 @@ u32           process_buffer_cmds(int socket_index, void * from, cmd_resp * comm
                                   u32 eth_dev_num, u32 max_resp_len,
                                   const char * type, char * description, dl_list * source_list, u32 dest_size,
                                   u32 (*find_id)(u8 *),
-                                  dl_entry * (*find_source)(u8 *),
+                                  list_search_func_ptr find_source,
                                   void (*copy_source_to_dest)(void *, void *, u8*),
                                   void (*zero_dest)(void *));
 
@@ -2684,7 +2685,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                                                 wlan_mac_high_get_network_info_list(),
                                                 sizeof(wlan_exp_network_info_t),
                                                 &wlan_exp_get_id_in_bss_info,
-                                                &wlan_mac_high_find_network_info_BSSID,
+                                                (list_search_func_ptr)&wlan_mac_high_find_network_info_BSSID,
                                                 &copy_bss_info_to_dest,
                                                 &zero_bss_info);
             }
