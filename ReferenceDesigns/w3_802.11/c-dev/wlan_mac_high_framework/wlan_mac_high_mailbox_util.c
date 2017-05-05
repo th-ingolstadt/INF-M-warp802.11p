@@ -6,6 +6,7 @@
 #include "wlan_mac_mailbox_util.h"
 #include "wlan_platform_common.h"
 #include "wlan_platform_high.h"
+#include "wlan_mac_schedule.h"
 
 
 #define MAILBOX_RIT                                        0         /* mailbox receive interrupt threshold */
@@ -20,13 +21,9 @@ static platform_high_dev_info_t		platform_high_dev_info;
 static wlan_ipc_msg_t               ipc_msg_from_low;                                           ///< IPC message from lower-level
 static u32                          ipc_msg_from_low_payload[MAILBOX_BUFFER_MAX_NUM_WORDS];     ///< Buffer space for IPC message from lower-level
 
-u32 debug_num_total; //FIXME DEBUG
-u32 debug_num_empty;
+void _mailbox_rx_watchdog(u32 timer_id);
 
 void wlan_mac_high_init_mailbox(){
-
-	debug_num_total = 0; //FIXME DEBUG
-	debug_num_empty = 0;
 
 	xmbox_ptr = init_mailbox();
 
@@ -47,28 +44,9 @@ void wlan_mac_high_init_mailbox(){
  * @return None
  */
 void wlan_mac_high_ipc_rx(){
-#if 0 //FIXME DEBUG
 	while (read_mailbox_msg(&ipc_msg_from_low) == IPC_MBOX_SUCCESS) {
 		wlan_mac_high_process_ipc_msg(&ipc_msg_from_low, ipc_msg_from_low_payload);
 	}
-#else
-	int status;
-	u8 first_time = 1;
-	debug_num_total++;
-	do{
-		status = read_mailbox_msg(&ipc_msg_from_low);
-		if(status == IPC_MBOX_SUCCESS){
-			wlan_mac_high_process_ipc_msg(&ipc_msg_from_low, ipc_msg_from_low_payload);
-			first_time = 0;
-		} else {
-			if(first_time){
-				//xil_printf("empty!\n");
-				debug_num_empty++;
-			}
-		}
-	} while(status == IPC_MBOX_SUCCESS);
-
-#endif
 }
 
 /*****************************************************************************/
@@ -102,6 +80,9 @@ int setup_mailbox_interrupt(XIntc* intc){
     XMbox_SetInterruptEnable(xmbox_ptr, XMB_IX_RTA);
     XIntc_Enable(intc_ptr, platform_high_dev_info.mailbox_int_id);
 
+    // Enable watchdog
+	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, SLOW_TIMER_DUR_US, SCHEDULE_REPEAT_FOREVER, (void*)_mailbox_rx_watchdog);
+
     return XST_SUCCESS;
 }
 
@@ -133,6 +114,14 @@ void mailbox_int_handler(void * callback_ref){
     	wlan_mac_high_ipc_rx();
     }
 
+	// It is technically possible that the mailbox could become full and
+	// abandoned if the FIFO transitions from empty to completely full
+    // at this part of the code before the following XMbox_ClearInterrupt
+    // call. Under normal circumstanced, this is impossible. However, if
+    // the debugger were to pause operation of the processor at this point,
+    // it is conceivable that the bug could be exercised. The fix for this
+    // event is the periodic call to the _mailbox_rx_watchdog() function.
+
     // Clear the interrupt
     //     - Since only the XMB_IX_RTA interrupt was enabled in setup_mailbox_interrupt()
     //       that is the only interrupt that will ever need to be cleared
@@ -146,4 +135,9 @@ void mailbox_int_handler(void * callback_ref){
 #ifdef _ISR_PERF_MON_EN_
     wlan_mac_clear_dbg_hdr_out(ISR_PERF_MON_GPIO_MASK);
 #endif
+}
+
+
+void _mailbox_rx_watchdog(u32 timer_id){
+	wlan_mac_high_ipc_rx();
 }

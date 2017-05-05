@@ -60,9 +60,6 @@ static volatile u8                          uart_mode            = UART_MODE_MAI
 static volatile u32                         schedule_id;
 static volatile u8                          print_scheduled      = 0;
 
-extern u32 debug_num_total; //FIXME DEBUG
-extern u32 debug_num_empty;
-
 /*************************** Functions Prototypes ****************************/
 
 void print_main_menu();
@@ -158,11 +155,6 @@ void uart_rx(u8 rxByte){
 				//
 				case ASCII_a:
 					print_network_info();
-				break;
-
-				case ASCII_b:
-					xil_printf("debug_num_empty = %d\n", debug_num_empty);
-					xil_printf("debug_num_total = %d\n", debug_num_total);
 				break;
 
 				// ----------------------------------------
