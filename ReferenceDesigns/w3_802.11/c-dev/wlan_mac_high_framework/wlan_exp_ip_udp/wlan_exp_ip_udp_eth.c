@@ -504,7 +504,7 @@ int eth_send_frame(u32 eth_dev_num, wlan_exp_ip_udp_socket * socket, wlan_exp_ip
     
     wlan_exp_ip_udp_buffer     * buffers_to_process[WLAN_EXP_IP_UDP_TXBD_CNT + 2];
     u32                      total_buffers                 = 0;
-    u32                      bd_count;
+    int                      bd_count;
 
     u32                      buffer_addr;
     u32                      buffer_size;
