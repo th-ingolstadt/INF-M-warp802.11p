@@ -19,7 +19,6 @@ _HEAP_SIZE  = DEFINED(_HEAP_SIZE)  ? _HEAP_SIZE  : 0x2000;
 MEMORY
 {
    mb_high_ilmb        : ORIGIN = 0x00000050, LENGTH = 0x0003FFB0
-   mb_high_init_bram   : ORIGIN = 0x10000000, LENGTH = 0x00001000
    pkt_buff_rx_bram    : ORIGIN = 0x90000000, LENGTH = 0x00010000
    pkt_buff_tx_bram    : ORIGIN = 0x91000000, LENGTH = 0x00010000
    mb_high_aux_bram    : ORIGIN = 0xA0000000, LENGTH = 0x00010000
