@@ -1059,8 +1059,6 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
 
     entry_node_temperature.append_field_defs([
         ('timestamp',              'Q',      'uint64', 'Value of MAC Time in microseconds when log entry created'),
-        ('node_id',                'I',      'uint32', 'wlan_exp node ID'),
-        ('serial_num',             'I',      'uint32', 'Node serial number'),
         ('temp_current',           'I',      'uint32', 'Current FPGA die temperature (deg C)'),
         ('temp_min',               'I',      'uint32', 'Minimum FPGA die temperature (deg C) since FPGA configuration or sysmon reset'),
         ('temp_max',               'I',      'uint32', 'Maximum FPGA die temperature (deg C) since FPGA configuration or sysmon reset')])
