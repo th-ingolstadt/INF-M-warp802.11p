@@ -48,19 +48,6 @@
 //
 #define WLAN_EXP_DEFAULT_DEBUG_PRINT_LEVEL                 WLAN_EXP_PRINT_WARNING
 
-
-// 2) Initialize the DDR to zeros (ie clear DDR) at boot
-//
-//    Values:
-//        1                  - Clear DDR on boot
-//        0                  - Do not clear DDR on boot
-//
-//     NOTE:  Based on initial testing, clearing DDR on boot will add approximately 1 second to
-//            the boot time of the node.  See clear_ddr() in wl_common.c for more information.
-//
-#define WLAN_EXP_CLEAR_DDR_ON_BOOT                         0
-
-
 // 3) Ethernet controls
 //
 //    a) Choose the Ethernet device and set the base address for the subnet and speed of the device:
@@ -276,9 +263,6 @@ void          print_timestamp();
 // WLAN Exp specific functions
 void          wlan_exp_get_mac_addr(u32 * src, u8 * dest);
 void          wlan_exp_put_mac_addr(u8 * src, u32 * dest);
-
-// HW specific functions
-void          clear_ddr(u32 verbose);
 
 // Tag parameter functions
 int           wlan_exp_init_parameters(wlan_exp_tag_parameter * parameters, u8 group, u32 num_parameters, u32 * values, u16 * lengths);

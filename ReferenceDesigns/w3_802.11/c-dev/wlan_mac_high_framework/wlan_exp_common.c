@@ -104,14 +104,6 @@ void print_mac_address(u8 * mac_address) {
 }
 
 
-void print_mac_timestamp() {
-    u64            timestamp;
-
-    timestamp = get_mac_time_usec();
-
-    xil_printf("0x%08x 0x%08x\n", (u32)(timestamp >> 32), (u32)(timestamp));
-}
-
 
 void wlan_exp_print_mac_address(u8 level, u8 * mac_address) {    
     if (level <= wlan_exp_print_level) {
@@ -189,73 +181,6 @@ void wlan_exp_put_mac_addr(u8 * src, u32 * dest) {
     dest[1] = (src[5] << 24) + (src[4] << 16) + (src[3] <<  8) + (src[2] <<  0);
 
 }
-
-
-
-/********************************************************************
- * @brief Clear DDR3 SODIMM Memory Module
- *
- * This function will clear the contents of the DDR
- *
- * @param  verbose           - Print information on time to clear the DDR
- *
- * @return None
- *
- ********************************************************************/
-void clear_ddr(u32 verbose) {
-    u32 i;
-    u32 num_step;
-    u32 step_size;
-
-    u64 start_timestamp;
-    u64 end_timestamp;
-    u32 processing_time;
-
-    u32 start_address = platform_high_dev_info.dram_baseaddr;
-    u32 size          = platform_high_dev_info.dram_size;
-
-    start_timestamp = get_system_time_usec();
-
-#if 0
-    // Implementation 1:
-    //     Use CPU to bzero the entire DDR  (approx 84769092 usec)
-    bzero((void *)start_address, size);
-#endif
-
-#if 1
-    // Implementation 2:
-    //     Use CPU to bzero the first block of DDR
-    //     Use the DMA to zero out the rest of the DDR
-    //
-    // For num_step (all times approx):
-    //     2^10  --> 1149215 usec
-    //     2^11  --> 1107146 usec
-    //     2^12  --> 1089062 usec
-    //     2^13  --> 1082326 usec
-    //     2^14  --> 1080768 usec  <-- Minimum
-    //     2^15  --> 1093902 usec
-    //     2^16  --> 1150738 usec
-    //     2^17  --> 1265897 usec
-    //
-    num_step  = 1 << 14;
-    step_size = size / num_step;
-
-    bzero((void *)start_address, step_size);
-
-    for (i = 1; i < num_step; i++) {
-        wlan_mac_high_cdma_start_transfer((void *)start_address, (void *)(start_address + (step_size * i)), step_size);
-    }
-#endif
-
-    end_timestamp   = get_system_time_usec();
-    processing_time = (end_timestamp - start_timestamp) & 0xFFFFFFFF;
-
-    if (verbose == WLAN_EXP_VERBOSE) {
-        xil_printf("  Contents cleared in %d (usec)\n", processing_time);
-    }
-}
-
-
 
 /*****************************************************************************/
 /**
