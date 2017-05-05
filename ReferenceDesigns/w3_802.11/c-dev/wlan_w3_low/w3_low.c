@@ -1014,6 +1014,7 @@ int wlan_platform_set_pkt_det_min_power(int min_power) {
 
 	        return  0;
 	    } else {
+	    	xil_printf("wlan_platform_set_pkt_det_min_power: invalid min_power argument: %d\n", min_power);
 	        return -1;
 	    }
     }
