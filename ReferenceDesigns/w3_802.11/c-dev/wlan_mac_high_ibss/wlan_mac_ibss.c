@@ -476,9 +476,10 @@ void process_scan_state_change(scan_state_t scan_state){
  * @brief Poll Tx queues to select next available packet to transmit
  *
  * @param   pkt_buf_group_t pkt_buf_group
- * @return  None
+ * @return u8 0 if no packet was successfully dequeued, 1 if a packet was dequeued and sent to the low-level MAC
  *****************************************************************************/
-void poll_tx_queues(pkt_buf_group_t pkt_buf_group){
+u8 poll_tx_queues(pkt_buf_group_t pkt_buf_group){
+	u8 return_value = 0;
 	u32 i,k;
 
 	#define NUM_QUEUE_GROUPS 3
@@ -496,6 +497,10 @@ void poll_tx_queues(pkt_buf_group_t pkt_buf_group){
 
 	station_info_t* curr_station_info;
 
+	if(pkt_buf_group != PKT_BUF_GROUP_GENERAL){
+		return return_value;
+	}
+
 	if (wlan_mac_high_is_dequeue_allowed(PKT_BUF_GROUP_GENERAL)) {
 		for(k = 0; k < NUM_QUEUE_GROUPS; k++){
 			curr_queue_group = next_queue_group;
@@ -504,14 +509,16 @@ void poll_tx_queues(pkt_buf_group_t pkt_buf_group){
 				case BEACON_QGRP:
 					next_queue_group = MGMT_QGRP;
 					if(dequeue_transmit_checkin(BEACON_QID)){
-						return;
+						return_value = 1;
+						return return_value;
 					}
 				break;
 
 				case MGMT_QGRP:
 					next_queue_group = DATA_QGRP;
 					if(dequeue_transmit_checkin(MANAGEMENT_QID)){
-						return;
+						return_value = 1;
+						return return_value;
 					}
 				break;
 
@@ -527,7 +534,8 @@ void poll_tx_queues(pkt_buf_group_t pkt_buf_group){
 								next_station_info_entry = (station_info_entry_t*)(active_network_info->members.first);
 								if(dequeue_transmit_checkin(MCAST_QID)){
 									// Found a not-empty queue, transmitted a packet
-									return;
+									return_value = 1;
+									return return_value;
 								} else {
 									curr_station_info_entry = next_station_info_entry;
 								}
@@ -543,7 +551,8 @@ void poll_tx_queues(pkt_buf_group_t pkt_buf_group){
 
 									if(dequeue_transmit_checkin(STATION_ID_TO_QUEUE_ID(curr_station_info_entry->id))){
 										// Found a not-empty queue, transmitted a packet
-										return;
+										return_value = 1;
+										return return_value;
 									} else {
 										curr_station_info_entry = next_station_info_entry;
 									}
@@ -552,20 +561,23 @@ void poll_tx_queues(pkt_buf_group_t pkt_buf_group){
 									// the association table before poll_tx_queues was called. We will
 									// start the round robin checking back at broadcast.
 									next_station_info_entry = NULL;
-									return;
+									return return_value;
 								} // END if(is_valid_association)
 							}
 						} // END for loop over association table
 					} else {
 						if(dequeue_transmit_checkin(MCAST_QID)){
 							// Found a not-empty queue, transmitted a packet
-							return;
+							return_value = 1;
+							return return_value;
 						}
 					}
 				break;
 			} // END switch(queue group)
 		} // END loop over queue groups
 	} // END CPU low is ready
+
+	return return_value;
 }
 
 

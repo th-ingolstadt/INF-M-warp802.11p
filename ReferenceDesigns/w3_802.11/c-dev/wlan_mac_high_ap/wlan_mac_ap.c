@@ -677,13 +677,15 @@ void update_tim_tag_all(u32 sched_id){
  * 		- This instructs the polling function to fill in a particular packet buffer group.
  * 		e.g. if the calling function knows that a unicast transmission has just finished, it should
  * 		call this function with a PKT_BUF_GROUP_UNICAST argument
- * @return None
+ * @return u8 0 if no packet was successfully dequeued, 1 if a packet was dequeued and sent to the low-level MAC
  *****************************************************************************/
-void poll_tx_queues(pkt_buf_group_t pkt_buf_group){
+u8 poll_tx_queues(pkt_buf_group_t pkt_buf_group){
 	interrupt_state_t curr_interrupt_state;
 	u32 i,k;
 
-	if( active_network_info == NULL ) return;
+	u8 return_value = 0;
+
+	if( active_network_info == NULL ) return return_value;
 
 	if(((gl_dtim_mcast_buffer_enable == 0) || (gl_cpu_low_supports_dtim_mcast == 0)) && (pkt_buf_group == PKT_BUF_GROUP_DTIM_MCAST)){
 		//We are asked to poll the DTIM MCAST group, but DTIM multicast buffering is disabled.
@@ -713,7 +715,7 @@ typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 
 	if( wlan_mac_high_is_dequeue_allowed(pkt_buf_group) == 0 ) {
 		goto poll_cleanup;
-		return;
+		return return_value;
 	}
 
 	switch(pkt_buf_group){
@@ -734,8 +736,9 @@ typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 					case MGMT_QGRP:
 						next_queue_group = DATA_QGRP;
 						if(dequeue_transmit_checkin(MANAGEMENT_QID)){
+							return_value = 1;
 							goto poll_cleanup;
-							return;
+							return return_value;
 						}
 					break;
 
@@ -753,8 +756,9 @@ typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 									next_station_info_entry = (station_info_entry_t*)(active_network_info->members.first);
 									if( (((gl_dtim_mcast_buffer_enable == 0) || (gl_cpu_low_supports_dtim_mcast == 0)) && dequeue_transmit_checkin(MCAST_QID))){
 										// Found a not-empty queue, transmitted a packet
+										return_value = 1;
 										goto poll_cleanup;
-										return;
+										return return_value;
 									}
 									curr_station_info_entry = next_station_info_entry;
 								} else {
@@ -770,8 +774,9 @@ typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 										if((curr_station_info->flags & STATION_INFO_FLAG_DOZE) == 0){
 											if(dequeue_transmit_checkin(STATION_ID_TO_QUEUE_ID(curr_station_info_entry->id))){
 												// Found a not-empty queue, transmitted a packet
+												return_value = 1;
 												goto poll_cleanup;
-												return;
+												return return_value;
 											}
 										}
 										curr_station_info_entry = next_station_info_entry;
@@ -781,7 +786,7 @@ typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 										// start the round robin checking back at broadcast.
 										next_station_info_entry = (station_info_entry_t*)(active_network_info->members.first);
 										goto poll_cleanup;
-										return;
+										return return_value;
 									} // END if(is_valid_association)
 								}
 							} // END for loop over association table
@@ -796,6 +801,7 @@ typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 
 	wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
 
+	return return_value;
 }
 
 

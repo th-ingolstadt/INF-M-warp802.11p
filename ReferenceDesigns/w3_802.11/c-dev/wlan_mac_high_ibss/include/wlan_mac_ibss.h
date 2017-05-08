@@ -75,7 +75,7 @@ int  ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src
 u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_entry* rx_event_log_entry);
 network_info_t* active_network_info_getter();
 void process_scan_state_change(scan_state_t scan_state);
-void poll_tx_queues(pkt_buf_group_t pkt_buf_group);
+u8 poll_tx_queues(pkt_buf_group_t pkt_buf_group);
 void purge_all_data_tx_queue();
 
 

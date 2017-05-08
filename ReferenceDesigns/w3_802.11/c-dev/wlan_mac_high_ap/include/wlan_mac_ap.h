@@ -89,7 +89,7 @@ void queue_state_change(u32 QID, u8 queue_len);
 void update_tim_tag_aid(u8 aid, u8 bit_val_in);
 void update_tim_tag_all(u32 sched_id);
 
-void poll_tx_queues(pkt_buf_group_t pkt_buf_group);
+u8 poll_tx_queues(pkt_buf_group_t pkt_buf_group);
 void purge_all_data_tx_queue();
 
 void enable_associations();

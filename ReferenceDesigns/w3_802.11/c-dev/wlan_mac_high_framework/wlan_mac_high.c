@@ -1491,6 +1491,10 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg, u32* ipc_msg_from_low_p
 					if(low_param_rx_filter != 0xFFFFFFFF) 	wlan_mac_high_set_rx_filter_mode(low_param_rx_filter);
 					if(low_param_random_seed != 0xFFFFFFFF) wlan_mac_high_set_srand(low_param_random_seed);
 
+					// Attempt to dequeue and fill any available Tx packet buffers
+					while(tx_poll_callback(PKT_BUF_GROUP_GENERAL)){}
+					while(tx_poll_callback(PKT_BUF_GROUP_DTIM_MCAST)){}
+
 					// Notify the high-level project that CPU_LOW has rebooted
 					cpu_low_reboot_callback(ipc_msg_from_low_payload[1]);
 				case CPU_STATUS_REASON_RESPONSE:

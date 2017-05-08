@@ -435,12 +435,17 @@ void process_scan_state_change(scan_state_t scan_state){
  * returns with a non-zero value, allowing the next call to poll_tx_queues() to continue the queue polling process.
  *
  * @param pkt_buf_group_t pkt_buf_group
- * @return None
+ * @return u8 0 if no packet was successfully dequeued, 1 if a packet was dequeued and sent to the low-level MAC
  *****************************************************************************/
-void poll_tx_queues(pkt_buf_group_t pkt_buf_group){
+u8 poll_tx_queues(pkt_buf_group_t pkt_buf_group){
 	u8 i;
+	u8 return_value = 0;
 
 	#define MAX_NUM_QUEUE 2
+
+	if(pkt_buf_group != PKT_BUF_GROUP_GENERAL){
+		return return_value;
+	}
 
 	// Are we pausing transmissions?
 	if (pause_data_queue == 0) {
@@ -455,8 +460,18 @@ void poll_tx_queues(pkt_buf_group_t pkt_buf_group){
 				queue_index = (queue_index + 1) % MAX_NUM_QUEUE;
 
 				switch(queue_index){
-					case 0:  if(dequeue_transmit_checkin(MANAGEMENT_QID)) { return; }  break;
-					case 1:  if(dequeue_transmit_checkin(UNICAST_QID))    { return; }  break;
+					case 0:
+						if(dequeue_transmit_checkin(MANAGEMENT_QID)) {
+							return_value = 1;
+							return return_value;
+						}
+					break;
+					case 1:
+						if(dequeue_transmit_checkin(UNICAST_QID)){
+							return_value = 1;
+							return return_value;
+						}
+					break;
 				}
 			}
 		}
@@ -464,9 +479,13 @@ void poll_tx_queues(pkt_buf_group_t pkt_buf_group){
 		// We are only currently allowed to send management frames. Typically this is caused by an ongoing
 		// active scan
 		if (wlan_mac_high_is_dequeue_allowed(PKT_BUF_GROUP_GENERAL)) {
-			dequeue_transmit_checkin(MANAGEMENT_QID);
+			if(dequeue_transmit_checkin(MANAGEMENT_QID)){
+				return_value = 1;
+				return return_value;
+			}
 		}
 	}
+	return return_value;
 }
 
 
