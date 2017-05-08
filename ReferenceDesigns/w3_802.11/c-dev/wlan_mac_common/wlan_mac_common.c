@@ -185,6 +185,20 @@ void init_mac_hw_info() {
 	mac_hw_info = wlan_platform_get_hw_info();
 }
 
+time_hr_min_sec_t wlan_mac_time_to_hr_min_sec(u64 time) {
+	time_hr_min_sec_t time_hr_min_sec;
+	u64 time_sec;
+	u32 remainder;
+
+	time_sec = time / 1e6;
+	remainder = time_sec % 3600;
+
+	time_hr_min_sec.hr = time_sec / 3600;
+	time_hr_min_sec.min = remainder / 60;
+	time_hr_min_sec.sec = remainder % 60;
+
+	return time_hr_min_sec;
+}
 
 
 /*****************************************************************************/

@@ -864,7 +864,7 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 		}
 
 		// Print our station_infos on the UART
-		station_info_print(app_station_info_list, 0);
+		// station_info_print(app_station_info_list, 0);
 		return station_info;
 	}
 }

@@ -1130,6 +1130,7 @@ void remove_inactive_station_infos() {
 	station_info_t*     curr_station_info;
 	dl_entry*           curr_station_info_entry;
 	dl_entry*           next_station_info_entry;
+	time_hr_min_sec_t	time_hr_min_sec;
 
 	if(active_network_info == NULL) return;
 
@@ -1165,10 +1166,17 @@ void remove_inactive_station_infos() {
 		// De-authenticate the station if we have timed out and we have not disabled this check for the station
 		if((time_since_last_activity > ASSOCIATION_TIMEOUT_US) && ((curr_station_info->flags & STATION_INFO_FLAG_DISABLE_ASSOC_CHECK) == 0)){
 
+			station_info_remove(&authenticated_unassociated_stations, curr_station_info->addr);
+
+			time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
+
+			xil_printf("*%dh:%02dm:%02ds* STA 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x has disassociated\n",
+					time_hr_min_sec.hr, time_hr_min_sec.min, time_hr_min_sec.sec,
+					curr_station_info->addr[0], curr_station_info->addr[1], curr_station_info->addr[2],
+					curr_station_info->addr[3], curr_station_info->addr[4], curr_station_info->addr[5]);
+
 			// Remove the "keep" flag for this station_info so the framework can cleanup later.
 			curr_station_info->flags &= ~STATION_INFO_FLAG_KEEP;
-
-			station_info_remove(&authenticated_unassociated_stations, curr_station_info->addr);
 		}
 	}
 }
@@ -1218,6 +1226,8 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 	u8                  		to_multicast;
 	u8                  		eth_send;
 	u8                  		allow_auth               = 0;
+
+	time_hr_min_sec_t			time_hr_min_sec;
 
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 	u8							pre_llc_offset			 = 0;
@@ -1559,7 +1569,6 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 							// (2) The number of currently authenticated stations (not counting this station if it
 							//      is already authenticated) is less than MAX_NUM_AUTH
 							if(sta_is_associated == 0){
-								xil_printf("Authenticated, Unassociated Stations:\n");
 								// This station wasn't already authenticated/associated (state 4), so manually add it to the
 								// authenticated/unassociated (state 2) list.
 								//     - Set ht_capable argument to 0.  This will be updated with the correct value when the
@@ -1567,6 +1576,11 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 								auth_unassoc_station_info = station_info_add(&authenticated_unassociated_stations, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, 0);
 								if(auth_unassoc_station_info != NULL){
 									auth_unassoc_station_info->flags |= STATION_INFO_FLAG_KEEP;
+									time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
+									xil_printf("*%dh:%02dm:%02ds* STA 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x is now authenticated / unassociated\n",
+											time_hr_min_sec.hr, time_hr_min_sec.min, time_hr_min_sec.sec,
+											rx_80211_header->address_2[0], rx_80211_header->address_2[1], rx_80211_header->address_2[2],
+											rx_80211_header->address_2[3], rx_80211_header->address_2[4], rx_80211_header->address_2[5]);
 								}
 							}
 
@@ -1697,12 +1711,16 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 							//  station_info from the authenticated_unassociated_stations list. This is intentional,
 							//	as we are about to add the station_info the the fully associated list.
 
-							xil_printf("Authenticated, Associated Stations:\n");
-
 							// Add the station info
 							//     - Set ht_capable argument to 0.  This will be updated below with the
 							//       correct value from the tagged parameters in the association request.
-							station_info_add(&active_network_info->members, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, 0);
+							if (station_info_add(&active_network_info->members, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, 0) != NULL){
+								time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
+								xil_printf("*%dh:%02dm:%02ds* STA 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x is now associated\n",
+										time_hr_min_sec.hr, time_hr_min_sec.min, time_hr_min_sec.sec,
+										rx_80211_header->address_2[0], rx_80211_header->address_2[1], rx_80211_header->address_2[2],
+										rx_80211_header->address_2[3], rx_80211_header->address_2[4], rx_80211_header->address_2[5]);
+							}
 
 							wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 						}
@@ -1803,15 +1821,22 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 					//
 					if(active_network_info != NULL){
 
-						// Lower the KEEP flag so that the station_info_
-						if(station_info != NULL) station_info->flags &= ~STATION_INFO_FLAG_KEEP;
-
 						// Note: Since we are no longer keeping this station_info, we should ensure it is present
 						//  in neither the fully associated list or the authenticated-only list
 
 						station_info_remove(&active_network_info->members, rx_80211_header->address_2);
 
 						station_info_remove(&authenticated_unassociated_stations, rx_80211_header->address_2);
+
+						time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
+
+						xil_printf("*%dh:%02dm:%02ds* STA 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x has disassociated\n",
+								time_hr_min_sec.hr, time_hr_min_sec.min, time_hr_min_sec.sec,
+								rx_80211_header->address_2[0], rx_80211_header->address_2[1], rx_80211_header->address_2[2],
+								rx_80211_header->address_2[3], rx_80211_header->address_2[4], rx_80211_header->address_2[5]);
+
+						// Lower the KEEP flag so that the station_info_
+						if(station_info != NULL) station_info->flags &= ~STATION_INFO_FLAG_KEEP;
 
 						wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 					}
@@ -1907,6 +1932,7 @@ u32  deauthenticate_station( station_info_t* station_info ) {
 	tx_queue_buffer_t* 		curr_tx_queue_buffer;
 	u32            tx_length;
 	u32            aid;
+	time_hr_min_sec_t time_hr_min_sec;
 
 	if((active_network_info == NULL) || (station_info == NULL)){
 		return 0;
@@ -1953,10 +1979,17 @@ u32  deauthenticate_station( station_info_t* station_info ) {
 
 	// Remove this STA from association list
 
+	station_info_remove(&active_network_info->members, station_info->addr);
+
+	time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
+
+	xil_printf("*%dh:%02dm:%02ds* STA 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x has disassociated\n",
+			time_hr_min_sec.hr, time_hr_min_sec.min, time_hr_min_sec.sec,
+			station_info->addr[0], station_info->addr[1], station_info->addr[2],
+			station_info->addr[3], station_info->addr[4], station_info->addr[5]);
+
 	// Remove the "keep" flag for this station_info so the framework can cleanup later.
 	station_info->flags &= ~STATION_INFO_FLAG_KEEP;
-
-	station_info_remove(&active_network_info->members, station_info->addr);
 
 	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 
@@ -2047,6 +2080,7 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 	dl_entry* 			next_station_info_entry;
 	dl_entry* 			curr_station_info_entry;
 	int					iter;
+	time_hr_min_sec_t	time_hr_min_sec;
 
 	//---------------------------------------------------------
 	// 1. Check for any invalid inputs or combination of inputs
@@ -2151,6 +2185,11 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 				//Purge all tranmissions queues
 				purge_all_data_tx_queue();
 
+				if ((bss_config == NULL) ||
+						((update_mask & BSS_FIELD_MASK_BSSID) && wlan_addr_eq(bss_config->bssid, zero_addr)) ) {
+					xil_printf("Terminating BSS\n");
+				}
+
 				// Remove all associations
 				next_station_info_entry = active_network_info->members.first;
 				iter = active_network_info->members.length;
@@ -2161,11 +2200,18 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 
 					curr_station_info = (station_info_t*)(curr_station_info_entry->data);
 
-					// Lower KEEP flag so that the MAC High Framework can cleanup
-					curr_station_info->flags &= ~STATION_INFO_FLAG_KEEP;
-
 					// Remove the associations
 					station_info_remove(&active_network_info->members, curr_station_info->addr);
+
+					time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
+
+					xil_printf("*%dh:%02dm:%02ds* STA 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x has disassociated\n",
+							time_hr_min_sec.hr, time_hr_min_sec.min, time_hr_min_sec.sec,
+							curr_station_info->addr[0], curr_station_info->addr[1], curr_station_info->addr[2],
+							curr_station_info->addr[3], curr_station_info->addr[4], curr_station_info->addr[5]);
+
+					// Lower KEEP flag so that the MAC High Framework can cleanup
+					curr_station_info->flags &= ~STATION_INFO_FLAG_KEEP;
 
 					// Update the hex display to show station was removed
 					wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);

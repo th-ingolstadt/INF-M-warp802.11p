@@ -1257,6 +1257,11 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 				//Purge all tranmissions queues
 				purge_all_data_tx_queue();
 
+				if ((bss_config == NULL) ||
+						((update_mask & BSS_FIELD_MASK_BSSID) && wlan_addr_eq(bss_config->bssid, zero_addr)) ) {
+					xil_printf("Leaving BSS\n");
+				}
+
 				// Remove all associations
 				next_station_info_entry = active_network_info->members.first;
 				iter = active_network_info->members.length;

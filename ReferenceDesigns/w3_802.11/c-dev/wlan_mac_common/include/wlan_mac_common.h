@@ -241,6 +241,13 @@ typedef struct __attribute__((__packed__)){
 CASSERT(sizeof(beacon_txrx_configure_t) == 20, beacon_txrx_configure_t_alignment_check);
 
 
+typedef struct{
+	u32 hr;
+	u32 min;
+	u32 sec;
+} time_hr_min_sec_t;
+
+
 /*************************** Function Prototypes *****************************/
 
 int                     wlan_null_callback(void * param);
@@ -248,6 +255,8 @@ int                     wlan_null_callback(void * param);
 int                     wlan_verify_channel(u32 channel);
 
 void                    init_mac_hw_info();
+
+time_hr_min_sec_t 		wlan_mac_time_to_hr_min_sec(u64 time);
 
 wlan_mac_hw_info_t* get_mac_hw_info();
 u8* get_mac_hw_addr_wlan();

@@ -1067,6 +1067,12 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 			// This will not result in any OTA transmissions to the stations.
 
 			if (active_network_info != NULL) {
+
+				if ((bss_config == NULL) ||
+						((update_mask & BSS_FIELD_MASK_BSSID) && wlan_addr_eq(bss_config->bssid, zero_addr)) ) {
+					xil_printf("Leaving BSS\n");
+				}
+
 				curr_station_info_entry = (station_info_entry_t*)(active_network_info->members.first);
 				curr_station_info = curr_station_info_entry->data;
 
