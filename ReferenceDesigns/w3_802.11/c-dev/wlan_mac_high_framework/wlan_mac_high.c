@@ -282,6 +282,11 @@ void wlan_mac_high_init(){
 	// Initialize the HW info structure
 	init_mac_hw_info();
 
+	// Seed the PRNG with this node's serial number
+    // Get the hardware info that has been collected from CPU low
+    hw_info = get_mac_hw_info();
+	srand(hw_info->serial_number);
+
 	// ***************************************************
     // Initialize callbacks and global state variables
 	// ***************************************************
