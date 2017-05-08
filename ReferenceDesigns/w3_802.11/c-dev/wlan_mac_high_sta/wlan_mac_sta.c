@@ -1160,6 +1160,12 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 
 						ap_station_info->flags |= STATION_INFO_FLAG_KEEP;
 
+						time_hr_min_sec_t time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
+						xil_printf("*%dh:%02dm:%02ds* Now associated with AP 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x\n",
+								time_hr_min_sec.hr, time_hr_min_sec.min, time_hr_min_sec.sec,
+								active_network_info->bss_config.bssid[0], active_network_info->bss_config.bssid[1], active_network_info->bss_config.bssid[2],
+								active_network_info->bss_config.bssid[3], active_network_info->bss_config.bssid[4], active_network_info->bss_config.bssid[5]);
+
 						//
 						// TODO:  (Optional) Log association state change
 						//

@@ -661,6 +661,11 @@ int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src,
 												active_network_info->bss_config.ht_capable);
 				if(station_info != NULL){
 					station_info->flags |= STATION_INFO_FLAG_KEEP;
+					time_hr_min_sec_t time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
+					xil_printf("*%dh:%02dm:%02ds* IBSS 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x added to BSS\n",
+							time_hr_min_sec.hr, time_hr_min_sec.min, time_hr_min_sec.sec,
+							eth_dest[0], eth_dest[1], eth_dest[2],
+							eth_dest[3], eth_dest[4], eth_dest[5]);
 				}
 
 				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
@@ -784,6 +789,12 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 					station_info_add(&(active_network_info->members), rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params,
 										active_network_info->bss_config.ht_capable);
 					station_info->flags |= STATION_INFO_FLAG_KEEP;
+					time_hr_min_sec_t time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
+					xil_printf("*%dh:%02dm:%02ds* IBSS 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x added to BSS\n",
+							time_hr_min_sec.hr, time_hr_min_sec.min, time_hr_min_sec.sec,
+							rx_80211_header->address_2[0], rx_80211_header->address_2[1], rx_80211_header->address_2[2],
+							rx_80211_header->address_2[3], rx_80211_header->address_2[4], rx_80211_header->address_2[5]);
+
 					wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 				}
 			}
@@ -947,9 +958,17 @@ void remove_inactive_station_infos() {
 			// De-authenticate the station if we have timed out and we have not disabled this check for the station
 			if((time_since_last_activity > ASSOCIATION_TIMEOUT_US) && ((curr_station_info->flags & STATION_INFO_FLAG_DISABLE_ASSOC_CHECK) == 0)){
                 purge_queue(STATION_ID_TO_QUEUE_ID(curr_station_info_entry->id));
-                curr_station_info->flags &= ~STATION_INFO_FLAG_KEEP;
                 station_info_remove( &active_network_info->members, curr_station_info->addr );
 				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
+
+				time_hr_min_sec_t time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
+				xil_printf("*%dh:%02dm:%02ds* IBSS 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x removed from BSS\n",
+						time_hr_min_sec.hr, time_hr_min_sec.min, time_hr_min_sec.sec,
+						curr_station_info->addr[0], curr_station_info->addr[1], curr_station_info->addr[2],
+						curr_station_info->addr[3], curr_station_info->addr[4], curr_station_info->addr[5]);
+
+				curr_station_info->flags &= ~STATION_INFO_FLAG_KEEP;
+
 			}
 		}
 	}
@@ -1062,6 +1081,11 @@ void ltg_event(u32 id, void* callback_arg){
 															  active_network_info->bss_config.ht_capable);
 				if(station_info != NULL){
 					station_info->flags |= STATION_INFO_FLAG_KEEP;
+					time_hr_min_sec_t time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
+					xil_printf("*%dh:%02dm:%02ds* IBSS 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x added to BSS\n",
+							time_hr_min_sec.hr, time_hr_min_sec.min, time_hr_min_sec.sec,
+							addr_da[0], addr_da[1], addr_da[2],
+							addr_da[3], addr_da[4], addr_da[5]);
 				}
 				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 			}
@@ -1273,8 +1297,15 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 					curr_station_info = (station_info_t*)(curr_station_info_entry->data);
 
 					// Remove the association
-					curr_station_info->flags &= ~STATION_INFO_FLAG_KEEP;
 					station_info_remove(&active_network_info->members, curr_station_info->addr);
+
+					time_hr_min_sec_t time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
+					xil_printf("*%dh:%02dm:%02ds* IBSS 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x removed from BSS\n",
+							time_hr_min_sec.hr, time_hr_min_sec.min, time_hr_min_sec.sec,
+							curr_station_info->addr[0], curr_station_info->addr[1], curr_station_info->addr[2],
+							curr_station_info->addr[3], curr_station_info->addr[4], curr_station_info->addr[5]);
+
+					curr_station_info->flags &= ~STATION_INFO_FLAG_KEEP;
 
 					// Update the hex display to show station was removed
 					wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
