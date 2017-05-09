@@ -1487,6 +1487,10 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg, u32* ipc_msg_from_low_p
 				break;
 
 				case CPU_STATUS_REASON_BOOTED:
+
+					// Notify the high-level project that CPU_LOW has rebooted
+					cpu_low_reboot_callback(ipc_msg_from_low_payload[1]);
+
 					// Set any of low parameters that have been modified and
 					//  the MAC High Framework is responsible for tracking
 					if(low_param_channel != 0xFFFFFFFF)		wlan_mac_high_set_radio_channel(low_param_channel);
@@ -1499,9 +1503,8 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg, u32* ipc_msg_from_low_p
 					// Attempt to dequeue and fill any available Tx packet buffers
 					while(tx_poll_callback(PKT_BUF_GROUP_GENERAL)){}
 					while(tx_poll_callback(PKT_BUF_GROUP_DTIM_MCAST)){}
+				break;
 
-					// Notify the high-level project that CPU_LOW has rebooted
-					cpu_low_reboot_callback(ipc_msg_from_low_payload[1]);
 				case CPU_STATUS_REASON_RESPONSE:
 					// Set the CPU_LOW wlan_exp type
 #if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
