@@ -2701,7 +2701,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                                                self.wlan_exp_ver_minor,
                                                self.wlan_exp_ver_revision)
 
-        caller_desc = "During initialization '{0}' returned version {1}".format(self.description, ver_str)
+        caller_desc = "During initialization '{0}' returned version {1}".format(self.sn_str, ver_str)
 
         status = version.wlan_exp_ver_check(major=self.wlan_exp_ver_major,
                                             minor=self.wlan_exp_ver_minor,
