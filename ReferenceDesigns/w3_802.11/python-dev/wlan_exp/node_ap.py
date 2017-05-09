@@ -89,7 +89,7 @@ class WlanExpNodeAp(node.WlanExpNode):
         # Process response arguments
         if (resp_args is not False):
             status  = resp_args[0]
-            msg     = "ERROR:  Invalid response from node:\n"
+            msg     = "ERROR:\n"
             ret_val = True
             
             # Check status

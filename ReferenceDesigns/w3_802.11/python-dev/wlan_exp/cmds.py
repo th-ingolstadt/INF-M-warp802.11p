@@ -204,6 +204,8 @@ CMDID_GET_STATION_INFO_LIST                      = 0x007003
 
 CMDID_NODE_DISASSOCIATE                          = 0x007010
 CMDID_NODE_ADD_ASSOCIATION                       = 0x007011
+ADD_ASSOCIATION_ERROR_MEMORY			  	   = 0x000001
+ADD_ASSOCIATION_ERROR_TOO_MANY_ASSOC	         = 0x000002
 
 CMD_PARAM_ADD_ASSOCIATION_DISABLE_INACTIVITY_TIMEOUT = 0x00000001
 CMD_PARAM_ADD_ASSOCIATION_HT_CAPABLE_STA         = 0x00000004
@@ -1161,7 +1163,7 @@ class NodeProcTxRate(message.Cmd):
             
             # Check status
             if (status == CMD_PARAM_ERROR):                
-                msg     = "ERROR:  Invalid response from node:\n"
+                msg     = "ERROR:\n"
                                
                 if   self.tx_type == CMD_PARAM_UNICAST:
                     tx_type = "TX unicast"
@@ -1724,7 +1726,7 @@ class NodeAPConfigure(message.Cmd):
 
 
 class NodeAPAddAssociation(message.Cmd):
-    """Command to add the association to the association table on the AP.
+    """Command to add station to the association table on the AP.
 
     Attributes:
         device        -- Device to add to the association table
@@ -1760,7 +1762,15 @@ class NodeAPAddAssociation(message.Cmd):
 
     def process_resp(self, resp):
         error_code    = CMD_PARAM_ERROR
-        error_msg     = "Could not add AP association to {0}.".format(self.description)
+        error_msg     = "Could not add {0} to AP association table. ".format(self.description)
+        
+        args = resp.get_args()
+        if (len(args) == 2):
+            if(args[1] == ADD_ASSOCIATION_ERROR_TOO_MANY_ASSOC):
+                error_msg += "AP has too many associations."
+            elif(args[1] == ADD_ASSOCIATION_ERROR_MEMORY):
+                error_msg += "AP has insufficient memory."
+                
         status_errors = { error_code : error_msg }
 
         if (resp.resp_is_valid(num_args=2, status_errors=status_errors,

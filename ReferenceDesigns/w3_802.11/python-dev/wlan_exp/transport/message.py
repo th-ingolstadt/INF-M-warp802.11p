@@ -448,7 +448,7 @@ class Resp(CmdRespMessage):
             is_valid (bool):   Is the response valid?
         """
         error = False
-        msg   = "ERROR:  Invalid response from node:\n"
+        msg   = "ERROR:\n"
         
         if num_args is not None:
             if len(self.args) != num_args:
