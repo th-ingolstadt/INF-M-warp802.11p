@@ -1192,6 +1192,12 @@ void wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf) {
 	// Set the packet buffer state to READY
 	tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_READY;
 
+	// Note: at this point in the code, the packet buffer state has been modified to TX_PKT_BUF_READY,
+	// yet we have not sent the IPC_MBOX_TX_PKT_BUF_READY message. If we happen to reboot here,
+	// this packet buffer will be abandoned and won't be cleaned up in the boot process. This is a narrow
+	// race in practice, but step-by-step debugging can accentuate the risk since there can be an arbitrary
+	// amount of time spent in this window.
+
 	if(unlock_tx_pkt_buf(tx_pkt_buf) == PKT_BUF_MUTEX_FAIL_NOT_LOCK_OWNER){
 		// The unlock failed because CPU_LOW currently has the mutex lock. We will not
 		// submit a READY message for this packet. Instead, we'll drop it and revert

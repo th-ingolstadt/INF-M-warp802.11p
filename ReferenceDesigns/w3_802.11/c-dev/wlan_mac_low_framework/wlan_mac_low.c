@@ -990,6 +990,12 @@ int wlan_mac_low_finish_frame_transmit(u16 tx_pkt_buf){
 
 				tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_DONE;
 
+		    	// Note: at this point in the code, the packet buffer state has been modified to TX_PKT_BUF_DONE,
+		    	// yet we have not sent the IPC_MBOX_TX_PKT_BUF_DONE message. If we happen to reboot here,
+		    	// this packet buffer will be abandoned and won't be cleaned up in the boot process. This is a narrow
+		    	// race in practice, but step-by-step debugging can accentuate the risk since there can be an arbitrary
+		    	// amount of time spent in this window.
+
 				//Revert the state of the packet buffer and return control to CPU High
 				if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
 					wlan_printf(PL_ERROR, "Error: unable to unlock TX pkt_buf %d\n", tx_pkt_buf);

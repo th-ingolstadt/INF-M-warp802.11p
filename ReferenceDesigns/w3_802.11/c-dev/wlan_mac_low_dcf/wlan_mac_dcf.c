@@ -1375,6 +1375,13 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         //     If this fails, something has gone horribly wrong
 
     	rx_frame_info->rx_pkt_buf_state = RX_PKT_BUF_READY;
+
+    	// Note: at this point in the code, the packet buffer state has been modified to RX_PKT_BUF_READY,
+    	// yet we have not sent the IPC_MBOX_RX_PKT_BUF_READY message. If we happen to reboot here,
+    	// this packet buffer will be abandoned and won't be cleaned up in the boot process. This is a narrow
+    	// race in practice, but step-by-step debugging can accentuate the risk since there can be an arbitrary
+    	// amount of time spent in this window.
+
         if (unlock_rx_pkt_buf(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) {
             xil_printf("Error: unable to unlock RX pkt_buf %d\n", rx_pkt_buf);
             wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_RX_MUTEX);
