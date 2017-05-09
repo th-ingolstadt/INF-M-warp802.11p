@@ -16,6 +16,5 @@
 
 int  w3_high_userio_init();
 int  w3_high_userio_setup_interrupt(XIntc* intc);
-void w3_high_userio_set_inputs_callback(function_ptr_t callback);
 
 #endif /* W3_HIGH_USERIO_H_ */

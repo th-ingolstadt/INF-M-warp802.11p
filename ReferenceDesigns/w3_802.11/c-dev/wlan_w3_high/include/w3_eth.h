@@ -44,7 +44,6 @@
 int wlan_platform_ethernet_send(u8* pkt_ptr, u32 length);
 int w3_wlan_platform_ethernet_init();
 int w3_wlan_platform_ethernet_setup_interrupt(XIntc* intc);
-void w3_wlan_platform_ethernet_set_rx_callback(function_ptr_t callback);
 void w3_wlan_platform_ethernet_free_queue_entry_notify();
 
 #endif //WLAN_PLATFORM_ETHERNET_H_

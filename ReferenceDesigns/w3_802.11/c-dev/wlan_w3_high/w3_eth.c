@@ -67,9 +67,6 @@ static u32					gl_eth_rx_bd_mem_base;
 static u32					gl_eth_rx_bd_mem_size;
 static u32					gl_eth_rx_bd_mem_high;
 
-static function_ptr_t		rx_callback;
-
-
 #if PERF_MON_ETH_BD
 static u32                   bd_high_water_mark;
 #endif
@@ -188,8 +185,6 @@ int w3_wlan_platform_ethernet_init(){
 	bd_set_to_process_ptr  = NULL;
 	bd_set_count           = 0;
 
-	rx_callback = wlan_null_callback;
-
 	rx_schedule_id = SCHEDULE_ID_RESERVED_MAX;
 	rx_schedule_dl_entry = NULL;
 
@@ -281,10 +276,6 @@ int w3_wlan_platform_ethernet_setup_interrupt(XIntc* intc){
     XIntc_Enable(intc, WLAN_ETH_RX_INTR_ID);
 
     return 0;
-}
-
-void w3_wlan_platform_ethernet_set_rx_callback(function_ptr_t callback){
-	rx_callback = callback;
 }
 
 void w3_wlan_platform_ethernet_free_queue_entry_notify(){
@@ -551,7 +542,7 @@ void _wlan_process_all_eth_pkts(u32 schedule_id) {
         eth_rx_len     = XAxiDma_BdGetActualLength(bd_set_to_process_ptr, rx_ring_ptr->MaxTransferLen);
         eth_rx_buf     = XAxiDma_BdGetBufAddr(bd_set_to_process_ptr);
 
-    	wlan_process_eth_rx_return = rx_callback((void*)eth_rx_buf, eth_rx_len);
+    	wlan_process_eth_rx_return = wlan_process_eth_rx((void*)eth_rx_buf, eth_rx_len);
 
         // Free the ETH DMA buffer descriptor
         status = XAxiDma_BdRingFree(rx_ring_ptr, 1, bd_set_to_process_ptr);

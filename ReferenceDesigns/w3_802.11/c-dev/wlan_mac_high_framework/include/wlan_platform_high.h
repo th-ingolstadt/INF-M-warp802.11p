@@ -40,18 +40,9 @@ typedef struct{
 } platform_high_dev_info_t;
 
 //---------------------------------------
-// Platform configuration struct
-typedef struct{
-	XIntc* intc;
-	function_ptr_t  eth_rx_callback;
-	function_ptr_t  uart_rx_callback;
-	function_ptr_t  userio_inputs_callback;
-} platform_high_config_t;
-
-//---------------------------------------
 // Public functions that WLAN MAC High Framework directly calls
 platform_high_dev_info_t wlan_platform_high_get_dev_info();
-int wlan_platform_high_init(platform_high_config_t platform_high_config);
+int wlan_platform_high_init(XIntc* intc);
 void wlan_platform_free_queue_entry_notify();
 int wlan_platform_wlan_exp_process_node_cmd(u8* cmd_processed, u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len);
 int wlan_platform_wlan_exp_eth_init(XAxiEthernet* eth_ptr);

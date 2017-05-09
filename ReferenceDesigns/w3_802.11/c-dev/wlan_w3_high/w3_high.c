@@ -38,23 +38,20 @@ platform_high_dev_info_t wlan_platform_high_get_dev_info(){
 	return w3_platform_high_dev_info;
 }
 
-int wlan_platform_high_init(platform_high_config_t platform_config){
+int wlan_platform_high_init(XIntc* intc){
 	int return_value = XST_SUCCESS;
 
 	return_value = w3_uart_init();
-	w3_uart_set_rx_callback(platform_config.uart_rx_callback);
-	return_value |= w3_uart_setup_interrupt(platform_config.intc);
+	return_value |= w3_uart_setup_interrupt(intc);
 
 	return_value |= w3_high_userio_init();
-	w3_high_userio_set_inputs_callback(platform_config.userio_inputs_callback);
-	return_value |= w3_high_userio_setup_interrupt(platform_config.intc);
+	return_value |= w3_high_userio_setup_interrupt(intc);
 
 
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 	// Initialize Ethernet in wlan_platform
 	return_value |= w3_wlan_platform_ethernet_init();
-	w3_wlan_platform_ethernet_set_rx_callback(platform_config.eth_rx_callback);
-	return_value |= w3_wlan_platform_ethernet_setup_interrupt(platform_config.intc);
+	return_value |= w3_wlan_platform_ethernet_setup_interrupt(intc);
 #endif //WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 
 	return return_value;

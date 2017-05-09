@@ -1,5 +1,6 @@
 #include "xgpio.h"
 
+#include "wlan_mac_high.h"
 #include "w3_high_userio.h"
 #include "w3_high.h"
 #include "xparameters.h"
@@ -7,7 +8,6 @@
 #include "wlan_mac_common.h"
 
 static XGpio                 Gpio_userio;                  ///< GPIO driver instance for user IO inputs
-static function_ptr_t		 inputs_callback;
 static u32					 gl_userio_state;
 
 // Private functions
@@ -17,8 +17,6 @@ int w3_high_userio_init(){
 	int return_value;
 
 	gl_userio_state = 0;
-
-	inputs_callback = wlan_null_callback;
 
 	// Initialize the GPIO driver instances
 	return_value = XGpio_Initialize(&Gpio_userio, PLATFORM_DEV_ID_USRIO_GPIO);
@@ -51,10 +49,6 @@ int w3_high_userio_setup_interrupt(XIntc* intc){
 	XGpio_InterruptGlobalEnable(&Gpio_userio);
 	return return_value;
 }
-void w3_high_userio_set_inputs_callback(function_ptr_t callback){
-	inputs_callback = callback;
-}
-
 
 void _w3_high_userio_gpio_handler(void *InstancePtr){
 	XGpio *GpioPtr;
@@ -68,14 +62,14 @@ void _w3_high_userio_gpio_handler(void *InstancePtr){
 
 	userio_state_xor = curr_userio_state ^ gl_userio_state;
 
-	if(userio_state_xor & USERIO_INPUT_MASK_PB_0) inputs_callback(curr_userio_state & USERIO_INPUT_MASK_PB_0, USERIO_INPUT_MASK_PB_0);
-	if(userio_state_xor & USERIO_INPUT_MASK_PB_1) inputs_callback(curr_userio_state & USERIO_INPUT_MASK_PB_1, USERIO_INPUT_MASK_PB_1);
-	if(userio_state_xor & USERIO_INPUT_MASK_PB_2) inputs_callback(curr_userio_state & USERIO_INPUT_MASK_PB_2, USERIO_INPUT_MASK_PB_2);
-	if(userio_state_xor & USERIO_INPUT_MASK_PB_3) inputs_callback(curr_userio_state & USERIO_INPUT_MASK_PB_3, USERIO_INPUT_MASK_PB_3);
-	if(userio_state_xor & USERIO_INPUT_MASK_SW_0) inputs_callback(curr_userio_state & USERIO_INPUT_MASK_SW_0, USERIO_INPUT_MASK_SW_0);
-	if(userio_state_xor & USERIO_INPUT_MASK_SW_1) inputs_callback(curr_userio_state & USERIO_INPUT_MASK_SW_1, USERIO_INPUT_MASK_SW_1);
-	if(userio_state_xor & USERIO_INPUT_MASK_SW_2) inputs_callback(curr_userio_state & USERIO_INPUT_MASK_SW_2, USERIO_INPUT_MASK_SW_2);
-	if(userio_state_xor & USERIO_INPUT_MASK_SW_3) inputs_callback(curr_userio_state & USERIO_INPUT_MASK_SW_3, USERIO_INPUT_MASK_SW_3);
+	if(userio_state_xor & USERIO_INPUT_MASK_PB_0) wlan_mac_high_userio_inputs_callback(curr_userio_state & USERIO_INPUT_MASK_PB_0, USERIO_INPUT_MASK_PB_0);
+	if(userio_state_xor & USERIO_INPUT_MASK_PB_1) wlan_mac_high_userio_inputs_callback(curr_userio_state & USERIO_INPUT_MASK_PB_1, USERIO_INPUT_MASK_PB_1);
+	if(userio_state_xor & USERIO_INPUT_MASK_PB_2) wlan_mac_high_userio_inputs_callback(curr_userio_state & USERIO_INPUT_MASK_PB_2, USERIO_INPUT_MASK_PB_2);
+	if(userio_state_xor & USERIO_INPUT_MASK_PB_3) wlan_mac_high_userio_inputs_callback(curr_userio_state & USERIO_INPUT_MASK_PB_3, USERIO_INPUT_MASK_PB_3);
+	if(userio_state_xor & USERIO_INPUT_MASK_SW_0) wlan_mac_high_userio_inputs_callback(curr_userio_state & USERIO_INPUT_MASK_SW_0, USERIO_INPUT_MASK_SW_0);
+	if(userio_state_xor & USERIO_INPUT_MASK_SW_1) wlan_mac_high_userio_inputs_callback(curr_userio_state & USERIO_INPUT_MASK_SW_1, USERIO_INPUT_MASK_SW_1);
+	if(userio_state_xor & USERIO_INPUT_MASK_SW_2) wlan_mac_high_userio_inputs_callback(curr_userio_state & USERIO_INPUT_MASK_SW_2, USERIO_INPUT_MASK_SW_2);
+	if(userio_state_xor & USERIO_INPUT_MASK_SW_3) wlan_mac_high_userio_inputs_callback(curr_userio_state & USERIO_INPUT_MASK_SW_3, USERIO_INPUT_MASK_SW_3);
 
 	gl_userio_state = curr_userio_state;
 

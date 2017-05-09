@@ -16,6 +16,5 @@
 
 int w3_uart_init();
 int w3_uart_setup_interrupt(XIntc* intc);
-void w3_uart_set_rx_callback(function_ptr_t callback);
 
 #endif /* W3_UART_H_ */
