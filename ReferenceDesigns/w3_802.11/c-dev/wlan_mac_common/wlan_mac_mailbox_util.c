@@ -146,21 +146,6 @@ int send_msg(u16 msg_id, u8 arg, u8 num_words, u32 * payload) {
 }
 
 
-
-/*****************************************************************************/
-/**
- * Are there any messages in the Mailbox to read?
- *
- * @return  int              - Status:
- *                                 TRUE ("1")  - There are no messages to read
- *                                 FALSE ("0") - There is a message to read
- *****************************************************************************/
-inline int ipc_mailbox_read_isempty(){
-    return XMbox_IsEmpty(&ipc_mailbox);
-}
-
-
-
 /*****************************************************************************/
 /**
  * Read IPC message
