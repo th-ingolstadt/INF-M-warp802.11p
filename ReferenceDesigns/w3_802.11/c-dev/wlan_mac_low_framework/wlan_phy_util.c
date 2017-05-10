@@ -89,11 +89,11 @@ void write_phy_preamble(u8 pkt_buf, u8 phy_mode, u8 mcs, u16 length) {
 
 		// Set SERVICE to 0.
 		// Unfortunately, SERVICE spans a 32-bit boundary so we need two write 2 words.
-		Xil_Out32(phy_hdr_ptr + 8, 0);
-		Xil_Out32(phy_hdr_ptr + 8, 4);
+		Xil_Out32((u32)(phy_hdr_ptr + 8), 0);
+		Xil_Out32((u32)(phy_hdr_ptr + 8), 4);
 
 		//Set SIGNAL with actual rate/length
-	    Xil_Out32((u32*)(phy_hdr_ptr), WLAN_TX_SIGNAL_CALC(sig_rate_vals[mcs], length));
+	    Xil_Out32((u32)phy_hdr_ptr, WLAN_TX_SIGNAL_CALC(sig_rate_vals[mcs], length));
 
 	} else if((phy_mode & PHY_MODE_HTMF) == PHY_MODE_HTMF) {
 		//11n mode - write L-SIG (3 bytes) and HT-SIG (6 bytes)
@@ -103,7 +103,7 @@ void write_phy_preamble(u8 pkt_buf, u8 phy_mode, u8 mcs, u16 length) {
 		//bzero((u32*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_PHY_HDR_OFFSET), PHY_TX_PKT_BUF_PHY_HDR_SIZE);
 
 		// Set SERVICE to 0.
-		Xil_Out32(phy_hdr_ptr + 8, 0);
+		Xil_Out32((u32)(phy_hdr_ptr + 8), 0);
 
 
 	    // L-SIG is same format as 11a SIGNAL, but with RATE always 6Mb and LENGTH
@@ -120,7 +120,7 @@ void write_phy_preamble(u8 pkt_buf, u8 phy_mode, u8 mcs, u16 length) {
 
 		
 
-		Xil_Out32((u32*)(phy_hdr_ptr), WLAN_TX_SIGNAL_CALC(sig_rate_vals[0], lsig_length));
+		Xil_Out32((u32)phy_hdr_ptr, WLAN_TX_SIGNAL_CALC(sig_rate_vals[0], lsig_length));
 
 		//Assign pointer to first byte of HTSIG (PHY header base + 3 for sizeof(L-SIG))
 	    htsig_ptr = (u8*)(phy_hdr_ptr + 3);

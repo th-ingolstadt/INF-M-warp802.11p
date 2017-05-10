@@ -2774,7 +2774,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                         resp_hdr->num_args = resp_index;
 
                         for (mem_idx = 0; mem_idx < mem_length; mem_idx++) {
-                            resp_args_32[resp_index + mem_idx] = Xil_Ntohl(Xil_In32((void*)(mem_addr) + mem_idx*sizeof(u32)));
+                            resp_args_32[resp_index + mem_idx] = Xil_Ntohl(Xil_In32((u32)((void*)(mem_addr) + mem_idx*sizeof(u32))));
                         }
 
                         // Update response header with payload length
