@@ -356,7 +356,7 @@ u32  event_log_get_data(u32 start_index, u32 size, void * buffer, u8 copy_data) 
         // Copy the data in to the buffer
         memcpy((void *) buffer, (void *) start_address, num_bytes);
     } else {
-        // Assume that the buffer is a WARP IP/UDP buffer and populate the fields accordingly
+        // Assume that the buffer is a wlan_exp IP/UDP buffer and populate the fields accordingly
         ((wlan_exp_ip_udp_buffer *)buffer)->data   = (u8 *)start_address;
         ((wlan_exp_ip_udp_buffer *)buffer)->offset = (u8 *)start_address;
         ((wlan_exp_ip_udp_buffer *)buffer)->length = num_bytes;

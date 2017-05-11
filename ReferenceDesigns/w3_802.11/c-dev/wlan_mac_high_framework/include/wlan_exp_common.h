@@ -209,8 +209,6 @@ extern const char   * print_type_queue;
 //
 
 // Command / Response Header
-//     NOTE:  This conforms to the Command / Response Wire Format:
-//            http://warpproject.org/trac/wiki/WARPLab/Reference/Architecture/WireFormat
 //
 typedef struct{
     u32                      cmd;

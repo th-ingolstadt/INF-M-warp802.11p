@@ -577,9 +577,6 @@ void transport_send_async(u32 eth_dev_num, u8 * payload, u32 length) {
  *                                 NO_RESP_SENT - No response has been sent
  *                                 RESP_SENT    - A response has been sent
  *
- * @note    See on-line documentation for more information about the Ethernet
- *          packet structure:  www.warpproject.org
- *
  *****************************************************************************/
 int process_transport_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len) {
 
@@ -1028,7 +1025,7 @@ int transport_check_device(u32 eth_dev_num) {
 
     // Check that we have a valid Ethernet device for the transport
     if (eth_dev_num >= TRANSPORT_NUM_ETH_DEVICES) {
-        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Ethernet %c is not available on WARP HW.\n", wlan_exp_conv_eth_dev_num(eth_dev_num));
+        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Ethernet %c is not available on this platform\n", wlan_exp_conv_eth_dev_num(eth_dev_num));
         return XST_FAILURE;
     }
 

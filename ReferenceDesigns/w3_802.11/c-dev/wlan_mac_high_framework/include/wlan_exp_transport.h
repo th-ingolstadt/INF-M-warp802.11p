@@ -19,7 +19,7 @@
 // WLAN Exp includes
 #include "wlan_exp_common.h"
 
-// WARP UDP transport includes
+// wlan_exp IP/UDP transport includes
 #if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 #include "wlan_exp_ip_udp.h"
 #include "wlan_exp_ip_udp_device.h"
@@ -161,8 +161,6 @@
 /*********************** Global Structure Definitions ************************/
 
 // Transport header
-//     NOTE:  This conforms to the Transport Header Wire Format:
-//            http://warpproject.org/trac/wiki/WARPLab/Reference/Architecture/WireFormat
 //
 typedef struct {
     u16                      dest_id;                      // Destination ID

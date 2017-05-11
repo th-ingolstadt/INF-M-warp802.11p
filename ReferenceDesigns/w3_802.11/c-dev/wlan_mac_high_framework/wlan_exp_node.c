@@ -53,7 +53,7 @@
 // Define Ethernet Header Buffer Constants
 //
 // The Ethernet header buffer is used when transferring large amounts of data from the node to the
-// host in a performance efficient manner.  Since the WARP IP/UDP transport does not block on a
+// host in a performance efficient manner.  Since the wlan_exp IP/UDP transport does not block on a
 // packet send, if a single command returns many packets with a small processing delay between packets,
 // then there must be multiple Ethernet header containers.  Otherwise, the contents of the Ethernet
 // header could be changed before it is processed by the transport.
@@ -62,8 +62,8 @@
 //         to host communication in WLAN Exp
 //     2)  8 buffers are allocated which is more than the minimum number of buffers needed (ie 5) for 
 //         the default transport setting of 10 TX BDs.
-//     3)  Use 64 byte alignment for the buffers which is the same as the WARP IP/UDP transport
-//         (ie it is the same as wlan_exp_ip_udp_buffer_ALIGNMENT in WARP_ip_udp_config.h)
+//     3)  Use 64 byte alignment for the buffers which is the same as the wlan_exp IP/UDP transport
+//         (ie it is the same as wlan_exp_ip_udp_buffer_ALIGNMENT in wlan_exp_ip_udp_config.h)
 //
 #define WLAN_EXP_ETH_BUFFER_SIZE                           0x80                // Number of bytes per buffer
 #define WLAN_EXP_ETH_NUM_BUFFER                            0x08                // Number of buffers allocated
@@ -582,9 +582,6 @@ void send_early_resp(int socket_index, void * to, cmd_resp_hdr * resp_hdr, void 
  * @return  int              - Status of the command:
  *                                 NO_RESP_SENT - No response has been sent
  *                                 RESP_SENT    - A response has been sent
- *
- * @note    See on-line documentation for more information about the Ethernet
- *          packet structure:  www.warpproject.org
  *
  *****************************************************************************/
 int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len) {
@@ -3290,7 +3287,7 @@ void transfer_log_data(u32 socket_index, void * from,
 
     //
     // NOTE:  In order to make large transfers more efficient, most of the response packet can be
-    //   pre-processed such that the WARP IP/UDP library has to do only the minimal amount of
+    //   pre-processed such that the wlan_exp IP/UDP library has to do only the minimal amount of
     //   processing per packet.  This should not cause any additional overhead for a single packet
     //   but will have have reduced overhead for all other packets.
     //
@@ -3389,7 +3386,7 @@ void transfer_log_data(u32 socket_index, void * from,
 
         // Transfer data
         //     NOTE:  This selects the "do not copy data" option and instead provides
-        //         a WARP IP/UDP buffer to transfer the data.
+        //         a wlan_exp IP/UDP buffer to transfer the data.
         //
         num_bytes = event_log_get_data(curr_index, transfer_length, &data_buffer, 0);
 
