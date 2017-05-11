@@ -375,7 +375,6 @@ void wlan_exp_node_set_type_low	  (u32 type_low, compilation_details_t* compilat
 void wlan_exp_reset_all_callbacks                     ();
 void wlan_exp_set_process_node_cmd_callback           (void(*callback)());
 void wlan_exp_set_purge_all_data_tx_queue_callback    (void(*callback)());
-void wlan_exp_set_tx_cmd_add_association_callback     (void(*callback)());
 void wlan_exp_set_process_user_cmd_callback           (void(*callback)());
 void wlan_exp_set_beacon_ts_update_mode_callback      (void(*callback)());
 void wlan_exp_set_process_config_bss_callback         (void(*callback)());

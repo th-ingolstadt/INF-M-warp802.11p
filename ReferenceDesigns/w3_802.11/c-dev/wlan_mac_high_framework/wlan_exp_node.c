@@ -93,7 +93,6 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
 void ltg_cleanup(u32 id, void* callback_arg);
 
-int process_tx_power(u32 cmd, u32 aid, int tx_power);
 u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 * ret_phy_mode);
 u32 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode);
 
@@ -134,7 +133,6 @@ static wlan_exp_tag_parameter     node_parameters[NODE_PARAM_MAX_PARAMETER];
 
 static function_ptr_t    wlan_exp_process_node_cmd_callback;
 function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback;
-function_ptr_t    wlan_exp_tx_cmd_add_association_callback;
 function_ptr_t    wlan_exp_process_user_cmd_callback;
 function_ptr_t    wlan_exp_beacon_ts_update_mode_callback;
 function_ptr_t    wlan_exp_process_config_bss_callback;
@@ -1808,13 +1806,16 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - cmd_args_32[2]      - Power (Shifted by TX_POWER_MIN_DBM)
             //   - cmd_args_32[3 - 4]  - MAC Address (All 0xF means all nodes)
             //
-            u32    id;
             int    power;
             u8     mac_addr[MAC_ADDR_LEN];
             u32    status         = CMD_PARAM_SUCCESS;
             u32    msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
             u32    type           = Xil_Ntohl(cmd_args_32[1]);
             u32    power_xmit     = Xil_Ntohl(cmd_args_32[2]);
+            int iter;
+            dl_list* station_info_list;
+            station_info_entry_t* station_info_entry;
+            station_info_t* station_info;
 
             // Shift power value from transmission to get the power
             power = power_xmit + TX_POWER_MIN_DBM;
@@ -1827,22 +1828,32 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             if (type == CMD_PARAM_UNICAST_VAL) {
                 switch (msg_cmd) {
                     case CMD_PARAM_WRITE_VAL:
-                    case CMD_PARAM_READ_VAL:
                         // Get MAC Address
                         wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[3], &mac_addr[0]);
 
-                        // If necessary, add an association.  This is primarily for IBSS nodes where
-                        //   the association table might not be set up at the time this is called.
-                        // NOTE: A multicast mac_addr should *not* be added to the association table.
-                        //     Also, an address of zero should not be added to the association table
-                        if ((wlan_addr_mcast(mac_addr) == 0) && (wlan_addr_eq(mac_addr, zero_addr) == 0)) {
-                            wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
+                        if(wlan_addr_eq(mac_addr, zero_addr)){
+                        	// All members
+                        	station_info_list  = get_network_member_list();
+                        	station_info_entry = (station_info_entry_t*)(station_info_list->first);
+                        	iter = (station_info_list->length)+1;
+                        	while(station_info_entry && ((iter--) > 0)){
+                        		station_info = station_info_entry->data;
+                        		station_info->tx.phy.power = power;
+                        		station_info_entry = (station_info_entry_t*)dl_entry_next((dl_entry*)station_info_entry);
+                        	}
+                        } else {
+                        	// Just a particular station
+                        	 station_info = station_info_create(&mac_addr[0]);
+                        	 station_info->tx.phy.power = power;
                         }
-
-                        id = wlan_exp_get_id_in_associated_stations(&mac_addr[0]);
-
-                        status = process_tx_power(msg_cmd, id, power);
                     break;
+
+#if 0
+                    //TODO
+                    case CMD_PARAM_READ_VAL:
+                    	power = TODO;
+					break;
+#endif
 
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
                         // Set the default unicast data & management parameter
@@ -1931,7 +1942,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 //     * Default Multicast Management Packet Tx Power for new associations
                 //     * Default Multicast Data Packet Tx Power for new associations
                 //     * Control Packet Tx Power
-                //     * Update the transmit power of all current associations on the node.
+                //     * Update the transmit power for all known stations
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set all TX power = %d dBm\n", power);
 
                 // Set the default unicast power for new associations
@@ -1945,8 +1956,15 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 // Send IPC to CPU low to set the Tx power for control frames
                 wlan_mac_high_set_tx_ctrl_pow(power);
 
-                // Update the Tx power in each current association
-                status = process_tx_power(CMD_PARAM_WRITE_VAL, WLAN_EXP_AID_ALL, power);
+                // Update the Tx power for all known stations
+                station_info_list  = station_info_get_list();
+				station_info_entry = (station_info_entry_t*)(station_info_list->first);
+				iter = (station_info_list->length)+1;
+				while(station_info_entry && ((iter--) > 0)){
+					station_info = station_info_entry->data;
+					station_info->tx.phy.power = power;
+					station_info_entry = (station_info_entry_t*)dl_entry_next((dl_entry*)station_info_entry);
+				}
 
                 // Update beacon tx params
                 wlan_mac_high_update_beacon_tx_params(&default_multicast_mgmt_tx_params);
@@ -2013,7 +2031,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                         // NOTE: A multicast mac_addr should *not* be added to the association table.
                         //     Also, an address of zero should not be added to the association table
                         if ((wlan_addr_mcast(mac_addr) == 0) && (wlan_addr_eq(mac_addr, zero_addr) == 0)) {
-                            wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
+                            //wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
                         }
 
                         id = wlan_exp_get_id_in_associated_stations(&mac_addr[0]);
@@ -2157,7 +2175,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                         // NOTE: A multicast mac_addr should *not* be added to the association table.
                         //     Also, an address of zero should not be added to the association table
                         if ((wlan_addr_mcast(mac_addr) == 0) && (wlan_addr_eq(mac_addr, zero_addr) == 0)) {
-                            wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
+                            //wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
                         }
 
                         id = wlan_exp_get_id_in_associated_stations(&mac_addr[0]);
@@ -3621,7 +3639,6 @@ void copy_bss_info_to_dest(void * source, void * dest, u8* mac_addr) {
 void wlan_exp_reset_all_callbacks(){
     wlan_exp_process_node_cmd_callback         = (function_ptr_t) null_process_cmd_callback;
     wlan_exp_purge_all_data_tx_queue_callback  = (function_ptr_t) wlan_exp_null_callback;
-    wlan_exp_tx_cmd_add_association_callback   = (function_ptr_t) wlan_exp_null_callback;
     wlan_exp_process_user_cmd_callback         = (function_ptr_t) null_process_cmd_callback;
     wlan_exp_beacon_ts_update_mode_callback    = (function_ptr_t) wlan_exp_null_callback;
     wlan_exp_process_config_bss_callback       = (function_ptr_t) wlan_exp_null_callback;
@@ -3636,12 +3653,6 @@ void wlan_exp_set_process_node_cmd_callback(void(*callback)()){
 void wlan_exp_set_purge_all_data_tx_queue_callback(void(*callback)()){
     wlan_exp_purge_all_data_tx_queue_callback = (function_ptr_t) callback;
 }
-
-
-void wlan_exp_set_tx_cmd_add_association_callback(void(*callback)()){
-    wlan_exp_tx_cmd_add_association_callback = (function_ptr_t) callback;
-}
-
 
 void wlan_exp_set_process_user_cmd_callback(void(*callback)()){
     wlan_exp_process_user_cmd_callback = (function_ptr_t) callback;
@@ -3854,94 +3865,6 @@ u32  wlan_exp_get_id_in_bss_info(u8 * bssid) {
 
     return id;
 }
-
-
-
-/*****************************************************************************/
-/**
- * Process TX Power
- *
- * @param   cmd              - Command:  NODE_WRITE_VAL or NODE_READ_VAL
- * @param   aid              - AID of the station or NODE_CONFIG_ALL_ASSOCIATED
- * @param   tx_power         - Power to set the node (function assumes power is valid)
- *
- * @return  int              - Power
- *                             - CMD_PARAM_ERROR on ERROR
- *
- *****************************************************************************/
-int process_tx_power(u32 cmd, u32 aid, int tx_power) {
-
-    int           iter;
-    int           power;
-    dl_list     	* curr_list;
-    dl_entry    	* curr_entry;
-    station_info_t	* curr_station_info;
-
-    power = CMD_PARAM_ERROR;
-
-    // For Writes
-    if (cmd == CMD_PARAM_WRITE_VAL) {
-        curr_list  = get_network_member_list();
-
-        if (curr_list != NULL) {
-            if (curr_list->length == 0) { return tx_power; }
-
-            iter       = curr_list->length;
-            curr_entry = curr_list->first;
-
-            while ((curr_entry != NULL) && (iter-- > 0)) {
-                curr_station_info = (station_info_t*)(curr_entry->data);
-
-                if (aid == WLAN_EXP_AID_ALL) {
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
-                                    "Set TX power on ID %d = %d dBm\n", curr_station_info->ID, tx_power);
-                    curr_station_info->tx.phy.power = tx_power;
-                    power                           = tx_power;
-
-                } else if (aid == curr_station_info->ID) {
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
-                                    "Set TX power on ID %d = %d dBm\n", aid, tx_power);
-                    curr_station_info->tx.phy.power = tx_power;
-                    power                           = tx_power;
-                    break;
-                }
-                curr_entry = dl_entry_next(curr_entry);
-            }
-        } else {
-            if (aid == WLAN_EXP_AID_ALL) {
-                // This is not an error because we are trying to set the rate for all
-                // associations and there currently are none.
-                power = tx_power;
-            }
-        }
-
-    // For Reads
-    } else {
-        if (aid != WLAN_EXP_AID_ALL) {
-            curr_list  = get_network_member_list();
-
-            if (curr_list != NULL) {
-                iter       = curr_list->length;
-                curr_entry = curr_list->first;
-
-                while ((curr_entry != NULL) && (iter-- > 0)) {
-                    curr_station_info = (station_info_t*)(curr_entry->data);
-                    if (aid == curr_station_info->ID) {
-                        power = curr_station_info->tx.phy.power;
-                        break;
-                    }
-                    curr_entry = dl_entry_next(curr_entry);
-                }
-            }
-        }
-
-        // NOTE:  Trying to read the rate for all associations returns an error.
-    }
-
-    return power;
-}
-
-
 
 /*****************************************************************************/
 /**
