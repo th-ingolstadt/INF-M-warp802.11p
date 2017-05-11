@@ -74,9 +74,9 @@
 // to:  1 --> HTMF  or  0 --> NONHT.  It will also be used as the default
 // value for the HT_CAPABLE capability of the BSS in configure_bss() when
 // moving from a NULL to a non-NULL BSS and the ht_capable parameter is not
-// specified.  This does not affect the ability of the node to send and
-// receive HT packets.   All WARP nodes are HT capable (ie they can send
-// and receive both HTMF and NONHT packets).
+// specified.  This parameter only affects how the MAC selects the phy_mode
+// value for transmissions. It does not affect the underlying PHY support for
+// Tx/Rx of HTMF waveforms.
 #define  WLAN_DEFAULT_USE_HT                     1
 
 
