@@ -2,7 +2,7 @@
  *  @brief Mango wlan_exp IP/UDP Library (Config)
  *
  *  @copyright Copyright 2014-2017, Mango Communications. All rights reserved.
- *          Distributed under the WARP license  (http://warpproject.org/license)
+ *          Distributed under the Mango Reference Design license (https://mangocomm.com/802.11/license)
  */
 
 

@@ -2,7 +2,7 @@
  *  @brief Mango wlan_exp IP/UDP Library
  *
  *  @copyright Copyright 2014-2017, Mango Communications. All rights reserved.
- *          Distributed under the WARP license  (http://warpproject.org/license)
+ *          Distributed under the Mango Reference Design license (https://mangocomm.com/802.11/license)
  */
 
 // How to use:
@@ -36,41 +36,21 @@
 //
 // Design Considerations:
 // 
-//   Due to processing alignment constraints, WARP nodes require most data to be at least word aligned (ie 32 bit 
-// aligned).  However, a standard UDP/IP Ethernet Header is 42 bytes (ie. 14 bytes for the Ethernet header; 
-// 20 bytes for IP header; 8 bytes for the UDP header) which is not 32 bit aligned.  Therefore, one issue that 
-// the library has to deal with is what to do with the two bytes to align the data.  In previous versions of the
-// library, the two bytes were considered part of the WARPLab / WARPNet transport header.  This was fine because
-// the library would always have contiguous data for Ethernet packets.  In this version of the library, to
-// reduce processing overhead for large data transfers, we are using the scatter gather capabilities of the AXI DMA.
-// Therefore, it becomes necessary to consider the padding as part of the UDP/IP Ethernet Header since that will
-// align the pieces of data correctly.  
-// 
-//   Previously, when transmitting data, the WARPLab / WARPNet transports would copy the data from the given memory,
-// such as DDR, into the Ethernet send buffer, usually via the CDMA, before using the AXI DMA to copy the data 
-// to the Ethernet controller to be sent out over the wire.  This double copy of data is not really necessary 
-// given the AXI DMA has scatter gather capabilities.  However, the WARPxilnet driver required the double copy 
-// because it had to support multiple Ethernet interface peripherals (ie AXI FIFO, TEMAC, etc).  Given the WARP
-// IP/UDP Library only supports AXI DMA, there is no longer a need to enforce the double copy.  However, this requires
-// that the library align each piece of data for the Ethernet packet to make sure that there are not alignment
-// processing issues in the rest of the software framework.
+//   For Ethernet Tx this library splits each Ethernet packet into two or three segments:  
+//   1) IP/UDP Header (includes Ethernet, IP, and UDP headers along with a 2 byte delimiter) - 44 bytes
+//   2) wlan_exp header(s) (includes transport header, command / response, and other headers) - (12 to 32 bytes)
+//   3) Packet Data (could be contiguous or non-contiguous with the wlan_exp header(s))
 //
-//   Therefore, for transmitting data, the library will generally split the Ethernet packet into two or three
-// segments:  
-//   1) Mango wlan_exp IP/UDP Header (includes Ethernet, IP, and UDP headers along with a 2 byte delimiter) - 44 bytes
-//   2) WARPNet Header(s) (includes WARPNet Transport, Command / Response, and other headers) - (12 to 32 bytes)
-//   3) Packet Data (could be contiguous or non-contiguous with the WARPNet Header(s))
-//
-// with each segment starting on a 32-bit aligned value.
+// with each segment starting on a 32-bit-aligned address. The Ethernet DMA is configured for scatter-gather
+// and retreives the segments for each packet sequentially, concatenating the segments to generate the overall
+// Ethernet packet payload.
 //
 //   However, when receiving data, we will always have to perform a double copy due to limitations with the Xilinx
 // IP.  The AXI DMA requires that all of the buffer space for the Ethernet packet be specified a priori.  This 
 // means that unless the library processes the AXI stream directly through a dedicated peripheral, it is
 // impossible to decode the packet such that the library could direct the data to its final resting place with
-// only a single copy unless some restrictions are introduced to communication between the host and the WARP node
+// only a single copy unless some restrictions are introduced to communication between the host and the node
 // that are not suitable for a reference design.
-// 
-//
 //
 // Naming Conventions:
 //   
@@ -92,10 +72,8 @@
 //
 // Structure:
 // 
-//   In general, the library tries to follow standard socket programming conventions.  The WARP node acts like a
-// socket server listening on the multiple sockets.  For example, in WARPLab, the node will listen on a unicast socket 
-// for direct node messages and a broadcast socket for triggers and other broadcast messages (ie the server looks for 
-// messages on two different ports).  The Mango wlan_exp IP/UDP Library supports two use cases:
+//   In general, the library tries to follow standard socket programming conventions.  The node acts like a
+// socket server listening on the multiple sockets. The Mango wlan_exp IP/UDP Library supports two use cases:
 //
 //     1) The node is acting as a server receiving and responding to commands from a client (this includes responses 
 //        that may contain multiple Ethernet frames)
@@ -109,9 +87,9 @@
 //
 //   In a standard OS environment, there is enough memory and buffering, that the OS is able to keep packets around 
 // long enough to support the polling of multiple sockets in series (see socket recv / recvfrom which only checks a 
-// single port to see if it has data).  However, to support WARP based reference designs, the Mango wlan_exp IP/UDP Library must
+// single port to see if it has data).  However, to support embedded designs, the Mango wlan_exp IP/UDP Library must
 // limit its memory / compute footprint so that as many resources as possible are available to the reference design.  Also,
-// given that most WARP reference designs look for messages on multiple ports, the library needs to shift the focus
+// given that the reference designs look for messages on multiple ports, the library needs to shift the focus
 // of how messages are received.  Therefore, the library receive processing is built around a given Ethernet device
 // (ie, the physical Ethernet peripheral, for example Eth A or Eth B on the WARP v3 hardware) vs a given socket.  When 
 // the library executes a socket_recvfrom_eth() call, this will first check that there is a Ethernet frame on the given
@@ -137,7 +115,7 @@
 // Extensions:
 // 
 //   Given the current structure of the Mango wlan_exp IP/UDP Library, it would be straightforward to abstract away the Ethernet
-// device centric nature of the receive processing chain from the WARP applications.  In the current polling framework, 
+// device centric nature of the receive processing chain.  In the current polling framework, 
 // this would add processing overhead since it would require checking both Ethernet devices on any given poll.  If 
 // Ethernet processing was moved from a polling framework to an interrupt based framework, this would be a logical 
 // extension to implement since it would no longer require the additional overhead.  
@@ -197,7 +175,7 @@
 // } wlan_exp_transport_packet;
 //
 //
-// The thing to remember is that you should not perform the processing of the packet by the WARP application 
+// The thing to remember is that you should not perform the processing of the packet by the application 
 // within the ISR.  One other challenge is to make sure that there is enough buffering within the library
 // and global data structures so that no packets are lost.  Currently, the library uses static memory allocation
 // based on the BSP configuration, but using a larger memory space, like DDR, and moving to a dynamic allocation
@@ -372,7 +350,7 @@
 // Mango wlan_exp IP/UDP Library Ethernet Macros
 //
 
-// Convert Ethernet device number to WARP convention (ie ETH A or ETH B)
+// Convert Ethernet device number to hardware-specific convention (ie ETH A or ETH B)
 #define wlan_exp_conv_eth_dev_num(x)                           (char)(((int)'A') + (x))
 
 

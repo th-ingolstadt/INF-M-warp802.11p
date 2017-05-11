@@ -2,7 +2,7 @@
  *  @brief Mango wlan_exp IP/UDP Library (IP/UDP/ARP/IMCP Processing)
  *
  *  @copyright Copyright 2014-2017, Mango Communications. All rights reserved.
- *          Distributed under the WARP license  (http://warpproject.org/license)
+ *          Distributed under the Mango Reference Design license (https://mangocomm.com/802.11/license)
  */
 
 /***************************** Include Files *********************************/
@@ -392,7 +392,7 @@ void udp_update_header(udp_header * header, u16 dest_port, u16 udp_length) {
    
     // Currently, the Mango wlan_exp IP/UDP Library does not use the UDP checksum capabilities.  This is primarily
     // due to the amount of time required to compute the checksum.  Also, given that communication 
-    // between hosts and WARP nodes is, in general, fairly localized, there is not as much of a need for 
+    // between hosts and nodes is, in general, fairly localized, there is not as much of a need for 
     // the data integrity check that the UDP checksum provides.
     //
     header->checksum  = UDP_NO_CHECKSUM;

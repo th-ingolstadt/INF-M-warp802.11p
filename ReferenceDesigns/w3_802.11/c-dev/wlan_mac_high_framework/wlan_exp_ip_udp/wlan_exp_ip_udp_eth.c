@@ -2,7 +2,7 @@
  *  @brief Mango wlan_exp IP/UDP Library (Ethernet)
  *
  *  @copyright Copyright 2014-2017, Mango Communications. All rights reserved.
- *          Distributed under the WARP license  (http://warpproject.org/license)
+ *          Distributed under the Mango Reference Design license (https://mangocomm.com/802.11/license)
  */
 
 /***************************** Include Files *********************************/
@@ -735,9 +735,7 @@ int eth_send_frame(u32 eth_dev_num, wlan_exp_ip_udp_socket * socket, wlan_exp_ip
     //       Ethernet controller local memory.  Therefore, the AXI DMA attached to the Ethernet controller must
     //       transfer all necessary data to the Ethernet controller before the Ethernet transfer can begin.
     //       Unfortunately, the time of this transfer is bounded by the AXI stream channel between the AXI DMA and
-    //       Ethernet controller which is only 32 bits @ 160 MHz.  As of WARPLab 7.5.1, the Ethernet controller and
-    //       AXI DMA did not allow the AXI stream interface to be configured so 640 MBps is the maximum throughput
-    //       attainable through that link.
+    //       Ethernet controller which is only 32 bits @ 160 MHz.
     //
     //   NOTE:  Based on empirical measurements, here is the rough timing for processing tx descriptors.  In this
     //       experiment, we were using Read IQ, which requires 2 buffer descriptors per Ethernet packet, and measuring
