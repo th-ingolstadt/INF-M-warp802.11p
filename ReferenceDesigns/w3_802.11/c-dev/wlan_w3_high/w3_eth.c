@@ -1,4 +1,5 @@
 #include "wlan_mac_high_sw_config.h"
+#include "wlan_mac_high_types.h"
 
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 #include "wlan_platform_high.h"
@@ -18,6 +19,7 @@
 #include "wlan_mac_high.h"
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_schedule.h"
+#include "wlan_mac_queue.h"
 
 // Performance monitoring using SW GPIO
 //     - Each of these defines if 1 will enable performance monitoring using the

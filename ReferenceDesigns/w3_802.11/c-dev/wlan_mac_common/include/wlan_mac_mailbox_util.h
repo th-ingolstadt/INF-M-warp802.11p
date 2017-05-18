@@ -16,6 +16,7 @@
 
 #include "xil_types.h"
 #include "xmbox.h"
+#include "wlan_mac_common_types.h"
 
 //-----------------------------------------------
 // Hardware defines
@@ -90,40 +91,12 @@
 #define IPC_REG_WRITE_MODE                                 1
 
 
-
-/*********************** Global Structure Definitions ************************/
-
-//-----------------------------------------------
-// IPC Message structure
-//     - msg_id              - Any of the message IDs defined above
-//     - num_payload_words   - Number of u32 words in the payload
-//     - arg0                - Used to pass a single u8 argument as part of the message
-//     - payload_ptr         - Pointer to payload (can be array of u32 or structure defined below)
-//
-typedef struct {
-    u16       msg_id;
-    u8        num_payload_words;
-    u8        arg0;
-    u32*      payload_ptr;
-} wlan_ipc_msg_t;
-
-
-//-----------------------------------------------
-// IPC_MBOX_MEM_READ_WRITE payload structure
-//     - Must be u32 aligned
-//
-typedef struct{
-    u32       baseaddr;
-    u32       num_words;
-} ipc_reg_read_write_t;
-
-
 /*************************** Function Prototypes *****************************/
 
 XMbox*        init_mailbox();
 
-int           read_mailbox_msg(wlan_ipc_msg_t * msg);
-int           write_mailbox_msg(wlan_ipc_msg_t * msg);
+int           read_mailbox_msg(wlan_ipc_msg_t* msg);
+int           write_mailbox_msg(wlan_ipc_msg_t* msg);
 int           send_msg(u16 msg_id, u8 arg, u8 num_words, u32 * payload);
 
 #endif /* WLAN_MAC_MAILBOX_UTIL_H_ */

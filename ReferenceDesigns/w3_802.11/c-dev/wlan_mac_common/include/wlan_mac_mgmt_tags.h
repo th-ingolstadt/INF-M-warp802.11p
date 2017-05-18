@@ -15,48 +15,6 @@
 #ifndef WLAN_MAC_MGMT_TAGS_H_
 #define WLAN_MAC_MGMT_TAGS_H_
 
-typedef struct{
-	u8 tag_element_id;
-	u8 tag_length;
-} mgmt_tag_header;
-
-// Note: mgmt_tag_template should never be instantiated. Instead,
-// it should be used as pointer on top of existing memory
-typedef struct{
-	mgmt_tag_header header;
-	u8				data[256];
-} mgmt_tag_template_t;
-
-typedef struct __attribute__ ((__packed__)){
-	u16		ht_capabilities_info;
-	u8		a_mpdu_parameters;
-	u32     rx_supported_mcs[4];
-	u16		ht_extended_capabilities;
-	u32		tx_beamforming;
-	u8		ant_sel;
-} ht_capabilities;
-
-typedef struct __attribute__ ((__packed__)){
-	u8		channel;
-	u8		ht_info_subset_1;
-	u16		ht_info_subset_2;
-	u16		ht_info_subset_3;
-	u32		rx_supported_mcs[4];
-} ht_information;
-
-typedef struct __attribute__ ((__packed__)){
-	u8		oui[3];
-	u8		vendor_specific_oui_type;
-	u8		wme_subtype;
-	u8		wme_version;
-	u8		wme_qos_info;
-	u8		reserved;
-	u32		aci0;
-	u32		aci1;
-	u32		aci2;
-	u32		aci3;
-} wmm_parameter_t;
-
 // Tag Element IDs from Table 8-54 in 802.11-2012
 #define MGMT_TAG_SSID									0
 #define MGMT_TAG_SUPPORTED_RATES						1

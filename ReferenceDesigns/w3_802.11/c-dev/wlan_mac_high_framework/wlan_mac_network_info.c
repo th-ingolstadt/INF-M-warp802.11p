@@ -13,7 +13,7 @@
  */
 
 /***************************** Include Files *********************************/
-
+#include "wlan_mac_high_types.h"
 #include "wlan_mac_high_sw_config.h"
 
 #include "xil_types.h"
@@ -24,6 +24,7 @@
 #include "xparameters.h"
 #include "string.h"
 
+#include "wlan_mac_common.h"
 #include "wlan_mac_pkt_buf_util.h"
 #include "wlan_mac_high.h"
 #include "wlan_mac_network_info.h"

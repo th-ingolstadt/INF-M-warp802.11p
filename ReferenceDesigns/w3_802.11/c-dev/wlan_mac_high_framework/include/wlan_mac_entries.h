@@ -29,11 +29,7 @@
 #define WLAN_MAC_ENTRIES_H_
 
 #include "wlan_mac_high_sw_config.h"
-
-#include "wlan_mac_802_11_defs.h"
-#include "wlan_mac_high.h"
-#include "wlan_mac_common.h"
-#include "wlan_mac_network_info.h"
+#include "wlan_mac_common_types.h"
 
 #define WLAN_MAC_ENTRIES_LOG_CHAN_EST
 

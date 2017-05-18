@@ -14,17 +14,12 @@
  */
 
 
-/***************************** Include Files *********************************/
-
-#include "wlan_mac_high_sw_config.h"
-
-#include "xintc.h"
-
-
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_SCHEDULE_H_
 #define WLAN_MAC_SCHEDULE_H_
 
+#include "wlan_mac_high_types.h"
+#include "xintc.h"
 
 //-----------------------------------------------
 // Timer defines
@@ -62,24 +57,6 @@
 // Helper for run-once scheduled event that wraps wlan_mac_schedule_event_repeated() with "num_calls" = 1
 #define wlan_mac_schedule_event(scheduler_sel, delay, callback)      \
                    wlan_mac_schedule_event_repeated((scheduler_sel), (delay), 1, (callback))
-
-
-/*********************** Global Structure Definitions ************************/
-
-// Schedule structure for scheduled events
-typedef struct {
-    u32            id;
-    u8			   enabled;
-    u32            delay_us;
-    u32            num_calls;
-    u64            target_us;
-    function_ptr_t callback;
-} wlan_sched;
-
-typedef struct {
-	dl_list		enabled_list;
-	dl_entry*	next;
-} wlan_sched_state_t;
 
 
 /*************************** Function Prototypes *****************************/

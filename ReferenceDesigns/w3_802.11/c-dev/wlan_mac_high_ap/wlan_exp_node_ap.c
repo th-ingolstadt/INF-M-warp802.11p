@@ -12,12 +12,14 @@
  */
 
 /***************************** Include Files *********************************/
-
+#include "wlan_mac_high_types.h"
 #include "wlan_mac_high_sw_config.h"
 
 #if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
 #include "wlan_platform_common.h"
+#include "wlan_mac_high.h"
+#include "wlan_mac_network_info.h"
 
 #include "wlan_exp_node.h"
 #include "wlan_exp_node_ap.h"
@@ -28,6 +30,8 @@
 #include "wlan_mac_event_log.h"
 
 #include "wlan_mac_ap.h"
+
+#include "xil_io.h"
 
 
 

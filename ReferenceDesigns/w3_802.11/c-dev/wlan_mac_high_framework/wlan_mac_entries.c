@@ -21,7 +21,7 @@
 
 
 /***************************** Include Files *********************************/
-
+#include "wlan_mac_high_types.h"
 #include "wlan_mac_high_sw_config.h"
 
 // SDK includes
@@ -35,6 +35,9 @@
 #include "wlan_mac_pkt_buf_util.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_entries.h"
+#include "wlan_mac_802_11_defs.h"
+#include "wlan_mac_packet_types.h"
+#include "wlan_platform_common.h"
 
 // WLAN Exp includes
 #include "wlan_exp_common.h"

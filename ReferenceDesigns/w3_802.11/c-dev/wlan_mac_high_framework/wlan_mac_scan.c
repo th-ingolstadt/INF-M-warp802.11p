@@ -38,6 +38,7 @@
  */
 
 /***************************** Include Files *********************************/
+#include "wlan_mac_high_types.h"
 #include "wlan_mac_high_sw_config.h"
 
 // Xilinx SDK includes
@@ -48,6 +49,7 @@
 #include "string.h"
 
 // WLAN includes
+#include "wlan_mac_common.h"
 #include "wlan_mac_high.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_schedule.h"

@@ -13,6 +13,7 @@
 /***************************** Include Files *********************************/
 
 #include "wlan_mac_high_sw_config.h"
+#include "wlan_mac_high_types.h"
 
 // Xilinx / Standard library includes
 #include <xparameters.h>
@@ -24,6 +25,8 @@
 #include <stdarg.h>
 
 // WLAN includes
+#include "wlan_mac_high.h"
+#include "wlan_mac_common.h"
 #include "wlan_mac_pkt_buf_util.h"
 #include "wlan_platform_common.h"
 #include "wlan_platform_high.h"
@@ -35,6 +38,7 @@
 #include "wlan_mac_network_info.h"
 #include "wlan_mac_station_info.h"
 #include "wlan_mac_eth_util.h"
+#include "wlan_mac_dl_list.h"
 
 // WLAN Exp includes
 #include "wlan_exp_common.h"

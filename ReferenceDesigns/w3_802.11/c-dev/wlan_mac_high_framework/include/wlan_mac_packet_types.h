@@ -15,67 +15,7 @@
 #ifndef WLAN_MAC_PACKET_TYPES_H_
 #define WLAN_MAC_PACKET_TYPES_H_
 
-#include "wlan_mac_high_sw_config.h"
-
-#include "wlan_mac_network_info.h"
-
-typedef struct{
-	u8* address_1;
-	u8* address_2;
-	u8* address_3;
-	u8 frag_num;
-	u8 reserved;
-} mac_header_80211_common;
-
-typedef struct{
-	u16 auth_algorithm;
-	u16 auth_sequence;
-	u16 status_code;
-} authentication_frame;
-
-typedef struct{
-	u16 reason_code;
-} deauthentication_frame;
-
-typedef struct{
-	u16 capabilities;
-	u16 status_code;
-	u16 association_id;
-} association_response_frame;
-
-typedef struct{
-	u16 capabilities;
-	u16 listen_interval;
-} association_request_frame;
-
-typedef struct{
-	u8 category;
-	u8 action;
-
-	// Channel Switch Announcement Element (Section 8.4.2.21)
-	u8 element_id;                 // Set to 37 (Table 8-54 - Section 8.4.2.1)
-	u8 length;                     // Set to 3
-	u8 chan_switch_mode;           // Set to 0 - No restrictions on transmission until a channel switch
-	u8 new_chan_num;
-	u8 chan_switch_count;          // Set to 0 - Switch occurs any time after the frame is transmitted
-
-} channel_switch_announcement_frame;
-
-typedef struct{
-	u8 category;
-	u8 action;
-	u8 dialog_token;
-	u8 element_id;
-	u8 length;
-	u8 measurement_token;
-	u8 request_mode;
-	u8 measurement_type;
-	///Note, technically measurement action frames can follow this comment with additional fields of unknown length
-	///But currently, the three types of measurements are all the same so for ease we'll hardcode that structure here
-	u8 channel;
-	u8 start_time[8];
-	u8 duration[2];
-} measurement_common_frame;
+#include "wlan_mac_high_types.h"
 
 //#define MEASUREMENT_REQ_MODE_ENABLE  0x40
 //#define MEASUREMENT_REQ_MODE_REQUEST 0x20

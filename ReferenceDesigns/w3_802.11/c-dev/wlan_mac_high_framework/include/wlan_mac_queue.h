@@ -11,19 +11,12 @@
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 /***************************** Include Files *********************************/
-
-#include "wlan_mac_high_sw_config.h"
-#include "stddef.h"
-
-#include "wlan_mac_common.h"
-#include "wlan_mac_pkt_buf_util.h"
-
-#include "wlan_mac_dl_list.h"
-
-
-/*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_QUEUE_H_
 #define WLAN_MAC_QUEUE_H_
+
+#include "wlan_mac_high_types.h"
+
+/*************************** Constant Definitions ****************************/
 
 
 //-----------------------------------------------
@@ -38,24 +31,6 @@
 #define QUEUE_METADATA_TYPE_IGNORE                         0x00
 #define QUEUE_METADATA_TYPE_STATION_INFO                   0x01
 #define QUEUE_METADATA_TYPE_TX_PARAMS                      0x02
-
-
-/*********************** Global Structure Definitions ************************/
-
-typedef struct{
-	u8    metadata_type;
-	u8    reserved[3];
-	u32   metadata_ptr;
-} tx_queue_metadata_t;
-
-typedef struct{
-	tx_queue_metadata_t   metadata;
-	dl_entry*			  tx_queue_entry;
-	tx_frame_info_t       tx_frame_info;
-	u8                    phy_hdr_pad[PHY_TX_PKT_BUF_PHY_HDR_SIZE];
-	u8                    frame[MAX_PKT_SIZE_B];
-} tx_queue_buffer_t;
-
 
 /*************************** Function Prototypes *****************************/
 

@@ -13,13 +13,15 @@
 
 
 /***************************** Include Files *********************************/
-
+//TODO: Discuss -- includes in the application header file I'm okay with.
+#include "wlan_mac_high_types.h"
 #include "wlan_mac_high_sw_config.h"
 
 #include "wlan_mac_mgmt_tags.h"
 #include "wlan_mac_scan.h"
 #include "wlan_mac_station_info.h"
 #include "wlan_mac_entries.h"
+#include "wlan_mac_high.h"
 
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_AP_H_

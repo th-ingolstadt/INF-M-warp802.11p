@@ -13,8 +13,6 @@
 
 
 /***************************** Include Files *********************************/
-#include "wlan_exp_common.h"
-
 #include "wlan_mac_high_sw_config.h"
 
 

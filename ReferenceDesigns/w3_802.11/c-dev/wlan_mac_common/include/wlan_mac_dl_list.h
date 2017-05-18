@@ -11,42 +11,19 @@
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
-
-/***************************** Include Files *********************************/
-#include "xil_types.h"
-
-
-/*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_DL_LIST_H_
 #define WLAN_MAC_DL_LIST_H_
 
+/***************************** Include Files *********************************/
+#include "wlan_mac_common_types.h"
+
+/*************************** Constant Definitions ****************************/
 
 //-----------------------------------------------
 // Macros
 //
 #define dl_entry_next(x)                                (((x))->next)
 #define dl_entry_prev(x)                                (((x))->prev)
-
-
-
-/*********************** Global Structure Definitions ************************/
-
-typedef struct dl_entry dl_entry;
-
-struct dl_entry{
-    dl_entry* next;
-    dl_entry* prev;
-    void*     data;
-};
-
-
-typedef struct {
-    dl_entry* first;
-    dl_entry* last;
-    u32       length;
-} dl_list;
-
-
 
 /*************************** Function Prototypes *****************************/
 
@@ -55,7 +32,7 @@ void dl_entry_insertAfter(dl_list* list, dl_entry* entry, dl_entry* entry_new);
 void dl_entry_insertBefore(dl_list* list, dl_entry* entry, dl_entry* entry_new);
 void dl_entry_insertBeginning(dl_list* list, dl_entry* entry_new);
 void dl_entry_insertEnd(dl_list* list, dl_entry* entry_new);
-int  dl_entry_move(dl_list * src_list, dl_list * dest_list, u16 num_entries);
+int  dl_entry_move(dl_list* src_list, dl_list* dest_list, u16 num_entries);
 void dl_entry_remove(dl_list* list, dl_entry* entry);
 
 
