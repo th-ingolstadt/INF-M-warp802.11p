@@ -264,11 +264,6 @@
 #define wlan_mac_get_rx_error()            ((Xil_In32(WLAN_MAC_REG_PHY_RX_PHY_HDR_PARAMS) & WLAN_MAC_PHY_RX_PHY_HDR_MASK_RX_ERROR) >> 29)
 #define wlan_mac_get_rx_phy_params_valid() ((Xil_In32(WLAN_MAC_REG_PHY_RX_PHY_HDR_PARAMS) & WLAN_MAC_PHY_RX_PHY_HDR_MASK_PARAMS_VALID))
 
-// TXRX_TIMESTAMPS_FRAC register
-// b[15:8]: Fractional part of RX_START microsecond timestamp
-// b[ 7:0]: Fractional part of TX_START microsecond timestamp
-#define wlan_mac_low_get_rx_start_timestamp_frac() ((Xil_In32(WLAN_MAC_REG_TXRX_TIMESTAMPS_FRAC) & 0xFF00) >> 8)
-#define wlan_mac_low_get_tx_start_timestamp_frac()  (Xil_In32(WLAN_MAC_REG_TXRX_TIMESTAMPS_FRAC) & 0x00FF)
 
 // TU Target register - UFix32_0 TU target
 #define wlan_mac_get_tu_target()    (u64)(((u64)Xil_In32(WLAN_MAC_REG_TU_TARGET_MSB)<<32) + (u64)Xil_In32(WLAN_MAC_REG_TU_TARGET_LSB))

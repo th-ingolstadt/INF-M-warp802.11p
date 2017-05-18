@@ -316,5 +316,11 @@
 #define WLAN_MAC_START_REG_MASK_START_TX_C	0x4
 #define WLAN_MAC_START_REG_MASK_START_TX_D	0x8
 
+// TXRX_TIMESTAMPS_FRAC register
+// b[15:8]: Fractional part of RX_START microsecond timestamp
+// b[ 7:0]: Fractional part of TX_START microsecond timestamp
+#define wlan_mac_low_get_rx_start_timestamp_frac() ((Xil_In32(WLAN_MAC_REG_TXRX_TIMESTAMPS_FRAC) & 0xFF00) >> 8)
+#define wlan_mac_low_get_tx_start_timestamp_frac()  (Xil_In32(WLAN_MAC_REG_TXRX_TIMESTAMPS_FRAC) & 0x00FF)
+
 
 #endif /* W3_MAC_PHY_REGS_H_ */
