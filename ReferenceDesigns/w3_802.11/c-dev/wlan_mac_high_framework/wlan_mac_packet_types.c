@@ -10,7 +10,7 @@
  *
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
-#include "wlan_mac_high_types.h"
+
 #include "wlan_mac_high_sw_config.h"
 
 // Xilinx SDK includes
@@ -22,7 +22,6 @@
 #include "xintc.h"
 
 // WLAN includes
-#include "wlan_mac_common.h"
 #include "wlan_mac_high.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_mgmt_tags.h"

@@ -11,6 +11,11 @@
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
+/***************************** Include Files *********************************/
+// Include xil_types so function prototypes can use u8/u16/u32 data types
+#include "xil_types.h"
+
+
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_EXP_H_
 #define WLAN_EXP_H_

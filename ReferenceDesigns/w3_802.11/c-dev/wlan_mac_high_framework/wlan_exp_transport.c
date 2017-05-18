@@ -27,7 +27,6 @@
 // WLAN includes
 #include "wlan_mac_high.h"
 #include "wlan_platform_high.h"
-#include "wlan_platform_common.h"
 
 
 // WLAN EXP includes
@@ -881,6 +880,7 @@ u32 transport_update_link_speed(u32 eth_dev_num, u32 wait_for_negotiation) {
         xil_printf("  ETH %c speed ", wlan_exp_conv_eth_dev_num(eth_dev_num));
 
         reg_val = transport_get_ethernet_status(eth_dev_num);
+
         if (wait_for_negotiation == ETH_WAIT_FOR_AUTO_NEGOTIATION) {
 
             while((reg_val & ETH_PHY_REG_17_0_SPEED_RESOLVED) == 0) {

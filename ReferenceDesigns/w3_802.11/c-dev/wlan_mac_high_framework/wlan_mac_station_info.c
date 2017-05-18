@@ -19,10 +19,8 @@
 #include "stdlib.h"
 #include "stdio.h"
 #include "wlan_platform_high.h"
-#include "wlan_platform_common.h"
 #include "string.h"
 
-#include "wlan_mac_common.h"
 #include "wlan_mac_pkt_buf_util.h"
 #include "wlan_mac_high.h"
 #include "wlan_mac_station_info.h"
@@ -381,7 +379,6 @@ void	station_info_print(dl_list* list, u32 option_flags){
 #endif
 
 		xil_printf("    Last update:   %d msec ago\n", (u32)((get_system_time_usec() - curr_station_info->latest_txrx_timestamp)/1000));
-		xil_printf("	Num Queued Packets: %d\n", curr_station_info->num_queued_packets);
 
 
 		curr_dl_entry = dl_entry_next(curr_dl_entry);
@@ -430,7 +427,7 @@ void station_info_timestamp_check() {
 		curr_station_info = (station_info_t*)(curr_dl_entry->data);
 
 		if((get_system_time_usec() - curr_station_info->latest_txrx_timestamp) > STATION_INFO_TIMEOUT_USEC){
-			if(((curr_station_info->flags & STATION_INFO_FLAG_KEEP) == 0) && (curr_station_info->num_queued_packets == 0)){
+			if((curr_station_info->flags & STATION_INFO_FLAG_KEEP) == 0){
 				station_info_clear(curr_station_info);
 				dl_entry_remove(&station_info_list, curr_dl_entry);
 				station_info_checkin(curr_dl_entry);
@@ -527,7 +524,7 @@ station_info_entry_t* station_info_find_oldest(){
 	while ((curr_station_info_entry != NULL) && (iter-- > 0)) {
 		station_info = curr_station_info_entry->data;
 
-		if (((station_info->flags & STATION_INFO_FLAG_KEEP) == 0) && (station_info->num_queued_packets == 0)) {
+		if ((station_info->flags & STATION_INFO_FLAG_KEEP) == 0) {
 			return curr_station_info_entry;
 		}
 
@@ -622,7 +619,7 @@ void station_info_reset_all(){
 		next_dl_entry = dl_entry_next(curr_dl_entry);
 		curr_station_info = (station_info_t*)(curr_dl_entry->data);
 
-		if( ((curr_station_info->flags & STATION_INFO_FLAG_KEEP) == 0) && (curr_station_info->num_queued_packets == 0)){
+		if( (curr_station_info->flags & STATION_INFO_FLAG_KEEP) == 0){
 			station_info_clear(curr_station_info);
 			dl_entry_remove(&station_info_list, curr_dl_entry);
 			station_info_checkin(curr_dl_entry);

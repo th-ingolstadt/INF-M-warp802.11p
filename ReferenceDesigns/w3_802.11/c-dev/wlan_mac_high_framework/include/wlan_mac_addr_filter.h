@@ -18,13 +18,32 @@
 #ifndef WLAN_MAC_ADDR_FILTER_H_
 #define WLAN_MAC_ADDR_FILTER_H_
 
-#include "wlan_mac_common_types.h"
+#include "wlan_mac_high_sw_config.h"
+
+#include "wlan_mac_802_11_defs.h"
+#include "wlan_mac_common.h"
+
 
 //-----------------------------------------------
 // Address Filter defines
 //
 #define ADDR_FILTER_ADDR_NOT_ALLOWED                       0
 #define ADDR_FILTER_ADDR_ALLOWED                           1
+
+
+
+/*********************** Global Structure Definitions ************************/
+
+// **********************************************************************
+// Whitelist Range Structure
+//
+typedef struct {
+
+	u8   mask[MAC_ADDR_LEN];
+	u8   compare[MAC_ADDR_LEN];
+
+} whitelist_range;
+
 
 
 /*************************** Function Prototypes *****************************/

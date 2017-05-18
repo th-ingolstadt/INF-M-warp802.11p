@@ -24,13 +24,11 @@
 #include "string.h"
 
 // WLAN includes
-#include "wlan_mac_high.h"
-#include "wlan_mac_station_info.h"
 #include "wlan_mac_common.h"
+#include "wlan_mac_high.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_eth_util.h"
-#include "wlan_mac_pkt_buf_util.h"
 
 // WLAN Exp includes
 #include "wlan_exp_common.h"

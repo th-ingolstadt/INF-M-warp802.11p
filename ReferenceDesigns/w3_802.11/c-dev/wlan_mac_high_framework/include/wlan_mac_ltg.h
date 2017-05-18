@@ -15,6 +15,12 @@
 #ifndef WLAN_MAC_LTG_H_
 #define WLAN_MAC_LTG_H_
 
+#include "wlan_mac_high_sw_config.h"
+
+#include "wlan_mac_dl_list.h"
+#include "wlan_mac_high.h"
+#include "wlan_mac_eth_util.h"
+
 //LTG Schedules define the times when LTG event callbacks are called.
 #define LTG_SCHED_TYPE_PERIODIC			1
 #define LTG_SCHED_TYPE_UNIFORM_RAND	 	2
@@ -31,6 +37,84 @@
 #define LTG_REMOVE_ALL                  0xFFFFFFFF
 #define LTG_START_ALL                   0xFFFFFFFF
 #define LTG_STOP_ALL                    0xFFFFFFFF
+
+
+//In spirit, tg_schedule is derived from dl_entry. Since C
+//lacks a formal notion of inheritance, we adopt a popular
+//alternative idiom for inheritance where the dl_entry
+//is the first entry in the new structure. Since structures
+//will never be padded before their first entry, it is safe
+//to cast back and forth between the tg_schedule and dl_entry.
+typedef struct tg_schedule tg_schedule;
+struct tg_schedule{
+	u32 id;
+	u32 type;
+	u64 target;
+	u64	stop_target;
+	void* params;
+	void* callback_arg;
+	function_ptr_t cleanup_callback;
+	void* state;
+};
+
+//LTG Schedules
+
+#define LTG_DURATION_FOREVER 0
+
+typedef struct {
+	u8  enabled;
+	u8  reserved[3];
+	u64 start_timestamp;
+	u64 stop_timestamp;
+} ltg_sched_state_hdr;
+
+typedef struct {
+	u32 interval_count;
+	u64 duration_count;
+} ltg_sched_periodic_params;
+
+typedef struct {
+	ltg_sched_state_hdr hdr;
+	u32 time_to_next_count;
+} ltg_sched_periodic_state;
+
+typedef struct {
+	u32 min_interval_count;
+	u32 max_interval_count;
+	u64 duration_count;
+} ltg_sched_uniform_rand_params;
+
+typedef struct {
+	ltg_sched_state_hdr hdr;
+	u32 time_to_next_count;
+} ltg_sched_uniform_rand_state;
+
+//LTG Payload Profiles
+
+typedef struct {
+	u32 type;
+} ltg_pyld_hdr;
+
+typedef struct {
+	ltg_pyld_hdr hdr;
+	u8  addr_da[MAC_ADDR_LEN];
+	u16 length;
+} ltg_pyld_fixed;
+
+typedef struct {
+	ltg_pyld_hdr hdr;
+	u16 length;
+	u16 padding;
+} ltg_pyld_all_assoc_fixed;
+
+typedef struct {
+	ltg_pyld_hdr hdr;
+	u8  addr_da[MAC_ADDR_LEN];
+	u16 min_length;
+	u16 max_length;
+	u16 padding;
+} ltg_pyld_uniform_rand;
+
 
 
 //Note: This definition simply reflects the use of the fast timer for LTG polling. To increase LTG

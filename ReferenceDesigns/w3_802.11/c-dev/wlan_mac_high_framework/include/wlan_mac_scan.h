@@ -18,13 +18,34 @@
 #ifndef WLAN_MAC_SCAN_H_
 #define WLAN_MAC_SCAN_H_
 
-#include "wlan_mac_high_types.h"
+#include "wlan_mac_high_sw_config.h"
+
 
 // Scan Timing Parameters
 //     These defines set the scan timing parameters at boot.
 //
 #define DEFAULT_SCAN_PROBE_TX_INTERVAL_USEC                20000
 #define DEFAULT_SCAN_TIME_PER_CHANNEL_USEC                 150000
+
+
+
+/*********************** Global Structure Definitions ************************/
+
+typedef struct {
+    u32       time_per_channel_usec;
+    u32       probe_tx_interval_usec;
+    u8*       channel_vec;
+    u32       channel_vec_len;
+    char*     ssid;
+} scan_parameters_t;
+
+
+// Scan FSM states
+typedef enum {
+    SCAN_IDLE,
+    SCAN_RUNNING,
+    SCAN_PAUSED
+} scan_state_t;
 
 
 /*************************** Function Prototypes *****************************/

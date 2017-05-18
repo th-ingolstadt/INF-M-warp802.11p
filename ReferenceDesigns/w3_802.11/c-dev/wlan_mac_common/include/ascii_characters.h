@@ -12,9 +12,6 @@
 //Define shortcuts for the alphanumeric ASCII characters
 // These are useful when debugging the MAC/PHY interactive via the UART
 
-#ifndef ASCII_CHARACTERS_H_
-#define ASCII_CHARACTERS_H_
-
 #define ASCII_A 0x41
 #define ASCII_B 0x42
 #define ASCII_C 0x43
@@ -115,5 +112,3 @@
 #define ASCII_ESC 27
 #define ASCII_CR 13
 #define ASCII_DEL 127
-
-#endif //ASCII_CHARACTERS_H_

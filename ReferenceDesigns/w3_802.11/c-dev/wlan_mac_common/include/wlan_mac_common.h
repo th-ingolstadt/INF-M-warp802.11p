@@ -12,12 +12,17 @@
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
+/***************************** Include Files *********************************/
+
+#include "xil_io.h"
+#include "wlan_mac_802_11_defs.h"
+#include "wlan_platform_common.h"
+
+
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_COMMON_H_
 #define WLAN_MAC_COMMON_H_
 
-#include "xil_types.h"
-#include "wlan_mac_common_types.h"
 
 //-----------------------------------------------
 // Common function defines
@@ -34,6 +39,16 @@
 
 #define wlan_addr_eq(addr1, addr2)                        (memcmp((void*)(addr1), (void*)(addr2), 6)==0)
 #define wlan_addr_mcast(addr)                          ((((u8*)(addr))[0] & 1) == 1)
+
+
+//-----------------------------------------------
+// Compile-time assertion defines
+//
+#define CASSERT(predicate, file)                           _impl_CASSERT_LINE(predicate, __LINE__, file)
+
+#define _impl_PASTE(a, b)                                  a##b
+#define _impl_CASSERT_LINE(predicate, line, file) \
+    typedef char _impl_PASTE(assertion_failed_##file##_, line)[2*!!(predicate)-1];
 
 
 //-----------------------------------------------
@@ -60,6 +75,10 @@
 #define PHY_MODE_DSSS                                      0x0
 #define PHY_MODE_NONHT                                     0x1       // 11a OFDM
 #define PHY_MODE_HTMF                                      0x2       // 11n OFDM, HT mixed format
+
+#define MAX_PKT_SIZE_KB									   2
+#define MAX_PKT_SIZE_B									   (MAX_PKT_SIZE_KB << 10)
+
 
 //-----------------------------------------------
 // Unique sequence number defines
@@ -139,6 +158,96 @@
 // #define _ISR_PERF_MON_EN_                                         ///< ISR Performance Monitor Toggle
 
 
+/*********************** Global Structure Definitions ************************/
+
+//-----------------------------------------------
+// Generic function pointer
+//
+typedef int (*function_ptr_t)();
+
+//-----------------------------------------------
+// PHY Bandwidth Configuration
+//
+typedef enum {
+    PHY_10M   = 10, 
+    PHY_20M   = 20, 
+    PHY_40M   = 40
+} phy_samp_rate_t;
+
+
+//-----------------------------------------------
+// LLC Header
+//
+typedef struct{
+    u8   dsap;
+    u8   ssap;
+    u8   control_field;
+    u8   org_code[3];
+    u16  type;
+} llc_header_t;
+
+
+//-----------------------------------------------
+// LTG Payload Contents
+//
+typedef struct {
+    llc_header_t   llc_hdr;
+    u64            unique_seq;
+    u32            ltg_id;
+} ltg_packet_id_t;
+
+//-----------------------------------------------
+// Compilation Details
+//
+typedef struct __attribute__((__packed__)){
+	char	compilation_date[12]; // Must be at least 12 bytes.
+    char	compilation_time[12];  // Must be at least 9 bytes. Unfortunately, wlan_exp places an additional requirement that each field in
+    							  // wlan_exp_node_info must be u32 aligned, so we increase the size to 12 bytes.
+} compilation_details_t;
+CASSERT(sizeof(compilation_details_t) == 24, compilation_details_t_alignment_check);
+
+//-----------------------------------------------
+// Beacon Tx/Rx Configuration Struct
+//
+typedef enum __attribute__((__packed__)){
+    NEVER_UPDATE,
+    ALWAYS_UPDATE,
+    FUTURE_ONLY_UPDATE,
+} mactime_update_mode_t;
+CASSERT(sizeof(mactime_update_mode_t) == 1, mactime_update_mode_t_alignment_check);
+
+typedef enum __attribute__((__packed__)){
+    NO_BEACON_TX,
+    AP_BEACON_TX,
+    IBSS_BEACON_TX,
+} beacon_tx_mode_t;
+CASSERT(sizeof(beacon_tx_mode_t) == 1, beacon_tx_mode_t_alignment_check);
+
+typedef struct __attribute__((__packed__)){
+    // Beacon Rx Configuration Parameters
+    mactime_update_mode_t    ts_update_mode;               // Determines how MAC time is updated on reception of beacons
+    u8                       bssid_match[MAC_ADDR_LEN];    // BSSID of current association for Rx matching
+
+    // Beacon Tx Configuration Parameters
+    u8                       beacon_template_pkt_buf;      // Packet Buffer that contains the the beacon template to transmit
+    u32                      beacon_interval_tu;           // Beacon Interval (in TU)
+    beacon_tx_mode_t         beacon_tx_mode;               // Tx Beacon Mode
+	u8  					 dtim_period;				   // DTIM Period (in beacon intervals)
+	u8						 reserved0;
+	u8						 reserved1;
+	u16						 dtim_tag_byte_offset;		   // # of bytes into the payload that contains the start of the DTIM tag
+	u16						 reserved2;
+} beacon_txrx_configure_t;
+CASSERT(sizeof(beacon_txrx_configure_t) == 20, beacon_txrx_configure_t_alignment_check);
+
+
+typedef struct{
+	u32 hr;
+	u32 min;
+	u32 sec;
+} time_hr_min_sec_t;
+
+
 /*************************** Function Prototypes *****************************/
 
 int                     wlan_null_callback(void * param);
@@ -148,6 +257,7 @@ int                     wlan_verify_channel(u32 channel);
 void                    init_mac_hw_info();
 
 time_hr_min_sec_t 		wlan_mac_time_to_hr_min_sec(u64 time);
+
 wlan_mac_hw_info_t* get_mac_hw_info();
 u8* get_mac_hw_addr_wlan();
 u8* get_mac_hw_addr_wlan_exp();

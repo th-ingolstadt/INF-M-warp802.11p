@@ -15,6 +15,51 @@
 #ifndef WLAN_MAC_802_11_H
 #define WLAN_MAC_802_11_H
 
+
+//-----------------------------------------------
+// Field size defines
+//
+#define MAC_ADDR_LEN	6	///< MAC Address Length (in bytes)
+#define SSID_LEN_MAX	32	///< Maximum SSID length
+
+
+
+//-----------------------------------------------
+// 802.11 structure defines
+//
+typedef struct{
+	u8  frame_control_1;
+	u8  frame_control_2;
+	u16 duration_id;
+	u8  address_1[MAC_ADDR_LEN];
+	u8  address_2[MAC_ADDR_LEN];
+	u8  address_3[MAC_ADDR_LEN];
+	u16 sequence_control;
+	//u8  address_4[MAC_ADDR_LEN];
+} mac_header_80211;
+
+typedef struct{
+	u8  frame_control_1;
+	u8  frame_control_2;
+	u16 duration_id;
+	u8  address_ra[MAC_ADDR_LEN];
+} mac_header_80211_ACK;
+
+typedef struct{
+	u8  frame_control_1;
+	u8  frame_control_2;
+	u16 duration_id;
+	u8  address_ra[MAC_ADDR_LEN];
+} mac_header_80211_CTS;
+
+typedef struct{
+	u8  frame_control_1;
+	u8  frame_control_2;
+	u16 duration_id;
+	u8  address_ra[MAC_ADDR_LEN];
+	u8  address_ta[MAC_ADDR_LEN];
+} mac_header_80211_RTS;
+
 //IEEE 802.11-2012 section 8.2.4:
 //frame_control_1 bits[7:0]:
 // 7:4: Subtype
@@ -74,6 +119,17 @@
 #define MAC_FRAME_CTRL2_FLAG_FROM_DS	0x02
 #define MAC_FRAME_CTRL2_FLAG_TO_DS		0x01
 
+typedef struct{
+	u64 timestamp;
+	u16 beacon_interval;
+	u16 capabilities;
+} beacon_probe_frame;
+
+typedef struct{
+	u16 capabilities;
+	u16 listen_interval;
+} association_req_frame;
+
 ///////Capabilities
 #define CAPABILITIES_ESS					0x0001
 #define CAPABILITIES_IBSS					0x0002
@@ -91,5 +147,10 @@
 
 
 #define RATE_BASIC 0x80
+
+typedef struct{
+	u16 control;
+} qos_control;
+
 
 #endif /* WLAN_MAC_802_11_H */

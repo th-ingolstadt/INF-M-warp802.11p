@@ -14,10 +14,13 @@
 
 /***************************** Include Files *********************************/
 #include "wlan_mac_high_sw_config.h"
-#include "wlan_mac_high_types.h"
 
 #include "wlan_exp_common.h"
 #include "wlan_exp_transport.h"
+
+#include "wlan_mac_network_info.h"
+#include "wlan_mac_station_info.h"
+#include "wlan_mac_high.h"
 
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_EXP_NODE_H_

@@ -16,7 +16,10 @@
 #ifndef WLAN_MAC_HIGH_H_
 #define WLAN_MAC_HIGH_H_
 
-#include "wlan_mac_high_types.h"
+#include "wlan_mac_high_sw_config.h"
+
+#include "xil_types.h"
+#include "wlan_mac_common.h"
 
 /********************************************************************
  * Auxiliary (AUX) BRAM and DRAM (DDR) Memory Maps
@@ -71,6 +74,8 @@
  *  The per-section macros below are derived from these AUX_BRAM and DRAM address macros.
  *
  ************************************************************************************************/
+
+
 
 #define CALC_HIGH_ADDR(base, size)         ((base)+((size)-1))
 
@@ -168,6 +173,7 @@
 #define USER_SCRATCH_SIZE                  (10000 * 1024)
 #define USER_SCRATCH_HIGH                   CALC_HIGH_ADDR(USER_SCRATCH_BASE, USER_SCRATCH_SIZE)
 
+
 /********************************************************************
  * Event Log
  *
@@ -180,6 +186,14 @@
 #define EVENT_LOG_SIZE                     ((CALC_HIGH_ADDR(platform_high_dev_info.dram_baseaddr, platform_high_dev_info.dram_size)) - EVENT_LOG_BASE + 1) // log occupies all remaining DRAM
 #define EVENT_LOG_HIGH                      CALC_HIGH_ADDR(EVENT_LOG_BASE, EVENT_LOG_SIZE)
 
+//FIXME: wlan_exp should be updated to use this enum to report node type
+typedef enum {
+	APPLICATION_ROLE_AP			= 1,
+	APPLICATION_ROLE_STA		= 2,
+	APPLICATION_ROLE_IBSS		= 3,
+	APPLICATION_ROLE_UNKNOWN	= 0xFF
+} application_role_t;
+
 //-----------------------------------------------
 // WLAN Constants
 //
@@ -190,6 +204,30 @@
 #define MAC_RX_CALLBACK_RETURN_FLAG_DUP							0x00000001
 #define MAC_RX_CALLBACK_RETURN_FLAG_NO_COUNTS					0x00000002
 #define MAC_RX_CALLBACK_RETURN_FLAG_NO_LOG_ENTRY				0x00000004
+
+
+/***************************** Include Files *********************************/
+
+/********************************************************************
+ * Include other framework headers
+ *
+ * NOTE:  Includes have to be after any #define that are needed in the typedefs within the includes.
+ *
+ ********************************************************************/
+#include "wlan_mac_queue.h"
+#include "wlan_mac_packet_types.h"
+#include "wlan_mac_mailbox_util.h"
+#include "wlan_mac_dl_list.h"
+
+
+
+/************************** Global Type Definitions **************************/
+
+typedef enum {INTERRUPTS_DISABLED, INTERRUPTS_ENABLED} interrupt_state_t;
+
+
+
+/******************** Global Structure/Enum Definitions **********************/
 
 /***************************** Global Constants ******************************/
 
@@ -202,7 +240,7 @@ void               wlan_mac_high_init();
 void 			   wlan_mac_high_malloc_init();
 
 int                wlan_mac_high_interrupt_init();
-void 			   wlan_mac_high_uart_rx_callback(u8 rxByte);
+void 						 wlan_mac_high_uart_rx_callback(u8 rxByte);
 int                wlan_mac_high_interrupt_restore_state(interrupt_state_t new_interrupt_state);
 interrupt_state_t  wlan_mac_high_interrupt_stop();
 

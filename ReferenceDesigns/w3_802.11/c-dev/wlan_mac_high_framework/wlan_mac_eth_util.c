@@ -15,7 +15,7 @@
 
 
 
-#include "wlan_mac_high_types.h"
+
 #include "wlan_mac_high_sw_config.h"
 
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
@@ -32,7 +32,6 @@
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_station_info.h"
-#include "wlan_mac_pkt_buf_util.h"
 
 
 

@@ -11,6 +11,13 @@
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
+/***************************** Include Files *********************************/
+
+#include "wlan_mac_high_sw_config.h"
+
+#include "wlan_mac_high.h"
+
+
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_EVENT_LOG_H_
 #define WLAN_MAC_EVENT_LOG_H_
