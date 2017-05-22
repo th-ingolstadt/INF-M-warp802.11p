@@ -1298,7 +1298,7 @@ void sta_set_beacon_ts_update_mode(u32 enable){
  * @param  None
  * @return None
  *****************************************************************************/
-struct dl_list* get_network_member_list(){
+dl_list* get_network_member_list(){
 	if(active_network_info != NULL){
 		return &(active_network_info->members);
 	} else {
