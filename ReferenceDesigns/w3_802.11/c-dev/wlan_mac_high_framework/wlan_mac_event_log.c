@@ -57,10 +57,11 @@
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_entries.h"
 #include "wlan_mac_high.h"
+#include "wlan_platform_common.h"
 
 // WLAN Exp includes
 #include "wlan_exp_node.h"
-
+#include "wlan_exp_ip_udp.h"
 
 #if WLAN_SW_CONFIG_ENABLE_LOGGING
 
@@ -129,7 +130,7 @@ int  event_log_get_next_empty_address(u32 size, u32 * address);
  *          any bytes over an integer number will be unused.
  *
  *****************************************************************************/
-void event_log_init( char * start_address, u32 size ) {
+void event_log_init( char* start_address, u32 size ) {
 
     u32 alignment;
     u32 disable_log = 0;
@@ -322,7 +323,7 @@ int event_log_config_logging( u32 enable ) {
  *          the request will be truncated.
  *
  *****************************************************************************/
-u32  event_log_get_data(u32 start_index, u32 size, void * buffer, u8 copy_data) {
+u32  event_log_get_data(u32 start_index, u32 size, void* buffer, u8 copy_data) {
 #if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 	//TODO: Using the log without wlan_exp requires a different retrieval method
 

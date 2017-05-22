@@ -27,6 +27,9 @@
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_phy_util.h"
 #include "wlan_mac_low.h"
+#include "wlan_mac_common.h"
+#include "wlan_mac_pkt_buf_util.h"
+
 
 // WLAN Exp includes
 #include "wlan_exp.h"

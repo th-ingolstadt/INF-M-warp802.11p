@@ -29,6 +29,10 @@
 #include "wlan_mac_dcf.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_mgmt_tags.h"
+#include "wlan_mac_common.h"
+#include "wlan_mac_pkt_buf_util.h"
+#include "wlan_mac_low.h"
+#include "wlan_mac_mailbox_util.h"
 
 // WLAN Exp includes
 #include "wlan_exp.h"

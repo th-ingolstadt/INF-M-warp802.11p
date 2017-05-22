@@ -15,6 +15,8 @@
 #ifndef WLAN_MAC_MGMT_TAGS_H_
 #define WLAN_MAC_MGMT_TAGS_H_
 
+#include "xil_types.h"
+
 typedef struct{
 	u8 tag_element_id;
 	u8 tag_length;

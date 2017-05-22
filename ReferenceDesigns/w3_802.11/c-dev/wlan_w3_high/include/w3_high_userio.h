@@ -3,7 +3,6 @@
 
 #include "xgpio.h"
 #include "xintc.h"
-#include "wlan_mac_common.h"
 
 #define GPIO_USERIO_INPUT_CHANNEL            1                                  ///< Channel used as input user IO inputs (buttons, DIP switch)
 #define GPIO_USERIO_INPUT_IR_CH_MASK         XGPIO_IR_CH1_MASK                  ///< Mask for enabling interrupts on GPIO input

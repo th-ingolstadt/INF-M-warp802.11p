@@ -16,10 +16,11 @@
 #define WLAN_MAC_LTG_H_
 
 #include "wlan_mac_high_sw_config.h"
+#include "xil_types.h"
+#include "wlan_common_types.h"
 
-#include "wlan_mac_dl_list.h"
-#include "wlan_mac_high.h"
-#include "wlan_mac_eth_util.h"
+//Forward declarations
+struct mac_header_80211_common;
 
 //LTG Schedules define the times when LTG event callbacks are called.
 #define LTG_SCHED_TYPE_PERIODIC			1
@@ -136,11 +137,13 @@ int ltg_sched_stop_all();
 int ltg_sched_get_state(u32 id, u32* type, void** state);
 int ltg_sched_get_params(u32 id, void** params);
 int ltg_sched_get_callback_arg(u32 id, void** callback_arg);
-int wlan_create_ltg_frame(void* pkt_buf, mac_header_80211_common* common, u8 tx_flags, u32 ltg_id);
+
+int wlan_create_ltg_frame(void* pkt_buf, struct mac_header_80211_common* common, u8 tx_flags, u32 ltg_id);
+
 dl_entry* ltg_sched_find_tg_schedule(u32 id);
 
 // WLAN Exp function to LTG -- users may call these directly or modify if needed
-void * ltg_sched_deserialize(u32 * src, u32 * ret_type, u32 * ret_size);
-void * ltg_payload_deserialize(u32 * src, u32 * ret_type, u32 * ret_size);
+void* ltg_sched_deserialize(u32 * src, u32 * ret_type, u32 * ret_size);
+void* ltg_payload_deserialize(u32 * src, u32 * ret_type, u32 * ret_size);
 
 #endif /* WLAN_MAC_LTG_H_ */

@@ -17,9 +17,16 @@
 #define WLAN_MAC_HIGH_H_
 
 #include "wlan_mac_high_sw_config.h"
-
 #include "xil_types.h"
-#include "wlan_mac_common.h"
+#include "wlan_common_types.h"
+#include "wlan_high_types.h"
+
+// Forward declarations
+struct mac_header_80211_common;
+struct wlan_ipc_msg_t;
+struct beacon_txrx_configure_t;
+struct network_info_t;
+enum userio_input_mask_t;
 
 /********************************************************************
  * Auxiliary (AUX) BRAM and DRAM (DDR) Memory Maps
@@ -186,14 +193,6 @@
 #define EVENT_LOG_SIZE                     ((CALC_HIGH_ADDR(platform_high_dev_info.dram_baseaddr, platform_high_dev_info.dram_size)) - EVENT_LOG_BASE + 1) // log occupies all remaining DRAM
 #define EVENT_LOG_HIGH                      CALC_HIGH_ADDR(EVENT_LOG_BASE, EVENT_LOG_SIZE)
 
-//FIXME: wlan_exp should be updated to use this enum to report node type
-typedef enum {
-	APPLICATION_ROLE_AP			= 1,
-	APPLICATION_ROLE_STA		= 2,
-	APPLICATION_ROLE_IBSS		= 3,
-	APPLICATION_ROLE_UNKNOWN	= 0xFF
-} application_role_t;
-
 //-----------------------------------------------
 // WLAN Constants
 //
@@ -206,25 +205,10 @@ typedef enum {
 #define MAC_RX_CALLBACK_RETURN_FLAG_NO_LOG_ENTRY				0x00000004
 
 
-/***************************** Include Files *********************************/
-
-/********************************************************************
- * Include other framework headers
- *
- * NOTE:  Includes have to be after any #define that are needed in the typedefs within the includes.
- *
- ********************************************************************/
-#include "wlan_mac_queue.h"
-#include "wlan_mac_packet_types.h"
-#include "wlan_mac_mailbox_util.h"
-#include "wlan_mac_dl_list.h"
-
-
 
 /************************** Global Type Definitions **************************/
 
 typedef enum {INTERRUPTS_DISABLED, INTERRUPTS_ENABLED} interrupt_state_t;
-
 
 
 /******************** Global Structure/Enum Definitions **********************/
@@ -244,9 +228,7 @@ void 						 wlan_mac_high_uart_rx_callback(u8 rxByte);
 int                wlan_mac_high_interrupt_restore_state(interrupt_state_t new_interrupt_state);
 interrupt_state_t  wlan_mac_high_interrupt_stop();
 
-void 			   wlan_mac_high_userio_inputs_callback(u32 userio_state, userio_input_mask_t userio_delta);
-
-dl_entry*          wlan_mac_high_find_counts_ADDR(dl_list* list, u8* addr);
+void 			   wlan_mac_high_userio_inputs_callback(u32 userio_state, enum userio_input_mask_t userio_delta);
 
 void               wlan_mac_high_set_press_pb_0_callback(function_ptr_t callback);
 void               wlan_mac_high_set_release_pb_0_callback(function_ptr_t callback);
@@ -278,16 +260,18 @@ void               wlan_mac_high_cdma_finish_transfer();
 
 void               wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf);
 
-void               wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_1, u8 * addr_3 );
-void 			   wlan_mac_high_setup_tx_frame_info(mac_header_80211_common * header, dl_entry * curr_tx_queue_element, u32 tx_length, u8 flags, u8 queue_id, pkt_buf_group_t pkt_buf_group);
+void               wlan_mac_high_setup_tx_header(struct mac_header_80211_common* header, u8* addr_1, u8* addr_3);
+void 			   wlan_mac_high_setup_tx_frame_info(struct mac_header_80211_common* header, dl_entry* curr_tx_queue_element, u32 tx_length, u8 flags, u8 queue_id, pkt_buf_group_t pkt_buf_group);
 
-void 			   wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg, u32* ipc_msg_from_low_payload);
+
+void 			   wlan_mac_high_process_ipc_msg(struct wlan_ipc_msg_t* msg, u32* ipc_msg_from_low_payload);
 
 void               wlan_mac_high_set_srand(u32 seed);
 u8                 wlan_mac_high_bss_channel_spec_to_radio_chan(chan_spec_t chan_spec);
 void               wlan_mac_high_set_radio_channel(u32 mac_channel);
 void 			   wlan_mac_high_enable_mcast_buffering(u8 enable);
-void               wlan_mac_high_config_txrx_beacon(beacon_txrx_configure_t* beacon_txrx_configure);
+
+void               wlan_mac_high_config_txrx_beacon(struct beacon_txrx_configure_t* beacon_txrx_configure);
 void               wlan_mac_high_set_rx_ant_mode(u8 ant_mode);
 void               wlan_mac_high_set_tx_ctrl_pow(s8 pow);
 void               wlan_mac_high_set_rx_filter_mode(u32 filter_mode);
@@ -303,16 +287,12 @@ int         	   wlan_mac_high_is_dequeue_allowed(pkt_buf_group_t pkt_buf_group);
 int                wlan_mac_high_get_empty_tx_packet_buffer();
 u8                 wlan_mac_high_is_pkt_ltg(void* mac_payload, u16 length);
 
-
-int                wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_header_common_ptr, network_info_t* network_info, tx_params_t* tx_params_ptr, u8 flags);
+int                wlan_mac_high_configure_beacon_tx_template(struct mac_header_80211_common* tx_header_common_ptr, struct network_info_t* network_info, tx_params_t* tx_params_ptr, u8 flags);
 int                wlan_mac_high_update_beacon_tx_params(tx_params_t* tx_params_ptr);
-
-
-void               wlan_mac_high_print_station_infos(dl_list* assoc_tbl);
 
 
 // Common functions that must be implemented by users of the framework
 // TODO: Make these into callback. We should not require these implementations
-dl_list*           get_network_member_list();
+dl_list*     get_network_member_list();
 
 #endif /* WLAN_MAC_HIGH_H_ */

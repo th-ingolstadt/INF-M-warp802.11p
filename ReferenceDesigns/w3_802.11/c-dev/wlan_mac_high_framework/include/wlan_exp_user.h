@@ -13,16 +13,15 @@
 
 
 /***************************** Include Files *********************************/
-#include "wlan_exp_common.h"
 
-#include "wlan_mac_high_sw_config.h"
-
+#include "xil_types.h"
 
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_EXP_USER_H_
 #define WLAN_EXP_USER_H_
 
-
+// Forward declarations
+struct cmd_resp;
 
 // ****************************************************************************
 // Define User Commands
@@ -48,7 +47,7 @@
 /*************************** Function Prototypes *****************************/
 
 // User command processing
-int  process_user_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len);
+int  process_user_cmd(int socket_index, void* from, struct cmd_resp* command, struct cmd_resp* response, u32 max_resp_len);
 
 
 #endif

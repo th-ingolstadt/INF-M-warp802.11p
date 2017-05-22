@@ -140,7 +140,7 @@ void wlan_platform_userio_disp_status(userio_disp_status_t status, ...){
 
 }
 
-int wlan_platform_wlan_exp_process_node_cmd(u8* cmd_processed, u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len){
+int wlan_platform_wlan_exp_process_node_cmd(u8* cmd_processed, u32 cmd_id, int socket_index, void* from, cmd_resp* command, cmd_resp* response, u32 max_resp_len){
 	//
 	// IMPORTANT ENDIAN NOTES:
 	//     - command

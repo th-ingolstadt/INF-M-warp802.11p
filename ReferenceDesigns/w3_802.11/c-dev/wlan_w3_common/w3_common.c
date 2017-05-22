@@ -13,6 +13,8 @@
 #include "w3_iic_eeprom.h"
 #include "w3_sysmon_util.h"
 #include "wlan_cpu_id.h"
+#include "w3_userio.h"
+
 
 
 static const platform_common_dev_info_t platform_common_dev_info = {

@@ -15,14 +15,8 @@
 #ifndef WLAN_MAC_802_11_H
 #define WLAN_MAC_802_11_H
 
-
-//-----------------------------------------------
-// Field size defines
-//
-#define MAC_ADDR_LEN	6	///< MAC Address Length (in bytes)
-#define SSID_LEN_MAX	32	///< Maximum SSID length
-
-
+#include "xil_types.h"
+#include "wlan_common_types.h"
 
 //-----------------------------------------------
 // 802.11 structure defines

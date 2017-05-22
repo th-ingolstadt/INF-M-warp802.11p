@@ -28,6 +28,9 @@
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_addr_filter.h"
+#include "wlan_mac_network_info.h"
+#include "wlan_platform_common.h"
+#include "wlan_mac_common.h"
 
 /*********************** Global Variable Definitions *************************/
 

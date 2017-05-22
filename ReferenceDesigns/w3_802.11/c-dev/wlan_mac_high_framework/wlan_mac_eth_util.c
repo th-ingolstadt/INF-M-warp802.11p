@@ -32,6 +32,9 @@
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_station_info.h"
+#include "wlan_mac_eth_util.h"
+#include "wlan_mac_802_11_defs.h"
+#include "wlan_mac_pkt_buf_util.h"
 
 
 
@@ -151,7 +154,6 @@ u32 wlan_process_eth_rx(void* eth_rx_buf, u32 eth_rx_len) {
     dl_entry*           curr_tx_queue_element;
     u32                 mpdu_tx_len;
     tx_queue_buffer_t*	tx_queue_buffer;
-    ethernet_header_t*  eth_hdr;
 
     u32					return_value = 0;
     int                 packet_is_queued;
@@ -181,8 +183,6 @@ u32 wlan_process_eth_rx(void* eth_rx_buf, u32 eth_rx_len) {
 	curr_tx_queue_element = tx_queue_buffer->tx_queue_entry;
 
 	eth_start_ptr  = (u8*)eth_rx_buf;
-
-	eth_hdr = (ethernet_header_t*)eth_start_ptr;
 
 		// Encapsulate the Ethernet packet
 		mpdu_tx_len    = wlan_eth_encap(mpdu_start_ptr, eth_dest, eth_src, eth_start_ptr, eth_rx_len);

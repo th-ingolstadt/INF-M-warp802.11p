@@ -32,6 +32,8 @@
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_network_info.h"
 #include "wlan_mac_station_info.h"
+#include "wlan_platform_common.h"
+#include "wlan_mac_dl_list.h"
 
 
 //

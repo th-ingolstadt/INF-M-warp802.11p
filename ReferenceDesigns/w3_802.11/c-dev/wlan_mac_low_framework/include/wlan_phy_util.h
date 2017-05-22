@@ -11,13 +11,14 @@
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
-
-#include "wlan_mac_common.h"
-#include "wlan_mac_mailbox_util.h"
-
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_PHY_UTIL_H_
 #define WLAN_PHY_UTIL_H_
+
+#include "xil_types.h"
+
+//Forward declarations
+enum phy_samp_rate_t;
 
 // ****************************************************************************
 // RATE field values for SIGNAL/L-SIG in PHY preamble (IEEE 802.11-2012 18.3.4.2)
@@ -56,7 +57,7 @@ extern const u8    ones_in_chars[256];
 void write_phy_preamble(u8 pkt_buf, u8 phy_mode, u8 mcs, u16 length);
 
 // Calculate transmit times
-u16 wlan_ofdm_calc_txtime(u16 length, u8 mcs, u8 phy_mode, phy_samp_rate_t phy_samp_rate);
+u16 wlan_ofdm_calc_txtime(u16 length, u8 mcs, u8 phy_mode, enum phy_samp_rate_t phy_samp_rate);
 u16 wlan_ofdm_calc_num_payload_syms(u16 length, u8 mcs, u8 phy_mode);
 
 #endif /* WLAN_PHY_UTIL_H_ */

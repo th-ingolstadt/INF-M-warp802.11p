@@ -18,6 +18,9 @@
 #ifndef WLAN_MAC_PKT_BUF_UTIL_H_
 #define WLAN_MAC_PKT_BUF_UTIL_H_
 
+#include "xil_types.h"
+#include "wlan_common_types.h"
+
 
 // Base index of mutex for Tx/Rx packet buffers
 #define PKT_BUF_MUTEX_TX_BASE                              0
@@ -95,7 +98,7 @@
 #define PHY_TX_PKT_BUF_PHY_HDR_OFFSET                     (sizeof(tx_frame_info_t))
 
 #define PHY_RX_PKT_BUF_PHY_HDR_SIZE                        0x10
-#define PHY_TX_PKT_BUF_PHY_HDR_SIZE                        0x10
+// FIXME: return PHY_TX_PKT_BUF_PHY_HDR_SIZE here
 
 #define PHY_RX_PKT_BUF_MPDU_OFFSET                        (PHY_RX_PKT_BUF_PHY_HDR_SIZE + PHY_RX_PKT_BUF_PHY_HDR_OFFSET)
 #define PHY_TX_PKT_BUF_MPDU_OFFSET                        (PHY_TX_PKT_BUF_PHY_HDR_SIZE + PHY_TX_PKT_BUF_PHY_HDR_OFFSET)
@@ -104,44 +107,13 @@
 
 /*********************** Global Structure Definitions ************************/
 
-#include "wlan_mac_common.h"
-
-//-----------------------------------------------
-// TX parameters
-//     - Be careful when modifying these structures, there are alignment concerns
-//       for many of the structures that contain these structures.  In general,
-//       tx_params_t should be 8-byte aligned.
-//
-typedef struct{
-    u8                       mcs;                          ///< MCS index
-    u8                       phy_mode;                     ///< PHY mode selection and flags
-    u8                       antenna_mode;                 ///< Tx antenna selection
-    s8                       power;                        ///< Tx power (in dBm)
-} phy_tx_params_t;
-
-
-typedef struct{
-    u8                       flags;                        ///< Flags affecting waveform construction
-    u8                       reserved[3];                  ///< Reserved for 32-bit alignment
-} mac_tx_params_t;
-
-
-typedef struct{
-    phy_tx_params_t          phy;                          ///< PHY Tx params
-    mac_tx_params_t          mac;                          ///< Lower-level MAC Tx params
-} tx_params_t;
 
 
 //-----------------------------------------------
 // Packet buffer state
 //
-typedef enum __attribute__ ((__packed__)) {
-   TX_PKT_BUF_UNINITIALIZED   = 0,
-   TX_PKT_BUF_HIGH_CTRL       = 1,
-   TX_PKT_BUF_READY           = 2,
-   TX_PKT_BUF_LOW_CTRL        = 3,
-   TX_PKT_BUF_DONE            = 4
-} tx_pkt_buf_state_t;
+
+// FIXME: return tx_pkt_buf_state_t here
 
 typedef enum __attribute__ ((__packed__)) {
    RX_PKT_BUF_UNINITIALIZED   = 0,
@@ -156,7 +128,7 @@ typedef enum __attribute__ ((__packed__)) {
 // Meta-data about transmissions from CPU Low
 //     - This struct must be padded to be an integer number of u32 words.
 //
-typedef struct __attribute__ ((__packed__)){
+typedef struct __attribute__ ((__packed__)) wlan_mac_low_tx_details_t{
     u64                      tx_start_timestamp_mpdu;
     u64                      tx_start_timestamp_ctrl;
     phy_tx_params_t          phy_params_mpdu;
@@ -201,7 +173,7 @@ CASSERT(sizeof(wlan_mac_low_tx_details_t) == 44, wlan_mac_low_tx_details_t_align
 //       the value once in CPU Low and pass it up vs re-calculating it in CPU High.
 //     - This structure must be 32-bit aligned
 //
-typedef struct {
+typedef struct phy_rx_details_t{
     u8                       mcs;
     u8                       phy_mode;
     u8                       reserved[2];
@@ -210,66 +182,9 @@ typedef struct {
 } phy_rx_details_t;
 
 
-//-----------------------------------------------
-// TX queue information
-//     - Information about the TX queue that contained the packet while in CPU High.
-//     - This structure must be 32-bit aligned.
-//
-typedef enum __attribute__ ((__packed__)){
-	PKT_BUF_GROUP_GENERAL		= 0,
-	PKT_BUF_GROUP_DTIM_MCAST    = 1,
-	PKT_BUF_GROUP_OTHER 		= 0xFF,
-} pkt_buf_group_t;
-CASSERT(sizeof(pkt_buf_group_t) == 1, pkt_buf_group_t_alignment_check);
+// FIXME: return tx_queue_details_t definition here
 
-typedef struct {
-    u8                      id;                     	  ///< ID of the Queue
-    pkt_buf_group_t         pkt_buf_group;                ///< Packet Buffer Group
-    u16                     occupancy;                    ///< Number of elements in the queue when the                                                         ///<   packet was enqueued (including itself)
-} tx_queue_details_t;
-CASSERT(sizeof(tx_queue_details_t) == 4, tx_queue_details_t_alignment_check);
-
-//-----------------------------------------------
-// TX frame information
-//     - Defines the information passed in the packet buffer between CPU High and
-//       CPU Low as part of transmitting packets.
-//
-//     IMPORTANT:  This structure must be 8-byte aligned.
-//
-typedef struct{
-    u64                      	timestamp_create;             ///< MAC timestamp of packet creation
-    u64                      	timestamp_accept;                 ///< Time in microseconds between timestamp_create and packet acceptance by CPU Low
-    u64                      	timestamp_done;                   ///< Time in microseconds between acceptance and transmit completion
-    //----- 8-byte boundary ------
-    u64                      	unique_seq;                   ///< Unique sequence number for this packet (12 LSB used as 802.11 MAC sequence number)
-    //----- 8-byte boundary ------
-    tx_queue_details_t       	queue_info;                   ///< Information about the TX queue used for the packet (4 bytes)
-    u16                       	num_tx_attempts;              ///< Number of transmission attempts for this frame
-    u8                       	tx_result;                    ///< Result of transmission attempt - TX_MPDU_RESULT_SUCCESS or TX_MPDU_RESULT_FAILURE
-    u8                       	reserved;
-    //----- 8-byte boundary ------
-    volatile tx_pkt_buf_state_t tx_pkt_buf_state;             ///< State of the Tx Packet Buffer
-    u8                       	flags;                        ///< Bit flags en/disabling certain operations by the lower-level MAC
-    u8                       	phy_samp_rate;                ///< PHY Sampling Rate
-    u8                       	padding0;                     ///< Used for alignment of fields (can be appropriated for any future use)
-
-    u16                      	length;                       ///< Number of bytes in MAC packet, including MAC header and FCS
-    u16                      	ID;                           ///< Station ID of the node to which this packet is addressed
-    //----- 8-byte boundary ------
-
-    //
-    // Place additional fields here.  Make sure the new fields keep the structure 8-byte aligned
-    //
-
-    //----- 8-byte boundary ------
-    tx_params_t              params;                       ///< Additional lower-level MAC and PHY parameters (8 bytes)
-} tx_frame_info_t;
-
-// The above structure assumes that pkt_buf_state_t is a u8.  However, that is architecture dependent.
-// Therefore, the code will check the size of the structure using a compile-time assertion.  This check
-// will need to be updated if fields are added to the structure
-//
-CASSERT(sizeof(tx_frame_info_t) == 56, tx_frame_info_alignment_check);
+// FIXME: return tx_frame_info_t definition here
 
 
 // Defines for power field in phy_tx_params_t in tx_params_t
@@ -297,7 +212,7 @@ CASSERT(sizeof(tx_frame_info_t) == 56, tx_frame_info_alignment_check);
 //
 //     IMPORTANT:  This structure must be 8-byte aligned.
 //
-typedef struct __attribute__ ((__packed__)){
+typedef struct __attribute__ ((__packed__)) rx_frame_info_t{
     u8                       	  	flags;                        ///< Bit flags
     u8                       	  	ant_mode;                     ///< Rx antenna selection
     s8                       	 	rx_power;                     ///< Rx power, in dBm

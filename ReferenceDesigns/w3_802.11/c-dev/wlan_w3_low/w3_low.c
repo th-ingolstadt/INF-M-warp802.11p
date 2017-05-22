@@ -27,6 +27,8 @@
 // Low framework includes
 #include "wlan_phy_util.h"
 #include "wlan_mac_low.h"
+#include "wlan_mac_common.h"
+#include "wlan_mac_mailbox_util.h"
 
 // WARP v3 hardware includes
 #include "w3_userio.h"

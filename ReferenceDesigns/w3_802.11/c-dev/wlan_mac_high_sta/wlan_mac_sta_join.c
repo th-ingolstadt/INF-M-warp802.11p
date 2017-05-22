@@ -46,6 +46,9 @@
 #include "wlan_mac_network_info.h"
 #include "wlan_mac_sta_join.h"
 #include "wlan_mac_sta.h"
+#include "wlan_mac_common.h"
+#include "wlan_mac_queue.h"
+#include "wlan_mac_pkt_buf_util.h"
 
 
 /*************************** Constant Definitions ****************************/

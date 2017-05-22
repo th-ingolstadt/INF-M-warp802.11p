@@ -12,16 +12,14 @@
  */
 
 /***************************** Include Files *********************************/
-#include "wlan_mac_high_sw_config.h"
+#include "xil_types.h"
 
-#include "wlan_mac_high.h"
-#include "wlan_mac_dl_list.h"
-#include "wlan_mac_network_info.h"
-#include "wlan_mac_scan.h"
-#include "wlan_mac_station_info.h"
-#include "wlan_mac_entries.h"
-
-
+//Forward declarations
+struct station_info_t;
+struct rx_common_entry;
+enum scan_state_t;
+struct network_info_t;
+struct bss_config_t;
 
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_STA_H_
@@ -82,15 +80,15 @@ void ltg_event(u32 id, void* callback_arg);
 
 int  ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length);
 
-u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_entry* rx_event_log_entry);
+u32 mpdu_rx_process(void* pkt_buf_addr, struct station_info_t* station_info, struct rx_common_entry* rx_event_log_entry);
 void send_probe_req();
-void process_scan_state_change(scan_state_t scan_state);
+void process_scan_state_change(enum scan_state_t scan_state);
 u8 poll_tx_queues(pkt_buf_group_t pkt_buf_group);
 void purge_all_data_tx_queue();
-network_info_t * 	   active_network_info_getter();
+struct network_info_t * 	   active_network_info_getter();
 
 int  sta_disassociate();
-u32  configure_bss(bss_config_t* bss_config, u32 update_mask);
+u32  configure_bss(struct bss_config_t* bss_config, u32 update_mask);
 
 void uart_rx(u8 rxByte);
 

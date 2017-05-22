@@ -18,10 +18,8 @@
 #ifndef WLAN_MAC_ADDR_FILTER_H_
 #define WLAN_MAC_ADDR_FILTER_H_
 
-#include "wlan_mac_high_sw_config.h"
-
-#include "wlan_mac_802_11_defs.h"
-#include "wlan_mac_common.h"
+#include "xil_types.h"
+#include "wlan_common_types.h"
 
 
 //-----------------------------------------------
@@ -38,12 +36,9 @@
 // Whitelist Range Structure
 //
 typedef struct {
-
 	u8   mask[MAC_ADDR_LEN];
 	u8   compare[MAC_ADDR_LEN];
-
 } whitelist_range;
-
 
 
 /*************************** Function Prototypes *****************************/

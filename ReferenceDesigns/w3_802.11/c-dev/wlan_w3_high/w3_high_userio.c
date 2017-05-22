@@ -4,7 +4,7 @@
 #include "w3_high_userio.h"
 #include "w3_high.h"
 #include "xparameters.h"
-
+#include "wlan_platform_common.h"
 #include "wlan_mac_common.h"
 
 static XGpio                 Gpio_userio;                  ///< GPIO driver instance for user IO inputs

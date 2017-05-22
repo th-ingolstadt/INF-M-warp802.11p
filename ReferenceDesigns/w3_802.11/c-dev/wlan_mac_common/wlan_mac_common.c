@@ -20,8 +20,9 @@
 #include "xstatus.h"
 #include "xparameters.h"
 
-#include "wlan_mac_common.h"
 #include "wlan_platform_common.h"
+#include "wlan_mac_common.h"
+
 
 
 /*********************** Global Variable Definitions *************************/

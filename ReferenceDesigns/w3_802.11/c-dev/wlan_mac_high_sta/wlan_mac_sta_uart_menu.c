@@ -37,6 +37,7 @@
 #include "wlan_mac_network_info.h"
 #include "wlan_mac_scan.h"
 #include "wlan_mac_station_info.h"
+#include "wlan_platform_common.h"
 
 
 //

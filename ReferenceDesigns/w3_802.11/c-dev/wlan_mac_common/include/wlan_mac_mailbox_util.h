@@ -100,7 +100,7 @@
 //     - arg0                - Used to pass a single u8 argument as part of the message
 //     - payload_ptr         - Pointer to payload (can be array of u32 or structure defined below)
 //
-typedef struct {
+typedef struct wlan_ipc_msg_t{
     u16       msg_id;
     u8        num_payload_words;
     u8        arg0;
@@ -122,8 +122,8 @@ typedef struct{
 
 XMbox*        init_mailbox();
 
-int           read_mailbox_msg(wlan_ipc_msg_t * msg);
-int           write_mailbox_msg(wlan_ipc_msg_t * msg);
-int           send_msg(u16 msg_id, u8 arg, u8 num_words, u32 * payload);
+int           read_mailbox_msg(wlan_ipc_msg_t* msg);
+int           write_mailbox_msg(wlan_ipc_msg_t* msg);
+int           send_msg(u16 msg_id, u8 arg, u8 num_words, u32* payload);
 
 #endif /* WLAN_MAC_MAILBOX_UTIL_H_ */

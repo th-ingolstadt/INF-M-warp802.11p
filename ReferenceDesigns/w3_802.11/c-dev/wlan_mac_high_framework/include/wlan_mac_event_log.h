@@ -11,16 +11,16 @@
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
-/***************************** Include Files *********************************/
 
-#include "wlan_mac_high_sw_config.h"
-
-#include "wlan_mac_high.h"
 
 
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_EVENT_LOG_H_
 #define WLAN_MAC_EVENT_LOG_H_
+
+/***************************** Include Files *********************************/
+#include "xil_types.h"
+
 
 
 
@@ -93,14 +93,14 @@ typedef struct{
 
 /*************************** Function Prototypes *****************************/
 
-void      event_log_init( char * start_address, u32 size );
+void      event_log_init( char* start_address, u32 size );
 
 void      event_log_reset();
 
 int       event_log_config_wrap( u32 enable );
 int       event_log_config_logging( u32 enable );
 
-u32       event_log_get_data(u32 start_index, u32 size, void * buffer, u8 copy_data);
+u32       event_log_get_data(u32 start_index, u32 size, void* buffer, u8 copy_data);
 u32       event_log_get_size( u32 start_index );
 u32       event_log_get_total_size( void );
 u32       event_log_get_capacity( void );

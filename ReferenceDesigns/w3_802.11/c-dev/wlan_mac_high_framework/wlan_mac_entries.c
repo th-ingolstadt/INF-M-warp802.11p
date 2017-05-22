@@ -35,6 +35,9 @@
 #include "wlan_mac_pkt_buf_util.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_entries.h"
+#include "wlan_mac_802_11_defs.h"
+#include "wlan_platform_common.h"
+#include "wlan_mac_packet_types.h"
 
 // WLAN Exp includes
 #include "wlan_exp_common.h"
@@ -206,7 +209,7 @@ void * wlan_exp_log_create_entry(u16 entry_type_id, u16 entry_size){
  *                               NOTE: This can be NULL if an entry was not allocated
  *
  *****************************************************************************/
-tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details){
+tx_low_entry* wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details){
 
     tx_low_entry*     tx_low_event_log_entry  = NULL;
     void*             mac_payload;
@@ -394,7 +397,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, 
  *                               NOTE: This can be NULL if an entry was not allocated
  *
  *****************************************************************************/
-tx_high_entry * wlan_exp_log_create_tx_high_entry(tx_frame_info_t* tx_frame_info){
+tx_high_entry* wlan_exp_log_create_tx_high_entry(tx_frame_info_t* tx_frame_info){
 
     tx_high_entry*    tx_high_event_log_entry = NULL;
     void*             mac_payload             = (u8*)tx_frame_info + PHY_TX_PKT_BUF_MPDU_OFFSET;
@@ -501,7 +504,7 @@ tx_high_entry * wlan_exp_log_create_tx_high_entry(tx_frame_info_t* tx_frame_info
  *                                    NOTE: This can be NULL if an entry was not allocated
  *
  *****************************************************************************/
-rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
+rx_common_entry* wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
 
     rx_common_entry*  rx_event_log_entry      = NULL;
     tx_low_entry*     tx_low_event_log_entry  = NULL; //This is for any inferred CTRL transmissions
@@ -1230,9 +1233,9 @@ u32 add_temperature_to_log() {
 
     temperature_entry  * entry;
     u32                  entry_size        = sizeof(temperature_entry);
-    wlan_mac_hw_info_t * hw_info;
+//    wlan_mac_hw_info_t * hw_info;
 
-    hw_info = get_mac_hw_info();
+//    hw_info = get_mac_hw_info();
 
     entry = (temperature_entry *)wlan_exp_log_create_entry(ENTRY_TYPE_TEMPERATURE, entry_size);
 

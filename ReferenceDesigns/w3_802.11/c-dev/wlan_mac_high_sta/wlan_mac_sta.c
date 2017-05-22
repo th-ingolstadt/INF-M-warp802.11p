@@ -38,6 +38,8 @@
 #include "wlan_mac_scan.h"
 #include "wlan_mac_sta_join.h"
 #include "wlan_mac_sta.h"
+#include "wlan_mac_common.h"
+#include "wlan_mac_pkt_buf_util.h"
 
 
 // WLAN Exp includes
@@ -1296,7 +1298,7 @@ void sta_set_beacon_ts_update_mode(u32 enable){
  * @param  None
  * @return None
  *****************************************************************************/
-dl_list * get_network_member_list(){
+struct dl_list* get_network_member_list(){
 	if(active_network_info != NULL){
 		return &(active_network_info->members);
 	} else {

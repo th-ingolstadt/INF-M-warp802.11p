@@ -25,6 +25,11 @@
 #include "wlan_mac_ap.h"
 #include "ascii_characters.h"
 #include "wlan_mac_schedule.h"
+#include "wlan_mac_network_info.h"
+#include "wlan_mac_station_info.h"
+#include "wlan_mac_high.h"
+#include "wlan_mac_queue.h"
+#include "wlan_mac_dl_list.h"
 
 
 //

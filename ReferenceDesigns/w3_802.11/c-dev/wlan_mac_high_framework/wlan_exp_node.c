@@ -35,8 +35,12 @@
 #include "wlan_mac_network_info.h"
 #include "wlan_mac_station_info.h"
 #include "wlan_mac_eth_util.h"
+#include "wlan_mac_high.h"
+#include "wlan_mac_common.h"
+#include "wlan_mac_dl_list.h"
 
 // WLAN Exp includes
+#include "wlan_exp.h"
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
 #include "wlan_exp_transport.h"
@@ -82,6 +86,55 @@ extern tx_params_t         default_unicast_data_tx_params;
 extern tx_params_t         default_multicast_mgmt_tx_params;
 extern tx_params_t         default_multicast_data_tx_params;
 
+
+//-----------------------------------------------
+// wlan_exp Basic Service Set (BSS) Info
+//
+//     Only used to communicate with WLAN Exp Host.
+//
+typedef struct __attribute__((__packed__)){
+    // All network_info_t common fields
+    NETWORK_INFO_COMMON_FIELDS
+    u16		num_members;
+    u16 	padding2;
+} wlan_exp_network_info_t;
+CASSERT(sizeof(wlan_exp_network_info_t) == 72, wlan_exp_network_info_t_alignment_check);
+
+//-----------------------------------------------
+// wlan_exp Station Info
+//
+//     Only used to communicate with WLAN Exp Host.
+//
+typedef struct __attribute__((__packed__)){
+    // All station_info_t common fields
+    STATION_INFO_COMMON_FIELDS
+} wlan_exp_station_info_t;
+
+CASSERT(sizeof(wlan_exp_station_info_t) == 64, wlan_exp_station_info_alignment_check);
+
+
+#define STATION_INFO_ENTRY_NO_CHANGE             0
+#define STATION_INFO_ENTRY_ZERO_AID              1
+
+
+typedef struct __attribute__((__packed__)){
+    bss_config_t	bss_config;
+    u32				update_mask;
+} wlan_exp_bss_config_update_t;
+CASSERT(sizeof(wlan_exp_bss_config_update_t) == 52, wlan_exp_bss_config_update_t_alignment_check);
+
+//-----------------------------------------------
+// wlan_exp Tx/Rx Counts
+//
+//     Only used to communicate with WLAN Exp Host.
+//
+typedef struct{
+    u64                 				timestamp;                 // Timestamp of the log entry
+    u8									addr[6];				   // MAC address associated with this counts struct
+    u16									reserved;
+    station_txrx_counts_t               counts;                    // Framework's counts struct
+} wlan_exp_station_txrx_counts_t;
+CASSERT(sizeof(wlan_exp_station_txrx_counts_t) == 128, wlan_exp_station_txrx_counts_alignment_check);
 
 /*************************** Functions Prototypes ****************************/
 
@@ -3527,7 +3580,7 @@ void zero_counts_txrx(void * dest) {
 	wlan_exp_station_txrx_counts_t* counts = (wlan_exp_station_txrx_counts_t *)(dest);
 
     // Do not zero out timestamp
-    bzero((void *)(&counts->counts), sizeof(wlan_exp_station_txrx_counts_lite_t));
+    bzero((void *)(&counts->counts), sizeof(station_txrx_counts_t));
 }
 
 
@@ -3561,7 +3614,7 @@ void copy_counts_txrx_to_dest(void* source, void* dest, u8* mac_addr) {
 
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
     	//Copy the counts out of the station_info_t
-        memcpy((void *)(&curr_dest->counts), (void *)(&curr_source->txrx_counts), sizeof(wlan_exp_station_txrx_counts_lite_t));
+        memcpy((void *)(&curr_dest->counts), (void *)(&curr_source->txrx_counts), sizeof(station_txrx_counts_t));
 #else
         //There are no counts anywhere in the station_info_t struct, so we will return all zeroes.
         bzero((void *)(&curr_dest->counts), sizeof(station_txrx_counts_t));

@@ -11,13 +11,16 @@
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
-/***************************** Include Files *********************************/
-#include "wlan_mac_high_sw_config.h"
-
 
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_STA_JOIN_H_
 #define WLAN_MAC_STA_JOIN_H_
+
+/***************************** Include Files *********************************/
+#include "xil_types.h"
+
+//Forward declarations
+struct network_info_t;
 
 // Join Timing Parameters
 //     These defines set the join timing parameters at boot.
@@ -42,7 +45,7 @@ int  wlan_mac_sta_join_init();
 void wlan_mac_sta_set_join_success_callback(function_ptr_t callback);
 
 volatile join_parameters_t* wlan_mac_sta_get_join_parameters();
-volatile network_info_t* wlan_mac_sta_get_attempt_network_info();
+volatile struct network_info_t* wlan_mac_sta_get_attempt_network_info();
 
 void wlan_mac_sta_join();
 void wlan_mac_sta_join_return_to_idle();

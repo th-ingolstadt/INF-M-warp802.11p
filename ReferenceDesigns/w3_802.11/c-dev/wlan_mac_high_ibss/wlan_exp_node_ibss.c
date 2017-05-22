@@ -36,7 +36,7 @@
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_ibss.h"
 #include "wlan_mac_station_info.h"
-
+#include "wlan_mac_high.h"
 
 /*************************** Constant Definitions ****************************/
 

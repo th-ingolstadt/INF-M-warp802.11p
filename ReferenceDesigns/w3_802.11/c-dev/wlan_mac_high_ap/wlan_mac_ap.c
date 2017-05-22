@@ -27,9 +27,22 @@
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_schedule.h"
+#include "wlan_mac_queue.h"
+#include "wlan_mac_802_11_defs.h"
+#include "wlan_mac_packet_types.h"
+#include "wlan_mac_network_info.h"
+#include "wlan_mac_station_info.h"
+#include "wlan_mac_mgmt_tags.h"
+#include "wlan_mac_eth_util.h"
+#include "wlan_mac_scan.h"
+#include "wlan_mac_pkt_buf_util.h"
+#include "wlan_mac_entries.h"
+#include "wlan_mac_dl_list.h"
 
+#include "wlan_exp.h"
 #include "wlan_exp_node.h"
 #include "wlan_exp_node_ap.h"
+#include "wlan_exp_transport.h"
 
 
 /*************************** Constant Definitions ****************************/
@@ -241,7 +254,6 @@ int main(){
     // Set WLAN Exp callbacks
     wlan_exp_set_process_node_cmd_callback(        (void *) wlan_exp_process_node_cmd);
     wlan_exp_set_purge_all_data_tx_queue_callback( (void *) purge_all_data_tx_queue);
-    //   - wlan_exp_set_tx_cmd_add_association_callback() should not be used by the AP
     wlan_exp_set_process_user_cmd_callback(        (void *) wlan_exp_process_user_cmd);
     //   - wlan_exp_set_beacon_ts_update_mode_callback()  currently not supported by the AP
     wlan_exp_set_process_config_bss_callback(      (void *) configure_bss);
@@ -2422,7 +2434,7 @@ void button_0_release(){
  * @param  None
  * @return None
  *****************************************************************************/
-dl_list * get_network_member_list(){
+struct dl_list* get_network_member_list(){
 	if(active_network_info != NULL){
 		return &(active_network_info->members);
 	} else {

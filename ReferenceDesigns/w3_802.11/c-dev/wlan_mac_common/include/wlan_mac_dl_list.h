@@ -11,14 +11,14 @@
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
-
-/***************************** Include Files *********************************/
-#include "xil_types.h"
-
-
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_DL_LIST_H_
 #define WLAN_MAC_DL_LIST_H_
+
+
+/***************************** Include Files *********************************/
+#include "xil_types.h"
+#include "wlan_common_types.h"
 
 
 //-----------------------------------------------
@@ -26,27 +26,6 @@
 //
 #define dl_entry_next(x)                                (((x))->next)
 #define dl_entry_prev(x)                                (((x))->prev)
-
-
-
-/*********************** Global Structure Definitions ************************/
-
-typedef struct dl_entry dl_entry;
-
-struct dl_entry{
-    dl_entry* next;
-    dl_entry* prev;
-    void*     data;
-};
-
-
-typedef struct {
-    dl_entry* first;
-    dl_entry* last;
-    u32       length;
-} dl_list;
-
-
 
 /*************************** Function Prototypes *****************************/
 

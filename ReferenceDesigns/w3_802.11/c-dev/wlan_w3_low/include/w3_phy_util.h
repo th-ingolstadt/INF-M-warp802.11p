@@ -11,14 +11,14 @@
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
-
-#include "wlan_mac_common.h"
-#include "wlan_mac_mailbox_util.h"
-
 /*************************** Constant Definitions ****************************/
 #ifndef W3_PHY_UTIL_H_
 #define W3_PHY_UTIL_H_
 
+#include "xil_types.h"
+
+//Forward declarations
+enum phy_samp_rate_t;
 
 // ****************************************************************************
 // Define standard macros for base addresses and device IDs
@@ -300,7 +300,7 @@ void write_phy_preamble(u8 pkt_buf, u8 phy_mode, u8 mcs, u16 length);
 void wlan_tx_start();
 
 // Calculate transmit times
-u16 wlan_ofdm_calc_txtime(u16 length, u8 mcs, u8 phy_mode, phy_samp_rate_t phy_samp_rate);
+u16 wlan_ofdm_calc_txtime(u16 length, u8 mcs, u8 phy_mode, enum phy_samp_rate_t phy_samp_rate);
 u16 wlan_ofdm_calc_num_payload_syms(u16 length, u8 mcs, u8 phy_mode);
 
 #endif /* W3_PHY_UTIL_H_ */

@@ -28,12 +28,8 @@
 #ifndef WLAN_MAC_ENTRIES_H_
 #define WLAN_MAC_ENTRIES_H_
 
-#include "wlan_mac_high_sw_config.h"
-
-#include "wlan_mac_802_11_defs.h"
-#include "wlan_mac_high.h"
-#include "wlan_mac_common.h"
-#include "wlan_mac_network_info.h"
+#include "wlan_common_types.h"
+#include "xil_types.h"
 
 #define WLAN_MAC_ENTRIES_LOG_CHAN_EST
 
@@ -104,6 +100,11 @@
 
 
 /*********************** Global Structure Definitions ************************/
+
+// Forward declarations
+struct tx_frame_info_t;
+struct rx_frame_info_t;
+struct wlan_mac_low_tx_details_t;
 
 //-----------------------------------------------
 // Node Info Entry
@@ -211,7 +212,7 @@ typedef struct{
 //-----------------------------------------------
 // Common Receive Entry
 //
-typedef struct{
+typedef struct rx_common_entry{
     u64                 timestamp;               // Timestamp of the log entry
     u8                  timestamp_frac;          // Additional fractional timestamp (160MHz clock units)
     u8                  phy_samp_rate;           // PHY Sampling Rate Mode
@@ -370,10 +371,10 @@ void             * wlan_exp_log_create_entry(u16 entry_type_id, u16 entry_size);
 //-----------------------------------------------
 // Methods to create an entry
 //
-tx_high_entry    * wlan_exp_log_create_tx_high_entry(tx_frame_info_t* tx_frame_info);
-tx_low_entry     * wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details);
+tx_high_entry* wlan_exp_log_create_tx_high_entry(struct tx_frame_info_t* tx_frame_info);
+tx_low_entry* wlan_exp_log_create_tx_low_entry(struct tx_frame_info_t* tx_frame_info, struct wlan_mac_low_tx_details_t* tx_low_details);
 
-rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info);
+rx_common_entry* wlan_exp_log_create_rx_entry(struct rx_frame_info_t* rx_frame_info);
 
 //-----------------------------------------------
 // Print function for all entries

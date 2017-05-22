@@ -10,6 +10,8 @@
  *
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
+#ifndef WLAN_EXP_TRANSPORT_H_
+#define WLAN_EXP_TRANSPORT_H_
 
 
 /***************************** Include Files *********************************/
@@ -27,8 +29,6 @@
 
 
 /*************************** Constant Definitions ****************************/
-#ifndef WLAN_EXP_TRANSPORT_H_
-#define WLAN_EXP_TRANSPORT_H_
 
 
 // ****************************************************************************
@@ -207,7 +207,7 @@ typedef struct {
 //
 //     NOTE:  This structure exists so that differences between Ethernet devices can be consolidated
 //
-typedef struct {
+typedef struct transport_eth_dev_info{
     u32                      node_id;                      // Node ID (Only bits [15:0] are valid)
                                                            //     NOTE:  This is replicated from node_id in wlan_exp_node_info
     u32                      initialized;                  // Ethernet device initialized

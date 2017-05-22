@@ -30,6 +30,8 @@
 #include "wlan_mac_high.h"
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_schedule.h"
+#include "wlan_platform_common.h"
+#include "wlan_mac_packet_types.h"
 
 #if WLAN_SW_CONFIG_ENABLE_LTG
 

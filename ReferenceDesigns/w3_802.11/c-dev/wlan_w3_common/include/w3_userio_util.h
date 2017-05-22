@@ -16,10 +16,6 @@
 #ifndef WLAN_MAC_USERIO_UTIL_H_
 #define WLAN_MAC_USERIO_UTIL_H_
 
-// HW includes
-#include "w3_userio.h"
-
-
 //-----------------------------------------------
 // Base Addresses
 //

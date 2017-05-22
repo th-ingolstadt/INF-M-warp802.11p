@@ -10,20 +10,16 @@
  *
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
-/***************************** Include Files *********************************/
-
-#include "wlan_mac_high_sw_config.h"
-#include "stddef.h"
-
-#include "wlan_mac_common.h"
-#include "wlan_mac_pkt_buf_util.h"
-
-#include "wlan_mac_dl_list.h"
-
 
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_QUEUE_H_
 #define WLAN_MAC_QUEUE_H_
+
+/***************************** Include Files *********************************/
+
+#include "wlan_mac_high_sw_config.h"
+#include "xil_types.h"
+#include "wlan_common_types.h"
 
 
 //-----------------------------------------------

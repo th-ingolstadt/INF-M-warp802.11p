@@ -32,6 +32,8 @@
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_mgmt_tags.h"
+#include "wlan_mac_packet_types.h"
+#include "wlan_mac_common.h"
 
 /*********************** Global Variable Definitions *************************/
 

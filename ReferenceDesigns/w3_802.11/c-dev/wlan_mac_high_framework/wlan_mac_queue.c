@@ -29,6 +29,8 @@
 #include "wlan_mac_queue.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_eth_util.h"
+#include "wlan_mac_pkt_buf_util.h"
+#include "wlan_platform_common.h"
 
 // WLAN Exp includes
 #include "wlan_exp_common.h"

@@ -16,8 +16,13 @@
 #ifndef WLAN_MAC_LOW_H_
 #define WLAN_MAC_LOW_H_
 
-#include "wlan_mac_pkt_buf_util.h"
-#include "wlan_mac_mailbox_util.h"
+#include "xil_types.h"
+#include "xil_io.h"
+
+//Forward declarations
+struct wlan_mac_low_tx_details_t;
+enum phy_samp_rate_t;
+struct wlan_ipc_msg_t;
 
 //-----------------------------------------------
 // MAC Header defines
@@ -301,7 +306,7 @@
 int 			   wlan_mac_low_init(u32 type, compilation_details_t compilation_details);
 void               wlan_mac_low_init_finish();
 void 			   wlan_mac_low_send_status(u8 cpu_status_reason);
-void 			   set_phy_samp_rate(phy_samp_rate_t phy_samp_rate);
+void 			   set_phy_samp_rate(enum phy_samp_rate_t phy_samp_rate);
 void               wlan_mac_hw_init();
 void               wlan_mac_low_init_hw_info(u32 type);
 
@@ -310,9 +315,9 @@ void        wlan_mac_low_send_exception(u32 reason);
 u32         wlan_mac_low_poll_frame_rx();
 int         wlan_mac_low_poll_ipc_rx();
 
-void               wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg);
+void               wlan_mac_low_process_ipc_msg(struct wlan_ipc_msg_t * msg);
 void               wlan_mac_low_frame_ipc_send();
-void 			   wlan_mac_low_send_low_tx_details(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details);
+void 			   wlan_mac_low_send_low_tx_details(u8 pkt_buf, struct wlan_mac_low_tx_details_t* low_tx_details);
 
 void               wlan_mac_low_set_frame_rx_callback(function_ptr_t callback);
 void 			   wlan_mac_low_set_beacon_txrx_config_callback(function_ptr_t callback);
@@ -327,7 +332,7 @@ u64         wlan_mac_low_get_tx_start_timestamp();
 u32         wlan_mac_low_get_active_channel();
 s8          wlan_mac_low_get_current_ctrl_tx_pow();
 u32         wlan_mac_low_get_current_rx_filter();
-phy_samp_rate_t  wlan_mac_low_get_phy_samp_rate();
+enum phy_samp_rate_t  wlan_mac_low_get_phy_samp_rate();
 
 void               wlan_mac_low_set_nav_check_addr(u8* addr);
 int                wlan_mac_low_set_radio_channel(u32 channel);

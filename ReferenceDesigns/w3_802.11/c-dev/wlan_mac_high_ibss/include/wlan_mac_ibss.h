@@ -12,17 +12,19 @@
  */
 
 /***************************** Include Files *********************************/
-#include "wlan_mac_high_sw_config.h"
-
-#include "wlan_mac_high.h"
-#include "wlan_mac_scan.h"
-#include "wlan_mac_entries.h"
-#include "wlan_mac_station_info.h"
 
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_IBSS_H_
 #define WLAN_MAC_IBSS_H_
 
+#include "xil_types.h"
+
+//Forward declarations
+struct bss_config_t;
+struct station_info_t;
+struct rx_common_entry;
+struct network_info_t;
+enum scan_state_t;
 
 //-----------------------------------------------
 // Enable the WLAN UART Menu
@@ -63,7 +65,7 @@
 /*************************** Function Prototypes *****************************/
 int  main();
 void handle_cpu_low_reboot();
-u32  configure_bss(bss_config_t* bss_config, u32 update_mask);
+u32  configure_bss(struct bss_config_t* bss_config, u32 update_mask);
 
 void remove_inactive_station_infos();
 
@@ -72,9 +74,9 @@ void association_timestamp_adjust(s64 timestamp_diff);
 
 int  ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length);
 
-u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_entry* rx_event_log_entry);
-network_info_t* active_network_info_getter();
-void process_scan_state_change(scan_state_t scan_state);
+u32 mpdu_rx_process(void* pkt_buf_addr, struct station_info_t* station_info, struct rx_common_entry* rx_event_log_entry);
+struct network_info_t* active_network_info_getter();
+void process_scan_state_change(enum scan_state_t scan_state);
 u8 poll_tx_queues(pkt_buf_group_t pkt_buf_group);
 void purge_all_data_tx_queue();
 

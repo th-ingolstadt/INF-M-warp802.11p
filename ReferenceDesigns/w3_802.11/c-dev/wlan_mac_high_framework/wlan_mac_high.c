@@ -1215,7 +1215,7 @@ void wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf) {
  *     - Address 3 of the packet header
  * @return None
  */
-void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_1, u8 * addr_3 ) {
+void wlan_mac_high_setup_tx_header(mac_header_80211_common* header, u8* addr_1, u8* addr_3) {
 	// Set up Addresses in common header
 	header->address_1 = addr_1;
     header->address_3 = addr_3;
@@ -1240,7 +1240,7 @@ void wlan_mac_high_setup_tx_header( mac_header_80211_common * header, u8 * addr_
  * 	   - Packet Buffer Group
  * @return None
  */
-void wlan_mac_high_setup_tx_frame_info(mac_header_80211_common * header, dl_entry * curr_tx_queue_element, u32 tx_length, u8 flags, u8 queue_id, pkt_buf_group_t pkt_buf_group) {
+void wlan_mac_high_setup_tx_frame_info(mac_header_80211_common* header, dl_entry* curr_tx_queue_element, u32 tx_length, u8 flags, u8 queue_id, pkt_buf_group_t pkt_buf_group) {
 
 	u16 occupancy;
 
@@ -1272,7 +1272,7 @@ void wlan_mac_high_setup_tx_frame_info(mac_header_80211_common * header, dl_entr
  *     - Pointer to the payload of the IPC message
  * @return None
  */
-void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t * msg, u32* ipc_msg_from_low_payload) {
+void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t* msg, u32* ipc_msg_from_low_payload) {
 
 	u8                  		rx_pkt_buf;
 	u8							tx_pkt_buf;

@@ -14,13 +14,9 @@
 
 /***************************** Include Files *********************************/
 #include "wlan_mac_high_sw_config.h"
-
-#include "wlan_exp_common.h"
-#include "wlan_exp_transport.h"
-
-#include "wlan_mac_network_info.h"
-#include "wlan_mac_station_info.h"
-#include "wlan_mac_high.h"
+#include "xil_types.h"
+#include "wlan_common_types.h"
+#include "wlan_high_types.h"
 
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_EXP_NODE_H_
@@ -266,6 +262,8 @@
 //         defined above (except for the eth_dev field).  This structure will be used as storage for
 //         the Tag Parameter values.
 //
+
+struct transport_eth_dev_info;
 typedef struct {
 
     u32                      node_type;                    // Type of node
@@ -298,68 +296,9 @@ typedef struct {
     // END ADD NEW TAG PARAMETERS HERE
     //
 
-    transport_eth_dev_info  * eth_dev;                     // Information on Ethernet device
+    struct transport_eth_dev_info* eth_dev;                     // Information on Ethernet device
 
 } wlan_exp_node_info;
-
-
-
-//-----------------------------------------------
-// wlan_exp Station Info
-//
-//     Only used to communicate with WLAN Exp Host.
-//
-typedef struct __attribute__((__packed__)){
-    // All station_info_t common fields
-    STATION_INFO_COMMON_FIELDS
-} wlan_exp_station_info_t;
-
-CASSERT(sizeof(wlan_exp_station_info_t) == 64, wlan_exp_station_info_alignment_check);
-
-
-#define STATION_INFO_ENTRY_NO_CHANGE             0
-#define STATION_INFO_ENTRY_ZERO_AID              1
-
-
-
-//-----------------------------------------------
-// wlan_exp Basic Service Set (BSS) Info
-//
-//     Only used to communicate with WLAN Exp Host.
-//
-typedef struct __attribute__((__packed__)){
-    // All network_info_t common fields
-    NETWORK_INFO_COMMON_FIELDS
-    u16		num_members;
-    u16 	padding2;
-} wlan_exp_network_info_t;
-CASSERT(sizeof(wlan_exp_network_info_t) == 72, wlan_exp_network_info_t_alignment_check);
-
-typedef struct __attribute__((__packed__)){
-    bss_config_t	bss_config;
-    u32				update_mask;
-} wlan_exp_bss_config_update_t;
-CASSERT(sizeof(wlan_exp_bss_config_update_t) == 52, wlan_exp_bss_config_update_t_alignment_check);
-
-
-//-----------------------------------------------
-// wlan_exp Tx/Rx Counts
-//
-//     Only used to communicate with WLAN Exp Host.
-//
-
-typedef struct{
-	STATION_TXRX_COUNTS_COMMON_FIELDS
-} wlan_exp_station_txrx_counts_lite_t;
-
-typedef struct{
-    u64                 				timestamp;                 // Timestamp of the log entry
-    u8									addr[6];				   // MAC address associated with this counts struct
-    u16									reserved;
-    wlan_exp_station_txrx_counts_lite_t counts;                    // Framework's counts struct
-} wlan_exp_station_txrx_counts_t;
-CASSERT(sizeof(wlan_exp_station_txrx_counts_t) == 128, wlan_exp_station_txrx_counts_alignment_check);
-
 
 
 /*************************** Function Prototypes *****************************/

@@ -17,7 +17,7 @@
 /***************************** Include Files *********************************/
 
 #include "wlan_mac_high_sw_config.h"
-
+#include "xil_types.h"
 #include "xintc.h"
 
 
@@ -66,6 +66,8 @@
 
 /*********************** Global Structure Definitions ************************/
 
+struct dl_entry;
+
 // Schedule structure for scheduled events
 typedef struct {
     u32            id;
@@ -78,7 +80,7 @@ typedef struct {
 
 typedef struct {
 	dl_list		enabled_list;
-	dl_entry*	next;
+	struct dl_entry*	next;
 } wlan_sched_state_t;
 
 

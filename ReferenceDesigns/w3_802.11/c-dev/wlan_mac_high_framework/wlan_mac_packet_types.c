@@ -27,6 +27,7 @@
 #include "wlan_mac_mgmt_tags.h"
 #include "wlan_mac_network_info.h"
 #include "wlan_mac_packet_types.h"
+#include "wlan_mac_common.h"
 
 
 int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_header_80211_common* common, network_info_t* network_info) {

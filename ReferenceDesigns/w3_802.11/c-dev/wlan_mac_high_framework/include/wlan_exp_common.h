@@ -12,18 +12,16 @@
  */
 
 
-
-/***************************** Include Files *********************************/
-#include "wlan_mac_high_sw_config.h"
-
-// Include xil_types so function prototypes can use u8/u16/u32 data types
-#include "xil_types.h"
-
-#include "wlan_exp.h"
-
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_EXP_COMMON_H_
 #define WLAN_EXP_COMMON_H_
+
+/***************************** Include Files *********************************/
+#include "wlan_mac_high_sw_config.h"
+#include "xil_types.h"
+#include "wlan_common_types.h"
+#include "wlan_high_types.h"
+
 
 
 // **********************************************************************
@@ -176,8 +174,6 @@ extern const char   * print_type_queue;
 #define CMD_TO_GROUP(x)                                  ((x) >> 24)
 #define CMD_TO_CMDID(x)                                  ((x) & 0xFFFFFF)
 
-#define FPGA_DNA_LEN                                       2
-
 #define WLAN_EXP_FALSE                                     0
 #define WLAN_EXP_TRUE                                      1
 
@@ -220,7 +216,7 @@ typedef struct{
 // Command / Response data structure
 //     This structure is used to keep track of pointers when decoding commands.
 //
-typedef struct {
+typedef struct cmd_resp{
     u32                      flags;                        // Flags for the command / response
                                                            //     [0] - Is the packet broadcast?  WLAN_EXP_TRUE / WLAN_EXP_FALSE
     void                   * buffer;                       // In general, assumed to be a (wlan_exp_ip_udp_buffer *)

@@ -94,7 +94,7 @@ int setup_mailbox_interrupt(XIntc* intc){
  * @param   callback_ref     - Callback reference (set by interrupt framework)
  *
  *****************************************************************************/
-void mailbox_int_handler(void * callback_ref){
+void mailbox_int_handler(void* callback_ref){
     u32       mask;
     XMbox *   mbox_ptr = (XMbox *)callback_ref;
 

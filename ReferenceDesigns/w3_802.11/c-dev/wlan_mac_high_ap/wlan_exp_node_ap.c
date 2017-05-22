@@ -26,10 +26,16 @@
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_addr_filter.h"
 #include "wlan_mac_event_log.h"
-
+#include "wlan_mac_high.h"
 #include "wlan_mac_ap.h"
+#include "wlan_mac_network_info.h"
+#include "wlan_mac_station_info.h"
+
+#include "xil_io.h"
 
 
+// Check that there is enough memory to support MAX_NUM_ASSOC
+CASSERT( (MAX_NUM_ASSOC ) <= STATION_INFO_DL_ENTRY_MEM_NUM, insufficient_WLAN_OPTIONS_AUX_SIZE_KB_STATION_INFO_for_max_associations );
 
 /*************************** Constant Definitions ****************************/
 

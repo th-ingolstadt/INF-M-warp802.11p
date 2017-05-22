@@ -1,8 +1,8 @@
 #ifndef WLAN_PLATFORM_ETHERNET_H_
 #define WLAN_PLATFORM_ETHERNET_H_
 
-
 #include "xintc.h"
+
 //-----------------------------------------------
 // xparameter.h definitions
 //

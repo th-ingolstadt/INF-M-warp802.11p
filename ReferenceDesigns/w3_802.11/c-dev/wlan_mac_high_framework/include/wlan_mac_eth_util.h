@@ -11,13 +11,12 @@
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
-/***************************** Include Files *********************************/
-
-#include "wlan_mac_high_sw_config.h"
-#include "wlan_mac_high.h"
-
 #ifndef WLAN_MAC_ETH_UTIL_H_
 #define WLAN_MAC_ETH_UTIL_H_
+
+/***************************** Include Files *********************************/
+#include "wlan_mac_high_sw_config.h"
+#include "wlan_high_types.h"
 
 //-----------------------------------------------
 // Magic numbers used for Ethernet/IP/UDP/DHCP/ARP packet interpretation

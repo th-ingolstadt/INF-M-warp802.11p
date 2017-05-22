@@ -12,17 +12,15 @@
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
-/***************************** Include Files *********************************/
-
-#include "xil_io.h"
-#include "wlan_mac_802_11_defs.h"
-#include "wlan_platform_common.h"
-
-
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_COMMON_H_
 #define WLAN_MAC_COMMON_H_
 
+#include "xil_types.h"
+#include "wlan_common_types.h"
+
+// Forward declarations
+struct wlan_mac_hw_info_t;
 
 //-----------------------------------------------
 // Common function defines
@@ -39,17 +37,6 @@
 
 #define wlan_addr_eq(addr1, addr2)                        (memcmp((void*)(addr1), (void*)(addr2), 6)==0)
 #define wlan_addr_mcast(addr)                          ((((u8*)(addr))[0] & 1) == 1)
-
-
-//-----------------------------------------------
-// Compile-time assertion defines
-//
-#define CASSERT(predicate, file)                           _impl_CASSERT_LINE(predicate, __LINE__, file)
-
-#define _impl_PASTE(a, b)                                  a##b
-#define _impl_CASSERT_LINE(predicate, line, file) \
-    typedef char _impl_PASTE(assertion_failed_##file##_, line)[2*!!(predicate)-1];
-
 
 //-----------------------------------------------
 // Level Print function defines
@@ -75,10 +62,6 @@
 #define PHY_MODE_DSSS                                      0x0
 #define PHY_MODE_NONHT                                     0x1       // 11a OFDM
 #define PHY_MODE_HTMF                                      0x2       // 11n OFDM, HT mixed format
-
-#define MAX_PKT_SIZE_KB									   2
-#define MAX_PKT_SIZE_B									   (MAX_PKT_SIZE_KB << 10)
-
 
 //-----------------------------------------------
 // Unique sequence number defines
@@ -160,15 +143,24 @@
 
 /*********************** Global Structure Definitions ************************/
 
-//-----------------------------------------------
-// Generic function pointer
-//
-typedef int (*function_ptr_t)();
+// Forward declarations
+struct wlan_mac_hw_info_t;
+
+typedef enum userio_input_mask_t{
+	USERIO_INPUT_MASK_PB_0		= 0x00000001,
+	USERIO_INPUT_MASK_PB_1		= 0x00000002,
+	USERIO_INPUT_MASK_PB_2		= 0x00000004,
+	USERIO_INPUT_MASK_PB_3		= 0x00000008,
+	USERIO_INPUT_MASK_SW_0		= 0x00000010,
+	USERIO_INPUT_MASK_SW_1		= 0x00000020,
+	USERIO_INPUT_MASK_SW_2		= 0x00000040,
+	USERIO_INPUT_MASK_SW_3		= 0x00000080,
+} userio_input_mask_t;
 
 //-----------------------------------------------
 // PHY Bandwidth Configuration
 //
-typedef enum {
+typedef enum phy_samp_rate_t{
     PHY_10M   = 10, 
     PHY_20M   = 20, 
     PHY_40M   = 40
@@ -197,16 +189,6 @@ typedef struct {
 } ltg_packet_id_t;
 
 //-----------------------------------------------
-// Compilation Details
-//
-typedef struct __attribute__((__packed__)){
-	char	compilation_date[12]; // Must be at least 12 bytes.
-    char	compilation_time[12];  // Must be at least 9 bytes. Unfortunately, wlan_exp places an additional requirement that each field in
-    							  // wlan_exp_node_info must be u32 aligned, so we increase the size to 12 bytes.
-} compilation_details_t;
-CASSERT(sizeof(compilation_details_t) == 24, compilation_details_t_alignment_check);
-
-//-----------------------------------------------
 // Beacon Tx/Rx Configuration Struct
 //
 typedef enum __attribute__((__packed__)){
@@ -223,7 +205,7 @@ typedef enum __attribute__((__packed__)){
 } beacon_tx_mode_t;
 CASSERT(sizeof(beacon_tx_mode_t) == 1, beacon_tx_mode_t_alignment_check);
 
-typedef struct __attribute__((__packed__)){
+typedef struct __attribute__((__packed__)) beacon_txrx_configure_t{
     // Beacon Rx Configuration Parameters
     mactime_update_mode_t    ts_update_mode;               // Determines how MAC time is updated on reception of beacons
     u8                       bssid_match[MAC_ADDR_LEN];    // BSSID of current association for Rx matching
@@ -240,25 +222,20 @@ typedef struct __attribute__((__packed__)){
 } beacon_txrx_configure_t;
 CASSERT(sizeof(beacon_txrx_configure_t) == 20, beacon_txrx_configure_t_alignment_check);
 
-
 typedef struct{
 	u32 hr;
 	u32 min;
 	u32 sec;
 } time_hr_min_sec_t;
 
-
 /*************************** Function Prototypes *****************************/
 
 int                     wlan_null_callback(void * param);
-
 int                     wlan_verify_channel(u32 channel);
-
 void                    init_mac_hw_info();
-
 time_hr_min_sec_t 		wlan_mac_time_to_hr_min_sec(u64 time);
 
-wlan_mac_hw_info_t* get_mac_hw_info();
+struct wlan_mac_hw_info_t* get_mac_hw_info();
 u8* get_mac_hw_addr_wlan();
 u8* get_mac_hw_addr_wlan_exp();
 

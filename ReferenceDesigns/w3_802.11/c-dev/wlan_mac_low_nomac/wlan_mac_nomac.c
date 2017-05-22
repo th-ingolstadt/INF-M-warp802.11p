@@ -28,6 +28,8 @@
 #include "wlan_platform_low.h"
 #include "wlan_mac_nomac.h"
 #include "xparameters.h"
+#include "wlan_mac_common.h"
+#include "wlan_mac_mailbox_util.h"
 
 // WLAN Exp includes
 #include "wlan_exp.h"

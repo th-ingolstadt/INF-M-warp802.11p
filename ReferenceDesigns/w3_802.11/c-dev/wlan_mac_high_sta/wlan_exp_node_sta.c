@@ -43,6 +43,9 @@
 #include "wlan_mac_sta_join.h"
 #include "wlan_mac_entries.h"
 #include "wlan_mac_sta.h"
+#include "wlan_mac_high.h"
+#include "wlan_mac_station_info.h"
+#include "wlan_mac_scan.h"
 
 
 /*************************** Constant Definitions ****************************/

@@ -38,6 +38,8 @@
 #include "wlan_mac_station_info.h"
 #include "wlan_mac_ibss.h"
 #include "wlan_mac_mgmt_tags.h"
+#include "wlan_mac_common.h"
+#include "wlan_mac_pkt_buf_util.h"
 
 // WLAN Exp includes
 #include "wlan_exp.h"
@@ -252,7 +254,6 @@ int main() {
     // Set WLAN Exp callbacks
     wlan_exp_set_process_node_cmd_callback((void*) wlan_exp_process_node_cmd);
     wlan_exp_set_purge_all_data_tx_queue_callback((void*) purge_all_data_tx_queue);
-    wlan_exp_set_tx_cmd_add_association_callback((void*) wlan_exp_ibss_tx_cmd_add_association);
     wlan_exp_set_process_user_cmd_callback((void*) wlan_exp_process_user_cmd);
     wlan_exp_set_beacon_ts_update_mode_callback((void*) ibss_set_beacon_ts_update_mode);
     wlan_exp_set_process_config_bss_callback((void*) configure_bss);
@@ -1514,7 +1515,7 @@ void ibss_set_beacon_ts_update_mode(u32 enable){
  * @param  None
  * @return None
  *****************************************************************************/
-dl_list * get_network_member_list(){
+struct dl_list* get_network_member_list(){
 	if(active_network_info != NULL){
 		return &(active_network_info->members);
 	} else {

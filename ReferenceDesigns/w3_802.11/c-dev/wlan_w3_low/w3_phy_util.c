@@ -24,6 +24,10 @@
 #include "wlan_mac_low.h"
 #include "wlan_mac_common.h"
 #include "w3_low.h"
+#include "w3_mac_phy_regs.h"
+#include "wlan_common_types.h"
+#include "w3_phy_util.h"
+#include "wlan_Mac_pkt_buf_util.h"
 
 
 /*****************************************************************************/

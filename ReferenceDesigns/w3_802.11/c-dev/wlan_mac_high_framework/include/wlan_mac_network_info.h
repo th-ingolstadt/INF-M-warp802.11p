@@ -18,10 +18,8 @@
 /***************************** Include Files *********************************/
 
 #include "wlan_mac_high_sw_config.h"
-
-#include "wlan_mac_802_11_defs.h"
-#include "wlan_mac_dl_list.h"
-#include "wlan_mac_common.h"
+#include "xil_types.h"
+#include "wlan_high_types.h"
 
 
 /*************************** Constant Definitions ****************************/
@@ -94,37 +92,10 @@
 /*********************** Global Structure Definitions ************************/
 
 /********************************************************************
- * @brief Channel Type Enum
+ * @brief Network Information Structure
  *
- * This enum described the type of channel that is specified in the
- * chan_spec_t struct. The size of an enum is compiler dependent. Because
- * this enum will be used in structs whose contents must be aligned with
- * wlan_exp in Python, we use a compile time assertion to at least create
- * a compilation error if the size winds up being different than wlan_exp
- * expects.
- *
+ * This struct contains information about the basic service set for the node.
  ********************************************************************/
-typedef enum __attribute__((__packed__)) {
-	CHAN_TYPE_BW20 = 0,
-	CHAN_TYPE_BW40_SEC_BELOW = 1,
-	CHAN_TYPE_BW40_SEC_ABOVE = 2
-} chan_type_t;
-
-CASSERT(sizeof(chan_type_t) == 1, chan_type_t_alignment_check);
-
-/********************************************************************
- * @brief Channel Specifications Struct
- *
- * This struct contains a primary channel number and a chan_type_t.
- * Together, this tuple of information can be used to calculate the
- * center frequency and bandwidth of the radio.
- ********************************************************************/
-typedef struct __attribute__((__packed__)){
-	u8             chan_pri;
-	chan_type_t    chan_type;
-} chan_spec_t;
-CASSERT(sizeof(chan_spec_t) == 2, chan_spec_t_alignment_check);
-
 #define NETWORK_INFO_COMMON_FIELDS              \
 		bss_config_t bss_config;				\
 		u32     flags;							\
@@ -133,8 +104,10 @@ CASSERT(sizeof(chan_spec_t) == 2, chan_spec_t_alignment_check);
 		s8      latest_beacon_rx_power;			\
 		u8		padding1[3];					\
 
-
-typedef struct __attribute__((__packed__)){
+//---------------
+// BSS Config
+//
+typedef struct __attribute__((__packed__)) bss_config_t{
     u8              bssid[MAC_ADDR_LEN];               /* BSS ID - 48 bit HW address */
     chan_spec_t     chan_spec;                         /* Channel Specification */
     //----- 4-byte boundary ------
@@ -148,12 +121,7 @@ typedef struct __attribute__((__packed__)){
 } bss_config_t;
 CASSERT(sizeof(bss_config_t) == 48, bss_config_t_alignment_check);
 
-/********************************************************************
- * @brief Network Information Structure
- *
- * This struct contains information about the basic service set for the node.
- ********************************************************************/
-typedef struct __attribute__((__packed__)){
+typedef struct __attribute__((__packed__)) network_info_t{
 	NETWORK_INFO_COMMON_FIELDS
     dl_list members;
 } network_info_t;

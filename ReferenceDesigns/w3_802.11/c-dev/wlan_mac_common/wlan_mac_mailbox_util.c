@@ -84,7 +84,7 @@ XMbox* init_mailbox() {
  *                                 IPC_MBOX_SUCCESS - Message sent successfully
  *                                 IPC_MBOX_INVALID_MSG - Message invalid
  *****************************************************************************/
-int write_mailbox_msg(wlan_ipc_msg_t * msg) {
+int write_mailbox_msg(wlan_ipc_msg_t* msg) {
     // Check that msg points to a valid IPC message
     if (((msg->msg_id) & IPC_MBOX_MSG_ID_DELIM) != IPC_MBOX_MSG_ID_DELIM) {
         return IPC_MBOX_INVALID_MSG;
@@ -166,7 +166,7 @@ int send_msg(u16 msg_id, u8 arg, u8 num_words, u32 * payload) {
  *                                 IPC_MBOX_NO_MSG_AVAIL - No message available
  *                                 IPC_MBOX_INVALID_MSG  - Message invalid
  *****************************************************************************/
-int read_mailbox_msg(wlan_ipc_msg_t * msg) {
+int read_mailbox_msg(wlan_ipc_msg_t* msg) {
     u32 bytes_read;
     u32 i;
     u32 trash_bin;
