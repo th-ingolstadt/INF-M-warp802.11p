@@ -14,6 +14,7 @@
 #include "w3_sysmon_util.h"
 #include "wlan_cpu_id.h"
 #include "w3_userio.h"
+#include "wlan_platform_debug_hdr.h"
 
 
 
