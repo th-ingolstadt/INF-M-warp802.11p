@@ -20,6 +20,7 @@
 #include "xil_exception.h"
 
 #include "wlan_platform_high.h"
+#include "wlan_platform_common.h"
 #include "xtmrctr.h"
 #include "xintc.h"
 
