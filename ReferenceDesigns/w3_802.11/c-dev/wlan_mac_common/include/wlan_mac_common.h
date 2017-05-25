@@ -21,6 +21,7 @@
 
 // Forward declarations
 struct wlan_mac_hw_info_t;
+struct station_info_t;
 
 //-----------------------------------------------
 // Common function defines

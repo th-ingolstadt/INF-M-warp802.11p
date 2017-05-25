@@ -78,12 +78,6 @@ static char default_AP_SSID[] = "MANGO-AP";
 // Common TX header for 802.11 packets
 static mac_header_80211_common    tx_header_common;
 
-// Default Transmission Parameters
-tx_params_t default_unicast_mgmt_tx_params;
-tx_params_t default_unicast_data_tx_params;
-tx_params_t default_multicast_mgmt_tx_params;
-tx_params_t default_multicast_data_tx_params;
-
 // "active_network_info" is a pointer to the network_info that describes this AP.
 // Inside this structure is a dl_list of members. This is a list
 // of all stations that are currently associated with this AP. In the
@@ -182,38 +176,19 @@ int main(){
 	// Initialize hex display to "No BSS"
 	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0xFF);
 
-	// Zero out all TX params
-	bzero(&default_unicast_data_tx_params, sizeof(tx_params_t));
-	bzero(&default_unicast_mgmt_tx_params, sizeof(tx_params_t));
-	bzero(&default_multicast_data_tx_params, sizeof(tx_params_t));
-	bzero(&default_multicast_mgmt_tx_params, sizeof(tx_params_t));
+	// Set default Tx params
+	// Set sane default Tx params. These will be overwritten by the user application
+	tx_params_t	tx_params = { .phy = { .mcs = 3, .phy_mode = PHY_MODE_HTMF, .antenna_mode = WLAN_DEFAULT_TX_ANTENNA, .power = WLAN_DEFAULT_TX_PWR },
+							  .mac = { .flags = 0 } };
 
-	// New associations adopt these unicast params; the per-node params can be
-	// overridden via wlan_exp calls or by custom C code
-	default_unicast_data_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
-	default_unicast_data_tx_params.phy.mcs            = 3;
-#if WLAN_DEFAULT_BSS_CONFIG_HT_CAPABLE
-	default_unicast_data_tx_params.phy.phy_mode       = PHY_MODE_HTMF;
-#else
-	default_unicast_data_tx_params.phy.phy_mode       = PHY_MODE_NONHT;
-#endif
-	default_unicast_data_tx_params.phy.antenna_mode   = WLAN_DEFAULT_TX_ANTENNA;
+	station_info_set_default_tx_params(unicast_data, &tx_params);
 
-	default_unicast_mgmt_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
-	default_unicast_mgmt_tx_params.phy.mcs            = 0;
-	default_unicast_mgmt_tx_params.phy.phy_mode       = PHY_MODE_NONHT;
-	default_unicast_mgmt_tx_params.phy.antenna_mode   = WLAN_DEFAULT_TX_ANTENNA;
+	tx_params.phy.mcs = 0;
+	tx_params.phy.phy_mode = PHY_MODE_NONHT;
 
-	// All multicast traffic (incl. broadcast) uses these default Tx params
-	default_multicast_data_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
-	default_multicast_data_tx_params.phy.mcs          = 0;
-	default_multicast_data_tx_params.phy.phy_mode     = PHY_MODE_NONHT;
-	default_multicast_data_tx_params.phy.antenna_mode = WLAN_DEFAULT_TX_ANTENNA;
-
-	default_multicast_mgmt_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
-	default_multicast_mgmt_tx_params.phy.mcs          = 0;
-	default_multicast_mgmt_tx_params.phy.phy_mode     = PHY_MODE_NONHT;
-	default_multicast_mgmt_tx_params.phy.antenna_mode = WLAN_DEFAULT_TX_ANTENNA;
+	station_info_set_default_tx_params(unicast_mgmt, &tx_params);
+	station_info_set_default_tx_params(mcast_data, &tx_params);
+	station_info_set_default_tx_params(mcast_mgmt, &tx_params);
 
 	// Initialize callbacks
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
@@ -869,8 +844,8 @@ void ltg_event(u32 id, void* callback_arg){
 
 	u32 payload_length;
 	u32 min_ltg_payload_length;
-	station_info_entry_t* station_info_entry = NULL;
 	station_info_t* station_info = NULL;
+	station_info_entry_t* station_info_entry = NULL;
 	u8* addr_da;
 	u8 is_multicast;
 	u8 queue_sel;
@@ -884,14 +859,14 @@ void ltg_event(u32 id, void* callback_arg){
 				payload_length = ((ltg_pyld_fixed*)callback_arg)->length;
 				addr_da = ((ltg_pyld_fixed*)callback_arg)->addr_da;
 
+				station_info = station_info_create(addr_da);
+
 				is_multicast = wlan_addr_mcast(addr_da);
 				if(is_multicast){
 					queue_sel = MCAST_QID;
 				} else {
-					station_info_entry = station_info_find_by_addr(addr_da, &active_network_info->members);
-					if(station_info_entry != NULL){
-						station_info = (station_info_t*)(station_info_entry->data);
-						queue_sel = STATION_ID_TO_QUEUE_ID(station_info_entry->id);
+					if(station_info_is_member(&active_network_info->members, station_info)){
+						queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
 					} else {
 						return;
 					}
@@ -902,14 +877,14 @@ void ltg_event(u32 id, void* callback_arg){
 				payload_length = (rand()%(((ltg_pyld_uniform_rand*)(callback_arg))->max_length - ((ltg_pyld_uniform_rand*)(callback_arg))->min_length))+((ltg_pyld_uniform_rand*)(callback_arg))->min_length;
 				addr_da = ((ltg_pyld_fixed*)callback_arg)->addr_da;
 
+				station_info = station_info_create(addr_da);
+
 				is_multicast = wlan_addr_mcast(addr_da);
 				if(is_multicast){
 					queue_sel = MCAST_QID;
 				} else {
-					station_info_entry = station_info_find_by_addr(addr_da, &active_network_info->members);
-					if(station_info_entry != NULL){
-						station_info = (station_info_t*)(station_info_entry->data);
-						queue_sel = STATION_ID_TO_QUEUE_ID(station_info_entry->id);
+					if(station_info_is_member(&active_network_info->members, station_info)){
+						queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
 					} else {
 						return;
 					}
@@ -968,16 +943,7 @@ void ltg_event(u32 id, void* callback_arg){
 															PKT_BUF_GROUP_GENERAL);
 					}
 
-					// Update the queue entry metadata to reflect the new new queue entry contents
-					if (is_multicast || (station_info == NULL)) {
-						curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-						curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)&default_multicast_data_tx_params;
-						curr_tx_queue_buffer->tx_frame_info.ID     	 = 0;
-					} else {
-					    curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
-					    curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)station_info;
-						curr_tx_queue_buffer->tx_frame_info.ID       = station_info->ID;
-					}
+					curr_tx_queue_buffer->station_info = station_info;
 
 					// Submit the new packet to the appropriate queue
 					enqueue_after_tail(queue_sel, curr_tx_queue_element);
@@ -1059,10 +1025,11 @@ int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src,
 												MCAST_QID,
 												PKT_BUF_GROUP_DTIM_MCAST);
 
-			// Set the information in the TX queue buffer
-			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-			curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)&(default_multicast_data_tx_params);
-			curr_tx_queue_buffer->tx_frame_info.ID       = 0;
+			// Assign a station_info_t struct
+			//  Notes: (1) if one exists already, it will be adopted.
+			//		   (2) if no heap exists for creating one, NULL is a valid
+			//             value for the station_info_t*
+			curr_tx_queue_buffer->station_info = station_info_create(eth_dest);
 
 			// Put the packet in the queue
 			enqueue_after_tail(MCAST_QID, curr_tx_queue_element);
@@ -1102,10 +1069,8 @@ int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src,
 													STATION_ID_TO_QUEUE_ID(entry->id),
 													PKT_BUF_GROUP_GENERAL);
 
-				// Set the information in the TX queue buffer
-				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
-				curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)station_info;
-				curr_tx_queue_buffer->tx_frame_info.ID         = entry->id;
+
+				curr_tx_queue_buffer->station_info = station_info;
 
 				// Put the packet in the queue
 				enqueue_after_tail(STATION_ID_TO_QUEUE_ID(entry->id), curr_tx_queue_element);
@@ -1354,9 +1319,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 																		PKT_BUF_GROUP_DTIM_MCAST);
 
 									// Set the information in the TX queue buffer
-									curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-									curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_data_tx_params);
-									curr_tx_queue_buffer->tx_frame_info.ID       = 0;
+									curr_tx_queue_buffer->station_info = station_info_create(rx_80211_header->address_3);
 
 									// Make sure the DMA transfer is complete
 									wlan_mac_high_cdma_finish_transfer();
@@ -1399,9 +1362,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 
 
 										// Set the information in the TX queue buffer
-										curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
-										curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(associated_station);
-										curr_tx_queue_buffer->tx_frame_info.ID         = associated_station_entry->id;
+										curr_tx_queue_buffer->station_info = associated_station;
 
 										// Make sure the DMA transfer is complete
 										wlan_mac_high_cdma_finish_transfer();
@@ -1457,9 +1418,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 																	PKT_BUF_GROUP_GENERAL);
 
 								// Set the information in the TX queue buffer
-								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-								curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-								curr_tx_queue_buffer->tx_frame_info.ID         = 0;
+								curr_tx_queue_buffer->station_info = station_info;
 
 								// Put the packet in the queue
 								enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
@@ -1542,9 +1501,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 																	PKT_BUF_GROUP_GENERAL);
 
 								// Set the information in the TX queue buffer
-								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-								curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-								curr_tx_queue_buffer->tx_frame_info.ID         = 0;
+								curr_tx_queue_buffer->station_info = station_info;
 
 								// Put the packet in the queue
 								enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
@@ -1591,7 +1548,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 								// authenticated/unassociated (state 2) list.
 								//     - Set ht_capable argument to 0.  This will be updated with the correct value when the
 								//       node moves from the state 2 list during association.
-								auth_unassoc_station_info = station_info_add(&authenticated_unassociated_stations, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, 0);
+								auth_unassoc_station_info = station_info_add(&authenticated_unassociated_stations, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, 0);
 								if(auth_unassoc_station_info != NULL){
 									auth_unassoc_station_info->flags |= STATION_INFO_FLAG_KEEP;
 									time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
@@ -1623,9 +1580,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 																	PKT_BUF_GROUP_GENERAL);
 
 								// Set the information in the TX queue buffer
-								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-								curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-								curr_tx_queue_buffer->tx_frame_info.ID         = 0;
+								curr_tx_queue_buffer->station_info = station_info;
 
 								// Put the packet in the queue
 								enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
@@ -1656,9 +1611,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 																	PKT_BUF_GROUP_GENERAL);
 
 								// Set the information in the TX queue buffer
-								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-								curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-								curr_tx_queue_buffer->tx_frame_info.ID         = 0;
+								curr_tx_queue_buffer->station_info = station_info;
 
 								// Put the packet in the queue
 								enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
@@ -1732,7 +1685,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 							// Add the station info
 							//     - Set ht_capable argument to 0.  This will be updated below with the
 							//       correct value from the tagged parameters in the association request.
-							if (station_info_add(&active_network_info->members, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, 0) != NULL){
+							if (station_info_add(&active_network_info->members, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, 0) != NULL){
 								time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
 								xil_printf("*%dh:%02dm:%02ds* STA 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x is now associated\n",
 										time_hr_min_sec.hr, time_hr_min_sec.min, time_hr_min_sec.sec,
@@ -1753,7 +1706,8 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 							}
 
 							// Update the rate based on the flags that were set
-							station_info_update_rate(station_info, default_unicast_data_tx_params.phy.mcs, default_unicast_data_tx_params.phy.phy_mode);
+							station_info->tx_params_data = wlan_mac_sanitize_tx_params(station_info, &(station_info->tx_params_data));
+							station_info->tx_params_mgmt = wlan_mac_sanitize_tx_params(station_info, &(station_info->tx_params_mgmt));
 
 							//
 							// TODO:  (Optional) Log association state change
@@ -1780,9 +1734,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 																	PKT_BUF_GROUP_GENERAL);
 
 								// Set the information in the TX queue buffer
-								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-								curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-								curr_tx_queue_buffer->tx_frame_info.ID       = 0;
+								curr_tx_queue_buffer->station_info = station_info;
 
 								// Put the packet in the queue
 								enqueue_after_tail(STATION_ID_TO_QUEUE_ID(station_info->ID), curr_tx_queue_element);
@@ -1813,9 +1765,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 																	PKT_BUF_GROUP_GENERAL);
 
 								// Set the information in the TX queue buffer
-								curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-								curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-								curr_tx_queue_buffer->tx_frame_info.ID         = 0;
+								curr_tx_queue_buffer->station_info = station_info;
 
 								// Put the packet in the queue
 								enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
@@ -1901,10 +1851,11 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 void mpdu_dequeue(dl_entry* packet){
 	mac_header_80211* 	header;
 	tx_frame_info_t*	tx_frame_info;
-	station_info_entry_t* curr_station_entry;
+	station_info_t* station_info;
 
 	header 	  			= (mac_header_80211*)((((tx_queue_buffer_t*)(packet->data))->frame));
 	tx_frame_info 		= (tx_frame_info_t*)&((((tx_queue_buffer_t*)(packet->data))->tx_frame_info));
+	station_info  = ((tx_queue_buffer_t*)(packet->data))->station_info;
 
 	// Here, we will overwrite the pkt_buf_group_t that was set by wlan_mac_high_setup_tx_frame_info(). This allows
 	// DTIM mcast buffering to be enabled or disabled after a packet has been created and is sitting in the queue.
@@ -1916,19 +1867,12 @@ void mpdu_dequeue(dl_entry* packet){
 		tx_frame_info->queue_info.pkt_buf_group = PKT_BUF_GROUP_GENERAL;
 	}
 
-	if(active_network_info != NULL){
-		//The below line assumes that each dequeued MPDU will explicitly have a 0-valued ID field for
-		//frames that aren't tied to a particular STA (e.g. management frames).
-		curr_station_entry = station_info_find_by_id(tx_frame_info->ID, &(active_network_info->members));
-		if(curr_station_entry != NULL){
-			if(queue_num_queued(STATION_ID_TO_QUEUE_ID(curr_station_entry->id)) > 0){
-				//If the is more data (in addition to this packet) queued for this station, we can let it know
-				//in the frame_control_2 field.
-				header->frame_control_2 |= MAC_FRAME_CTRL2_FLAG_MORE_DATA;
-			} else {
-				header->frame_control_2 = (header->frame_control_2) & ~MAC_FRAME_CTRL2_FLAG_MORE_DATA;
-			}
-		}
+	if(station_info->num_tx_queued > 0){
+		//If the is more data (in addition to this packet) queued for this station, we can let it know
+		//in the frame_control_2 field.
+		header->frame_control_2 |= MAC_FRAME_CTRL2_FLAG_MORE_DATA;
+	} else {
+		header->frame_control_2 = (header->frame_control_2) & ~MAC_FRAME_CTRL2_FLAG_MORE_DATA;
 	}
 
 }
@@ -1980,9 +1924,7 @@ u32  deauthenticate_station( station_info_t* station_info ) {
 											PKT_BUF_GROUP_GENERAL);
 
 		// Set the information in the TX queue buffer
-		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-		curr_tx_queue_buffer->tx_frame_info.ID         = 0;
+		curr_tx_queue_buffer->station_info = station_info;
 
 		// Put the packet in the queue
 		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
@@ -2099,6 +2041,7 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 	dl_entry* 			curr_station_info_entry;
 	int					iter;
 	time_hr_min_sec_t	time_hr_min_sec;
+	tx_params_t 		default_beacon_tx_params;
 
 	//---------------------------------------------------------
 	// 1. Check for any invalid inputs or combination of inputs
@@ -2353,9 +2296,10 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 			//     In the event that CPU_LOW currently has the beacon packet buffer locked,
 			//     block for now until it unlocks.  This will guarantee that beacon are updated
 			//     before the function returns.
+			default_beacon_tx_params = station_info_get_default_tx_params(mcast_mgmt);
 			if (update_beacon_template) {
 				wlan_mac_high_setup_tx_header(&tx_header_common, (u8 *)bcast_addr, active_network_info->bss_config.bssid);
-				while (wlan_mac_high_configure_beacon_tx_template( &tx_header_common, active_network_info, &default_multicast_mgmt_tx_params,
+				while (wlan_mac_high_configure_beacon_tx_template( &tx_header_common, active_network_info, &default_beacon_tx_params,
 																	TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP | TX_FRAME_INFO_FLAGS_WAIT_FOR_LOCK ) != 0) {}
 
 				mgmt_tag_tim_template = NULL;

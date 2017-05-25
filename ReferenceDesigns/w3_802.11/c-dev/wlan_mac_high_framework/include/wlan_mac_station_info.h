@@ -24,7 +24,6 @@
 
 /*************************** Constant Definitions ****************************/
 
-
 #define ADD_STATION_INFO_ANY_ID                            0                                  ///< Special argument to function that adds station_info structs
 
 //-----------------------------------------------
@@ -108,8 +107,11 @@ typedef struct{
         u64                latest_rx_timestamp;               		   /* Timestamp of most recent reception */   		    \
 		u64                latest_txrx_timestamp;               	   /* Timestamp of most recent reception or transmission */    \
         u16                latest_rx_seq;                              /* Sequence number of the last MPDU reception */     \
-        u8                 reserved0[6];                                                                                    \
-        tx_params_t        tx;                                         /* Transmission Parameters Structure */
+        u8                 reserved0[2];                                                                                    \
+        int				   num_tx_queued;																					\
+        tx_params_t        tx_params_data;	 		 				   /* Transmission Parameters Structure for Data */				\
+        tx_params_t        tx_params_mgmt;	 		 				   /* Transmission Parameters Structure for Management */
+
 typedef struct station_info_t{
     STATION_INFO_COMMON_FIELDS
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
@@ -119,9 +121,9 @@ typedef struct station_info_t{
 
 } station_info_t;
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
-CASSERT(sizeof(station_info_t) == 184, station_info_alignment_check);
+CASSERT(sizeof(station_info_t) == 192, station_info_alignment_check);
 #else
-CASSERT(sizeof(station_info_t) == 72, station_info_alignment_check);
+CASSERT(sizeof(station_info_t) == 80, station_info_alignment_check);
 #endif
 
 #define STATION_INFO_FLAG_KEEP                             0x00000001			   ///< Prevent MAC High Framework from deleting this station_infO
@@ -146,6 +148,14 @@ struct station_info_entry_t{
 	u16					id;
 };
 CASSERT(sizeof(station_info_entry_t) == 20, station_info_entry_t_alignment_check);
+
+typedef enum default_tx_param_sel_t{
+	unicast_mgmt,
+	unicast_data,
+	mcast_mgmt,
+	mcast_data,
+} default_tx_param_sel_t;
+
 
 // Forward declarations -- these must be defined elsewhere
 struct dl_entry;
@@ -183,10 +193,12 @@ struct dl_list*  		 station_info_get_list();
 station_info_entry_t* station_info_find_by_id(u32 id, struct dl_list* list);
 station_info_entry_t* station_info_find_by_addr(u8* addr, struct dl_list* list);
 
-station_info_t*  station_info_add(struct dl_list* app_station_info_list, u8* addr, u16 requested_ID, tx_params_t* tx_params, u8 ht_capable);
+station_info_t*  station_info_add(struct dl_list* app_station_info_list, u8* addr, u16 requested_ID, u8 ht_capable);
 int              station_info_remove(struct dl_list* app_station_info_list, u8* addr);
 
 u8               station_info_is_member(struct dl_list* app_station_info_list, station_info_t* station_info);
-int              station_info_update_rate(station_info_t* station_info, u8 mcs, u8 phy_mode);
+
+tx_params_t		 station_info_get_default_tx_params(default_tx_param_sel_t default_tx_param_sel);
+void		 	 station_info_set_default_tx_params(default_tx_param_sel_t default_tx_param_sel, tx_params_t* tx_params);
 
 #endif

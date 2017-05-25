@@ -109,8 +109,9 @@ typedef struct __attribute__((__packed__)){
     // All station_info_t common fields
     STATION_INFO_COMMON_FIELDS
 } wlan_exp_station_info_t;
-
-CASSERT(sizeof(wlan_exp_station_info_t) == 64, wlan_exp_station_info_alignment_check);
+//FIXME: I added 8 bytes to this struct to track management tx parameters. Update python
+// to match
+CASSERT(sizeof(wlan_exp_station_info_t) == 72, wlan_exp_station_info_alignment_check);
 
 
 #define STATION_INFO_ENTRY_NO_CHANGE             0
@@ -1891,13 +1892,13 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                         	iter = (station_info_list->length)+1;
                         	while(station_info_entry && ((iter--) > 0)){
                         		station_info = station_info_entry->data;
-                        		station_info->tx.phy.power = power;
+//                        		station_info->tx.phy.power = power; FIXME: adopt new conventions
                         		station_info_entry = (station_info_entry_t*)dl_entry_next((dl_entry*)station_info_entry);
                         	}
                         } else {
                         	// Just a particular station
                         	 station_info = station_info_create(&mac_addr[0]);
-                        	 station_info->tx.phy.power = power;
+//                        	 station_info->tx.phy.power = power; //FIXME: adopt new conventions
                         }
                     break;
 
@@ -1910,14 +1911,14 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
                         // Set the default unicast data & management parameter
-                        default_unicast_data_tx_params.phy.power = power;
-                        default_unicast_mgmt_tx_params.phy.power = power;
+                        //default_unicast_data_tx_params.phy.power = power; //FIXME: adopt new conventions
+                        //default_unicast_mgmt_tx_params.phy.power = power; //FIXME: adopt new conventions
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default unicast TX power = %d dBm\n", power);
                     break;
 
                     case CMD_PARAM_READ_DEFAULT_VAL:
                         // Get the default unicast data parameter
-                        power = default_unicast_data_tx_params.phy.power;
+                        //power = default_unicast_data_tx_params.phy.power; //FIXME: adopt new conventions
                     break;
 
                     default:
@@ -1930,14 +1931,14 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     case CMD_PARAM_WRITE_VAL:
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
                         // Set the default multicast data parameter
-                        default_multicast_data_tx_params.phy.power = power;
+                        //default_multicast_data_tx_params.phy.power = power; //FIXME: adopt new conventions
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default multicast data TX power = %d dBm\n", power);
                     break;
 
                     case CMD_PARAM_READ_VAL:
                     case CMD_PARAM_READ_DEFAULT_VAL:
                         // Get the default multicast data parameter
-                        power = default_multicast_data_tx_params.phy.power;
+                        //power = default_multicast_data_tx_params.phy.power; //FIXME: adopt new conventions
                     break;
 
                     default:
@@ -1950,17 +1951,17 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     case CMD_PARAM_WRITE_VAL:
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
                         // Set the default multicast management parameter
-                        default_multicast_mgmt_tx_params.phy.power = power;
+                        //default_multicast_mgmt_tx_params.phy.power = power; //FIXME: adopt new conventions
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default multicast mgmt TX power = %d dBm\n", power);
 
                         // Update beacon tx params
-                        wlan_mac_high_update_beacon_tx_params(&default_multicast_mgmt_tx_params);
+                        //wlan_mac_high_update_beacon_tx_params(&default_multicast_mgmt_tx_params); //FIXME: adopt new conventions
                     break;
 
                     case CMD_PARAM_READ_VAL:
                     case CMD_PARAM_READ_DEFAULT_VAL:
                         // Get the default multicast management parameter
-                        power = default_multicast_mgmt_tx_params.phy.power;
+                        //power = default_multicast_mgmt_tx_params.phy.power; //FIXME: adopt new conventions
                     break;
 
                     default:
@@ -1999,12 +2000,12 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set all TX power = %d dBm\n", power);
 
                 // Set the default unicast power for new associations
-                default_unicast_mgmt_tx_params.phy.power   = power;
-                default_unicast_data_tx_params.phy.power   = power;
+                //default_unicast_mgmt_tx_params.phy.power   = power; //FIXME: adopt new conventions
+                //default_unicast_data_tx_params.phy.power   = power; //FIXME: adopt new conventions
 
                 // Set the default multicast power for new associations
-                default_multicast_mgmt_tx_params.phy.power = power;
-                default_multicast_data_tx_params.phy.power = power;
+                //default_multicast_mgmt_tx_params.phy.power = power; //FIXME: adopt new conventions
+                //default_multicast_data_tx_params.phy.power = power; //FIXME: adopt new conventions
 
                 // Send IPC to CPU low to set the Tx power for control frames
                 wlan_mac_high_set_tx_ctrl_pow(power);
@@ -2015,12 +2016,12 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 				iter = (station_info_list->length)+1;
 				while(station_info_entry && ((iter--) > 0)){
 					station_info = station_info_entry->data;
-					station_info->tx.phy.power = power;
+					//station_info->tx.phy.power = power; //FIXME: adopt new conventions
 					station_info_entry = (station_info_entry_t*)dl_entry_next((dl_entry*)station_info_entry);
 				}
 
                 // Update beacon tx params
-                wlan_mac_high_update_beacon_tx_params(&default_multicast_mgmt_tx_params);
+                //wlan_mac_high_update_beacon_tx_params(&default_multicast_mgmt_tx_params); //FIXME: adopt new conventions
             } else {
                 wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown type for CMDID_NODE_TX_POWER: %d\n", type);
                 status = CMD_PARAM_ERROR;
@@ -2099,11 +2100,11 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
                         // Set the default unicast data & management parameter
-                        default_unicast_data_tx_params.phy.mcs      = mcs;
-                        default_unicast_data_tx_params.phy.phy_mode = phy_mode;
+                        //default_unicast_data_tx_params.phy.mcs      = mcs; //FIXME: adopt new conventions
+                        //default_unicast_data_tx_params.phy.phy_mode = phy_mode; //FIXME: adopt new conventions
 
-                        default_unicast_mgmt_tx_params.phy.mcs      = mcs;
-                        default_unicast_mgmt_tx_params.phy.phy_mode = phy_mode;
+                        //default_unicast_mgmt_tx_params.phy.mcs      = mcs; //FIXME: adopt new conventions
+                        //default_unicast_mgmt_tx_params.phy.phy_mode = phy_mode; //FIXME: adopt new conventions
 
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                                         "Set default unicast Tx rate to MCS %d, PHY mode %d\n", mcs, phy_mode);
@@ -2111,8 +2112,8 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
                     case CMD_PARAM_READ_DEFAULT_VAL:
                         // Get the default unicast data parameter
-                        ret_mcs      = default_unicast_data_tx_params.phy.mcs;
-                        ret_phy_mode = default_unicast_data_tx_params.phy.phy_mode;
+                        //ret_mcs      = default_unicast_data_tx_params.phy.mcs; //FIXME: adopt new conventions
+                        //ret_phy_mode = default_unicast_data_tx_params.phy.phy_mode; //FIXME: adopt new conventions
                     break;
 
                     default:
@@ -2125,8 +2126,8 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     case CMD_PARAM_WRITE_VAL:
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
                         // Set the default multicast data parameter
-                        default_multicast_data_tx_params.phy.mcs      = mcs;
-                        default_multicast_data_tx_params.phy.phy_mode = phy_mode;
+                        //default_multicast_data_tx_params.phy.mcs      = mcs; //FIXME: adopt new conventions
+                        //default_multicast_data_tx_params.phy.phy_mode = phy_mode; //FIXME: adopt new conventions
 
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                                         "Set default multicast data Tx rate to MCS %d, PHY mode %d\n", mcs, phy_mode);
@@ -2135,8 +2136,8 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     case CMD_PARAM_READ_VAL:
                     case CMD_PARAM_READ_DEFAULT_VAL:
                         // Get the default multicast data parameter
-                        ret_mcs      = default_multicast_data_tx_params.phy.mcs;
-                        ret_phy_mode = default_multicast_data_tx_params.phy.phy_mode;
+                        //ret_mcs      = default_multicast_data_tx_params.phy.mcs; //FIXME: adopt new conventions
+                        //ret_phy_mode = default_multicast_data_tx_params.phy.phy_mode; //FIXME: adopt new conventions
                     break;
 
                     default:
@@ -2149,21 +2150,21 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     case CMD_PARAM_WRITE_VAL:
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
                         // Set the default multicast management parameter
-                        default_multicast_mgmt_tx_params.phy.mcs      = mcs;
-                        default_multicast_mgmt_tx_params.phy.phy_mode = phy_mode;
+                        //default_multicast_mgmt_tx_params.phy.mcs      = mcs; //FIXME: adopt new conventions
+                        //default_multicast_mgmt_tx_params.phy.phy_mode = phy_mode; //FIXME: adopt new conventions
 
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                                         "Set default multicast mgmt Tx rate to MCS %d, PHY mode %d\n", mcs, phy_mode);
 
                         // Update beacon tx params
-                        wlan_mac_high_update_beacon_tx_params(&default_multicast_mgmt_tx_params);
+                        //wlan_mac_high_update_beacon_tx_params(&default_multicast_mgmt_tx_params); //FIXME: adopt new conventions
                     break;
 
                     case CMD_PARAM_READ_VAL:
                     case CMD_PARAM_READ_DEFAULT_VAL:
                         // Get the default multicast management parameter
-                        ret_mcs      = default_multicast_mgmt_tx_params.phy.mcs;
-                        ret_phy_mode = default_multicast_mgmt_tx_params.phy.phy_mode;
+                        //ret_mcs      = default_multicast_mgmt_tx_params.phy.mcs; //FIXME: adopt new conventions
+                        //ret_phy_mode = default_multicast_mgmt_tx_params.phy.phy_mode; //FIXME: adopt new conventions
                     break;
 
                     default:
@@ -2242,14 +2243,14 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
                         // Set the default unicast data & management parameter
-                        default_unicast_data_tx_params.phy.antenna_mode = ant_mode;
-                        default_unicast_mgmt_tx_params.phy.antenna_mode = ant_mode;
+                        //default_unicast_data_tx_params.phy.antenna_mode = ant_mode; //FIXME: adopt new conventions
+                        //default_unicast_mgmt_tx_params.phy.antenna_mode = ant_mode; //FIXME: adopt new conventions
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default unicast TX antenna mode = %d\n", ant_mode);
                     break;
 
                     case CMD_PARAM_READ_DEFAULT_VAL:
                         // Get the default unicast data parameter
-                        ant_mode = default_unicast_data_tx_params.phy.antenna_mode;
+                        //ant_mode = default_unicast_data_tx_params.phy.antenna_mode; //FIXME: adopt new conventions
                     break;
 
                     default:
@@ -2262,14 +2263,14 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     case CMD_PARAM_WRITE_VAL:
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
                         // Set the default multicast data paramter
-                        default_multicast_data_tx_params.phy.antenna_mode = ant_mode;
+                        //default_multicast_data_tx_params.phy.antenna_mode = ant_mode; //FIXME: adopt new conventions
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default multicast data TX antenna mode = %d\n", ant_mode);
                     break;
 
                     case CMD_PARAM_READ_VAL:
                     case CMD_PARAM_READ_DEFAULT_VAL:
                         // Get the default multicast data parameter
-                        ant_mode = default_multicast_data_tx_params.phy.antenna_mode;
+                        //ant_mode = default_multicast_data_tx_params.phy.antenna_mode; //FIXME: adopt new conventions
                     break;
 
                     default:
@@ -2282,17 +2283,17 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     case CMD_PARAM_WRITE_VAL:
                     case CMD_PARAM_WRITE_DEFAULT_VAL:
                         // Set the default multicast management parameter
-                        default_multicast_mgmt_tx_params.phy.antenna_mode = ant_mode;
+                        //default_multicast_mgmt_tx_params.phy.antenna_mode = ant_mode; //FIXME: adopt new conventions
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default multicast mgmt TX antenna mode = %d\n", ant_mode);
 
                         // Update beacon tx params
-                        wlan_mac_high_update_beacon_tx_params(&default_multicast_mgmt_tx_params);
+                        //wlan_mac_high_update_beacon_tx_params(&default_multicast_mgmt_tx_params); //FIXME: adopt new conventions
                     break;
 
                     case CMD_PARAM_READ_VAL:
                     case CMD_PARAM_READ_DEFAULT_VAL:
                         // Get the default multicast management parameter
-                        ant_mode = default_multicast_mgmt_tx_params.phy.antenna_mode;
+                        //ant_mode = default_multicast_mgmt_tx_params.phy.antenna_mode; //FIXME: adopt new conventions
                     break;
 
                     default:
@@ -2310,12 +2311,12 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set all TX ant mode = %d\n", ant_mode);
 
                 // Set the default unicast antenna mode for new associations
-                default_unicast_data_tx_params.phy.antenna_mode = ant_mode;
-                default_unicast_mgmt_tx_params.phy.antenna_mode = ant_mode;
+                //default_unicast_data_tx_params.phy.antenna_mode = ant_mode; //FIXME: adopt new conventions
+                //default_unicast_mgmt_tx_params.phy.antenna_mode = ant_mode; //FIXME: adopt new conventions
 
                 // Set the default multicast antenna mode for new associations
-                default_multicast_data_tx_params.phy.antenna_mode = ant_mode;
-                default_multicast_mgmt_tx_params.phy.antenna_mode = ant_mode;
+                //default_multicast_data_tx_params.phy.antenna_mode = ant_mode; //FIXME: adopt new conventions
+                //default_multicast_mgmt_tx_params.phy.antenna_mode = ant_mode; //FIXME: adopt new conventions
 
                 // Update the Tx antenna mode in each current association
                 ant_mode = process_tx_ant_mode(CMD_PARAM_WRITE_VAL, WLAN_EXP_AID_ALL, (ant_mode & 0xFF));
@@ -2325,7 +2326,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 }
 
                 // Update beacon tx params
-                wlan_mac_high_update_beacon_tx_params(&default_multicast_mgmt_tx_params);
+                //wlan_mac_high_update_beacon_tx_params(&default_multicast_mgmt_tx_params); //FIXME: adopt new conventions
             } else {
                 wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown type for NODE_TX_ANT_MODE: %d\n", type);
                 status = CMD_PARAM_ERROR;
@@ -3962,17 +3963,17 @@ u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                             "Set Tx rate on AID %d to MCS %d , PHY Mode %d\n", curr_station_info->ID, mcs, phy_mode);
 
-                    if (station_info_update_rate(curr_station_info, mcs, phy_mode) != 0) {
-                        status = CMD_PARAM_WARNING;
-                    }
+                    //if (station_info_update_rate(curr_station_info, mcs, phy_mode) != 0) { //FIXME: adopt new conventions
+                    //    status = CMD_PARAM_WARNING;
+                    //}
 
                 } else if (aid == curr_station_info->ID) {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                             "Set Tx rate on AID %d to MCS %d , PHY Mode %d\n", curr_station_info->ID, mcs, phy_mode);
 
-                    if (station_info_update_rate(curr_station_info, mcs, phy_mode) != 0) {
-                        status = CMD_PARAM_WARNING;
-                    }
+                    //if (station_info_update_rate(curr_station_info, mcs, phy_mode) != 0) { //FIXME: adopt new conventions
+                    //    status = CMD_PARAM_WARNING;
+                    //}
 
                     break;
                 }
@@ -4004,8 +4005,8 @@ u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 
                 while ((curr_entry != NULL) && (iter-- > 0)) {
                     curr_station_info = (station_info_t*)(curr_entry->data);
                     if (aid == curr_station_info->ID) {
-                        *ret_mcs      = (curr_station_info->tx.phy.mcs      & 0xFF);
-                        *ret_phy_mode = (curr_station_info->tx.phy.phy_mode & 0xFF);
+                        //*ret_mcs      = (curr_station_info->tx.phy.mcs      & 0xFF); //FIXME: adopt new conventions
+                        //*ret_phy_mode = (curr_station_info->tx.phy.phy_mode & 0xFF); //FIXME: adopt new conventions
                         status       = CMD_PARAM_SUCCESS;
                         break;
                     }
@@ -4060,13 +4061,13 @@ u32 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
                 if (aid == WLAN_EXP_AID_ALL) {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                                     "Set TX ant mode on AID %d = %d \n", curr_station_info->ID, ant_mode);
-                    curr_station_info->tx.phy.antenna_mode = ant_mode;
+                    //curr_station_info->tx.phy.antenna_mode = ant_mode; //FIXME: adopt new conventions
                     mode                                   = ant_mode;
 
                 } else if (aid == curr_station_info->ID) {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
                                     "Set TX ant mode on AID %d = %d \n", curr_station_info->ID, ant_mode);
-                    curr_station_info->tx.phy.antenna_mode = ant_mode;
+                    // curr_station_info->tx.phy.antenna_mode = ant_mode; //FIXME: adopt new conventions
                     mode                                   = ant_mode;
                     break;
                 }
@@ -4092,7 +4093,7 @@ u32 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
                 while ((curr_entry != NULL) && (iter-- > 0)) {
                     curr_station_info = (station_info_t*)(curr_entry->data);
                     if (aid == curr_station_info->ID) {
-                        mode = curr_station_info->tx.phy.antenna_mode;
+                        //mode = curr_station_info->tx.phy.antenna_mode; //FIXME: adopt new conventions
                         break;
                     }
                     curr_entry = dl_entry_next(curr_entry);

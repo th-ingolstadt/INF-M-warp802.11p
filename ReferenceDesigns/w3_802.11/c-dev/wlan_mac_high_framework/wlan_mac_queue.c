@@ -31,6 +31,7 @@
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_pkt_buf_util.h"
 #include "wlan_platform_common.h"
+#include "wlan_mac_station_info.h"
 
 // WLAN Exp includes
 #include "wlan_exp_common.h"
@@ -227,10 +228,6 @@ void purge_queue(u16 queue_sel){
 		//     is called).  If purge_queue used a while loop with no checking on the number of elements removed,
 		//     then it could conceivably run forever.
 		//
-		// TODO:  Currently, this is a relatively slow implementation.  It could be sped up dramatically if
-		//     it used the dl_entry_move() function.  However, this would need to be tested to make sure there
-		//     were no corner cases where the framework was currently transmitting element from that queue.
-		//
 		for (i = 0; i < num_queued; i++) {
 			// The queue purge is not interrupt safe
 			//     NOTE:  Since there could be many elements in the queue, we need to toggle the interrupts
@@ -240,6 +237,12 @@ void purge_queue(u16 queue_sel){
 			prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
 			curr_tx_queue_element = dequeue_from_head(queue_sel);
+
+			// Decrement the num_tx_queued field in the attached station_info_t. If this was the
+			// last queued packet for this station, this will allow the framework to recycle this
+			// station_info_t if it also has not been flagged as something to keep.
+			((tx_queue_buffer_t*)(curr_tx_queue_element->data))->station_info->num_tx_queued--;
+
 			queue_checkin(curr_tx_queue_element);
 
 			// Re-enable interrupts
@@ -297,6 +300,11 @@ void enqueue_after_tail(u16 queue_sel, dl_entry* tqe){
 	//         occupancy value includes itself.
 	//
 	((tx_queue_buffer_t*)(tqe->data))->tx_frame_info.queue_info.occupancy = (tx_queues[queue_sel].length & 0xFFFF);
+
+	//Increment the num_tx_queued field in the attached station_info_t. This will prevent
+	// the framework from removing the station_info_t out from underneath us while this
+	// packet is enqueued.
+	((tx_queue_buffer_t*)(tqe->data))->station_info->num_tx_queued++;
 
 	if(tx_queues[queue_sel].length == 1){
 		//If the queue element we just added is now the only member of this queue, we should inform
@@ -375,9 +383,7 @@ dl_entry* queue_checkout(){
 		tqe = ((dl_entry*)(free_queue.first));
 		dl_entry_remove(&free_queue,free_queue.first);
 
-		// Initialize the metadata type of the tx_queue entry since this
-		// framework does not guarantee a Tx Queue entry is all zero on checkout
-		((tx_queue_buffer_t*)(tqe->data))->metadata.metadata_type = QUEUE_METADATA_TYPE_IGNORE;
+		((tx_queue_buffer_t*)(tqe->data))->station_info = NULL;
 
 		// Set the Tx Packet Buffer state to uninitialized. This will be set to READY
 		// after dequeue and CDMA into the actual Tx packet buffer
@@ -549,6 +555,11 @@ inline int dequeue_transmit_checkin(u16 queue_sel){
 			//         packet buffer so that the queue element can be safely returned
 			//         to the free pool
 			wlan_mac_high_mpdu_transmit(curr_tx_queue_element, tx_pkt_buf);
+
+			// Decrement the num_tx_queued field in the attached station_info_t. If this was the
+			// last queued packet for this station, this will allow the framework to recycle this
+			// station_info_t if it also has not been flagged as something to keep.
+			((tx_queue_buffer_t*)(curr_tx_queue_element->data))->station_info->num_tx_queued--;
 
 			// Check in the Tx Queue element because it is not long being used
 			queue_checkin(curr_tx_queue_element);

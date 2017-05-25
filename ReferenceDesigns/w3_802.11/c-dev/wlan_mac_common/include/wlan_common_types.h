@@ -132,7 +132,7 @@ typedef struct tx_frame_info_t{
     tx_queue_details_t       	queue_info;                   ///< Information about the TX queue used for the packet (4 bytes)
     u16                       	num_tx_attempts;              ///< Number of transmission attempts for this frame
     u8                       	tx_result;                    ///< Result of transmission attempt - TX_MPDU_RESULT_SUCCESS or TX_MPDU_RESULT_FAILURE
-    u8                       	reserved;
+    u8                       	reserved0;
     //----- 8-byte boundary ------
     volatile tx_pkt_buf_state_t tx_pkt_buf_state;             ///< State of the Tx Packet Buffer
     u8                       	flags;                        ///< Bit flags en/disabling certain operations by the lower-level MAC
@@ -140,7 +140,7 @@ typedef struct tx_frame_info_t{
     u8                       	padding0;                     ///< Used for alignment of fields (can be appropriated for any future use)
 
     u16                      	length;                       ///< Number of bytes in MAC packet, including MAC header and FCS
-    u16                      	ID;                           ///< Station ID of the node to which this packet is addressed
+    u16                      	reserved1;
     //----- 8-byte boundary ------
 
     //

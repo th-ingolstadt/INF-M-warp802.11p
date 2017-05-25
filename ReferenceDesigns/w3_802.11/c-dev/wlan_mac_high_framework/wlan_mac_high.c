@@ -194,6 +194,7 @@ void wlan_mac_high_init(){
 	u32              log_size;
 #endif //WLAN_SW_CONFIG_ENABLE_LOGGING
 	XAxiCdma_Config* cdma_cfg_ptr;
+	station_info_t*	 station_info;
 
 	platform_high_dev_info   = wlan_platform_high_get_dev_info();
 	platform_common_dev_info = wlan_platform_common_get_dev_info();
@@ -438,6 +439,12 @@ void wlan_mac_high_init(){
 
 	network_info_init();
 	station_info_init();
+
+	//Add an always-kept station_info_t for the broadcast address
+	station_info = station_info_create((u8*)bcast_addr);
+	if(station_info) station_info->flags |= STATION_INFO_FLAG_KEEP;
+
+
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 	wlan_eth_util_init();
 #endif
@@ -1129,10 +1136,10 @@ void wlan_mac_high_cdma_finish_transfer(){
 void wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf) {
 	wlan_ipc_msg_t 		ipc_msg_to_low;
 	tx_frame_info_t* 	tx_frame_info;
-	station_info_t* 	station_info;
 	void* 				dest_addr;
 	void* 				src_addr;
 	u32 				xfer_len;
+	u8					frame_control_1;
 
 
 	tx_frame_info   = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf);
@@ -1156,23 +1163,19 @@ void wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf) {
 	// Unique_seq will be filled in by CPU_LOW
 	tx_frame_info->unique_seq = 0;
 
-	switch(((tx_queue_buffer_t*)(packet->data))->metadata.metadata_type){
-	    case QUEUE_METADATA_TYPE_IGNORE:
-		break;
+	// Pull first byte from the payload of the packet so we can determine whether
+	// it is a management or data type
+	frame_control_1 = *((u8*)tx_frame_info + sizeof(tx_frame_info_t) + PHY_TX_PKT_BUF_PHY_HDR_SIZE);
 
-		case QUEUE_METADATA_TYPE_STATION_INFO:
-			station_info = (station_info_t*)(((tx_queue_buffer_t*)(packet->data))->metadata.metadata_ptr);
-
-			//
-			// NOTE: this would be a good place to add code to handle the automatic adjustment of transmission properties like rate
-			//
-
-			memcpy(&(tx_frame_info->params), &(station_info->tx), sizeof(tx_params_t));
-		break;
-
-		case QUEUE_METADATA_TYPE_TX_PARAMS:
-			memcpy(&(tx_frame_info->params), (void*)(((tx_queue_buffer_t*)(packet->data))->metadata.metadata_ptr), sizeof(tx_params_t));
-		break;
+	if(((tx_queue_buffer_t*)(packet->data))->station_info == NULL){
+		// If there is no station_info tied to this enqueued packet, something must have gone wrong earlier
+		// (e.g. there wasn't room in aux. BRAM to create another station_info_t)
+	} else {
+		if( (frame_control_1 & MAC_FRAME_CTRL1_MASK_TYPE) == MAC_FRAME_CTRL1_TYPE_MGMT){
+			memcpy(&(tx_frame_info->params), &(((tx_queue_buffer_t*)(packet->data))->station_info->tx_params_mgmt), sizeof(tx_params_t));
+		} else {
+			memcpy(&(tx_frame_info->params), &(((tx_queue_buffer_t*)(packet->data))->station_info->tx_params_data), sizeof(tx_params_t));
+		}
 	}
 
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TX_PKT_BUF_READY);
@@ -2122,6 +2125,30 @@ int wlan_mac_high_update_beacon_tx_params(tx_params_t* tx_params_ptr) {
 	}
 
 	return 0;
+}
+
+tx_params_t wlan_mac_sanitize_tx_params(station_info_t* station_info, tx_params_t* tx_params){
+	tx_params_t tx_params_ret;
+	tx_params_ret = *tx_params;
+
+	 // Adjust MCS and PHY_MODE based upon HT_CAPABLE flag
+	 // Requested HT MCS: 0 1 2 3 4 5 6 7
+	 // Actual NONHT MCS: 0 2 3 4 5 6 7 7
+	if (station_info->flags & STATION_INFO_FLAG_HT_CAPABLE) {
+		// Station is capable of HTMF waveforms -- no need to modify tx_params_ret
+	} else {
+		if (tx_params->phy.phy_mode == PHY_MODE_HTMF) {
+			// Requested rate was HT, adjust the MCS corresponding to the table above
+			if ((tx_params->phy.mcs == 0) || (tx_params->phy.mcs == 7)) {
+				tx_params_ret.phy.mcs = tx_params->phy.mcs;
+			} else {
+				tx_params_ret.phy.mcs = tx_params->phy.mcs + 1;
+			}
+		} else {
+			// Requested rate was non-HT, so do not adjust MCS
+		}
+	}
+	return tx_params_ret;
 }
 
 #ifdef _DEBUG_

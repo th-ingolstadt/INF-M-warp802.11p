@@ -27,6 +27,7 @@ struct wlan_ipc_msg_t;
 struct beacon_txrx_configure_t;
 struct network_info_t;
 enum userio_input_mask_t;
+struct station_info_t;
 
 /********************************************************************
  * Auxiliary (AUX) BRAM and DRAM (DDR) Memory Maps
@@ -289,6 +290,9 @@ u8                 wlan_mac_high_is_pkt_ltg(void* mac_payload, u16 length);
 
 int                wlan_mac_high_configure_beacon_tx_template(struct mac_header_80211_common* tx_header_common_ptr, struct network_info_t* network_info, tx_params_t* tx_params_ptr, u8 flags);
 int                wlan_mac_high_update_beacon_tx_params(tx_params_t* tx_params_ptr);
+tx_params_t		   wlan_mac_sanitize_tx_params(struct station_info_t* station_info, tx_params_t* tx_params);
+
+
 
 
 // Common functions that must be implemented by users of the framework

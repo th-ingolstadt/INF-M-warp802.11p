@@ -31,6 +31,7 @@
 #include "wlan_mac_network_info.h"
 #include "wlan_platform_common.h"
 #include "wlan_mac_common.h"
+#include "wlan_common_types.h"
 
 /*********************** Global Variable Definitions *************************/
 
@@ -47,6 +48,18 @@ static dl_list               station_info_free;              ///< Free Counts
 static dl_list               station_info_list;              ///< Filled Counts
 
 
+
+// Default Transmission Parameters
+typedef struct default_tx_params_t{
+	tx_params_t unicast_mgmt;
+	tx_params_t unicast_data;
+	tx_params_t multicast_mgmt;
+	tx_params_t multicast_data;
+} default_tx_params_t;
+
+static default_tx_params_t default_tx_params;
+
+
 /*************************** Functions Prototypes ****************************/
 
 station_info_entry_t* station_info_find_oldest();
@@ -59,6 +72,15 @@ void station_info_init() {
 	u32       				i;
 	u32       				num_station_info;
 	station_info_entry_t*   station_info_entry_base;
+
+	// Set sane default Tx params. These will be overwritten by the user application
+	tx_params_t	tx_params = { .phy = { .mcs = 0, .phy_mode = PHY_MODE_NONHT, .antenna_mode = TX_ANTMODE_SISO_ANTA, .power = 15 },
+							  .mac = { .flags = 0 } };
+
+	station_info_set_default_tx_params(unicast_data, &tx_params);
+	station_info_set_default_tx_params(unicast_mgmt, &tx_params);
+	station_info_set_default_tx_params(mcast_data, &tx_params);
+	station_info_set_default_tx_params(mcast_mgmt, &tx_params);
 
 	dl_list_init(&station_info_free);
 	dl_list_init(&station_info_list);
@@ -430,7 +452,7 @@ void station_info_timestamp_check() {
 		curr_station_info = (station_info_t*)(curr_dl_entry->data);
 
 		if((get_system_time_usec() - curr_station_info->latest_txrx_timestamp) > STATION_INFO_TIMEOUT_USEC){
-			if((curr_station_info->flags & STATION_INFO_FLAG_KEEP) == 0){
+			if( ((curr_station_info->flags & STATION_INFO_FLAG_KEEP) == 0) && (curr_station_info->num_tx_queued <= 0) ){
 				station_info_clear(curr_station_info);
 				dl_entry_remove(&station_info_list, curr_dl_entry);
 				station_info_checkin(curr_dl_entry);
@@ -527,7 +549,7 @@ station_info_entry_t* station_info_find_oldest(){
 	while ((curr_station_info_entry != NULL) && (iter-- > 0)) {
 		station_info = curr_station_info_entry->data;
 
-		if ((station_info->flags & STATION_INFO_FLAG_KEEP) == 0) {
+		if (((station_info->flags & STATION_INFO_FLAG_KEEP) == 0) && (station_info->num_tx_queued <= 0)) {
 			return curr_station_info_entry;
 		}
 
@@ -581,6 +603,15 @@ station_info_t* station_info_create(u8* addr){
 
 		// Copy the addr to the station_info_entry_t
 		memcpy(curr_station_info_entry->addr, addr, MAC_ADDR_LEN);
+
+		// Set default tx_params_t for management and data frames
+		if (wlan_addr_mcast(addr)){
+			curr_station_info->tx_params_data = default_tx_params.multicast_data;
+			curr_station_info->tx_params_mgmt = default_tx_params.multicast_mgmt;
+		} else {
+			curr_station_info->tx_params_data = default_tx_params.unicast_data;
+			curr_station_info->tx_params_mgmt = default_tx_params.unicast_mgmt;
+		}
 	}
 
 	// Update the timestamp
@@ -622,7 +653,7 @@ void station_info_reset_all(){
 		next_dl_entry = dl_entry_next(curr_dl_entry);
 		curr_station_info = (station_info_t*)(curr_dl_entry->data);
 
-		if( (curr_station_info->flags & STATION_INFO_FLAG_KEEP) == 0){
+		if( ((curr_station_info->flags & STATION_INFO_FLAG_KEEP) == 0) && (curr_station_info->num_tx_queued <= 0)){
 			station_info_clear(curr_station_info);
 			dl_entry_remove(&station_info_list, curr_dl_entry);
 			station_info_checkin(curr_dl_entry);
@@ -688,8 +719,6 @@ inline dl_list* station_info_get_list(){
  *     - Address of station to add to the dl_list
  * @param  u16 requested_ID
  *     - Requested ID for the new station.  A value of 'ADD_STATION_INFO_ANY_ID' will use the next available AID.
- * @param  tx_params_t tx_params
- *     - Transmit parameters for the new station.
  * @param  u8 ht_capable
  *     - Is this station HT capable?  (This will set the station info HT_CAPABLE flag)
  * @return station_info *
@@ -700,7 +729,7 @@ inline dl_list* station_info_get_list(){
  *
  * @note   This function will not perform any filtering on the addr field
  */
-station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 requested_ID, tx_params_t* tx_params, u8 ht_capable){
+station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 requested_ID, u8 ht_capable){
 	station_info_entry_t* entry;
 	station_info_t*       station_info;
 	station_info_entry_t* curr_station_info_entry;
@@ -785,14 +814,11 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 			station_info->flags |= STATION_INFO_FLAG_HT_CAPABLE;
 		}
 
-		// Set the TX parameters
-		//     1) Do a blind copy of the TX parameters from the input argument.
-		//     2) Update the (mcs, phy_mode) parameters.  This will adjust the TX rate of the station
-		//        was not HT_CAPABLE and a HT rate was requested.
-		//
-		station_info->tx = *tx_params;
 
-		station_info_update_rate(station_info, tx_params->phy.mcs, tx_params->phy.phy_mode);
+		// Update the (mcs, phy_mode) parameters.  This will adjust the TX rate of the station
+		// was not HT_CAPABLE and a HT rate was requested.
+		station_info->tx_params_data = wlan_mac_sanitize_tx_params(station_info, &(station_info->tx_params_data));
+		station_info->tx_params_mgmt = wlan_mac_sanitize_tx_params(station_info, &(station_info->tx_params_mgmt));
 
 		// Set up the station ID
 		if(requested_ID == ADD_STATION_INFO_ANY_ID){
@@ -943,45 +969,38 @@ u8	station_info_is_member(dl_list* app_station_info_list, station_info_t* statio
 	return 0;
 }
 
+tx_params_t station_info_get_default_tx_params(default_tx_param_sel_t default_tx_param_sel){
+	tx_params_t ret;
 
-/**
- * @brief Update station_info TX rate
- *
- * Function will update the TX rate based on the passed in parameters.  This function will
- * honor the ht_capable flag of the station info.  If the station is not ht_capable, then
- * the function will map the (mcs, phy_mode) to the nearest NONHT MCS:
- *     Requested HT MCS: 0 1 2 3 4 5 6 7
- *     Actual NONHT MCS: 0 2 3 4 5 6 7 7
- *
- * @return int     - Status
- *                     -  0 - Rate set was rate given
- *                     - -1 - Rate set was adjusted from given rate
- *
- */
-int	station_info_update_rate(station_info_t* station_info, u8 mcs, u8 phy_mode) {
-	int status          = 0;
-	u8  tmp_mcs;
-
-	if (station_info->flags & STATION_INFO_FLAG_HT_CAPABLE) {
-		station_info->tx.phy.phy_mode = phy_mode;
-		station_info->tx.phy.mcs      = mcs;
-	} else {
-		if (phy_mode == PHY_MODE_HTMF) {
-			// Requested rate was HT, adjust the MCS corresponding to the table above
-			if ((mcs == 0) || (mcs == 7)) {
-				tmp_mcs = mcs;
-			} else {
-				tmp_mcs = mcs + 1;
-			}
-
-			status = -1;
-		} else {
-			// Requested rate was non-HT, so do not adjust MCS
-			tmp_mcs = mcs;
-		}
-
-		station_info->tx.phy.phy_mode = PHY_MODE_NONHT;
-		station_info->tx.phy.mcs      = tmp_mcs;
+	switch(default_tx_param_sel){
+		case unicast_mgmt:
+			ret = default_tx_params.unicast_mgmt;
+		break;
+		case unicast_data:
+			ret = default_tx_params.unicast_data;
+		break;
+		case mcast_mgmt:
+			ret = default_tx_params.multicast_mgmt;
+		break;
+		case mcast_data:
+			ret = default_tx_params.multicast_data;
+		break;
 	}
-	return status;
+	return ret;
+}
+void station_info_set_default_tx_params(default_tx_param_sel_t default_tx_param_sel, tx_params_t* tx_params){
+	switch(default_tx_param_sel){
+		case unicast_mgmt:
+			default_tx_params.unicast_mgmt = *tx_params;
+		break;
+		case unicast_data:
+			default_tx_params.unicast_data = *tx_params;
+		break;
+		case mcast_mgmt:
+			default_tx_params.multicast_mgmt = *tx_params;
+		break;
+		case mcast_data:
+			default_tx_params.multicast_data = *tx_params;
+		break;
+	}
 }

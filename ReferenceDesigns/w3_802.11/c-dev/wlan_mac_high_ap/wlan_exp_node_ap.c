@@ -42,7 +42,6 @@ CASSERT( (MAX_NUM_ASSOC ) <= STATION_INFO_DL_ENTRY_MEM_NUM, insufficient_WLAN_OP
 
 /*********************** Global Variable Definitions *************************/
 
-extern tx_params_t                default_unicast_data_tx_params;
 extern network_info_t*            active_network_info;
 
 extern function_ptr_t    		  wlan_exp_purge_all_data_tx_queue_callback;
@@ -435,7 +434,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 // Add association
                 //     - Set ht_capable argument to zero.  This will be set correctly by the code below based on the
                 //       flags of the command.
-                curr_station_info = station_info_add(&active_network_info->members, &mac_addr[0], ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params, 0);
+                curr_station_info = station_info_add(&active_network_info->members, &mac_addr[0], ADD_STATION_INFO_ANY_ID, 0);
 
                 // Set return parameters and print info to console
                 if (curr_station_info != NULL) {
@@ -467,7 +466,8 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 curr_station_info->flags = station_flags;
 
                 // Update the rate based on the flags that were set
-                station_info_update_rate(curr_station_info, default_unicast_data_tx_params.phy.mcs, default_unicast_data_tx_params.phy.phy_mode);
+                curr_station_info->tx_params_data = wlan_mac_sanitize_tx_params(curr_station_info, &(curr_station_info->tx_params_data));
+                curr_station_info->tx_params_mgmt = wlan_mac_sanitize_tx_params(curr_station_info, &(curr_station_info->tx_params_mgmt));
 
                 // Re-enable interrupts
                 wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
