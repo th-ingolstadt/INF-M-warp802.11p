@@ -194,7 +194,6 @@ void wlan_mac_high_init(){
 	u32              log_size;
 #endif //WLAN_SW_CONFIG_ENABLE_LOGGING
 	XAxiCdma_Config* cdma_cfg_ptr;
-	station_info_t*	 station_info;
 
 	platform_high_dev_info   = wlan_platform_high_get_dev_info();
 	platform_common_dev_info = wlan_platform_common_get_dev_info();
@@ -440,10 +439,8 @@ void wlan_mac_high_init(){
 	network_info_init();
 	station_info_init();
 
-	//Add an always-kept station_info_t for the broadcast address
-	station_info = station_info_create((u8*)bcast_addr);
-	if(station_info) station_info->flags |= STATION_INFO_FLAG_KEEP;
-
+	station_info_t* station_info = station_info_create((u8*)bcast_addr);
+	station_info->flags |= STATION_INFO_FLAG_KEEP;
 
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 	wlan_eth_util_init();
@@ -1282,6 +1279,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t* msg, u32* ipc_msg_from_low_pa
 	rx_frame_info_t*    		rx_frame_info;
 	tx_frame_info_t*    		tx_frame_info;
 
+
     // Determine what type of message this is
 	switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)) {
 
@@ -1299,6 +1297,9 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t* msg, u32* ipc_msg_from_low_pa
 					tx_low_details = (wlan_mac_low_tx_details_t*)(msg->payload_ptr);
 
 					tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
+
+					//We will pass this completed transmission off to the Station Info subsystem
+					station_info_tx_process((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf)));
 
 #if WLAN_SW_CONFIG_ENABLE_LOGGING
 					// Log the TX low
@@ -2139,6 +2140,7 @@ tx_params_t wlan_mac_sanitize_tx_params(station_info_t* station_info, tx_params_
 	} else {
 		if (tx_params->phy.phy_mode == PHY_MODE_HTMF) {
 			// Requested rate was HT, adjust the MCS corresponding to the table above
+			tx_params_ret.phy.phy_mode = PHY_MODE_NONHT;
 			if ((tx_params->phy.mcs == 0) || (tx_params->phy.mcs == 7)) {
 				tx_params_ret.phy.mcs = tx_params->phy.mcs;
 			} else {

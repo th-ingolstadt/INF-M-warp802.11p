@@ -181,14 +181,18 @@ int main(){
 	tx_params_t	tx_params = { .phy = { .mcs = 3, .phy_mode = PHY_MODE_HTMF, .antenna_mode = WLAN_DEFAULT_TX_ANTENNA, .power = WLAN_DEFAULT_TX_PWR },
 							  .mac = { .flags = 0 } };
 
-	station_info_set_default_tx_params(unicast_data, &tx_params);
+	wlan_mac_set_default_tx_params(unicast_data, &tx_params);
 
 	tx_params.phy.mcs = 0;
 	tx_params.phy.phy_mode = PHY_MODE_NONHT;
 
-	station_info_set_default_tx_params(unicast_mgmt, &tx_params);
-	station_info_set_default_tx_params(mcast_data, &tx_params);
-	station_info_set_default_tx_params(mcast_mgmt, &tx_params);
+	wlan_mac_set_default_tx_params(unicast_mgmt, &tx_params);
+	wlan_mac_set_default_tx_params(mcast_data, &tx_params);
+	wlan_mac_set_default_tx_params(mcast_mgmt, &tx_params);
+
+	// Re-apply the defaults to any existing station_info_t structs that this AP
+	// knows about
+	wlan_mac_reapply_default_tx_params();
 
 	// Initialize callbacks
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE

@@ -36,16 +36,16 @@
 /*********************** Global Variable Definitions *************************/
 
 
-extern platform_high_dev_info_t	 platform_high_dev_info;
+extern platform_high_dev_info_t platform_high_dev_info;
 
 /*************************** Variable Definitions ****************************/
 
-static dl_list               station_info_free;              ///< Free Counts
+static dl_list station_info_free; ///< Free station_info_t
 
 /// The counts_txrx_list is stored chronologically from .first being oldest
 /// and .last being newest. The "find" function search from last to first
 /// to minimize search time for new BSSes you hear from often.
-static dl_list               station_info_list;              ///< Filled Counts
+static dl_list station_info_list; ///< Filled station_info_t
 
 
 
@@ -77,10 +77,10 @@ void station_info_init() {
 	tx_params_t	tx_params = { .phy = { .mcs = 0, .phy_mode = PHY_MODE_NONHT, .antenna_mode = TX_ANTMODE_SISO_ANTA, .power = 15 },
 							  .mac = { .flags = 0 } };
 
-	station_info_set_default_tx_params(unicast_data, &tx_params);
-	station_info_set_default_tx_params(unicast_mgmt, &tx_params);
-	station_info_set_default_tx_params(mcast_data, &tx_params);
-	station_info_set_default_tx_params(mcast_mgmt, &tx_params);
+	wlan_mac_set_default_tx_params(unicast_data, &tx_params);
+	wlan_mac_set_default_tx_params(unicast_mgmt, &tx_params);
+	wlan_mac_set_default_tx_params(mcast_data, &tx_params);
+	wlan_mac_set_default_tx_params(mcast_mgmt, &tx_params);
 
 	dl_list_init(&station_info_free);
 	dl_list_init(&station_info_list);
@@ -118,7 +118,6 @@ void station_info_init_finish(){
 inline station_info_t* station_info_tx_process(void* pkt_buf_addr) {
 	tx_frame_info_t*      	tx_frame_info  	  = (tx_frame_info_t*)pkt_buf_addr;
 	mac_header_80211* 		tx_80211_header   = (mac_header_80211*)((u8*)tx_frame_info + PHY_TX_PKT_BUF_MPDU_OFFSET);
-	station_info_entry_t*	curr_station_info_entry;
 	station_info_t*			curr_station_info;
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
 	station_txrx_counts_t*	curr_txrx_counts;
@@ -130,46 +129,9 @@ inline station_info_t* station_info_tx_process(void* pkt_buf_addr) {
 	pkt_type = (tx_80211_header->frame_control_1 & MAC_FRAME_CTRL1_MASK_TYPE);
 #endif
 
-	curr_station_info_entry = station_info_find_by_addr(tx_80211_header->address_1, NULL);
+	curr_station_info = station_info_create(tx_80211_header->address_1);
 
-	if(curr_station_info_entry != NULL){
-		curr_station_info = curr_station_info_entry->data;
-
-		// Remove entry from station_info_list; Will be added back at the bottom of the function
-		// This serves to sort the list and keep the most recently updated entries at the tail.
-		dl_entry_remove(&station_info_list, (dl_entry*)curr_station_info_entry);
-	} else {
-		// We haven't seen this addr before, so we'll attempt to checkout a new dl_entry
-		// struct from the free pool
-		curr_station_info_entry = station_info_checkout();
-
-		if (curr_station_info_entry == NULL){
-			// No free dl_entry!
-			// We'll have to reallocate the oldest entry in the filled list
-			curr_station_info_entry = station_info_find_oldest();
-
-			if (curr_station_info_entry != NULL) {
-				dl_entry_remove(&station_info_list, (dl_entry*)curr_station_info_entry);
-			} else {
-				xil_printf("Cannot create station_info_t.\n");
-				return NULL;
-			}
-		}
-
-		curr_station_info = curr_station_info_entry->data;
-
-		// Clear any old information from the Tx/Rx counts
-		station_info_clear(curr_station_info);
-
-		// Copy addr into station_info_t struct
-		memcpy(curr_station_info->addr, tx_80211_header->address_1, MAC_ADDR_LEN);
-
-		// Copy addr into station_info_entry_t struct
-		memcpy(curr_station_info_entry->addr, tx_80211_header->address_1, MAC_ADDR_LEN);
-
-		// Zero the station_info_entry_t id field
-		curr_station_info_entry->id = 0;
-	}
+	if(curr_station_info == NULL) return NULL;
 
 	// By this point in the function, curr_station_info is guaranteed to be pointing to a valid station_info_t struct
 	// that we should update with this reception.
@@ -213,9 +175,6 @@ inline station_info_t* station_info_tx_process(void* pkt_buf_addr) {
 	}
 #endif
 
-	// Add Station Info into station_info_list
-	dl_entry_insertEnd(&station_info_list, (dl_entry*)curr_station_info_entry);
-
 	return curr_station_info;
 
 }
@@ -224,7 +183,6 @@ inline station_info_t* station_info_rx_process(void* pkt_buf_addr) {
 	rx_frame_info_t*    	rx_frame_info   	     = (rx_frame_info_t*)pkt_buf_addr;
 	void*               	mac_payload              = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
 	mac_header_80211*   	rx_80211_header          = (mac_header_80211*)((void *)mac_payload);
-	station_info_entry_t*	curr_station_info_entry;
 	station_info_t*			curr_station_info		 = NULL;
 	u8						pkt_type;
 	u64						curr_system_time 		 = get_system_time_usec();
@@ -238,45 +196,13 @@ inline station_info_t* station_info_rx_process(void* pkt_buf_addr) {
 		// control frames will not be considered for counts either since the CTS
 		// and ACK frames have no addr2 field.
 
-		curr_station_info_entry = station_info_find_by_addr(rx_80211_header->address_2, NULL);
+		curr_station_info = station_info_create(rx_80211_header->address_2);
 
-		if(curr_station_info_entry != NULL){
-			curr_station_info = curr_station_info_entry->data;
-			// Remove entry from station_info_list; Will be added back at the bottom of the function
-			// This serves to sort the list and keep the most recently updated entries at the tail.
-			dl_entry_remove(&station_info_list, (dl_entry*)curr_station_info_entry);
-		} else {
-			// We haven't seen this addr before, so we'll attempt to checkout a new dl_entry
-			// struct from the free pool
-			curr_station_info_entry = station_info_checkout();
+		if(curr_station_info == NULL) return NULL;
 
-			if (curr_station_info_entry == NULL){
-				// No free dl_entry!
-				// We'll have to reallocate the oldest entry in the filled list
-				curr_station_info_entry = station_info_find_oldest();
-
-				if (curr_station_info_entry != NULL) {
-					dl_entry_remove(&station_info_list, (dl_entry*)curr_station_info_entry);
-				} else {
-					xil_printf("Cannot create station_info_t.\n");
-					return NULL;
-				}
-			}
-
-			curr_station_info = curr_station_info_entry->data;
-
-			// Clear any old information from the Tx/Rx counts
-			station_info_clear(curr_station_info);
-
-			// Copy addr into station_info_t struct
-			memcpy(curr_station_info->addr, rx_80211_header->address_2, MAC_ADDR_LEN);
-
-			// Copy addr into station_info_entry_t struct
-			memcpy(curr_station_info_entry->addr, rx_80211_header->address_2, MAC_ADDR_LEN);
-
-			// Zero the station_info_entry_t id field
-			curr_station_info_entry->id = 0;
-		}
+		// If this reception is HTMF, we have a pretty good indication that this device
+		// is capable of also receiving HTMF waveforms. We'll update its flags accordingly
+		curr_station_info->flags |= STATION_INFO_FLAG_HT_CAPABLE;
 
 		// By this point in the function, curr_station_info is guaranteed to be pointing to a valid station_info_t struct
 		// that we should update with this reception.
@@ -287,8 +213,6 @@ inline station_info_t* station_info_rx_process(void* pkt_buf_addr) {
 		// Update the latest RX time
 		curr_station_info->latest_rx_timestamp = curr_system_time;
 
-		// Add Station Info into station_info_list
-		dl_entry_insertEnd(&station_info_list, (dl_entry*)curr_station_info_entry);
 	}
 
 	return curr_station_info;
@@ -372,12 +296,20 @@ void	station_info_print(dl_list* list, u32 option_flags){
 															  curr_station_info->addr[4],curr_station_info->addr[5]);
 
 
-		if((list != NULL) && (curr_station_info->flags & STATION_INFO_FLAG_KEEP)){
+		if((curr_station_info->flags & STATION_INFO_FLAG_KEEP)){
 			xil_printf("(KEEP)\n");
 		} else {
 			xil_printf("\n");
 		}
 
+		xil_printf(" Num Tx Queued: %d\n", curr_station_info->num_tx_queued);
+
+		xil_printf(" Data Tx MCS:            %d\n", curr_station_info->tx_params_data.phy.mcs);
+		xil_printf(" Data Tx PHY mode:       %d\n", curr_station_info->tx_params_data.phy.phy_mode);
+		xil_printf(" Data Tx power:          %d\n", curr_station_info->tx_params_data.phy.power);
+		xil_printf(" Management Tx MCS:      %d\n", curr_station_info->tx_params_mgmt.phy.mcs);
+		xil_printf(" Management Tx PHY mode: %d\n", curr_station_info->tx_params_mgmt.phy.phy_mode);
+		xil_printf(" Management Tx power:    %d\n", curr_station_info->tx_params_mgmt.phy.power);
 
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
 		if(option_flags & STATION_INFO_PRINT_OPTION_FLAG_INCLUDE_COUNTS){
@@ -609,8 +541,8 @@ station_info_t* station_info_create(u8* addr){
 			curr_station_info->tx_params_data = default_tx_params.multicast_data;
 			curr_station_info->tx_params_mgmt = default_tx_params.multicast_mgmt;
 		} else {
-			curr_station_info->tx_params_data = default_tx_params.unicast_data;
-			curr_station_info->tx_params_mgmt = default_tx_params.unicast_mgmt;
+			curr_station_info->tx_params_data = wlan_mac_sanitize_tx_params(curr_station_info, &default_tx_params.unicast_data);
+			curr_station_info->tx_params_mgmt = wlan_mac_sanitize_tx_params(curr_station_info, &default_tx_params.unicast_mgmt);
 		}
 	}
 
@@ -988,7 +920,7 @@ tx_params_t station_info_get_default_tx_params(default_tx_param_sel_t default_tx
 	}
 	return ret;
 }
-void station_info_set_default_tx_params(default_tx_param_sel_t default_tx_param_sel, tx_params_t* tx_params){
+void wlan_mac_set_default_tx_params(default_tx_param_sel_t default_tx_param_sel, tx_params_t* tx_params){
 	switch(default_tx_param_sel){
 		case unicast_mgmt:
 			default_tx_params.unicast_mgmt = *tx_params;
@@ -1003,4 +935,30 @@ void station_info_set_default_tx_params(default_tx_param_sel_t default_tx_param_
 			default_tx_params.multicast_data = *tx_params;
 		break;
 	}
+}
+
+void wlan_mac_reapply_default_tx_params(){
+	station_info_entry_t* station_info_entry;
+	station_info_t*	station_info;
+	int iter;
+
+	station_info_entry = (station_info_entry_t*)(station_info_list.first);
+	iter = station_info_list.length;
+
+	while( (station_info_entry != NULL) && (iter-- > 0) ){
+		station_info = station_info_entry->data;
+
+		if (wlan_addr_mcast(station_info_entry->addr)){
+			station_info->tx_params_data = default_tx_params.multicast_data;
+			station_info->tx_params_mgmt = default_tx_params.multicast_mgmt;
+		} else {
+			station_info->tx_params_data = wlan_mac_sanitize_tx_params(station_info, &default_tx_params.unicast_data);
+			station_info->tx_params_mgmt = wlan_mac_sanitize_tx_params(station_info, &default_tx_params.unicast_mgmt);
+		}
+		station_info_entry = (station_info_entry_t*)dl_entry_next((dl_entry*)station_info_entry);
+	}
+
+	// Update the beacon template if it's being used. For projects like STA, this function will not result in any behavior changes
+	wlan_mac_high_update_beacon_tx_params(&(default_tx_params.multicast_mgmt));
+
 }
