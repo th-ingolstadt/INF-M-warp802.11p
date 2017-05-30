@@ -882,8 +882,6 @@ u32 transport_update_link_speed(u32 eth_dev_num, u32 wait_for_negotiation) {
 
         reg_val = transport_get_ethernet_status(eth_dev_num);
 
-        xil_printf("here!\n");//FIXME DEBUG
-
         if (wait_for_negotiation == ETH_WAIT_FOR_AUTO_NEGOTIATION) {
 
             while((reg_val & ETH_PHY_REG_17_0_SPEED_RESOLVED) == 0) {

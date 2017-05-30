@@ -1157,7 +1157,7 @@ void remove_inactive_station_infos() {
 
 			time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
 
-			xil_printf("*%dh:%02dm:%02ds* STA 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x has disassociated\n",
+			xil_printf("*%dh:%02dm:%02ds* STA %02x:%02x:%02x:%02x:%02x:%02x has disassociated\n",
 					time_hr_min_sec.hr, time_hr_min_sec.min, time_hr_min_sec.sec,
 					curr_station_info->addr[0], curr_station_info->addr[1], curr_station_info->addr[2],
 					curr_station_info->addr[3], curr_station_info->addr[4], curr_station_info->addr[5]);
@@ -1556,7 +1556,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 								if(auth_unassoc_station_info != NULL){
 									auth_unassoc_station_info->flags |= STATION_INFO_FLAG_KEEP;
 									time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
-									xil_printf("*%dh:%02dm:%02ds* STA 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x is now authenticated / unassociated\n",
+									xil_printf("*%dh:%02dm:%02ds* STA %02x:%02x:%02x:%02x:%02x:%02x is now authenticated / unassociated\n",
 											time_hr_min_sec.hr, time_hr_min_sec.min, time_hr_min_sec.sec,
 											rx_80211_header->address_2[0], rx_80211_header->address_2[1], rx_80211_header->address_2[2],
 											rx_80211_header->address_2[3], rx_80211_header->address_2[4], rx_80211_header->address_2[5]);
@@ -1691,7 +1691,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 							//       correct value from the tagged parameters in the association request.
 							if (station_info_add(&active_network_info->members, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, 0) != NULL){
 								time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
-								xil_printf("*%dh:%02dm:%02ds* STA 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x is now associated\n",
+								xil_printf("*%dh:%02dm:%02ds* STA %02x:%02x:%02x:%02x:%02x:%02x is now associated\n",
 										time_hr_min_sec.hr, time_hr_min_sec.min, time_hr_min_sec.sec,
 										rx_80211_header->address_2[0], rx_80211_header->address_2[1], rx_80211_header->address_2[2],
 										rx_80211_header->address_2[3], rx_80211_header->address_2[4], rx_80211_header->address_2[5]);
@@ -1802,7 +1802,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 
 						time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
 
-						xil_printf("*%dh:%02dm:%02ds* STA 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x has disassociated\n",
+						xil_printf("*%dh:%02dm:%02ds* STA %02x:%02x:%02x:%02x:%02x:%02x has disassociated\n",
 								time_hr_min_sec.hr, time_hr_min_sec.min, time_hr_min_sec.sec,
 								rx_80211_header->address_2[0], rx_80211_header->address_2[1], rx_80211_header->address_2[2],
 								rx_80211_header->address_2[3], rx_80211_header->address_2[4], rx_80211_header->address_2[5]);
@@ -1947,7 +1947,7 @@ u32  deauthenticate_station( station_info_t* station_info ) {
 
 	time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
 
-	xil_printf("*%dh:%02dm:%02ds* STA 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x has disassociated\n",
+	xil_printf("*%dh:%02dm:%02ds* STA %02x:%02x:%02x:%02x:%02x:%02x has disassociated\n",
 			time_hr_min_sec.hr, time_hr_min_sec.min, time_hr_min_sec.sec,
 			station_info->addr[0], station_info->addr[1], station_info->addr[2],
 			station_info->addr[3], station_info->addr[4], station_info->addr[5]);
@@ -2170,7 +2170,7 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 
 					time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
 
-					xil_printf("*%dh:%02dm:%02ds* STA 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x has disassociated\n",
+					xil_printf("*%dh:%02dm:%02ds* STA %02x:%02x:%02x:%02x:%02x:%02x has disassociated\n",
 							time_hr_min_sec.hr, time_hr_min_sec.min, time_hr_min_sec.sec,
 							curr_station_info->addr[0], curr_station_info->addr[1], curr_station_info->addr[2],
 							curr_station_info->addr[3], curr_station_info->addr[4], curr_station_info->addr[5]);

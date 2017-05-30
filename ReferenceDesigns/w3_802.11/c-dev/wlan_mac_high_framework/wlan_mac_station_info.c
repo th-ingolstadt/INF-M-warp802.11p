@@ -697,7 +697,6 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 		station_info = (station_info_t*)(entry->data);
 		// This addr is already tied to an list entry. We'll just pass this call
 		// the pointer to that entry back to the calling function without creating a new entry
-
 		return station_info;
 	} else {
 
@@ -723,8 +722,6 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 		entry->data = (void*)station_info;
 
 		station_info->ID          = 0;
-		station_info->hostname[0] = 0;
-		station_info->flags       = 0;
 
 		// Initialize the latest activity timestamp
 		//     NOTE:  This is so we don't run into a race condition when we try to check the association timeout
@@ -825,7 +822,7 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 		}
 
 		// Print our station_infos on the UART
-		// station_info_print(app_station_info_list, 0);
+		//station_info_print(app_station_info_list, 0);
 		return station_info;
 	}
 }
