@@ -1403,8 +1403,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             * Default Multicast Data Packet Tx Power for new station infos
             * Control Packet Tx Power
 
-        It will also update the transmit power of all current station infos
-        that are part of the BSS on the node.
+        It will also update the transmit power for any frames destined for any
+        known stations.
 
         Args:
             power (int):  Transmit power in dBm (a value between 
