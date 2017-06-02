@@ -25,6 +25,8 @@ struct station_info_t;
 struct rx_common_entry;
 struct network_info_t;
 enum scan_state_t;
+struct tx_queue_buffer_t;
+struct tx_frame_info_t;
 
 //-----------------------------------------------
 // Enable the WLAN UART Menu
@@ -77,8 +79,9 @@ int  ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src
 u32 mpdu_rx_process(void* pkt_buf_addr, struct station_info_t* station_info, struct rx_common_entry* rx_event_log_entry);
 struct network_info_t* active_network_info_getter();
 void process_scan_state_change(enum scan_state_t scan_state);
-u8 poll_tx_queues(pkt_buf_group_t pkt_buf_group);
+void poll_tx_queues();
 void purge_all_data_tx_queue();
+void mpdu_dequeue(struct tx_queue_buffer_t* tx_queue_buffer, struct tx_frame_info_t* tx_frame_info);
 
 
 void uart_rx(u8 rxByte);

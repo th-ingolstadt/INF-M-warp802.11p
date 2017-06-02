@@ -1137,19 +1137,23 @@ void wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf) {
 	void* 				src_addr;
 	u32 				xfer_len;
 	u8					frame_control_1;
-
+	tx_queue_buffer_t*	tx_queue_buffer;
 
 	tx_frame_info   = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf);
+	tx_queue_buffer = (tx_queue_buffer_t*)(packet->data);
+
+	tx_frame_info->length = tx_queue_buffer->length;
+	tx_frame_info->queue_info = tx_queue_buffer->queue_info;
 
     // Call user code to notify it of dequeue
-	mpdu_tx_dequeue_callback(packet);
+	mpdu_tx_dequeue_callback(tx_queue_buffer, tx_frame_info);
 
     // Set local variables
     //     NOTE:  This must be done after the mpdu_tx_dequeue_callback since that call can
     //         modify the packet contents.
-	dest_addr = (void*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf);
-	src_addr  = (void*) (&(((tx_queue_buffer_t*)(packet->data))->tx_frame_info));
-	xfer_len  = ((tx_queue_buffer_t*)(packet->data))->tx_frame_info.length + sizeof(tx_frame_info_t) + PHY_TX_PKT_BUF_PHY_HDR_SIZE - WLAN_PHY_FCS_NBYTES;
+	dest_addr = (void*)(((u8*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf)) + sizeof(tx_frame_info_t) + PHY_TX_PKT_BUF_PHY_HDR_SIZE);
+	src_addr = (void *)&(tx_queue_buffer->frame);
+	xfer_len  = tx_frame_info->length - WLAN_PHY_FCS_NBYTES;
 
 	// Transfer the frame info
 	wlan_mac_high_cdma_start_transfer( dest_addr, src_addr, xfer_len);
@@ -1219,46 +1223,6 @@ void wlan_mac_high_setup_tx_header(mac_header_80211_common* header, u8* addr_1, 
 	// Set up Addresses in common header
 	header->address_1 = addr_1;
     header->address_3 = addr_3;
-}
-
-
-
-/**
- * @brief Set up the 802.11 Header
- *
- * @param  mac_header_80211_common * header
- *     - Pointer to the 802.11 header
- * @param  dl_entry * curr_tx_queue_element
- *     - Pointer to the TX queue element
- * @param  u32 tx_length
- *     - Length of the frame info
- * @param  tx_frame_info_flags_bf flags
- *     - Flags for the frame info
- * @param  u8 queue_id
- *     - Queue ID
- * @param pkt_buf_group_t pkt_buf_group
- * 	   - Packet Buffer Group
- * @return None
- */
-void wlan_mac_high_setup_tx_frame_info(mac_header_80211_common* header, dl_entry* curr_tx_queue_element, u32 tx_length, u8 flags, u8 queue_id, pkt_buf_group_t pkt_buf_group) {
-
-	u16 occupancy;
-
-	tx_queue_buffer_t* curr_tx_queue_buffer = ((tx_queue_buffer_t*)(curr_tx_queue_element->data));
-
-    // Get occupancy that was filled in during the enqueue_after_tail() call
-	occupancy = curr_tx_queue_buffer->tx_frame_info.queue_info.occupancy;
-
-	bzero(&(curr_tx_queue_buffer->tx_frame_info), sizeof(tx_frame_info_t));
-
-	// Set up frame info data
-	curr_tx_queue_buffer->tx_frame_info.timestamp_create            = get_mac_time_usec();
-	curr_tx_queue_buffer->tx_frame_info.length                      = tx_length;
-	curr_tx_queue_buffer->tx_frame_info.flags                       = flags;
-	curr_tx_queue_buffer->tx_frame_info.queue_info.id               = queue_id;
-	curr_tx_queue_buffer->tx_frame_info.queue_info.occupancy        = occupancy;
-	curr_tx_queue_buffer->tx_frame_info.queue_info.pkt_buf_group    = pkt_buf_group;
-
 }
 
 /**
@@ -1432,7 +1396,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t* msg, u32* ipc_msg_from_low_pa
 
 						//We can now attempt to dequeue any pending transmissions before we fully process
 						//this done message.
-						tx_poll_callback(tx_frame_info->queue_info.pkt_buf_group);
+						tx_poll_callback();
 
 						//We will pass this completed transmission off to the Station Info subsystem
 						station_info = station_info_tx_process((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf)));
@@ -1501,8 +1465,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t* msg, u32* ipc_msg_from_low_pa
 					if(low_param_random_seed != 0xFFFFFFFF) wlan_mac_high_set_srand(low_param_random_seed);
 
 					// Attempt to dequeue and fill any available Tx packet buffers
-					while(tx_poll_callback(PKT_BUF_GROUP_GENERAL)){}
-					while(tx_poll_callback(PKT_BUF_GROUP_DTIM_MCAST)){}
+					tx_poll_callback();
 				break;
 
 				case CPU_STATUS_REASON_RESPONSE:
@@ -1943,7 +1906,7 @@ int wlan_mac_high_is_cpu_low_initialized(){
  *     - 1 if CPU low is ready to transmit
  */
 
-inline int wlan_mac_high_is_dequeue_allowed(pkt_buf_group_t pkt_buf_group){
+inline int wlan_mac_is_tx_pkt_buf_available(pkt_buf_group_t pkt_buf_group){
 
 	u8 i, num_empty, num_low_owned;
 
@@ -1987,8 +1950,8 @@ int wlan_mac_high_get_empty_tx_packet_buffer(){
 
 	//TODO: Debate: This function assumes that it is currently safe to take control
 	// of an empty Tx packet buffer. In other words, it is the responsibility of the
-	// the calling function to ensure that wlan_mac_high_is_dequeue_allowed() == 1.
-	// For extra safety, we could call wlan_mac_high_is_dequeue_allowed() here at the
+	// the calling function to ensure that wlan_mac_is_tx_pkt_buf_available() == 1.
+	// For extra safety, we could call wlan_mac_is_tx_pkt_buf_available() here at the
 	// expensive of another search through the three packet buffers.
 
 	u8 i;
@@ -2073,12 +2036,12 @@ int wlan_mac_high_configure_beacon_tx_template(mac_header_80211_common* tx_heade
 	bzero(tx_frame_info, sizeof(tx_frame_info_t));
 
 	// Set up frame info data
-	tx_frame_info->timestamp_create            = get_mac_time_usec();
-	tx_frame_info->length                      = tx_length;
-	tx_frame_info->flags                       = flags;
-	tx_frame_info->queue_info.id			   = 0xFF;
-	tx_frame_info->queue_info.pkt_buf_group	   = PKT_BUF_GROUP_OTHER;
-	tx_frame_info->queue_info.occupancy 	   = 0;
+	tx_frame_info->queue_info.enqueue_timestamp = get_mac_time_usec();
+	tx_frame_info->length = tx_length;
+	tx_frame_info->flags = flags;
+	tx_frame_info->queue_info.id = 0xFF;
+	tx_frame_info->queue_info.pkt_buf_group = PKT_BUF_GROUP_OTHER;
+	tx_frame_info->queue_info.occupancy = 0;
 
 
 	// Unique_seq will be filled in by CPU_LOW

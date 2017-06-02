@@ -465,10 +465,6 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 // Update the station_info flags
                 curr_station_info->flags = station_flags;
 
-                // Update the rate based on the flags that were set
-                curr_station_info->tx_params_data = wlan_mac_sanitize_tx_params(curr_station_info, &(curr_station_info->tx_params_data));
-                curr_station_info->tx_params_mgmt = wlan_mac_sanitize_tx_params(curr_station_info, &(curr_station_info->tx_params_mgmt));
-
                 // Re-enable interrupts
                 wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 

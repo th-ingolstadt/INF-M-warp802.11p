@@ -304,6 +304,7 @@ void	station_info_print(dl_list* list, u32 option_flags){
 
 		xil_printf(" Num Tx Queued: %d\n", curr_station_info->num_tx_queued);
 
+		xil_printf(" Flags:					 0x%08x\n", curr_station_info->flags);//FIXME DEBUG
 		xil_printf(" Data Tx MCS:            %d\n", curr_station_info->tx_params_data.phy.mcs);
 		xil_printf(" Data Tx PHY mode:       %d\n", curr_station_info->tx_params_data.phy.phy_mode);
 		xil_printf(" Data Tx power:          %d\n", curr_station_info->tx_params_data.phy.power);
@@ -541,8 +542,8 @@ station_info_t* station_info_create(u8* addr){
 			curr_station_info->tx_params_data = default_tx_params.multicast_data;
 			curr_station_info->tx_params_mgmt = default_tx_params.multicast_mgmt;
 		} else {
-			curr_station_info->tx_params_data = wlan_mac_sanitize_tx_params(curr_station_info, &default_tx_params.unicast_data);
-			curr_station_info->tx_params_mgmt = wlan_mac_sanitize_tx_params(curr_station_info, &default_tx_params.unicast_mgmt);
+			curr_station_info->tx_params_data = default_tx_params.unicast_data;
+			curr_station_info->tx_params_mgmt = default_tx_params.unicast_mgmt;
 		}
 	}
 
@@ -742,12 +743,6 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 		if (ht_capable) {
 			station_info->flags |= STATION_INFO_FLAG_HT_CAPABLE;
 		}
-
-
-		// Update the (mcs, phy_mode) parameters.  This will adjust the TX rate of the station
-		// was not HT_CAPABLE and a HT rate was requested.
-		station_info->tx_params_data = wlan_mac_sanitize_tx_params(station_info, &(station_info->tx_params_data));
-		station_info->tx_params_mgmt = wlan_mac_sanitize_tx_params(station_info, &(station_info->tx_params_mgmt));
 
 		// Set up the station ID
 		if(requested_ID == ADD_STATION_INFO_ANY_ID){
@@ -949,8 +944,8 @@ void wlan_mac_reapply_default_tx_params(){
 			station_info->tx_params_data = default_tx_params.multicast_data;
 			station_info->tx_params_mgmt = default_tx_params.multicast_mgmt;
 		} else {
-			station_info->tx_params_data = wlan_mac_sanitize_tx_params(station_info, &default_tx_params.unicast_data);
-			station_info->tx_params_mgmt = wlan_mac_sanitize_tx_params(station_info, &default_tx_params.unicast_mgmt);
+			station_info->tx_params_data = default_tx_params.unicast_data;
+			station_info->tx_params_mgmt = default_tx_params.unicast_mgmt;
 		}
 		station_info_entry = (station_info_entry_t*)dl_entry_next((dl_entry*)station_info_entry);
 	}

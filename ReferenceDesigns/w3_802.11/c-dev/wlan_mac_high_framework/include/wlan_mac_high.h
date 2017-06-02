@@ -262,8 +262,6 @@ void               wlan_mac_high_cdma_finish_transfer();
 void               wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf);
 
 void               wlan_mac_high_setup_tx_header(struct mac_header_80211_common* header, u8* addr_1, u8* addr_3);
-void 			   wlan_mac_high_setup_tx_frame_info(struct mac_header_80211_common* header, dl_entry* curr_tx_queue_element, u32 tx_length, u8 flags, u8 queue_id, pkt_buf_group_t pkt_buf_group);
-
 
 void 			   wlan_mac_high_process_ipc_msg(struct wlan_ipc_msg_t* msg, u32* ipc_msg_from_low_payload);
 
@@ -284,7 +282,7 @@ int                wlan_mac_high_write_low_param(u32 num_words, u32* payload);
 
 void               wlan_mac_high_request_low_state();
 int 			   wlan_mac_high_is_cpu_low_initialized();
-int         	   wlan_mac_high_is_dequeue_allowed(pkt_buf_group_t pkt_buf_group);
+int         	   wlan_mac_is_tx_pkt_buf_available(pkt_buf_group_t pkt_buf_group);
 int                wlan_mac_high_get_empty_tx_packet_buffer();
 u8                 wlan_mac_high_is_pkt_ltg(void* mac_payload, u16 length);
 

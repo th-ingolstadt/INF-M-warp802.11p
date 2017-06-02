@@ -299,7 +299,8 @@ void enqueue_after_tail(u16 queue_sel, dl_entry* tqe){
 	//         field is set after the current tx queue element has been added to the queue, so the
 	//         occupancy value includes itself.
 	//
-	((tx_queue_buffer_t*)(tqe->data))->tx_frame_info.queue_info.occupancy = (tx_queues[queue_sel].length & 0xFFFF);
+	((tx_queue_buffer_t*)(tqe->data))->queue_info.enqueue_timestamp = get_mac_time_usec();
+	((tx_queue_buffer_t*)(tqe->data))->queue_info.occupancy = (tx_queues[queue_sel].length & 0xFFFF);
 
 	//Increment the num_tx_queued field in the attached station_info_t. This will prevent
 	// the framework from removing the station_info_t out from underneath us while this
@@ -313,7 +314,7 @@ void enqueue_after_tail(u16 queue_sel, dl_entry* tqe){
 	}
 
     // Poll the TX queues to see if anything needs to be transmitted
-	tx_poll_callback(((tx_queue_buffer_t*)(tqe->data))->tx_frame_info.queue_info.pkt_buf_group);
+	tx_poll_callback();
 
 	return;
 }
@@ -384,10 +385,6 @@ dl_entry* queue_checkout(){
 		dl_entry_remove(&free_queue,free_queue.first);
 
 		((tx_queue_buffer_t*)(tqe->data))->station_info = NULL;
-
-		// Set the Tx Packet Buffer state to uninitialized. This will be set to READY
-		// after dequeue and CDMA into the actual Tx packet buffer
-		((tx_queue_buffer_t*)(tqe->data))->tx_frame_info.tx_pkt_buf_state = TX_PKT_BUF_UNINITIALIZED;
 
 		return tqe;
 	} else {

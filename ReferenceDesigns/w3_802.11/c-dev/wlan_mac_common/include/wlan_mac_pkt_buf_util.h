@@ -181,10 +181,56 @@ typedef struct phy_rx_details_t{
     u16                      N_DBPS;                       ///< Number of data bits per OFDM symbol
 } phy_rx_details_t;
 
+typedef enum __attribute__ ((__packed__)) {
+   TX_PKT_BUF_UNINITIALIZED   = 0,
+   TX_PKT_BUF_HIGH_CTRL       = 1,
+   TX_PKT_BUF_READY           = 2,
+   TX_PKT_BUF_LOW_CTRL        = 3,
+   TX_PKT_BUF_DONE            = 4
+} tx_pkt_buf_state_t;
 
-// FIXME: return tx_queue_details_t definition here
+//-----------------------------------------------
+// TX frame information
+//     - Defines the information passed in the packet buffer between CPU High and
+//       CPU Low as part of transmitting packets.
+//
+//     IMPORTANT:  This structure must be 8-byte aligned.
+//
+typedef struct tx_frame_info_t{
+    u64                      	timestamp_accept;                 ///< Time in microseconds between timestamp_create and packet acceptance by CPU Low
+    u64                      	timestamp_done;                   ///< Time in microseconds between acceptance and transmit completion
+    //----- 8-byte boundary ------
+    u64                      	unique_seq;                   ///< Unique sequence number for this packet (12 LSB used as 802.11 MAC sequence number)
+    //----- 8-byte boundary ------
+    tx_queue_details_t       	queue_info;                   ///< Information about the TX queue used for the packet (4 bytes)
+    u16                       	num_tx_attempts;              ///< Number of transmission attempts for this frame
+    u8                       	tx_result;                    ///< Result of transmission attempt - TX_MPDU_RESULT_SUCCESS or TX_MPDU_RESULT_FAILURE
+    u8                       	reserved0;
+    //----- 8-byte boundary ------
+    volatile tx_pkt_buf_state_t tx_pkt_buf_state;             ///< State of the Tx Packet Buffer
+    u8                       	flags;                        ///< Bit flags en/disabling certain operations by the lower-level MAC
+    u8                       	phy_samp_rate;                ///< PHY Sampling Rate
+    u8                       	padding0;                     ///< Used for alignment of fields (can be appropriated for any future use)
 
-// FIXME: return tx_frame_info_t definition here
+    u16                      	length;                       ///< Number of bytes in MAC packet, including MAC header and FCS
+    u16                      	reserved1;
+    //----- 8-byte boundary ------
+
+    //
+    // Place additional fields here.  Make sure the new fields keep the structure 8-byte aligned
+    //
+
+    //----- 8-byte boundary ------
+    tx_params_t              params;                       ///< Additional lower-level MAC and PHY parameters (8 bytes)
+} tx_frame_info_t;
+
+// The above structure assumes that pkt_buf_state_t is a u8.  However, that is architecture dependent.
+// Therefore, the code will check the size of the structure using a compile-time assertion.  This check
+// will need to be updated if fields are added to the structure
+//
+CASSERT(sizeof(tx_frame_info_t) == 56, tx_frame_info_alignment_check);
+
+#define PHY_TX_PKT_BUF_PHY_HDR_SIZE                        0x10
 
 
 // Defines for power field in phy_tx_params_t in tx_params_t

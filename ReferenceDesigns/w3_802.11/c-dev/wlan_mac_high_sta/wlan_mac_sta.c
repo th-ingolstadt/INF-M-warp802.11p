@@ -208,6 +208,7 @@ int main() {
 	wlan_mac_high_set_mpdu_rx_callback(          (void *) mpdu_rx_process);
 	wlan_mac_high_set_uart_rx_callback(          (void *) uart_rx);
 	wlan_mac_high_set_poll_tx_queues_callback(   (void *) poll_tx_queues);
+	wlan_mac_high_set_mpdu_dequeue_callback((void*)mpdu_dequeue);
 #if WLAN_SW_CONFIG_ENABLE_LTG
 	wlan_mac_ltg_sched_set_callback(             (void *) ltg_event);
 #endif //WLAN_SW_CONFIG_ENABLE_LTG
@@ -436,10 +437,11 @@ void process_scan_state_change(scan_state_t scan_state){
  * return a non-zero status. Thus the calls below terminate polling as soon as any call to dequeue_transmit_checkin()
  * returns with a non-zero value, allowing the next call to poll_tx_queues() to continue the queue polling process.
  *
- * @param pkt_buf_group_t pkt_buf_group
- * @return u8 0 if no packet was successfully dequeued, 1 if a packet was dequeued and sent to the low-level MAC
  *****************************************************************************/
-u8 poll_tx_queues(pkt_buf_group_t pkt_buf_group){
+void poll_tx_queues(){
+
+	//FIXME: modify so that general packet buffer group is fully topped up
+
 	u8 i;
 	u8 return_value = 0;
 

@@ -109,8 +109,6 @@ typedef struct __attribute__((__packed__)){
     // All station_info_t common fields
     STATION_INFO_COMMON_FIELDS
 } wlan_exp_station_info_t;
-//FIXME: I added 8 bytes to this struct to track management tx parameters. Update python
-// to match
 CASSERT(sizeof(wlan_exp_station_info_t) == 72, wlan_exp_station_info_alignment_check);
 
 

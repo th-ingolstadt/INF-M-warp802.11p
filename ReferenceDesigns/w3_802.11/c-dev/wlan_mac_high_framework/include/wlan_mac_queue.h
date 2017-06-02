@@ -24,19 +24,23 @@
 //Forward declarations
 struct station_info_t;
 
-
 //-----------------------------------------------
 // Queue defines
 //
 #define QUEUE_BUFFER_SIZE                                  0x1000    // 4KB
 
-typedef struct{
+typedef struct tx_queue_buffer_t{
 	struct station_info_t*	station_info;
+	tx_queue_details_t      queue_info;
+	u16						length;
+	u16						flags;
 	dl_entry*			  	tx_queue_entry;
-	tx_frame_info_t       	tx_frame_info;
-	u8                    	phy_hdr_pad[PHY_TX_PKT_BUF_PHY_HDR_SIZE];
 	u8                    	frame[MAX_PKT_SIZE_B];
 } tx_queue_buffer_t;
+
+#define TX_QUEUE_BUFFER_FLAGS_FILL_TIMESTAMP	0x0001
+#define TX_QUEUE_BUFFER_FLAGS_FILL_DURATION		0x0002
+#define TX_QUEUE_BUFFER_FLAGS_FILL_UNIQ_SEQ		0x0004
 
 
 /*************************** Function Prototypes *****************************/

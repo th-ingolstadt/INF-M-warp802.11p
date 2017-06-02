@@ -26,7 +26,8 @@ struct rx_common_entry;
 struct network_info_t;
 enum scan_state_t;
 struct bss_config_t;
-
+struct tx_queue_buffer_t;
+struct tx_frame_info_t;
 //-----------------------------------------------
 // Enable the WLAN UART Menu
 #define WLAN_USE_UART_MENU
@@ -89,7 +90,7 @@ void queue_state_change(u32 QID, u8 queue_len);
 void update_tim_tag_aid(u8 aid, u8 bit_val_in);
 void update_tim_tag_all(u32 sched_id);
 
-u8 poll_tx_queues(pkt_buf_group_t pkt_buf_group);
+void poll_tx_queues();
 void purge_all_data_tx_queue();
 
 void enable_associations();
@@ -101,7 +102,7 @@ u32  deauthenticate_station( struct station_info_t* station_info );
 void deauthenticate_all_stations();
 void handle_cpu_low_reboot(u32 type);
 u32  configure_bss(struct bss_config_t* bss_config, u32 update_mask);
-void mpdu_dequeue(dl_entry* packet);
+void mpdu_dequeue(struct tx_queue_buffer_t* tx_queue_buffer, struct tx_frame_info_t* tx_frame_info);
 
 void button_0_press();
 void button_0_release();

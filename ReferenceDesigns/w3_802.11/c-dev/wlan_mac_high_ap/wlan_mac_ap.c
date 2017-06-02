@@ -664,31 +664,16 @@ void update_tim_tag_all(u32 sched_id){
  * return a non-zero status. Thus the calls below terminate polling as soon as any call to dequeue_transmit_checkin()
  * returns with a non-zero value, allowing the next call to poll_tx_queues() to continue the queue polling process.
  *
- * @param pkt_buf_group_t pkt_buf_group
- * 		- This instructs the polling function to fill in a particular packet buffer group.
- * 		e.g. if the calling function knows that a unicast transmission has just finished, it should
- * 		call this function with a PKT_BUF_GROUP_UNICAST argument
- * @return u8 0 if no packet was successfully dequeued, 1 if a packet was dequeued and sent to the low-level MAC
+ * FIXME: Update description
  *****************************************************************************/
-u8 poll_tx_queues(pkt_buf_group_t pkt_buf_group){
+void poll_tx_queues(){
 	interrupt_state_t curr_interrupt_state;
-	u32 i,k;
-
-	u8 return_value = 0;
-
-	if( active_network_info == NULL ) return return_value;
-
-	if(((gl_dtim_mcast_buffer_enable == 0) || (gl_cpu_low_supports_dtim_mcast == 0)) && (pkt_buf_group == PKT_BUF_GROUP_DTIM_MCAST)){
-		//We are asked to poll the DTIM MCAST group, but DTIM multicast buffering is disabled.
-		//As such, we will overwrite the input to this function and carry on with the
-		//general dequeue operation
-		pkt_buf_group = PKT_BUF_GROUP_GENERAL;
-	}
+	u32 i,j,k;
+	u32 num_pkt_buf_group, pkt_buf_group_idx;
+	pkt_buf_group_t pkt_buf_group;
 
 #define NUM_QUEUE_GROUPS 2
 typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
-
-	curr_interrupt_state = wlan_mac_high_interrupt_stop();
 
 	// Remember the next group to poll between calls to this function
 	//   This implements the ping-pong poll between the MGMT_QGRP and DATA_QGRP groups
@@ -703,96 +688,107 @@ typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 	station_info_t* curr_station_info;
 
 
+	if( active_network_info == NULL ) return;
 
-	if( wlan_mac_high_is_dequeue_allowed(pkt_buf_group) == 0 ) {
-		goto poll_cleanup;
-		return return_value;
+
+	if(((gl_dtim_mcast_buffer_enable == 0) || (gl_cpu_low_supports_dtim_mcast == 0)) || (gl_beacon_txrx_config.beacon_tx_mode == NO_BEACON_TX) ){
+		// We will only attempt to fill the PKT_BUF_GROUP_GENERAL packet buffer group
+		num_pkt_buf_group = 1;
+	} else {
+		// We will attempt to fill both the PKT_BUF_GROUP_GENERAL and PKT_BUF_GROUP_DTIM_MCAST packet buffer group
+		num_pkt_buf_group = 2;
 	}
 
-	switch(pkt_buf_group){
+	curr_interrupt_state = wlan_mac_high_interrupt_stop();
 
-		case PKT_BUF_GROUP_OTHER:
-		break;
-		case PKT_BUF_GROUP_DTIM_MCAST:
-			if(((gl_dtim_mcast_buffer_enable == 1) && (gl_cpu_low_supports_dtim_mcast)) && (gl_beacon_txrx_config.beacon_tx_mode != NO_BEACON_TX)){
-				dequeue_transmit_checkin(MCAST_QID);
-			}
-		break;
-		case PKT_BUF_GROUP_GENERAL:
+	for( pkt_buf_group_idx = 0; pkt_buf_group_idx < num_pkt_buf_group; pkt_buf_group_idx++ ){
+		if(pkt_buf_group_idx == 0){
+			pkt_buf_group = PKT_BUF_GROUP_GENERAL;
 
-			for(k = 0; k < NUM_QUEUE_GROUPS; k++){
-				curr_queue_group = next_queue_group;
+			for( j = 0; j < 2; j++ ){
+				// A fully empty set of PKT_BUF_GROUP_GENERAL can be filled with no more than 2 packets. Because this
+				// function implements a round-robin scheme, these two packets cannot be from the same queue if other queues
+				// have viable contents to send. So, we need to have an outer loop of 2 iterations so that we are able to
+				// dequeue a second packet from the same queue if every other queue is empty.
 
-				switch(curr_queue_group){
-					case MGMT_QGRP:
-						next_queue_group = DATA_QGRP;
-						if(dequeue_transmit_checkin(MANAGEMENT_QID)){
-							return_value = 1;
-							goto poll_cleanup;
-							return return_value;
-						}
+				if(wlan_mac_is_tx_pkt_buf_available(pkt_buf_group) == 0){
 					break;
+				}
 
-					case DATA_QGRP:
-						next_queue_group = MGMT_QGRP;
+				for(k = 0; k < NUM_QUEUE_GROUPS; k++){
 
-						if(pause_data_queue == 0){
-							curr_station_info_entry = next_station_info_entry;
+					curr_queue_group = next_queue_group;
 
-							for(i = 0; i < (active_network_info->members.length + 1); i++) {
+					switch(curr_queue_group){
+						case MGMT_QGRP:
+							next_queue_group = DATA_QGRP;
+							if(dequeue_transmit_checkin(MANAGEMENT_QID)){
+								break; // return to for( j = 0; j < 2; j++ )
+							}
+						break;
 
-								// Loop through all associated stations' queues and the broadcast queue
-								if(curr_station_info_entry == NULL){
-									// Check the broadcast queue
-									next_station_info_entry = (station_info_entry_t*)(active_network_info->members.first);
-									if( (((gl_dtim_mcast_buffer_enable == 0) || (gl_cpu_low_supports_dtim_mcast == 0)) && dequeue_transmit_checkin(MCAST_QID))){
-										// Found a not-empty queue, transmitted a packet
-										return_value = 1;
-										goto poll_cleanup;
-										return return_value;
-									}
-									curr_station_info_entry = next_station_info_entry;
-								} else {
-									curr_station_info = (station_info_t*)(curr_station_info_entry->data);
-									if( station_info_is_member(&active_network_info->members, curr_station_info) ){
-										if(curr_station_info_entry == (station_info_entry_t*)(active_network_info->members.last)){
-											// We've reached the end of the table, so we wrap around to the beginning
-											next_station_info_entry = NULL;
-										} else {
-											next_station_info_entry = dl_entry_next(curr_station_info_entry);
-										}
+						case DATA_QGRP:
+							next_queue_group = MGMT_QGRP;
+							if(pause_data_queue == 0){
+								curr_station_info_entry = next_station_info_entry;
 
-										if((curr_station_info->flags & STATION_INFO_FLAG_DOZE) == 0){
-											if(dequeue_transmit_checkin(STATION_ID_TO_QUEUE_ID(curr_station_info_entry->id))){
-												// Found a not-empty queue, transmitted a packet
-												return_value = 1;
-												goto poll_cleanup;
-												return return_value;
-											}
+								for(i = 0; i < (active_network_info->members.length + 1); i++) {
+
+									// Loop through all associated stations' queues and the broadcast queue
+									if(curr_station_info_entry == NULL){
+										// Check the broadcast queue
+										next_station_info_entry = (station_info_entry_t*)(active_network_info->members.first);
+										if( (((gl_dtim_mcast_buffer_enable == 0) || (gl_cpu_low_supports_dtim_mcast == 0)) && dequeue_transmit_checkin(MCAST_QID))){
+											// Found a not-empty queue, transmitted a packet
+											break; // return to for( j = 0; j < 2; j++ )
 										}
 										curr_station_info_entry = next_station_info_entry;
 									} else {
-										// This curr_station_info is invalid. Perhaps it was removed from
-										// the association table before poll_tx_queues was called. We will
-										// start the round robin checking back at broadcast.
-										next_station_info_entry = (station_info_entry_t*)(active_network_info->members.first);
-										goto poll_cleanup;
-										return return_value;
-									} // END if(is_valid_association)
-								}
-							} // END for loop over association table
-						}
+										curr_station_info = (station_info_t*)(curr_station_info_entry->data);
+										if( station_info_is_member(&active_network_info->members, curr_station_info) ){
+											if(curr_station_info_entry == (station_info_entry_t*)(active_network_info->members.last)){
+												// We've reached the end of the table, so we wrap around to the beginning
+												next_station_info_entry = NULL;
+											} else {
+												next_station_info_entry = dl_entry_next(curr_station_info_entry);
+											}
+
+											if((curr_station_info->flags & STATION_INFO_FLAG_DOZE) == 0){
+												if(dequeue_transmit_checkin(STATION_ID_TO_QUEUE_ID(curr_station_info_entry->id))){
+													// Found a not-empty queue, transmitted a packet
+													break; // return to for( j = 0; j < 2; j++ )
+												}
+											}
+											curr_station_info_entry = next_station_info_entry;
+										} else {
+											// This curr_station_info is invalid. Perhaps it was removed from
+											// the association table before poll_tx_queues was called. We will
+											// start the round robin checking back at broadcast.
+											next_station_info_entry = (station_info_entry_t*)(active_network_info->members.first);
+											break; // return to for( j = 0; j < 2; j++ )
+										} // END if(is_valid_association)
+									}
+								} // END for loop over association table
+							}
+						break;
+					} // END switch(queue group)
+				} // END loop over queue groups
+			} // END double loop for filling up to 2 packet buffers
+		} else {
+			pkt_buf_group = PKT_BUF_GROUP_DTIM_MCAST;
+
+			while(wlan_mac_is_tx_pkt_buf_available(pkt_buf_group)){
+				//Continue to dequeue from the multicast queue until packet buffers
+				// are filled, or...
+				if(dequeue_transmit_checkin(MCAST_QID) == 0){
+					// or until there is nothing left in the multicast queue
 					break;
-				} // END switch(queue group)
-			} // END loop over queue groups
-		break;
+				}
+			}
+		}
 	}
 
-	poll_cleanup:
-
 	wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
-
-	return return_value;
 }
 
 
@@ -1709,10 +1705,6 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 								station_info->flags &= ~STATION_INFO_FLAG_HT_CAPABLE;
 							}
 
-							// Update the rate based on the flags that were set
-							station_info->tx_params_data = wlan_mac_sanitize_tx_params(station_info, &(station_info->tx_params_data));
-							station_info->tx_params_mgmt = wlan_mac_sanitize_tx_params(station_info, &(station_info->tx_params_mgmt));
-
 							//
 							// TODO:  (Optional) Log association state change
 							//
@@ -1852,14 +1844,14 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 /**
  *
  *****************************************************************************/
-void mpdu_dequeue(dl_entry* packet){
+void mpdu_dequeue(tx_queue_buffer_t* tx_queue_buffer, tx_frame_info_t* tx_frame_info){
 	mac_header_80211* 	header;
-	tx_frame_info_t*	tx_frame_info;
 	station_info_t* station_info;
 
-	header 	  			= (mac_header_80211*)((((tx_queue_buffer_t*)(packet->data))->frame));
-	tx_frame_info 		= (tx_frame_info_t*)&((((tx_queue_buffer_t*)(packet->data))->tx_frame_info));
-	station_info  = ((tx_queue_buffer_t*)(packet->data))->station_info;
+	header 	  			= (mac_header_80211*)(tx_queue_buffer->frame);
+	station_info  = tx_queue_buffer->station_info;
+
+	// FIXME: implementation is incomplete
 
 	// Here, we will overwrite the pkt_buf_group_t that was set by wlan_mac_high_setup_tx_frame_info(). This allows
 	// DTIM mcast buffering to be enabled or disabled after a packet has been created and is sitting in the queue.
