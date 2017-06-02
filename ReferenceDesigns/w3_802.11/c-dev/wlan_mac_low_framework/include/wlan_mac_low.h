@@ -18,6 +18,7 @@
 
 #include "xil_types.h"
 #include "xil_io.h"
+#include "wlan_common_types.h"
 
 //Forward declarations
 struct wlan_mac_low_tx_details_t;
