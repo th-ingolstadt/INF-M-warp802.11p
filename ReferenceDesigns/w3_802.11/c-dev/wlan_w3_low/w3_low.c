@@ -1055,3 +1055,10 @@ int wlan_platform_get_rx_pkt_gain(u8 ant) {
 	//  [4:0]: BB gain index (0, 1, ..., 31)
 	return ((rf_gain << 5) | bb_gain);
 }
+
+int wlan_platform_set_default_tx_power(s8 power) {
+	// Empty function for WARP v3 - all Tx powers are configured per-packet via
+	//  tx_frame_info and the mac_hw core driving the radio_controller's Tx gain pins
+
+	return 0;
+}
