@@ -1898,28 +1898,31 @@ int wlan_mac_high_is_cpu_low_initialized(){
 }
 
 /**
- * @brief Check that CPU low is ready to transmit
+ * @brief Check the nubmer of available tx packet buffers for an available group
  *
  * @param  pkt_buf_group_t pkt_buf_group
  * @return int
  *     - 0 if CPU low is not ready to transmit
  *     - 1 if CPU low is ready to transmit
  */
-
-inline int wlan_mac_is_tx_pkt_buf_available(pkt_buf_group_t pkt_buf_group){
+inline int wlan_mac_num_tx_pkt_buf_available(pkt_buf_group_t pkt_buf_group) {
 
 	u8 i, num_empty, num_low_owned;
+	tx_frame_info_t* tx_frame_info;
 
 	num_empty = 0;
 	num_low_owned = 0;
 
-	for( i = 0; i < NUM_TX_PKT_BUF_MPDU; i++ ){
-		if( ((tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, i))->tx_pkt_buf_state == TX_PKT_BUF_HIGH_CTRL ){
+	for( i = 0; i < NUM_TX_PKT_BUF_MPDU; i++ ) {
+		tx_frame_info = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, i);
+
+		if( tx_frame_info->tx_pkt_buf_state == TX_PKT_BUF_HIGH_CTRL ) {
 			num_empty++;
 		}
-		if( (((tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, i))->queue_info.pkt_buf_group == pkt_buf_group) &&
-			(	(((tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, i))->tx_pkt_buf_state == TX_PKT_BUF_READY) ||
-				(((tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, i))->tx_pkt_buf_state == TX_PKT_BUF_LOW_CTRL)	) ){
+
+		if( (tx_frame_info->queue_info.pkt_buf_group == pkt_buf_group) &&
+			( (tx_frame_info->tx_pkt_buf_state == TX_PKT_BUF_READY) ||
+			  (tx_frame_info->tx_pkt_buf_state == TX_PKT_BUF_LOW_CTRL))) {
 			num_low_owned++;
 		}
 	}
@@ -1930,12 +1933,37 @@ inline int wlan_mac_is_tx_pkt_buf_available(pkt_buf_group_t pkt_buf_group){
 	// in the TX_PKT_BUF_READY or TX_PKT_BUF_LOW_CTRL for pkt_buf_group of PKT_BUF_GROUP_GENERAL and no more than two
 	// for PKT_BUF_GROUP_DTIM_MCAST
 
-	if( (num_empty > 0) && ( ((pkt_buf_group==PKT_BUF_GROUP_GENERAL)&&(num_low_owned <= 1)) || ((pkt_buf_group==PKT_BUF_GROUP_DTIM_MCAST)&&(num_low_owned <= 2)) ) ){
-		return 1;
-	} else {
+	if(num_empty == 0) {
 		return 0;
 	}
+
+	if(pkt_buf_group==PKT_BUF_GROUP_GENERAL) {
+		if(num_low_owned > 2) {
+			// Should never happen - clip to 2 to restore sanity from here on
+			xil_printf("WARNING: wlan_mac_num_tx_pkt_buf_available found %d GENERAL buffers owned by low!\n", num_low_owned);
+			num_low_owned = 2;
+		}
+
+		// Return 1 (if one buffer is already filled) or 2 (if both can be filled)
+		return (2 - num_low_owned);
+
+	} else if(pkt_buf_group==PKT_BUF_GROUP_DTIM_MCAST) {
+		if(num_low_owned > 3) {
+			// Should never happen - clip to 3 to restore sanity from here on
+			xil_printf("WARNING: wlan_mac_num_tx_pkt_buf_available found %d DTIM_MCAST buffers owned by low!\n", num_low_owned);
+			num_low_owned = 3;
+		}
+
+		// Return 3 if all buffers are available, otherwise 1 or 2
+		return (3 - num_low_owned);
+
+	} else {
+		// Invalid packet buffer group
+		return 0;
+	}
+
 }
+
 
 
 /**
