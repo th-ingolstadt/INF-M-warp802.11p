@@ -704,7 +704,7 @@ void poll_tx_queues(){
 	//  This handles the case of a single non-empty queue needing to supply packets
 	//  for both GENERAL packet buffers
 	poll_loop_cnt = 0;
-	while((num_pkt_bufs_avail > 0) && (2*NUM_QUEUE_GROUPS)) {
+	while((num_pkt_bufs_avail > 0) && (poll_loop_cnt < (2*NUM_QUEUE_GROUPS))) {
 		poll_loop_cnt++;
 
 		if(curr_queue_group == MGMT_QGRP) {
