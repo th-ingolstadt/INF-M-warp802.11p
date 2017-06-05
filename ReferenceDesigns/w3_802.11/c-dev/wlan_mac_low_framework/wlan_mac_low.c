@@ -622,6 +622,23 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
     wlan_ipc_msg_t           ipc_msg_to_high;
 
     switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
+		//---------------------------------------------------------------------
+		case IPC_MBOX_TX_PKT_BUF_READY: {
+			u8 tx_pkt_buf;
+			tx_pkt_buf = msg->arg0;
+
+			if(tx_pkt_buf < NUM_TX_PKT_BUFS){
+
+				// Lock and change state of packet buffer
+				wlan_mac_low_lock_tx_pkt_buf(tx_pkt_buf);
+
+				// Message is an indication that a Tx Pkt Buf needs processing
+				handle_tx_pkt_buf_ready(tx_pkt_buf);
+				// TODO: check return status and inform CPU_HIGH of error?
+
+			}
+		}
+		break;
 
     	//---------------------------------------------------------------------
     	case IPC_MBOX_SET_MAC_TIME:
@@ -803,24 +820,6 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
 				// xil_printf("Disabling DSSS\n");
 				wlan_mac_low_DSSS_rx_disable();
 			}
-        }
-        break;
-
-        //---------------------------------------------------------------------
-        case IPC_MBOX_TX_PKT_BUF_READY: {
-        	u8 tx_pkt_buf;
-        	tx_pkt_buf = msg->arg0;
-
-        	if(tx_pkt_buf < NUM_TX_PKT_BUFS){
-
-        		// Lock and change state of packet buffer
-        		wlan_mac_low_lock_tx_pkt_buf(tx_pkt_buf);
-
-				// Message is an indication that a Tx Pkt Buf needs processing
-        		handle_tx_pkt_buf_ready(tx_pkt_buf);
-        		// TODO: check return status and inform CPU_HIGH of error?
-
-        	}
         }
         break;
 
