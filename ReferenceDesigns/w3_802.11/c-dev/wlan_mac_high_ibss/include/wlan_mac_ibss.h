@@ -81,7 +81,6 @@ struct network_info_t* active_network_info_getter();
 void process_scan_state_change(enum scan_state_t scan_state);
 void poll_tx_queues();
 void purge_all_data_tx_queue();
-void mpdu_dequeue(struct tx_queue_buffer_t* tx_queue_buffer, struct tx_frame_info_t* tx_frame_info);
 
 
 void uart_rx(u8 rxByte);

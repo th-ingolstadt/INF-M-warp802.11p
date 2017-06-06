@@ -93,6 +93,5 @@ int  sta_disassociate();
 u32  configure_bss(struct bss_config_t* bss_config, u32 update_mask);
 
 void uart_rx(u8 rxByte);
-void mpdu_dequeue(struct tx_queue_buffer_t* tx_queue_buffer, struct tx_frame_info_t* tx_frame_info);
 
 #endif /* WLAN_MAC_STA_H_ */

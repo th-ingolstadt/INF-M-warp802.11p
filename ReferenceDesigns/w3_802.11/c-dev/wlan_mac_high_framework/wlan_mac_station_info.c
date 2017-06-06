@@ -304,7 +304,6 @@ void	station_info_print(dl_list* list, u32 option_flags){
 
 		xil_printf(" Num Tx Queued: %d\n", curr_station_info->num_tx_queued);
 
-		xil_printf(" Flags:					 0x%08x\n", curr_station_info->flags);//FIXME DEBUG
 		xil_printf(" Data Tx MCS:            %d\n", curr_station_info->tx_params_data.phy.mcs);
 		xil_printf(" Data Tx PHY mode:       %d\n", curr_station_info->tx_params_data.phy.phy_mode);
 		xil_printf(" Data Tx power:          %d\n", curr_station_info->tx_params_data.phy.power);

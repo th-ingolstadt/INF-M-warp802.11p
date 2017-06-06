@@ -693,8 +693,6 @@ void poll_tx_queues(){
 	// Don't dequeue anything if the active BSS is NULL
 	if( active_network_info == NULL ) return;
 
-	curr_queue_group = next_queue_group;
-
 	// Stop interrupts for all processing below - this avoids many possible race conditions,
 	//  like new packets being enqueued or stations joining/leaving the BSS
 	curr_interrupt_state = wlan_mac_high_interrupt_stop();
@@ -708,6 +706,7 @@ void poll_tx_queues(){
 	poll_loop_cnt = 0;
 	while((num_pkt_bufs_avail > 0) && (poll_loop_cnt < (2*NUM_QUEUE_GROUPS))) {
 		poll_loop_cnt++;
+		curr_queue_group = next_queue_group;
 
 		if(curr_queue_group == MGMT_QGRP) {
 			// Poll the management queue on this loop, data queues on next loop
@@ -1467,6 +1466,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 						}
 
 						if((active_network_info != NULL) && send_response) {
+
 							// Create a probe response frame
 							curr_tx_queue_element = queue_checkout();
 

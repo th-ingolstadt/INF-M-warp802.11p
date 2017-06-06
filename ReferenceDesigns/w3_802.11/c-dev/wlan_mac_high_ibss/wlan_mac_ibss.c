@@ -227,7 +227,7 @@ int main() {
 	wlan_mac_high_set_mpdu_rx_callback(         (void *) mpdu_rx_process);
 	wlan_mac_high_set_uart_rx_callback(         (void *) uart_rx);
 	wlan_mac_high_set_poll_tx_queues_callback(  (void *) poll_tx_queues);
-	wlan_mac_high_set_mpdu_dequeue_callback((void*)mpdu_dequeue);
+
 #if WLAN_SW_CONFIG_ENABLE_LTG
 	wlan_mac_ltg_sched_set_callback(            (void *) ltg_event);
 #endif //WLAN_SW_CONFIG_ENABLE_LTG

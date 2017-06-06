@@ -358,7 +358,6 @@ dl_entry* dequeue_from_head(u16 queue_sel){
 				//the top-level MAC that the queue has transitioned from non-empty to empty.
 				queue_state_change_callback(queue_sel, 0);
 			}
-
 			return (dl_entry *) curr_dl_entry;
 		}
 	}

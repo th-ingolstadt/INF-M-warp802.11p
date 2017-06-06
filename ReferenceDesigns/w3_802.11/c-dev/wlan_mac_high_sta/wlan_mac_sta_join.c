@@ -49,6 +49,7 @@
 #include "wlan_mac_common.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_pkt_buf_util.h"
+#include "wlan_mac_station_info.h"
 
 
 /*************************** Constant Definitions ****************************/
@@ -573,8 +574,8 @@ void wlan_mac_sta_join_bss_attempt_poll(u32 aid){
  *
  *****************************************************************************/
 void transmit_join_auth_req(){
-    u16                 tx_length;
-    dl_entry*   curr_tx_queue_element;
+    u16 tx_length;
+    dl_entry* curr_tx_queue_element;
     tx_queue_buffer_t*    curr_tx_queue_buffer;
 
     // Only transmit if FSM is "ATTEMPTING" to join
@@ -591,13 +592,10 @@ void transmit_join_auth_req(){
             // Fill in the data
             tx_length = wlan_create_auth_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_REQ, STATUS_SUCCESS);
 
-            // Setup the TX frame info
-            wlan_mac_high_setup_tx_frame_info (&tx_header_common, curr_tx_queue_element, tx_length, (TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO), MANAGEMENT_QID, PKT_BUF_GROUP_GENERAL );
-
-            // Set the information in the TX queue buffer
-            curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-            curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-            curr_tx_queue_buffer->tx_frame_info.ID         = 0;
+			// Fill in metadata
+			curr_tx_queue_buffer->flags = TX_QUEUE_BUFFER_FLAGS_FILL_DURATION;
+			curr_tx_queue_buffer->length = tx_length;
+			curr_tx_queue_buffer->station_info = station_info_create(attempt_network_info->bss_config.bssid);
 
             // Put the packet in the queue
             enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
@@ -637,13 +635,10 @@ void transmit_join_assoc_req(){
             // Fill in the association request frame
             tx_length = wlan_create_association_req_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, attempt_network_info);
 
-            // Setup the TX frame info
-            wlan_mac_high_setup_tx_frame_info(&tx_header_common, curr_tx_queue_element, tx_length, (TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO), MANAGEMENT_QID, PKT_BUF_GROUP_GENERAL);
-
-            // Set the information in the TX queue buffer
-            curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-            curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-            curr_tx_queue_buffer->tx_frame_info.ID          = 0;
+			// Fill in metadata
+			curr_tx_queue_buffer->flags = TX_QUEUE_BUFFER_FLAGS_FILL_DURATION;
+			curr_tx_queue_buffer->length = tx_length;
+			curr_tx_queue_buffer->station_info = station_info_create(attempt_network_info->bss_config.bssid);
 
             // Put the packet in the queue
             enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);

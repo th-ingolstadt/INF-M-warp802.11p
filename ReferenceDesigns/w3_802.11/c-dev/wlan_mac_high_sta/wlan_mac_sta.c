@@ -208,7 +208,6 @@ int main() {
 	wlan_mac_high_set_mpdu_rx_callback(          (void *) mpdu_rx_process);
 	wlan_mac_high_set_uart_rx_callback(          (void *) uart_rx);
 	wlan_mac_high_set_poll_tx_queues_callback(   (void *) poll_tx_queues);
-	wlan_mac_high_set_mpdu_dequeue_callback((void*)mpdu_dequeue);
 #if WLAN_SW_CONFIG_ENABLE_LTG
 	wlan_mac_ltg_sched_set_callback(             (void *) ltg_event);
 #endif //WLAN_SW_CONFIG_ENABLE_LTG
@@ -330,10 +329,10 @@ int main() {
  *
  *****************************************************************************/
 void send_probe_req(){
-	u16                             tx_length;
-	dl_entry*             curr_tx_queue_element;
-	tx_queue_buffer_t*              curr_tx_queue_buffer;
-	volatile scan_parameters_t*     scan_parameters = wlan_mac_scan_get_parameters();
+	u16 tx_length;
+	dl_entry* curr_tx_queue_element;
+	tx_queue_buffer_t* curr_tx_queue_buffer;
+	volatile scan_parameters_t* scan_parameters = wlan_mac_scan_get_parameters();
 
 	// Check out queue element for packet
 	curr_tx_queue_element = queue_checkout();
@@ -348,13 +347,10 @@ void send_probe_req(){
 		// Fill in the data
 		tx_length = wlan_create_probe_req_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, scan_parameters->ssid);
 
-		// Setup the TX frame info
-		wlan_mac_high_setup_tx_frame_info(&tx_header_common, curr_tx_queue_element, tx_length, 0, MANAGEMENT_QID, PKT_BUF_GROUP_GENERAL);
-
-		// Set the information in the TX queue buffer
-		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_mgmt_tx_params);
-		curr_tx_queue_buffer->tx_frame_info.ID          = 0;
+		// Fill in metadata
+		curr_tx_queue_buffer->flags = 0;
+		curr_tx_queue_buffer->length = tx_length;
+		curr_tx_queue_buffer->station_info = station_info_create((u8*)bcast_addr);
 
 		// Put the packet in the queue
 		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
@@ -440,57 +436,64 @@ void process_scan_state_change(scan_state_t scan_state){
  *
  *****************************************************************************/
 void poll_tx_queues(){
-
-	//FIXME: modify so that general packet buffer group is fully topped up
-
-	u8 i;
-	u8 return_value = 0;
+	u32 i;
+	int num_pkt_bufs_avail;
+	int poll_loop_cnt;
+	dl_entry* tx_queue_buffer_entry;
 
 	#define MAX_NUM_QUEUE 2
 
-	if(pkt_buf_group != PKT_BUF_GROUP_GENERAL){
-		return return_value;
-	}
+	num_pkt_bufs_avail = wlan_mac_num_tx_pkt_buf_available(PKT_BUF_GROUP_GENERAL);
+
 
 	// Are we pausing transmissions?
 	if (pause_data_queue == 0) {
-
 		static u32 queue_index = 0;
 
-		// Is CPU low ready for a transmission?
-		if (wlan_mac_high_is_dequeue_allowed(PKT_BUF_GROUP_GENERAL)) {
+		// This loop will (at most) check every queue twice
+		//  This handles the case of a single non-empty queue needing to supply packets
+		//  for both GENERAL packet buffers
+		poll_loop_cnt = 0;
+		while((num_pkt_bufs_avail > 0) && (poll_loop_cnt < (2*MAX_NUM_QUEUE))) {
+			poll_loop_cnt++;
 
-			// Alternate between checking the management queue and the data queue
-			for (i = 0; i < MAX_NUM_QUEUE; i++) {
-				queue_index = (queue_index + 1) % MAX_NUM_QUEUE;
+			queue_index = (queue_index + 1) % MAX_NUM_QUEUE;
 
-				switch(queue_index){
-					case 0:
-						if(dequeue_transmit_checkin(MANAGEMENT_QID)) {
-							return_value = 1;
-							return return_value;
-						}
-					break;
-					case 1:
-						if(dequeue_transmit_checkin(UNICAST_QID)){
-							return_value = 1;
-							return return_value;
-						}
-					break;
-				}
+			switch(queue_index){
+				case 0:
+					tx_queue_buffer_entry = dequeue_from_head(MANAGEMENT_QID);
+				break;
+				case 1:
+					tx_queue_buffer_entry = dequeue_from_head(UNICAST_QID);
+				break;
+			}
+			if(tx_queue_buffer_entry) {
+				// Update the packet buffer group
+				((tx_queue_buffer_t*)(tx_queue_buffer_entry->data))->queue_info.pkt_buf_group = PKT_BUF_GROUP_GENERAL;
+				// Successfully dequeued a management packet - transmit and checkin
+				transmit_checkin(tx_queue_buffer_entry);
+				//continue the loop
+				num_pkt_bufs_avail--;
+				continue;
 			}
 		}
 	} else {
 		// We are only currently allowed to send management frames. Typically this is caused by an ongoing
 		// active scan
-		if (wlan_mac_high_is_dequeue_allowed(PKT_BUF_GROUP_GENERAL)) {
-			if(dequeue_transmit_checkin(MANAGEMENT_QID)){
-				return_value = 1;
-				return return_value;
+		for(i=0; i<num_pkt_bufs_avail; i++) {
+			// Dequeue packets until there are no more packet buffers or no more packets
+			tx_queue_buffer_entry = dequeue_from_head(MANAGEMENT_QID);
+			if(tx_queue_buffer_entry) {
+				// Update the packet buffer group
+				((tx_queue_buffer_t*)(tx_queue_buffer_entry->data))->queue_info.pkt_buf_group = PKT_BUF_GROUP_GENERAL;
+				// Successfully dequeued a management packet - transmit and checkin
+				transmit_checkin(tx_queue_buffer_entry);
+			} else {
+				// Queue is empty - end this loop
+				break;
 			}
 		}
 	}
-	return return_value;
 }
 
 
@@ -556,13 +559,10 @@ int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src,
 			// Fill in the data
 			wlan_create_data_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS);
 
-			// Setup the TX frame info
-			wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO), UNICAST_QID, PKT_BUF_GROUP_GENERAL );
-
-			// Set the information in the TX queue buffer
-			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
-			curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)ap_station_info;
-			curr_tx_queue_buffer->tx_frame_info.ID         = 0;
+			// Fill in metadata
+			curr_tx_queue_buffer->flags = TX_QUEUE_BUFFER_FLAGS_FILL_DURATION;
+			curr_tx_queue_buffer->length = tx_length;
+			curr_tx_queue_buffer->station_info = ap_station_info;
 
 			// Put the packet in the queue
 			enqueue_after_tail(UNICAST_QID, curr_tx_queue_element);
@@ -904,13 +904,10 @@ void ltg_event(u32 id, void* callback_arg){
 				min_ltg_payload_length = wlan_create_ltg_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, MAC_FRAME_CTRL2_FLAG_TO_DS, id);
 				payload_length = max(payload_length+sizeof(mac_header_80211)+WLAN_PHY_FCS_NBYTES, min_ltg_payload_length);
 
-				// Finally prepare the 802.11 header
-				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO | TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ), UNICAST_QID, PKT_BUF_GROUP_GENERAL);
-
-				// Update the queue entry metadata to reflect the new new queue entry contents
-				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
-				curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)ap_station_info;
-				curr_tx_queue_buffer->tx_frame_info.ID         = 0;
+				// Fill in metadata
+				curr_tx_queue_buffer->flags = TX_QUEUE_BUFFER_FLAGS_FILL_DURATION | TX_QUEUE_BUFFER_FLAGS_FILL_UNIQ_SEQ;
+				curr_tx_queue_buffer->length = payload_length;
+				curr_tx_queue_buffer->station_info = ap_station_info;
 
 				// Submit the new packet to the appropriate queue
 				enqueue_after_tail(UNICAST_QID, curr_tx_queue_element);
@@ -969,18 +966,10 @@ int  sta_disassociate( void ) {
 			// Fill in the data
 			tx_length = wlan_create_disassoc_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, DISASSOC_REASON_STA_IS_LEAVING);
 
-			// Setup the TX frame info
-			wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
-												curr_tx_queue_element,
-												tx_length,
-												(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO ),
-												MANAGEMENT_QID,
-												PKT_BUF_GROUP_GENERAL);
-
-			// Set the information in the TX queue buffer
-			curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-			curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-			curr_tx_queue_buffer->tx_frame_info.ID         = 0;
+			// Fill in metadata
+			curr_tx_queue_buffer->flags = TX_QUEUE_BUFFER_FLAGS_FILL_DURATION;
+			curr_tx_queue_buffer->length = tx_length;
+			curr_tx_queue_buffer->station_info = ap_station_info_entry->data;
 
 			// Put the packet in the queue
 			enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
@@ -1177,8 +1166,7 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 					//     - Set ht_capable argument to the HT_CAPABLE capability of the BSS.  Given that the STA does not know
 					//       the HT capabilities of the AP, it is reasonable to assume that they are the same as the BSS.
 					//
-					ap_station_info = station_info_add(&(active_network_info->members), active_network_info->bss_config.bssid, 0, &default_unicast_data_tx_params,
-																	 active_network_info->bss_config.ht_capable);
+					ap_station_info = station_info_add(&(active_network_info->members), active_network_info->bss_config.bssid, 0, active_network_info->bss_config.ht_capable);
 
 					if (ap_station_info != NULL) {
 
