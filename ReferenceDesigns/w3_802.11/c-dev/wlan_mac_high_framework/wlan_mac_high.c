@@ -315,7 +315,8 @@ void wlan_mac_high_init(){
 	low_param_channel 		= 0xFFFFFFFF;
 	low_param_dsss_en 		= 0xFFFFFFFF;
 	low_param_rx_ant_mode 	= 0xFF;
-	low_param_tx_ctrl_pow 	= -1;
+	low_param_tx_ctrl_pow 	= -127;
+	low_param_radio_tx_pow 	= -127;
 	low_param_rx_filter 	= 0xFFFFFFFF;
 	low_param_random_seed	= 0xFFFFFFFF;
 
@@ -1467,7 +1468,8 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t* msg, u32* ipc_msg_from_low_pa
 					if(low_param_channel != 0xFFFFFFFF)		wlan_mac_high_set_radio_channel(low_param_channel);
 					if(low_param_dsss_en != 0xFFFFFFFF)		wlan_mac_high_set_dsss(low_param_dsss_en);
 					if(low_param_rx_ant_mode != 0xFF) 		wlan_mac_high_set_rx_ant_mode(low_param_rx_ant_mode);
-					if(low_param_tx_ctrl_pow != -1) 		wlan_mac_high_set_tx_ctrl_pow(low_param_tx_ctrl_pow);
+					if(low_param_tx_ctrl_pow != -127) 		wlan_mac_high_set_tx_ctrl_pow(low_param_tx_ctrl_pow);
+					if(low_param_radio_tx_pow != -127) 		wlan_mac_high_set_radio_tx_pow(low_param_radio_tx_pow);
 					if(low_param_rx_filter != 0xFFFFFFFF) 	wlan_mac_high_set_rx_filter_mode(low_param_rx_filter);
 					if(low_param_random_seed != 0xFFFFFFFF) wlan_mac_high_set_srand(low_param_random_seed);
 
