@@ -259,7 +259,8 @@ int main() {
 
 	wlan_mac_high_set_radio_channel(WLAN_DEFAULT_CHANNEL);
 	wlan_mac_high_set_rx_ant_mode(WLAN_DEFAULT_RX_ANTENNA);
-	wlan_mac_high_set_tx_ctrl_pow(WLAN_DEFAULT_TX_PWR);
+	wlan_mac_high_set_tx_ctrl_power(WLAN_DEFAULT_TX_PWR);
+	wlan_mac_high_set_radio_tx_power(WLAN_DEFAULT_TX_PWR);
 
 	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_APPLICATION_ROLE, APPLICATION_ROLE_STA);
 
