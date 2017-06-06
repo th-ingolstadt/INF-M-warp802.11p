@@ -671,6 +671,7 @@ typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
 
 void poll_tx_queues(){
 	interrupt_state_t curr_interrupt_state;
+	dl_entry*	tx_queue_buffer_entry;
 	u32 i;
 
 	int num_pkt_bufs_avail;
@@ -710,9 +711,13 @@ void poll_tx_queues(){
 		if(curr_queue_group == MGMT_QGRP) {
 			// Poll the management queue on this loop, data queues on next loop
 			next_queue_group = DATA_QGRP;
-
-			if(dequeue_transmit_checkin(MANAGEMENT_QID)) {
-				// Successfully dequeued a management packet - continue the loop
+			tx_queue_buffer_entry = dequeue_from_head(MANAGEMENT_QID);
+			if(tx_queue_buffer_entry) {
+				// Update the packet buffer group
+				((tx_queue_buffer_t*)(tx_queue_buffer_entry->data))->queue_info.pkt_buf_group = PKT_BUF_GROUP_GENERAL;
+				// Successfully dequeued a management packet - transmit and checkin
+				transmit_checkin(tx_queue_buffer_entry);
+				//continue the loop
 				num_pkt_bufs_avail--;
 				continue;
 			}
@@ -737,10 +742,17 @@ void poll_tx_queues(){
 					if(gl_dtim_mcast_buffer_enable && gl_cpu_low_supports_dtim_mcast) {
 						// DTIM multicast buffering is enabled - skip the multicast queue
 						continue;
-					} else if(dequeue_transmit_checkin(MCAST_QID)) {
-						// Successfully dequeued a multicast packet - end the DATA_QGRP loop
-						num_pkt_bufs_avail--;
-						break;
+					} else {
+						tx_queue_buffer_entry = dequeue_from_head(MCAST_QID);
+						if(tx_queue_buffer_entry) {
+							// Update the packet buffer group
+							((tx_queue_buffer_t*)(tx_queue_buffer_entry->data))->queue_info.pkt_buf_group = PKT_BUF_GROUP_GENERAL;
+							// Successfully dequeued a management packet - transmit and checkin
+							transmit_checkin(tx_queue_buffer_entry);
+							// Successfully dequeued a multicast packet - end the DATA_QGRP loop
+							num_pkt_bufs_avail--;
+							break;
+						}
 					}
 
 				} else {
@@ -756,7 +768,13 @@ void poll_tx_queues(){
 						}
 
 						if((curr_station_info->flags & STATION_INFO_FLAG_DOZE) == 0) {
-							if(dequeue_transmit_checkin(STATION_ID_TO_QUEUE_ID(curr_station_info_entry->id))) {
+
+							tx_queue_buffer_entry = dequeue_from_head(STATION_ID_TO_QUEUE_ID(curr_station_info_entry->id));
+							if(tx_queue_buffer_entry) {
+								// Update the packet buffer group
+								((tx_queue_buffer_t*)(tx_queue_buffer_entry->data))->queue_info.pkt_buf_group = PKT_BUF_GROUP_GENERAL;
+								// Successfully dequeued a management packet - transmit and checkin
+								transmit_checkin(tx_queue_buffer_entry);
 								// Successfully dequeued a unicast packet for this station - end the DATA_QGRP loop
 								num_pkt_bufs_avail--;
 								break;
@@ -781,7 +799,13 @@ void poll_tx_queues(){
 
 		for(i=0; i<num_pkt_bufs_avail; i++) {
 			// Dequeue packets until there are no more packet buffers or no more packets
-			if(dequeue_transmit_checkin(MCAST_QID) == 0) {
+			tx_queue_buffer_entry = dequeue_from_head(MCAST_QID);
+			if(tx_queue_buffer_entry) {
+				// Update the packet buffer group
+				((tx_queue_buffer_t*)(tx_queue_buffer_entry->data))->queue_info.pkt_buf_group = PKT_BUF_GROUP_DTIM_MCAST;
+				// Successfully dequeued a management packet - transmit and checkin
+				transmit_checkin(tx_queue_buffer_entry);
+			} else {
 				// Queue is empty - end this loop
 				break;
 			}
@@ -926,23 +950,9 @@ void ltg_event(u32 id, void* callback_arg){
 					min_ltg_payload_length = wlan_create_ltg_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS, id);
 					payload_length = max(payload_length+sizeof(mac_header_80211)+WLAN_PHY_FCS_NBYTES, min_ltg_payload_length);
 
-					// Finally prepare the 802.11 header
-					if (is_multicast) {
-						wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
-															curr_tx_queue_element,
-															payload_length,
-															(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ),
-															queue_sel,
-															PKT_BUF_GROUP_DTIM_MCAST);
-					} else {
-						wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
-															curr_tx_queue_element,
-															payload_length,
-															(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO | TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ),
-															queue_sel,
-															PKT_BUF_GROUP_GENERAL);
-					}
-
+					// Fill in metadata
+					curr_tx_queue_buffer->flags = TX_QUEUE_BUFFER_FLAGS_FILL_DURATION | TX_QUEUE_BUFFER_FLAGS_FILL_UNIQ_SEQ;
+					curr_tx_queue_buffer->length = payload_length;
 					curr_tx_queue_buffer->station_info = station_info;
 
 					// Submit the new packet to the appropriate queue
@@ -1017,13 +1027,9 @@ int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src,
 			// Fill in the data
 			wlan_create_data_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
 
-			// Setup the TX frame info
-			wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
-												curr_tx_queue_element,
-												tx_length,
-												0,
-												MCAST_QID,
-												PKT_BUF_GROUP_DTIM_MCAST);
+			// Fill in metadata
+			curr_tx_queue_buffer->flags = 0;
+			curr_tx_queue_buffer->length = tx_length;
 
 			// Assign a station_info_t struct
 			//  Notes: (1) if one exists already, it will be adopted.
@@ -1061,14 +1067,9 @@ int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src,
 				// Fill in the data
 				wlan_create_data_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS);
 
-				// Setup the TX frame info
-				wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
-													curr_tx_queue_element,
-													tx_length,
-													(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO),
-													STATION_ID_TO_QUEUE_ID(entry->id),
-													PKT_BUF_GROUP_GENERAL);
-
+				// Fill in metadata
+				curr_tx_queue_buffer->flags = TX_QUEUE_BUFFER_FLAGS_FILL_DURATION;
+				curr_tx_queue_buffer->length = tx_length;
 
 				curr_tx_queue_buffer->station_info = station_info;
 
@@ -1310,13 +1311,9 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 									mac_payload_ptr_u8 += sizeof(mac_header_80211);
 									wlan_mac_high_cdma_start_transfer(mac_payload_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), length - sizeof(mac_header_80211));
 
-
-									// Setup the TX frame info
-									wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
-																		curr_tx_queue_element,
-																		length, 0,
-																		MCAST_QID,
-																		PKT_BUF_GROUP_DTIM_MCAST);
+									// Fill in metadata
+									curr_tx_queue_buffer->flags = 0;
+									curr_tx_queue_buffer->length = length;
 
 									// Set the information in the TX queue buffer
 									curr_tx_queue_buffer->station_info = station_info_create(rx_80211_header->address_3);
@@ -1352,14 +1349,9 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 										mac_payload_ptr_u8 += sizeof(mac_header_80211);
 										wlan_mac_high_cdma_start_transfer(mac_payload_ptr_u8, (void*)rx_80211_header + sizeof(mac_header_80211), length - sizeof(mac_header_80211));
 
-										// Setup the TX frame info
-										wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
-																			curr_tx_queue_element,
-																			length,
-																			(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO),
-																			STATION_ID_TO_QUEUE_ID(associated_station_entry->id),
-																			PKT_BUF_GROUP_GENERAL);
-
+										// Fill in metadata
+										curr_tx_queue_buffer->flags = TX_QUEUE_BUFFER_FLAGS_FILL_DURATION;
+										curr_tx_queue_buffer->length = length;
 
 										// Set the information in the TX queue buffer
 										curr_tx_queue_buffer->station_info = associated_station;
@@ -1409,13 +1401,9 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 								// Fill in the data
 								tx_length = wlan_create_deauth_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, DEAUTH_REASON_NONASSOCIATED_STA);
 
-								// Setup the TX frame info
-								wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
-																	curr_tx_queue_element,
-																	tx_length,
-																	(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO),
-																	MANAGEMENT_QID,
-																	PKT_BUF_GROUP_GENERAL);
+								// Fill in metadata
+								curr_tx_queue_buffer->flags = TX_QUEUE_BUFFER_FLAGS_FILL_DURATION;
+								curr_tx_queue_buffer->length = tx_length;
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->station_info = station_info;
@@ -1492,13 +1480,9 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 																		 &tx_header_common,
 																		 active_network_info);
 
-								// Setup the TX frame info
-								wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
-																	curr_tx_queue_element,
-																	tx_length,
-																	(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO | TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP),
-																	MANAGEMENT_QID,
-																	PKT_BUF_GROUP_GENERAL);
+								// Fill in metadata
+								curr_tx_queue_buffer->flags = TX_QUEUE_BUFFER_FLAGS_FILL_DURATION | TX_QUEUE_BUFFER_FLAGS_FILL_TIMESTAMP;
+								curr_tx_queue_buffer->length = tx_length;
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->station_info = station_info;
@@ -1571,13 +1555,9 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 								// Fill in the data
 								tx_length = wlan_create_auth_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_SUCCESS);
 
-								// Setup the TX frame info
-								wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
-																	curr_tx_queue_element,
-																	tx_length,
-																	(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO ),
-																	MANAGEMENT_QID,
-																	PKT_BUF_GROUP_GENERAL);
+								// Fill in metadata
+								curr_tx_queue_buffer->flags = TX_QUEUE_BUFFER_FLAGS_FILL_DURATION;
+								curr_tx_queue_buffer->length = tx_length;
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->station_info = station_info;
@@ -1602,13 +1582,9 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 								// Fill in the data
 								tx_length = wlan_create_auth_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, AUTH_ALGO_OPEN_SYSTEM, AUTH_SEQ_RESP, STATUS_AUTH_REJECT_UNSPECIFIED);
 
-								// Setup the TX frame info
-								wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
-																	curr_tx_queue_element,
-																	tx_length,
-																	(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO),
-																	MANAGEMENT_QID,
-																	PKT_BUF_GROUP_GENERAL);
+								// Fill in metadata
+								curr_tx_queue_buffer->flags = TX_QUEUE_BUFFER_FLAGS_FILL_DURATION;
+								curr_tx_queue_buffer->length = tx_length;
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->station_info = station_info;
@@ -1721,13 +1697,9 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 								// Fill in the data
 								tx_length = wlan_create_association_response_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, STATUS_SUCCESS, station_info->ID, active_network_info);
 
-								// Setup the TX frame info
-								wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
-																	curr_tx_queue_element,
-																	tx_length,
-																	(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO ),
-																	STATION_ID_TO_QUEUE_ID(station_info->ID),
-																	PKT_BUF_GROUP_GENERAL);
+								// Fill in metadata
+								curr_tx_queue_buffer->flags = TX_QUEUE_BUFFER_FLAGS_FILL_DURATION;
+								curr_tx_queue_buffer->length = tx_length;
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->station_info = station_info;
@@ -1752,13 +1724,9 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 								// Fill in the data
 								tx_length = wlan_create_association_response_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, STATUS_REJECT_TOO_MANY_ASSOCIATIONS, 0, active_network_info);
 
-								// Setup the TX frame info
-								wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
-																	curr_tx_queue_element,
-																	tx_length,
-																	(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO ),
-																	MANAGEMENT_QID,
-																	PKT_BUF_GROUP_GENERAL);
+								// Fill in metadata
+								curr_tx_queue_buffer->flags = TX_QUEUE_BUFFER_FLAGS_FILL_DURATION;
+								curr_tx_queue_buffer->length = tx_length;
 
 								// Set the information in the TX queue buffer
 								curr_tx_queue_buffer->station_info = station_info;
@@ -1851,18 +1819,6 @@ void mpdu_dequeue(tx_queue_buffer_t* tx_queue_buffer, tx_frame_info_t* tx_frame_
 	header 	  			= (mac_header_80211*)(tx_queue_buffer->frame);
 	station_info  = tx_queue_buffer->station_info;
 
-	// FIXME: implementation is incomplete
-
-	// Here, we will overwrite the pkt_buf_group_t that was set by wlan_mac_high_setup_tx_frame_info(). This allows
-	// DTIM mcast buffering to be enabled or disabled after a packet has been created and is sitting in the queue.
-	if(		((gl_dtim_mcast_buffer_enable == 1) && gl_cpu_low_supports_dtim_mcast) &&
-			(gl_beacon_txrx_config.beacon_tx_mode != NO_BEACON_TX ) &&
-			wlan_addr_mcast(header->address_1)	){
-		tx_frame_info->queue_info.pkt_buf_group = PKT_BUF_GROUP_DTIM_MCAST;
-	} else {
-		tx_frame_info->queue_info.pkt_buf_group = PKT_BUF_GROUP_GENERAL;
-	}
-
 	if(station_info->num_tx_queued > 0){
 		//If the is more data (in addition to this packet) queued for this station, we can let it know
 		//in the frame_control_2 field.
@@ -1911,13 +1867,9 @@ u32  deauthenticate_station( station_info_t* station_info ) {
 		// Fill in the data
 		tx_length = wlan_create_deauth_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, DEAUTH_REASON_INACTIVITY);
 
-		// Setup the TX frame info
-		wlan_mac_high_setup_tx_frame_info ( &tx_header_common,
-											curr_tx_queue_element,
-											tx_length,
-											(TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO ),
-											MANAGEMENT_QID,
-											PKT_BUF_GROUP_GENERAL);
+		// Fill in metadata
+		curr_tx_queue_buffer->flags = TX_QUEUE_BUFFER_FLAGS_FILL_DURATION;
+		curr_tx_queue_buffer->length = tx_length;
 
 		// Set the information in the TX queue buffer
 		curr_tx_queue_buffer->station_info = station_info;

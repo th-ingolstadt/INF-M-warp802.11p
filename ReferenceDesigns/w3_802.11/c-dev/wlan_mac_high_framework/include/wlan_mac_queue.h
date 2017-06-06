@@ -49,7 +49,7 @@ void                queue_init();
 
 void                enqueue_after_tail(u16 queue_sel, dl_entry* tqe);
 dl_entry* 			dequeue_from_head(u16 queue_sel);
-int          		dequeue_transmit_checkin(u16 queue_sel);
+void 				transmit_checkin(dl_entry* tx_queue_buffer_entry);
 void 	    		queue_set_state_change_callback(function_ptr_t callback);
 
 dl_entry* 			queue_checkout();

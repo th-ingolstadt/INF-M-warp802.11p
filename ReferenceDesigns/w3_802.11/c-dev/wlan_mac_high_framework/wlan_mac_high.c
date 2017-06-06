@@ -1142,18 +1142,24 @@ void wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf) {
 	tx_frame_info   = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf);
 	tx_queue_buffer = (tx_queue_buffer_t*)(packet->data);
 
-	tx_frame_info->length = tx_queue_buffer->length;
-	tx_frame_info->queue_info = tx_queue_buffer->queue_info;
-
-    // Call user code to notify it of dequeue
-	mpdu_tx_dequeue_callback(tx_queue_buffer, tx_frame_info);
-
-    // Set local variables
-    //     NOTE:  This must be done after the mpdu_tx_dequeue_callback since that call can
-    //         modify the packet contents.
+	// Set local variables
+	//     NOTE:  This must be done after the mpdu_tx_dequeue_callback since that call can
+	//         modify the packet contents.
 	dest_addr = (void*)(((u8*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf)) + sizeof(tx_frame_info_t) + PHY_TX_PKT_BUF_PHY_HDR_SIZE);
 	src_addr = (void *)&(tx_queue_buffer->frame);
 	xfer_len  = tx_frame_info->length - WLAN_PHY_FCS_NBYTES;
+
+	tx_frame_info->length = tx_queue_buffer->length;
+	tx_frame_info->queue_info = tx_queue_buffer->queue_info;
+	tx_frame_info->flags = 0;
+	if(tx_queue_buffer->flags & TX_QUEUE_BUFFER_FLAGS_FILL_TIMESTAMP) tx_frame_info->flags |= TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP;
+	if(tx_queue_buffer->flags & TX_QUEUE_BUFFER_FLAGS_FILL_DURATION) tx_frame_info->flags |= TX_FRAME_INFO_FLAGS_FILL_DURATION;
+	if(tx_queue_buffer->flags & TX_QUEUE_BUFFER_FLAGS_FILL_UNIQ_SEQ) tx_frame_info->flags |= TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ;
+	if(wlan_addr_mcast(dest_addr)) tx_frame_info->flags |= TX_FRAME_INFO_FLAGS_REQ_TO;  //FIXME: Since TA can be anything in full generality,
+																						// should we only raise this flag if TA = self?
+
+    // Call user code to notify it of dequeue
+	mpdu_tx_dequeue_callback(tx_queue_buffer, tx_frame_info);
 
 	// Transfer the frame info
 	wlan_mac_high_cdma_start_transfer( dest_addr, src_addr, xfer_len);
