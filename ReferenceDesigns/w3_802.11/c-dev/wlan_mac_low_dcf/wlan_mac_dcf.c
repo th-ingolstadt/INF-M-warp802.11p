@@ -730,12 +730,12 @@ inline u32 send_beacon(u8 tx_pkt_buf){
 	tx_frame_info->num_tx_attempts   = 1;
 	tx_frame_info->phy_samp_rate	 = wlan_mac_low_get_phy_samp_rate();
 
-	// Here, we are overloading the "create" timestamp to mean something subtly different
+	// Here, we are overloading the "enqueue" timestamp to mean something subtly different
 	//  than when it is used for data MPDUs since beacons are not created and enqueued in
 	//  CPU_HIGH. By explicitly filling the current MAC time into the create timestamp,
 	//  we allow CPU_HIGH to determine whether or not a backoff occurred before the beacon transmission
 	//  when it is creating the TX_LOW log entry for the beacon.
-	tx_frame_info->timestamp_create  = get_mac_time_usec();
+	tx_frame_info->queue_info.enqueue_timestamp  = get_mac_time_usec();
 	tx_frame_info->timestamp_accept  = 0;
 
 	low_tx_details.tx_details_type  = TX_DETAILS_MPDU;

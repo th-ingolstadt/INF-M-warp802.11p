@@ -1147,7 +1147,7 @@ void wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf) {
 	//         modify the packet contents.
 	dest_addr = (void*)(((u8*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf)) + sizeof(tx_frame_info_t) + PHY_TX_PKT_BUF_PHY_HDR_SIZE);
 	src_addr = (void *)&(tx_queue_buffer->frame);
-	xfer_len  = tx_frame_info->length - WLAN_PHY_FCS_NBYTES;
+	xfer_len  = tx_queue_buffer->length - WLAN_PHY_FCS_NBYTES;
 
 	tx_frame_info->length = tx_queue_buffer->length;
 	tx_frame_info->queue_info = tx_queue_buffer->queue_info;
