@@ -253,7 +253,8 @@ int main(){
 
 	wlan_mac_high_set_radio_channel(WLAN_DEFAULT_BSS_CONFIG_CHANNEL);
 	wlan_mac_high_set_rx_ant_mode(WLAN_DEFAULT_RX_ANTENNA);
-	wlan_mac_high_set_tx_ctrl_pow(WLAN_DEFAULT_TX_PWR);
+	wlan_mac_high_set_tx_ctrl_power(WLAN_DEFAULT_TX_PWR);
+	wlan_mac_high_set_radio_tx_power(WLAN_DEFAULT_TX_PWR);
 
 	// Initialize TIM management tag that will be postpended to a beacon
 	mgmt_tag_tim_update_schedule_id = SCHEDULE_ID_RESERVED_MAX;

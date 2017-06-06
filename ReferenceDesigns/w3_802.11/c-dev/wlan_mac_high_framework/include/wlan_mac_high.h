@@ -272,8 +272,8 @@ void 			   wlan_mac_high_enable_mcast_buffering(u8 enable);
 
 void               wlan_mac_high_config_txrx_beacon(struct beacon_txrx_configure_t* beacon_txrx_configure);
 void               wlan_mac_high_set_rx_ant_mode(u8 ant_mode);
-void               wlan_mac_high_set_tx_ctrl_pow(s8 pow);
-void               wlan_mac_high_set_radio_tx_pow(s8 pow);
+void               wlan_mac_high_set_tx_ctrl_power(s8 pow);
+void               wlan_mac_high_set_radio_tx_power(s8 pow);
 void               wlan_mac_high_set_rx_filter_mode(u32 filter_mode);
 void               wlan_mac_high_set_dsss(u32 dsss_value);
 

@@ -1468,8 +1468,8 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t* msg, u32* ipc_msg_from_low_pa
 					if(low_param_channel != 0xFFFFFFFF)		wlan_mac_high_set_radio_channel(low_param_channel);
 					if(low_param_dsss_en != 0xFFFFFFFF)		wlan_mac_high_set_dsss(low_param_dsss_en);
 					if(low_param_rx_ant_mode != 0xFF) 		wlan_mac_high_set_rx_ant_mode(low_param_rx_ant_mode);
-					if(low_param_tx_ctrl_pow != -127) 		wlan_mac_high_set_tx_ctrl_pow(low_param_tx_ctrl_pow);
-					if(low_param_radio_tx_pow != -127) 		wlan_mac_high_set_radio_tx_pow(low_param_radio_tx_pow);
+					if(low_param_tx_ctrl_pow != -127) 		wlan_mac_high_set_tx_ctrl_power(low_param_tx_ctrl_pow);
+					if(low_param_radio_tx_pow != -127) 		wlan_mac_high_set_radio_tx_power(low_param_radio_tx_pow);
 					if(low_param_rx_filter != 0xFFFFFFFF) 	wlan_mac_high_set_rx_filter_mode(low_param_rx_filter);
 					if(low_param_random_seed != 0xFFFFFFFF) wlan_mac_high_set_srand(low_param_random_seed);
 
@@ -1671,7 +1671,7 @@ void wlan_mac_high_set_rx_ant_mode(u8 ant_mode) {
  *     - Tx control packet power in dBm
  * @return None
  */
-void wlan_mac_high_set_tx_ctrl_pow(s8 pow) {
+void wlan_mac_high_set_tx_ctrl_power(s8 pow) {
 
 	wlan_ipc_msg_t     ipc_msg_to_low;
 	u32                ipc_msg_to_low_payload = (u32)pow;
@@ -1697,7 +1697,7 @@ void wlan_mac_high_set_tx_ctrl_pow(s8 pow) {
  *     - Tx power in dBm
  * @return None
  */
-void wlan_mac_high_set_radio_tx_pow(s8 pow) {
+void wlan_mac_high_set_radio_tx_power(s8 pow) {
 
 	wlan_ipc_msg_t     ipc_msg_to_low;
 	u32                ipc_msg_to_low_payload = (u32)pow;
