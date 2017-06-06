@@ -1995,6 +1995,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 //     * Default Multicast Data Packet Tx Power for new associations
                 //     * Control Packet Tx Power
                 //     * Update the transmit power for all known stations
+            	//     * Radio Tx power param (for platforms that don't support per-packet power control)
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set all TX power = %d dBm\n", power);
 
                 // Set the default unicast power for new associations
@@ -2005,8 +2006,9 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 //default_multicast_mgmt_tx_params.phy.power = power; //FIXME: adopt new conventions
                 //default_multicast_data_tx_params.phy.power = power; //FIXME: adopt new conventions
 
-                // Send IPC to CPU low to set the Tx power for control frames
+                // Send IPC messages to update radio Tx power and control packet Tx power in CPU Low
                 wlan_mac_high_set_tx_ctrl_power(power);
+                wlan_mac_high_set_radio_tx_power(power);
 
                 // Update the Tx power for all known stations
                 station_info_list  = station_info_get_list();
