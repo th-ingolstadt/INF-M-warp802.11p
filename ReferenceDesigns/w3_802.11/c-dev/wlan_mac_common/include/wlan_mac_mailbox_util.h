@@ -65,7 +65,7 @@
 #define IPC_MBOX_MEM_READ_WRITE                            15
 #define IPC_MBOX_LOW_PARAM                                 16
 #define IPC_MBOX_LOW_RANDOM_SEED                           17
-#define IPC_MBOX_SET_DEFAULT_TX_POWER					   18
+#define IPC_MBOX_SET_RADIO_TX_POWER	   				       18
 
 
 //-----------------------------------------------

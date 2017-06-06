@@ -95,6 +95,7 @@ volatile	u32			 low_param_channel;
 volatile	u32			 low_param_dsss_en;
 volatile	u8			 low_param_rx_ant_mode;
 volatile 	s8			 low_param_tx_ctrl_pow;
+volatile 	s8			 low_param_radio_tx_pow;
 volatile	u32			 low_param_rx_filter;
 volatile	u32			 low_param_random_seed;
 
@@ -1665,7 +1666,7 @@ void wlan_mac_high_set_rx_ant_mode(u8 ant_mode) {
  * Send an IPC message to CPU Low to set the Tx control packet power
  *
  * @param  s8 pow
- *     - Tx control packet power
+ *     - Tx control packet power in dBm
  * @return None
  */
 void wlan_mac_high_set_tx_ctrl_pow(s8 pow) {
@@ -1678,6 +1679,32 @@ void wlan_mac_high_set_tx_ctrl_pow(s8 pow) {
 
 	// Send message to CPU Low
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CONFIG_TX_CTRL_POW);
+	ipc_msg_to_low.num_payload_words = 1;
+	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload);
+
+	write_mailbox_msg(&ipc_msg_to_low);
+}
+
+/**
+ * @brief Set Tx Control Packet Power
+ *
+ * Send an IPC message to CPU Low to set the radio's Tx power; applies to
+ * platforms which do not support per-packet Tx power control
+ *
+ * @param  s8 pow
+ *     - Tx power in dBm
+ * @return None
+ */
+void wlan_mac_high_set_radio_tx_pow(s8 pow) {
+
+	wlan_ipc_msg_t     ipc_msg_to_low;
+	u32                ipc_msg_to_low_payload = (u32)pow;
+
+	//Set tracking global
+	low_param_radio_tx_pow = pow;
+
+	// Send message to CPU Low
+	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_SET_RADIO_TX_POWER);
 	ipc_msg_to_low.num_payload_words = 1;
 	ipc_msg_to_low.payload_ptr       = &(ipc_msg_to_low_payload);
 

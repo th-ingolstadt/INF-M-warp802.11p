@@ -824,10 +824,10 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
         break;
 
         //---------------------------------------------------------------------
-        case IPC_MBOX_SET_DEFAULT_TX_POWER: {
+        case IPC_MBOX_SET_RADIO_TX_POWER: {
         	s8 pwr = (s8)(msg->arg0);
 
-        	wlan_platform_set_default_tx_power(pwr);
+        	wlan_platform_set_radio_tx_power(pwr);
         }
         break;
 
