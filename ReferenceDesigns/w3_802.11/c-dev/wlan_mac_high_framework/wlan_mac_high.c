@@ -1157,7 +1157,7 @@ void wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf) {
 	if(tx_queue_buffer->flags & TX_QUEUE_BUFFER_FLAGS_FILL_TIMESTAMP) tx_frame_info->flags |= TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP;
 	if(tx_queue_buffer->flags & TX_QUEUE_BUFFER_FLAGS_FILL_DURATION) tx_frame_info->flags |= TX_FRAME_INFO_FLAGS_FILL_DURATION;
 	if(tx_queue_buffer->flags & TX_QUEUE_BUFFER_FLAGS_FILL_UNIQ_SEQ) tx_frame_info->flags |= TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ;
-	if(wlan_addr_mcast(dest_addr)) tx_frame_info->flags |= TX_FRAME_INFO_FLAGS_REQ_TO;  //FIXME: Since TA can be anything in full generality,
+	if(!wlan_addr_mcast(dest_addr)) tx_frame_info->flags |= TX_FRAME_INFO_FLAGS_REQ_TO;  //FIXME: Since TA can be anything in full generality,
 																						// should we only raise this flag if TA = self?
 
     // Call user code to notify it of dequeue
