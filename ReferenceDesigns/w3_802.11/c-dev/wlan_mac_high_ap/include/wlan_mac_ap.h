@@ -102,7 +102,7 @@ u32  deauthenticate_station( struct station_info_t* station_info );
 void deauthenticate_all_stations();
 void handle_cpu_low_reboot(u32 type);
 u32  configure_bss(struct bss_config_t* bss_config, u32 update_mask);
-void mpdu_dequeue(struct tx_queue_buffer_t* tx_queue_buffer, struct tx_frame_info_t* tx_frame_info);
+void mpdu_dequeue(struct tx_queue_buffer_t* tx_queue_buffer);
 
 void button_0_press();
 void button_0_release();

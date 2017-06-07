@@ -1135,21 +1135,35 @@ void wlan_mac_high_cdma_finish_transfer(){
 void wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf) {
 	wlan_ipc_msg_t 		ipc_msg_to_low;
 	tx_frame_info_t* 	tx_frame_info;
-	void* 				dest_addr;
-	void* 				src_addr;
+	mac_header_80211*   header;
+	void* 				copy_destination;
+	void* 				copy_source;
 	u32 				xfer_len;
 	u8					frame_control_1;
 	tx_queue_buffer_t*	tx_queue_buffer;
+	tx_params_t			default_tx_params;
+	u8					is_multicast;
 
-	tx_frame_info   = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf);
+
+	tx_frame_info = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf);
 	tx_queue_buffer = (tx_queue_buffer_t*)(packet->data);
+	header = (mac_header_80211*)(tx_queue_buffer->frame);
+	is_multicast = wlan_addr_mcast(header->address_1);
 
 	// Set local variables
 	//     NOTE:  This must be done after the mpdu_tx_dequeue_callback since that call can
 	//         modify the packet contents.
-	dest_addr = (void*)(((u8*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf)) + sizeof(tx_frame_info_t) + PHY_TX_PKT_BUF_PHY_HDR_SIZE);
-	src_addr = (void *)&(tx_queue_buffer->frame);
+	copy_destination = (void*)(((u8*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf)) + sizeof(tx_frame_info_t) + PHY_TX_PKT_BUF_PHY_HDR_SIZE);
+	copy_source = (void *)&(tx_queue_buffer->frame);
 	xfer_len  = tx_queue_buffer->length - WLAN_PHY_FCS_NBYTES;
+
+    // Call user code to notify it of dequeue
+	mpdu_tx_dequeue_callback(tx_queue_buffer);
+
+	// Transfer the frame info
+	wlan_mac_high_cdma_start_transfer( copy_destination, copy_source, xfer_len);
+
+	// While the CDMA is running, we can update fields in the tx_frame_info
 
 	tx_frame_info->length = tx_queue_buffer->length;
 	tx_frame_info->queue_info = tx_queue_buffer->queue_info;
@@ -1157,28 +1171,35 @@ void wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf) {
 	if(tx_queue_buffer->flags & TX_QUEUE_BUFFER_FLAGS_FILL_TIMESTAMP) tx_frame_info->flags |= TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP;
 	if(tx_queue_buffer->flags & TX_QUEUE_BUFFER_FLAGS_FILL_DURATION) tx_frame_info->flags |= TX_FRAME_INFO_FLAGS_FILL_DURATION;
 	if(tx_queue_buffer->flags & TX_QUEUE_BUFFER_FLAGS_FILL_UNIQ_SEQ) tx_frame_info->flags |= TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ;
-	if(!wlan_addr_mcast(dest_addr)) tx_frame_info->flags |= TX_FRAME_INFO_FLAGS_REQ_TO;  //FIXME: Since TA can be anything in full generality,
+	if(!is_multicast) tx_frame_info->flags |= TX_FRAME_INFO_FLAGS_REQ_TO;  //FIXME: Since TA can be anything in full generality,
 																						// should we only raise this flag if TA = self?
-
-    // Call user code to notify it of dequeue
-	mpdu_tx_dequeue_callback(tx_queue_buffer, tx_frame_info);
-
-	// Transfer the frame info
-	wlan_mac_high_cdma_start_transfer( dest_addr, src_addr, xfer_len);
-
-	// Wait for transfer to finish
-	wlan_mac_high_cdma_finish_transfer();
-
-	// Unique_seq will be filled in by CPU_LOW
-	tx_frame_info->unique_seq = 0;
+	tx_frame_info->unique_seq = 0; // Unique_seq will be filled in by CPU_LOW
 
 	// Pull first byte from the payload of the packet so we can determine whether
 	// it is a management or data type
-	frame_control_1 = *((u8*)tx_frame_info + sizeof(tx_frame_info_t) + PHY_TX_PKT_BUF_PHY_HDR_SIZE);
+	frame_control_1 = header->frame_control_1; //Note: header points to DRAM. We aren't relying on the bytes in the Tx packet buffer
+											   //that are currently being copied because that would be a race
 
 	if(((tx_queue_buffer_t*)(packet->data))->station_info == NULL){
 		// If there is no station_info tied to this enqueued packet, something must have gone wrong earlier
-		// (e.g. there wasn't room in aux. BRAM to create another station_info_t)
+		// (e.g. there wasn't room in aux. BRAM to create another station_info_t). We should retrieve
+		// default Tx parameters from the framework.
+		if(is_multicast){
+			if( (frame_control_1 & MAC_FRAME_CTRL1_MASK_TYPE) == MAC_FRAME_CTRL1_TYPE_MGMT){
+				default_tx_params = station_info_get_default_tx_params(mcast_mgmt);
+			} else {
+				default_tx_params = station_info_get_default_tx_params(mcast_data);
+			}
+		} else {
+			if( (frame_control_1 & MAC_FRAME_CTRL1_MASK_TYPE) == MAC_FRAME_CTRL1_TYPE_MGMT){
+				default_tx_params = station_info_get_default_tx_params(unicast_mgmt);
+			} else {
+				default_tx_params = station_info_get_default_tx_params(unicast_data);
+			}
+		}
+
+		memcpy(&(tx_frame_info->params), &default_tx_params, sizeof(tx_params_t));
+
 	} else {
 		if( (frame_control_1 & MAC_FRAME_CTRL1_MASK_TYPE) == MAC_FRAME_CTRL1_TYPE_MGMT){
 			memcpy(&(tx_frame_info->params), &(((tx_queue_buffer_t*)(packet->data))->station_info->tx_params_mgmt), sizeof(tx_params_t));
@@ -1186,6 +1207,9 @@ void wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf) {
 			memcpy(&(tx_frame_info->params), &(((tx_queue_buffer_t*)(packet->data))->station_info->tx_params_data), sizeof(tx_params_t));
 		}
 	}
+
+	// Wait for transfer to finish
+	wlan_mac_high_cdma_finish_transfer();
 
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TX_PKT_BUF_READY);
 	ipc_msg_to_low.arg0              = tx_pkt_buf;

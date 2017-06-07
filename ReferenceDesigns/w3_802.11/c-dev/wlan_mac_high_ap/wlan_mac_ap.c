@@ -1813,12 +1813,12 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 /**
  *
  *****************************************************************************/
-void mpdu_dequeue(tx_queue_buffer_t* tx_queue_buffer, tx_frame_info_t* tx_frame_info){
+void mpdu_dequeue(tx_queue_buffer_t* tx_queue_buffer){
 	mac_header_80211* 	header;
 	station_info_t* station_info;
 
-	header 	  			= (mac_header_80211*)(tx_queue_buffer->frame);
-	station_info  = tx_queue_buffer->station_info;
+	header = (mac_header_80211*)(tx_queue_buffer->frame);
+	station_info = tx_queue_buffer->station_info;
 
 	if(station_info->num_tx_queued > 0){
 		//If the is more data (in addition to this packet) queued for this station, we can let it know
