@@ -82,12 +82,6 @@ static char                       access_point_ssid[SSID_LEN_MAX + 1] = "MANGO-A
 // Common TX header for 802.11 packets
 mac_header_80211_common           tx_header_common;
 
-// Default transmission parameters
-tx_params_t                       default_unicast_mgmt_tx_params;
-tx_params_t                       default_unicast_data_tx_params;
-tx_params_t                       default_multicast_mgmt_tx_params;
-tx_params_t                       default_multicast_data_tx_params;
-
 // Access point information
 u8                                my_aid;
 network_info_t*                   active_network_info;
@@ -156,39 +150,6 @@ int main() {
 	gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
 	gl_beacon_txrx_config.beacon_interval_tu = 0;
 
-	// Zero out all TX params
-	bzero(&default_unicast_data_tx_params,   sizeof(tx_params_t));
-	bzero(&default_unicast_mgmt_tx_params,   sizeof(tx_params_t));
-	bzero(&default_multicast_data_tx_params, sizeof(tx_params_t));
-	bzero(&default_multicast_mgmt_tx_params, sizeof(tx_params_t));
-
-	// New associations adopt these unicast params; the per-node params can be
-	//   overridden via wlan_exp calls or by custom C code
-	default_unicast_data_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
-	default_unicast_data_tx_params.phy.mcs            = 3;
-#if WLAN_DEFAULT_USE_HT
-	default_unicast_data_tx_params.phy.phy_mode       = PHY_MODE_HTMF;
-#else
-	default_unicast_data_tx_params.phy.phy_mode       = PHY_MODE_NONHT;
-#endif
-	default_unicast_data_tx_params.phy.antenna_mode   = WLAN_DEFAULT_TX_ANTENNA;
-
-	default_unicast_mgmt_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
-	default_unicast_mgmt_tx_params.phy.mcs            = 0;
-	default_unicast_mgmt_tx_params.phy.phy_mode       = PHY_MODE_NONHT;
-	default_unicast_mgmt_tx_params.phy.antenna_mode   = WLAN_DEFAULT_TX_ANTENNA;
-
-	// All multicast traffic (incl. broadcast) uses these default Tx params
-	default_multicast_data_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
-	default_multicast_data_tx_params.phy.mcs          = 0;
-	default_multicast_data_tx_params.phy.phy_mode     = PHY_MODE_NONHT;
-	default_multicast_data_tx_params.phy.antenna_mode = WLAN_DEFAULT_TX_ANTENNA;
-
-	default_multicast_mgmt_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
-	default_multicast_mgmt_tx_params.phy.mcs          = 0;
-	default_multicast_mgmt_tx_params.phy.phy_mode     = PHY_MODE_NONHT;
-	default_multicast_mgmt_tx_params.phy.antenna_mode = WLAN_DEFAULT_TX_ANTENNA;
-
 	// Initialize the utility library
 	wlan_mac_high_init();
 
@@ -200,6 +161,27 @@ int main() {
 
 	// Initialize the join state machine
 	wlan_mac_sta_join_init();
+
+	// Set default Tx params
+	// Set sane default Tx params. These will be overwritten by the user application
+	tx_params_t	tx_params = { .phy = { .mcs = 3, .phy_mode = PHY_MODE_NONHT, .antenna_mode = WLAN_DEFAULT_TX_ANTENNA, .power = WLAN_DEFAULT_TX_PWR },
+							  .mac = { .flags = 0 } };
+
+	if(WLAN_DEFAULT_USE_HT) tx_params.phy.phy_mode = PHY_MODE_HTMF;
+
+	wlan_mac_set_default_tx_params(unicast_data, &tx_params);
+
+	tx_params.phy.mcs = 0;
+	tx_params.phy.phy_mode = PHY_MODE_NONHT;
+
+	wlan_mac_set_default_tx_params(unicast_mgmt, &tx_params);
+	wlan_mac_set_default_tx_params(mcast_data, &tx_params);
+	wlan_mac_set_default_tx_params(mcast_mgmt, &tx_params);
+
+	// Re-apply the defaults to any existing station_info_t structs that this AP
+	// knows about
+	wlan_mac_reapply_default_tx_params();
+
 
 	// Initialize callbacks
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
