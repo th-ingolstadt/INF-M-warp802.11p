@@ -96,12 +96,6 @@ static char                       default_ssid[SSID_LEN_MAX + 1] = "MANGO-IBSS";
 // Common TX header for 802.11 packets
 mac_header_80211_common           tx_header_common;
 
-// Default transmission parameters
-tx_params_t                       default_unicast_mgmt_tx_params;
-tx_params_t                       default_unicast_data_tx_params;
-tx_params_t                       default_multicast_mgmt_tx_params;
-tx_params_t                       default_multicast_data_tx_params;
-
 // Top level IBSS state
 network_info_t*                   active_network_info;
 
@@ -173,39 +167,6 @@ int main() {
 	bzero(gl_beacon_txrx_config.bssid_match, MAC_ADDR_LEN);
 	gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
 
-	// Zero out all TX params
-	bzero(&default_unicast_data_tx_params, sizeof(tx_params_t));
-	bzero(&default_unicast_mgmt_tx_params, sizeof(tx_params_t));
-	bzero(&default_multicast_data_tx_params, sizeof(tx_params_t));
-	bzero(&default_multicast_mgmt_tx_params, sizeof(tx_params_t));
-
-	// New associations adopt these unicast params; the per-node params can be
-	//   overridden via wlan_exp calls or by custom C code
-	default_unicast_data_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
-	default_unicast_data_tx_params.phy.mcs            = 3;
-#if WLAN_DEFAULT_USE_HT
-	default_unicast_data_tx_params.phy.phy_mode       = PHY_MODE_HTMF;
-#else
-	default_unicast_data_tx_params.phy.phy_mode       = PHY_MODE_NONHT;
-#endif
-	default_unicast_data_tx_params.phy.antenna_mode   = WLAN_DEFAULT_TX_ANTENNA;
-
-	default_unicast_mgmt_tx_params.phy.power          = WLAN_DEFAULT_TX_PWR;
-	default_unicast_mgmt_tx_params.phy.mcs            = 0;
-	default_unicast_mgmt_tx_params.phy.phy_mode       = PHY_MODE_NONHT;
-	default_unicast_mgmt_tx_params.phy.antenna_mode   = WLAN_DEFAULT_TX_ANTENNA;
-
-	// All multicast traffic (incl. broadcast) uses these default Tx params
-	default_multicast_data_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
-	default_multicast_data_tx_params.phy.mcs          = 0;
-	default_multicast_data_tx_params.phy.phy_mode     = PHY_MODE_NONHT;
-	default_multicast_data_tx_params.phy.antenna_mode = WLAN_DEFAULT_TX_ANTENNA;
-
-	default_multicast_mgmt_tx_params.phy.power        = WLAN_DEFAULT_TX_PWR;
-	default_multicast_mgmt_tx_params.phy.mcs          = 0;
-	default_multicast_mgmt_tx_params.phy.phy_mode     = PHY_MODE_NONHT;
-	default_multicast_mgmt_tx_params.phy.antenna_mode = WLAN_DEFAULT_TX_ANTENNA;
-
 	// Initialize the utility library
     wlan_mac_high_init();
 
@@ -219,6 +180,24 @@ int main() {
 
 	// Initialize hex display to "No BSS"
     wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0xFF);
+
+	// Set default Tx params
+	// Set sane default Tx params. These will be overwritten by the user application
+	tx_params_t	tx_params = { .phy = { .mcs = 3, .phy_mode = PHY_MODE_HTMF, .antenna_mode = WLAN_DEFAULT_TX_ANTENNA, .power = WLAN_DEFAULT_TX_PWR },
+							  .mac = { .flags = 0 } };
+
+	wlan_mac_set_default_tx_params(unicast_data, &tx_params);
+
+	tx_params.phy.mcs = 0;
+	tx_params.phy.phy_mode = PHY_MODE_NONHT;
+
+	wlan_mac_set_default_tx_params(unicast_mgmt, &tx_params);
+	wlan_mac_set_default_tx_params(mcast_data, &tx_params);
+	wlan_mac_set_default_tx_params(mcast_mgmt, &tx_params);
+
+	// Re-apply the defaults to any existing station_info_t structs that this AP
+	// knows about
+	wlan_mac_reapply_default_tx_params();
 
 	// Initialize callbacks
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
@@ -413,13 +392,10 @@ void send_probe_req(){
 		// Fill in the data
 		tx_length = wlan_create_probe_req_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, scan_parameters->ssid);
 
-		// Setup the TX frame info
-		wlan_mac_high_setup_tx_frame_info(&tx_header_common, curr_tx_queue_element, tx_length, 0, MANAGEMENT_QID, PKT_BUF_GROUP_GENERAL);
-
-		// Set the information in the TX queue buffer
-		curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-		curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_mgmt_tx_params);
-		curr_tx_queue_buffer->tx_frame_info.ID          = 0;
+		// Fill in metadata
+		curr_tx_queue_buffer->flags = 0;
+		curr_tx_queue_buffer->length = tx_length;
+		curr_tx_queue_buffer->station_info = station_info_create((u8*)bcast_addr);
 
 		// Put the packet in the queue
 		enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
@@ -643,7 +619,7 @@ void purge_all_data_tx_queue(){
 int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length){
 
 	tx_queue_buffer_t* 	curr_tx_queue_buffer;
-	station_info_t*     station_info;
+	station_info_t*     station_info = NULL;
 	station_info_entry_t* station_info_entry;
 	u32                 queue_sel;
 
@@ -660,14 +636,15 @@ int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src,
 		wlan_create_data_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, 0);
 
 		if( wlan_addr_mcast(eth_dest) ){
-			// Setup the TX frame info
-				queue_sel = MCAST_QID;
-				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, ( 0 ), queue_sel, PKT_BUF_GROUP_GENERAL );
+			// Fill in metadata
+			curr_tx_queue_buffer->flags = 0;
+			curr_tx_queue_buffer->length = tx_length;
 
-				// Set the information in the TX queue buffer
-				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-				curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_multicast_data_tx_params);
-				curr_tx_queue_buffer->tx_frame_info.ID         = 0;
+			// Assign a station_info_t struct
+			//  Notes: (1) if one exists already, it will be adopted.
+			//		   (2) if no heap exists for creating one, NULL is a valid
+			//             value for the station_info_t*
+			curr_tx_queue_buffer->station_info = station_info_create(eth_dest);
 		} else {
 
 			station_info_entry = station_info_find_by_addr(eth_dest, &active_network_info->members);
@@ -679,8 +656,7 @@ int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src,
 				//     - Set ht_capable argument to the HT_CAPABLE capability of the BSS.  Given that the node does not know
 				//       the HT capabilities of the new station, it is reasonable to assume that they are the same as the BSS.
 				//
-				station_info = station_info_add(&(active_network_info->members), eth_dest, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params,
-												active_network_info->bss_config.ht_capable);
+				station_info = station_info_add(&(active_network_info->members), eth_dest, ADD_STATION_INFO_ANY_ID, active_network_info->bss_config.ht_capable);
 				if(station_info != NULL){
 					station_info->flags |= STATION_INFO_FLAG_KEEP;
 					time_hr_min_sec_t time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
@@ -693,22 +669,10 @@ int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src,
 				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 			}
 
-			if(station_info == NULL){
-				//If we don't have a station_info for this frame, we will enqueue it in the multicast queue as a catch all
-				queue_sel = MCAST_QID;
-				// Setup the TX frame info
-				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO), queue_sel, PKT_BUF_GROUP_GENERAL );
-				curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-				curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_data_tx_params);
-				curr_tx_queue_buffer->tx_frame_info.ID         = 0;
-			} else {
-				queue_sel = STATION_ID_TO_QUEUE_ID(station_info_entry->id);
-				// Setup the TX frame info
-				wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO), queue_sel, PKT_BUF_GROUP_GENERAL );
-				curr_tx_queue_buffer->metadata.metadata_type  = QUEUE_METADATA_TYPE_STATION_INFO;
-				curr_tx_queue_buffer->metadata.metadata_ptr   = (u32)station_info;
-				curr_tx_queue_buffer->tx_frame_info.ID          = station_info_entry->id;
-			}
+			// Fill in metadata
+			curr_tx_queue_buffer->flags = TX_QUEUE_BUFFER_FLAGS_FILL_DURATION;
+			curr_tx_queue_buffer->length = tx_length;
+			curr_tx_queue_buffer->station_info = station_info;
 		}
 
 		if(queue_num_queued(queue_sel) < max_queue_size){
@@ -808,8 +772,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 					//
 					// Note: we do not need the returned station_info_t* from this function since it is guaranteed to match
 					//  the "station_info" argument to the mpdu_rx_process function
-					station_info_add(&(active_network_info->members), rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params,
-										active_network_info->bss_config.ht_capable);
+					station_info_add(&(active_network_info->members), rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, active_network_info->bss_config.ht_capable);
 					station_info->flags |= STATION_INFO_FLAG_KEEP;
 					time_hr_min_sec_t time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
 					xil_printf("*%dh:%02dm:%02ds* IBSS 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x added to BSS\n",
@@ -909,13 +872,10 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 									// Fill in the data
 									tx_length = wlan_create_probe_resp_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, active_network_info);
 
-									// Setup the TX frame info
-									wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, tx_length, (TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP | TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_REQ_TO), MANAGEMENT_QID, PKT_BUF_GROUP_GENERAL );
-
-									// Set the information in the TX queue buffer
-									curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-									curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)(&default_unicast_mgmt_tx_params);
-									curr_tx_queue_buffer->tx_frame_info.ID         = 0;
+									// Fill in metadata
+									curr_tx_queue_buffer->flags = TX_QUEUE_BUFFER_FLAGS_FILL_DURATION | TX_QUEUE_BUFFER_FLAGS_FILL_TIMESTAMP;
+									curr_tx_queue_buffer->length = tx_length;
+									curr_tx_queue_buffer->station_info = station_info;
 
 									// Put the packet in the queue
 									enqueue_after_tail(MANAGEMENT_QID, curr_tx_queue_element);
@@ -1018,16 +978,17 @@ void remove_inactive_station_infos() {
  *****************************************************************************/
 void ltg_event(u32 id, void* callback_arg){
 
-	u32                 payload_length;
-	u32                 min_ltg_payload_length;
-	station_info_entry_t* station_info_entry           = NULL;
-	station_info_t*     station_info                 = NULL;
-	u8*                 addr_da;
-	u8                  is_multicast;
-	u8                  queue_sel;
+	u32 payload_length;
+	u32 min_ltg_payload_length;
+	station_info_entry_t* station_info_entry = NULL;
+	station_info_t* station_info = NULL;
+	u8* addr_da;
+	u8 is_multicast;
+	u8 queue_sel;
 	dl_entry* curr_tx_queue_element        = NULL;
-	tx_queue_buffer_t*  curr_tx_queue_buffer         = NULL;
-	u8                  continue_loop;
+	tx_queue_buffer_t* curr_tx_queue_buffer         = NULL;
+	u8 continue_loop;
+	u16	flags = TX_QUEUE_BUFFER_FLAGS_FILL_UNIQ_SEQ;
 
 	if(active_network_info != NULL){
 		switch(((ltg_pyld_hdr*)callback_arg)->type){
@@ -1038,6 +999,7 @@ void ltg_event(u32 id, void* callback_arg){
 				if(is_multicast){
 					queue_sel = MCAST_QID;
 				} else {
+					flags |= TX_QUEUE_BUFFER_FLAGS_FILL_DURATION;
 					station_info_entry = station_info_find_by_addr(addr_da, &active_network_info->members);
 					if(station_info_entry != NULL){
 						station_info = (station_info_t*)(station_info_entry->data);
@@ -1059,6 +1021,7 @@ void ltg_event(u32 id, void* callback_arg){
 				if(is_multicast){
 					queue_sel = MCAST_QID;
 				} else {
+					flags |= TX_QUEUE_BUFFER_FLAGS_FILL_DURATION;
 					station_info_entry = station_info_find_by_addr(addr_da, &active_network_info->members);
 					if(station_info_entry != NULL){
 						station_info = (station_info_t*)(station_info_entry->data);
@@ -1074,6 +1037,7 @@ void ltg_event(u32 id, void* callback_arg){
 
 			case LTG_PYLD_TYPE_ALL_ASSOC_FIXED:
 				if(active_network_info->members.length > 0){
+					flags |= TX_QUEUE_BUFFER_FLAGS_FILL_DURATION;
 					station_info_entry = (station_info_entry_t*)(active_network_info->members.first);
 					station_info = (station_info_t*)station_info_entry->data;
 					addr_da = station_info->addr;
@@ -1099,8 +1063,7 @@ void ltg_event(u32 id, void* callback_arg){
 				//     - Set ht_capable argument to the HT_CAPABLE capability of the BSS.  Given that the node does not know
 				//       the HT capabilities of the new station, it is reasonable to assume that they are the same as the BSS.
 				//
-				station_info = station_info_add(&(active_network_info->members), addr_da, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params,
-															  active_network_info->bss_config.ht_capable);
+				station_info = station_info_add(&(active_network_info->members), addr_da, ADD_STATION_INFO_ANY_ID, active_network_info->bss_config.ht_capable);
 				if(station_info != NULL){
 					station_info->flags |= STATION_INFO_FLAG_KEEP;
 					time_hr_min_sec_t time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
@@ -1130,28 +1093,10 @@ void ltg_event(u32 id, void* callback_arg){
 					min_ltg_payload_length = wlan_create_ltg_frame((void*)(curr_tx_queue_buffer->frame), &tx_header_common, MAC_FRAME_CTRL2_FLAG_FROM_DS, id);
 					payload_length = max(payload_length+sizeof(mac_header_80211)+WLAN_PHY_FCS_NBYTES, min_ltg_payload_length);
 
-					// Finally prepare the 802.11 header
-					if (is_multicast) {
-						wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ), queue_sel, PKT_BUF_GROUP_GENERAL);
-					} else {
-						wlan_mac_high_setup_tx_frame_info ( &tx_header_common, curr_tx_queue_element, payload_length, (TX_FRAME_INFO_FLAGS_FILL_DURATION | TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ | TX_FRAME_INFO_FLAGS_REQ_TO), queue_sel, PKT_BUF_GROUP_GENERAL);
-					}
-
-					// Update the queue entry metadata to reflect the new new queue entry contents
-					if (is_multicast) {
-						curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-						curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)&default_multicast_data_tx_params;
-						curr_tx_queue_buffer->tx_frame_info.ID     = 0;
-					} else if(station_info == NULL){
-						curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_TX_PARAMS;
-						curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)&default_unicast_data_tx_params;
-						curr_tx_queue_buffer->tx_frame_info.ID     = 0;
-					} else {
-
-					    curr_tx_queue_buffer->metadata.metadata_type = QUEUE_METADATA_TYPE_STATION_INFO;
-					    curr_tx_queue_buffer->metadata.metadata_ptr  = (u32)station_info;
-						curr_tx_queue_buffer->tx_frame_info.ID         = station_info_entry->id;
-					}
+					// Fill in metadata
+					curr_tx_queue_buffer->length = payload_length;
+					curr_tx_queue_buffer->station_info = station_info;
+					curr_tx_queue_buffer->flags = flags;
 
 					// Submit the new packet to the appropriate queue
 					enqueue_after_tail(queue_sel, curr_tx_queue_element);
@@ -1218,6 +1163,7 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 	dl_entry* 			next_station_info_entry;
 	dl_entry* 			curr_station_info_entry;
 	int					iter;
+	tx_params_t			default_beacon_tx_params;
 
 	//---------------------------------------------------------
 	// 1. Check for any invalid inputs or combination of inputs
@@ -1433,8 +1379,9 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 			//     block for now until it unlocks.  This will guarantee that beacon are updated
 			//     before the function returns.
 			if (update_beacon_template) {
+				default_beacon_tx_params = station_info_get_default_tx_params(mcast_mgmt);
 				wlan_mac_high_setup_tx_header(&tx_header_common, (u8 *)bcast_addr, active_network_info->bss_config.bssid);
-				while (wlan_mac_high_configure_beacon_tx_template(&tx_header_common, active_network_info, &default_multicast_mgmt_tx_params, TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP) != 0) {}
+				while (wlan_mac_high_configure_beacon_tx_template(&tx_header_common, active_network_info, &default_beacon_tx_params, TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP) != 0) {}
 			}
 
 			// Update the channel

@@ -1155,10 +1155,11 @@ void wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf) {
 	//         modify the packet contents.
 	copy_destination = (void*)(((u8*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf)) + sizeof(tx_frame_info_t) + PHY_TX_PKT_BUF_PHY_HDR_SIZE);
 	copy_source = (void *)&(tx_queue_buffer->frame);
-	xfer_len  = tx_queue_buffer->length - WLAN_PHY_FCS_NBYTES;
 
     // Call user code to notify it of dequeue
 	mpdu_tx_dequeue_callback(tx_queue_buffer);
+
+	xfer_len  = tx_queue_buffer->length - WLAN_PHY_FCS_NBYTES;
 
 	// Transfer the frame info
 	wlan_mac_high_cdma_start_transfer( copy_destination, copy_source, xfer_len);

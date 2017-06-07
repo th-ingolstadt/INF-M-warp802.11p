@@ -874,8 +874,9 @@ void ltg_event(u32 id, void* callback_arg){
 	u8 is_multicast;
 	u8 queue_sel;
 	dl_entry* curr_tx_queue_element = NULL;
-	tx_queue_buffer_t*  curr_tx_queue_buffer = NULL;
-	u8                  continue_loop;
+	tx_queue_buffer_t* curr_tx_queue_buffer = NULL;
+	u8 continue_loop;
+	u16	flags = TX_QUEUE_BUFFER_FLAGS_FILL_UNIQ_SEQ;
 
 	if(active_network_info != NULL){
 		switch(((ltg_pyld_hdr*)callback_arg)->type){
@@ -889,6 +890,7 @@ void ltg_event(u32 id, void* callback_arg){
 				if(is_multicast){
 					queue_sel = MCAST_QID;
 				} else {
+					flags |= TX_QUEUE_BUFFER_FLAGS_FILL_DURATION;
 					if(station_info_is_member(&active_network_info->members, station_info)){
 						queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
 					} else {
@@ -907,6 +909,7 @@ void ltg_event(u32 id, void* callback_arg){
 				if(is_multicast){
 					queue_sel = MCAST_QID;
 				} else {
+					flags |= TX_QUEUE_BUFFER_FLAGS_FILL_DURATION;
 					if(station_info_is_member(&active_network_info->members, station_info)){
 						queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
 					} else {
@@ -917,6 +920,7 @@ void ltg_event(u32 id, void* callback_arg){
 
 			case LTG_PYLD_TYPE_ALL_ASSOC_FIXED:
 				if(active_network_info->members.length > 0){
+					flags |= TX_QUEUE_BUFFER_FLAGS_FILL_DURATION;
 					station_info_entry = (station_info_entry_t*)(active_network_info->members.first);
 					station_info = (station_info_t*)station_info_entry->data;
 					addr_da = station_info_entry->addr;
@@ -951,7 +955,7 @@ void ltg_event(u32 id, void* callback_arg){
 					payload_length = max(payload_length+sizeof(mac_header_80211)+WLAN_PHY_FCS_NBYTES, min_ltg_payload_length);
 
 					// Fill in metadata
-					curr_tx_queue_buffer->flags = TX_QUEUE_BUFFER_FLAGS_FILL_DURATION | TX_QUEUE_BUFFER_FLAGS_FILL_UNIQ_SEQ;
+					curr_tx_queue_buffer->flags = flags;
 					curr_tx_queue_buffer->length = payload_length;
 					curr_tx_queue_buffer->station_info = station_info;
 
@@ -1825,7 +1829,7 @@ void mpdu_dequeue(tx_queue_buffer_t* tx_queue_buffer){
 		//in the frame_control_2 field.
 		header->frame_control_2 |= MAC_FRAME_CTRL2_FLAG_MORE_DATA;
 	} else {
-		header->frame_control_2 = (header->frame_control_2) & ~MAC_FRAME_CTRL2_FLAG_MORE_DATA;
+		header->frame_control_2 &= ~MAC_FRAME_CTRL2_FLAG_MORE_DATA;
 	}
 
 }
