@@ -462,14 +462,16 @@ void process_scan_state_change(scan_state_t scan_state){
  * @brief Poll Tx queues to select next available packet to transmit
  *
  *****************************************************************************/
+#define NUM_QUEUE_GROUPS 2
+typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
+
 void poll_tx_queues(){
-	u8 return_value = 0;
-	u32 i,k;
+	interrupt_state_t curr_interrupt_state;
+	dl_entry*	tx_queue_buffer_entry;
+	u32 i;
 
-	//FIXME: modify so that general packet buffer group is fully topped up
-
-	#define NUM_QUEUE_GROUPS 3
-	typedef enum {BEACON_QGRP, MGMT_QGRP, DATA_QGRP} queue_group_t;
+	int num_pkt_bufs_avail;
+	int poll_loop_cnt;
 
 	// Remember the next group to poll between calls to this function
 	//   This implements the ping-pong poll between the MGMT_QGRP and DATA_QGRP groups
@@ -483,90 +485,102 @@ void poll_tx_queues(){
 
 	station_info_t* curr_station_info;
 
-	if(pkt_buf_group != PKT_BUF_GROUP_GENERAL){
-		return return_value;
-	}
+	// Don't dequeue anything if the active BSS is NULL
+	if( active_network_info == NULL ) return;
 
-	if (wlan_mac_high_is_dequeue_allowed(PKT_BUF_GROUP_GENERAL)) {
-		for(k = 0; k < NUM_QUEUE_GROUPS; k++){
-			curr_queue_group = next_queue_group;
+	// Stop interrupts for all processing below - this avoids many possible race conditions,
+	//  like new packets being enqueued or stations joining/leaving the BSS
+	curr_interrupt_state = wlan_mac_high_interrupt_stop();
 
-			switch(curr_queue_group){
-				case BEACON_QGRP:
-					next_queue_group = MGMT_QGRP;
-					if(dequeue_transmit_checkin(BEACON_QID)){
-						return_value = 1;
-						return return_value;
+	// First handle the general packet buffer group
+	num_pkt_bufs_avail = wlan_mac_num_tx_pkt_buf_available(PKT_BUF_GROUP_GENERAL);
+
+	// This loop will (at most) check every queue twice
+	//  This handles the case of a single non-empty queue needing to supply packets
+	//  for both GENERAL packet buffers
+	poll_loop_cnt = 0;
+	while((num_pkt_bufs_avail > 0) && (poll_loop_cnt < (2*NUM_QUEUE_GROUPS))) {
+		poll_loop_cnt++;
+		curr_queue_group = next_queue_group;
+
+		if(curr_queue_group == MGMT_QGRP) {
+			// Poll the management queue on this loop, data queues on next loop
+			next_queue_group = DATA_QGRP;
+			tx_queue_buffer_entry = dequeue_from_head(MANAGEMENT_QID);
+			if(tx_queue_buffer_entry) {
+				// Update the packet buffer group
+				((tx_queue_buffer_t*)(tx_queue_buffer_entry->data))->queue_info.pkt_buf_group = PKT_BUF_GROUP_GENERAL;
+				// Successfully dequeued a management packet - transmit and checkin
+				transmit_checkin(tx_queue_buffer_entry);
+				//continue the loop
+				num_pkt_bufs_avail--;
+				continue;
+			}
+		} else {
+			// Poll the data queues on this loop, management queue on next loop
+			next_queue_group = MGMT_QGRP;
+
+			if(pause_data_queue) {
+				// Data queues are paused - skip any dequeue attempts and continue the loop
+				continue;
+			}
+
+			for(i = 0; i < (active_network_info->members.length + 1); i++) {
+				// Resume polling data queues from where we stopped on the previous call
+				curr_station_info_entry = next_station_info_entry;
+
+				// Loop through all associated stations' queues and the broadcast queue
+				if(curr_station_info_entry == NULL) {
+					next_station_info_entry = (station_info_entry_t*)(active_network_info->members.first);
+
+					tx_queue_buffer_entry = dequeue_from_head(MCAST_QID);
+					if(tx_queue_buffer_entry) {
+						// Update the packet buffer group
+						((tx_queue_buffer_t*)(tx_queue_buffer_entry->data))->queue_info.pkt_buf_group = PKT_BUF_GROUP_GENERAL;
+						// Successfully dequeued a management packet - transmit and checkin
+						transmit_checkin(tx_queue_buffer_entry);
+						// Successfully dequeued a multicast packet - end the DATA_QGRP loop
+						num_pkt_bufs_avail--;
+						break;
 					}
-				break;
+				} else {
+					// Check the queue for an associated station
+					curr_station_info = (station_info_t*)(curr_station_info_entry->data);
 
-				case MGMT_QGRP:
-					next_queue_group = DATA_QGRP;
-					if(dequeue_transmit_checkin(MANAGEMENT_QID)){
-						return_value = 1;
-						return return_value;
-					}
-				break;
-
-				case DATA_QGRP:
-					next_queue_group = BEACON_QGRP;
-					curr_station_info_entry = next_station_info_entry;
-
-					if(active_network_info != NULL){
-						for(i = 0; i < (active_network_info->members.length + 1); i++) {
-							// Loop through all associated stations' queues and the broadcast queue
-							if(curr_station_info_entry == NULL){
-								// Check the broadcast queue
-								next_station_info_entry = (station_info_entry_t*)(active_network_info->members.first);
-								if(dequeue_transmit_checkin(MCAST_QID)){
-									// Found a not-empty queue, transmitted a packet
-									return_value = 1;
-									return return_value;
-								} else {
-									curr_station_info_entry = next_station_info_entry;
-								}
-							} else {
-								curr_station_info = (station_info_t*)(curr_station_info_entry->data);
-								if( station_info_is_member(&active_network_info->members, curr_station_info) ){
-									if(curr_station_info_entry == (station_info_entry_t*)(active_network_info->members.last)){
-										// We've reached the end of the table, so we wrap around to the beginning
-										next_station_info_entry = NULL;
-									} else {
-										next_station_info_entry = dl_entry_next(curr_station_info_entry);
-									}
-
-									if(dequeue_transmit_checkin(STATION_ID_TO_QUEUE_ID(curr_station_info_entry->id))){
-										// Found a not-empty queue, transmitted a packet
-										return_value = 1;
-										return return_value;
-									} else {
-										curr_station_info_entry = next_station_info_entry;
-									}
-								} else {
-									// This curr_station_info is invalid. Perhaps it was removed from
-									// the association table before poll_tx_queues was called. We will
-									// start the round robin checking back at broadcast.
-									next_station_info_entry = NULL;
-									return return_value;
-								} // END if(is_valid_association)
-							}
-						} // END for loop over association table
-					} else {
-						if(dequeue_transmit_checkin(MCAST_QID)){
-							// Found a not-empty queue, transmitted a packet
-							return_value = 1;
-							return return_value;
+					if( station_info_is_member(&active_network_info->members, curr_station_info)) {
+						if(curr_station_info_entry == (station_info_entry_t*)(active_network_info->members.last)){
+							// We've reached the end of the table, so we wrap around to the beginning
+							next_station_info_entry = NULL;
+						} else {
+							next_station_info_entry = dl_entry_next(curr_station_info_entry);
 						}
-					}
-				break;
-			} // END switch(queue group)
-		} // END loop over queue groups
-	} // END CPU low is ready
 
-	return return_value;
+						if((curr_station_info->flags & STATION_INFO_FLAG_DOZE) == 0) {
+
+							tx_queue_buffer_entry = dequeue_from_head(STATION_ID_TO_QUEUE_ID(curr_station_info_entry->id));
+							if(tx_queue_buffer_entry) {
+								// Update the packet buffer group
+								((tx_queue_buffer_t*)(tx_queue_buffer_entry->data))->queue_info.pkt_buf_group = PKT_BUF_GROUP_GENERAL;
+								// Successfully dequeued a management packet - transmit and checkin
+								transmit_checkin(tx_queue_buffer_entry);
+								// Successfully dequeued a unicast packet for this station - end the DATA_QGRP loop
+								num_pkt_bufs_avail--;
+								break;
+							}
+						}
+					} else {
+						// This curr_station_info is invalid. Perhaps it was removed from
+						// the association table before poll_tx_queues was called. We will
+						// start the round robin checking back at broadcast.
+						next_station_info_entry = NULL;
+					} // END if(curr_station_info is BSS member)
+				} // END if(multicast queue or station queue)
+			} // END for loop over association table
+		} // END if(MGMT or DATA queue group)
+	} // END while(buffers available && keep polling)
+
+	wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
 }
-
-
 
 /*****************************************************************************/
 /**
@@ -637,6 +651,7 @@ int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src,
 
 		if( wlan_addr_mcast(eth_dest) ){
 			// Fill in metadata
+			queue_sel = MCAST_QID;
 			curr_tx_queue_buffer->flags = 0;
 			curr_tx_queue_buffer->length = tx_length;
 
@@ -667,6 +682,12 @@ int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src,
 				}
 
 				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
+			}
+
+			if( station_info == NULL ){
+				queue_sel = MCAST_QID;
+			} else {
+				queue_sel = STATION_ID_TO_QUEUE_ID(station_info->ID);
 			}
 
 			// Fill in metadata
