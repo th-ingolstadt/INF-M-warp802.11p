@@ -1264,115 +1264,69 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     #------------------------
     # Tx Power commands
 
-    def set_tx_power_unicast(self, power, device_list=None, curr_assoc=False, new_assoc=False):
-        """Sets the unicast packet transmit power of the node.
+    def set_tx_power_data(self, power, device_list=None, update_default_unicast=None, update_default_multicast=None):
+        """Sets the transmit power for data frames.
 
-        When using ``device_list`` or ``curr_assoc``, this method will set the 
-        unicast data packet tx power since only unicast data transmit 
-        parameters are maintained for a given station info.  However, when 
-        using ``new_assoc``, this method will set both the default unicast 
-        data and unicast management packet tx power.
+        This function is used to set the tranmsit power for frames of type
+        data. Transmit parameters are maintained on a per-MAC address basis.
+        The ``device_list`` argument can be used to select particular devices
+        for which the Tx parameter update applies. The ``update_default_x``
+        arguments can be used to specify that the provided power should be
+        used for any future additions to the node's device list.
 
         Args:
             power (int):  Transmit power in dBm (a value between 
                 ``node.max_tx_power_dbm`` and ``node.min_tx_power_dbm``)
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
-                802.11 devices or single 802.11 device for which to set the 
-                unicast packet Tx power to 'power'
-            curr_assoc (bool):  All current station infos will have the unicast 
-                packet Tx power set to 'power'
-            new_assoc  (bool):  All new station infos will have the unicast 
-                packet Tx power set to 'power'
+            device_list (list of WlanExpNode / WlanDevice 
+             or 'ALL_UNICAST' or 'ALL_MULTICAST' or 'ALL', optional):
+                List of 802.11 devices or single 802.11 device for which to set the 
+                unicast packet Tx power to 'power'. A value of 'ALL_UNICAST' will
+                apply the specified power to all unicast receiver addresses. A value
+                of `ALL_MULTICAST` will apply it to all multicast receiver addresses.
+                A value of 'ALL' will apply the specified power to all addresses.
+            update_default_unicast  (bool): set the default unicast Tx params to the
+                provided 'power'.
+            update_default_multicast  (bool): set the default multicast Tx params to the
+                provided 'power'.                
 
-        One of ``device_list``, ``curr_assoc`` or ``new_assoc`` must be set.  
-        The ``device_list`` and ``curr_assoc`` are mutually exclusive with 
-        ``curr_assoc`` having precedence (ie if ``curr_assoc`` is True, then 
-        ``device_list`` will be ignored).
-
-        The MAC code does not differentiate between unicast management tx 
-        parameters and unicast data tx parameters since unicast management 
-        packets only occur when they will not materially affect an experiment 
-        (ie they are only sent during deauthentication)
-
-        This will not affect the transmit power for control frames like ACKs 
-        that will be transmitted. To adjust this power, use the 
-        ``set_tx_power_ctrl`` command
+        One of ``device_list`` or ``update_default_unicast`` or ``update_default_multicast``
+            must be set.  
         """
-        self._node_set_tx_param_unicast(cmds.NodeProcTxPower, 'tx power', 
+        self._node_set_tx_param(cmds.NodeProcTxPower, 'tx power', 
                                         (power, self.max_tx_power_dbm, self.min_tx_power_dbm), 
-                                        device_list, curr_assoc, new_assoc)
+                                        'data', device_list, update_default_unicast, update_default_multicast)
 
+    def set_tx_power_mgmt(self, power, device_list=None, update_default_unicast=None, update_default_multicast=None):
+        """Sets the transmit power for management frames.
 
-    def set_tx_power_multicast_data(self, power):
-        """Sets the multicast data packet transmit power.
-
-        Args:
-            power (int):  Transmit power in dBm (a value between 
-                ``node.max_tx_power_dbm`` and ``node.min_tx_power_dbm``)
-        """
-        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_DATA, 
-                                           (power, self.max_tx_power_dbm, self.min_tx_power_dbm)))
-
-
-    def set_tx_power_multicast_mgmt(self, power):
-        """Sets the multicast management packet transmit power.
+        This function is used to set the tranmsit power for frames of type
+        management. Transmit parameters are maintained on a per-MAC address basis.
+        The ``device_list`` argument can be used to select particular devices
+        for which the Tx parameter update applies. The ``update_default_x``
+        arguments can be used to specify that the provided power should be
+        used for any future additions to the node's device list.
 
         Args:
             power (int):  Transmit power in dBm (a value between 
                 ``node.max_tx_power_dbm`` and ``node.min_tx_power_dbm``)
+            device_list (list of WlanExpNode / WlanDevice 
+             or 'ALL_UNICAST' or 'ALL_MULTICAST' or 'ALL', optional):
+                List of 802.11 devices or single 802.11 device for which to set the 
+                unicast packet Tx power to 'power'. A value of 'ALL_UNICAST' will
+                apply the specified power to all unicast receiver addresses. A value
+                of `ALL_MULTICAST` will apply it to all multicast receiver addresses.
+                A value of 'ALL' will apply the specified power to all addresses.
+            update_default_unicast  (bool): set the default unicast Tx params to the
+                provided 'power'.
+            update_default_multicast  (bool): set the default multicast Tx params to the
+                provided 'power'.          
+                
+        One of ``device_list`` or ``update_default_unicast`` or ``update_default_multicast``
+            must be set.  
         """
-        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_MGMT, 
-                                           (power, self.max_tx_power_dbm, self.min_tx_power_dbm)))
-
-
-    def get_tx_power_unicast(self, device_list=None, new_assoc=False):
-        """Gets the unicast packet transmit power of the node for the given 
-        device(s).
-
-        This will get the unicast data packet Tx power (unicast managment 
-        packet Tx power is the same).
-
-        Args:
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
-                802.11 devices or single 802.11 device for which to get the 
-                unicast packet Tx power
-            new_assoc  (bool):  Get the unicast packet Tx power for all new 
-                station infos
-
-        Returns:
-            tx_powers (List of int):  
-                List of unicast packet Tx power for the given devices.
-
-        If both ``new_assoc`` and ``device_list`` are specified, the return 
-        list will always have the unicast packet Tx power for all new 
-        station infos as the first item in the list.
-        """
-        return self._node_get_tx_param_unicast(cmds.NodeProcTxPower, 'tx power', 
-                                               (0, self.max_tx_power_dbm, self.min_tx_power_dbm), 
-                                               device_list, new_assoc)
-
-
-    def get_tx_power_multicast_data(self):
-        """Gets the current multicast data packet transmit power for a node.
-
-        Returns:
-            tx_power (int):  
-                Multicast data packet transmit power for the node in dBm
-        """
-        return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_DATA,
-                                                  (0, self.max_tx_power_dbm, self.min_tx_power_dbm)))
-
-
-    def get_tx_power_multicast_mgmt(self):
-        """Gets the current multicast management packet transmit power for a node.
-
-        Returns:
-            tx_power (int):  
-                Multicast management packet transmit power for the node in dBm
-        """
-        return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_MGMT, 
-                                                  (0, self.max_tx_power_dbm, self.min_tx_power_dbm)))
-
+        self._node_set_tx_param(cmds.NodeProcTxPower, 'tx power', 
+                                        (power, self.max_tx_power_dbm, self.min_tx_power_dbm), 
+                                        'mgmt', device_list, update_default_unicast, update_default_multicast)
 
     def set_tx_power_ctrl(self, power):
         """Sets the control packet transmit power of the node.
@@ -1742,89 +1696,76 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         return rate_ok
 
 
-    def _node_set_tx_param_unicast(self, cmd, param_name, param,
-                                         device_list=None, curr_assoc=False, new_assoc=False):
+    def _node_set_tx_param(self, cmd, param_name, param, frametype,
+                               device_list=None, update_default_unicast=None, update_default_multicast=None):
         """Sets the unicast transmit param of the node.
 
         Args:
             cmd (Cmd):          Command to be used to set param
             param_name (str):   Name of parameter for error messages
             param (int):        Parameter to be set
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
-                802.11 devices or single 802.11 device for which to set the Tx 
-                unicast param
-            curr_assoc (bool):  All current station infos will have Tx unicast 
-                param set
-            new_assoc  (bool):  All new staion infos will have Tx unicast 
-                param set
+            frametype(str):     `data` or `mgmt`
+            device_list (list of WlanExpNode / WlanDevice 
+             or 'ALL_UNICAST' or 'ALL_MULTICAST' or 'ALL', optional):
+                List of 802.11 devices or single 802.11 device for which to set the 
+                unicast packet Tx power to 'power'. A value of 'ALL_UNICAST' will
+                apply the specified power to all unicast receiver addresses. A value
+                of `ALL_MULTICAST` will apply it to all multicast receiver addresses.
+                A value of 'ALL' will apply the specified power to all addresses.
+            update_default_unicast  (bool): set the default unicast Tx params to the
+                provided 'power'.
+            update_default_multicast  (bool): set the default multicast Tx params to the
+                provided 'power'.          
 
-        One of ``device_list``, ``curr_assoc`` or ``new_assoc`` must be set.  
-        The ``device_list`` and ``curr_assoc`` are mutually exclusive with 
-        ``curr_assoc`` having precedence (ie if ``curr_assoc`` is True, then 
-        ``device_list`` will be ignored).
+        One of ``device_list`` or ``default`` must be set.          
         """
-        if (device_list is None) and (not curr_assoc) and (not new_assoc):
+        if (device_list is None) and (update_default_unicast is None) and (update_default_multicast is None):
             msg  = "\nCannot set the unicast transmit {0}:\n".format(param_name)
-            msg += "    Must specify either a list of devices, all current station infos,\n"
-            msg += "    or all new station infos on which to set the {0}.".format(param_name)
+            msg += "    Must specify either a list of devices, 'ALL' current station infos,\n"
+            msg += "    or update_default_unicast or update_default_multicast {0}.".format(param_name)
             raise ValueError(msg)
-
-        if new_assoc:
-            self.send_cmd(cmd(cmds.CMD_PARAM_WRITE_DEFAULT, cmds.CMD_PARAM_UNICAST, param))
-
-        if curr_assoc:
-            self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_UNICAST, param))
+            
+        if( (update_default_unicast is True) or (device_list == 'ALL_UNICAST') or (device_list == 'ALL') ):
+            update_default_unicast = 1;
         else:
-            if (device_list is not None):
+            update_default_unicast = 0;
+
+        if( (update_default_multicast is True) or (device_list == 'ALL_MULTICAST') or (device_list == 'ALL') ):
+            update_default_multicast = 1;
+        else:
+            update_default_multicast = 0;
+            
+
+        if(frametype == 'data'):
+            if(device_list == 'ALL_UNICAST'):
+                self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_DATA, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST))
+            elif(device_list == 'ALL_MULTICAST'):
+                self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_DATA, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST))
+            elif(device_list == 'ALL'):
+                self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_DATA, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_ALL))                
+            elif(device_list is not None):
                 try:
                     for device in device_list:
-                        self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_UNICAST, param, device))
+                        self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_DATA, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_SINGLE, device))
                 except TypeError:
-                    self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_UNICAST, param, device_list))
-
-
-    def _node_get_tx_param_unicast(self, cmd, param_name, param=None, device_list=None, new_assoc=False):
-        """Gets the unicast transmit param of the node.
-
-        Args:
-            cmd (Cmd):          Command to be used to set param
-            param_name (str):   Name of parameter for error messages
-            param (int):        Optional parameter to pass information to cmd
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
-                802.11 devices or single 802.11 device for which to get the Tx 
-                unicast param
-            new_assoc  (bool):  Get the Tx unicast param for all new station infos
-
-        Returns:
-            params (List of params):  
-                List of Tx unicast param for the given devices.
-
-        If both ``new_assoc`` and ``device_list`` are specified, the return 
-        list will always have the Tx unicast rate for all new station infos as 
-        the first item in the list.
-        """
-        ret_val = []
-
-        if (device_list is None) and (not new_assoc):
-            msg  = "\nCannot get the unicast transmit {0}:\n".format(param_name)
-            msg += "    Must specify either a list of devices or all new station infos\n"
-            msg += "    for which to get the {0}.".format(param_name)
-            raise ValueError(msg)
-
-        if new_assoc:
-            val = self.send_cmd(cmd(cmds.CMD_PARAM_READ_DEFAULT, cmds.CMD_PARAM_UNICAST, param))
-            ret_val.append(val)
-
-        if (device_list is not None):
-            try:
-                for device in device_list:
-                    val = self.send_cmd(cmd(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_UNICAST, param, device=device))
-                    ret_val.append(val)
-            except TypeError:
-                val = self.send_cmd(cmd(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_UNICAST, param, device=device_list))
-                ret_val.append(val)
-
-        return ret_val
+                    self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_DATA, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_SINGLE, device_list))
+            else:
+                self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_DATA, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_NONE))
+        elif(frametype == 'mgmt'):
+            if(device_list == 'ALL_UNICAST'):
+                self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_MGMT, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST))
+            elif(device_list == 'ALL_MULTICAST'):
+                self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_MGMT, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST))
+            elif(device_list == 'ALL'):
+                self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_MGMT, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_ALL))                
+            elif(device_list is not None):
+                try:
+                    for device in device_list:
+                        self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_MGMT, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_SINGLE, device))
+                except TypeError:
+                    self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_MGMT, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_SINGLE, device_list))
+            else:
+                self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_MGMT, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_NONE))
 
 
     def _set_bb_gain(self, bb_gain):

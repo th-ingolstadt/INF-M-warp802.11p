@@ -65,17 +65,21 @@ CMDID_NODE_LOW_PARAM                             = 0x001020
 
 CMD_PARAM_WRITE                                  = 0x00000000
 CMD_PARAM_READ                                   = 0x00000001
-CMD_PARAM_WRITE_DEFAULT                          = 0x00000002
-CMD_PARAM_READ_DEFAULT                           = 0x00000004
 CMD_PARAM_RSVD                                   = 0xFFFFFFFF
 
 CMD_PARAM_SUCCESS                                = 0x00000000
 CMD_PARAM_WARNING                                = 0xF0000000
 CMD_PARAM_ERROR                                  = 0xFF000000
 
-CMD_PARAM_UNICAST                                = 0x00000000
-CMD_PARAM_MULTICAST_DATA                         = 0x00000001
-CMD_PARAM_MULTICAST_MGMT                         = 0x00000002
+CMD_PARAM_TXPARAM_DATA                           = 0x00000000
+CMD_PARAM_TXPARAM_MGMT                           = 0x00000001
+CMD_PARAM_TXPARAM_CTRL                           = 0x00000002
+
+CMD_PARAM_TXPARAM_ADDR_NONE                      = 0x00000000
+CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST               = 0x00000001
+CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST             = 0x00000002
+CMD_PARAM_TXPARAM_ADDR_ALL                       = 0x00000003
+CMD_PARAM_TXPARAM_ADDR_SINGLE                    = 0x00000004
 
 CMD_PARAM_NODE_CONFIG_ALL                        = 0xFFFFFFFF
 
@@ -969,39 +973,56 @@ class NodeProcTxPower(message.Cmd):
     """Command to get / set the transmit power of the node.
 
     Attributes:
-        cmd       -- Sub-command to send over the command.  Valid values are:
-                       CMD_PARAM_READ
+        cmd        -- Sub-command to send over the command.  Valid values are:                       
                        CMD_PARAM_WRITE
-                       CMD_PARAM_WRITE_DEFAULT
-                       CMD_PARAM_READ_DEFAULT
-        tx_type   -- Which Tx parameters to set.  Valid values are:
-                       CMD_PARAM_UNICAST
-                       CMD_PARAM_MULTICAST_DATA
-                       CMD_PARAM_MULTICAST_MGMT
-                       CMD_PARAM_NODE_TX_POWER_LOW
-                       CMD_PARAM_NODE_TX_POWER_ALL
-        power     -- Tuple:
+
+        frame_type -- Valid values are:
+                       CMD_PARAM_TXPARAM_DATA
+                       CMD_PARAM_TXPARAM_MGMT
+                       
+        update_default_unicast -- Valid values are:
+                       0
+                       1
+                       
+        update_default_multicast -- Valid values are:
+                       0
+                       1
+
+        power      -- Tuple:
                        Transmit power for the WARP node (in dBm)
                        Maximum transmit power for the WARP node (in dBm)
                        Minimum transmit power for the WARP node (in dBm)
-        device    -- 802.11 device for which the rate is being set.
+                       
+        addr_sel    -- Valid values are:
+                       CMD_PARAM_TXPARAM_ADDR_NONE
+                       CMD_PARAM_TXPARAM_ADDR_ALL
+                       CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST
+                       CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST
+                       
+        device     -- 802.11 device for which the rate is being set.
     """
     max_tx_power = None
     min_tx_power = None
 
-    def __init__(self, cmd, tx_type, power, device=None):
+    def __init__(self, cmd, frame_type, update_default_unicast, update_default_multicast, power, addr_sel, device=None):
         super(NodeProcTxPower, self).__init__()
         self.command = _CMD_GROUP_NODE + CMDID_NODE_TX_POWER
         mac_address  = None
 
         self.add_args(cmd)
 
-        self.add_args(self.check_type(tx_type))
+        self.add_args(self.check_frame_type(frame_type))
+        
+        self.add_args(self.check_update_default(update_default_unicast))
+        
+        self.add_args(self.check_update_default(update_default_multicast))
 
         # Get max/min power 
         self.max_tx_power = power[1]
         self.min_tx_power = power[2]        
         self.add_args(self.check_power(power))
+        
+        self.add_args(self.check_addr_sel(addr_sel))
 
         if device is not None:
             mac_address = device.wlan_mac_address
@@ -1009,18 +1030,15 @@ class NodeProcTxPower(message.Cmd):
         _add_mac_address_to_cmd(self, mac_address)
 
 
-    def check_type(self, tx_type):
-        """Check the tx type value is valid."""
+    def check_frame_type(self, frame_type):
+        """Check if frame_type value is valid."""
         return_type = None
-        valid_types = [('CMD_PARAM_UNICAST',           CMD_PARAM_UNICAST),
-                       ('CMD_PARAM_MULTICAST_DATA',    CMD_PARAM_MULTICAST_DATA),
-                       ('CMD_PARAM_MULTICAST_MGMT',    CMD_PARAM_MULTICAST_MGMT),
-                       ('CMD_PARAM_NODE_TX_POWER_LOW', CMD_PARAM_NODE_TX_POWER_LOW),
-                       ('CMD_PARAM_NODE_TX_POWER_ALL', CMD_PARAM_NODE_TX_POWER_ALL)]
+        valid_types = [('CMD_PARAM_TXPARAM_DATA', CMD_PARAM_TXPARAM_DATA),
+                       ('CMD_PARAM_TXPARAM_MGMT', CMD_PARAM_TXPARAM_MGMT)]
 
         for tmp_type in valid_types:
-            if (tx_type == tmp_type[1]):
-                return_type = tx_type
+            if (frame_type == tmp_type[1]):
+                return_type = frame_type
                 break
 
         if return_type is not None:
@@ -1031,7 +1049,41 @@ class NodeProcTxPower(message.Cmd):
                 msg += "{0} ".format(tmp_type[0])
             msg += "]"
             raise ValueError(msg)
+            
+    def check_update_default(self, update_default):
+        """Check if update_default is valid."""
+        return_type = None
+        
+        if (update_default == 0) or (update_default == 1):
+            return_type = update_default;
+            
+        if return_type is not None:
+            return return_type
+        else:
+            msg  = "update_default must be 0 or 1"          
+            raise ValueError(msg)
 
+    def check_addr_sel(self, addr_sel):
+        """Check if addr_sel value is valid."""
+        return_type = None
+        valid_types = [('CMD_PARAM_TXPARAM_ADDR_NONE', CMD_PARAM_TXPARAM_ADDR_NONE),
+                       ('CMD_PARAM_TXPARAM_ADDR_ALL', CMD_PARAM_TXPARAM_ADDR_ALL),
+                       ('CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST', CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST),
+                       ('CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST', CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST)]
+
+        for tmp_type in valid_types:
+            if (addr_sel == tmp_type[1]):
+                return_type = addr_sel
+                break
+
+        if return_type is not None:
+            return return_type
+        else:
+            msg  = "The type must be one of: ["
+            for tmp_type in valid_types:
+                msg += "{0} ".format(tmp_type[0])
+            msg += "]"
+            raise ValueError(msg)
 
     def check_power(self, power):
         """Return a valid power (in dBm) from the power tuple."""
@@ -1061,11 +1113,8 @@ class NodeProcTxPower(message.Cmd):
         error_msg     = "Could not get / set the transmit power on the node"
         status_errors = { error_code : error_msg }
 
-        if resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from Tx power command'):
-            args = resp.get_args()
-
-            # Shift the value since only positive integers are transmitted over the wire
-            return (args[1] + self.min_tx_power)
+        if resp.resp_is_valid(num_args=1, status_errors=status_errors, name='from Tx power command'):
+            return None
         else:
             return None
 
