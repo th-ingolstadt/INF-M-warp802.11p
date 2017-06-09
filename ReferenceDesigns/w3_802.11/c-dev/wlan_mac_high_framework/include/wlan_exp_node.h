@@ -66,17 +66,21 @@
 
 #define CMD_PARAM_WRITE_VAL                                0x00000000
 #define CMD_PARAM_READ_VAL                                 0x00000001
-#define CMD_PARAM_WRITE_DEFAULT_VAL                        0x00000002
-#define CMD_PARAM_READ_DEFAULT_VAL                         0x00000004
 #define CMD_PARAM_RSVD                                     0xFFFFFFFF
 
 #define CMD_PARAM_SUCCESS                                  0x00000000
 #define CMD_PARAM_WARNING                                  0xF0000000
 #define CMD_PARAM_ERROR                                    0xFF000000
 
-#define CMD_PARAM_UNICAST_VAL                              0x00000000
-#define CMD_PARAM_MULTICAST_DATA_VAL                       0x00000001
-#define CMD_PARAM_MULTICAST_MGMT_VAL                       0x00000002
+#define CMD_PARAM_TXPARAM_DATA		                       0x00000000
+#define CMD_PARAM_TXPARAM_MGMT		                       0x00000001
+#define CMD_PARAM_TXPARAM_CTRL		                       0x00000002
+
+#define CMD_PARAM_TXPARAM_ADDR_NONE                        0x00000000
+#define CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST                 0x00000001
+#define CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST               0x00000002
+#define CMD_PARAM_TXPARAM_ADDR_ALL               		   0x00000003
+#define CMD_PARAM_TXPARAM_ADDR_SINGLE                      0x00000004
 
 #define CMD_PARAM_NODE_CONFIG_ALL                          0xFFFFFFFF
 

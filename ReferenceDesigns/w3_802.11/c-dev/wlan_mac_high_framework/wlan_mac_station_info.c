@@ -893,6 +893,7 @@ u8	station_info_is_member(dl_list* app_station_info_list, station_info_t* statio
 }
 
 tx_params_t station_info_get_default_tx_params(default_tx_param_sel_t default_tx_param_sel){
+	//FIXME: rename to wlan_mac_get_default_tx_params
 	tx_params_t ret;
 
 	switch(default_tx_param_sel){
