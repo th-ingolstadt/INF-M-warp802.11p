@@ -1277,6 +1277,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t* msg, u32* ipc_msg_from_low_pa
 	tx_frame_info_t*    		tx_frame_info;
 
 
+
     // Determine what type of message this is
 	switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)) {
 
@@ -1284,6 +1285,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t* msg, u32* ipc_msg_from_low_pa
 		case IPC_MBOX_TX_BEACON_DONE:{
 			wlan_mac_low_tx_details_t* 	tx_low_details;
 			tx_low_entry*				tx_low_event_log_entry = NULL;
+			station_info_t*				station_info;
 
 			tx_pkt_buf = msg->arg0;
 			if(tx_pkt_buf == TX_PKT_BUF_BEACON){
@@ -1304,6 +1306,10 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t* msg, u32* ipc_msg_from_low_pa
 #endif
 
 					beacon_tx_done_callback( tx_frame_info, tx_low_details, tx_low_event_log_entry );
+
+					// Apply latest broadcast management tx_params in case that they have changed
+					station_info = station_info_create((u8*)bcast_addr);
+					tx_frame_info->params = station_info->tx_params_mgmt;
 
 					tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_READY;
 					if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
