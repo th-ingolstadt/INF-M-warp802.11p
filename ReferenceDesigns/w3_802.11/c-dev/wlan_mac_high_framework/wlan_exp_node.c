@@ -1888,6 +1888,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             	if( msg_cmd == CMD_PARAM_WRITE_VAL ){
             		// 1. Update default values if needed
             		if(update_default_unicast){
+            			xil_printf("UPDATE DEFAULT UNICAST\n"); //FIXME DEBUG
             			switch(frame_type){
             				case CMD_PARAM_TXPARAM_DATA:
             					tx_params = station_info_get_default_tx_params(unicast_data);
@@ -1905,6 +1906,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             			}
             		}
             		if(update_default_multicast){
+            			xil_printf("UPDATE DEFAULT MULTICAST\n"); //FIXME DEBUG
             			switch(frame_type){
             				case CMD_PARAM_TXPARAM_DATA:
             					tx_params = station_info_get_default_tx_params(mcast_data);
@@ -1922,6 +1924,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             			}
             		}
             		// 2. Update station_info_t value depending on addr_sel
+            		xil_printf("addr_sel = %d\n", addr_sel); //FIXME DEBUG
             		switch(addr_sel){
             			default:
             				status = CMD_PARAM_ERROR;
@@ -1931,13 +1934,16 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             			case CMD_PARAM_TXPARAM_ADDR_ALL:
             			case CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST:
             			case CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST:
-							station_info_list  = get_network_member_list();
+							station_info_list  = station_info_get_list();
 							station_info_entry = (station_info_entry_t*)(station_info_list->first);
 							iter = (station_info_list->length)+1;
 							while(station_info_entry && ((iter--) > 0)){
 								station_info = station_info_entry->data;
 								if( (!wlan_addr_mcast(station_info->addr) && ((addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST) || (addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL))) ||
 									(wlan_addr_mcast(station_info->addr)  && ((addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST) || (addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL)))	){
+
+									xil_printf("%02x-%02x-%02x-%02x-%02x-%02x\n", station_info->addr[0], station_info->addr[1], station_info->addr[2], station_info->addr[3], station_info->addr[4], station_info->addr[5]);//FIXME DEBUG
+
 			            			switch(frame_type){
 			            				case CMD_PARAM_TXPARAM_DATA:
 			            					station_info->tx_params_data.phy.power = power;
