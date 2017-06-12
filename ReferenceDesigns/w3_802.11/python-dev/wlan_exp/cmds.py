@@ -1034,7 +1034,8 @@ class NodeProcTxPower(message.Cmd):
         """Check if frame_type value is valid."""
         return_type = None
         valid_types = [('CMD_PARAM_TXPARAM_DATA', CMD_PARAM_TXPARAM_DATA),
-                       ('CMD_PARAM_TXPARAM_MGMT', CMD_PARAM_TXPARAM_MGMT)]
+                       ('CMD_PARAM_TXPARAM_MGMT', CMD_PARAM_TXPARAM_MGMT),
+                       ('CMD_PARAM_TXPARAM_CTRL', CMD_PARAM_TXPARAM_CTRL)]
 
         for tmp_type in valid_types:
             if (frame_type == tmp_type[1]):

@@ -1341,8 +1341,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             power (int):  Transmit power in dBm (a value between 
                 ``node.max_tx_power_dbm`` and ``node.min_tx_power_dbm``)
         """
-        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_NODE_TX_POWER_LOW, 
-                                           (power, self.max_tx_power_dbm, self.min_tx_power_dbm)))
+        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_CTRL, 0, 0,
+                                           (power, self.max_tx_power_dbm, self.min_tx_power_dbm), cmds.CMD_PARAM_TXPARAM_ADDR_NONE))
 
 
     def set_tx_power(self, power):
@@ -1698,7 +1698,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
     def _node_set_tx_param(self, cmd, param_name, param, frametype,
                                device_list=None, update_default_unicast=None, update_default_multicast=None):
-        """Sets the unicast transmit param of the node.
+        """Sets the data & management transmit parameters of the node.
 
         Args:
             cmd (Cmd):          Command to be used to set param
