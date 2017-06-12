@@ -1069,7 +1069,8 @@ class NodeProcTxPower(message.Cmd):
         valid_types = [('CMD_PARAM_TXPARAM_ADDR_NONE', CMD_PARAM_TXPARAM_ADDR_NONE),
                        ('CMD_PARAM_TXPARAM_ADDR_ALL', CMD_PARAM_TXPARAM_ADDR_ALL),
                        ('CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST', CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST),
-                       ('CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST', CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST)]
+                       ('CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST', CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST),
+                       ('CMD_PARAM_TXPARAM_ADDR_SINGLE', CMD_PARAM_TXPARAM_ADDR_SINGLE)]
 
         for tmp_type in valid_types:
             if (addr_sel == tmp_type[1]):
