@@ -963,96 +963,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode, verbose=True)
             raise AttributeError("Tx rate, (mcs, phy_mode) tuple, not supported by the design. See above error message.")
 
-
-    def set_tx_rate_multicast_data(self, mcs, phy_mode):
-        """Sets the multicast data packet transmit rate for a node.
-
-        Args:
-            mcs (int): Modulation and coding scheme (MCS) index (in [0 .. 7])
-            phy_mode (str, int): PHY mode.  Must be one of:
-
-                * ``'NONHT'``: Use 802.11 (a/g) rates
-                * ``'HTMF'``: Use 802.11 (n) rates
-
-        """
-        if self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode):
-            self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_DATA, (mcs, phy_mode)))
-        else:
-            self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode, verbose=True)
-            raise AttributeError("Tx rate, (mcs, phy_mode) tuple, not supported by the design. See above error message.")
-
-
-    def set_tx_rate_multicast_mgmt(self, mcs, phy_mode):
-        """Sets the multicast management packet transmit rate for a node.
-
-        Args:
-            mcs (int): Modulation and coding scheme (MCS) index (in [0 .. 7])
-            phy_mode (str, int): PHY mode.  Must be one of:
-
-                * ``'NONHT'``: Use 802.11 (a/g) rates
-                * ``'HTMF'``: Use 802.11 (n) rates
-
-        """
-        if self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode):
-            self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_MGMT, (mcs, phy_mode)))
-        else:
-            self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode, verbose=True)
-            raise AttributeError("Tx rate, (mcs, phy_mode) tuple, not supported by the design. See above error message.")
-
-
-    def get_tx_rate_unicast(self, device_list=None, new_assoc=False):
-        """Gets the unicast packet transmit rate of the node for the given 
-        device(s).
-
-        This will get the unicast data packet tx rate (unicast managment 
-        packet tx rate is the same).
-
-        Args:
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
-                802.11 devices or single 802.11 device for which to get the 
-                unicast packet Tx rate
-            new_assoc  (bool):  Get the unicast packet Tx rate for all new 
-                station infos
-
-        Returns:
-            rates (List of tuple):  
-                List of unicast packet Tx rate tuples, (mcs, phy_mode), for 
-                the given devices.
-
-        If both ``new_assoc`` and ``device_list`` are specified, the return 
-        list will always have the unicast packet Tx rate for all new 
-        station infos as the first item in the list.
-        """
-        return self._node_get_tx_param_unicast(cmds.NodeProcTxRate, 'rate', None, device_list, new_assoc)
-
-
-    def get_tx_rate_multicast_data(self):
-        """Gets the current multicast data packet transmit rate for a node.
-
-        Returns:
-            rate (tuple):  
-                Multicast data packet transmit rate tuple, (mcs, phy_mode), 
-                for the node
-        """
-        return self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_DATA))
-
-
-    def get_tx_rate_multicast_mgmt(self):
-        """Gets the current multicast transmit rate for a node.
-
-        Returns:
-            rate (tuple):  
-                Multicast management packet transmit rate tuple, (mcs, 
-                phy_mode), for the node
-        """
-        return self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_MGMT))
-
-
     #------------------------
     # Tx Antenna Mode commands
 
-    def set_tx_ant_mode_unicast(self, ant_mode, device_list=None, curr_assoc=False, new_assoc=False):
-        """Sets the unicast packet transmit antenna mode of the node.
+    def set_tx_ant_mode_data(self, ant_mode, device_list=None, update_default_unicast=None, update_default_multicast=None):    
+        """Sets the packet transmit antenna mode for data frames.
 
         When using ``device_list`` or ``curr_assoc``, this method will set the 
         unicast data packet tx antenna mode since only unicast data transmit 
@@ -1066,38 +981,34 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 * ``'RF_A'``: transmit on RF A interface
                 * ``'RF_B'``: transmit on RF B interface
 
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
-                802.11 devices or single 802.11 device for which to set the 
-                unicast packet Tx antenna mode to 'ant_mode'
-            curr_assoc (bool):  All current statoin infos will have the unicast 
-                packet Tx antenna mode set to 'ant_mode'
-            new_assoc  (bool):  All new station infos will have the unicast 
-                packet Tx antenna mode set to 'ant_mode'
+            device_list (list of WlanExpNode / WlanDevice 
+             or 'ALL_UNICAST' or 'ALL_MULTICAST' or 'ALL', optional):
+                List of 802.11 devices or single 802.11 device for which to set the 
+                unicast packet Tx power to 'power'. A value of 'ALL_UNICAST' will
+                apply the specified power to all unicast receiver addresses. A value
+                of `ALL_MULTICAST` will apply it to all multicast receiver addresses.
+                A value of 'ALL' will apply the specified power to all addresses.
+            update_default_unicast  (bool): set the default unicast Tx params to the
+                provided 'ant_mode'.
+            update_default_multicast  (bool): set the default multicast Tx params to the
+                provided 'ant_mode'.                
 
-        One of ``device_list``, ``curr_assoc`` or ``new_assoc`` must be set.  
-        The ``device_list`` and ``curr_assoc`` are mutually exclusive with 
-        ``curr_assoc`` having precedence. If ``curr_assoc`` is provided 
-        ``device_list`` will be ignored.
-
-        The MAC code does not differentiate between unicast management tx 
-        parameters and unicast data tx parameters since unicast management 
-        packets only occur when they will not materially affect an experiment 
-        (ie they are only sent during deauthentication)
-
-        This will not affect the transmit antenna mode for control frames like 
-        ACKs that will be transmitted. Control packets will be sent on whatever 
-        antenna that cause the control packet to be generated (ie an ack for a 
-        reception will go out on the same antenna on which the reception 
-        occurred).
+        One of ``device_list`` or ``update_default_unicast`` or ``update_default_multicast``
+            must be set.  
         """
         if ant_mode is None:
-            raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))
-            
-        self._node_set_tx_param_unicast(cmds.NodeProcTxAntMode, 'antenna mode', ant_mode, device_list, curr_assoc, new_assoc)
+            raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))            
+        self._node_set_tx_param(cmds.NodeProcTxAntMode, 'antenna_mode', 
+                                        ant_mode, 'data', device_list, update_default_unicast, update_default_multicast)
+                                        
+    def set_tx_ant_mode_mgmt(self, ant_mode, device_list=None, update_default_unicast=None, update_default_multicast=None):    
+        """Sets the packet transmit antenna mode for management frames.
 
-
-    def set_tx_ant_mode_multicast_data(self, ant_mode):
-        """Sets the multicast data packet transmit antenna mode.
+        When using ``device_list`` or ``curr_assoc``, this method will set the 
+        unicast data packet tx antenna mode since only unicast data transmit 
+        parameters are maintained for a given staion info.  However, when 
+        using ``new_assoc``, this method will set both the default unicast data 
+        and unicast management packet tx antenna mode.
 
         Args:
             ant_mode (str):  Antenna mode; must be one of:
@@ -1105,128 +1016,25 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 * ``'RF_A'``: transmit on RF A interface
                 * ``'RF_B'``: transmit on RF B interface
 
+            device_list (list of WlanExpNode / WlanDevice 
+             or 'ALL_UNICAST' or 'ALL_MULTICAST' or 'ALL', optional):
+                List of 802.11 devices or single 802.11 device for which to set the 
+                unicast packet Tx power to 'power'. A value of 'ALL_UNICAST' will
+                apply the specified power to all unicast receiver addresses. A value
+                of `ALL_MULTICAST` will apply it to all multicast receiver addresses.
+                A value of 'ALL' will apply the specified power to all addresses.
+            update_default_unicast  (bool): set the default unicast Tx params to the
+                provided 'ant_mode'.
+            update_default_multicast  (bool): set the default multicast Tx params to the
+                provided 'ant_mode'.                
+
+        One of ``device_list`` or ``update_default_unicast`` or ``update_default_multicast``
+            must be set.  
         """
         if ant_mode is None:
-            raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))
-            
-        self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_DATA, ant_mode))
-
-
-    def set_tx_ant_mode_multicast_mgmt(self, ant_mode):
-        """Sets the multicast management packet transmit antenna mode.
-
-        Args:
-            ant_mode (str):  Antenna mode; must be one of:
-
-                * ``'RF_A'``: transmit on RF A interface
-                * ``'RF_B'``: transmit on RF B interface
-
-        """
-        if ant_mode is None:
-            raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))
-            
-        self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_MGMT, ant_mode))
-
-
-    def get_tx_ant_mode_unicast(self, device_list=None, new_assoc=False):
-        """Gets the unicast packet transmit antenna mode of the node for the 
-        given device(s).
-
-        This will get the unicast data packet Tx antenna mode (unicast 
-        managment packet Tx antenna mode is the same).
-
-        Args:
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
-                802.11 devices or single 802.11 device for which to get the 
-                unicast packet Tx antenna mode
-            new_assoc  (bool):  Get the unicast packet Tx antenna mode for all 
-                new station infos
-
-        Returns:
-            ant_modes (List of str):  
-                List of unicast packet Tx antenna mode for the given devices; 
-                each antenna mode must be one of:
-
-                  * ``'RF_A'``: transmit on RF A interface
-                  * ``'RF_B'``: transmit on RF B interface
-
-        If both ``new_assoc`` and ``device_list`` are specified, the return 
-        list will always have the unicast packet Tx antenna mode for all new 
-        station infos as the first item in the list.
-        """
-        return self._node_get_tx_param_unicast(cmds.NodeProcTxAntMode, 'antenna mode', None, device_list, new_assoc)
-
-
-    def get_tx_ant_mode_multicast_data(self):
-        """Gets the current multicast data packet transmit antenna mode for 
-        a node.
-
-        Returns:
-            ant_mode (str):  
-                Multicast data packet transmit antenna mode for the node; 
-                must be one of:
-
-                  * ``'RF_A'``: transmit on RF A interface
-                  * ``'RF_B'``: transmit on RF B interface
-
-        """
-        return self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_DATA))
-
-
-    def get_tx_ant_mode_multicast_mgmt(self):
-        """Gets the current multicast management packet transmit antenna mode for a node.
-
-        Returns:
-            ant_mode (str):  
-                Multicast management packet transmit antenna mode for the node;
-                must be one of:
-
-                  * ``'RF_A'``: transmit on RF A interface
-                  * ``'RF_B'``: transmit on RF B interface
-
-        """
-        return self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_MGMT))
-
-
-    def set_tx_ant_mode(self, ant_mode):
-        """Sets the transmit antenna mode of the node.
-
-        This command will set all transmit antenna mode fields on the node to the same value:
-        
-            * Default Unicast Management Packet Tx Antenna mode for new station infos
-            * Default Unicast Data Packet Tx Tx Antenna mode for new station infos
-            * Default Multicast Management Packet Tx Antenna mode for new station infos
-            * Default Multicast Data Packet Tx Antenna mode for new station infos
-
-        It will also update the transmit antenna mode of all current station infos on the node.
-
-        Args:
-            ant_mode (str):  Antenna mode; must be one of:
-
-                * ``'RF_A'``: transmit on RF A interface
-                * ``'RF_B'``: transmit on RF B interface
-
-        """
-        if ant_mode is None:
-            raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))
-            
-        self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_NODE_TX_ANT_ALL, ant_mode))
-
-
-    def get_tx_ant_mode(self):
-        """Gets the current default unicast data transmit antenna mode of the 
-        node for new station infos.
-
-        Returns:
-            ant_mode (str):  
-                Current unicast packet Tx antenna mode; must be one of:
-
-                  * ``'RF_A'``: transmit on RF A interface
-                  * ``'RF_B'``: transmit on RF B interface
-
-        """
-        return self.get_tx_ant_mode_unicast(new_assoc=True)[0]
-
+            raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))            
+        self._node_set_tx_param(cmds.NodeProcTxAntMode, 'antenna_mode', 
+                                        ant_mode, 'mgmt', device_list, update_default_unicast, update_default_multicast)
 
     #------------------------
     # Rx Antenna Mode commands

@@ -972,7 +972,7 @@ class NodeLowParam(message.Cmd):
 
 
 class NodeProcTxPower(message.Cmd):
-    """Command to get / set the transmit power of the node.
+    """Command to set the transmit power of the node.
 
     Attributes:
         cmd        -- Sub-command to send over the command.  Valid values are:                       
@@ -1269,37 +1269,58 @@ class NodeProcTxRate(message.Cmd):
 
 
 class NodeProcTxAntMode(message.Cmd):
-    """Command to get / set the transmit antenna mode of the node.
+    """Command to set the transmit antenna mode of the node.
 
     Attributes:
-        cmd       -- Sub-command to send over the command.  Valid values are:
-                       CMD_PARAM_READ
+        cmd        -- Sub-command to send over the command.  Valid values are:                       
                        CMD_PARAM_WRITE
-                       CMD_PARAM_WRITE_DEFAULT
-                       CMD_PARAM_READ_DEFAULT
-        tx_type   -- Which Tx parameters to set.  Valid values are:
-                       CMD_PARAM_UNICAST
-                       CMD_PARAM_MULTICAST_DATA
-                       CMD_PARAM_MULTICAST_MGMT
-                       CMD_PARAM_NODE_TX_ANT_ALL
-        ant_mode  -- Transmit antenna mode for the node.  Checking is
-                     done both in the command and on the node.  The current
-                     antenna mode will be returned by the node.
-        device    -- 802.11 device for which the rate is being set.
+
+        frame_type -- Valid values are:
+                       CMD_PARAM_TXPARAM_DATA
+                       CMD_PARAM_TXPARAM_MGMT
+                       CMD_PARAM_TXPARAM_CTRL
+                       CMD_PARAM_TXPARAM_ALL
+                       
+        update_default_unicast -- Valid values are:
+                       0
+                       1
+                       
+        update_default_multicast -- Valid values are:
+                       0
+                       1
+
+        ant_mode    -- Transmit antenna mode for the node    
+                       
+        addr_sel    -- Valid values are:
+                       CMD_PARAM_TXPARAM_ADDR_NONE
+                       CMD_PARAM_TXPARAM_ADDR_ALL
+                       CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST
+                       CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST
+                       
+        device     -- 802.11 device for which the rate is being set.
     """
-    def __init__(self, cmd, tx_type, ant_mode=None, device=None):
+    max_tx_power = None
+    min_tx_power = None
+
+    def __init__(self, cmd, frame_type, update_default_unicast, update_default_multicast, ant_mode, addr_sel, device=None):
         super(NodeProcTxAntMode, self).__init__()
         self.command = _CMD_GROUP_NODE + CMDID_NODE_TX_ANT_MODE
         mac_address  = None
 
         self.add_args(cmd)
 
-        self.add_args(self.check_type(tx_type))
+        self.add_args(self.check_frame_type(frame_type))
+        
+        self.add_args(self.check_update_default(update_default_unicast))
+        
+        self.add_args(self.check_update_default(update_default_multicast))
 
         if ant_mode is not None:
             self.add_args(self.check_ant_mode(ant_mode))
         else:
             self.add_args(0)
+        
+        self.add_args(self.check_addr_sel(addr_sel))
 
         if device is not None:
             mac_address = device.wlan_mac_address
@@ -1307,17 +1328,17 @@ class NodeProcTxAntMode(message.Cmd):
         _add_mac_address_to_cmd(self, mac_address)
 
 
-    def check_type(self, tx_type):
-        """Check the tx type value is valid."""
+    def check_frame_type(self, frame_type):
+        """Check if frame_type value is valid."""
         return_type = None
-        valid_types = [('CMD_PARAM_UNICAST',           CMD_PARAM_UNICAST),
-                       ('CMD_PARAM_MULTICAST_DATA',    CMD_PARAM_MULTICAST_DATA),
-                       ('CMD_PARAM_MULTICAST_MGMT',    CMD_PARAM_MULTICAST_MGMT),
-                       ('CMD_PARAM_NODE_TX_ANT_ALL',   CMD_PARAM_NODE_TX_ANT_ALL)]
+        valid_types = [('CMD_PARAM_TXPARAM_DATA', CMD_PARAM_TXPARAM_DATA),
+                       ('CMD_PARAM_TXPARAM_MGMT', CMD_PARAM_TXPARAM_MGMT),
+                       ('CMD_PARAM_TXPARAM_CTRL', CMD_PARAM_TXPARAM_CTRL),
+                       ('CMD_PARAM_TXPARAM_ALL',  CMD_PARAM_TXPARAM_ALL)]
 
         for tmp_type in valid_types:
-            if (tx_type == tmp_type[1]):
-                return_type = tx_type
+            if (frame_type == tmp_type[1]):
+                return_type = frame_type
                 break
 
         if return_type is not None:
@@ -1328,7 +1349,42 @@ class NodeProcTxAntMode(message.Cmd):
                 msg += "{0} ".format(tmp_type[0])
             msg += "]"
             raise ValueError(msg)
+            
+    def check_update_default(self, update_default):
+        """Check if update_default is valid."""
+        return_type = None
+        
+        if (update_default == 0) or (update_default == 1):
+            return_type = update_default;
+            
+        if return_type is not None:
+            return return_type
+        else:
+            msg  = "update_default must be 0 or 1"          
+            raise ValueError(msg)
 
+    def check_addr_sel(self, addr_sel):
+        """Check if addr_sel value is valid."""
+        return_type = None
+        valid_types = [('CMD_PARAM_TXPARAM_ADDR_NONE', CMD_PARAM_TXPARAM_ADDR_NONE),
+                       ('CMD_PARAM_TXPARAM_ADDR_ALL', CMD_PARAM_TXPARAM_ADDR_ALL),
+                       ('CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST', CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST),
+                       ('CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST', CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST),
+                       ('CMD_PARAM_TXPARAM_ADDR_SINGLE', CMD_PARAM_TXPARAM_ADDR_SINGLE)]
+
+        for tmp_type in valid_types:
+            if (addr_sel == tmp_type[1]):
+                return_type = addr_sel
+                break
+
+        if return_type is not None:
+            return return_type
+        else:
+            msg  = "The type must be one of: ["
+            for tmp_type in valid_types:
+                msg += "{0} ".format(tmp_type[0])
+            msg += "]"
+            raise ValueError(msg)
 
     def check_ant_mode(self, ant_mode):
         """Check the antenna mode to see if it is valid."""
@@ -1343,24 +1399,14 @@ class NodeProcTxAntMode(message.Cmd):
 
 
     def process_resp(self, resp):
-        import wlan_exp.util as util
-
         error_code    = CMD_PARAM_ERROR
-        error_msg     = "Could not get / set transmit antenna mode of the node"
+        error_msg     = "Could not get / set the transmit power on the node"
         status_errors = { error_code : error_msg }
 
-        if resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from Tx antenna mode command'):
-            args = resp.get_args()
-            
-            ant_mode = [k for k, v in util.wlan_tx_ant_modes.iteritems() if v == args[1]]
-
-            if ant_mode:
-                return ant_mode[0]
-            else:
-                msg  = "Invalid antenna mode returned by node: {0}\n".format(args[1])
-                raise ValueError(msg)
+        if resp.resp_is_valid(num_args=1, status_errors=status_errors, name='from Tx power command'):
+            return None
         else:
-            return CMD_PARAM_ERROR
+            return None
 
 # End Class
 
