@@ -71,9 +71,11 @@ CMD_PARAM_SUCCESS                                = 0x00000000
 CMD_PARAM_WARNING                                = 0xF0000000
 CMD_PARAM_ERROR                                  = 0xFF000000
 
-CMD_PARAM_TXPARAM_DATA                           = 0x00000000
-CMD_PARAM_TXPARAM_MGMT                           = 0x00000001
-CMD_PARAM_TXPARAM_CTRL                           = 0x00000002
+#Note: the following are used as bit masks on the node side
+CMD_PARAM_TXPARAM_DATA                           = 0x00000001
+CMD_PARAM_TXPARAM_MGMT                           = 0x00000002
+CMD_PARAM_TXPARAM_CTRL                           = 0x00000004
+CMD_PARAM_TXPARAM_ALL                            = 0x00000007
 
 CMD_PARAM_TXPARAM_ADDR_NONE                      = 0x00000000
 CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST               = 0x00000001
@@ -979,6 +981,8 @@ class NodeProcTxPower(message.Cmd):
         frame_type -- Valid values are:
                        CMD_PARAM_TXPARAM_DATA
                        CMD_PARAM_TXPARAM_MGMT
+                       CMD_PARAM_TXPARAM_CTRL
+                       CMD_PARAM_TXPARAM_ALL
                        
         update_default_unicast -- Valid values are:
                        0
@@ -1035,7 +1039,8 @@ class NodeProcTxPower(message.Cmd):
         return_type = None
         valid_types = [('CMD_PARAM_TXPARAM_DATA', CMD_PARAM_TXPARAM_DATA),
                        ('CMD_PARAM_TXPARAM_MGMT', CMD_PARAM_TXPARAM_MGMT),
-                       ('CMD_PARAM_TXPARAM_CTRL', CMD_PARAM_TXPARAM_CTRL)]
+                       ('CMD_PARAM_TXPARAM_CTRL', CMD_PARAM_TXPARAM_CTRL),
+                       ('CMD_PARAM_TXPARAM_ALL',  CMD_PARAM_TXPARAM_ALL)]
 
         for tmp_type in valid_types:
             if (frame_type == tmp_type[1]):

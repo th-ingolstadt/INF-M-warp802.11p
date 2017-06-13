@@ -1364,18 +1364,9 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             power (int):  Transmit power in dBm (a value between 
                 ``node.max_tx_power_dbm`` and ``node.min_tx_power_dbm``)
         """
-        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_NODE_TX_POWER_ALL, 
-                                           (power, self.max_tx_power_dbm, self.min_tx_power_dbm)))
+        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_ALL, 1, 1,
+                                           (power, self.max_tx_power_dbm, self.min_tx_power_dbm), cmds.CMD_PARAM_TXPARAM_ADDR_ALL))
 
-
-    def get_tx_power(self):
-        """Gets the current default unicast data transmit power of the node 
-        for new station infos.
-
-        Returns:
-            tx_power (int): Current unicast data transmit power in dBm.
-        """
-        return self.get_tx_power_unicast(new_assoc=True)[0]
 
 
     #------------------------
