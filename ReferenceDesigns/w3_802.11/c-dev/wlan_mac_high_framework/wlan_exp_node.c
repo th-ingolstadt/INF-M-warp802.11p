@@ -145,9 +145,6 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
 void ltg_cleanup(u32 id, void* callback_arg);
 
-u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 * ret_phy_mode);
-u32 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode);
-
 // WLAN Exp buffer functions
 void          transfer_log_data(u32 socket_index, void * from,
                                 void * resp_buffer_data, u32 eth_dev_num, u32 max_resp_len,
@@ -1966,7 +1963,127 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
         //---------------------------------------------------------------------
         case CMDID_NODE_TX_RATE: {
-        	//FIXME
+
+            u8     mac_addr[MAC_ADDR_LEN];
+            u32    status = CMD_PARAM_SUCCESS;
+
+            //Extract arguments
+            u32 msg_cmd = Xil_Ntohl(cmd_args_32[0]);
+            u32 frame_type = Xil_Ntohl(cmd_args_32[1]);
+            u32 update_default_unicast = Xil_Ntohl(cmd_args_32[2]);
+            u32 update_default_multicast = Xil_Ntohl(cmd_args_32[3]);
+            u32 mcs = Xil_Ntohl(cmd_args_32[4]) & 0xFF;
+            u32 phy_mode = Xil_Ntohl(cmd_args_32[5]) & 0xFF;
+            u32 addr_sel = Xil_Ntohl(cmd_args_32[6]);
+
+            int iter;
+            dl_list* station_info_list;
+            station_info_entry_t* station_info_entry;
+            station_info_t* station_info;
+            tx_params_t		tx_params;
+
+            // Force invalid mcs / phy_mode values to sane defaults
+            if (mcs > 7) {
+            	mcs = 7;
+            }
+
+            if ((phy_mode & (PHY_MODE_NONHT | PHY_MODE_HTMF)) == 0) {
+            	phy_mode = PHY_MODE_NONHT;
+            }
+
+            // Process the command
+        	if( msg_cmd == CMD_PARAM_WRITE_VAL ){
+        		if( frame_type & CMD_PARAM_TXPARAM_MASK_CTRL ){
+        			//We do not support setting the Tx antenna mode for control packets.
+        			//CPU_LOW will choose what antenna is used for Tx for these packets.
+        			status = CMD_PARAM_ERROR;
+        		}
+				// 1. Update default values if needed
+				if(update_default_unicast){
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+						tx_params = station_info_get_default_tx_params(unicast_data);
+						tx_params.phy.mcs = mcs;
+						tx_params.phy.phy_mode = phy_mode;
+						wlan_mac_set_default_tx_params(unicast_data, &tx_params);
+					}
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+						tx_params = station_info_get_default_tx_params(unicast_mgmt);
+						tx_params.phy.mcs = mcs;
+						tx_params.phy.phy_mode = phy_mode;
+						wlan_mac_set_default_tx_params(unicast_mgmt, &tx_params);
+					}
+				}
+				if(update_default_multicast){
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+						tx_params = station_info_get_default_tx_params(mcast_data);
+						tx_params.phy.mcs = mcs;
+						tx_params.phy.phy_mode = phy_mode;
+						wlan_mac_set_default_tx_params(mcast_data, &tx_params);
+					}
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+						tx_params = station_info_get_default_tx_params(mcast_mgmt);
+						tx_params.phy.mcs = mcs;
+						tx_params.phy.phy_mode = phy_mode;
+						wlan_mac_set_default_tx_params(mcast_mgmt, &tx_params);
+					}
+				}
+				// 2. Update station_info_t value depending on addr_sel
+				switch(addr_sel){
+					default:
+						status = CMD_PARAM_ERROR;
+					break;
+					case CMD_PARAM_TXPARAM_ADDR_NONE:
+					break;
+					case CMD_PARAM_TXPARAM_ADDR_ALL:
+					case CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST:
+					case CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST:
+						station_info_list  = station_info_get_list();
+						station_info_entry = (station_info_entry_t*)(station_info_list->first);
+						iter = (station_info_list->length)+1;
+						while(station_info_entry && ((iter--) > 0)){
+							station_info = station_info_entry->data;
+							if( (!wlan_addr_mcast(station_info->addr) && ((addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST) || (addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL))) ||
+								(wlan_addr_mcast(station_info->addr)  && ((addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST) || (addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL)))	){
+
+								if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+									station_info->tx_params_data.phy.mcs = mcs;
+									station_info->tx_params_data.phy.phy_mode = phy_mode;
+								}
+								if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+									station_info->tx_params_mgmt.phy.mcs = mcs;
+									station_info->tx_params_mgmt.phy.phy_mode = phy_mode;
+								}
+							}
+							station_info_entry = (station_info_entry_t*)dl_entry_next((dl_entry*)station_info_entry);
+						}
+					break;
+					case CMD_PARAM_TXPARAM_ADDR_SINGLE:
+						// Get MAC Address
+						wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[7], &mac_addr[0]);
+						station_info = station_info_create(&mac_addr[0]);
+						if(station_info){
+							if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+								station_info->tx_params_data.phy.mcs = mcs;
+								station_info->tx_params_data.phy.phy_mode = phy_mode;
+							}
+							if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+								station_info->tx_params_mgmt.phy.mcs = mcs;
+								station_info->tx_params_mgmt.phy.phy_mode = phy_mode;
+							}
+						}
+					break;
+				}
+
+        	} else {
+        		// We do not support CMD_PARAM_READ_VAL for Tx parameters
+        		status = CMD_PARAM_ERROR;
+        	}
+
+            // Send response
+            resp_args_32[resp_index++] = Xil_Htonl(status);
+
+            resp_hdr->length  += (resp_index * sizeof(u32));
+            resp_hdr->num_args = resp_index;
         }
         break;
 
@@ -3620,193 +3737,6 @@ u32  wlan_exp_get_id_in_bss_info(u8 * bssid) {
     }
 
     return id;
-}
-
-/*****************************************************************************/
-/**
- * Process TX Rate
- *
- * @param   cmd          - Command:  NODE_WRITE_VAL or NODE_READ_VAL
- * @param   aid          - AID of the station or NODE_CONFIG_ALL_ASSOCIATED
- * @param   mcs          - MCS
- * @param   phy_mode     - PHY mode (PHY_MODE_NONHT or PHY_MODE_HTMF)
- * @param   ret_mcs      - Pointer to return value for MCS
- * @param   ret_phy_mode - Pointer to return value for PHY mode
- *
- * @return  u32          - Status
- *                         - CMD_PARAM_SUCCESS
- *                         - CMD_PARAM_WARNING
- *                         - CMD_PARAM_ERROR
- *
- *****************************************************************************/
-u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 * ret_phy_mode) {
-
-    int             iter;
-    dl_list       * curr_list;
-    dl_entry      * curr_entry;
-    station_info_t* curr_station_info;
-    u32             status               = CMD_PARAM_ERROR;
-
-    // For Writes
-    if (cmd == CMD_PARAM_WRITE_VAL) {
-        curr_list  = get_network_member_list();
-
-        if (curr_list != NULL) {
-            if (curr_list->length == 0) { return CMD_PARAM_SUCCESS; }
-
-            iter       = curr_list->length;
-            curr_entry = curr_list->first;
-            status     = CMD_PARAM_SUCCESS;
-
-            while ((curr_entry != NULL) && (iter-- > 0)) {
-                curr_station_info = (station_info_t*)(curr_entry->data);
-
-                if (aid == WLAN_EXP_AID_ALL) {
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
-                            "Set Tx rate on AID %d to MCS %d , PHY Mode %d\n", curr_station_info->ID, mcs, phy_mode);
-
-                    //if (station_info_update_rate(curr_station_info, mcs, phy_mode) != 0) { //FIXME: adopt new conventions
-                    //    status = CMD_PARAM_WARNING;
-                    //}
-
-                } else if (aid == curr_station_info->ID) {
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
-                            "Set Tx rate on AID %d to MCS %d , PHY Mode %d\n", curr_station_info->ID, mcs, phy_mode);
-
-                    //if (station_info_update_rate(curr_station_info, mcs, phy_mode) != 0) { //FIXME: adopt new conventions
-                    //    status = CMD_PARAM_WARNING;
-                    //}
-
-                    break;
-                }
-                curr_entry = dl_entry_next(curr_entry);
-            }
-        } else {
-            if (aid == WLAN_EXP_AID_ALL) {
-                // This is not an error because we are trying to set the rate for all
-                // associations and there currently are none.
-                status = CMD_PARAM_SUCCESS;
-            }
-        }
-
-        // Set return values
-        if (status == CMD_PARAM_SUCCESS) {
-            *ret_mcs      = mcs;
-            *ret_phy_mode = phy_mode;
-        }
-
-    // For Reads
-    } else {
-        if (aid != WLAN_EXP_AID_ALL) {
-            curr_list  = get_network_member_list();
-
-            if (curr_list != NULL) {
-                iter       = curr_list->length;
-                curr_entry = curr_list->first;
-
-                while ((curr_entry != NULL) && (iter-- > 0)) {
-                    curr_station_info = (station_info_t*)(curr_entry->data);
-                    if (aid == curr_station_info->ID) {
-                        //*ret_mcs      = (curr_station_info->tx.phy.mcs      & 0xFF); //FIXME: adopt new conventions
-                        //*ret_phy_mode = (curr_station_info->tx.phy.phy_mode & 0xFF); //FIXME: adopt new conventions
-                        status       = CMD_PARAM_SUCCESS;
-                        break;
-                    }
-                    curr_entry = dl_entry_next(curr_entry);
-                }
-            }
-        }
-
-        // NOTE:  Trying to read the rate for all associations returns an error.
-    }
-
-    return status;
-}
-
-
-
-/*****************************************************************************/
-/**
- * Process TX Antenna Mode
- *
- * @param   cmd              - Command:  NODE_WRITE_VAL or NODE_READ_VAL
- * @param   aid              - AID of the station or NODE_CONFIG_ALL_ASSOCIATED
- * @param   ant_mode         - Antenna mode (function assumes antenna mode is valid)
- *
- * @return  u32              - Antenna mode
- *                             - CMD_PARAM_ERROR on ERROR
- *
- *****************************************************************************/
-u32 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
-
-    int             iter;
-    u32             mode;
-    dl_list       * curr_list;
-    dl_entry      * curr_entry;
-    station_info_t* curr_station_info;
-
-    mode = CMD_PARAM_ERROR;
-
-    // For Writes
-    if (cmd == CMD_PARAM_WRITE_VAL) {
-        curr_list  = get_network_member_list();
-
-        if (curr_list != NULL) {
-            if (curr_list->length == 0) { return ant_mode; }
-
-            iter       = curr_list->length;
-            curr_entry = curr_list->first;
-
-            while ((curr_entry != NULL) && (iter-- > 0)) {
-                curr_station_info = (station_info_t*)(curr_entry->data);
-
-                if (aid == WLAN_EXP_AID_ALL) {
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
-                                    "Set TX ant mode on AID %d = %d \n", curr_station_info->ID, ant_mode);
-                    //curr_station_info->tx.phy.antenna_mode = ant_mode; //FIXME: adopt new conventions
-                    mode                                   = ant_mode;
-
-                } else if (aid == curr_station_info->ID) {
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
-                                    "Set TX ant mode on AID %d = %d \n", curr_station_info->ID, ant_mode);
-                    // curr_station_info->tx.phy.antenna_mode = ant_mode; //FIXME: adopt new conventions
-                    mode                                   = ant_mode;
-                    break;
-                }
-                curr_entry = dl_entry_next(curr_entry);
-            }
-        } else {
-            if (aid == WLAN_EXP_AID_ALL) {
-                // This is not an error because we are trying to set the mode for all
-                // associations and there currently are none.
-                mode = ant_mode;
-            }
-        }
-
-    // For Reads
-    } else {
-        if (aid != WLAN_EXP_AID_ALL) {
-            curr_list  = get_network_member_list();
-
-            if (curr_list != NULL) {
-                iter       = curr_list->length;
-                curr_entry = curr_list->first;
-
-                while ((curr_entry != NULL) && (iter-- > 0)) {
-                    curr_station_info = (station_info_t*)(curr_entry->data);
-                    if (aid == curr_station_info->ID) {
-                        //mode = curr_station_info->tx.phy.antenna_mode; //FIXME: adopt new conventions
-                        break;
-                    }
-                    curr_entry = dl_entry_next(curr_entry);
-                }
-            }
-        }
-
-        // NOTE:  Trying to read the mode for all associations returns an error.
-    }
-
-    return mode;
 }
 
 
