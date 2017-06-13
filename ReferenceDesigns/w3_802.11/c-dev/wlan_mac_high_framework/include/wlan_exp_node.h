@@ -72,9 +72,9 @@
 #define CMD_PARAM_WARNING                                  0xF0000000
 #define CMD_PARAM_ERROR                                    0xFF000000
 
-#define CMD_PARAM_TXPARAM_DATA		                       0x00000000
-#define CMD_PARAM_TXPARAM_MGMT		                       0x00000001
-#define CMD_PARAM_TXPARAM_CTRL		                       0x00000002
+#define CMD_PARAM_TXPARAM_MASK_DATA		                   0x00000001
+#define CMD_PARAM_TXPARAM_MASK_MGMT		                   0x00000002
+#define CMD_PARAM_TXPARAM_MASK_CTRL		                   0x00000004
 
 #define CMD_PARAM_TXPARAM_ADDR_NONE                        0x00000000
 #define CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST                 0x00000001

@@ -55,7 +55,7 @@ void uart_rx(u8 rxByte){ };
 
 
 /*********************** Global Variable Definitions *************************/
-extern tx_params_t                          default_unicast_data_tx_params;
+extern tx_params_t                          default_unicast_data_tx_params; //FIXME: this is vestigial. Find similar occurences in other UART code
 
 extern network_info_t*                      active_network_info;
 

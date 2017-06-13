@@ -1884,103 +1884,82 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             if(power > TX_POWER_MAX_DBM){ power = TX_POWER_MAX_DBM; }
 
             // Process the command
-            if( (frame_type == CMD_PARAM_TXPARAM_DATA) || (frame_type == CMD_PARAM_TXPARAM_MGMT) ){
-            	if( msg_cmd == CMD_PARAM_WRITE_VAL ){
-            		// 1. Update default values if needed
-            		if(update_default_unicast){
-            			switch(frame_type){
-            				case CMD_PARAM_TXPARAM_DATA:
-            					tx_params = station_info_get_default_tx_params(unicast_data);
-            					tx_params.phy.power = power;
-            					wlan_mac_set_default_tx_params(unicast_data, &tx_params);
-            				break;
-            				case CMD_PARAM_TXPARAM_MGMT:
-            					tx_params = station_info_get_default_tx_params(unicast_mgmt);
-            					tx_params.phy.power = power;
-            					wlan_mac_set_default_tx_params(unicast_mgmt, &tx_params);
-							break;
-            				default:
-            					status = CMD_PARAM_ERROR;
-							break;
-            			}
-            		}
-            		if(update_default_multicast){
-            			switch(frame_type){
-            				case CMD_PARAM_TXPARAM_DATA:
-            					tx_params = station_info_get_default_tx_params(mcast_data);
-            					tx_params.phy.power = power;
-            					wlan_mac_set_default_tx_params(mcast_data, &tx_params);
-            				break;
-            				case CMD_PARAM_TXPARAM_MGMT:
-            					tx_params = station_info_get_default_tx_params(mcast_mgmt);
-            					tx_params.phy.power = power;
-            					wlan_mac_set_default_tx_params(mcast_mgmt, &tx_params);
-							break;
-            				default:
-            					status = CMD_PARAM_ERROR;
-							break;
-            			}
-            		}
-            		// 2. Update station_info_t value depending on addr_sel
-            		switch(addr_sel){
-            			default:
-            				status = CMD_PARAM_ERROR;
-            			break;
-            			case CMD_PARAM_TXPARAM_ADDR_NONE:
-            			break;
-            			case CMD_PARAM_TXPARAM_ADDR_ALL:
-            			case CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST:
-            			case CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST:
-							station_info_list  = station_info_get_list();
-							station_info_entry = (station_info_entry_t*)(station_info_list->first);
-							iter = (station_info_list->length)+1;
-							while(station_info_entry && ((iter--) > 0)){
-								station_info = station_info_entry->data;
-								if( (!wlan_addr_mcast(station_info->addr) && ((addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST) || (addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL))) ||
-									(wlan_addr_mcast(station_info->addr)  && ((addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST) || (addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL)))	){
+        	if( msg_cmd == CMD_PARAM_WRITE_VAL ){
+        		if( frame_type & CMD_PARAM_TXPARAM_MASK_CTRL ){
+        			wlan_mac_high_set_tx_ctrl_power(power);
+        		}
+				// 1. Update default values if needed
+				if(update_default_unicast){
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+						tx_params = station_info_get_default_tx_params(unicast_data);
+						tx_params.phy.power = power;
+						wlan_mac_set_default_tx_params(unicast_data, &tx_params);
+					}
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+						tx_params = station_info_get_default_tx_params(unicast_mgmt);
+						tx_params.phy.power = power;
+						wlan_mac_set_default_tx_params(unicast_mgmt, &tx_params);
+					}
+				}
+				if(update_default_multicast){
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+						tx_params = station_info_get_default_tx_params(mcast_data);
+						tx_params.phy.power = power;
+						wlan_mac_set_default_tx_params(mcast_data, &tx_params);
+					}
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+						tx_params = station_info_get_default_tx_params(mcast_mgmt);
+						tx_params.phy.power = power;
+						wlan_mac_set_default_tx_params(mcast_mgmt, &tx_params);
+					}
+				}
+				// 2. Update station_info_t value depending on addr_sel
+				switch(addr_sel){
+					default:
+						status = CMD_PARAM_ERROR;
+					break;
+					case CMD_PARAM_TXPARAM_ADDR_NONE:
+					break;
+					case CMD_PARAM_TXPARAM_ADDR_ALL:
+					case CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST:
+					case CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST:
+						station_info_list  = station_info_get_list();
+						station_info_entry = (station_info_entry_t*)(station_info_list->first);
+						iter = (station_info_list->length)+1;
+						while(station_info_entry && ((iter--) > 0)){
+							station_info = station_info_entry->data;
+							if( (!wlan_addr_mcast(station_info->addr) && ((addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST) || (addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL))) ||
+								(wlan_addr_mcast(station_info->addr)  && ((addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST) || (addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL)))	){
 
-			            			switch(frame_type){
-			            				case CMD_PARAM_TXPARAM_DATA:
-			            					station_info->tx_params_data.phy.power = power;
-			            				break;
-			            				case CMD_PARAM_TXPARAM_MGMT:
-			            					station_info->tx_params_mgmt.phy.power = power;
-										break;
-			            				default:
-			            					status = CMD_PARAM_ERROR;
-										break;
-			            			}
+								if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+									station_info->tx_params_data.phy.power = power;
 								}
-								station_info_entry = (station_info_entry_t*)dl_entry_next((dl_entry*)station_info_entry);
+								if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+									station_info->tx_params_mgmt.phy.power = power;
+								}
 							}
-						break;
-            			case CMD_PARAM_TXPARAM_ADDR_SINGLE:
-            				// Get MAC Address
-							wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[6], &mac_addr[0]);
-							station_info = station_info_create(&mac_addr[0]);
-							if(station_info){
-		            			switch(frame_type){
-		            				case CMD_PARAM_TXPARAM_DATA:
-		            					station_info->tx_params_data.phy.power = power;
-		            				break;
-		            				case CMD_PARAM_TXPARAM_MGMT:
-		            					station_info->tx_params_mgmt.phy.power = power;
-									break;
-		            				default:
-		            					status = CMD_PARAM_ERROR;
-									break;
-		            			}
+							station_info_entry = (station_info_entry_t*)dl_entry_next((dl_entry*)station_info_entry);
+						}
+					break;
+					case CMD_PARAM_TXPARAM_ADDR_SINGLE:
+						// Get MAC Address
+						wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[6], &mac_addr[0]);
+						station_info = station_info_create(&mac_addr[0]);
+						if(station_info){
+							if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+								station_info->tx_params_data.phy.power = power;
 							}
-						break;
-            		}
-            	} else {
-            		// We do not support CMD_PARAM_READ_VAL for Tx parameters
-            		status = CMD_PARAM_ERROR;
-            	}
+							if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+								station_info->tx_params_mgmt.phy.power = power;
+							}
+						}
+					break;
+				}
 
-            } else if (frame_type == CMD_PARAM_TXPARAM_CTRL) {
-            	wlan_mac_high_set_tx_ctrl_power(power);
-            }
+        	} else {
+        		// We do not support CMD_PARAM_READ_VAL for Tx parameters
+        		status = CMD_PARAM_ERROR;
+        	}
 
             // Send response
             resp_args_32[resp_index++] = Xil_Htonl(status);
