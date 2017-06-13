@@ -1852,12 +1852,6 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
         //---------------------------------------------------------------------
         case CMDID_NODE_TX_POWER: {
-            // CMDID_NODE_TX_POWER Packet Format:
-            //   - cmd_args_32[0]      - Command
-            //   - cmd_args_32[1]      - Type
-            //   - cmd_args_32[2]      - Power (Shifted by TX_POWER_MIN_DBM)
-            //   - cmd_args_32[3 - 4]  - MAC Address (All 0xF means all nodes)
-            //
             int    power;
             u8     mac_addr[MAC_ADDR_LEN];
             u32    status = CMD_PARAM_SUCCESS;
@@ -1979,7 +1973,118 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
         //---------------------------------------------------------------------
         case CMDID_NODE_TX_ANT_MODE: {
-        	//FIXME
+            u8     mac_addr[MAC_ADDR_LEN];
+            u32    status = CMD_PARAM_SUCCESS;
+
+            //Extract arguments
+            u32 msg_cmd = Xil_Ntohl(cmd_args_32[0]);
+            u32 frame_type = Xil_Ntohl(cmd_args_32[1]);
+            u32 update_default_unicast = Xil_Ntohl(cmd_args_32[2]);
+            u32 update_default_multicast = Xil_Ntohl(cmd_args_32[3]);
+            u32 ant_mode = Xil_Ntohl(cmd_args_32[4]);
+            u32 addr_sel = Xil_Ntohl(cmd_args_32[5]);
+
+            int iter;
+            dl_list* station_info_list;
+            station_info_entry_t* station_info_entry;
+            station_info_t* station_info;
+            tx_params_t		tx_params;
+
+            // Need to convert antenna mode from:   Python       C
+            //     - TX_ANTMODE_SISO_ANTA:            0x0   to  0x10
+            //     - TX_ANTMODE_SISO_ANTB:            0x1   to  0x20
+            //     - TX_ANTMODE_SISO_ANTC:            0x2   to  0x30
+            //     - TX_ANTMODE_SISO_ANTD:            0x3   to  0x40
+            //
+            // Formula:  y = (x + 1) << 4;
+            //
+            ant_mode = (ant_mode + 1) << 4;
+
+            // Process the command
+        	if( msg_cmd == CMD_PARAM_WRITE_VAL ){
+        		if( frame_type & CMD_PARAM_TXPARAM_MASK_CTRL ){
+        			//We do not support setting the Tx antenna mode for control packets.
+        			//CPU_LOW will choose what antenna is used for Tx for these packets.
+        			status = CMD_PARAM_ERROR;
+        		}
+				// 1. Update default values if needed
+				if(update_default_unicast){
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+						tx_params = station_info_get_default_tx_params(unicast_data);
+						tx_params.phy.antenna_mode = ant_mode;
+						wlan_mac_set_default_tx_params(unicast_data, &tx_params);
+					}
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+						tx_params = station_info_get_default_tx_params(unicast_mgmt);
+						tx_params.phy.antenna_mode = ant_mode;
+						wlan_mac_set_default_tx_params(unicast_mgmt, &tx_params);
+					}
+				}
+				if(update_default_multicast){
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+						tx_params = station_info_get_default_tx_params(mcast_data);
+						tx_params.phy.antenna_mode = ant_mode;
+						wlan_mac_set_default_tx_params(mcast_data, &tx_params);
+					}
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+						tx_params = station_info_get_default_tx_params(mcast_mgmt);
+						tx_params.phy.antenna_mode = ant_mode;
+						wlan_mac_set_default_tx_params(mcast_mgmt, &tx_params);
+					}
+				}
+				// 2. Update station_info_t value depending on addr_sel
+				switch(addr_sel){
+					default:
+						status = CMD_PARAM_ERROR;
+					break;
+					case CMD_PARAM_TXPARAM_ADDR_NONE:
+					break;
+					case CMD_PARAM_TXPARAM_ADDR_ALL:
+					case CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST:
+					case CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST:
+						station_info_list  = station_info_get_list();
+						station_info_entry = (station_info_entry_t*)(station_info_list->first);
+						iter = (station_info_list->length)+1;
+						while(station_info_entry && ((iter--) > 0)){
+							station_info = station_info_entry->data;
+							if( (!wlan_addr_mcast(station_info->addr) && ((addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST) || (addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL))) ||
+								(wlan_addr_mcast(station_info->addr)  && ((addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST) || (addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL)))	){
+
+								if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+									station_info->tx_params_data.phy.antenna_mode = ant_mode;
+								}
+								if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+									station_info->tx_params_mgmt.phy.antenna_mode = ant_mode;
+								}
+							}
+							station_info_entry = (station_info_entry_t*)dl_entry_next((dl_entry*)station_info_entry);
+						}
+					break;
+					case CMD_PARAM_TXPARAM_ADDR_SINGLE:
+						// Get MAC Address
+						wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[6], &mac_addr[0]);
+						station_info = station_info_create(&mac_addr[0]);
+						if(station_info){
+							if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+								station_info->tx_params_data.phy.antenna_mode = ant_mode;
+							}
+							if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+								station_info->tx_params_mgmt.phy.antenna_mode = ant_mode;
+							}
+						}
+					break;
+				}
+
+        	} else {
+        		// We do not support CMD_PARAM_READ_VAL for Tx parameters
+        		status = CMD_PARAM_ERROR;
+        	}
+
+            // Send response
+            resp_args_32[resp_index++] = Xil_Htonl(status);
+
+            resp_hdr->length  += (resp_index * sizeof(u32));
+            resp_hdr->num_args = resp_index;
         }
         break;
 

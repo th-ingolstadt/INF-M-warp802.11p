@@ -304,12 +304,14 @@ void	station_info_print(dl_list* list, u32 option_flags){
 
 		xil_printf(" Num Tx Queued: %d\n", curr_station_info->num_tx_queued);
 
-		xil_printf(" Data Tx MCS:            %d\n", curr_station_info->tx_params_data.phy.mcs);
-		xil_printf(" Data Tx PHY mode:       %d\n", curr_station_info->tx_params_data.phy.phy_mode);
-		xil_printf(" Data Tx power:          %d\n", curr_station_info->tx_params_data.phy.power);
-		xil_printf(" Management Tx MCS:      %d\n", curr_station_info->tx_params_mgmt.phy.mcs);
-		xil_printf(" Management Tx PHY mode: %d\n", curr_station_info->tx_params_mgmt.phy.phy_mode);
-		xil_printf(" Management Tx power:    %d\n", curr_station_info->tx_params_mgmt.phy.power);
+		xil_printf(" Data Tx MCS:                %d\n", curr_station_info->tx_params_data.phy.mcs);
+		xil_printf(" Data Tx PHY mode:           %d\n", curr_station_info->tx_params_data.phy.phy_mode);
+		xil_printf(" Data Tx power:              %d\n", curr_station_info->tx_params_data.phy.power);
+		xil_printf(" Data Tx antenna_mode:       0x%x\n", curr_station_info->tx_params_data.phy.antenna_mode);
+		xil_printf(" Management Tx MCS:          %d\n", curr_station_info->tx_params_mgmt.phy.mcs);
+		xil_printf(" Management Tx PHY mode:     %d\n", curr_station_info->tx_params_mgmt.phy.phy_mode);
+		xil_printf(" Management Tx power:        %d\n", curr_station_info->tx_params_mgmt.phy.power);
+		xil_printf(" Management Tx antenna_mode: 0x%x\n", curr_station_info->tx_params_mgmt.phy.antenna_mode);
 
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
 		if(option_flags & STATION_INFO_PRINT_OPTION_FLAG_INCLUDE_COUNTS){
