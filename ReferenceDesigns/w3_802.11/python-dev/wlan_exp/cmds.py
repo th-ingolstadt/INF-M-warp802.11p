@@ -1460,7 +1460,7 @@ class NodeProcRxAntMode(message.Cmd):
         if resp.resp_is_valid(num_args=2, status_errors=status_errors, name='from Rx antenna mode command'):
             args = resp.get_args()
             
-            ant_mode = [k for k, v in util.wlan_rx_ant_modes.iteritems() if v == args[1]]
+            ant_mode = [k for k, v in util.wlan_rx_ant_modes.items() if v == args[1]]
 
             if ant_mode:
                 return ant_mode[0]
