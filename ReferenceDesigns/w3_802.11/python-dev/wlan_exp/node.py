@@ -919,14 +919,14 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     #------------------------
     # Tx Rate commands
 
-    def set_tx_rate_unicast(self, mcs, phy_mode, device_list=None, curr_assoc=False, new_assoc=False):
-        """Sets the unicast packet transmit rate (mcs, phy_mode) of the node.
+    def set_tx_rate_data(self, mcs, phy_mode, device_list=None, update_default_unicast=None, update_default_multicast=None):
+        """Sets the packet transmit rate (mcs, phy_mode) for data frames.
 
-        When using ``device_list`` or ``curr_assoc``, this method will set the 
-        unicast data packet tx rate since only unicast data transmit parameters 
-        are maintained for a given station info.  However, when using 
-        ``new_assoc``, this method will set both the default unicast data and 
-        unicast management packet tx rate.
+        Transmit parameters are maintained on a per-MAC address basis.
+        The ``device_list`` argument can be used to select particular devices
+        for which the Tx parameter update applies. The ``update_default_x``
+        arguments can be used to specify that the provided power should be
+        used for any future additions to the node's device list.
 
         Args:
             mcs (int): Modulation and coding scheme (MCS) index (in [0 .. 7])
@@ -935,30 +935,62 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 * ``'NONHT'``: Use 802.11 (a/g) rates
                 * ``'HTMF'``: Use 802.11 (n) rates
 
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
-                802.11 devices or single 802.11 device for which to set the 
-                unicast packet Tx rate to the rate (mcs, phy_mdoe)
-            curr_assoc (bool):  All current station infos will have the unicast 
-                packet Tx rate set to the rate (mcs, phy_mode)
-            new_assoc  (bool):  All new station infos will have the unicast 
-                packet Tx rate set to the rate (mcs, phy_mode)
+            device_list (list of WlanExpNode / WlanDevice 
+             or 'ALL_UNICAST' or 'ALL_MULTICAST' or 'ALL', optional):
+                List of 802.11 devices or single 802.11 device for which to set the 
+                unicast packet Tx power to 'power'. A value of 'ALL_UNICAST' will
+                apply the specified power to all unicast receiver addresses. A value
+                of `ALL_MULTICAST` will apply it to all multicast receiver addresses.
+                A value of 'ALL' will apply the specified power to all addresses.
+            update_default_unicast  (bool): set the default unicast Tx params to the
+                provided 'power'.
+            update_default_multicast  (bool): set the default multicast Tx params to the
+                provided 'power'.                
 
-        One of ``device_list``, ``curr_assoc`` or ``new_assoc`` must be set.  
-        The ``device_list`` and ``curr_assoc`` are mutually exclusive with 
-        ``curr_assoc`` having precedence (ie if ``curr_assoc`` is True, then 
-        ``device_list`` will be ignored).
-
-        The MAC code does not differentiate between unicast management tx 
-        parameters and unicast data tx parameters since unicast management 
-        packets only occur when they will not materially affect an experiment 
-        (ie they are only sent during deauthentication)
-
-        This will not affect the transmit antenna mode for control frames like 
-        ACKs that will be transmitted. The rate of control packets is 
-        determined by the 802.11 standard.
+        One of ``device_list`` or ``update_default_unicast`` or ``update_default_multicast``
+            must be set.  
         """
         if self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode):
-            self._node_set_tx_param_unicast(cmds.NodeProcTxRate, 'rate', (mcs, phy_mode), device_list, curr_assoc, new_assoc)
+            self._node_set_tx_param(cmds.NodeProcTxRate, 'rate', (mcs, phy_mode), 
+                                        'data', device_list, update_default_unicast, update_default_multicast)
+        else:
+            self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode, verbose=True)
+            raise AttributeError("Tx rate, (mcs, phy_mode) tuple, not supported by the design. See above error message.")
+
+    def set_tx_rate_mgmt(self, mcs, phy_mode, device_list=None, update_default_unicast=None, update_default_multicast=None):
+        """Sets the packet transmit rate (mcs, phy_mode) for management frames.
+
+        Transmit parameters are maintained on a per-MAC address basis.
+        The ``device_list`` argument can be used to select particular devices
+        for which the Tx parameter update applies. The ``update_default_x``
+        arguments can be used to specify that the provided power should be
+        used for any future additions to the node's device list.
+
+        Args:
+            mcs (int): Modulation and coding scheme (MCS) index (in [0 .. 7])
+            phy_mode (str, int): PHY mode.  Must be one of:
+
+                * ``'NONHT'``: Use 802.11 (a/g) rates
+                * ``'HTMF'``: Use 802.11 (n) rates
+
+            device_list (list of WlanExpNode / WlanDevice 
+             or 'ALL_UNICAST' or 'ALL_MULTICAST' or 'ALL', optional):
+                List of 802.11 devices or single 802.11 device for which to set the 
+                unicast packet Tx power to 'power'. A value of 'ALL_UNICAST' will
+                apply the specified power to all unicast receiver addresses. A value
+                of `ALL_MULTICAST` will apply it to all multicast receiver addresses.
+                A value of 'ALL' will apply the specified power to all addresses.
+            update_default_unicast  (bool): set the default unicast Tx params to the
+                provided 'power'.
+            update_default_multicast  (bool): set the default multicast Tx params to the
+                provided 'power'.                
+
+        One of ``device_list`` or ``update_default_unicast`` or ``update_default_multicast``
+            must be set.  
+        """
+        if self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode):
+            self._node_set_tx_param(cmds.NodeProcTxRate, 'rate', (mcs, phy_mode), 
+                                        'mgmt', device_list, update_default_unicast, update_default_multicast)
         else:
             self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode, verbose=True)
             raise AttributeError("Tx rate, (mcs, phy_mode) tuple, not supported by the design. See above error message.")
@@ -969,12 +1001,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def set_tx_ant_mode_data(self, ant_mode, device_list=None, update_default_unicast=None, update_default_multicast=None):    
         """Sets the packet transmit antenna mode for data frames.
 
-        When using ``device_list`` or ``curr_assoc``, this method will set the 
-        unicast data packet tx antenna mode since only unicast data transmit 
-        parameters are maintained for a given staion info.  However, when 
-        using ``new_assoc``, this method will set both the default unicast data 
-        and unicast management packet tx antenna mode.
-
+        Transmit parameters are maintained on a per-MAC address basis.
+        The ``device_list`` argument can be used to select particular devices
+        for which the Tx parameter update applies. The ``update_default_x``
+        arguments can be used to specify that the provided power should be
+        used for any future additions to the node's device list.
         Args:
             ant_mode (str):  Antenna mode; must be one of:
 
@@ -1004,11 +1035,11 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     def set_tx_ant_mode_mgmt(self, ant_mode, device_list=None, update_default_unicast=None, update_default_multicast=None):    
         """Sets the packet transmit antenna mode for management frames.
 
-        When using ``device_list`` or ``curr_assoc``, this method will set the 
-        unicast data packet tx antenna mode since only unicast data transmit 
-        parameters are maintained for a given staion info.  However, when 
-        using ``new_assoc``, this method will set both the default unicast data 
-        and unicast management packet tx antenna mode.
+        Transmit parameters are maintained on a per-MAC address basis.
+        The ``device_list`` argument can be used to select particular devices
+        for which the Tx parameter update applies. The ``update_default_x``
+        arguments can be used to specify that the provided power should be
+        used for any future additions to the node's device list.
 
         Args:
             ant_mode (str):  Antenna mode; must be one of:

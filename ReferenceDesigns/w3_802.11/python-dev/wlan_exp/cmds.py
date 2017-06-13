@@ -1129,40 +1129,53 @@ class NodeProcTxPower(message.Cmd):
 
 
 class NodeProcTxRate(message.Cmd):
-    """Command to get / set the transmit rate of the node.
+    """Command to the transmit power of the node.
 
     Attributes:
-        cmd       -- Sub-command to send over the command.  Valid values are:
-                       CMD_PARAM_READ
+        cmd        -- Sub-command to send over the command.  Valid values are:                       
                        CMD_PARAM_WRITE
-                       CMD_PARAM_WRITE_DEFAULT
-                       CMD_PARAM_READ_DEFAULT
-        tx_type   -- Which Tx parameters to set.  Valid values are:
-                       CMD_PARAM_UNICAST
-                       CMD_PARAM_MULTICAST_DATA
-                       CMD_PARAM_MULTICAST_MGMT
-        rate      -- Tuple of values that make up Tx rate
-                       [0] - mcs       -- Modulation and coding scheme (MCS) index
-                       [1] - phy_mode  -- PHY mode (from util.phy_modes)
-        device    -- 802.11 device for which the rate is being set.
+
+        frame_type -- Valid values are:
+                       CMD_PARAM_TXPARAM_DATA
+                       CMD_PARAM_TXPARAM_MGMT
+                       CMD_PARAM_TXPARAM_CTRL
+                       CMD_PARAM_TXPARAM_ALL
+                       
+        update_default_unicast -- Valid values are:
+                       0
+                       1
+                       
+        update_default_multicast -- Valid values are:
+                       0
+                       1
+
+        rate      -- Tuple:
+                       mcs
+                       phy_mode
+                       
+        addr_sel    -- Valid values are:
+                       CMD_PARAM_TXPARAM_ADDR_NONE
+                       CMD_PARAM_TXPARAM_ADDR_ALL
+                       CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST
+                       CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST
+                       
+        device     -- 802.11 device for which the rate is being set.
     """
-    cmd            = None
-    tx_type        = None
-    mac_address    = None
-    
-    def __init__(self, cmd, tx_type, rate=None, device=None):
+    max_tx_power = None
+    min_tx_power = None
+
+    def __init__(self, cmd, frame_type, update_default_unicast, update_default_multicast, rate, addr_sel, device=None):
         super(NodeProcTxRate, self).__init__()
         self.command = _CMD_GROUP_NODE + CMDID_NODE_TX_RATE
-        self.cmd     = cmd
-        self.tx_type = tx_type
-        
         mac_address  = None
-        mcs          = None
-        phy_mode     = None
 
         self.add_args(cmd)
 
-        self.add_args(self.check_type(tx_type))
+        self.add_args(self.check_frame_type(frame_type))
+        
+        self.add_args(self.check_update_default(update_default_unicast))
+        
+        self.add_args(self.check_update_default(update_default_multicast))
 
         if (rate is not None):
             mcs      = rate[0]
@@ -1181,25 +1194,62 @@ class NodeProcTxRate(message.Cmd):
                 self.add_args(phy_mode)
         else:
             self.add_args(0)
+        
+        self.add_args(self.check_addr_sel(addr_sel))
 
         if device is not None:
-            mac_address   = device.wlan_mac_address
+            mac_address = device.wlan_mac_address
 
         _add_mac_address_to_cmd(self, mac_address)
-        
-        self.mac_address = mac_address
 
 
-    def check_type(self, tx_type):
-        """Check the tx type value is valid."""
+    def check_frame_type(self, frame_type):
+        """Check if frame_type value is valid."""
         return_type = None
-        valid_types = [('CMD_PARAM_UNICAST',           CMD_PARAM_UNICAST),
-                       ('CMD_PARAM_MULTICAST_DATA',    CMD_PARAM_MULTICAST_DATA),
-                       ('CMD_PARAM_MULTICAST_MGMT',    CMD_PARAM_MULTICAST_MGMT)]
+        valid_types = [('CMD_PARAM_TXPARAM_DATA', CMD_PARAM_TXPARAM_DATA),
+                       ('CMD_PARAM_TXPARAM_MGMT', CMD_PARAM_TXPARAM_MGMT),
+                       ('CMD_PARAM_TXPARAM_CTRL', CMD_PARAM_TXPARAM_CTRL),
+                       ('CMD_PARAM_TXPARAM_ALL',  CMD_PARAM_TXPARAM_ALL)]
 
         for tmp_type in valid_types:
-            if (tx_type == tmp_type[1]):
-                return_type = tx_type
+            if (frame_type == tmp_type[1]):
+                return_type = frame_type
+                break
+
+        if return_type is not None:
+            return return_type
+        else:
+            msg  = "The type must be one of: ["
+            for tmp_type in valid_types:
+                msg += "{0} ".format(tmp_type[0])
+            msg += "]"
+            raise ValueError(msg)
+            
+    def check_update_default(self, update_default):
+        """Check if update_default is valid."""
+        return_type = None
+        
+        if (update_default == 0) or (update_default == 1):
+            return_type = update_default;
+            
+        if return_type is not None:
+            return return_type
+        else:
+            msg  = "update_default must be 0 or 1"          
+            raise ValueError(msg)
+
+    def check_addr_sel(self, addr_sel):
+        """Check if addr_sel value is valid."""
+        return_type = None
+        valid_types = [('CMD_PARAM_TXPARAM_ADDR_NONE', CMD_PARAM_TXPARAM_ADDR_NONE),
+                       ('CMD_PARAM_TXPARAM_ADDR_ALL', CMD_PARAM_TXPARAM_ADDR_ALL),
+                       ('CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST', CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST),
+                       ('CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST', CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST),
+                       ('CMD_PARAM_TXPARAM_ADDR_SINGLE', CMD_PARAM_TXPARAM_ADDR_SINGLE)]
+
+        for tmp_type in valid_types:
+            if (addr_sel == tmp_type[1]):
+                return_type = addr_sel
                 break
 
         if return_type is not None:
@@ -1212,56 +1262,12 @@ class NodeProcTxRate(message.Cmd):
             raise ValueError(msg)
 
     def process_resp(self, resp):
-        if (resp.resp_is_valid(num_args=3, name='from Tx rate command')):
-            args    = resp.get_args()
-            status  = args[0]
-            ret_val = True
-            
-            # Check status
-            if (status == CMD_PARAM_ERROR):                
-                msg     = "ERROR:\n"
-                               
-                if   self.tx_type == CMD_PARAM_UNICAST:
-                    tx_type = "TX unicast"
-                elif self.tx_type == CMD_PARAM_MULTICAST_DATA:
-                    tx_type = "TX multicast data"
-                elif self.tx_type == CMD_PARAM_MULTICAST_MGMT:
-                    tx_type = "TX multicast management"
-                
-                if   self.cmd == CMD_PARAM_READ:
-                    cmd = "get {0} rate".format(tx_type)
-                elif self.cmd == CMD_PARAM_WRITE:
-                    cmd = "set {0} rate".format(tx_type)
-                elif self.cmd == CMD_PARAM_READ_DEFAULT:
-                    cmd = "get {0} for new station infos".format(tx_type)
-                elif self.cmd == CMD_PARAM_WRITE_DEFAULT:
-                    cmd = "set {0} for new station infos".format(tx_type)
-                    
-                msg    += "    Could not {0} ".format(cmd)
- 
-                if (self.mac_address is not None):
-                    import wlan_exp.util as util
-                    msg += "for node {0}\n".format(util.mac_addr_to_str(self.mac_address))
-                
-                ret_val = False
-            
-            if (status == CMD_PARAM_WARNING):
-                if ((args[1] == 0) or (args[1] == 7)):
-                    mcs = args[1]
-                else:
-                    mcs = args[1] + 1
-                
-                msg     = "\nWARNING:  At least one associated station is not HT capable. \n"
-                msg    += "    Rates for non-HT stations were configured with mcs={0} and\n".format(mcs)
-                msg    += "    phy_mode='NONHT' (ie ({0}, 1)). Use node.get_station_info() \n".format(mcs)
-                msg    += "    to confirm HT capabilities of associated stations.\n"
-                print(msg)
-            
-            if not ret_val:
-                print(msg)
-                return None
-            else:
-                return (args[1], args[2])
+        error_code    = CMD_PARAM_ERROR
+        error_msg     = "Could not get / set the transmit power on the node"
+        status_errors = { error_code : error_msg }
+
+        if resp.resp_is_valid(num_args=1, status_errors=status_errors, name='from Tx power command'):
+            return None
         else:
             return None
 
