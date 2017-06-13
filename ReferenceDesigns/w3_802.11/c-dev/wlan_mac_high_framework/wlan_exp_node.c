@@ -2207,7 +2207,39 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
         //---------------------------------------------------------------------
         case CMDID_NODE_RX_ANT_MODE: {
-        	//FIXME
+            // NODE_RX_ANT_MODE Packet Format:
+            //   - cmd_args_32[0]      - Command
+            //   - cmd_args_32[1]      - Antenna Mode
+            //
+            // NOTE:  This method assumes that the Antenna mode received is valid.
+            // The checking will be done on either the host, in CPU Low or both.
+            //
+            u32    status         = CMD_PARAM_SUCCESS;
+            u32    msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
+            u32    ant_mode       = Xil_Ntohl(cmd_args_32[1]);
+
+            switch (msg_cmd) {
+                case CMD_PARAM_WRITE_VAL:
+                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set RX antenna mode = %d\n", ant_mode);
+                    wlan_mac_high_set_rx_ant_mode(ant_mode);
+                break;
+
+                case CMD_PARAM_READ_VAL:
+                    ant_mode = low_param_rx_ant_mode;
+                break;
+
+                default:
+                    wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmd_id, msg_cmd);
+                    status = CMD_PARAM_ERROR;
+                break;
+            }
+
+            // Send response
+            resp_args_32[resp_index++] = Xil_Htonl(status);
+            resp_args_32[resp_index++] = Xil_Htonl(ant_mode);
+
+            resp_hdr->length  += (resp_index * sizeof(u32));
+            resp_hdr->num_args = resp_index;
         }
         break;
 
