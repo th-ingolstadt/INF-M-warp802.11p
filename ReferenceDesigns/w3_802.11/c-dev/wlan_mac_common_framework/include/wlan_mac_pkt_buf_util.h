@@ -176,10 +176,9 @@ CASSERT(sizeof(wlan_mac_low_tx_details_t) == 44, wlan_mac_low_tx_details_t_align
 typedef struct phy_rx_details_t{
     u8                       mcs;
     u8                       phy_mode;
-    u8                       reserved[2];
     u16                      length;
-    u16                      N_DBPS;                       ///< Number of data bits per OFDM symbol
 } phy_rx_details_t;
+CASSERT(sizeof(phy_rx_details_t) == 4, phy_rx_details_alignment_check);
 
 typedef enum __attribute__ ((__packed__)) {
    TX_PKT_BUF_UNINITIALIZED   = 0,
@@ -268,8 +267,6 @@ typedef struct __attribute__ ((__packed__)) rx_frame_info_t{
     u16                       	  	reserved0;
     //----- 8-byte boundary ------
     u32                      	  	cfo_est;                      ///< Carrier Frequency Offset Estimate
-    u32							  	reserved1;
-    //----- 8-byte boundary ------
     phy_rx_details_t         	  	phy_details;                  ///< Details from PHY used in this reception
     //----- 8-byte boundary ------
     u8                       	  	timestamp_frac;               ///< Fractional timestamp beyond usec timestamp for time of reception
@@ -288,7 +285,7 @@ typedef struct __attribute__ ((__packed__)) rx_frame_info_t{
 // Therefore, the code will check the size of the structure using a compile-time assertion.  This check
 // will need to be updated if fields are added to the structure
 //
-CASSERT(sizeof(rx_frame_info_t) == 344, rx_frame_info_alignment_check);
+CASSERT(sizeof(rx_frame_info_t) == 336, rx_frame_info_alignment_check);
 
 
 // Defines for flags field

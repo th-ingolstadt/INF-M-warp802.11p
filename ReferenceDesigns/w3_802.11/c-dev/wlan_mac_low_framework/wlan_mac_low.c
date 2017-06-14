@@ -477,7 +477,6 @@ inline u32 wlan_mac_low_poll_frame_rx(){
         if(wlan_mac_get_rx_phy_sel() == WLAN_MAC_PHY_RX_PHY_HDR_PHY_SEL_DSSS) {
             // DSSS Rx - PHY Rx length is already valid, other params unused for DSSS
         	phy_details.phy_mode = PHY_MODE_DSSS;
-        	phy_details.N_DBPS   = 0;
 
             // Strip off extra pre-MAC-header bytes used in DSSS frames; this adjustment allows the next
             //     function to treat OFDM and DSSS payloads the same
@@ -557,7 +556,6 @@ inline u32 wlan_mac_low_poll_frame_rx(){
                 	phy_details.phy_mode = wlan_mac_get_rx_phy_mode();
                 	phy_details.length   = wlan_mac_get_rx_phy_length();
                 	phy_details.mcs      = wlan_mac_get_rx_phy_mcs();
-                	phy_details.N_DBPS   = wlan_mac_low_mcs_to_n_dbps(phy_details.mcs, phy_details.phy_mode);
 
             	    rx_frame_info->cfo_est		  = wlan_phy_rx_get_cfo_est();
                     rx_frame_info->phy_details    = phy_details;
