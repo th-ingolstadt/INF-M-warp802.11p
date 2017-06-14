@@ -1298,7 +1298,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t* msg, u32* ipc_msg_from_low_pa
 					tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
 
 					//We will pass this completed transmission off to the Station Info subsystem
-					station_info_tx_process((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf)));
+					station_info_posttx_process((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf)));
 
 #if WLAN_SW_CONFIG_ENABLE_LOGGING
 					// Log the TX low
@@ -1350,7 +1350,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t* msg, u32* ipc_msg_from_low_pa
 							network_info_rx_process((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf)));
 
 							//We will also pass this reception off to the Station Info subsystem
-							station_info = station_info_rx_process((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf)));
+							station_info = station_info_postrx_process((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf)));
 
 #if WLAN_SW_CONFIG_ENABLE_LOGGING
 							//Log this RX event
@@ -1397,6 +1397,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t* msg, u32* ipc_msg_from_low_pa
 		case IPC_MBOX_PHY_TX_REPORT: {
 			wlan_mac_low_tx_details_t* 	tx_low_details;
 		    tx_low_entry*				tx_low_event_log_entry = NULL;
+		    station_info_t*				station_info;
 
 			tx_pkt_buf = msg->arg0;
 			if(tx_pkt_buf < NUM_TX_PKT_BUFS){
@@ -1405,7 +1406,8 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t* msg, u32* ipc_msg_from_low_pa
 #if WLAN_SW_CONFIG_ENABLE_LOGGING
 				tx_low_event_log_entry = wlan_exp_log_create_tx_low_entry(tx_frame_info, tx_low_details);
 #endif //WLAN_SW_CONFIG_ENABLE_LOGGING
-				mpdu_tx_low_done_callback(tx_frame_info, tx_low_details, tx_low_event_log_entry);
+				station_info = station_info_txreport_process((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf)), tx_low_details);
+				mpdu_tx_low_done_callback(tx_frame_info, station_info, tx_low_details, tx_low_event_log_entry);
 			}
 		}
 		break;
@@ -1438,7 +1440,7 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t* msg, u32* ipc_msg_from_low_pa
 						tx_poll_callback();
 
 						//We will pass this completed transmission off to the Station Info subsystem
-						station_info = station_info_tx_process((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf)));
+						station_info = station_info_posttx_process((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf)));
 
 #if WLAN_SW_CONFIG_ENABLE_LOGGING
 						// Log the high-level transmission and call the application callback

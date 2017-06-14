@@ -160,6 +160,7 @@ typedef enum default_tx_param_sel_t{
 // Forward declarations -- these must be defined elsewhere
 struct dl_entry;
 struct dl_list;
+struct wlan_mac_low_tx_details_t;
 
 /*************************** Function Prototypes *****************************/
 
@@ -169,8 +170,9 @@ void             station_info_init_finish();
 station_info_entry_t* station_info_checkout();
 void             station_info_checkin(struct dl_entry* entry);
 
-station_info_t*  station_info_tx_process(void* pkt_buf_addr);
-station_info_t*	 station_info_rx_process(void* pkt_buf_addr);
+station_info_t*  station_info_posttx_process(void* pkt_buf_addr);
+station_info_t*  station_info_txreport_process(void* pkt_buf_addr, struct wlan_mac_low_tx_details_t* wlan_mac_low_tx_details);
+station_info_t*	 station_info_postrx_process(void* pkt_buf_addr);
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
 void   			 station_info_rx_process_counts(void* pkt_buf_addr, station_info_t* station_info, u32 option_flags);
 #endif

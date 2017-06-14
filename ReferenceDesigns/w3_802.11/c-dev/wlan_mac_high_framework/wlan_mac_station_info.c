@@ -114,18 +114,15 @@ void station_info_init_finish(){
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, 10000000, SCHEDULE_REPEAT_FOREVER, (void*)station_info_timestamp_check);
 }
 
-
-inline station_info_t* station_info_tx_process(void* pkt_buf_addr) {
-	tx_frame_info_t*      	tx_frame_info  	  = (tx_frame_info_t*)pkt_buf_addr;
-	mac_header_80211* 		tx_80211_header   = (mac_header_80211*)((u8*)tx_frame_info + PHY_TX_PKT_BUF_MPDU_OFFSET);
+inline station_info_t* station_info_txreport_process(void* pkt_buf_addr, wlan_mac_low_tx_details_t* wlan_mac_low_tx_details) {
+	tx_frame_info_t*      	tx_frame_info = (tx_frame_info_t*)pkt_buf_addr;
+	mac_header_80211* 		tx_80211_header = (mac_header_80211*)((u8*)tx_frame_info + PHY_TX_PKT_BUF_MPDU_OFFSET);
 	station_info_t*			curr_station_info;
+	u64						curr_system_time = get_system_time_usec();
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
 	station_txrx_counts_t*	curr_txrx_counts;
 	txrx_counts_sub_t*		txrx_counts_sub;
 	u8						pkt_type;
-	u64						curr_system_time = get_system_time_usec();
-
-
 	pkt_type = (tx_80211_header->frame_control_1 & MAC_FRAME_CTRL1_MASK_TYPE);
 #endif
 
@@ -139,13 +136,7 @@ inline station_info_t* station_info_tx_process(void* pkt_buf_addr) {
 	// Update the latest TXRX time
 	curr_station_info->latest_txrx_timestamp = curr_system_time;
 
-	// If this transmission was a successful transmission, we implicitly know than an
-	// ACK was received. So, we can update the latest Rx-only timestamp as well.
-	// Note: The success <-> ACK Rx assumption holds here because this code
-	// cannot be executed on the transmission of a multicast frame.
-	// FIXME: This structure doesn't work with NOMAC, where there is
-	//   no ACK Rx on a successful unicast Data Tx.
-	if(((tx_frame_info->tx_result) == TX_FRAME_INFO_RESULT_SUCCESS)){
+	if(wlan_mac_low_tx_details->flags & TX_DETAILS_FLAGS_RECEIVED_RESPONSE){
 		curr_station_info->latest_rx_timestamp = curr_system_time;
 	}
 
@@ -165,9 +156,45 @@ inline station_info_t* station_info_tx_process(void* pkt_buf_addr) {
 		break;
 	}
 
+	(txrx_counts_sub->tx_num_attempts)++;
+#endif
+
+	return curr_station_info;
+}
+
+inline station_info_t* station_info_posttx_process(void* pkt_buf_addr) {
+	tx_frame_info_t*      	tx_frame_info  	  = (tx_frame_info_t*)pkt_buf_addr;
+	mac_header_80211* 		tx_80211_header   = (mac_header_80211*)((u8*)tx_frame_info + PHY_TX_PKT_BUF_MPDU_OFFSET);
+	station_info_t*			curr_station_info;
+#if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
+	station_txrx_counts_t*	curr_txrx_counts;
+	txrx_counts_sub_t*		txrx_counts_sub;
+	u8						pkt_type;
+	pkt_type = (tx_80211_header->frame_control_1 & MAC_FRAME_CTRL1_MASK_TYPE);
+#endif
+
+	curr_station_info = station_info_create(tx_80211_header->address_1);
+
+	if(curr_station_info == NULL) return NULL;
+
+#if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
+	curr_txrx_counts = &(curr_station_info->txrx_counts);
+
+	switch(pkt_type){
+		default:
+			//Unknown type
+			return curr_station_info;
+		break;
+		case MAC_FRAME_CTRL1_TYPE_DATA:
+			txrx_counts_sub = &(curr_txrx_counts->data);
+		break;
+		case MAC_FRAME_CTRL1_TYPE_MGMT:
+			txrx_counts_sub = &(curr_txrx_counts->mgmt);
+		break;
+	}
+
 	(txrx_counts_sub->tx_num_packets_total)++;
 	(txrx_counts_sub->tx_num_bytes_total) += (tx_frame_info->length);
-	(txrx_counts_sub->tx_num_attempts)    += (tx_frame_info->num_tx_attempts);
 
 	if((tx_frame_info->tx_result) == TX_FRAME_INFO_RESULT_SUCCESS){
 		(txrx_counts_sub->tx_num_packets_success)++;
@@ -179,7 +206,7 @@ inline station_info_t* station_info_tx_process(void* pkt_buf_addr) {
 
 }
 
-inline station_info_t* station_info_rx_process(void* pkt_buf_addr) {
+inline station_info_t* station_info_postrx_process(void* pkt_buf_addr) {
 	rx_frame_info_t*    	rx_frame_info   	     = (rx_frame_info_t*)pkt_buf_addr;
 	void*               	mac_payload              = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
 	mac_header_80211*   	rx_80211_header          = (mac_header_80211*)((void *)mac_payload);
