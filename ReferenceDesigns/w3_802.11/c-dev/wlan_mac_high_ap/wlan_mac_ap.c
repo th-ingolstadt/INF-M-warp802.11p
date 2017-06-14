@@ -1267,6 +1267,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 				station_info->flags |= STATION_INFO_FLAG_DOZE;
 			} else {
 				station_info->flags &= ~STATION_INFO_FLAG_DOZE;
+				poll_tx_queues();
 			}
 
 			// Update station information
