@@ -206,7 +206,7 @@ extern const char   * print_type_queue;
 
 // Command / Response Header
 //
-typedef struct{
+typedef struct cmd_resp_hdr{
     u32                      cmd;
     u16                      length;
     u16                      num_args;
@@ -227,7 +227,7 @@ typedef struct cmd_resp{
 // **********************************************************************
 // WLAN Exp Tag Parameter Structure
 //
-typedef struct {
+typedef struct wlan_exp_tag_parameter{
     u8    reserved;
     u8    group;
     u16   length;

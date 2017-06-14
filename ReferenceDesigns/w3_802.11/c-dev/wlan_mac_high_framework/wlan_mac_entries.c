@@ -523,7 +523,10 @@ rx_common_entry* wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
 
     pkt_id = (ltg_packet_id_t*)(mac_payload_ptr_u8 + sizeof(mac_header_80211));
 
-    typedef enum {PAYLOAD_FIRST, CHAN_EST_FIRST} copy_order_t;
+    typedef enum copy_order_t{
+    	PAYLOAD_FIRST,
+    	CHAN_EST_FIRST
+    } copy_order_t;
     copy_order_t      copy_order;
 
     if ((((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA) && (log_entry_en_mask & ENTRY_EN_MASK_TXRX_MPDU)) ||

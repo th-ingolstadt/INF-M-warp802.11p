@@ -209,7 +209,10 @@ struct station_info_t;
 
 /************************** Global Type Definitions **************************/
 
-typedef enum {INTERRUPTS_DISABLED, INTERRUPTS_ENABLED} interrupt_state_t;
+typedef enum interrupt_state_t{
+	INTERRUPTS_DISABLED,
+	INTERRUPTS_ENABLED
+} interrupt_state_t;
 
 
 /******************** Global Structure/Enum Definitions **********************/

@@ -112,7 +112,7 @@ typedef struct wlan_ipc_msg_t{
 // IPC_MBOX_MEM_READ_WRITE payload structure
 //     - Must be u32 aligned
 //
-typedef struct{
+typedef struct ipc_reg_read_write_t{
     u32       baseaddr;
     u32       num_words;
 } ipc_reg_read_write_t;

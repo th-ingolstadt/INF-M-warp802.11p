@@ -21,7 +21,7 @@
 //-----------------------------------------------
 // 802.11 structure defines
 //
-typedef struct{
+typedef struct mac_header_80211{
 	u8  frame_control_1;
 	u8  frame_control_2;
 	u16 duration_id;
@@ -32,21 +32,21 @@ typedef struct{
 	//u8  address_4[MAC_ADDR_LEN];
 } mac_header_80211;
 
-typedef struct{
+typedef struct mac_header_80211_ACK{
 	u8  frame_control_1;
 	u8  frame_control_2;
 	u16 duration_id;
 	u8  address_ra[MAC_ADDR_LEN];
 } mac_header_80211_ACK;
 
-typedef struct{
+typedef struct mac_header_80211_CTS{
 	u8  frame_control_1;
 	u8  frame_control_2;
 	u16 duration_id;
 	u8  address_ra[MAC_ADDR_LEN];
 } mac_header_80211_CTS;
 
-typedef struct{
+typedef struct mac_header_80211_RTS{
 	u8  frame_control_1;
 	u8  frame_control_2;
 	u16 duration_id;
@@ -113,13 +113,13 @@ typedef struct{
 #define MAC_FRAME_CTRL2_FLAG_FROM_DS	0x02
 #define MAC_FRAME_CTRL2_FLAG_TO_DS		0x01
 
-typedef struct{
+typedef struct beacon_probe_frame{
 	u64 timestamp;
 	u16 beacon_interval;
 	u16 capabilities;
 } beacon_probe_frame;
 
-typedef struct{
+typedef struct association_req_frame{
 	u16 capabilities;
 	u16 listen_interval;
 } association_req_frame;
@@ -142,7 +142,7 @@ typedef struct{
 
 #define RATE_BASIC 0x80
 
-typedef struct{
+typedef struct qos_control{
 	u16 control;
 } qos_control;
 

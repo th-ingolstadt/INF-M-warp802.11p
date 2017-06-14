@@ -66,13 +66,13 @@ extern network_info_t* 			  active_network_info;
 /*************************** Variable Definitions ****************************/
 
 // Join FSM states
-typedef enum {
+typedef enum join_state_t{
     IDLE,
     SEARCHING,
     ATTEMPTING
 } join_state_t;
 
-typedef enum {
+typedef enum authentication_state_t{
 	UNAUTHENTICATED,
 	AUTHENTICATED,
 	ASSOCIATED

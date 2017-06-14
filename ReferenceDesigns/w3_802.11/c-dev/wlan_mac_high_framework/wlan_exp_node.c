@@ -127,7 +127,7 @@ CASSERT(sizeof(wlan_exp_bss_config_update_t) == 52, wlan_exp_bss_config_update_t
 //
 //     Only used to communicate with WLAN Exp Host.
 //
-typedef struct{
+typedef struct wlan_exp_station_txrx_counts_t{
     u64                 				timestamp;                 // Timestamp of the log entry
     u8									addr[6];				   // MAC address associated with this counts struct
     u16									reserved;

@@ -463,7 +463,10 @@ void process_scan_state_change(scan_state_t scan_state){
  *
  *****************************************************************************/
 #define NUM_QUEUE_GROUPS 2
-typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
+typedef enum queue_group_t{
+	MGMT_QGRP,
+	DATA_QGRP
+} queue_group_t;
 
 void poll_tx_queues(){
 	interrupt_state_t curr_interrupt_state;

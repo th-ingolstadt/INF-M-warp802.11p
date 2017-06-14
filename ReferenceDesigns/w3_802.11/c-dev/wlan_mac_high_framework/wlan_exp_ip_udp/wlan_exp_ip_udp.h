@@ -168,7 +168,7 @@
 //
 // where a wlan_exp_transport_packet would be defined as:
 //
-// typedef struct {
+// typedef struct wlan_exp_transport_packet{
 //     int                   socket_index;
 //     struct sockaddr     * from;
 //     wlan_exp_ip_udp_buffer  * buffer;
@@ -364,7 +364,7 @@
 // Mango wlan_exp IP/UDP buffer
 //     Describes a buffer of data with maximum length of 2^32 bytes
 //
-typedef struct {
+typedef struct wlan_exp_ip_udp_buffer{
     u32                      state;                                            // State of the buffer
     u32                      max_size;                                         // Maximum size of the buffer (in bytes) (ie number of bytes allocated; immutable)
     u32                      size;                                             // Size of the buffer data (in bytes) (ie total number of data bytes populated in the buffer)
@@ -379,7 +379,7 @@ typedef struct {
 // Mango wlan_exp IP/UDP Library Ethernet Structures
 //
 
-typedef struct {
+typedef struct ethernet_header{
     u8                       dest_mac_addr[ETH_ADDR_LEN];                      // Destination MAC address
     u8                       src_mac_addr[ETH_ADDR_LEN];                       // Source MAC address
     u16                      ethertype;                                        // EtherType
@@ -390,7 +390,7 @@ typedef struct {
 // Mango wlan_exp IP/UDP Library IP Structures
 //
 
-typedef struct {
+typedef struct ipv4_header{
     u8                       version_ihl;                                      // [7:4] Version; [3:0] Internet Header Length
     u8                       dscp_ecn;                                         // [7:2] Differentiated Services Code Point; [1:0] Explicit Congestion Notification
     u16                      total_length;                                     // Total Length (includes header and data - in bytes)
@@ -409,7 +409,7 @@ typedef struct {
 //
 
 // udp header structure
-typedef struct {
+typedef struct udp_header{
     u16                      src_port;                                         // Source port number
     u16                      dest_port;                                        // Destination port number
     u16                      length;                                           // Length of UDP header and UDP data (in bytes)
@@ -422,7 +422,7 @@ typedef struct {
 //     - NOTE:  The Mango wlan_exp IP/UDP Library only support IPv4 ARP
 //
 
-typedef struct {
+typedef struct arp_ipv4_packet{
     u16                      htype;                                            // Hardware Type
     u16                      ptype;                                            // Protocol Type
     u8                       hlen;                                             // Length of Hardware address
@@ -441,7 +441,7 @@ typedef struct {
 //            http://en.wikipedia.org/wiki/Ping_(networking_utility) 
 //
 
-typedef struct {
+typedef struct imcp_header{
     u8                       type;                                             // IMCP Type
     u8                       code;                                             // IMCP subtype
     u16                      checksum;                                         // Header checksum (only IMCP part of packet)
@@ -449,7 +449,7 @@ typedef struct {
 } imcp_header;
 
 
-typedef struct {
+typedef struct imcp_echo_header{
     u8                       type;                                             // IMCP Type
     u8                       code;                                             // IMCP subtype
     u16                      checksum;                                         // Header checksum (only IMCP part of packet)
@@ -465,7 +465,7 @@ typedef struct {
 // Mango wlan_exp IP/UDP Library header
 //     Describes the header of a standard UDP/IP Ethernet packet, aligned to 32 bits
 //
-typedef struct __attribute__((__packed__)) {
+typedef struct __attribute__((__packed__)) wlan_exp_ip_udp_header{
     ethernet_header          eth_hdr;
     ipv4_header              ip_hdr;
     udp_header               udp_hdr;
@@ -490,7 +490,7 @@ typedef struct __attribute__((__packed__)) {
 //        keep track of the socket domain or family.  However, the socket has the sin_family field 
 //        to maintain 32-bit data alignment within the structure.
 // 
-typedef struct {
+typedef struct wlan_exp_ip_udp_socket{
     u32                      index;                                            // Index of the socket
     u32                      state;                                            // State of the socket
     u32                      eth_dev_num;                                      // Ethernet device associated with the sockets

@@ -171,7 +171,7 @@ typedef enum phy_samp_rate_t{
 //-----------------------------------------------
 // LLC Header
 //
-typedef struct{
+typedef struct llc_header_t{
     u8   dsap;
     u8   ssap;
     u8   control_field;
@@ -183,7 +183,7 @@ typedef struct{
 //-----------------------------------------------
 // LTG Payload Contents
 //
-typedef struct {
+typedef struct ltg_packet_id_t{
     llc_header_t   llc_hdr;
     u64            unique_seq;
     u32            ltg_id;
@@ -223,7 +223,7 @@ typedef struct __attribute__((__packed__)) beacon_txrx_configure_t{
 } beacon_txrx_configure_t;
 CASSERT(sizeof(beacon_txrx_configure_t) == 20, beacon_txrx_configure_t_alignment_check);
 
-typedef struct{
+typedef struct time_hr_min_sec_t{
 	u32 hr;
 	u32 min;
 	u32 sec;

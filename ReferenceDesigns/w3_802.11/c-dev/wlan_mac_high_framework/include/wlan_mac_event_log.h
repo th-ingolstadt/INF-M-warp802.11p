@@ -83,7 +83,7 @@
 // Log Entry Header
 //   - This is used by the event log but is not exposed to the user
 //
-typedef struct{
+typedef struct entry_header{
     u32 entry_id;
     u16 entry_type;
     u16 entry_length;

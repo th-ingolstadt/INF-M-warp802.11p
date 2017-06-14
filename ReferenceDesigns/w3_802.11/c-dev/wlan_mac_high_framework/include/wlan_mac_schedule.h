@@ -69,7 +69,7 @@
 struct dl_entry;
 
 // Schedule structure for scheduled events
-typedef struct {
+typedef struct wlan_sched{
     u32            id;
     u8			   enabled;
     u32            delay_us;
@@ -78,7 +78,7 @@ typedef struct {
     function_ptr_t callback;
 } wlan_sched;
 
-typedef struct {
+typedef struct wlan_sched_state_t{
 	dl_list		enabled_list;
 	struct dl_entry*	next;
 } wlan_sched_state_t;

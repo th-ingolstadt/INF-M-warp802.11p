@@ -54,24 +54,24 @@ CASSERT(sizeof(compilation_details_t) == 24, compilation_details_t_alignment_che
 //       for many of the structures that contain these structures.  In general,
 //       tx_params_t should be 8-byte aligned.
 //
-typedef struct{
+typedef struct phy_tx_params_t{
     u8                       mcs;                          ///< MCS index
     u8                       phy_mode;                     ///< PHY mode selection and flags
     u8                       antenna_mode;                 ///< Tx antenna selection
     s8                       power;                        ///< Tx power (in dBm)
 } phy_tx_params_t;
 
-typedef struct{
+typedef struct mac_tx_params_t{
     u8                       flags;                        ///< Flags affecting waveform construction
     u8                       reserved[3];                  ///< Reserved for 32-bit alignment
 } mac_tx_params_t;
 
-typedef struct{
+typedef struct tx_params_t{
     phy_tx_params_t          phy;                          ///< PHY Tx params
     mac_tx_params_t          mac;                          ///< Lower-level MAC Tx params
 } tx_params_t;
 
-typedef enum {
+typedef enum userio_disp_status_t{
 	USERIO_DISP_STATUS_IDENTIFY     		= 0,
 	USERIO_DISP_STATUS_APPLICATION_ROLE     = 1,
 	USERIO_DISP_STATUS_MEMBER_LIST_UPDATE   = 2,

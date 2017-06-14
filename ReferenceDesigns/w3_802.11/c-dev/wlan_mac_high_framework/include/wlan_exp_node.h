@@ -268,7 +268,7 @@
 //
 
 struct transport_eth_dev_info;
-typedef struct {
+typedef struct wlan_exp_node_info{
 
     u32                      node_type;                    // Type of node
     u32                      node_id;                      // Node ID (Only bits [15:0] are valid)

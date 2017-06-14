@@ -68,7 +68,7 @@
 //     arp_ipv4_packet
 //
 
-typedef struct{
+typedef struct dhcp_packet{
 	u8  op;
 	u8  htype;
 	u8  hlen;
@@ -86,13 +86,13 @@ typedef struct{
 	u32 magic_cookie;
 } dhcp_packet;
 
-typedef struct {
+typedef struct ethernet_header_t{
     u8                       dest_mac_addr[ETH_ADDR_SIZE];                      // Destination MAC address
     u8                       src_mac_addr[ETH_ADDR_SIZE];                       // Source MAC address
     u16                      ethertype;                                        // EtherType
 } ethernet_header_t;
 
-typedef struct {
+typedef struct ipv4_header_t{
     u8                       version_ihl;                                      // [7:4] Version; [3:0] Internet Header Length
     u8                       dscp_ecn;                                         // [7:2] Differentiated Services Code Point; [1:0] Explicit Congestion Notification
     u16                      total_length;                                     // Total Length (includes header and data - in bytes)
@@ -105,7 +105,7 @@ typedef struct {
     u32                      dest_ip_addr;                                     // Destination IP address (big endian)
 } ipv4_header_t;
 
-typedef struct {
+typedef struct arp_ipv4_packet_t{
     u16                      htype;                                            // Hardware Type
     u16                      ptype;                                            // Protocol Type
     u8                       hlen;                                             // Length of Hardware address
@@ -117,7 +117,7 @@ typedef struct {
     u8                       target_paddr[IP_ADDR_SIZE];                        // Target protocol address
 } arp_ipv4_packet_t;
 
-typedef struct {
+typedef struct udp_header_t{
     u16                      src_port;                                         // Source port number
     u16                      dest_port;                                        // Destination port number
     u16                      length;                                           // Length of UDP header and UDP data (in bytes)

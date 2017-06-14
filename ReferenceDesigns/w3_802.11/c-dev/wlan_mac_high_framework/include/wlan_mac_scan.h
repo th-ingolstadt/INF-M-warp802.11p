@@ -32,7 +32,7 @@
 
 /*********************** Global Structure Definitions ************************/
 
-typedef struct {
+typedef struct scan_parameters_t{
     u32       time_per_channel_usec;
     u32       probe_tx_interval_usec;
     u8*       channel_vec;

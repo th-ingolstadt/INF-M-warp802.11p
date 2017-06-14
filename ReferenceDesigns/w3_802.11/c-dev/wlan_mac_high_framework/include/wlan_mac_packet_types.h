@@ -29,28 +29,28 @@ typedef struct mac_header_80211_common{
 	u8 reserved;
 } mac_header_80211_common;
 
-typedef struct{
+typedef struct authentication_frame{
 	u16 auth_algorithm;
 	u16 auth_sequence;
 	u16 status_code;
 } authentication_frame;
 
-typedef struct{
+typedef struct deauthentication_frame{
 	u16 reason_code;
 } deauthentication_frame;
 
-typedef struct{
+typedef struct association_response_frame{
 	u16 capabilities;
 	u16 status_code;
 	u16 association_id;
 } association_response_frame;
 
-typedef struct{
+typedef struct association_request_frame{
 	u16 capabilities;
 	u16 listen_interval;
 } association_request_frame;
 
-typedef struct{
+typedef struct channel_switch_announcement_frame{
 	u8 category;
 	u8 action;
 
@@ -63,7 +63,7 @@ typedef struct{
 
 } channel_switch_announcement_frame;
 
-typedef struct{
+typedef struct measurement_common_frame{
 	u8 category;
 	u8 action;
 	u8 dialog_token;

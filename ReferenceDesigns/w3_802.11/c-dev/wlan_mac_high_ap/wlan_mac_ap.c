@@ -668,7 +668,10 @@ void update_tim_tag_all(u32 sched_id){
  * FIXME: Update description
  *****************************************************************************/
 #define NUM_QUEUE_GROUPS 2
-typedef enum {MGMT_QGRP, DATA_QGRP} queue_group_t;
+typedef enum queue_group_t{
+	MGMT_QGRP,
+	DATA_QGRP
+} queue_group_t;
 
 void poll_tx_queues(){
 	interrupt_state_t curr_interrupt_state;

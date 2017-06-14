@@ -18,7 +18,7 @@ typedef struct wlan_mac_hw_info_t {
 
 //---------------------------------------
 // Platform information struct
-typedef struct{
+typedef struct platform_common_dev_info_t{
 	u32	platform_id;
 	u32 cpu_id;
 	u32 is_cpu_high;

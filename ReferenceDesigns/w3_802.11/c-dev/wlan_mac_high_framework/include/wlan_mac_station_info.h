@@ -40,7 +40,7 @@
  * different packet types can be individually tracked.
  *
  ********************************************************************/
-typedef struct{
+typedef struct txrx_counts_sub_t{
     u64        rx_num_bytes;                ///< # of successfully received bytes (de-duplicated)
     u64        rx_num_bytes_total;          ///< # of successfully received bytes (including duplicates)
     u64        tx_num_bytes_success;        ///< # of successfully transmitted bytes (high-level MPDUs)
@@ -62,7 +62,7 @@ CASSERT(sizeof(txrx_counts_sub_t) == 56,txrx_counts_sub_alignment_check);
  * the network.
  *
  ********************************************************************/
-typedef struct{
+typedef struct station_txrx_counts_t{
 	txrx_counts_sub_t   data;                          /* Counts about data types	*/
 	 /*----- 8-byte boundary ------*/
 	txrx_counts_sub_t   mgmt;                          /* Counts about management types */
@@ -78,7 +78,7 @@ CASSERT(sizeof(station_txrx_counts_t) == 112, station_txrx_counts_alignment_chec
  * This structure contains information about the rate selection scheme.
  *
  ********************************************************************/
-typedef struct{
+typedef struct rate_selection_info_t{
     u16 rate_selection_scheme;
     u8	reserved[6];
 } rate_selection_info_t;

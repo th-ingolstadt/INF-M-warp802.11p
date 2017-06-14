@@ -20,7 +20,7 @@
 
 //---------------------------------------
 // Platform information struct
-typedef struct{
+typedef struct platform_high_dev_info_t{
 	u32		dlmb_baseaddr;
 	u32		dlmb_size;
 	u32		ilmb_baseaddr;

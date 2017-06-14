@@ -35,7 +35,7 @@
 // **********************************************************************
 // Whitelist Range Structure
 //
-typedef struct {
+typedef struct whitelist_range{
 	u8   mask[MAC_ADDR_LEN];
 	u8   compare[MAC_ADDR_LEN];
 } whitelist_range;

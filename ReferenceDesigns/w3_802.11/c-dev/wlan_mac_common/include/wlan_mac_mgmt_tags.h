@@ -17,19 +17,19 @@
 
 #include "xil_types.h"
 
-typedef struct{
+typedef struct mgmt_tag_header{
 	u8 tag_element_id;
 	u8 tag_length;
 } mgmt_tag_header;
 
 // Note: mgmt_tag_template should never be instantiated. Instead,
 // it should be used as pointer on top of existing memory
-typedef struct{
+typedef struct mgmt_tag_template_t{
 	mgmt_tag_header header;
 	u8				data[256];
 } mgmt_tag_template_t;
 
-typedef struct __attribute__ ((__packed__)){
+typedef struct __attribute__ ((__packed__)) ht_capabilities{
 	u16		ht_capabilities_info;
 	u8		a_mpdu_parameters;
 	u32     rx_supported_mcs[4];
@@ -38,7 +38,7 @@ typedef struct __attribute__ ((__packed__)){
 	u8		ant_sel;
 } ht_capabilities;
 
-typedef struct __attribute__ ((__packed__)){
+typedef struct __attribute__ ((__packed__)) ht_information{
 	u8		channel;
 	u8		ht_info_subset_1;
 	u16		ht_info_subset_2;
@@ -46,7 +46,7 @@ typedef struct __attribute__ ((__packed__)){
 	u32		rx_supported_mcs[4];
 } ht_information;
 
-typedef struct __attribute__ ((__packed__)){
+typedef struct __attribute__ ((__packed__)) wmm_parameter_t{
 	u8		oui[3];
 	u8		vendor_specific_oui_type;
 	u8		wme_subtype;

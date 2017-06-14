@@ -2,7 +2,7 @@
 #define WLAN_HIGH_TYPES_H_
 
 //FIXME: wlan_exp should be updated to use this enum to report node type
-typedef enum {
+typedef enum application_role_t{
 	APPLICATION_ROLE_AP			= 1,
 	APPLICATION_ROLE_STA		= 2,
 	APPLICATION_ROLE_IBSS		= 3,

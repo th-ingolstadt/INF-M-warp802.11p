@@ -31,7 +31,7 @@ struct network_info_t;
 
 /*********************** Global Structure Definitions ************************/
 
-typedef struct {
+typedef struct join_parameters_t{
     char    * ssid;                    // Mandatory: SSID string
     u8        bssid[MAC_ADDR_LEN];     // Optional: BSSID address, 00-00-00-00-00-00 interpreted as "ignore"
     u8        channel;                 // Optional: Channel number, 0 interpreted as "ignore"

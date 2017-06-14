@@ -162,7 +162,7 @@
 
 // Transport header
 //
-typedef struct {
+typedef struct transport_header{
     u16                      dest_id;                      // Destination ID
     u16                      src_id;                       // Source ID
     u8                       reserved;                     // Reserved
@@ -178,7 +178,7 @@ typedef struct {
 //     NOTE:  This structure has to have the same fields in the same order as the Transp    rt Parameters
 //         defined above.  Th    s structure will be used a     storage for the     ag Parameter values.
 //
-typedef struct {
+typedef struct transport_info_t{
     u32                      type;                         // Transport Type
     u32                      hw_addr[2];                   // HW Address (big endian as 2 u32 values with 16 bit padding)
     u32                      ip_addr;                      // IP Address (big endian)

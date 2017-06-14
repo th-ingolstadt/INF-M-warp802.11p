@@ -106,7 +106,7 @@ typedef struct  {
 //
 
 // ARP Table entry
-typedef struct {
+typedef struct arp_cache_entry{
     u32                      eth_dev_num;                                      // Ethernet device
     u32                      age;                                              // Age of the entry
     u16                      state;                                            // State of the entry

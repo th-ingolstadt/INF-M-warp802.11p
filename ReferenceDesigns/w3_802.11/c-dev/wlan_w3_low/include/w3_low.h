@@ -26,7 +26,7 @@ void w3_radio_init();
 inline u32 w3_wlan_chan_to_rc_chan(u32 mac_channel);
 int w3_agc_init();
 
-typedef enum {
+typedef enum channel_band_t{
 	BAND_24GHZ = 0,
 	BAND_5GHZ  = 1
 } channel_band_t;

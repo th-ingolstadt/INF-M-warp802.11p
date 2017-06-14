@@ -29,7 +29,7 @@ struct beacon_txrx_configure_t;
 
 //-----------------------------------------------
 // MAC Timing Structure
-typedef struct{
+typedef struct mac_timing{
 	u16 t_slot;
 	u16 t_sifs;
 	u16 t_difs;
@@ -89,28 +89,28 @@ typedef struct{
 
 /*********************** Global Structure Definitions ************************/
 
-typedef enum {
+typedef enum rx_finish_state_t{
     RX_FINISH_SEND_NONE,
     RX_FINISH_SEND_A,
     RX_FINISH_SEND_B
 } rx_finish_state_t;
 
 
-typedef enum {
+typedef enum tx_pending_state_t{
     TX_PENDING_NONE,
     TX_PENDING_A,
     TX_PENDING_B
 } tx_pending_state_t;
 
 
-typedef enum {
+typedef enum tx_wait_state_t{
     TX_WAIT_NONE,
     TX_WAIT_ACK,
     TX_WAIT_CTS
 } tx_wait_state_t;
 
 
-typedef enum {
+typedef enum tx_mode_t{
     TX_MODE_SHORT,
     TX_MODE_LONG
 } tx_mode_t;
