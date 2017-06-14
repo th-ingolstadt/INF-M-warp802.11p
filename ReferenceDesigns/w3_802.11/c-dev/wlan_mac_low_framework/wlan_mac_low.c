@@ -1057,6 +1057,9 @@ int wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf){
 	// Get pointer to start of MAC header in packet buffer
 	tx_80211_header = (mac_header_80211*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
 
+	// Mark this packet buffer as prepared
+	tx_frame_info->flags |= TX_FRAME_INFO_FLAGS_PKT_BUF_PREPARED;
+
 	// Insert sequence number here
 	tx_80211_header->sequence_control = ((tx_80211_header->sequence_control) & 0xF) | ( (unique_seq&0xFFF)<<4 );
 
