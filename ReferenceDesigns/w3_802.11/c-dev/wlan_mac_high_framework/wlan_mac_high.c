@@ -1644,13 +1644,13 @@ void wlan_mac_high_enable_mcast_buffering(u8 enable){
 	write_mailbox_msg(&ipc_msg_to_low);
 }
 
-void wlan_mac_high_config_txrx_beacon(beacon_txrx_configure_t* beacon_txrx_configure){
+void wlan_mac_high_config_txrx_beacon(beacon_txrx_config_t* beacon_txrx_config){
 	wlan_ipc_msg_t ipc_msg_to_low;
 
 	// Send message to CPU Low
-	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TXRX_BEACON_CONFIGURE);
-	ipc_msg_to_low.num_payload_words = sizeof(beacon_txrx_configure_t)/sizeof(u32);
-	ipc_msg_to_low.payload_ptr       = (u32*)beacon_txrx_configure;
+	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_TXRX_BEACON_CONFIG);
+	ipc_msg_to_low.num_payload_words = sizeof(beacon_txrx_config_t)/sizeof(u32);
+	ipc_msg_to_low.payload_ptr       = (u32*)beacon_txrx_config;
 
 	write_mailbox_msg(&ipc_msg_to_low);
 

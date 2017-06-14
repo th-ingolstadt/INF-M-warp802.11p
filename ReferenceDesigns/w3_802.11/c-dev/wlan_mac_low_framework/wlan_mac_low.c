@@ -658,7 +658,7 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
     	break;
 
     	//---------------------------------------------------------------------
-    	case IPC_MBOX_TXRX_BEACON_CONFIGURE: {
+    	case IPC_MBOX_TXRX_BEACON_CONFIG: {
     		beacon_txrx_config_callback(msg->payload_ptr);
     	}
     	break;

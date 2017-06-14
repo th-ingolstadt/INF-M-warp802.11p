@@ -94,7 +94,7 @@ volatile u8                       pause_data_queue;
 static u8                         wlan_mac_addr[MAC_ADDR_LEN];
 
 // Beacon configuration
-static beacon_txrx_configure_t    gl_beacon_txrx_config;
+static beacon_txrx_config_t    gl_beacon_txrx_config;
 
 
 /*************************** Functions Prototypes ****************************/

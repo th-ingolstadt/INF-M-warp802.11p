@@ -66,7 +66,7 @@ static volatile u8					gl_waiting_for_response; ///< Informs the Rx context that
 static volatile u8                  gl_long_mpdu_pkt_buf; ///< Packet buffer index for a long MPDU that should be sent in the frame reception context (i.e. CTS reception)
 
 // Beacon transmission & reception parameters
-volatile beacon_txrx_configure_t	gl_beacon_txrx_configure; ///< Struct with configuration parameters regarding beacons
+volatile beacon_txrx_config_t	    gl_beacon_txrx_config; ///< Struct with configuration parameters regarding beacons
 volatile u8							gl_dtim_mcast_buffer_enable; ///< Informs the DCF whether or not to buffer multicast transmissions until the DTIM
 volatile u8							gl_dtim_count; ///< DTIM count for the current beacon interval
 
@@ -118,11 +118,11 @@ int main(){
     gl_long_mpdu_pkt_buf = PKT_BUF_INVALID;
     gl_waiting_for_response = 0;
 
-    gl_beacon_txrx_configure.beacon_tx_mode = NO_BEACON_TX;
-    gl_beacon_txrx_configure.ts_update_mode = NEVER_UPDATE;
+    gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
+    gl_beacon_txrx_config.ts_update_mode = NEVER_UPDATE;
     gl_dtim_mcast_buffer_enable = 0;
 
-    bzero((void*)gl_beacon_txrx_configure.bssid_match, MAC_ADDR_LEN);
+    bzero((void*)gl_beacon_txrx_config.bssid_match, MAC_ADDR_LEN);
     bzero(gl_precalc_duration, sizeof(gl_precalc_duration));
 
     gl_dot11ShortRetryLimit      = 7;
@@ -236,7 +236,7 @@ void update_tx_pkt_buf_lists(){
 	dl_entry* curr_entry;
 	dl_entry* next_entry;
 
-	if( (gl_dtim_mcast_buffer_enable == 1) && (gl_beacon_txrx_configure.beacon_tx_mode != NO_BEACON_TX) ) {
+	if( (gl_dtim_mcast_buffer_enable == 1) && (gl_beacon_txrx_config.beacon_tx_mode != NO_BEACON_TX) ) {
 		// DTIM buffering is enabled. We need to move any PKT_BUF_GROUP_DTIM_MCAST packets out of gl_tx_pkt_buf_ready_list_general
 		// and into gl_tx_pkt_buf_ready_list_dtim_mcast.
 
@@ -262,7 +262,7 @@ void update_tx_pkt_buf_lists(){
 				dl_entry_insertEnd(&gl_tx_pkt_buf_ready_list_dtim_mcast, curr_entry);
 			}
 		}
-	} else if( (gl_dtim_mcast_buffer_enable == 0) || (gl_beacon_txrx_configure.beacon_tx_mode == NO_BEACON_TX) ) {
+	} else if( (gl_dtim_mcast_buffer_enable == 0) || (gl_beacon_txrx_config.beacon_tx_mode == NO_BEACON_TX) ) {
 			// DTIM buffering is disabled. We need to merge gl_tx_pkt_buf_ready_list_general and gl_tx_pkt_buf_ready_list_dtim_mcast and
 			// assigned all packet buffer groups to PKT_BUF_GROUP_GENERAL.
 
@@ -376,15 +376,15 @@ void handle_sample_rate_change(phy_samp_rate_t phy_samp_rate){
 void update_dtim_count(){
 	u32 current_tu;
 	u32 temp_var;
-	if( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ){
+	if( gl_beacon_txrx_config.beacon_tx_mode == AP_BEACON_TX ){
 		current_tu = (u32)(get_mac_time_usec()>>10);
 
-		if(gl_beacon_txrx_configure.dtim_period != 0){
-			temp_var = ((current_tu/gl_beacon_txrx_configure.beacon_interval_tu)+1)%gl_beacon_txrx_configure.dtim_period;
+		if(gl_beacon_txrx_config.dtim_period != 0){
+			temp_var = ((current_tu/gl_beacon_txrx_config.beacon_interval_tu)+1)%gl_beacon_txrx_config.dtim_period;
 			if(temp_var == 0){
 				gl_dtim_count = 0;
 			} else {
-				gl_dtim_count = gl_beacon_txrx_configure.dtim_period - temp_var;
+				gl_dtim_count = gl_beacon_txrx_config.dtim_period - temp_var;
 			}
 
 		} else {
@@ -411,7 +411,7 @@ void update_tu_target(u8 recompute) {
         // Re-compute TU target from current MAC time
 
         // Expensive u64 division
-        u64 tu_target =  gl_beacon_txrx_configure.beacon_interval_tu * ((current_tu /  gl_beacon_txrx_configure.beacon_interval_tu) + 1);
+        u64 tu_target =  gl_beacon_txrx_config.beacon_interval_tu * ((current_tu /  gl_beacon_txrx_config.beacon_interval_tu) + 1);
 
         wlan_mac_set_tu_target(tu_target);
 
@@ -426,7 +426,7 @@ void update_tu_target(u8 recompute) {
             }
             else{
                 // Increment target and continue
-            	wlan_mac_set_tu_target(current_tu_target + gl_beacon_txrx_configure.beacon_interval_tu);
+            	wlan_mac_set_tu_target(current_tu_target + gl_beacon_txrx_config.beacon_interval_tu);
             }
         }
     }
@@ -445,7 +445,7 @@ void update_tu_target(u8 recompute) {
  */
 void handle_mactime_change(s64 time_delta_usec){
 	update_dtim_count();
-	if((time_delta_usec < 0) || (time_delta_usec > (100*gl_beacon_txrx_configure.beacon_interval_tu)) ){
+	if((time_delta_usec < 0) || (time_delta_usec > (100*gl_beacon_txrx_config.beacon_interval_tu)) ){
 		//The MAC time change was either very large or moved us backwards in time. Either way, we can't rely on the
 		//"fast" TU target update and must instead explicitly recompute the target based upon the MAC time.
 		update_tu_target(1);
@@ -465,13 +465,13 @@ void handle_mactime_change(s64 time_delta_usec){
  * @param   u32		phy_samp_rate_t		- Sample rate enum
  * @return  None
  */
-void configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure){
-	memcpy((void*)&gl_beacon_txrx_configure, beacon_txrx_configure, sizeof(beacon_txrx_configure_t));
+void configure_beacon_txrx(beacon_txrx_config_t* beacon_txrx_config){
+	memcpy((void*)&gl_beacon_txrx_config, beacon_txrx_config, sizeof(beacon_txrx_config_t));
 
 	update_tx_pkt_buf_lists();
 
-	if(( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ) ||
-	   ( gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX )){
+	if(( gl_beacon_txrx_config.beacon_tx_mode == AP_BEACON_TX ) ||
+	   ( gl_beacon_txrx_config.beacon_tx_mode == IBSS_BEACON_TX )){
 
 		//Because we are setting up a new beacon configuration, we should not update the TU target
 		//based upon existing targets. We should instead explicitly recompute the target from the
@@ -506,8 +506,8 @@ inline void poll_tbtt_and_send_beacon(){
 	u32 prepare_frame_transmit_return;
 	u32 poll_tx_pkt_buf_list_return = 0;
 
-	if(( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ) ||
-	   ( gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX )){
+	if(( gl_beacon_txrx_config.beacon_tx_mode == AP_BEACON_TX ) ||
+	   ( gl_beacon_txrx_config.beacon_tx_mode == IBSS_BEACON_TX )){
 
 		if( wlan_mac_check_tu_latch() ) {
 			// Current TU >= Target TU
@@ -526,7 +526,7 @@ inline void poll_tbtt_and_send_beacon(){
 					// twice. This is intentional. This structure ensures we do not toggle the pause state on
 					// Tx controller A across many mcast transmissions spanning multiple beacon TBTTs
 
-					prepare_frame_transmit_return = wlan_mac_low_lock_tx_pkt_buf(gl_beacon_txrx_configure.beacon_template_pkt_buf);
+					prepare_frame_transmit_return = wlan_mac_low_lock_tx_pkt_buf(gl_beacon_txrx_config.beacon_template_pkt_buf);
 
 					if(prepare_frame_transmit_return & PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE){
 						// Update TU target
@@ -541,9 +541,9 @@ inline void poll_tbtt_and_send_beacon(){
 						wlan_mac_pause_tx_ctrl_D(0);
 						return;
 					}
-					wlan_mac_low_prepare_frame_transmit( gl_beacon_txrx_configure.beacon_template_pkt_buf );
+					wlan_mac_low_prepare_frame_transmit( gl_beacon_txrx_config.beacon_template_pkt_buf );
 
-					send_beacon_return = send_beacon(gl_beacon_txrx_configure.beacon_template_pkt_buf);
+					send_beacon_return = send_beacon(gl_beacon_txrx_config.beacon_template_pkt_buf);
 					// Note: the above send_beacon() call will send the IPC message directly to CPU_HIGH
 					// upon completion. We should not call wlan_mac_low_finish_frame_transmit() for the
 					// beacon transmission. This slight asymmetry is a byproduct of different handling
@@ -631,8 +631,8 @@ inline u32 send_beacon(u8 tx_pkt_buf){
 	mgmt_tag_template_t*	mgmt_tag_tim_template = NULL;
 	u8	tx_has_started = 0;
 
-	if(gl_beacon_txrx_configure.dtim_tag_byte_offset != 0){
-		mgmt_tag_tim_template = (mgmt_tag_template_t*)((u8*)tx_frame_info + gl_beacon_txrx_configure.dtim_tag_byte_offset);
+	if(gl_beacon_txrx_config.dtim_tag_byte_offset != 0){
+		mgmt_tag_tim_template = (mgmt_tag_template_t*)((u8*)tx_frame_info + gl_beacon_txrx_config.dtim_tag_byte_offset);
 	}
 
 	// Compare the length of this frame to the RTS Threshold
@@ -643,7 +643,7 @@ inline u32 send_beacon(u8 tx_pkt_buf){
 	}
 
 	if(mgmt_tag_tim_template != NULL){
-		if( (gl_beacon_txrx_configure.dtim_period != 0) ){
+		if( (gl_beacon_txrx_config.dtim_period != 0) ){
 			// Update the DTIM count
 			mgmt_tag_tim_template->data[0] = gl_dtim_count;  //DTIM Count
 			if(gl_dtim_count == 0){
@@ -686,7 +686,7 @@ inline u32 send_beacon(u8 tx_pkt_buf){
 	}
 
 	//wlan_mac_tx_ctrl_C_params(pktBuf, antMask, req_backoff, phy_mode, num_slots)
-	switch(gl_beacon_txrx_configure.beacon_tx_mode){
+	switch(gl_beacon_txrx_config.beacon_tx_mode){
 		case AP_BEACON_TX:
 			n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
 			wlan_mac_tx_ctrl_C_params(tx_pkt_buf, mpdu_tx_ant_mask, 0, tx_frame_info->params.phy.phy_mode, n_slots);
@@ -1232,9 +1232,9 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
 		if(rx_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_BEACON) {
 			
 			// If this packet was from our BSS
-			if(wlan_addr_eq(gl_beacon_txrx_configure.bssid_match, rx_header->address_3)){
+			if(wlan_addr_eq(gl_beacon_txrx_config.bssid_match, rx_header->address_3)){
 
-				if(gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX){
+				if(gl_beacon_txrx_config.beacon_tx_mode == IBSS_BEACON_TX){
 					// Reset all state in the DCF core - this cancels deferrals and pending transmissions
 					wlan_mac_reset_tx_ctrl_C(1);
 					wlan_mac_reset_tx_ctrl_C(0);
@@ -1248,7 +1248,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
 				time_delta = (s64)(((beacon_probe_frame*)mac_payload_ptr_u8)->timestamp) - (s64)(rx_frame_info->timestamp) + gl_mac_timing_values.t_phy_rx_start_dly - T_TIMESTAMP_FIELD_OFFSET;
 
 				// Update the MAC time
-				switch(gl_beacon_txrx_configure.ts_update_mode){
+				switch(gl_beacon_txrx_config.ts_update_mode){
 					// TODO: notify the MAC Low Framework of this change so that TBTT can be updated (if necessary)
 					case NEVER_UPDATE:
 					break;
@@ -1426,7 +1426,7 @@ int handle_tx_pkt_buf_ready(u8 pkt_buf){
 
 		*((u8*)(entry->data)) = pkt_buf;
 
-		if( (gl_dtim_mcast_buffer_enable == 1) && (gl_beacon_txrx_configure.beacon_tx_mode != NO_BEACON_TX) ){
+		if( (gl_dtim_mcast_buffer_enable == 1) && (gl_beacon_txrx_config.beacon_tx_mode != NO_BEACON_TX) ){
 			switch(tx_frame_info->queue_info.pkt_buf_group){
 				case PKT_BUF_GROUP_DTIM_MCAST:
 					list = &gl_tx_pkt_buf_ready_list_dtim_mcast;

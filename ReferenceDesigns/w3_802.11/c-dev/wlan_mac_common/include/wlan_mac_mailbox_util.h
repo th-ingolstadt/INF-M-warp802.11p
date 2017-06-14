@@ -29,14 +29,14 @@
 //	  We intend to break this dependence in the future, which will limit all
 //	  IPC messages to a fixed size. We can revisit the definition of
 //	  MAILBOX_BUFFER_MAX_NUM_WORDS at that time.
-#define MAILBOX_BUFFER_MAX_NUM_WORDS                       22
+#define MAILBOX_BUFFER_MAX_NUM_WORDS 22
 
 //-----------------------------------------------
 // Mailbox Message ID delimiter
 //     - Appended to each message ID to allow for error checking of
 //       the start of a message
 //
-#define IPC_MBOX_MSG_ID_DELIM                              0xF000
+#define IPC_MBOX_MSG_ID_DELIM 0xF000
 
 
 #define CPU_STATUS_REASON_BOOTED 	0
@@ -50,7 +50,7 @@
 //
 #define IPC_MBOX_RX_PKT_BUF_READY                          0
 #define IPC_MBOX_TX_PKT_BUF_READY 	                       1
-#define IPC_MBOX_TXRX_BEACON_CONFIGURE                     2
+#define IPC_MBOX_TXRX_BEACON_CONFIG                        2
 #define IPC_MBOX_TX_PKT_BUF_DONE                           3
 #define IPC_MBOX_PHY_TX_REPORT                             4
 #define IPC_MBOX_CPU_STATUS                                5

@@ -107,7 +107,7 @@ static volatile mgmt_tag_template_t*	mgmt_tag_tim_template;
 static volatile u32				  		mgmt_tag_tim_update_schedule_id;
 
 // Beacon configuration
-static beacon_txrx_configure_t         gl_beacon_txrx_config;
+static beacon_txrx_config_t         gl_beacon_txrx_config;
 
 // DTIM Multicast Buffer
 u8 									   gl_dtim_mcast_buffer_enable;	   // Enable buffering of multicast packets until after DTIM transmission

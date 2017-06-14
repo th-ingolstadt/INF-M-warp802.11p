@@ -107,7 +107,7 @@ volatile u8                       pause_data_queue;
 static u8 	                      wlan_mac_addr[MAC_ADDR_LEN];
 
 // Beacon configuration
-static	beacon_txrx_configure_t	  gl_beacon_txrx_config;
+static	beacon_txrx_config_t	  gl_beacon_txrx_config;
 
 // Common Platform Device Info
 platform_common_dev_info_t	 platform_common_dev_info;

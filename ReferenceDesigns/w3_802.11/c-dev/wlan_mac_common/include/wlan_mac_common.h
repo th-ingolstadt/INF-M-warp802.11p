@@ -220,8 +220,8 @@ typedef struct __attribute__((__packed__)) beacon_txrx_configure_t{
 	u8						 reserved1;
 	u16						 dtim_tag_byte_offset;		   // # of bytes into the payload that contains the start of the DTIM tag
 	u16						 reserved2;
-} beacon_txrx_configure_t;
-CASSERT(sizeof(beacon_txrx_configure_t) == 20, beacon_txrx_configure_t_alignment_check);
+} beacon_txrx_config_t;
+CASSERT(sizeof(beacon_txrx_config_t) == 20, beacon_txrx_configure_t_alignment_check);
 
 typedef struct time_hr_min_sec_t{
 	u32 hr;

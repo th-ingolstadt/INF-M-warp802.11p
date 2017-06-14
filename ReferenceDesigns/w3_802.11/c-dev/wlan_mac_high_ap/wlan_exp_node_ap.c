@@ -297,7 +297,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             u32    flags          = Xil_Ntohl(cmd_args_32[0]);
             u32    mask           = Xil_Ntohl(cmd_args_32[1]);
 
-            wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "AP: Configure flags = 0x%08x  mask = 0x%08x\n", flags, mask);
+            wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "AP: Config flags = 0x%08x  mask = 0x%08x\n", flags, mask);
 
             // Configure based on the flag bit / mask
 			if (mask & CMD_PARAM_NODE_AP_CONFIG_FLAG_DTIM_MULTICAST_BUFFER) {
