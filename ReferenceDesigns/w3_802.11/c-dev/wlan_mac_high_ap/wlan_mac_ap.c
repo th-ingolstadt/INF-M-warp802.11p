@@ -47,8 +47,6 @@
 
 /*************************** Constant Definitions ****************************/
 #define  WLAN_EXP_ETH                            TRANSPORT_ETH_B
-#define  WLAN_EXP_NODE_TYPE                      WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_AP
-
 
 #define  WLAN_DEFAULT_BSS_CONFIG_CHANNEL   	                    1
 #define  WLAN_DEFAULT_BSS_CONFIG_DTIM_PERIOD                    2
@@ -239,7 +237,7 @@ int main(){
     wlan_exp_set_active_network_info_getter_callback(  (void *) active_network_info_getter);
 
     // Set CPU_HIGH Type in wlan_exp's node_info struct;
-    wlan_exp_node_set_type_high(WLAN_EXP_NODE_TYPE, &compilation_details);
+    wlan_exp_node_set_type_high(APPLICATION_ROLE_AP, &compilation_details);
 
 #endif
 

@@ -311,7 +311,7 @@ typedef struct wlan_exp_node_info{
 // Initialization Commands
 int  wlan_exp_node_init           (u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wlan_exp_hw_addr, u8 *wlan_hw_addr);
 void wlan_exp_node_set_type_design(u32 type_design);
-void wlan_exp_node_set_type_high  (u32 type_high, compilation_details_t* compilation_details);
+void wlan_exp_node_set_type_high  (application_role_t application_role, compilation_details_t* compilation_details);
 void wlan_exp_node_set_type_low	  (u32 type_low, compilation_details_t* compilation_details);
 
 // Callbacks

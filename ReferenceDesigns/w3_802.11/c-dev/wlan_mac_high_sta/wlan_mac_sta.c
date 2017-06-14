@@ -54,7 +54,6 @@
 /*************************** Constant Definitions ****************************/
 
 #define  WLAN_EXP_ETH                            TRANSPORT_ETH_B
-#define  WLAN_EXP_NODE_TYPE                      WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_STA
 
 
 #define  WLAN_DEFAULT_CHANNEL                     1
@@ -225,7 +224,7 @@ int main() {
     //   - wlan_exp_set_beacon_tx_param_update_callback() should not be used by the STA
 
     // Set CPU_HIGH Type in wlan_exp's node_info struct;
-    wlan_exp_node_set_type_high(WLAN_EXP_NODE_TYPE, &compilation_details);
+    wlan_exp_node_set_type_high(APPLICATION_ROLE_STA, &compilation_details);
 #endif
 
 	// CPU Low will pass HW information to CPU High as part of the boot process

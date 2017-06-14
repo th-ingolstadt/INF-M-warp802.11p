@@ -394,11 +394,28 @@ void wlan_exp_node_set_type_design(u32 type_design){
  * It is typically the responsibility of the high-level application to call
  * this setter.
  *
- * @param   type_high           - CPU_HIGH Type from wlan_exp.h
+ * @param   application_role_t  - CPU_HIGH application role
  * @param	compilation_details - compilation_details_t pointer from high-level app
  *
  ******************************************************************************/
-void wlan_exp_node_set_type_high(u32 type_high, compilation_details_t* compilation_details){
+void wlan_exp_node_set_type_high(application_role_t application_role, compilation_details_t* compilation_details){
+	u32 type_high = 0;
+
+	switch(application_role){
+		case APPLICATION_ROLE_AP:
+			type_high = WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_AP;
+		break;
+		case APPLICATION_ROLE_STA:
+			type_high = WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_STA;
+		break;
+		case APPLICATION_ROLE_IBSS:
+			type_high = WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_IBSS;
+		break;
+		case APPLICATION_ROLE_UNKNOWN:
+			type_high = 0;
+		break;
+	}
+
 	node_info.node_type &= ~WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_MASK;
 	node_info.node_type |= (type_high&WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_MASK);
 
