@@ -3424,7 +3424,7 @@ void copy_station_info_to_dest(void * source, void * dest, u8* mac_addr) {
 
     // Copy the source information to the destination
     if (curr_source != NULL) {
-        memcpy((void *)(curr_dest), (void *)(curr_source), sizeof(STATION_INFO_T_PORTABLE_SIZE));
+        memcpy((void *)(curr_dest), (void *)(curr_source), STATION_INFO_T_PORTABLE_SIZE);
     } else {
         wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_node, "Could not copy station_info to entry\n");
     }
