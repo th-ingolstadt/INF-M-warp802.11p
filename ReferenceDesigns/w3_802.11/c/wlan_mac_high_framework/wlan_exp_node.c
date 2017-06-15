@@ -2636,7 +2636,9 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
         //---------------------------------------------------------------------
         case CMDID_QUEUE_TX_DATA_PURGE_ALL: {
+        	interrupt_state_t curr_interrupt_state = wlan_mac_high_interrupt_stop();
             wlan_exp_purge_all_data_tx_queue_callback();
+            wlan_mac_high_interrupt_restore_state(curr_interrupt_state);
         }
         break;
 
