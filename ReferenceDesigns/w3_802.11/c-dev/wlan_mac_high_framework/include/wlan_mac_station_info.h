@@ -99,33 +99,32 @@ typedef struct rate_selection_info_t{
  ********************************************************************/
 #define STATION_INFO_HOSTNAME_MAXLEN                       19
 
-#define STATION_INFO_COMMON_FIELDS                                                                                          \
-        u8                 addr[MAC_ADDR_LEN];                         /* HW Address */                                     \
-        u16                ID;                                         /* Identification Index for this station */          \
-        char               hostname[STATION_INFO_HOSTNAME_MAXLEN+1];   /* Hostname from DHCP requests */                    \
-        u8                 flags;                                      /* 1-bit flags */                                    \
-		u8                 ps_state;                                   /* Power saving state */                             \
-		u16                capabilities;                               /* Capabilities */                             		\
-        u64                latest_rx_timestamp;               		   /* Timestamp of most recent reception */   		    \
-		u64                latest_txrx_timestamp;               	   /* Timestamp of most recent reception or transmission */    \
-        u16                latest_rx_seq;                              /* Sequence number of the last MPDU reception */     \
-        u8                 reserved0[2];                                                                                    \
-        int				   num_tx_queued;							   /* Number of packets enqueued for this station */	\
-        tx_params_t        tx_params_data;	 		 				   /* Transmission Parameters Structure for Data */		\
-        tx_params_t        tx_params_mgmt;	 		 				   /* Transmission Parameters Structure for Management */
 
 typedef struct station_info_t{
-    STATION_INFO_COMMON_FIELDS
+    u8                 addr[MAC_ADDR_LEN];                         /* HW Address */
+    u16                ID;                                         /* Identification Index for this station */
+    char               hostname[STATION_INFO_HOSTNAME_MAXLEN+1];   /* Hostname from DHCP requests */
+    u8                 flags;                                      /* 1-bit flags */
+	u8                 ps_state;                                   /* Power saving state */
+	u16                capabilities;                               /* Capabilities */
+    u64                latest_rx_timestamp;               		   /* Timestamp of most recent reception */
+	u64                latest_txrx_timestamp;               	   /* Timestamp of most recent reception or transmission */
+    u16                latest_rx_seq;                              /* Sequence number of the last MPDU reception */
+    u8                 reserved0[2];
+    int				   num_tx_queued;							   /* Number of packets enqueued for this station */
+    tx_params_t        tx_params_data;	 		 				   /* Transmission Parameters Structure for Data */
+    tx_params_t        tx_params_mgmt;	 		 				   /* Transmission Parameters Structure for Management */
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
     station_txrx_counts_t		txrx_counts;                        			/* Tx/Rx Counts */
 #endif
     rate_selection_info_t		rate_info;
-
 } station_info_t;
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
 ASSERT_TYPE_SIZE(station_info_t, 192);
+#define STATION_INFO_T_PORTABLE_SIZE (sizeof(station_info_t) - sizeof(station_txrx_counts_t) - sizeof(rate_selection_info_t) )
 #else
 ASSERT_TYPE_SIZE(station_info_t, 80);
+#define STATION_INFO_T_PORTABLE_SIZE (sizeof(station_info_t) - sizeof(rate_selection_info_t) )
 #endif
 
 

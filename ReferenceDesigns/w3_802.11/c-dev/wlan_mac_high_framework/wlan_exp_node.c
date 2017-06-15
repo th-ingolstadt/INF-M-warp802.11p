@@ -93,8 +93,7 @@ extern tx_params_t         default_multicast_data_tx_params;
 //     Only used to communicate with WLAN Exp Host.
 //
 typedef struct __attribute__((__packed__)){
-    // All network_info_t common fields
-    NETWORK_INFO_COMMON_FIELDS
+	u8      portable_data[NETWORK_INFO_T_PORTABLE_SIZE];
     u16		num_members;
     u16 	padding2;
 } wlan_exp_network_info_t;
@@ -107,7 +106,7 @@ ASSERT_TYPE_SIZE(wlan_exp_network_info_t, 72);
 //
 typedef struct __attribute__((__packed__)){
     // All station_info_t common fields
-    STATION_INFO_COMMON_FIELDS
+	u8	portable_data[STATION_INFO_T_PORTABLE_SIZE];
 } wlan_exp_station_info_t;
 ASSERT_TYPE_SIZE(wlan_exp_station_info_t, 72);
 
@@ -3425,7 +3424,7 @@ void copy_station_info_to_dest(void * source, void * dest, u8* mac_addr) {
 
     // Copy the source information to the destination
     if (curr_source != NULL) {
-        memcpy((void *)(curr_dest), (void *)(curr_source), sizeof(wlan_exp_station_info_t));
+        memcpy((void *)(curr_dest), (void *)(curr_source), sizeof(STATION_INFO_T_PORTABLE_SIZE));
     } else {
         wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_node, "Could not copy station_info to entry\n");
     }
@@ -3531,11 +3530,8 @@ void copy_bss_info_to_dest(void * source, void * dest, u8* mac_addr) {
 
     // Copy the source information to the destination log entry
     if (curr_source != NULL) {
-    	curr_dest->bss_config = curr_source->bss_config;
-    	curr_dest->capabilities = curr_source->capabilities;
-    	curr_dest->flags = curr_source->flags;
-    	curr_dest->latest_beacon_rx_power = curr_source->latest_beacon_rx_power;
-    	curr_dest->latest_beacon_rx_time = curr_source->latest_beacon_rx_time;
+        // Copy the portable bytes from the framework
+        memcpy(curr_dest, curr_source, NETWORK_INFO_T_PORTABLE_SIZE);
     	curr_dest->num_members = curr_source->members.length;
     } else {
         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Could not copy network_info to entry\n");

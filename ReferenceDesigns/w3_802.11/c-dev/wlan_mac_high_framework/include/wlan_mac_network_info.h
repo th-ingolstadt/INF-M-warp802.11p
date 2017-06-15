@@ -96,13 +96,6 @@
  *
  * This struct contains information about the basic service set for the node.
  ********************************************************************/
-#define NETWORK_INFO_COMMON_FIELDS              \
-		bss_config_t bss_config;				\
-		u32     flags;							\
-		u32		capabilities;					\
-		u64     latest_beacon_rx_time;			\
-		s8      latest_beacon_rx_power;			\
-		u8		padding1[3];					\
 
 //---------------
 // BSS Config
@@ -122,10 +115,16 @@ typedef struct __attribute__((__packed__)) bss_config_t{
 ASSERT_TYPE_SIZE(bss_config_t, 48);
 
 typedef struct __attribute__((__packed__)) network_info_t{
-	NETWORK_INFO_COMMON_FIELDS
+	bss_config_t bss_config;
+	u32     flags;
+	u32		capabilities;
+	u64     latest_beacon_rx_time;
+	s8      latest_beacon_rx_power;
+	u8		padding1[3];
     dl_list members;
 } network_info_t;
 ASSERT_TYPE_SIZE(network_info_t, 80);
+#define NETWORK_INFO_T_PORTABLE_SIZE (sizeof(network_info_t) - sizeof(dl_list))
 
 //Define a new type of dl_entry for pointing to network_info_t
 // structs that contains some extra fields for faster searching
