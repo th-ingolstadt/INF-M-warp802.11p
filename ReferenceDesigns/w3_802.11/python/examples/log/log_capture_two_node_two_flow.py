@@ -146,7 +146,7 @@ rate_info = util.get_rate_info(mcs, phy_mode)
 
 # Put each node in a known, good state
 for node in nodes:
-    node.set_tx_rate_unicast(mcs, phy_mode, curr_assoc=True, new_assoc=True)
+    node.set_tx_rate_data(mcs, phy_mode, device_list='ALL_UNICAST')
     node.log_configure(log_full_payloads=False)
     node.reset(log=True, txrx_counts=True, ltg=True, queue_data=True) # Do not reset associations/bss_info
     node.configure_bss(channel=CHANNEL)
