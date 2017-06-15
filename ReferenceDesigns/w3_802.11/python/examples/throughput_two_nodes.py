@@ -132,7 +132,7 @@ rate_info = util.get_rate_info(mcs, phy_mode)
 # Put each node in a known, good state
 for node in [node1, node2]:
     node.enable_ethernet_portal(enable=False)
-    node.set_tx_rate_unicast(mcs, phy_mode, curr_assoc=True, new_assoc=True)
+    node.set_tx_rate_data(mcs, phy_mode, device_list='ALL_UNICAST')
     node.reset(log=True, txrx_counts=True, ltg=True, queue_data=True) # Do not reset associations/bss_info
     network_info = node.get_network_info()
 
