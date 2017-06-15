@@ -30,7 +30,7 @@ if(~exist('sim_many_waveform_mode','var'))
     load('rx_sigs/wlan_tx_NONHT_MCS4_52B.mat');wlan_tx_out = wlan_tx_out.';
     
     %CFO
-    wlan_tx_out = wlan_tx_out .* exp(j*2*pi*-1e-4*(0:length(wlan_tx_out)-1));
+    %wlan_tx_out = wlan_tx_out .* exp(j*2*pi*-1e-4*(0:length(wlan_tx_out)-1));
 
 	%Phase offset
     %wlan_tx_out = wlan_tx_out .* exp(-j*pi/4);
@@ -39,10 +39,10 @@ if(~exist('sim_many_waveform_mode','var'))
     %wlan_tx_out = wlan_tx_out + 1e-2*complex(randn(1,length(wlan_tx_out)), randn(1,length(wlan_tx_out)));
     
     % 1-pkt waveform
-    %sim_sig = wlan_tx_out(1:end).';
+    sim_sig = wlan_tx_out(1:end).';
     
     % 2-pkt waveform
-    sim_sig = [wlan_tx_out(1:end).'; zeros(200,1); wlan_tx_out(1:end).'];
+    %sim_sig = [wlan_tx_out(1:end).'; zeros(200,1); wlan_tx_out(1:end).'];
     end
 end
 
