@@ -54,7 +54,9 @@ info_field_defs = {
         ('mac_addr',                       '6s',     '6uint8',  'MAC address of station'),
         ('id',                             'H',      'uint16',  'Identification Index for this station'),
         ('host_name',                      '20s',    '20uint8', 'String hostname (19 chars max), taken from DHCP DISCOVER packets'),
-        ('flags',                          'I',      'uint32',  'Station flags'),
+        ('flags',                          'B',      'uint8',   'Station flags'),
+        ('ps_state',                       'B',      'uint8',   'Power save state'),
+        ('capabiltiies',                   'H',      'uint16',  'Capabilities'),
         ('latest_rx_timestamp',            'Q',      'uint64',  'Value of System Time in microseconds of last successful Rx from device'),
         ('latest_txrx_timestamp',          'Q',      'uint64',  'Value of System Time in microseconds of last successful Rx from device or Tx to device'),
         ('latest_rx_seq',                  'H',      'uint16',  'Sequence number of last packet received from device'),
@@ -131,10 +133,14 @@ info_struct_len_reqs = {
 info_consts_defs = {
     'STATION_INFO' : util.consts_dict({
         'flags'         : util.consts_dict({
-            'KEEP'                     : 0x00000001,
-            'DISABLE_ASSOC_CHECK'      : 0x00000002,
-            'DOZE'                     : 0x00000004,
-            'HT_CAPABLE'               : 0x00000008
+            'KEEP'                     : 0x01,
+            'DISABLE_ASSOC_CHECK'      : 0x02
+        }),
+        'ps_state'         : util.consts_dict({
+            'DOZE'                     : 0x01
+        }),
+        'capabilities'     : util.consts_dict({
+            'HT_CAPABLE'               : 0x0001
         }),
         'tx_phy_mode'   : util.phy_modes,
         'tx_mac_flags'  : util.consts_dict()
