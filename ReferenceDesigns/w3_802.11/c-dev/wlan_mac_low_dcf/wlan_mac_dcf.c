@@ -2652,9 +2652,7 @@ int process_low_param(u8 mode, u32* payload){
                 break;
 
                 //---------------------------------------------------------------------
-                default: {
-                    xil_printf("Unknown param 0x%08x\n", payload[0]);
-                }
+                default: {}
                 break;
             }
         }
