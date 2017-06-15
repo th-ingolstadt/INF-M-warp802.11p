@@ -3,17 +3,15 @@
 
 #include "xil_types.h"
 
-//-----------------------------------------------
-// Compile-time assertion defines
-//
-#define CASSERT(predicate, file)                           _impl_CASSERT_LINE(predicate, __LINE__, file)
+// Define a compile-time  macros that act like assert
+//  We use these primarily to check that struct sizes match corresponding sizes expected by wlan_exp
+//  This check catches cases where unexpected packing/padding change alignment of struct fields
+//  Inspired by https://stackoverflow.com/a/809465
+#define CASSERT(test_cond, failure_msg) \
+	typedef char CASSERT_FAILED_##failure_msg[2*!!(test_cond)-1];
 
-#define _impl_PASTE(a, b)                                  a##b
-#define _impl_CASSERT_LINE(predicate, line, file) \
-    typedef char _impl_PASTE(assertion_failed_##file##_, line)[2*!!(predicate)-1];
-
-
-
+#define ASSERT_TYPE_SIZE(check_type, req_size) \
+    typedef char ASSERT_TYPE_SIZE_FAILED_##check_type##_neq_##req_size[2*!!(req_size == sizeof(check_type))-1]
 
 //-----------------------------------------------
 // Generic function pointer
@@ -43,8 +41,7 @@ typedef struct __attribute__((__packed__)){
     char	compilation_time[12];  // Must be at least 9 bytes. Unfortunately, wlan_exp places an additional requirement that each field in
     							  // wlan_exp_node_info must be u32 aligned, so we increase the size to 12 bytes.
 } compilation_details_t;
-CASSERT(sizeof(compilation_details_t) == 24, compilation_details_t_alignment_check);
-
+ASSERT_TYPE_SIZE(compilation_details_t, 24);
 
 
 
