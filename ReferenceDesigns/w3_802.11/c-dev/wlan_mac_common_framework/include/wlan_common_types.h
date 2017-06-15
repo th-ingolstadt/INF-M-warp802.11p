@@ -11,7 +11,6 @@
 	typedef char CASSERT_FAILED_##failure_msg[2*!!(test_cond)-1];
 
 #define ASSERT_TYPE_SIZE(check_type, req_size) \
-
     typedef char ASSERT_TYPE_SIZE_FAILED_##check_type##_neq_##req_size[2*!!(req_size == sizeof(check_type))-1]
 
 
