@@ -133,7 +133,7 @@ CASSERT(sizeof(station_info_t) == 80, station_info_alignment_check);
 
 #define STATION_INFO_PS_STATE_DOZE 						   0x01 ///< Mask to sleeping stations (if STA supports PS)
 
-#define STATION_INFO_CAPABILITIES_HT_CAPABLE               0x01 ///< Station is capable of HT Tx and Rx
+#define STATION_INFO_CAPABILITIES_HT_CAPABLE               0x0001 ///< Station is capable of HT Tx and Rx
 
 #define RX_PROCESS_COUNTS_OPTION_FLAG_IS_DUPLICATE		   0x00000001
 
