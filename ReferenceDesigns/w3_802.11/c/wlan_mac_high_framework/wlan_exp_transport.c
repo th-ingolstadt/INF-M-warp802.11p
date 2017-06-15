@@ -25,12 +25,9 @@
 
 
 // WLAN includes
-#include "wlan_mac_time_util.h"
 #include "wlan_mac_high.h"
-
-
-// WARP includes
-#include "warp_hw_ver.h"
+#include "wlan_platform_high.h"
+#include "wlan_platform_common.h"
 
 
 // WLAN EXP includes
@@ -52,11 +49,15 @@
 /*************************** Variable Definitions ****************************/
 
 // Transport information
+// FIXME: Why is this a vector of size TRANSPORT_NUM_ETH_DEVICES? I think that only the struct
+// at index WLAN_EXP_ETH (from the application) actually gets touched.
 static transport_eth_dev_info     eth_devices[TRANSPORT_NUM_ETH_DEVICES];
 static wlan_exp_tag_parameter     transport_parameters[TRANSPORT_NUM_ETH_DEVICES][TRANSPORT_PARAM_MAX_PARAMETER];
 
 // Callbacks
 volatile function_ptr_t  process_hton_msg_callback;
+
+extern platform_high_dev_info_t	 platform_high_dev_info;
 
 
 
@@ -98,6 +99,7 @@ int transport_init(u32 eth_dev_num, void * node_info, u8 * ip_addr, u8 * hw_addr
     // Print initialization message
     xil_printf("Configuring transport ...\n");
 
+
     // Initialize the User callback for processing a packet
     process_hton_msg_callback = wlan_exp_null_callback;
 
@@ -106,20 +108,20 @@ int transport_init(u32 eth_dev_num, void * node_info, u8 * ip_addr, u8 * hw_addr
         return XST_FAILURE;
     }
 
-    // Initialize the WARP IP/UDP transport
-    warp_ip_udp_init();
+    // Initialize the wlan_exp IP/UDP transport
+    wlan_exp_ip_udp_init();
 
     // Print MAC address and IP address
     xil_printf("  ETH %c MAC Address: %02x:%02x:%02x:%02x:%02x:%02x\n",
-            warp_conv_eth_dev_num(eth_dev_num), hw_addr[0], hw_addr[1], hw_addr[2], hw_addr[3], hw_addr[4], hw_addr[5]);
+            wlan_exp_conv_eth_dev_num(eth_dev_num), hw_addr[0], hw_addr[1], hw_addr[2], hw_addr[3], hw_addr[4], hw_addr[5]);
     xil_printf("  ETH %c IP  Address: %d.%d.%d.%d\n",
-            warp_conv_eth_dev_num(eth_dev_num), ip_addr[0], ip_addr[1], ip_addr[2], ip_addr[3]);
+            wlan_exp_conv_eth_dev_num(eth_dev_num), ip_addr[0], ip_addr[1], ip_addr[2], ip_addr[3]);
 
     // Initialize the Ethernet device (use verbose mode)
     status = eth_init(eth_dev_num, hw_addr, ip_addr, WLAN_EXP_TRUE);
 
     if (status != XST_SUCCESS) {
-        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Ethernet %c initialization error\n", warp_conv_eth_dev_num(eth_dev_num));
+        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Ethernet %c initialization error\n", wlan_exp_conv_eth_dev_num(eth_dev_num));
     }
 
     // Set interrupt callbacks
@@ -152,14 +154,14 @@ int transport_init(u32 eth_dev_num, void * node_info, u8 * ip_addr, u8 * hw_addr
     status = eth_start_device(eth_dev_num);
 
     if (status != XST_SUCCESS) {
-        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Cannot start Ethernet %c\n", warp_conv_eth_dev_num(eth_dev_num));
+        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Cannot start Ethernet %c\n", wlan_exp_conv_eth_dev_num(eth_dev_num));
     }
 
     // Configure the Sockets for each Ethernet Interface
     status = transport_config_sockets(eth_dev_num, unicast_port, broadcast_port, 1);
 
     if (status != XST_SUCCESS) {
-        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Cannot configure sockets for Ethernet %c\n", warp_conv_eth_dev_num(eth_dev_num));
+        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Cannot configure sockets for Ethernet %c\n", wlan_exp_conv_eth_dev_num(eth_dev_num));
     }
 
     // Initialize the tag parameters
@@ -189,20 +191,7 @@ void transport_eth_dev_info_init(u32 eth_dev_num, wlan_exp_node_info * node_info
 
 
     // Initialize fields that depend on the Ethernet device
-    switch (eth_dev_num) {
-        case TRANSPORT_ETH_A:
-            eth_devices[eth_dev_num].phy_addr    = TRANSPORT_ETH_A_MDIO_PHYADDR;
-        break;
-
-        case TRANSPORT_ETH_B:
-            eth_devices[eth_dev_num].phy_addr    = TRANSPORT_ETH_B_MDIO_PHYADDR;
-        break;
-
-        default:
-            wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Ethernet device %c not configured in hardware.\n", warp_conv_eth_dev_num(eth_dev_num));
-        break;
-    }
-
+    eth_devices[eth_dev_num].phy_addr = platform_high_dev_info.wlan_exp_phy_addr;
 
     // Initialize all sockets as invalid
     eth_devices[eth_dev_num].socket_unicast      = SOCKET_INVALID_SOCKET;
@@ -273,15 +262,15 @@ void transport_close(u32 eth_dev_num) {
  *
  * @return  None
  *
- * @note    Buffers are managed by the WARP UDP transport driver
+ * @note    Buffers are managed by the wlan_exp UDP transport driver
  *
  *****************************************************************************/
 void transport_poll(u32 eth_dev_num) {
 
     int                     recv_bytes;
     int                     socket_index;
-    warp_ip_udp_buffer      recv_buffer;
-    warp_ip_udp_buffer    * send_buffer;
+    wlan_exp_ip_udp_buffer      recv_buffer;
+    wlan_exp_ip_udp_buffer    * send_buffer;
     struct sockaddr         from;
 
     // Check the socket to see if there is data
@@ -320,7 +309,7 @@ void transport_poll(u32 eth_dev_num) {
  *          Transport header for future packet processing.
  *
  *****************************************************************************/
-void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr * from, warp_ip_udp_buffer * recv_buffer, warp_ip_udp_buffer * send_buffer) {
+void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr * from, wlan_exp_ip_udp_buffer * recv_buffer, wlan_exp_ip_udp_buffer * send_buffer) {
 
     int                           status;
     u16                           dest_id;
@@ -453,7 +442,7 @@ void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr * from
  *          array contain the Transport header.
  *
  *****************************************************************************/
-void transport_send(int socket_index, struct sockaddr * to, warp_ip_udp_buffer ** buffers, u32 num_buffers) {
+void transport_send(int socket_index, struct sockaddr * to, wlan_exp_ip_udp_buffer ** buffers, u32 num_buffers) {
 
     u32                      i;
     int                      status;
@@ -468,7 +457,7 @@ void transport_send(int socket_index, struct sockaddr * to, warp_ip_udp_buffer *
     }
 
     // Initialize the header
-    //     NOTE:  We require that the first warp_ip_udp_buffer always contain the wl_transport_header
+    //     NOTE:  We require that the first wlan_exp_ip_udp_buffer always contain the wl_transport_header
     //
     transport_header_tx = (transport_header *)(buffers[0]->data);
 
@@ -487,7 +476,7 @@ void transport_send(int socket_index, struct sockaddr * to, warp_ip_udp_buffer *
     //
     transport_header_tx->dest_id = Xil_Htons(transport_header_tx->dest_id);
     transport_header_tx->src_id  = Xil_Htons(transport_header_tx->src_id);
-    transport_header_tx->length  = Xil_Htons(buffer_length + WARP_IP_UDP_DELIM_LEN);
+    transport_header_tx->length  = Xil_Htons(buffer_length + WLAN_EXP_IP_UDP_DELIM_LEN);
     transport_header_tx->seq_num = Xil_Htons(transport_header_tx->seq_num);
     transport_header_tx->flags   = Xil_Htons(transport_header_tx->flags);
 
@@ -510,8 +499,8 @@ void transport_send(int socket_index, struct sockaddr * to, warp_ip_udp_buffer *
 	transport_header_tx->flags   = Xil_Ntohs(transport_header_tx->flags);
 
     // Check that the packet was sent correctly
-    if (status == WARP_IP_UDP_FAILURE) {
-        wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_transport, "Issue sending packet %d to host.\n", transport_header_tx->seq_num);
+    if (status == WLAN_EXP_IP_UDP_FAILURE) {
+        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Issue sending packet %d to host.\n", transport_header_tx->seq_num);
     }
 }
 
@@ -536,14 +525,14 @@ void transport_send_async(u32 eth_dev_num, u8 * payload, u32 length) {
     u32                      packet_length;
 
     // Get variables from the async command / response structure
-    warp_ip_udp_buffer     * buffer       = (warp_ip_udp_buffer *) eth_devices[eth_dev_num].async_cmd_resp.buffer;
+    wlan_exp_ip_udp_buffer     * buffer       = (wlan_exp_ip_udp_buffer *) eth_devices[eth_dev_num].async_cmd_resp.buffer;
     cmd_resp_hdr           * cmd_header   = eth_devices[eth_dev_num].async_cmd_resp.header;
     void                   * payload_dest = (void *) eth_devices[eth_dev_num].async_cmd_resp.args;
     transport_header       * tmp_header   = (transport_header *) (buffer->offset);
 
     // Set length fields
     initial_length = buffer->length;
-    packet_length  = WARP_IP_UDP_HEADER_LEN + initial_length + length;
+    packet_length  = WLAN_EXP_IP_UDP_HEADER_LEN + initial_length + length;
 
     // Makes sure packet stays under the maximum packet size
     if (packet_length < WLAN_EXP_TX_ASYNC_PACKET_BUFFER_SIZE) {
@@ -589,9 +578,6 @@ void transport_send_async(u32 eth_dev_num, u8 * payload, u32 length) {
  *                                 NO_RESP_SENT - No response has been sent
  *                                 RESP_SENT    - A response has been sent
  *
- * @note    See on-line documentation for more information about the Ethernet
- *          packet structure:  www.warpproject.org
- *
  *****************************************************************************/
 int process_transport_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len) {
 
@@ -625,7 +611,7 @@ int process_transport_cmd(int socket_index, void * from, cmd_resp * command, cmd
     resp_hdr->num_args  = 0;
 
     // Check Ethernet device number
-    if (eth_dev_num == WARP_IP_UDP_INVALID_ETH_DEVICE) {
+    if (eth_dev_num == WLAN_EXP_IP_UDP_INVALID_ETH_DEVICE) {
         wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Invalid socket index: %d\n", socket_index);
         return resp_sent;
     }
@@ -657,7 +643,7 @@ int process_transport_cmd(int socket_index, void * from, cmd_resp * command, cmd
             u32              header_size;
 
             header_size        = (sizeof(transport_header) + sizeof(cmd_resp_hdr));                               // Transport / Command headers
-            payload_index      = (((warp_ip_udp_buffer *)(command->buffer))->length - sizeof(cmd_resp_hdr)) / sizeof(u32);  // Final index into command args (/4 truncates)
+            payload_index      = (((wlan_exp_ip_udp_buffer *)(command->buffer))->length - sizeof(cmd_resp_hdr)) / sizeof(u32);  // Final index into command args (/4 truncates)
 
             // Check the value in the command args to make sure it matches the size_index
             payload_num_words  = Xil_Htonl(cmd_args_32[payload_index - 1]) + 1;     // NOTE:  Add 1 since the payload is zero indexed
@@ -760,7 +746,7 @@ int transport_config_socket(u32 eth_dev_num, int * socket_index, u32 udp_port) {
     // Bind the socket
     status = socket_bind_eth(tmp_socket, eth_dev_num, udp_port);
 
-    if (status == WARP_IP_UDP_FAILURE) {
+    if (status == WLAN_EXP_IP_UDP_FAILURE) {
         wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Unable to bind socket on port: %d\n", udp_port);
 
         socket_close(tmp_socket);
@@ -892,7 +878,7 @@ u32 transport_update_link_speed(u32 eth_dev_num, u32 wait_for_negotiation) {
     // Make sure the Ethernet device is initialized
     if (eth_devices[eth_dev_num].initialized == TRANSPORT_ETH_DEV_INITIALIZED) {
 
-        xil_printf("  ETH %c speed ", warp_conv_eth_dev_num(eth_dev_num));
+        xil_printf("  ETH %c speed ", wlan_exp_conv_eth_dev_num(eth_dev_num));
 
         reg_val = transport_get_ethernet_status(eth_dev_num);
 
@@ -926,7 +912,7 @@ u32 transport_update_link_speed(u32 eth_dev_num, u32 wait_for_negotiation) {
         wlan_usleep(1 * 10000);
 
     } else {
-        xil_printf("  ETH %c not initialized.  Link speed not updated.\n", warp_conv_eth_dev_num(eth_dev_num));
+        xil_printf("  ETH %c not initialized.  Link speed not updated.\n", wlan_exp_conv_eth_dev_num(eth_dev_num));
     }
 
     if (negotiated) {
@@ -979,7 +965,7 @@ void transport_set_phy_link_speed(u32 eth_dev_num, u32 speed) {
             phy_ctrl_reg_val = phy_ctrl_reg_val & ~(ETH_PHY_REG_0_SPEED_MSB | ETH_PHY_REG_0_SPEED_LSB);
         break;
         default:
-            wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Ethernet %c invalid speed: %d.\n", warp_conv_eth_dev_num(eth_dev_num), speed);
+            wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Ethernet %c invalid speed: %d.\n", wlan_exp_conv_eth_dev_num(eth_dev_num), speed);
         break;
     }
 
@@ -1040,7 +1026,7 @@ int transport_check_device(u32 eth_dev_num) {
 
     // Check that we have a valid Ethernet device for the transport
     if (eth_dev_num >= TRANSPORT_NUM_ETH_DEVICES) {
-        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Ethernet %c is not available on WARP HW.\n", warp_conv_eth_dev_num(eth_dev_num));
+        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_transport, "Ethernet %c is not available on this platform\n", wlan_exp_conv_eth_dev_num(eth_dev_num));
         return XST_FAILURE;
     }
 

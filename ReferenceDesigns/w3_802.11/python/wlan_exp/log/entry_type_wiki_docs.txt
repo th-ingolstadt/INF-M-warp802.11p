@@ -1,4 +1,5 @@
-== wlan_exp v1.6.2   Log Entry Types ==
+== wlan_exp v1.7.0   Log Entry Types ==
+
 
 ----
 
@@ -58,13 +59,13 @@ Node ID, as set during wlan_exp init
 }}}
 |----------------
 {{{#!td align=left
-hw_generation
+platform_id
 }}}
 {{{#!td align=center
 uint32
 }}}
 {{{#!td align=left
-WARP hardware generation; always 3 for WARP v3
+Platform ID; always 3 for WARP v3
 }}}
 |----------------
 {{{#!td align=left

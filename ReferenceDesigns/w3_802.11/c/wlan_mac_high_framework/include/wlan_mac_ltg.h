@@ -16,10 +16,11 @@
 #define WLAN_MAC_LTG_H_
 
 #include "wlan_mac_high_sw_config.h"
+#include "xil_types.h"
+#include "wlan_common_types.h"
 
-#include "wlan_mac_dl_list.h"
-#include "wlan_mac_high.h"
-#include "wlan_mac_eth_util.h"
+//Forward declarations
+struct mac_header_80211_common;
 
 //LTG Schedules define the times when LTG event callbacks are called.
 #define LTG_SCHED_TYPE_PERIODIC			1
@@ -61,53 +62,53 @@ struct tg_schedule{
 
 #define LTG_DURATION_FOREVER 0
 
-typedef struct {
+typedef struct ltg_sched_state_hdr{
 	u8  enabled;
 	u8  reserved[3];
 	u64 start_timestamp;
 	u64 stop_timestamp;
 } ltg_sched_state_hdr;
 
-typedef struct {
+typedef struct ltg_sched_periodic_params{
 	u32 interval_count;
 	u64 duration_count;
 } ltg_sched_periodic_params;
 
-typedef struct {
+typedef struct ltg_sched_periodic_state{
 	ltg_sched_state_hdr hdr;
 	u32 time_to_next_count;
 } ltg_sched_periodic_state;
 
-typedef struct {
+typedef struct ltg_sched_uniform_rand_params{
 	u32 min_interval_count;
 	u32 max_interval_count;
 	u64 duration_count;
 } ltg_sched_uniform_rand_params;
 
-typedef struct {
+typedef struct ltg_sched_uniform_rand_state{
 	ltg_sched_state_hdr hdr;
 	u32 time_to_next_count;
 } ltg_sched_uniform_rand_state;
 
 //LTG Payload Profiles
 
-typedef struct {
+typedef struct ltg_pyld_hdr{
 	u32 type;
 } ltg_pyld_hdr;
 
-typedef struct {
+typedef struct ltg_pyld_fixed{
 	ltg_pyld_hdr hdr;
 	u8  addr_da[MAC_ADDR_LEN];
 	u16 length;
 } ltg_pyld_fixed;
 
-typedef struct {
+typedef struct ltg_pyld_all_assoc_fixed{
 	ltg_pyld_hdr hdr;
 	u16 length;
 	u16 padding;
 } ltg_pyld_all_assoc_fixed;
 
-typedef struct {
+typedef struct ltg_pyld_uniform_rand{
 	ltg_pyld_hdr hdr;
 	u8  addr_da[MAC_ADDR_LEN];
 	u16 min_length;
@@ -136,11 +137,13 @@ int ltg_sched_stop_all();
 int ltg_sched_get_state(u32 id, u32* type, void** state);
 int ltg_sched_get_params(u32 id, void** params);
 int ltg_sched_get_callback_arg(u32 id, void** callback_arg);
-int wlan_create_ltg_frame(void* pkt_buf, mac_header_80211_common* common, u8 tx_flags, u32 ltg_id);
+
+int wlan_create_ltg_frame(void* pkt_buf, struct mac_header_80211_common* common, u8 tx_flags, u32 ltg_id);
+
 dl_entry* ltg_sched_find_tg_schedule(u32 id);
 
 // WLAN Exp function to LTG -- users may call these directly or modify if needed
-void * ltg_sched_deserialize(u32 * src, u32 * ret_type, u32 * ret_size);
-void * ltg_payload_deserialize(u32 * src, u32 * ret_type, u32 * ret_size);
+void* ltg_sched_deserialize(u32 * src, u32 * ret_type, u32 * ret_size);
+void* ltg_payload_deserialize(u32 * src, u32 * ret_type, u32 * ret_size);
 
 #endif /* WLAN_MAC_LTG_H_ */

@@ -30,8 +30,8 @@ class WlanExpNodeAp(node.WlanExpNode):
         """Configure the BSS information of the node
 
         Each node is either a member of no BSS (colloquially "unassociated")
-        or a member of one BSS.  A node requires a minimum valid set of BSS
-        information to be a member of a BSS. The minimum valid set of BSS
+        or a member of one BSS.  A node requires a minimum valid set of BSS 
+        information to be a member of a BSS. The minimum valid set of BSS 
         information for an AP is:
 
             #. BSSID: 48-bit MAC address
@@ -39,18 +39,18 @@ class WlanExpNodeAp(node.WlanExpNode):
             #. SSID: Variable length string (ie the name of the network)
             #. Beacon Interval:  Interval (in TUs) for beacons
 
-        If a node is not a member of a BSS (i.e. ``n.get_bss_info()`` returns
-        ``None``), then the node requires all parameters of a minimum valid
+        If a node is not a member of a BSS (i.e. ``n.get_network_info()`` returns
+        ``None``), then the node requires all parameters of a minimum valid 
         set of BSS information be specified (i.e. Channel, SSID, and
-        Beacon Interval).  For an AP, if BSSID is not specified, then it is
-        assumed to be the wlan_mac_address of the node.
-
+        Beacon Interval).  For an AP, if BSSID is not specified, then it is 
+        assumed to be the wlan_mac_address of the node.  
+        
         See https://warpproject.org/trac/wiki/802.11/wlan_exp/bss
         for more documentation on BSS information / configuration.
 
         Args:
             bssid (int, str):  48-bit ID of the BSS either None or
-                the wlan_mac_address of the node.  If not specified, it is
+                the wlan_mac_address of the node.  If not specified, it is 
                 by default the wlan_mac_address of the node.
             ssid (str):  SSID string (Must be 32 characters or less)
             channel (int): Channel number on which the BSS operates
@@ -83,16 +83,15 @@ class WlanExpNodeAp(node.WlanExpNode):
             else:
                 # User did not provide a BSSID argument - use the AP's MAC address
                 bssid = self.wlan_mac_address
-
         resp_args = self.send_cmd(cmds.NodeConfigBSS(bssid=bssid, ssid=ssid, channel=channel,
                                                      beacon_interval=beacon_interval, dtim_period=dtim_period, ht_capable=ht_capable))
-
+        
         # Process response arguments
         if (resp_args is not False):
             status  = resp_args[0]
-            msg     = "ERROR:  Invalid response from node:\n"
+            msg     = "ERROR:\n"
             ret_val = True
-
+            
             # Check status
             if (status & cmds.ERROR_CONFIG_BSS_BSSID_INVALID):
                 if type(self.bssid) in [int, long]:
@@ -100,10 +99,10 @@ class WlanExpNodeAp(node.WlanExpNode):
                     self.bssid = util.mac_addr_to_str(self.bssid)
                 msg    += "    BSSID {0} was invalid.\n".format(self.bssid)
                 ret_val = False
-
+            
             if (status & cmds.ERROR_CONFIG_BSS_BSSID_INSUFFICIENT_ARGUMENTS):
                 msg    += "    Insufficient arguments to create BSS.  Must provide:\n"
-                if (bssid is False):
+                if (bssid is False): 
                     msg    += "        BSSID\n"
                 if (ssid is None):
                     msg    += "        SSID\n"
@@ -112,19 +111,23 @@ class WlanExpNodeAp(node.WlanExpNode):
                 if (beacon_interval is False):
                     msg    += "        BEACON_INTERVAL\n"
                 ret_val = False
-
+            
             if (status & cmds.ERROR_CONFIG_BSS_CHANNEL_INVALID):
                 msg    += "    Channel {0} was invalid.\n".format(channel)
                 ret_val = False
-
+            
             if (status & cmds.ERROR_CONFIG_BSS_BEACON_INTERVAL_INVALID):
                 msg    += "    Beacon interval {0} was invalid.\n".format(beacon_interval)
                 ret_val = False
-
+            
             if (status & cmds.ERROR_CONFIG_BSS_HT_CAPABLE_INVALID):
                 msg    += "    HT capable {0} was invalid.\n".format(ht_capable)
                 ret_val = False
-
+                
+            if (status & cmds.ERROR_CONFIG_BSS_DTIM_PERIOD_INVALID):
+                msg    += "    DTIM period {0} was invalid.\n".format(dtim_period)
+                ret_val = False
+            
             if not ret_val:
                 print(msg)
 
@@ -132,7 +135,7 @@ class WlanExpNodeAp(node.WlanExpNode):
     def enable_beacon_mac_time_update(self, enable):
         """Enable / Disable MAC time update from beacons
 
-        Raises NotImplementedError().  Current AP implementation does not
+        Raises NotImplementedError().  Current AP implementation does not 
         support updating MAC time from beacon receptions
 
         Args:
@@ -153,8 +156,8 @@ class WlanExpNodeAp(node.WlanExpNode):
         Returns:
             associated (list of bool):  List of booleans describing whether each given device is associated with the AP
 
-        If the device_list is a single device, then only a boolean is returned.
-        If the device_list is a list of devices, then a list of booleans will
+        If the device_list is a single device, then only a boolean is returned.  
+        If the device_list is a list of devices, then a list of booleans will 
         be returned in the same order as the devices in the list.
         """
         ret_val  = []
@@ -169,9 +172,9 @@ class WlanExpNodeAp(node.WlanExpNode):
 
             for device in device_list:
                 # Check the station info to see if device is there
-
+                
                 bss_member_list = self.get_bss_members()
-
+                
                 for bss_member in bss_member_list:
                     if bss_member['mac_addr'] == device.wlan_mac_address:
                         is_member = True
@@ -275,8 +278,8 @@ class WlanExpNodeAp(node.WlanExpNode):
                 used to filter addresses on the node.  A tuple can be substituted
                 with a predefined string:  "NONE", "ALL", or "MANGO-W3"
 
-        For the mask, bits that are 0 are treated as "any" and bits that are 1
-        are treated as "must equal".  For the address, locations of one bits
+        For the mask, bits that are 0 are treated as "any" and bits that are 1 
+        are treated as "must equal".  For the address, locations of one bits 
         in the mask must match the incoming addresses to pass the filter.
 
         Examples:
@@ -375,31 +378,31 @@ class WlanExpNodeAp(node.WlanExpNode):
             device_list = [device_list]
             ret_list    = False
 
-        # Get the AP's current BSS configuration
-        bss_info = self.get_bss_info()
+        # Get the AP's current Network information
+        network_info = self.get_network_info()
 
-        if bss_info is None:
-            msg  = "\n    Cannot add association:  AP BSS configuration is currently null."
-            msg += "\n    Configure the AP's BSS using configure_bss() before calling add_association()."
+        if network_info is None:
+            msg  = "\n    Cannot add association:  AP network configuration is currently null."
+            msg += "\n    Configure the AP's network using configure_bss() before calling add_association()."
             raise Exception(msg)
 
-        bssid           = bss_info['bssid']
-        channel         = bss_info['channel']
-        ssid            = bss_info['ssid']
-        beacon_interval = bss_info['beacon_interval']
-
-        if (bss_info['capabilities'] & bss_info.get_consts().capabilities.HT_CAPABLE):
+        bssid           = network_info['bssid']
+        channel         = network_info['channel']
+        ssid            = network_info['ssid']
+        beacon_interval = network_info['beacon_interval']
+        
+        if (network_info['ht_capable'] == 1):
             ht_capable  = True
         else:
             ht_capable  = False
-
-
+        
+        
         if (beacon_interval == 0):
             beacon_interval = None
 
         for device in device_list:
-            ret_val.append(self._add_association(device=device, bssid=bssid,
-                                                 channel=channel, ssid=ssid,
+            ret_val.append(self._add_association(device=device, bssid=bssid, 
+                                                 channel=channel, ssid=ssid, 
                                                  beacon_interval=beacon_interval,
                                                  ht_capable=ht_capable,
                                                  disable_timeout=disable_timeout))
@@ -420,9 +423,8 @@ class WlanExpNodeAp(node.WlanExpNode):
         ret_val = False
 
         import wlan_exp.node_ibss as node_ibss
-        import wlan_exp.node_ap as node_ap
 
-        if isinstance(device, node_ibss.WlanExpNodeIBSS) or isinstance(device, node_ap.WlanExpNodeAp):
+        if isinstance(device, node_ibss.WlanExpNodeIBSS):
             print("WARNING:  Could not add association for IBSS node '{0}'".format(device.description))
             return ret_val
 
@@ -432,7 +434,7 @@ class WlanExpNodeAp(node.WlanExpNode):
             import wlan_exp.node_sta as node_sta
 
             if isinstance(device, node_sta.WlanExpNodeSta):
-                device.configure_bss(bssid=bssid, ssid=ssid, channel=channel,
+                device.configure_bss(bssid=bssid, ssid=ssid, channel=channel, 
                                      beacon_interval=beacon_interval, ht_capable=ht_capable)
                 device.set_aid(aid=aid)
                 ret_val = True
@@ -466,7 +468,7 @@ class WlanExpNodeAp(node.WlanExpNode):
                 cpu_low_type = defaults.WLAN_EXP_LOW_TYPES[(self.node_type & defaults.WLAN_EXP_LOW_MASK)]
                 msg += "    CPU Low Type  :  {0}\n".format(cpu_low_type)
             except:
-                pass
+                pass            
         else:
             msg += "Node not initialized."
 

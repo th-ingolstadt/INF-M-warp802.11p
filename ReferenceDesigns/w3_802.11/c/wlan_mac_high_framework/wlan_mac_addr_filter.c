@@ -22,7 +22,7 @@
 #include "wlan_mac_addr_filter.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_high.h"
-#include "wlan_mac_bss_info.h"
+#include "wlan_mac_network_info.h"
 
 
 /*************************** Constant Definitions ****************************/
@@ -43,9 +43,9 @@
 
 dl_list   addr_filter;
 
-// Defines for WARP Hardware
-static u8 warp_range_mask[MAC_ADDR_LEN]    = { 0xFF, 0xFF, 0xFF, 0xFF, 0xF0, 0x00 };
-static u8 warp_range_compare[MAC_ADDR_LEN] = { 0x40, 0xD8, 0x55, 0x04, 0x20, 0x00 };
+// Defines for Mango Hardware
+static u8 mango_range_mask[MAC_ADDR_LEN]    = { 0xFF, 0xFF, 0xFF, 0xFF, 0xF0, 0x00 };
+static u8 mango_range_compare[MAC_ADDR_LEN] = { 0x40, 0xD8, 0x55, 0x04, 0x20, 0x00 };
 
 
 /*************************** Functions Prototypes ****************************/
@@ -201,17 +201,17 @@ u8    wlan_mac_addr_filter_is_allowed(u8* addr){
 
 /*****************************************************************************/
 /**
- * @brief Is the given address a WARP node?
+ * @brief Is the given address a Mango node?
  *
- * This function will check if the given address is in the WARP address range.
+ * This function will check if the given address is in the Mango address range.
  *
  * @param    u8 * addr  - Address to check against the filter
  * @return   u8
- *      - ADDR_FILTER_ADDR_NOT_ALLOWED if address is not a WARP address
- *      - ADDR_FILTER_ADDR_ALLOWED if address is a WARP address
+ *      - ADDR_FILTER_ADDR_NOT_ALLOWED if address is not a Mango address
+ *      - ADDR_FILTER_ADDR_ALLOWED if address is a Mango address
  */
-u8    wlan_mac_addr_is_warp(u8* addr){
-    return addr_is_allowed(addr, warp_range_mask, warp_range_compare);
+u8 wlan_mac_addr_is_mango(u8* addr){
+    return addr_is_allowed(addr, mango_range_mask, mango_range_compare);
 }
 
 /*****************************************************************************/

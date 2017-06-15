@@ -11,16 +11,16 @@
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
-/***************************** Include Files *********************************/
 
-#include "wlan_mac_high_sw_config.h"
-
-#include "wlan_mac_high.h"
 
 
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_EVENT_LOG_H_
 #define WLAN_MAC_EVENT_LOG_H_
+
+/***************************** Include Files *********************************/
+#include "xil_types.h"
+
 
 
 
@@ -83,7 +83,7 @@
 // Log Entry Header
 //   - This is used by the event log but is not exposed to the user
 //
-typedef struct{
+typedef struct entry_header{
     u32 entry_id;
     u16 entry_type;
     u16 entry_length;
@@ -93,14 +93,14 @@ typedef struct{
 
 /*************************** Function Prototypes *****************************/
 
-void      event_log_init( char * start_address, u32 size );
+void      event_log_init( char* start_address, u32 size );
 
 void      event_log_reset();
 
 int       event_log_config_wrap( u32 enable );
 int       event_log_config_logging( u32 enable );
 
-u32       event_log_get_data(u32 start_index, u32 size, void * buffer, u8 copy_data);
+u32       event_log_get_data(u32 start_index, u32 size, void* buffer, u8 copy_data);
 u32       event_log_get_size( u32 start_index );
 u32       event_log_get_total_size( void );
 u32       event_log_get_capacity( void );
@@ -109,8 +109,6 @@ u32       event_log_get_oldest_entry_index( void );
 u32       event_log_get_num_wraps( void );
 u32       event_log_get_flags( void );
 void *    event_log_get_next_empty_entry( u16 entry_type, u16 entry_size );
-
-int       event_log_update_type( void * entry_ptr, u16 entry_type );
 
 void      print_event_log( u32 num_events );
 void      print_event_log_size();

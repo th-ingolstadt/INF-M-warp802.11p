@@ -919,53 +919,14 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     #------------------------
     # Tx Rate commands
 
-    def set_tx_rate_unicast(self, mcs, phy_mode, device_list=None, curr_assoc=False, new_assoc=False):
-        """Sets the unicast packet transmit rate (mcs, phy_mode) of the node.
+    def set_tx_rate_data(self, mcs, phy_mode, device_list=None, update_default_unicast=None, update_default_multicast=None):
+        """Sets the packet transmit rate (mcs, phy_mode) for data frames.
 
-        When using ``device_list`` or ``curr_assoc``, this method will set the 
-        unicast data packet tx rate since only unicast data transmit parameters 
-        are maintained for a given station info.  However, when using 
-        ``new_assoc``, this method will set both the default unicast data and 
-        unicast management packet tx rate.
-
-        Args:
-            mcs (int): Modulation and coding scheme (MCS) index (in [0 .. 7])
-            phy_mode (str, int): PHY mode.  Must be one of:
-
-                * ``'NONHT'``: Use 802.11 (a/g) rates
-                * ``'HTMF'``: Use 802.11 (n) rates
-
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
-                802.11 devices or single 802.11 device for which to set the 
-                unicast packet Tx rate to the rate (mcs, phy_mdoe)
-            curr_assoc (bool):  All current station infos will have the unicast 
-                packet Tx rate set to the rate (mcs, phy_mode)
-            new_assoc  (bool):  All new station infos will have the unicast 
-                packet Tx rate set to the rate (mcs, phy_mode)
-
-        One of ``device_list``, ``curr_assoc`` or ``new_assoc`` must be set.  
-        The ``device_list`` and ``curr_assoc`` are mutually exclusive with 
-        ``curr_assoc`` having precedence (ie if ``curr_assoc`` is True, then 
-        ``device_list`` will be ignored).
-
-        The MAC code does not differentiate between unicast management tx 
-        parameters and unicast data tx parameters since unicast management 
-        packets only occur when they will not materially affect an experiment 
-        (ie they are only sent during deauthentication)
-
-        This will not affect the transmit antenna mode for control frames like 
-        ACKs that will be transmitted. The rate of control packets is 
-        determined by the 802.11 standard.
-        """
-        if self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode):
-            self._node_set_tx_param_unicast(cmds.NodeProcTxRate, 'rate', (mcs, phy_mode), device_list, curr_assoc, new_assoc)
-        else:
-            self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode, verbose=True)
-            raise AttributeError("Tx rate, (mcs, phy_mode) tuple, not supported by the design. See above error message.")
-
-
-    def set_tx_rate_multicast_data(self, mcs, phy_mode):
-        """Sets the multicast data packet transmit rate for a node.
+        Transmit parameters are maintained on a per-MAC address basis.
+        The ``device_list`` argument can be used to select particular devices
+        for which the Tx parameter update applies. The ``update_default_x``
+        arguments can be used to specify that the provided power should be
+        used for any future additions to the node's device list.
 
         Args:
             mcs (int): Modulation and coding scheme (MCS) index (in [0 .. 7])
@@ -974,16 +935,36 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 * ``'NONHT'``: Use 802.11 (a/g) rates
                 * ``'HTMF'``: Use 802.11 (n) rates
 
+            device_list (list of WlanExpNode / WlanDevice 
+             or 'ALL_UNICAST' or 'ALL_MULTICAST' or 'ALL', optional):
+                List of 802.11 devices or single 802.11 device for which to set the 
+                unicast packet Tx power to 'power'. A value of 'ALL_UNICAST' will
+                apply the specified power to all unicast receiver addresses. A value
+                of `ALL_MULTICAST` will apply it to all multicast receiver addresses.
+                A value of 'ALL' will apply the specified power to all addresses.
+            update_default_unicast  (bool): set the default unicast Tx params to the
+                provided 'power'.
+            update_default_multicast  (bool): set the default multicast Tx params to the
+                provided 'power'.                
+
+        One of ``device_list`` or ``update_default_unicast`` or ``update_default_multicast``
+            must be set.  
         """
         if self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode):
-            self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_DATA, (mcs, phy_mode)))
+            self._node_set_tx_param(cmds.NodeProcTxRate, 'rate', (mcs, phy_mode), 
+                                        'data', device_list, update_default_unicast, update_default_multicast)
         else:
             self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode, verbose=True)
             raise AttributeError("Tx rate, (mcs, phy_mode) tuple, not supported by the design. See above error message.")
 
+    def set_tx_rate_mgmt(self, mcs, phy_mode, device_list=None, update_default_unicast=None, update_default_multicast=None):
+        """Sets the packet transmit rate (mcs, phy_mode) for management frames.
 
-    def set_tx_rate_multicast_mgmt(self, mcs, phy_mode):
-        """Sets the multicast management packet transmit rate for a node.
+        Transmit parameters are maintained on a per-MAC address basis.
+        The ``device_list`` argument can be used to select particular devices
+        for which the Tx parameter update applies. The ``update_default_x``
+        arguments can be used to specify that the provided power should be
+        used for any future additions to the node's device list.
 
         Args:
             mcs (int): Modulation and coding scheme (MCS) index (in [0 .. 7])
@@ -992,73 +973,73 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 * ``'NONHT'``: Use 802.11 (a/g) rates
                 * ``'HTMF'``: Use 802.11 (n) rates
 
+            device_list (list of WlanExpNode / WlanDevice 
+             or 'ALL_UNICAST' or 'ALL_MULTICAST' or 'ALL', optional):
+                List of 802.11 devices or single 802.11 device for which to set the 
+                unicast packet Tx power to 'power'. A value of 'ALL_UNICAST' will
+                apply the specified power to all unicast receiver addresses. A value
+                of `ALL_MULTICAST` will apply it to all multicast receiver addresses.
+                A value of 'ALL' will apply the specified power to all addresses.
+            update_default_unicast  (bool): set the default unicast Tx params to the
+                provided 'power'.
+            update_default_multicast  (bool): set the default multicast Tx params to the
+                provided 'power'.                
+
+        One of ``device_list`` or ``update_default_unicast`` or ``update_default_multicast``
+            must be set.  
         """
         if self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode):
-            self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_MGMT, (mcs, phy_mode)))
+            self._node_set_tx_param(cmds.NodeProcTxRate, 'rate', (mcs, phy_mode), 
+                                        'mgmt', device_list, update_default_unicast, update_default_multicast)
         else:
             self._check_allowed_rate(mcs=mcs, phy_mode=phy_mode, verbose=True)
             raise AttributeError("Tx rate, (mcs, phy_mode) tuple, not supported by the design. See above error message.")
-
-
-    def get_tx_rate_unicast(self, device_list=None, new_assoc=False):
-        """Gets the unicast packet transmit rate of the node for the given 
-        device(s).
-
-        This will get the unicast data packet tx rate (unicast managment 
-        packet tx rate is the same).
-
-        Args:
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
-                802.11 devices or single 802.11 device for which to get the 
-                unicast packet Tx rate
-            new_assoc  (bool):  Get the unicast packet Tx rate for all new 
-                station infos
-
-        Returns:
-            rates (List of tuple):  
-                List of unicast packet Tx rate tuples, (mcs, phy_mode), for 
-                the given devices.
-
-        If both ``new_assoc`` and ``device_list`` are specified, the return 
-        list will always have the unicast packet Tx rate for all new 
-        station infos as the first item in the list.
-        """
-        return self._node_get_tx_param_unicast(cmds.NodeProcTxRate, 'rate', None, device_list, new_assoc)
-
-
-    def get_tx_rate_multicast_data(self):
-        """Gets the current multicast data packet transmit rate for a node.
-
-        Returns:
-            rate (tuple):  
-                Multicast data packet transmit rate tuple, (mcs, phy_mode), 
-                for the node
-        """
-        return self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_DATA))
-
-
-    def get_tx_rate_multicast_mgmt(self):
-        """Gets the current multicast transmit rate for a node.
-
-        Returns:
-            rate (tuple):  
-                Multicast management packet transmit rate tuple, (mcs, 
-                phy_mode), for the node
-        """
-        return self.send_cmd(cmds.NodeProcTxRate(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_MGMT))
-
 
     #------------------------
     # Tx Antenna Mode commands
 
-    def set_tx_ant_mode_unicast(self, ant_mode, device_list=None, curr_assoc=False, new_assoc=False):
-        """Sets the unicast packet transmit antenna mode of the node.
+    def set_tx_ant_mode_data(self, ant_mode, device_list=None, update_default_unicast=None, update_default_multicast=None):    
+        """Sets the packet transmit antenna mode for data frames.
 
-        When using ``device_list`` or ``curr_assoc``, this method will set the 
-        unicast data packet tx antenna mode since only unicast data transmit 
-        parameters are maintained for a given staion info.  However, when 
-        using ``new_assoc``, this method will set both the default unicast data 
-        and unicast management packet tx antenna mode.
+        Transmit parameters are maintained on a per-MAC address basis.
+        The ``device_list`` argument can be used to select particular devices
+        for which the Tx parameter update applies. The ``update_default_x``
+        arguments can be used to specify that the provided power should be
+        used for any future additions to the node's device list.
+        Args:
+            ant_mode (str):  Antenna mode; must be one of:
+
+                * ``'RF_A'``: transmit on RF A interface
+                * ``'RF_B'``: transmit on RF B interface
+
+            device_list (list of WlanExpNode / WlanDevice 
+             or 'ALL_UNICAST' or 'ALL_MULTICAST' or 'ALL', optional):
+                List of 802.11 devices or single 802.11 device for which to set the 
+                unicast packet Tx power to 'power'. A value of 'ALL_UNICAST' will
+                apply the specified power to all unicast receiver addresses. A value
+                of `ALL_MULTICAST` will apply it to all multicast receiver addresses.
+                A value of 'ALL' will apply the specified power to all addresses.
+            update_default_unicast  (bool): set the default unicast Tx params to the
+                provided 'ant_mode'.
+            update_default_multicast  (bool): set the default multicast Tx params to the
+                provided 'ant_mode'.                
+
+        One of ``device_list`` or ``update_default_unicast`` or ``update_default_multicast``
+            must be set.  
+        """
+        if ant_mode is None:
+            raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))            
+        self._node_set_tx_param(cmds.NodeProcTxAntMode, 'antenna_mode', 
+                                        ant_mode, 'data', device_list, update_default_unicast, update_default_multicast)
+                                        
+    def set_tx_ant_mode_mgmt(self, ant_mode, device_list=None, update_default_unicast=None, update_default_multicast=None):    
+        """Sets the packet transmit antenna mode for management frames.
+
+        Transmit parameters are maintained on a per-MAC address basis.
+        The ``device_list`` argument can be used to select particular devices
+        for which the Tx parameter update applies. The ``update_default_x``
+        arguments can be used to specify that the provided power should be
+        used for any future additions to the node's device list.
 
         Args:
             ant_mode (str):  Antenna mode; must be one of:
@@ -1066,167 +1047,25 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 * ``'RF_A'``: transmit on RF A interface
                 * ``'RF_B'``: transmit on RF B interface
 
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
-                802.11 devices or single 802.11 device for which to set the 
-                unicast packet Tx antenna mode to 'ant_mode'
-            curr_assoc (bool):  All current statoin infos will have the unicast 
-                packet Tx antenna mode set to 'ant_mode'
-            new_assoc  (bool):  All new station infos will have the unicast 
-                packet Tx antenna mode set to 'ant_mode'
+            device_list (list of WlanExpNode / WlanDevice 
+             or 'ALL_UNICAST' or 'ALL_MULTICAST' or 'ALL', optional):
+                List of 802.11 devices or single 802.11 device for which to set the 
+                unicast packet Tx power to 'power'. A value of 'ALL_UNICAST' will
+                apply the specified power to all unicast receiver addresses. A value
+                of `ALL_MULTICAST` will apply it to all multicast receiver addresses.
+                A value of 'ALL' will apply the specified power to all addresses.
+            update_default_unicast  (bool): set the default unicast Tx params to the
+                provided 'ant_mode'.
+            update_default_multicast  (bool): set the default multicast Tx params to the
+                provided 'ant_mode'.                
 
-        One of ``device_list``, ``curr_assoc`` or ``new_assoc`` must be set.  
-        The ``device_list`` and ``curr_assoc`` are mutually exclusive with 
-        ``curr_assoc`` having precedence. If ``curr_assoc`` is provided 
-        ``device_list`` will be ignored.
-
-        The MAC code does not differentiate between unicast management tx 
-        parameters and unicast data tx parameters since unicast management 
-        packets only occur when they will not materially affect an experiment 
-        (ie they are only sent during deauthentication)
-
-        This will not affect the transmit antenna mode for control frames like 
-        ACKs that will be transmitted. Control packets will be sent on whatever 
-        antenna that cause the control packet to be generated (ie an ack for a 
-        reception will go out on the same antenna on which the reception 
-        occurred).
+        One of ``device_list`` or ``update_default_unicast`` or ``update_default_multicast``
+            must be set.  
         """
         if ant_mode is None:
-            raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))
-            
-        self._node_set_tx_param_unicast(cmds.NodeProcTxAntMode, 'antenna mode', ant_mode, device_list, curr_assoc, new_assoc)
-
-
-    def set_tx_ant_mode_multicast_data(self, ant_mode):
-        """Sets the multicast data packet transmit antenna mode.
-
-        Args:
-            ant_mode (str):  Antenna mode; must be one of:
-
-                * ``'RF_A'``: transmit on RF A interface
-                * ``'RF_B'``: transmit on RF B interface
-
-        """
-        if ant_mode is None:
-            raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))
-            
-        self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_DATA, ant_mode))
-
-
-    def set_tx_ant_mode_multicast_mgmt(self, ant_mode):
-        """Sets the multicast management packet transmit antenna mode.
-
-        Args:
-            ant_mode (str):  Antenna mode; must be one of:
-
-                * ``'RF_A'``: transmit on RF A interface
-                * ``'RF_B'``: transmit on RF B interface
-
-        """
-        if ant_mode is None:
-            raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))
-            
-        self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_MGMT, ant_mode))
-
-
-    def get_tx_ant_mode_unicast(self, device_list=None, new_assoc=False):
-        """Gets the unicast packet transmit antenna mode of the node for the 
-        given device(s).
-
-        This will get the unicast data packet Tx antenna mode (unicast 
-        managment packet Tx antenna mode is the same).
-
-        Args:
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
-                802.11 devices or single 802.11 device for which to get the 
-                unicast packet Tx antenna mode
-            new_assoc  (bool):  Get the unicast packet Tx antenna mode for all 
-                new station infos
-
-        Returns:
-            ant_modes (List of str):  
-                List of unicast packet Tx antenna mode for the given devices; 
-                each antenna mode must be one of:
-
-                  * ``'RF_A'``: transmit on RF A interface
-                  * ``'RF_B'``: transmit on RF B interface
-
-        If both ``new_assoc`` and ``device_list`` are specified, the return 
-        list will always have the unicast packet Tx antenna mode for all new 
-        station infos as the first item in the list.
-        """
-        return self._node_get_tx_param_unicast(cmds.NodeProcTxAntMode, 'antenna mode', None, device_list, new_assoc)
-
-
-    def get_tx_ant_mode_multicast_data(self):
-        """Gets the current multicast data packet transmit antenna mode for 
-        a node.
-
-        Returns:
-            ant_mode (str):  
-                Multicast data packet transmit antenna mode for the node; 
-                must be one of:
-
-                  * ``'RF_A'``: transmit on RF A interface
-                  * ``'RF_B'``: transmit on RF B interface
-
-        """
-        return self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_DATA))
-
-
-    def get_tx_ant_mode_multicast_mgmt(self):
-        """Gets the current multicast management packet transmit antenna mode for a node.
-
-        Returns:
-            ant_mode (str):  
-                Multicast management packet transmit antenna mode for the node;
-                must be one of:
-
-                  * ``'RF_A'``: transmit on RF A interface
-                  * ``'RF_B'``: transmit on RF B interface
-
-        """
-        return self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_MGMT))
-
-
-    def set_tx_ant_mode(self, ant_mode):
-        """Sets the transmit antenna mode of the node.
-
-        This command will set all transmit antenna mode fields on the node to the same value:
-        
-            * Default Unicast Management Packet Tx Antenna mode for new station infos
-            * Default Unicast Data Packet Tx Tx Antenna mode for new station infos
-            * Default Multicast Management Packet Tx Antenna mode for new station infos
-            * Default Multicast Data Packet Tx Antenna mode for new station infos
-
-        It will also update the transmit antenna mode of all current station infos on the node.
-
-        Args:
-            ant_mode (str):  Antenna mode; must be one of:
-
-                * ``'RF_A'``: transmit on RF A interface
-                * ``'RF_B'``: transmit on RF B interface
-
-        """
-        if ant_mode is None:
-            raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))
-            
-        self.send_cmd(cmds.NodeProcTxAntMode(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_NODE_TX_ANT_ALL, ant_mode))
-
-
-    def get_tx_ant_mode(self):
-        """Gets the current default unicast data transmit antenna mode of the 
-        node for new station infos.
-
-        Returns:
-            ant_mode (str):  
-                Current unicast packet Tx antenna mode; must be one of:
-
-                  * ``'RF_A'``: transmit on RF A interface
-                  * ``'RF_B'``: transmit on RF B interface
-
-        """
-        return self.get_tx_ant_mode_unicast(new_assoc=True)[0]
-
+            raise AttributeError("Invalid ant_mode: {0}".format(ant_mode))            
+        self._node_set_tx_param(cmds.NodeProcTxAntMode, 'antenna_mode', 
+                                        ant_mode, 'mgmt', device_list, update_default_unicast, update_default_multicast)
 
     #------------------------
     # Rx Antenna Mode commands
@@ -1264,115 +1103,69 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
     #------------------------
     # Tx Power commands
 
-    def set_tx_power_unicast(self, power, device_list=None, curr_assoc=False, new_assoc=False):
-        """Sets the unicast packet transmit power of the node.
+    def set_tx_power_data(self, power, device_list=None, update_default_unicast=None, update_default_multicast=None):
+        """Sets the transmit power for data frames.
 
-        When using ``device_list`` or ``curr_assoc``, this method will set the 
-        unicast data packet tx power since only unicast data transmit 
-        parameters are maintained for a given station info.  However, when 
-        using ``new_assoc``, this method will set both the default unicast 
-        data and unicast management packet tx power.
+        This function is used to set the tranmsit power for frames of type
+        data. Transmit parameters are maintained on a per-MAC address basis.
+        The ``device_list`` argument can be used to select particular devices
+        for which the Tx parameter update applies. The ``update_default_x``
+        arguments can be used to specify that the provided power should be
+        used for any future additions to the node's device list.
 
         Args:
             power (int):  Transmit power in dBm (a value between 
                 ``node.max_tx_power_dbm`` and ``node.min_tx_power_dbm``)
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
-                802.11 devices or single 802.11 device for which to set the 
-                unicast packet Tx power to 'power'
-            curr_assoc (bool):  All current station infos will have the unicast 
-                packet Tx power set to 'power'
-            new_assoc  (bool):  All new station infos will have the unicast 
-                packet Tx power set to 'power'
+            device_list (list of WlanExpNode / WlanDevice 
+             or 'ALL_UNICAST' or 'ALL_MULTICAST' or 'ALL', optional):
+                List of 802.11 devices or single 802.11 device for which to set the 
+                unicast packet Tx power to 'power'. A value of 'ALL_UNICAST' will
+                apply the specified power to all unicast receiver addresses. A value
+                of `ALL_MULTICAST` will apply it to all multicast receiver addresses.
+                A value of 'ALL' will apply the specified power to all addresses.
+            update_default_unicast  (bool): set the default unicast Tx params to the
+                provided 'power'.
+            update_default_multicast  (bool): set the default multicast Tx params to the
+                provided 'power'.                
 
-        One of ``device_list``, ``curr_assoc`` or ``new_assoc`` must be set.  
-        The ``device_list`` and ``curr_assoc`` are mutually exclusive with 
-        ``curr_assoc`` having precedence (ie if ``curr_assoc`` is True, then 
-        ``device_list`` will be ignored).
-
-        The MAC code does not differentiate between unicast management tx 
-        parameters and unicast data tx parameters since unicast management 
-        packets only occur when they will not materially affect an experiment 
-        (ie they are only sent during deauthentication)
-
-        This will not affect the transmit power for control frames like ACKs 
-        that will be transmitted. To adjust this power, use the 
-        ``set_tx_power_ctrl`` command
+        One of ``device_list`` or ``update_default_unicast`` or ``update_default_multicast``
+            must be set.  
         """
-        self._node_set_tx_param_unicast(cmds.NodeProcTxPower, 'tx power', 
+        self._node_set_tx_param(cmds.NodeProcTxPower, 'tx power', 
                                         (power, self.max_tx_power_dbm, self.min_tx_power_dbm), 
-                                        device_list, curr_assoc, new_assoc)
+                                        'data', device_list, update_default_unicast, update_default_multicast)
 
+    def set_tx_power_mgmt(self, power, device_list=None, update_default_unicast=None, update_default_multicast=None):
+        """Sets the transmit power for management frames.
 
-    def set_tx_power_multicast_data(self, power):
-        """Sets the multicast data packet transmit power.
-
-        Args:
-            power (int):  Transmit power in dBm (a value between 
-                ``node.max_tx_power_dbm`` and ``node.min_tx_power_dbm``)
-        """
-        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_DATA, 
-                                           (power, self.max_tx_power_dbm, self.min_tx_power_dbm)))
-
-
-    def set_tx_power_multicast_mgmt(self, power):
-        """Sets the multicast management packet transmit power.
+        This function is used to set the tranmsit power for frames of type
+        management. Transmit parameters are maintained on a per-MAC address basis.
+        The ``device_list`` argument can be used to select particular devices
+        for which the Tx parameter update applies. The ``update_default_x``
+        arguments can be used to specify that the provided power should be
+        used for any future additions to the node's device list.
 
         Args:
             power (int):  Transmit power in dBm (a value between 
                 ``node.max_tx_power_dbm`` and ``node.min_tx_power_dbm``)
+            device_list (list of WlanExpNode / WlanDevice 
+             or 'ALL_UNICAST' or 'ALL_MULTICAST' or 'ALL', optional):
+                List of 802.11 devices or single 802.11 device for which to set the 
+                unicast packet Tx power to 'power'. A value of 'ALL_UNICAST' will
+                apply the specified power to all unicast receiver addresses. A value
+                of `ALL_MULTICAST` will apply it to all multicast receiver addresses.
+                A value of 'ALL' will apply the specified power to all addresses.
+            update_default_unicast  (bool): set the default unicast Tx params to the
+                provided 'power'.
+            update_default_multicast  (bool): set the default multicast Tx params to the
+                provided 'power'.          
+                
+        One of ``device_list`` or ``update_default_unicast`` or ``update_default_multicast``
+            must be set.  
         """
-        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_MULTICAST_MGMT, 
-                                           (power, self.max_tx_power_dbm, self.min_tx_power_dbm)))
-
-
-    def get_tx_power_unicast(self, device_list=None, new_assoc=False):
-        """Gets the unicast packet transmit power of the node for the given 
-        device(s).
-
-        This will get the unicast data packet Tx power (unicast managment 
-        packet Tx power is the same).
-
-        Args:
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
-                802.11 devices or single 802.11 device for which to get the 
-                unicast packet Tx power
-            new_assoc  (bool):  Get the unicast packet Tx power for all new 
-                station infos
-
-        Returns:
-            tx_powers (List of int):  
-                List of unicast packet Tx power for the given devices.
-
-        If both ``new_assoc`` and ``device_list`` are specified, the return 
-        list will always have the unicast packet Tx power for all new 
-        station infos as the first item in the list.
-        """
-        return self._node_get_tx_param_unicast(cmds.NodeProcTxPower, 'tx power', 
-                                               (0, self.max_tx_power_dbm, self.min_tx_power_dbm), 
-                                               device_list, new_assoc)
-
-
-    def get_tx_power_multicast_data(self):
-        """Gets the current multicast data packet transmit power for a node.
-
-        Returns:
-            tx_power (int):  
-                Multicast data packet transmit power for the node in dBm
-        """
-        return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_DATA,
-                                                  (0, self.max_tx_power_dbm, self.min_tx_power_dbm)))
-
-
-    def get_tx_power_multicast_mgmt(self):
-        """Gets the current multicast management packet transmit power for a node.
-
-        Returns:
-            tx_power (int):  
-                Multicast management packet transmit power for the node in dBm
-        """
-        return self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_MULTICAST_MGMT, 
-                                                  (0, self.max_tx_power_dbm, self.min_tx_power_dbm)))
-
+        self._node_set_tx_param(cmds.NodeProcTxPower, 'tx power', 
+                                        (power, self.max_tx_power_dbm, self.min_tx_power_dbm), 
+                                        'mgmt', device_list, update_default_unicast, update_default_multicast)
 
     def set_tx_power_ctrl(self, power):
         """Sets the control packet transmit power of the node.
@@ -1387,8 +1180,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             power (int):  Transmit power in dBm (a value between 
                 ``node.max_tx_power_dbm`` and ``node.min_tx_power_dbm``)
         """
-        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_NODE_TX_POWER_LOW, 
-                                           (power, self.max_tx_power_dbm, self.min_tx_power_dbm)))
+        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_CTRL, 0, 0,
+                                           (power, self.max_tx_power_dbm, self.min_tx_power_dbm), cmds.CMD_PARAM_TXPARAM_ADDR_NONE))
 
 
     def set_tx_power(self, power):
@@ -1403,25 +1196,16 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             * Default Multicast Data Packet Tx Power for new station infos
             * Control Packet Tx Power
 
-        It will also update the transmit power of all current station infos
-        that are part of the BSS on the node.
+        It will also update the transmit power for any frames destined for any
+        known stations.
 
         Args:
             power (int):  Transmit power in dBm (a value between 
                 ``node.max_tx_power_dbm`` and ``node.min_tx_power_dbm``)
         """
-        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_NODE_TX_POWER_ALL, 
-                                           (power, self.max_tx_power_dbm, self.min_tx_power_dbm)))
+        self.send_cmd(cmds.NodeProcTxPower(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_ALL, 1, 1,
+                                           (power, self.max_tx_power_dbm, self.min_tx_power_dbm), cmds.CMD_PARAM_TXPARAM_ADDR_ALL))
 
-
-    def get_tx_power(self):
-        """Gets the current default unicast data transmit power of the node 
-        for new station infos.
-
-        Returns:
-            tx_power (int): Current unicast data transmit power in dBm.
-        """
-        return self.get_tx_power_unicast(new_assoc=True)[0]
 
 
     #------------------------
@@ -1742,89 +1526,76 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         return rate_ok
 
 
-    def _node_set_tx_param_unicast(self, cmd, param_name, param,
-                                         device_list=None, curr_assoc=False, new_assoc=False):
-        """Sets the unicast transmit param of the node.
+    def _node_set_tx_param(self, cmd, param_name, param, frametype,
+                               device_list=None, update_default_unicast=None, update_default_multicast=None):
+        """Sets the data & management transmit parameters of the node.
 
         Args:
             cmd (Cmd):          Command to be used to set param
             param_name (str):   Name of parameter for error messages
             param (int):        Parameter to be set
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
-                802.11 devices or single 802.11 device for which to set the Tx 
-                unicast param
-            curr_assoc (bool):  All current station infos will have Tx unicast 
-                param set
-            new_assoc  (bool):  All new staion infos will have Tx unicast 
-                param set
+            frametype(str):     `data` or `mgmt`
+            device_list (list of WlanExpNode / WlanDevice 
+             or 'ALL_UNICAST' or 'ALL_MULTICAST' or 'ALL', optional):
+                List of 802.11 devices or single 802.11 device for which to set the 
+                unicast packet Tx power to 'power'. A value of 'ALL_UNICAST' will
+                apply the specified power to all unicast receiver addresses. A value
+                of `ALL_MULTICAST` will apply it to all multicast receiver addresses.
+                A value of 'ALL' will apply the specified power to all addresses.
+            update_default_unicast  (bool): set the default unicast Tx params to the
+                provided 'power'.
+            update_default_multicast  (bool): set the default multicast Tx params to the
+                provided 'power'.          
 
-        One of ``device_list``, ``curr_assoc`` or ``new_assoc`` must be set.  
-        The ``device_list`` and ``curr_assoc`` are mutually exclusive with 
-        ``curr_assoc`` having precedence (ie if ``curr_assoc`` is True, then 
-        ``device_list`` will be ignored).
+        One of ``device_list`` or ``default`` must be set.          
         """
-        if (device_list is None) and (not curr_assoc) and (not new_assoc):
+        if (device_list is None) and (update_default_unicast is None) and (update_default_multicast is None):
             msg  = "\nCannot set the unicast transmit {0}:\n".format(param_name)
-            msg += "    Must specify either a list of devices, all current station infos,\n"
-            msg += "    or all new station infos on which to set the {0}.".format(param_name)
+            msg += "    Must specify either a list of devices, 'ALL' current station infos,\n"
+            msg += "    or update_default_unicast or update_default_multicast {0}.".format(param_name)
             raise ValueError(msg)
-
-        if new_assoc:
-            self.send_cmd(cmd(cmds.CMD_PARAM_WRITE_DEFAULT, cmds.CMD_PARAM_UNICAST, param))
-
-        if curr_assoc:
-            self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_UNICAST, param))
+            
+        if( (update_default_unicast is True) or (device_list == 'ALL_UNICAST') or (device_list == 'ALL') ):
+            update_default_unicast = 1;
         else:
-            if (device_list is not None):
+            update_default_unicast = 0;
+
+        if( (update_default_multicast is True) or (device_list == 'ALL_MULTICAST') or (device_list == 'ALL') ):
+            update_default_multicast = 1;
+        else:
+            update_default_multicast = 0;
+            
+
+        if(frametype == 'data'):
+            if(device_list == 'ALL_UNICAST'):
+                self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_DATA, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST))
+            elif(device_list == 'ALL_MULTICAST'):
+                self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_DATA, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST))
+            elif(device_list == 'ALL'):
+                self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_DATA, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_ALL))                
+            elif(device_list is not None):
                 try:
                     for device in device_list:
-                        self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_UNICAST, param, device))
+                        self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_DATA, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_SINGLE, device))
                 except TypeError:
-                    self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_UNICAST, param, device_list))
-
-
-    def _node_get_tx_param_unicast(self, cmd, param_name, param=None, device_list=None, new_assoc=False):
-        """Gets the unicast transmit param of the node.
-
-        Args:
-            cmd (Cmd):          Command to be used to set param
-            param_name (str):   Name of parameter for error messages
-            param (int):        Optional parameter to pass information to cmd
-            device_list (list of WlanExpNode / WlanDevice, optional):  List of 
-                802.11 devices or single 802.11 device for which to get the Tx 
-                unicast param
-            new_assoc  (bool):  Get the Tx unicast param for all new station infos
-
-        Returns:
-            params (List of params):  
-                List of Tx unicast param for the given devices.
-
-        If both ``new_assoc`` and ``device_list`` are specified, the return 
-        list will always have the Tx unicast rate for all new station infos as 
-        the first item in the list.
-        """
-        ret_val = []
-
-        if (device_list is None) and (not new_assoc):
-            msg  = "\nCannot get the unicast transmit {0}:\n".format(param_name)
-            msg += "    Must specify either a list of devices or all new station infos\n"
-            msg += "    for which to get the {0}.".format(param_name)
-            raise ValueError(msg)
-
-        if new_assoc:
-            val = self.send_cmd(cmd(cmds.CMD_PARAM_READ_DEFAULT, cmds.CMD_PARAM_UNICAST, param))
-            ret_val.append(val)
-
-        if (device_list is not None):
-            try:
-                for device in device_list:
-                    val = self.send_cmd(cmd(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_UNICAST, param, device=device))
-                    ret_val.append(val)
-            except TypeError:
-                val = self.send_cmd(cmd(cmds.CMD_PARAM_READ, cmds.CMD_PARAM_UNICAST, param, device=device_list))
-                ret_val.append(val)
-
-        return ret_val
+                    self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_DATA, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_SINGLE, device_list))
+            else:
+                self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_DATA, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_NONE))
+        elif(frametype == 'mgmt'):
+            if(device_list == 'ALL_UNICAST'):
+                self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_MGMT, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST))
+            elif(device_list == 'ALL_MULTICAST'):
+                self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_MGMT, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST))
+            elif(device_list == 'ALL'):
+                self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_MGMT, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_ALL))                
+            elif(device_list is not None):
+                try:
+                    for device in device_list:
+                        self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_MGMT, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_SINGLE, device))
+                except TypeError:
+                    self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_MGMT, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_SINGLE, device_list))
+            else:
+                self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_MGMT, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_NONE))
 
 
     def _set_bb_gain(self, bb_gain):
@@ -2168,17 +1939,18 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
         return ret_val
 
     def get_bss_info(self):
-        """Get the node's BSS info 
+       print('WARNING: get_bss_info() is deprecated and will be removed in a future version. Please use get_network_info()')
+       return self.get_network_info()
 
-        The BSSInfo() returned by this method can be accessed like a 
-        dictionary and has the following fields:
+    def get_bss_config(self):
+        """Get BSS configuration of the network the node is a member of
+
+        Returns a dictionary with the following fields:
         
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | Field                       | Description                                                                                        |
             +=============================+====================================================================================================+
             | bssid                       |  BSS ID: 48-bit MAC address                                                                        |
-            +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | ssid                        |  SSID (32 chars max)                                                                               |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | channel                     |  Primary channel.  In util.wlan_channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 36, 40, 44, 48]     |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
@@ -2189,26 +1961,90 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             |                             |      * 0x02 - 'BW40_SEC_ABOVE'                                                                     |
             |                             |                                                                                                    |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | latest_beacon_rx_time       |  Value of System Time in microseconds of last beacon Rx                                            |
+            | ssid                        |  SSID (32 chars max)                                                                               |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | latest_beacon_rx_power      |  Last observed beacon Rx Power (dBm)                                                               |
+            | ht_capable                  |  1 - Network is capable of HT PHY mode                                                             |
+            |                             |  0 - Netowrk is not capable of NHT PHY mode                                                        |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | beacon_interval             |  Beacon interval - In time units of 1024 us'                                                       |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+            
+            | dtim_period                 |  
+            +-----------------------------+----------------------------------------------------------------------------------------------------+        
+            
+        Returns:
+            bss_config :  
+                BSS configuration of the network that the node is a member of (can be None)
+        """
+        network_info = self.get_network_info()
+        
+        if(network_info is None):
+            # Node has NULL active_network_info - return None
+            return None
+        
+        # Use the field names of the BSSConfig InfoStruct to transform the network_info
+        #  into a bss_config dictionary
+        from wlan_exp.info import BSSConfig
+        
+        bss_config_fields = BSSConfig().get_field_names()
+        
+        # Construct a dictionary with only BSSConfig fields
+        bss_config = {}
+        for f in bss_config_fields:
+            bss_config[f] = network_info[f]
+        
+        return bss_config
+
+    def get_network_info(self):
+        """Get information about the network the node is a member of
+
+        The NetworkInfo() returned by this method can be accessed like a 
+        dictionary and has the following fields:
+        
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | Field                       | Description                                                                                        |
+            +=============================+====================================================================================================+
+            | bssid                       |  BSS ID: 48-bit MAC address                                                                        |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | channel                     |  Primary channel.  In util.wlan_channels = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 36, 40, 44, 48]     |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | channel_type                |  Channel Type.  Value is one of:                                                                   |
+            |                             |                                                                                                    |
+            |                             |      * 0x00 - 'BW20'                                                                               |
+            |                             |      * 0x01 - 'BW40_SEC_BELOW'                                                                     |
+            |                             |      * 0x02 - 'BW40_SEC_ABOVE'                                                                     |
+            |                             |                                                                                                    |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | ssid                        |  SSID (32 chars max)                                                                               |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | ht_capable                  |  1 - Network is capable of HT PHY mode                                                             |
+            |                             |  0 - Netowrk is not capable of NHT PHY mode                                                        |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | beacon_interval             |  Beacon interval - In time units of 1024 us'                                                       |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+            
+            | dtim_period                 |  
+            +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | flags                       |  Value contains 1 bit fields:                                                                      |
+            |                             |                                                                                                    |
+            |                             |      * 0x0001 - 'KEEP'                                                                             |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
             | capabilities                |  Supported capabilities of the BSS.  Value contains 1 bit fields:                                  |
             |                             |                                                                                                    |
             |                             |      * 0x0001 - 'ESS'                                                                              |
             |                             |      * 0x0002 - 'IBSS'                                                                             |
-            |                             |      * 0x0004 - 'HT_CAPABLE'                                                                       |
             |                             |      * 0x0010 - 'PRIVACY'                                                                          |
             |                             |                                                                                                    |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
-            | beacon_interval             |  Beacon interval - In time units of 1024 us'                                                       |
+            | latest_beacon_rx_time       |  Value of System Time in microseconds of last beacon Rx                                            |
             +-----------------------------+----------------------------------------------------------------------------------------------------+
+            | latest_beacon_rx_power      |  Last observed beacon Rx Power (dBm)                                                               |
+            +-----------------------------+----------------------------------------------------------------------------------------------------+            
+
             
         Returns:
-            bss_info (BSSInfo):  
-                BSS Info of node (can be None if unassociated)
+            network_info (NetworkInfo):  
+                Information about network that the node is a member of (can be None)
         """
-        ret_val = self.send_cmd(cmds.NodeGetBSSInfo())
+        ret_val = self.send_cmd(cmds.NodeGetNetworkInfo())
         
         if (len(ret_val) == 1):
             ret_val = ret_val[0]
@@ -2219,13 +2055,13 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
 
 
     def get_network_list(self):
-        """Get a list of known networks (BSSInfo()s) on the node
+        """Get a list of known networks (NetworkInfo()s) on the node
 
         Returns:
-            networks (list of BSSInfo):  
-                List of BSSInfo() that are known to the node 
+            networks (list of NetworkInfo):  
+                List of NetworkInfo() that are known to the node 
         """
-        return self.send_cmd(cmds.NodeGetBSSInfo("ALL"))
+        return self.send_cmd(cmds.NodeGetNetworkInfo("ALL"))
 
 
 
@@ -2636,7 +2472,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                                                self.wlan_exp_ver_minor,
                                                self.wlan_exp_ver_revision)
 
-        caller_desc = "During initialization '{0}' returned version {1}".format(self.description, ver_str)
+        caller_desc = "During initialization '{0}' returned version {1}".format(self.sn_str, ver_str)
 
         status = version.wlan_exp_ver_check(major=self.wlan_exp_ver_major,
                                             minor=self.wlan_exp_ver_minor,

@@ -19,17 +19,19 @@
 #include "xil_types.h"
 #include "stdlib.h"
 #include "stdio.h"
-#include "xparameters.h"
+#include "wlan_platform_high.h"
 #include "xintc.h"
 #include "string.h"
 
 // WLAN includes
 #include "wlan_mac_common.h"
-#include "wlan_mac_userio_util.h"
 #include "wlan_mac_high.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_eth_util.h"
+#include "wlan_mac_pkt_buf_util.h"
+#include "wlan_platform_common.h"
+#include "wlan_mac_station_info.h"
 
 // WLAN Exp includes
 #include "wlan_exp_common.h"
@@ -41,8 +43,11 @@
 
 // User callback to see if the higher-level framework can send a packet to
 // the lower-level framework to be transmitted.
+extern platform_common_dev_info_t	 platform_common_dev_info;
 extern function_ptr_t        tx_poll_callback;
 static function_ptr_t        queue_state_change_callback;
+
+extern platform_high_dev_info_t	 platform_high_dev_info;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -51,7 +56,6 @@ static function_ptr_t        queue_state_change_callback;
 
 // List to hold all of the empty, free entries
 static dl_list               free_queue;
-
 
 // The tx_queues variable is an array of lists that will be filled with queue
 // entries from the free_queue list
@@ -224,10 +228,6 @@ void purge_queue(u16 queue_sel){
 		//     is called).  If purge_queue used a while loop with no checking on the number of elements removed,
 		//     then it could conceivably run forever.
 		//
-		// TODO:  Currently, this is a relatively slow implementation.  It could be sped up dramatically if
-		//     it used the dl_entry_move() function.  However, this would need to be tested to make sure there
-		//     were no corner cases where the framework was currently transmitting element from that queue.
-		//
 		for (i = 0; i < num_queued; i++) {
 			// The queue purge is not interrupt safe
 			//     NOTE:  Since there could be many elements in the queue, we need to toggle the interrupts
@@ -237,6 +237,12 @@ void purge_queue(u16 queue_sel){
 			prev_interrupt_state = wlan_mac_high_interrupt_stop();
 
 			curr_tx_queue_element = dequeue_from_head(queue_sel);
+
+			// Decrement the num_tx_queued field in the attached station_info_t. If this was the
+			// last queued packet for this station, this will allow the framework to recycle this
+			// station_info_t if it also has not been flagged as something to keep.
+			((tx_queue_buffer_t*)(curr_tx_queue_element->data))->station_info->num_tx_queued--;
+
 			queue_checkin(curr_tx_queue_element);
 
 			// Re-enable interrupts
@@ -293,7 +299,14 @@ void enqueue_after_tail(u16 queue_sel, dl_entry* tqe){
 	//         field is set after the current tx queue element has been added to the queue, so the
 	//         occupancy value includes itself.
 	//
-	((tx_queue_buffer_t*)(tqe->data))->tx_frame_info.queue_info.occupancy = (tx_queues[queue_sel].length & 0xFFFF);
+	((tx_queue_buffer_t*)(tqe->data))->queue_info.enqueue_timestamp = get_mac_time_usec();
+	((tx_queue_buffer_t*)(tqe->data))->queue_info.occupancy = (tx_queues[queue_sel].length & 0xFFFF);
+	((tx_queue_buffer_t*)(tqe->data))->queue_info.id = queue_sel;
+
+	//Increment the num_tx_queued field in the attached station_info_t. This will prevent
+	// the framework from removing the station_info_t out from underneath us while this
+	// packet is enqueued.
+	((tx_queue_buffer_t*)(tqe->data))->station_info->num_tx_queued++;
 
 	if(tx_queues[queue_sel].length == 1){
 		//If the queue element we just added is now the only member of this queue, we should inform
@@ -302,7 +315,7 @@ void enqueue_after_tail(u16 queue_sel, dl_entry* tqe){
 	}
 
     // Poll the TX queues to see if anything needs to be transmitted
-	tx_poll_callback(((tx_queue_buffer_t*)(tqe->data))->tx_frame_info.queue_info.pkt_buf_group);
+	tx_poll_callback();
 
 	return;
 }
@@ -345,7 +358,6 @@ dl_entry* dequeue_from_head(u16 queue_sel){
 				//the top-level MAC that the queue has transitioned from non-empty to empty.
 				queue_state_change_callback(queue_sel, 0);
 			}
-
 			return (dl_entry *) curr_dl_entry;
 		}
 	}
@@ -372,13 +384,7 @@ dl_entry* queue_checkout(){
 		tqe = ((dl_entry*)(free_queue.first));
 		dl_entry_remove(&free_queue,free_queue.first);
 
-		// Initialize the metadata type of the tx_queue entry since this
-		// framework does not guarantee a Tx Queue entry is all zero on checkout
-		((tx_queue_buffer_t*)(tqe->data))->metadata.metadata_type = QUEUE_METADATA_TYPE_IGNORE;
-
-		// Set the Tx Packet Buffer state to uninitialized. This will be set to READY
-		// after dequeue and CDMA into the actual Tx packet buffer
-		((tx_queue_buffer_t*)(tqe->data))->tx_frame_info.tx_pkt_buf_state = TX_PKT_BUF_UNINITIALIZED;
+		((tx_queue_buffer_t*)(tqe->data))->station_info = NULL;
 
 		return tqe;
 	} else {
@@ -401,9 +407,12 @@ dl_entry* queue_checkout(){
  *
  *****************************************************************************/
 void queue_checkin(dl_entry* tqe){
+
 	if (tqe != NULL) {
 	    dl_entry_insertEnd(&free_queue, (dl_entry*) tqe);
 	}
+
+	wlan_platform_free_queue_entry_notify();
 }
 
 
@@ -460,6 +469,7 @@ int queue_checkout_list(dl_list* list, u16 num_tqe){
 	//
 	// Ex.  For one queue entry, function will take 2.0 us (ie (0.16 * 1) + 1.84 = 2.0)
 	//
+
     return dl_entry_move(&free_queue, list, num_tqe);
 #endif
 }
@@ -501,68 +511,29 @@ int queue_checkin_list(dl_list * list) {
 #endif
 }
 
-
-
-/*****************************************************************************/
-/**
- * @brief   Dequeues one packet and submits it the lower MAC for wireless transmission
- *
- * This function is the link between the Tx queue framework and the lower-level MAC.
- * The calling function has determined the next wireless transmission should come
- * from the queue with ID queue_sel.  This function attempts to checkout 1 packet
- * from that queue. If a packet is available it is passed to wlan_mac_high_mpdu_transmit(),
- * which handles the actual copy-to-pkt-buf and Tx process.
- *
- * When a packet is successfully de-queued and submitted for transmission the
- * corresponding queue entry (tx_queue_element) is returned to the free pool.
- *
- * This function returns 0 if no packets are available in the requested queue or if
- * the MAC state machine is not ready to submit a new packet to the lower MAC for
- * transmission.
- *
- * @param   u16 queue_sel         - Queue ID from which to dequeue packet
- *
- * @return  Number of successfully transmitted packets (0 or 1)
- *
- *****************************************************************************/
-inline int dequeue_transmit_checkin(u16 queue_sel){
-	int                 return_value             = 0;
+void transmit_checkin(dl_entry* tx_queue_buffer_entry){
 	int                 tx_pkt_buf               = -1;
-	dl_entry  * curr_tx_queue_element;
-
 	tx_pkt_buf = wlan_mac_high_get_empty_tx_packet_buffer();
 
-	if (tx_pkt_buf != -1) {
-		// Get the Tx queue element to transmit
-		curr_tx_queue_element = dequeue_from_head(queue_sel);
+	if (tx_queue_buffer_entry == NULL) return;
 
-		if(curr_tx_queue_element != NULL){
-			// Transmit the Tx Queue element
-			//     NOTE:  This copies all the contents of the queue element to the
-			//         packet buffer so that the queue element can be safely returned
-			//         to the free pool
-			wlan_mac_high_mpdu_transmit(curr_tx_queue_element, tx_pkt_buf);
+	if( tx_pkt_buf != -1 ){
+		// Transmit the Tx Queue element
+		//     NOTE:  This copies all the contents of the queue element to the
+		//         packet buffer so that the queue element can be safely returned
+		//         to the free pool
+		wlan_mac_high_mpdu_transmit(tx_queue_buffer_entry, tx_pkt_buf);
 
-			// Check in the Tx Queue element because it is not long being used
-			queue_checkin(curr_tx_queue_element);
-
-#if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
-			// Update the Ethernet DMA
-			//     NOTE:  Given that there is now another free Tx queue element, let
-			//         the Ethernet sub-system know so that if it is ready, it can
-			//         use this Tx queue element to store a packet from Ethernet.
-			wlan_eth_dma_update();
-#endif
-
-			// Update return value
-			return_value = 1;
-		} else {
-			// Release the packet buffer because there is no Tx queue element to transmit
-			((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf))->tx_pkt_buf_state = TX_PKT_BUF_HIGH_CTRL;
-		}
+		// Decrement the num_tx_queued field in the attached station_info_t. If this was the
+		// last queued packet for this station, this will allow the framework to recycle this
+		// station_info_t if it also has not been flagged as something to keep.
+		((tx_queue_buffer_t*)(tx_queue_buffer_entry->data))->station_info->num_tx_queued--;
+	} else {
+		xil_printf("Error in transmit_checkin(): no free Tx packet buffers. Packet was freed without being sent\n");
 	}
 
-	return return_value;
+	// Check in the Tx Queue element because it is not long being used
+	queue_checkin(tx_queue_buffer_entry);
 }
 
 inline void queue_set_state_change_callback(function_ptr_t callback){

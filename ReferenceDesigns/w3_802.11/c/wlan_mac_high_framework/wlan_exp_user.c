@@ -22,10 +22,6 @@
 #include <stdio.h>
 #include <string.h>
 
-// WARP Includes
-
-// WLAN includes
-
 // WLAN Exp includes
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
@@ -76,7 +72,7 @@ extern function_ptr_t    wlan_exp_process_user_cmd_callback;
  *          http://warpproject.org/trac/wiki/802.11/wlan_exp/HowToAddCommand
  *
  *****************************************************************************/
-int process_user_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len) {
+int process_user_cmd(int socket_index, void* from, cmd_resp* command, cmd_resp* response, u32 max_resp_len) {
 
     //
     // IMPORTANT ENDIAN NOTES:

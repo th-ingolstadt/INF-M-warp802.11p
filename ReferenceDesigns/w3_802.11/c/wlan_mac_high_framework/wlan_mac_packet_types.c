@@ -25,11 +25,12 @@
 #include "wlan_mac_high.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_mgmt_tags.h"
-#include "wlan_mac_bss_info.h"
+#include "wlan_mac_network_info.h"
 #include "wlan_mac_packet_types.h"
+#include "wlan_mac_common.h"
 
 
-int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_header_80211_common* common, bss_info_t* bss_info) {
+int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_header_80211_common* common, network_info_t* network_info) {
 
 	ht_capabilities* 	ht_capabilities_element;
 	ht_information* 	ht_information_element;
@@ -40,7 +41,7 @@ int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_h
 	u32 packetLen_bytes;
 	mgmt_tag_template_t* mgmt_tag_template;
 
-	u8  real_ssid_len = min(strlen(bss_info->ssid), SSID_LEN_MAX);
+	u8  real_ssid_len = min(strlen(network_info->bss_config.ssid), SSID_LEN_MAX);
 
 	mac_header_80211* mac_header;
 	mac_header = (mac_header_80211*)(pkt_buf);
@@ -63,15 +64,15 @@ int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_h
 	//This field may be overwritten by CPU_LOW
 	beacon_probe_mgmt_header->timestamp = 0;
 
-	beacon_probe_mgmt_header->beacon_interval = bss_info->beacon_interval;
-	beacon_probe_mgmt_header->capabilities    = ((bss_info->capabilities & BSS_CAPABILITIES_BEACON_MASK) | CAPABILITIES_SHORT_TIMESLOT);
+	beacon_probe_mgmt_header->beacon_interval = network_info->bss_config.beacon_interval;
+	beacon_probe_mgmt_header->capabilities    = ((network_info->capabilities & BSS_CAPABILITIES_BEACON_MASK) | CAPABILITIES_SHORT_TIMESLOT);
 
 	mgmt_tag_template = (mgmt_tag_template_t *)( (void *)(pkt_buf) + sizeof(mac_header_80211) + sizeof(beacon_probe_frame) );
 
 
 	mgmt_tag_template->header.tag_element_id = MGMT_TAG_SSID;
 	mgmt_tag_template->header.tag_length = real_ssid_len;
-	memcpy((void *)(mgmt_tag_template->data),bss_info->ssid,real_ssid_len);
+	memcpy((void *)(mgmt_tag_template->data),network_info->bss_config.ssid,real_ssid_len);
 	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
 
@@ -88,7 +89,7 @@ int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_h
 	mgmt_tag_template->data[7] = (0x6C); 				//54Mbps  (64-QAM, 3/4)
 	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-	if ((bss_info->capabilities) & BSS_CAPABILITIES_HT_CAPABLE) {
+	if (network_info->bss_config.ht_capable) {
 		//Insert HT Capabilities and HT Information tags
 		mgmt_tag_template->header.tag_element_id = MGMT_TAG_HT_CAPABILITIES;
 		mgmt_tag_template->header.tag_length = 26;
@@ -110,7 +111,7 @@ int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_h
 		mgmt_tag_template->header.tag_length = 22;
 
 		ht_information_element = (ht_information*)mgmt_tag_template->data;
-		ht_information_element->channel = wlan_mac_high_bss_channel_spec_to_radio_chan(bss_info->chan_spec);
+		ht_information_element->channel = wlan_mac_high_bss_channel_spec_to_radio_chan(network_info->bss_config.chan_spec);
 		ht_information_element->ht_info_subset_1 = 0x00;	//only HT20 currently supported
 		ht_information_element->ht_info_subset_2 = 0x0004; //One or more STAs are not greenfield compatible
 		ht_information_element->ht_info_subset_3 = 0x0000;
@@ -127,7 +128,7 @@ int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_h
 	mgmt_tag_template->data[0] = 0; //Non ERP Present - not set, don't use protection, no barker preamble mode
 	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-	if ((bss_info->capabilities) & BSS_CAPABILITIES_HT_CAPABLE) {
+	if (network_info->bss_config.ht_capable) {
 		//Insert WMM tag
 		mgmt_tag_template->header.tag_element_id = MGMT_TAG_VENDOR_SPECIFIC;
 		mgmt_tag_template->header.tag_length = 24;
@@ -274,13 +275,13 @@ int wlan_create_deauth_disassoc_frame(void* pkt_buf, u8 frame_control_1, mac_hea
 
 
 
-int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_header_80211_common* common, bss_info_t* bss_info){
+int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_header_80211_common* common, network_info_t* network_info){
 	u32 packetLen_bytes;
 
 	ht_capabilities* ht_capabilities_element;
 	ht_information* ht_information_element;
 
-	u8  real_ssid_len = min(strlen(bss_info->ssid), SSID_LEN_MAX);
+	u8  real_ssid_len = min(strlen(network_info->bss_config.ssid), SSID_LEN_MAX);
 	mgmt_tag_template_t* mgmt_tag_template;
 
 
@@ -312,7 +313,7 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 
 	mgmt_tag_template->header.tag_element_id = MGMT_TAG_SSID;
 	mgmt_tag_template->header.tag_length = real_ssid_len;
-	memcpy((void *)(mgmt_tag_template->data),bss_info->ssid,real_ssid_len);
+	memcpy((void *)(mgmt_tag_template->data),network_info->bss_config.ssid,real_ssid_len);
 	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
 	//Top bit is whether or not the rate is mandatory (basic). Bottom 7 bits is in units of "number of 500kbps"
@@ -339,7 +340,7 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 	mgmt_tag_template->data[3] = (0x60);					//48Mbps
 	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-	if ((bss_info->capabilities) & BSS_CAPABILITIES_HT_CAPABLE) {
+	if (network_info->bss_config.ht_capable) {
 		//Note: This is the only place in the code where a STA decides whether or not to advertise that it is
 		// capable of HT rates. If it is joining a non-HT capable AP, it will omit these tags and pretend that
 		// it is only capable of transmitting and receiving the non-HT rates.
@@ -365,7 +366,7 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 		mgmt_tag_template->header.tag_length = 22;
 
 		ht_information_element = (ht_information*)mgmt_tag_template->data;
-		ht_information_element->channel = wlan_mac_high_bss_channel_spec_to_radio_chan(bss_info->chan_spec);
+		ht_information_element->channel = wlan_mac_high_bss_channel_spec_to_radio_chan(network_info->bss_config.chan_spec);
 		ht_information_element->ht_info_subset_1 = 0x00;
 		ht_information_element->ht_info_subset_2 = 0x0004; //One or more STAs are not greenfield compatible
 		ht_information_element->ht_info_subset_3 = 0x0000;
@@ -383,7 +384,7 @@ int wlan_create_reassoc_assoc_req_frame(void* pkt_buf, u8 frame_control_1, mac_h
 
 
 
-int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_common* common, u16 status, u16 AID, bss_info_t* bss_info) {
+int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_common* common, u16 status, u16 AID, network_info_t* network_info) {
 	u32 packetLen_bytes;
 
 	ht_capabilities* ht_capabilities_element;
@@ -427,7 +428,7 @@ int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_commo
 	mgmt_tag_template->data[7] = (0x6C);                //54Mbps  (64-QAM, 3/4)
 	mgmt_tag_template = (void*)mgmt_tag_template + ( mgmt_tag_template->header.tag_length + sizeof(mgmt_tag_header) ); //Advance tag template forward
 
-	if ((bss_info->capabilities) & BSS_CAPABILITIES_HT_CAPABLE) {
+	if (network_info->bss_config.ht_capable) {
 		//Insert HT Capabilities and HT Information tags
 		mgmt_tag_template->header.tag_element_id = MGMT_TAG_HT_CAPABILITIES;
 		mgmt_tag_template->header.tag_length = 26;
@@ -449,7 +450,7 @@ int wlan_create_association_response_frame(void* pkt_buf, mac_header_80211_commo
 		mgmt_tag_template->header.tag_length = 22;
 
 		ht_information_element = (ht_information*)mgmt_tag_template->data;
-		ht_information_element->channel = wlan_mac_high_bss_channel_spec_to_radio_chan(bss_info->chan_spec);
+		ht_information_element->channel = wlan_mac_high_bss_channel_spec_to_radio_chan(network_info->bss_config.chan_spec);
 		ht_information_element->ht_info_subset_1 = 0x00;
 		ht_information_element->ht_info_subset_2 = 0x0004; //One or more STAs are not greenfield compatible
 		ht_information_element->ht_info_subset_3 = 0x0000;

@@ -28,12 +28,8 @@
 #ifndef WLAN_MAC_ENTRIES_H_
 #define WLAN_MAC_ENTRIES_H_
 
-#include "wlan_mac_high_sw_config.h"
-
-#include "wlan_mac_802_11_defs.h"
-#include "wlan_mac_high.h"
-#include "wlan_mac_common.h"
-#include "wlan_mac_bss_info.h"
+#include "wlan_common_types.h"
+#include "xil_types.h"
 
 #define WLAN_MAC_ENTRIES_LOG_CHAN_EST
 
@@ -105,6 +101,11 @@
 
 /*********************** Global Structure Definitions ************************/
 
+// Forward declarations
+struct tx_frame_info_t;
+struct rx_frame_info_t;
+struct wlan_mac_low_tx_details_t;
+
 //-----------------------------------------------
 // Node Info Entry
 //   NOTE:  This structure was designed to work easily with the WLAN Exp Tag
@@ -116,7 +117,7 @@
 //   NOTE:  This structure is always at the start of the event log.  There is
 //       the methods to add this entry type to the log are in wlan_mac_event_log.*
 //
-typedef struct{
+typedef struct node_info_entry{
     u64                 	timestamp;                         // Timestamp of the node info
     														   //   - This will reflect the oldest time of an
                                                            	   //     entry for a given log wrap
@@ -146,7 +147,7 @@ typedef struct{
 //
 // NOTE:  The longest Experiment Info is:  ((2^16 - 1) - (sizeof(exp_info_entry) - 4)) bytes
 //
-typedef struct{
+typedef struct exp_info_entry{
     u64                 timestamp;               // Timestamp of the log entry
     u16                 info_type;               // Type of Experiment Info
     u16                 info_length;             // Length of the experiment info data (in bytes)
@@ -168,10 +169,8 @@ typedef struct{
 //
 //     (temperature_entry *) wlan_exp_log_create_entry(ENTRY_TYPE_TEMPERATURE, sizeof(temperature_entry))
 //
-typedef struct{
+typedef struct temperature_entry{
     u64                 timestamp;               // Timestamp of the log entry
-    u32                 id;                      // Node ID
-    u32                 serial_number;           // Node serial number
     u32                 curr_temp;               // Current Temperature of the node
     u32                 min_temp;                // Minimum recorded temperature of the node
     u32                 max_temp;                // Maximum recorded temperature of the node
@@ -186,7 +185,7 @@ typedef struct{
 //
 //     (time_info_entry *) wlan_exp_log_create_entry(ENTRY_TYPE_TIME_INFO, sizeof(time_info_entry))
 //
-typedef struct{
+typedef struct time_info_entry{
     u64                 timestamp;               // Timestamp of the log entry (Timestamp of MAC time of old timebase)
     u32                 time_id;                 // ID of the time info entry so that these entries
                                                  //   can be synced across multiple nodes
@@ -213,7 +212,7 @@ typedef struct{
 //-----------------------------------------------
 // Common Receive Entry
 //
-typedef struct{
+typedef struct rx_common_entry{
     u64                 timestamp;               // Timestamp of the log entry
     u8                  timestamp_frac;          // Additional fractional timestamp (160MHz clock units)
     u8                  phy_samp_rate;           // PHY Sampling Rate Mode
@@ -227,8 +226,8 @@ typedef struct{
     u8                  pkt_type;                // Type of packet
     u8                  chan_num;                // Channel on which the packet was received
     u8                  reserved1;
-    u8                  rf_gain;                 // RF gain of the received packet
-    u8                  bb_gain;                 // Baseband gain of the received packet
+    u8                  rx_gain_index;           // Radio Rx gain index of the received packet
+    u8                  reserved2;
     u16                 flags;                   // 1-bit flags
 } rx_common_entry;
 #define RX_FLAGS_FCS_GOOD   			0x0001
@@ -250,7 +249,7 @@ typedef struct{
 //
 //     (rx_ofdm_entry *) wlan_exp_log_create_entry(ENTRY_TYPE_RX_OFDM, sizeof(rx_ofdm_entry) + extra_payload)
 //
-typedef struct{
+typedef struct rx_ofdm_entry{
     rx_common_entry     rx_entry;
 
 #ifdef WLAN_MAC_ENTRIES_LOG_CHAN_EST
@@ -272,7 +271,7 @@ typedef struct{
 //
 //     (rx_dsss_entry *) wlan_exp_log_create_entry(ENTRY_TYPE_RX_DSSS, sizeof(rx_dsss_entry) + extra_payload)
 //
-typedef struct{
+typedef struct rx_dsss_entry{
     rx_common_entry     rx_entry;
     u32                 mac_payload_log_len;     // Number of payload bytes actually recorded in log entry
     u32                 mac_payload[MIN_MAC_PAYLOAD_LOG_LEN/4];
@@ -291,7 +290,7 @@ typedef struct{
 //
 //     (tx_high_entry *) wlan_exp_log_create_entry(ENTRY_TYPE_TX_HIGH, sizeof(tx_high_entry) + extra_payload)
 //
-typedef struct{
+typedef struct tx_high_entry{
     u64                 timestamp_create;        // Timestamp of the log entry creation
     u32                 delay_accept;            // Delay from timestamp_create to when accepted by CPU Low
     u32                 delay_done;              // Delay from delay_accept to when CPU Low was done
@@ -323,7 +322,7 @@ typedef struct{
 //
 //     (tx_low_entry *) wlan_exp_log_create_entry(ENTRY_TYPE_TX_LOW, sizeof(tx_low_entry))
 //
-typedef struct{
+typedef struct tx_low_entry{
     u64                 timestamp_send;          // Timestamp of when packet was sent
     u64                 unique_seq;              // Unique packet sequence number
     phy_tx_params_t     phy_params;              // Transmission parameters
@@ -372,10 +371,10 @@ void             * wlan_exp_log_create_entry(u16 entry_type_id, u16 entry_size);
 //-----------------------------------------------
 // Methods to create an entry
 //
-tx_high_entry    * wlan_exp_log_create_tx_high_entry(tx_frame_info_t* tx_frame_info);
-tx_low_entry     * wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details);
+tx_high_entry* wlan_exp_log_create_tx_high_entry(struct tx_frame_info_t* tx_frame_info);
+tx_low_entry* wlan_exp_log_create_tx_low_entry(struct tx_frame_info_t* tx_frame_info, struct wlan_mac_low_tx_details_t* tx_low_details);
 
-rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info);
+rx_common_entry* wlan_exp_log_create_rx_entry(struct rx_frame_info_t* rx_frame_info);
 
 //-----------------------------------------------
 // Print function for all entries

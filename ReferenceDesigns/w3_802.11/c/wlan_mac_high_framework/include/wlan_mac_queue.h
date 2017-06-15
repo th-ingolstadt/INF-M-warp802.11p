@@ -10,51 +10,37 @@
  *
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
-/***************************** Include Files *********************************/
-
-#include "wlan_mac_high_sw_config.h"
-#include "stddef.h"
-
-#include "wlan_mac_common.h"
-#include "wlan_mac_pkt_buf_util.h"
-
-#include "wlan_mac_dl_list.h"
-
 
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_QUEUE_H_
 #define WLAN_MAC_QUEUE_H_
 
+/***************************** Include Files *********************************/
+
+#include "wlan_mac_high_sw_config.h"
+#include "xil_types.h"
+#include "wlan_common_types.h"
+
+//Forward declarations
+struct station_info_t;
 
 //-----------------------------------------------
 // Queue defines
 //
 #define QUEUE_BUFFER_SIZE                                  0x1000    // 4KB
 
-
-//-----------------------------------------------
-// Queue Metadata defines
-//
-#define QUEUE_METADATA_TYPE_IGNORE                         0x00
-#define QUEUE_METADATA_TYPE_STATION_INFO                   0x01
-#define QUEUE_METADATA_TYPE_TX_PARAMS                      0x02
-
-
-/*********************** Global Structure Definitions ************************/
-
-typedef struct{
-	u8    metadata_type;
-	u8    reserved[3];
-	u32   metadata_ptr;
-} tx_queue_metadata_t;
-
-typedef struct{
-	tx_queue_metadata_t   metadata;
-	dl_entry*			  tx_queue_entry;
-	tx_frame_info_t       tx_frame_info;
-	u8                    phy_hdr_pad[PHY_TX_PKT_BUF_PHY_HDR_SIZE];
-	u8                    frame[MAX_PKT_SIZE_B];
+typedef struct tx_queue_buffer_t{
+	struct station_info_t*	station_info;
+	tx_queue_details_t      queue_info;
+	u16						length;
+	u16						flags;
+	dl_entry*			  	tx_queue_entry;
+	u8                    	frame[MAX_PKT_SIZE_B];
 } tx_queue_buffer_t;
+
+#define TX_QUEUE_BUFFER_FLAGS_FILL_TIMESTAMP	0x0001
+#define TX_QUEUE_BUFFER_FLAGS_FILL_DURATION		0x0002
+#define TX_QUEUE_BUFFER_FLAGS_FILL_UNIQ_SEQ		0x0004
 
 
 /*************************** Function Prototypes *****************************/
@@ -63,7 +49,7 @@ void                queue_init();
 
 void                enqueue_after_tail(u16 queue_sel, dl_entry* tqe);
 dl_entry* 			dequeue_from_head(u16 queue_sel);
-int          		dequeue_transmit_checkin(u16 queue_sel);
+void 				transmit_checkin(dl_entry* tx_queue_buffer_entry);
 void 	    		queue_set_state_change_callback(function_ptr_t callback);
 
 dl_entry* 			queue_checkout();

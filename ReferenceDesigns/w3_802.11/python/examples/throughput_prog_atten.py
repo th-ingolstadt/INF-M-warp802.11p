@@ -116,11 +116,11 @@ rate_info = util.get_rate_info(mcs, phy_mode)
 # Put each node in a known, good state
 for node in nodes:
     node.set_tx_rate_unicast(mcs, phy_mode, curr_assoc=True, new_assoc=True)
-    node.reset(log=True, txrx_counts=True, ltg=True, queue_data=True) # Do not reset associations/bss_info
+    node.reset(log=True, txrx_counts=True, ltg=True, queue_data=True) # Do not reset associations/network_info
 
     # Get some additional information about the experiment
-    bss_info = node.get_bss_info()
-    channel  = bss_info['channel']
+    network_info = node.get_network_info()
+    channel  = network_info['channel']
 
     print("\n{0}:".format(node.name))
     print("    Channel  = {0}".format(util.channel_info_to_str(util.get_channel_info(channel))))

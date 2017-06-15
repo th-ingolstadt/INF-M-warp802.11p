@@ -16,28 +16,20 @@
 #include "wlan_mac_high_sw_config.h"
 
 // Xilinx SDK includes
-#include "xparameters.h"
-#include "stdio.h"
-#include "stdlib.h"
-#include "xtmrctr.h"
-#include "xio.h"
-#include "string.h"
-#include "xintc.h"
+#include "xil_types.h"
 
 // WLAN includes
-#include "wlan_mac_time_util.h"
-#include "wlan_mac_802_11_defs.h"
-#include "wlan_mac_queue.h"
+#include "wlan_platform_common.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_entries.h"
-#include "wlan_mac_high.h"
-#include "wlan_mac_packet_types.h"
-#include "wlan_mac_eth_util.h"
 #include "wlan_mac_ap.h"
 #include "ascii_characters.h"
 #include "wlan_mac_schedule.h"
-#include "wlan_mac_bss_info.h"
+#include "wlan_mac_network_info.h"
 #include "wlan_mac_station_info.h"
+#include "wlan_mac_high.h"
+#include "wlan_mac_queue.h"
+#include "wlan_mac_dl_list.h"
 
 
 //
@@ -63,16 +55,15 @@ void uart_rx(u8 rxByte){ };
 
 
 /*********************** Global Variable Definitions *************************/
-extern tx_params_t                          default_unicast_data_tx_params;
+extern tx_params_t                          default_unicast_data_tx_params; //FIXME: this is vestigial. Find similar occurences in other UART code
 
-extern bss_info_t*                          active_bss_info;
+extern network_info_t*                      active_network_info;
 
 /*************************** Variable Definitions ****************************/
 
 static volatile u8                          uart_mode            = UART_MODE_MAIN;
 static volatile u32                         schedule_id;
 static volatile u8                          print_scheduled      = 0;
-
 
 /*************************** Functions Prototypes ****************************/
 
@@ -168,7 +159,7 @@ void uart_rx(u8 rxByte){
 				// 'a' - Print BSS information
 				//
 				case ASCII_a:
-					print_bss_info();
+					print_network_info();
 				break;
 
 				// ----------------------------------------
@@ -235,11 +226,11 @@ void print_station_status(){
 
 	u64 timestamp;
 
-	if((active_bss_info != NULL) && (uart_mode == UART_MODE_INTERACTIVE)){
+	if((active_network_info != NULL) && (uart_mode == UART_MODE_INTERACTIVE)){
 		timestamp = get_system_time_usec();
 		xil_printf("\f");
 
-		curr_entry = active_bss_info->members.first;
+		curr_entry = active_network_info->members.first;
 
 		while(curr_entry != NULL){
 			curr_station_info = (station_info_t*)(curr_entry->data);
@@ -270,8 +261,8 @@ void print_queue_status(){
 	xil_printf("\nQueue Status:\n");
 	xil_printf(" FREE || MCAST|");
 
-	if(active_bss_info != NULL){
-		curr_entry = active_bss_info->members.first;
+	if(active_network_info != NULL){
+		curr_entry = active_network_info->members.first;
 		while(curr_entry != NULL){
 			curr_station_info = (station_info_t*)(curr_entry->data);
 			xil_printf("%6d|", curr_station_info->ID);
@@ -282,8 +273,8 @@ void print_queue_status(){
 
 
 	xil_printf("%6d||%6d|",queue_num_free(),queue_num_queued(MCAST_QID));
-	if(active_bss_info != NULL){
-		curr_entry = active_bss_info->members.first;
+	if(active_network_info != NULL){
+		curr_entry = active_network_info->members.first;
 		while(curr_entry != NULL){
 			curr_station_info = (station_info_t*)(curr_entry->data);
 			xil_printf("%6d|", queue_num_queued(STATION_ID_TO_QUEUE_ID(curr_station_info->ID)));

@@ -14,13 +14,9 @@
 
 /***************************** Include Files *********************************/
 #include "wlan_mac_high_sw_config.h"
-
-#include "wlan_exp_common.h"
-#include "wlan_exp_transport.h"
-
-#include "wlan_mac_bss_info.h"
-#include "wlan_mac_station_info.h"
-#include "wlan_mac_high.h"
+#include "xil_types.h"
+#include "wlan_common_types.h"
+#include "wlan_high_types.h"
 
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_EXP_NODE_H_
@@ -70,17 +66,21 @@
 
 #define CMD_PARAM_WRITE_VAL                                0x00000000
 #define CMD_PARAM_READ_VAL                                 0x00000001
-#define CMD_PARAM_WRITE_DEFAULT_VAL                        0x00000002
-#define CMD_PARAM_READ_DEFAULT_VAL                         0x00000004
 #define CMD_PARAM_RSVD                                     0xFFFFFFFF
 
 #define CMD_PARAM_SUCCESS                                  0x00000000
 #define CMD_PARAM_WARNING                                  0xF0000000
 #define CMD_PARAM_ERROR                                    0xFF000000
 
-#define CMD_PARAM_UNICAST_VAL                              0x00000000
-#define CMD_PARAM_MULTICAST_DATA_VAL                       0x00000001
-#define CMD_PARAM_MULTICAST_MGMT_VAL                       0x00000002
+#define CMD_PARAM_TXPARAM_MASK_DATA		                   0x00000001
+#define CMD_PARAM_TXPARAM_MASK_MGMT		                   0x00000002
+#define CMD_PARAM_TXPARAM_MASK_CTRL		                   0x00000004
+
+#define CMD_PARAM_TXPARAM_ADDR_NONE                        0x00000000
+#define CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST                 0x00000001
+#define CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST               0x00000002
+#define CMD_PARAM_TXPARAM_ADDR_ALL               		   0x00000003
+#define CMD_PARAM_TXPARAM_ADDR_SINGLE                      0x00000004
 
 #define CMD_PARAM_NODE_CONFIG_ALL                          0xFFFFFFFF
 
@@ -266,11 +266,13 @@
 //         defined above (except for the eth_dev field).  This structure will be used as storage for
 //         the Tag Parameter values.
 //
-typedef struct {
+
+struct transport_eth_dev_info;
+typedef struct wlan_exp_node_info{
 
     u32                      node_type;                    // Type of node
     u32                      node_id;                      // Node ID (Only bits [15:0] are valid)
-    u32                      hw_generation;                // Node Hardware generation
+    u32                      platform_id;                  // Platform ID
 
     u32                      serial_number;                // Node serial number
     u32                      fpga_dna[FPGA_DNA_LEN];       // Node FPGA DNA number
@@ -298,61 +300,9 @@ typedef struct {
     // END ADD NEW TAG PARAMETERS HERE
     //
 
-    transport_eth_dev_info  * eth_dev;                     // Information on Ethernet device
+    struct transport_eth_dev_info* eth_dev;                     // Information on Ethernet device
 
 } wlan_exp_node_info;
-
-
-
-//-----------------------------------------------
-// wlan_exp Station Info
-//
-//     Only used to communicate with WLAN Exp Host.
-//
-typedef struct __attribute__((__packed__)){
-    // All station_info_t common fields
-    STATION_INFO_COMMON_FIELDS
-} wlan_exp_station_info_t;
-
-CASSERT(sizeof(wlan_exp_station_info_t) == 64, wlan_exp_station_info_alignment_check);
-
-
-#define STATION_INFO_ENTRY_NO_CHANGE             0
-#define STATION_INFO_ENTRY_ZERO_AID              1
-
-
-
-//-----------------------------------------------
-// wlan_exp Basic Service Set (BSS) Info
-//
-//     Only used to communicate with WLAN Exp Host.
-//
-typedef struct __attribute__((__packed__)){
-    // All bss_info_t common fields
-    BSS_INFO_COMMON_FIELDS
-} wlan_exp_bss_info_t;
-
-CASSERT(sizeof(wlan_exp_bss_info_t) == 56, wlan_exp_bss_info_alignment_check);
-
-
-
-//-----------------------------------------------
-// wlan_exp Tx/Rx Counts
-//
-//     Only used to communicate with WLAN Exp Host.
-//
-
-typedef struct{
-	STATION_TXRX_COUNTS_COMMON_FIELDS
-} wlan_exp_station_txrx_counts_lite_t;
-
-typedef struct{
-    u64                 				timestamp;                 // Timestamp of the log entry
-    u8									addr[6];				   // MAC address associated with this counts struct
-    u16									reserved;
-    wlan_exp_station_txrx_counts_lite_t counts;                    // Framework's counts struct
-} wlan_exp_station_txrx_counts_t;
-CASSERT(sizeof(wlan_exp_station_txrx_counts_t) == 128, wlan_exp_station_txrx_counts_alignment_check);
 
 
 /*************************** Function Prototypes *****************************/
@@ -361,18 +311,17 @@ CASSERT(sizeof(wlan_exp_station_txrx_counts_t) == 128, wlan_exp_station_txrx_cou
 // Initialization Commands
 int  wlan_exp_node_init           (u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wlan_exp_hw_addr, u8 *wlan_hw_addr);
 void wlan_exp_node_set_type_design(u32 type_design);
-void wlan_exp_node_set_type_high  (u32 type_high, compilation_details_t* compilation_details);
+void wlan_exp_node_set_type_high  (application_role_t application_role, compilation_details_t* compilation_details);
 void wlan_exp_node_set_type_low	  (u32 type_low, compilation_details_t* compilation_details);
 
 // Callbacks
 void wlan_exp_reset_all_callbacks                     ();
 void wlan_exp_set_process_node_cmd_callback           (void(*callback)());
 void wlan_exp_set_purge_all_data_tx_queue_callback    (void(*callback)());
-void wlan_exp_set_tx_cmd_add_association_callback     (void(*callback)());
 void wlan_exp_set_process_user_cmd_callback           (void(*callback)());
 void wlan_exp_set_beacon_ts_update_mode_callback      (void(*callback)());
 void wlan_exp_set_process_config_bss_callback         (void(*callback)());
-void wlan_exp_set_active_bss_info_getter_callback	  (void(*callback)());
+void wlan_exp_set_active_network_info_getter_callback	  (void(*callback)());
 
 
 // WLAN Exp commands
@@ -389,7 +338,6 @@ void node_info_set_max_assn       (u32 max_assn  );
 void node_info_set_event_log_size (u32 log_size  );
 void node_info_set_max_counts     (u32 max_counts);
 
-u32  node_get_node_id             (void);
 u32  node_get_serial_number       (void);
 
 #endif //WLAN_SW_CONFIG_ENABLE_WLAN_EXP

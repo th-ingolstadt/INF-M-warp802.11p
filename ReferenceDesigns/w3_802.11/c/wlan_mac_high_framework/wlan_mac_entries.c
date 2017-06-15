@@ -33,10 +33,11 @@
 // WLAN includes
 #include "wlan_mac_common.h"
 #include "wlan_mac_pkt_buf_util.h"
-#include "wlan_mac_sysmon_util.h"
-#include "wlan_mac_time_util.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_entries.h"
+#include "wlan_mac_802_11_defs.h"
+#include "wlan_platform_common.h"
+#include "wlan_mac_packet_types.h"
 
 // WLAN Exp includes
 #include "wlan_exp_common.h"
@@ -208,7 +209,7 @@ void * wlan_exp_log_create_entry(u16 entry_type_id, u16 entry_size){
  *                               NOTE: This can be NULL if an entry was not allocated
  *
  *****************************************************************************/
-tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details){
+tx_low_entry* wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, wlan_mac_low_tx_details_t* tx_low_details){
 
     tx_low_entry*     tx_low_event_log_entry  = NULL;
     void*             mac_payload;
@@ -396,7 +397,7 @@ tx_low_entry * wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, 
  *                               NOTE: This can be NULL if an entry was not allocated
  *
  *****************************************************************************/
-tx_high_entry * wlan_exp_log_create_tx_high_entry(tx_frame_info_t* tx_frame_info){
+tx_high_entry* wlan_exp_log_create_tx_high_entry(tx_frame_info_t* tx_frame_info){
 
     tx_high_entry*    tx_high_event_log_entry = NULL;
     void*             mac_payload             = (u8*)tx_frame_info + PHY_TX_PKT_BUF_MPDU_OFFSET;
@@ -457,8 +458,8 @@ tx_high_entry * wlan_exp_log_create_tx_high_entry(tx_frame_info_t* tx_frame_info
         }
 
         // Populate the log entry
-        tx_high_event_log_entry->timestamp_create         = tx_frame_info->timestamp_create;
-        tx_high_event_log_entry->delay_accept             = (u32)(tx_frame_info->timestamp_accept - tx_frame_info->timestamp_create);
+        tx_high_event_log_entry->timestamp_create         = tx_frame_info->queue_info.enqueue_timestamp;
+        tx_high_event_log_entry->delay_accept             = (u32)(tx_frame_info->timestamp_accept - tx_frame_info->queue_info.enqueue_timestamp);
         tx_high_event_log_entry->delay_done               = (u32)(tx_frame_info->timestamp_done - tx_frame_info->timestamp_accept);
         tx_high_event_log_entry->unique_seq               = tx_frame_info->unique_seq;
         tx_high_event_log_entry->num_tx                   = tx_frame_info->num_tx_attempts;              // TODO: Add long/short distinction to event log
@@ -503,7 +504,7 @@ tx_high_entry * wlan_exp_log_create_tx_high_entry(tx_frame_info_t* tx_frame_info
  *                                    NOTE: This can be NULL if an entry was not allocated
  *
  *****************************************************************************/
-rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
+rx_common_entry* wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
 
     rx_common_entry*  rx_event_log_entry      = NULL;
     tx_low_entry*     tx_low_event_log_entry  = NULL; //This is for any inferred CTRL transmissions
@@ -522,7 +523,10 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
 
     pkt_id = (ltg_packet_id_t*)(mac_payload_ptr_u8 + sizeof(mac_header_80211));
 
-    typedef enum {PAYLOAD_FIRST, CHAN_EST_FIRST} copy_order_t;
+    typedef enum copy_order_t{
+    	PAYLOAD_FIRST,
+    	CHAN_EST_FIRST
+    } copy_order_t;
     copy_order_t      copy_order;
 
     if ((((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_DATA) && (log_entry_en_mask & ENTRY_EN_MASK_TXRX_MPDU)) ||
@@ -654,8 +658,7 @@ rx_common_entry * wlan_exp_log_create_rx_entry(rx_frame_info_t* rx_frame_info){
 
             rx_event_log_entry->pkt_type       = rx_80211_header->frame_control_1;
             rx_event_log_entry->chan_num       = rx_frame_info->channel;
-            rx_event_log_entry->rf_gain        = rx_frame_info->rf_gain;
-            rx_event_log_entry->bb_gain        = rx_frame_info->bb_gain;
+            rx_event_log_entry->rx_gain_index  = rx_frame_info->rx_gain_index;
 
             // Start second copy based on the copy order
             switch(copy_order){
@@ -1231,32 +1234,20 @@ void add_time_info_entry(u64 timestamp, u64 mac_time, u64 system_time, u64 host_
  *****************************************************************************/
 u32 add_temperature_to_log() {
 
-
     temperature_entry  * entry;
     u32                  entry_size        = sizeof(temperature_entry);
-    wlan_mac_hw_info_t * hw_info;
+//    wlan_mac_hw_info_t * hw_info;
 
-    hw_info = get_mac_hw_info();
+//    hw_info = get_mac_hw_info();
 
     entry = (temperature_entry *)wlan_exp_log_create_entry(ENTRY_TYPE_TEMPERATURE, entry_size);
 
     if (entry != NULL) {
         entry->timestamp     = get_mac_time_usec();
-#if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
-        entry->id            = node_get_node_id();
-#else
-        // TODO: The notion of a "node ID" is very wlan_exp-centric. The temperature log entry
-        // should not have this field. I'd argue it doesn't need any identifying fields; the identity
-        // of the the source of this temperature reading is unambiguous based upon which log file
-        // it is in.
-        entry->id            = 0;
-#endif
 
-        // TODO: serial number unnecessary for the same reason as above.
-        entry->serial_number = hw_info->serial_number;
-        entry->curr_temp     = get_current_temp();
-        entry->min_temp      = get_min_temp();
-        entry->max_temp      = get_max_temp();
+        entry->curr_temp     = wlan_platform_get_current_temp();
+        entry->min_temp      = wlan_platform_get_min_temp();
+        entry->max_temp      = wlan_platform_get_max_temp();
 
 #ifdef _DEBUG_
         xil_printf("[%d] Node %d (W3-a-%05d)= (%d %d %d)\n", (u32)entry->timestamp, entry->id, entry->serial_number,
@@ -1267,6 +1258,7 @@ u32 add_temperature_to_log() {
     }
 
     return XST_FAILURE;
-}
 
+
+}
 #endif //WLAN_SW_CONFIG_ENABLE_LOGGING

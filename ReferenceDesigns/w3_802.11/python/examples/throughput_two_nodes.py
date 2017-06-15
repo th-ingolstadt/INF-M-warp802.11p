@@ -11,9 +11,9 @@ between an AP and an associated STA using the AP's local traffic generator
 
 Hardware Setup:
   - Requires two WARP v3 nodes
-    - One node configured as AP using 802.11 Reference Design v1.5 or later
-    - One node configured as STA using 802.11 Reference Design v1.5 or later
-    - Two nodes configured as IBSS using 802.11 Reference Design v1.5 or later
+    - One node configured as AP using 802.11 Reference Design v1.7 or later
+    - One node configured as STA using 802.11 Reference Design v1.7 or later
+    - Two nodes configured as IBSS using 802.11 Reference Design v1.7 or later
   - PC NIC and ETH B on WARP v3 nodes connected to common Ethernet switch
 
 Required Script Changes:
@@ -79,6 +79,7 @@ n_ap_l   = util.filter_nodes(nodes=nodes, mac_high='AP',   serial_number=NODE_SE
 n_sta_l  = util.filter_nodes(nodes=nodes, mac_high='STA',  serial_number=NODE_SERIAL_LIST, warn=False)
 n_ibss_l = util.filter_nodes(nodes=nodes, mac_high='IBSS', serial_number=NODE_SERIAL_LIST, warn=False)
 
+
 # Check that setup is valid:
 #     1) AP and STA
 #     2) Two IBSS nodes
@@ -133,7 +134,7 @@ for node in [node1, node2]:
     node.enable_ethernet_portal(enable=False)
     node.set_tx_rate_unicast(mcs, phy_mode, curr_assoc=True, new_assoc=True)
     node.reset(log=True, txrx_counts=True, ltg=True, queue_data=True) # Do not reset associations/bss_info
-    bss_info = node.get_bss_info()
+    network_info = node.get_network_info()
 
     msg = ""
     if (node == node1):
@@ -142,7 +143,7 @@ for node in [node1, node2]:
         msg += "\nNode 2: \n"
 
     msg += "    Description = {0}\n".format(node.description)
-    msg += "    Channel     = {0}\n".format(util.channel_info_to_str(util.get_channel_info(bss_info['channel'])))
+    msg += "    Channel     = {0}\n".format(util.channel_info_to_str(util.get_channel_info(network_info['channel'])))
     msg += "    Rate        = {0}\n".format(util.rate_info_to_str(rate_info))
     print(msg)
 

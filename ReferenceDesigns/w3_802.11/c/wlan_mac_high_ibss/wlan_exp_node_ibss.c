@@ -32,18 +32,18 @@
 
 // WLAN includes
 #include "wlan_mac_event_log.h"
-#include "wlan_mac_bss_info.h"
+#include "wlan_mac_network_info.h"
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_ibss.h"
 #include "wlan_mac_station_info.h"
-
+#include "wlan_mac_high.h"
 
 /*************************** Constant Definitions ****************************/
 
 
 /*********************** Global Variable Definitions *************************/
 extern tx_params_t                default_unicast_data_tx_params;
-extern bss_info_t*                active_bss_info;
+extern network_info_t*            active_network_info;
 
 extern function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback;
 
@@ -162,7 +162,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Resetting BSS\n");
 
                 // Set "active_bss_info" to NULL
-                configure_bss(NULL);
+                configure_bss(NULL, 0);
             }
 
             if (flags & CMD_PARAM_NODE_RESET_FLAG_NETWORK_LIST) {
@@ -210,7 +210,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
  *****************************************************************************/
 void wlan_exp_ibss_tx_cmd_add_association(u8* mac_addr) {
 
-    if (active_bss_info != NULL) {
+    if (active_network_info != NULL) {
         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Adding association for:  ");
         wlan_exp_print_mac_address(WLAN_EXP_PRINT_INFO, mac_addr); wlan_exp_printf(WLAN_EXP_PRINT_INFO, NULL, "\n");
 
@@ -218,8 +218,7 @@ void wlan_exp_ibss_tx_cmd_add_association(u8* mac_addr) {
         //     - Set ht_capable argument to the HT_CAPABLE capability of the BSS.  Given that the node does not know
         //       the HT capabilities of the new station, it is reasonable to assume that they are the same as the BSS.
         //
-        station_info_add(&(active_bss_info->members), mac_addr, ADD_STATION_INFO_ANY_ID, &default_unicast_data_tx_params,
-                                       (active_bss_info->capabilities & BSS_CAPABILITIES_HT_CAPABLE));
+        station_info_add(&(active_network_info->members), mac_addr, ADD_STATION_INFO_ANY_ID, active_network_info->bss_config.ht_capable);
     }
 }
 

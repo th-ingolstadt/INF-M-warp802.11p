@@ -110,7 +110,7 @@ class WlanExpNodeIBSS(node.WlanExpNode):
             #. SSID: Variable length string (ie the name of the network)
             #. Beacon Interval:  Interval (in TUs) for beacons
 
-        If a node is not a member of a BSS (i.e. ``n.get_bss_info()`` returns
+        If a node is not a member of a BSS (i.e. ``n.get_network_info()`` returns
         ``None``), then the node requires all parameters of a minimum valid 
         set of BSS information be specified (i.e. BSSID, Channel, SSID, and
         Beacon Interval).  
@@ -154,7 +154,7 @@ class WlanExpNodeIBSS(node.WlanExpNode):
         # Process response arguments
         if (resp_args is not False):
             status  = resp_args[0]
-            msg     = "ERROR:  Invalid response from node:\n"
+            msg     = "ERROR:\n"
             ret_val = True
             
             # Check status
@@ -188,6 +188,10 @@ class WlanExpNodeIBSS(node.WlanExpNode):
             if (status & cmds.ERROR_CONFIG_BSS_HT_CAPABLE_INVALID):
                 msg    += "    HT capable {0} was invalid.\n".format(ht_capable)
                 ret_val = False
+                
+            if (status & cmds.ERROR_CONFIG_BSS_DTIM_PERIOD_INVALID):
+                msg    += "    DTIM period {0} was invalid.\n".format(dtim_period)
+                ret_val = False                
             
             if not ret_val:
                 print(msg)

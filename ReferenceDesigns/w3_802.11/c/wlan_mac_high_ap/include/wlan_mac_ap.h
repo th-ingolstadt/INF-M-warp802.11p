@@ -11,20 +11,23 @@
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
-
-/***************************** Include Files *********************************/
-
-#include "wlan_mac_high_sw_config.h"
-
-#include "wlan_mac_mgmt_tags.h"
-#include "wlan_mac_scan.h"
-#include "wlan_mac_station_info.h"
-
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_MAC_AP_H_
 #define WLAN_MAC_AP_H_
 
+/***************************** Include Files *********************************/
 
+#include "xil_types.h"
+#include "wlan_common_types.h"
+
+// Forward declarations
+struct station_info_t;
+struct rx_common_entry;
+struct network_info_t;
+enum scan_state_t;
+struct bss_config_t;
+struct tx_queue_buffer_t;
+struct tx_frame_info_t;
 //-----------------------------------------------
 // Enable the WLAN UART Menu
 #define WLAN_USE_UART_MENU
@@ -42,7 +45,6 @@
 
 #define MAX_NUM_ASSOC                                      10        /// Maximum number of associations allowed
 #define MAX_NUM_AUTH                                       10        /// Maximum number of authentications allowed
-CASSERT( (MAX_NUM_ASSOC ) <= STATION_INFO_DL_ENTRY_MEM_NUM, insufficient_WLAN_OPTIONS_AUX_SIZE_KB_STATION_INFO_for_max_associations );
 
 
 //-----------------------------------------------
@@ -80,15 +82,15 @@ int  main();
 void ltg_event(u32 id, void* callback_arg);
 
 int  ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length);
-u32 					mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_entry* rx_event_log_entry);
-bss_info_t* 			active_bss_info_getter();
-void 					process_scan_state_change(scan_state_t scan_state);
+u32 					mpdu_rx_process(void* pkt_buf_addr, struct station_info_t* station_info, struct rx_common_entry* rx_event_log_entry);
+struct network_info_t* 		active_network_info_getter();
+void 					process_scan_state_change(enum scan_state_t scan_state);
 
 void queue_state_change(u32 QID, u8 queue_len);
 void update_tim_tag_aid(u8 aid, u8 bit_val_in);
 void update_tim_tag_all(u32 sched_id);
 
-void poll_tx_queues(pkt_buf_group_t pkt_buf_group);
+void poll_tx_queues();
 void purge_all_data_tx_queue();
 
 void enable_associations();
@@ -96,16 +98,15 @@ void disable_associations();
 void remove_inactive_station_infos();
 void association_timestamp_adjust(s64 timestamp_diff);
 
-u32  deauthenticate_station( station_info_t* station_info );
+u32  deauthenticate_station( struct station_info_t* station_info );
 void deauthenticate_all_stations();
 void handle_cpu_low_reboot(u32 type);
-u32  configure_bss(bss_config_t* bss_config);
-void mpdu_dequeue(dl_entry* packet);
+u32  configure_bss(struct bss_config_t* bss_config, u32 update_mask);
+void mpdu_dequeue(struct tx_queue_buffer_t* tx_queue_buffer);
 
-void up_button();
+void button_0_press();
+void button_0_release();
 
 void uart_rx(u8 rxByte);
-
-void ap_update_hex_display(u8 val);
 
 #endif /* WLAN_MAC_AP_H_ */

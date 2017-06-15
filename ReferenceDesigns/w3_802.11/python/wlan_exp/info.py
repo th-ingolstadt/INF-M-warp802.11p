@@ -13,7 +13,7 @@ This module provides class definitions for information classes.
 Classes (see below for more information):
     Info()            -- Base class for information classes
     StationInfo()     -- Base class for station information
-    BSSInfo()         -- Base class for basic service set (BSS) information
+    NetworkInfo()     -- Base class for network information
     CountsInfo()      -- Base class for information on node counts
 
 """
@@ -22,7 +22,7 @@ import sys
 
 import wlan_exp.util as util
 
-__all__ = ['StationInfo', 'BSSInfo', 'TxRxCounts']
+__all__ = ['StationInfo', 'NetworkInfo', 'TxRxCounts']
 
 # Fix to support Python 2.x and 3.x
 if sys.version[0]=="3": long=None
@@ -54,39 +54,51 @@ info_field_defs = {
         ('mac_addr',                       '6s',     '6uint8',  'MAC address of station'),
         ('id',                             'H',      'uint16',  'Identification Index for this station'),
         ('host_name',                      '20s',    '20uint8', 'String hostname (19 chars max), taken from DHCP DISCOVER packets'),
-        ('flags',                          'I',      'uint32',  'Station flags'),
+        ('flags',                          'B',      'uint8',   'Station flags'),
+        ('ps_state',                       'B',      'uint8',   'Power save state'),
+        ('capabiltiies',                   'H',      'uint16',  'Capabilities'),
         ('latest_rx_timestamp',            'Q',      'uint64',  'Value of System Time in microseconds of last successful Rx from device'),
         ('latest_txrx_timestamp',          'Q',      'uint64',  'Value of System Time in microseconds of last successful Rx from device or Tx to device'),
         ('latest_rx_seq',                  'H',      'uint16',  'Sequence number of last packet received from device'),
-        ('padding',                        '6s',     '6uint8',   ''),
-        ('tx_phy_mcs',                     'B',      'uint8',   'Current PHY MCS index in [0:7] for new transmissions to device'),
-        ('tx_phy_mode',                    'B',      'uint8',   'Current PHY mode for new transmissions to deivce'),
-        ('tx_phy_antenna_mode',            'B',      'uint8',   'Current PHY antenna mode in [1:4] for new transmissions to device'),
-        ('tx_phy_power',                   'b',      'int8',    'Current Tx power in dBm for new transmissions to device'),
-        ('tx_mac_flags',                   'B',      'uint8',   'Flags for Tx MAC config for new transmissions to device'),
+        ('padding',                        '2s',     '2uint8',  ''),
+        ('num_tx_queued',                  'I',      'uint32',  'Number of queued transmissions'),
+        ('tx_phy_mcs_data',                'B',      'uint8',   'Current PHY MCS index in [0:7] for new transmissions to device'),
+        ('tx_phy_mode_data',               'B',      'uint8',   'Current PHY mode for new transmissions to deivce'),
+        ('tx_phy_antenna_mode_data',       'B',      'uint8',   'Current PHY antenna mode in [1:4] for new transmissions to device'),
+        ('tx_phy_power_data',              'b',      'int8',    'Current Tx power in dBm for new transmissions to device'),
+        ('tx_mac_flags_data',              'B',      'uint8',   'Flags for Tx MAC config for new transmissions to device'),
+        ('padding1',                       '3x',     '3uint8',  ''),
+        ('tx_phy_mcs_mgmt',                'B',      'uint8',   'Current PHY MCS index in [0:7] for new transmissions to device'),
+        ('tx_phy_mode_mgmt',               'B',      'uint8',   'Current PHY mode for new transmissions to deivce'),
+        ('tx_phy_antenna_mode_mgmt',       'B',      'uint8',   'Current PHY antenna mode in [1:4] for new transmissions to device'),
+        ('tx_phy_power_mgmt',              'b',      'int8',    'Current Tx power in dBm for new transmissions to device'),
+        ('tx_mac_flags_mgmt',              'B',      'uint8',   'Flags for Tx MAC config for new transmissions to device'),
         ('padding2',                       '3x',     '3uint8',  '')],
 
-    'BSS_INFO' : [
+    'BSS_CONFIG_COMMON' : [
         ('bssid',                       '6s',     '6uint8',  'BSS ID'),
         ('channel',                     'B',      'uint8',   'Primary channel'),
         ('channel_type',                'B',      'uint8',   'Channel Type'),
-        ('latest_beacon_rx_time',       'Q',      'uint64',  'Value of System Time in microseconds of last beacon Rx'),
         ('ssid',                        '33s',    '33uint8', 'SSID (32 chars max)'),
-        ('latest_beacon_rx_power',      'b',      'int8',    'Last observed beacon Rx Power (dBm)'),
-        ('padding0',                    '2x',     'uint16',  ''),
-        ('capabilities',                'H',      'uint16',  'Supported capabilities of the BSS'),
-        ('beacon_interval',             'H',      'uint16',  'Beacon interval - In time units of 1024 us')],
-
-    'BSS_CONFIG' : [
-        ('update_mask',                 'I',      'uint32',  'Bit mask indicating which fields were updated'),    
-        ('bssid',                       '6s',     '6uint8',  'BSS ID'),
-        ('beacon_interval',             'H',      'uint16',  'Beacon interval - In time units of 1024 us'),
-        ('ssid',                        '33s',    '33uint8', 'SSID (32 chars max)'),
-        ('channel',                     'B',      'uint8',   'Primary channel'),
-        ('channel_type',                'B',      'uint8',   'Channel Type'),
         ('ht_capable',                  'B',      'uint8',   'Support for HTMF Tx/Rx'),
-        ('dtim_period',                 'B',      'uint8',   'DTIM Period - In units of beacon intervals'),
-        ('reserved',                    '6x',     '6uint8',  'Reserved')],
+        ('beacon_interval',             'H',      'uint16',  'Beacon interval - In time units of 1024 us'),
+        ('dtim_period',                 'B',      'uint8',   'DTIM Period - In units of beacon intervals')],
+
+    'NETWORK_INFO' : [
+        # BSS_CONFIG_COMMON Fields to be inserted here!
+        ('padding0',                    '3x',     '3uint8',  ''),
+        ('flags',                       'I',      'uint32',  'Bit Flags'),
+        ('capabilities',                'I',      'uint32',  'Supported capabilities of the BSS'),
+        ('latest_beacon_rx_time',       'Q',      'uint64',  'Value of System Time in microseconds of last beacon Rx'),
+        ('latest_beacon_rx_power',      'b',      'int8',    'Last observed beacon Rx Power (dBm)'),
+        ('padding1',                    '3x',     '3uint8',  ''),
+        ('num_members',                 'H',      'uint16',  'Number of members in the BSS'),
+        ('padding2',                    '2x',     '2uint8',  '')],
+
+    'BSS_CONFIG_UPDATE' : [
+        # BSS_CONFIG_COMMON Fields to be inserted here!
+        ('padding0',                    '3x',     '3uint8',  ''),
+        ('update_mask',                 'I',      'uint32',  'Bit mask indicating which fields were updated')],
 
     'TXRX_COUNTS' : [
         ('retrieval_timestamp',         'Q',      'uint64',  'Value of System Time in microseconds when structure retrieved from the node'),
@@ -113,19 +125,31 @@ info_field_defs = {
 }
 
 
+info_struct_len_reqs = {
+    'TXRX_COUNTS': 128,
+    'BSS_CONFIG_UPDATE': 52
+}
+
 info_consts_defs = {
     'STATION_INFO' : util.consts_dict({
         'flags'         : util.consts_dict({
-            'KEEP'                     : 0x00000001,
-            'DISABLE_ASSOC_CHECK'      : 0x00000002,
-            'DOZE'                     : 0x00000004,
-            'HT_CAPABLE'               : 0x00000008
+            'KEEP'                     : 0x01,
+            'DISABLE_ASSOC_CHECK'      : 0x02
+        }),
+        'ps_state'         : util.consts_dict({
+            'DOZE'                     : 0x01
+        }),
+        'capabilities'     : util.consts_dict({
+            'HT_CAPABLE'               : 0x0001
         }),
         'tx_phy_mode'   : util.phy_modes,
         'tx_mac_flags'  : util.consts_dict()
     }),
 
-    'BSS_INFO'     : util.consts_dict({
+    'NETWORK_INFO'     : util.consts_dict({
+        'flags'         : util.consts_dict({
+            'KEEP'                     : 0x00000001,
+        }),
         'channel_type'  : util.consts_dict({
             'BW20'                     : 0x0000,
             'BW40_SEC_BELOW'           : 0x0001,
@@ -134,12 +158,11 @@ info_consts_defs = {
         'capabilities'  : util.consts_dict({
             'ESS'                      : 0x0001,
             'IBSS'                     : 0x0002,
-            'HT_CAPABLE'               : 0x0004,
             'PRIVACY'                  : 0x0010,
         })
     }),
 
-    'BSS_CONFIG'   : util.consts_dict({
+    'BSS_CONFIG_UPDATE'   : util.consts_dict({
         'update_mask'  : util.consts_dict({
             'BSSID'                    : 0x00000001,
             'CHANNEL'                  : 0x00000002,
@@ -154,8 +177,6 @@ info_consts_defs = {
             'BW40_SEC_ABOVE'           : 0x0002,
         })
     }),
-    
-    'TXRX_COUNTS'  : util.consts_dict()
 }
 
 
@@ -186,45 +207,67 @@ class InfoStruct(dict):
     _fields_struct_fmt  = None         # Internal string of field formats, in struct module format
     _consts             = None         # Internal container for user-defined, type-specific constants
 
-    def __init__(self, field_name):
+    def __init__(self, field_sets):
         super(InfoStruct, self).__init__()
 
-        if(field_name not in info_field_defs.keys()):
-            msg  = "Field name {0} does not exist in info_field_defs.".format(field_name)
-            raise AttributeError(msg)
-            
-        if(field_name not in info_consts_defs.keys()):
-            msg  = "Field name {0} does not exist in info_consts_defs.".format(field_name)
-            raise AttributeError(msg)
+        if(type(field_sets) is str):
+            field_sets = [field_sets]
 
         # Initialize variables
-        self._field_name         = field_name
-        self._fields_struct_fmt  = ''
-        self._consts             = info_consts_defs[field_name]
+        self._consts = util.consts_dict()
+        self._field_defs = []
+        for fs in field_sets:
+            if(fs not in info_field_defs.keys()):
+                msg  = "Field set name {0} does not exist in info_field_defs.".format(fs)
+                raise AttributeError(msg)
+            
+            self.append_field_defs(info_field_defs[fs])
+
+            if(fs in info_consts_defs.keys()):
+                self.append_const_defs(info_consts_defs[fs])
 
         # Add and initialize all the fields in the info_field_defs
-        for field in info_field_defs[field_name]:
+        for field in self._field_defs:
             if 'x' not in field[1]:
                 self[field[0]] = None
 
-        # Update the meta-data about the fields
-        self._update_field_defs()
+        # Update the struct format string, used by pack/unpack/calcsize below
+        self._fields_struct_fmt = ' '.join(self.get_field_struct_formats())
+
+        # Check the final struct size using the name of the last field set
+        last_field_set = field_sets[-1]
+        if(last_field_set in info_struct_len_reqs.keys()):
+            # A struct length value was provided - confirm the field defs match this length
+            def_size = self.sizeof()
+            req_size = info_struct_len_reqs[last_field_set]
+
+            if(def_size != req_size):
+                msg = 'Struct size definition mismatch - {0} field defs have size {1} vs required size {2}'.format(last_field_set, def_size, req_size)
+                raise AttributeError(msg)
 
 
     # -------------------------------------------------------------------------
-    # Accessor methods for the Info Type
+    # Helper methods for the Info Type
     # -------------------------------------------------------------------------
+    def append_field_defs(self, new_field_defs):
+        try:
+            # Existing field defs - concatenate lists
+            self._field_defs = self._field_defs + new_field_defs
+        except AttributeError:
+            # No existing field defs
+            self._field_defs = new_field_defs
+
+    def append_const_defs(self, new_const_defs):
+        for k in new_const_defs.keys():
+            self._consts[k] = new_const_defs[k]
+
     def get_field_names(self):
         """Get the field names.
 
         Returns:
             names (list of str):  List of string field names for the entry
         """
-        if(self._field_name in info_field_defs.keys()):
-            return [f[0] for f in info_field_defs[self._field_name]]
-        else:
-            msg  = "Field name {0} does not exist in info_feild_defs.".format(self._field_name)
-            raise AttributeError(msg)
+        return [f[0] for f in self.get_field_defs()]
 
 
     def get_field_struct_formats(self):
@@ -233,11 +276,7 @@ class InfoStruct(dict):
         Returns:
             formats (list of str):  List of Python struct formats for the fields
         """
-        if(self._field_name in info_field_defs.keys()):
-            return [f[1] for f in info_field_defs[self._field_name]]
-        else:
-            msg  = "Field name {0} does not exist in info_feild_defs.".format(self._field_name)
-            raise AttributeError(msg)
+        return [f[1] for f in self.get_field_defs()]
 
 
     def get_field_defs(self):
@@ -246,13 +285,8 @@ class InfoStruct(dict):
         Returns:
             fields (list of tuple):  List of tuples that describe each field
         """
-        if(self._field_name in info_field_defs.keys()):            
-            return info_field_defs[self._field_name]
-        else:
-            msg  = "Field name {0} does not exist in info_feild_defs.".format(self._field_name)
-            raise AttributeError(msg)
-
-
+        return self._field_defs
+        
     def get_consts(self):
         """Get all constants defined in the info struct object as a dictionary
 
@@ -299,11 +333,7 @@ class InfoStruct(dict):
         tmp_values = []
         used_field = []
 
-        if(self._field_name not in info_field_defs.keys()):
-            msg  = "Field name {0} does not exist in info_feild_defs.".format(self._field_name)
-            raise AttributeError(msg)
-
-        for field in info_field_defs[self._field_name]:
+        for field in self._field_defs:
             if 'x' not in field[1]:
                 fields.append(field[0])
                 try:
@@ -379,7 +409,7 @@ class InfoStruct(dict):
         """Pretty print info struct object"""
         msg = "{0}\n".format(self.__class__.__name__)
 
-        for field in info_field_defs[self._field_name]:
+        for field in self._field_defs:
             if 'x' not in field[1]:
                 msg += "    {0:30s} = {1}\n".format(field[0], self[field[0]])
 
@@ -411,7 +441,7 @@ class TxRxCounts(InfoStruct):
     """Class for TX/RX counts."""
 
     def __init__(self):
-        super(TxRxCounts, self).__init__(field_name='TXRX_COUNTS')
+        super(TxRxCounts, self).__init__(field_sets='TXRX_COUNTS')
 
         # To populate the TxRxCounts with information, use the
         # deserialize() function on a proper buffer of data
@@ -467,7 +497,7 @@ class StationInfo(InfoStruct):
     """Class for Station Information."""
 
     def __init__(self):
-        super(StationInfo, self).__init__(field_name='STATION_INFO')
+        super(StationInfo, self).__init__(field_sets='STATION_INFO')
 
         # To populate the TxRxCounts with information, use the
         # deserialize() function on a proper buffer of data
@@ -520,147 +550,30 @@ class StationInfo(InfoStruct):
 
 # End Class
 
-
-
 # -----------------------------------------------------------------------------
-# BSS Info Class
+# Network Info Class
 # -----------------------------------------------------------------------------
-
-class BSSInfo(InfoStruct):
-    """Class for Basic Service Set (BSS) Information
-
-    Attributes:
-        bssid (int, str):  40-bit ID of the BSS either as a integer or colon delimited
-            string of the form:  XX:XX:XX:XX:XX:XX
-        ssid (str):   SSID string (Must be 32 characters or less)
-        channel (int): Channel number on which the BSS operates
-        ibss_status (bool, optional): Status of the
-            BSS:
-                * **True**  --> Capabilities field = 0x2 (BSS_INFO is for IBSS)
-                * **False** --> Capabilities field = 0x1 (BSS_INFO is for BSS)
-        beacon_interval (int): Integer number of beacon Time Units in [1, 65534]
-            (http://en.wikipedia.org/wiki/TU_(Time_Unit); a TU is 1024 microseconds)
+class NetworkInfo(InfoStruct):
+    """Class for Network Information, represents information about wireless network
+    observed by hardware nodes.
     """
-    def __init__(self, bssid=None, ssid=None, channel=None, ibss_status=None, beacon_interval=None):
-        super(BSSInfo, self).__init__(field_name='BSS_INFO')
+    def __init__(self):
+        # Constructor has no arguments since NetworkInfo objects are only
+        #  created by deserializing bytes from the hardware node
         
-        # Only initialize the BSSInfo() if one of the fields is provided.
-        init_fields = False
-        
-        if ((bssid is not None) or (ssid is not None) or (channel is not None) or 
-            (ibss_status is not None) or (beacon_interval is not None)):
-            init_fields = True        
-        
-        # Default values used if initializing fields but value not provided:
-        #     bssid           - No default value - Error
-        #     ssid            - ""
-        #     channel         - No default value - Error
-        #     ibss_status     - False
-        #     beacon_interval - 100
-        #
-        # This is done so there is no issue during serialization when instantiating 
-        # a BSSInfo() with initialized fields.
-        #
-        if init_fields:
-            # Set default values for fields not set by this method
-            self['timestamp']                  = 0
-            self['latest_beacon_rx_time']      = 0
-            self['state']                      = self._consts.state.UNAUTHENTICATED
-            self['latest_beacon_rx_power']     = 0
-            self['flags']                      = 0
-
-            # Set SSID
-            if ssid is not None:
-                # Check SSID
-                if type(ssid) is not str:
-                    raise ValueError("The SSID must be a string.")
-
-                if len(ssid) > 32:
-                    ssid = ssid[:32]
-                    print("WARNING:  SSID must be 32 characters or less.  Truncating to {0}".format(ssid))
-
-                try:
-                    self['ssid']         = bytes(ssid, "UTF8")
-                except:
-                    self['ssid']         = ssid
-            else:
-                self['ssid'] = bytes()
-
-            # Set Channel
-            if channel is not None:
-                # Check Channel
-                #   - Make sure it is a valid channel
-                if channel not in util.wlan_channels:
-                    msg  = "The channel must be a valid channel number.  See util.py wlan_channels."
-                    raise ValueError(msg)
-    
-                self['channel']      = channel
-                self['channel_type'] = self._consts.channel_type.BW20
-            else:
-                raise AttributeError("Channel must be provided when initializing BSSInfo() fields")
-                
-
-            # Set the beacon interval
-            if beacon_interval is not None:
-                # Check beacon interval
-                if type(beacon_interval) is not int:
-                    beacon_interval = int(beacon_interval)
-                    print("WARNING:  Beacon interval must be an interger number of time units.  Rounding to {0}".format(beacon_interval))
-
-                if not ((beacon_interval > 0) and (beacon_interval < (2**16 - 1))):
-                    msg  = "The beacon interval must be in [1, 65534] (ie 16-bit positive integer)."
-                    raise ValueError(msg)
-
-                self['beacon_interval'] = beacon_interval
-            else:
-                self['beacon_interval'] = 100               
-
-
-            # Set the BSSID
-            if bssid is not None:
-                if ibss_status is None:
-                    ibss_status = False
-                else:
-                    # Check IBSS status value provided
-                    if type(ibss_status) is not bool:
-                        raise ValueError("The ibss_status must be a boolean.")
-
-                # Set BSSID, capabilities
-                #   - If this is an IBSS, then set local bit to '1' and mcast bit to '0'
-                #   - Set the appropriate capabilities (The 802.11 reference design only supports short timeslots (ie short = 9us))
-                if ibss_status:
-                    self['bssid']        = util.create_locally_administered_bssid(bssid)
-                    self['capabilities'] = (self._consts.capabilities.IBSS | self._consts.capabilities.SHORT_TIMESLOT)
-                else:
-                    self['bssid']        = bssid
-                    self['capabilities'] = (self._consts.capabilities.ESS | self._consts.capabilities.SHORT_TIMESLOT)
-
-                # Convert BSSID to colon delimited string for internal storage
-                if type(bssid) in [int, long]:
-                    self['bssid']        = util.mac_addr_to_str(self['bssid'])
-            else:
-                raise AttributeError("BSSID must be provided when initializing BSSInfo() fields")
-
+        # Initialize the field definitions with BSS_CONFIG fields first
+        super(NetworkInfo, self).__init__(field_sets=['BSS_CONFIG_COMMON', 'NETWORK_INFO'])
 
     def serialize(self):
-        # Convert bssid to byte string for transmit
-        bssid_tmp     = self['bssid']
-        self['bssid'] = util.str_to_mac_addr(self['bssid'])
-        self['bssid'] = util.mac_addr_to_byte_str(self['bssid'])
-
-        ret_val = super(BSSInfo, self).serialize()
-
-        # Revert bssid to colon delimited string
-        self['bssid'] = bssid_tmp
-
-        return ret_val
+        print("Error:  serialize() is not supported for NetworkInfo")
+        raise NotImplementedError
 
 
     def deserialize(self, buf):
-        super(BSSInfo, self).deserialize(buf)
+        super(NetworkInfo, self).deserialize(buf)
 
         if (False):
-            msg  = "BSS Info Data buffer:\n"
+            msg  = "Network Info Data buffer:\n"
             msg += util.buffer_to_str(buf)
             print(msg)
 
@@ -686,13 +599,29 @@ class BSSInfo(InfoStruct):
 # End Class
 
 
-
 # -----------------------------------------------------------------------------
-# BSS Info Class
+# BSS Config Class
 # -----------------------------------------------------------------------------
-
 class BSSConfig(InfoStruct):
-    """Class for Basic Service Set (BSS) Configuration Information
+    """Represents the BSS Config struct in hardware. This struct is created only
+    in Python. The NetworkInfo and BSSConfigUpdate structs should be used for 
+    communicating BSS details with hardware nodes"
+    """
+    def __init__(self):
+        super(BSSConfig, self).__init__(field_sets='BSS_CONFIG_COMMON')
+
+    def serialize(self):
+        raise NotImplementedError('serialize() is not supported for BSSConfig')
+
+    def deserialize(self):
+        raise NotImplementedError('deserialize() is not supported for BSSConfig')
+
+# -----------------------------------------------------------------------------
+# BSS Config Update Class
+# -----------------------------------------------------------------------------
+
+class BSSConfigUpdate(InfoStruct):
+    """Class for updating Basic Service Set (BSS) Configuration Information
 
     Attributes:
         bssid (int):  48-bit ID of the BSS either as a integer; A value of 
@@ -714,8 +643,9 @@ class BSSConfig(InfoStruct):
             
     """
     def __init__(self, bssid=False, ssid=None, channel=None, beacon_interval=False, dtim_period=None, ht_capable=None):                       
-        super(BSSConfig, self).__init__(field_name='BSS_CONFIG')
-
+        # Initialize the field definitions with BSS_CONFIG fields first
+        super(BSSConfigUpdate, self).__init__(field_sets=['BSS_CONFIG_COMMON', 'BSS_CONFIG_UPDATE'])
+        
         # Default values used if value not provided:
         #     bssid           - 00:00:00:00:00:00
         #     ssid            - ""
@@ -741,7 +671,7 @@ class BSSConfig(InfoStruct):
             # Set update mask
             self['update_mask'] |= self._consts.update_mask.BSSID
         else:
-            # Fill bssid with valid value, to be ignored by C since BSSID update mask bit is de-asserted
+            # Remove current BSS on the node
             self['bssid'] = "00:00:00:00:00:00"
         
         # Set SSID field
@@ -845,7 +775,7 @@ class BSSConfig(InfoStruct):
         self['bssid'] = util.str_to_mac_addr(self['bssid'])
         self['bssid'] = util.mac_addr_to_byte_str(self['bssid'])
 
-        ret_val = super(BSSConfig, self).serialize()
+        ret_val = super(BSSConfigUpdate, self).serialize()
 
         # Revert bssid to colon delimited string
         self['bssid'] = bssid_tmp

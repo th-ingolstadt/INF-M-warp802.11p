@@ -13,25 +13,23 @@
 /***************************** Include Files *********************************/
 
 // Xilinx / Standard library includes
-#include <xparameters.h>
 #include <xil_io.h>
 #include <xio.h>
 #include <stdlib.h>
 #include <string.h>
-
-// WARP Includes
-#include "w3_ad_controller.h"
-#include "w3_clock_controller.h"
-#include "w3_iic_eeprom.h"
-#include "radio_controller.h"
+#include <xstatus.h>
 
 // WLAN includes
-#include "wlan_mac_userio_util.h"
-#include "wlan_mac_time_util.h"
+#include "xparameters.h"
+#include "wlan_platform_common.h"
+#include "wlan_platform_low.h"
 #include "wlan_mac_mailbox_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_phy_util.h"
 #include "wlan_mac_low.h"
+#include "wlan_mac_common.h"
+#include "wlan_mac_pkt_buf_util.h"
+
 
 // WLAN Exp includes
 #include "wlan_exp.h"
@@ -40,9 +38,6 @@
 /*************************** Constant Definitions ****************************/
 
 #define DBG_PRINT  0
-
-// Power / RSSI conversion
-#define POW_LOOKUP_SHIFT  3                   // Shift from 10 bit RSSI to 7 bit for lookup
 
 
 /*********************** Global Variable Definitions *************************/
@@ -62,6 +57,9 @@ static volatile u8                rx_pkt_buf;                                   
 static u32                        cpu_low_status;                                   ///< Status flags that are reported to upper-level MAC
 static u32						  cpu_low_type;										///< wlan_exp CPU_LOW type that is reported to upper-level MAC
 static compilation_details_t	  cpu_low_compilation_details;
+
+// Common Platform Device Info
+platform_common_dev_info_t	 platform_common_dev_info;
 
 static wlan_ipc_msg_t        	  ipc_msg_from_high;                                          ///< Buffer for incoming IPC messages
 static u32                   	  ipc_msg_from_high_payload[MAILBOX_BUFFER_MAX_NUM_WORDS];    ///< Buffer for payload of incoming IPC messages
@@ -104,8 +102,38 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
 	tx_frame_info_t* tx_frame_info;
     u32			     i;
 
+    /**********************************************************************************
+     * Initialize the low platform first - this must happen before the low application
+     *  attempts to use any hardware resources
+     **********************************************************************************/
+    status = wlan_platform_common_init();
+    if(status != 0) {
+        xil_printf("Error in wlan_platform_common_init()! Exiting\n");
+        return -1;
+    }
+    status = wlan_platform_low_init();
+
+    if(status != 0) {
+        xil_printf("Error in wlan_platform_low_init()! Exiting\n");
+        return -1;
+    }
+    /**********************************************************************************/
+
+    // Get the device info
+	platform_common_dev_info = wlan_platform_common_get_dev_info();
+
+    /**********************************************************************************
+     * Initialize the MAC and PHY cores - this must happen before the low application
+     *  attempts any wireless Tx/Rx operations
+     * These calls will reset the MAC and PHY cores, safely interrupting any ongoing
+     *  Tx/Rx events and clearing old MAC state that may remain from a previous boot
+     **********************************************************************************/
+    wlan_phy_init();
+    wlan_mac_hw_init();
+
+
     mac_param_dsss_en        = 1;
-    mac_param_band           = RC_24GHZ;
+    mac_param_band           = CHAN_BAND_24GHz;
     mac_param_ctrl_tx_pow    = 10;
     cpu_low_status           = 0;
     cpu_low_type			 = type;
@@ -114,7 +142,7 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
     unique_seq = 0;
 
     //Set the TU Target to the max value
-    wlan_mac_set_tu_target(0xFFFFFFFFFFFFFFFFUL);
+    wlan_mac_set_tu_target(0xFFFFFFFFFFFFFFFFULL);
 
     mac_param_rx_filter      = (RX_FILTER_FCS_ALL | RX_FILTER_HDR_ALL);
 
@@ -126,20 +154,6 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
     sample_rate_change_callback  = (function_ptr_t) wlan_null_callback;
     handle_tx_pkt_buf_ready		 = (function_ptr_t) wlan_null_callback;
 
-    status = w3_node_init();
-
-    if(status != 0) {
-        xil_printf("Error in w3_node_init()! Exiting\n");
-        return -1;
-    }
-
-    // Initialize Debug Header
-    //  Allow HW to control Pins 0:11
-    wlan_mac_set_dbg_hdr_ctrlsrc(DBG_HDR_CTRLSRC_HW, 0x0FFF);
-    //  Allow SW to control Pins 12:15
-    wlan_mac_set_dbg_hdr_ctrlsrc(DBG_HDR_CTRLSRC_SW, 0xF000);
-    wlan_mac_set_dbg_hdr_dir(DBG_HDR_DIR_OUTPUT, 0xF000);
-
     // Initialize mailbox
 	init_mailbox();
 
@@ -150,7 +164,7 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
 	// Initialize Transmit Packet Buffers
 	// ***************************************************
 	for(i = 0; i < NUM_TX_PKT_BUFS; i++){
-		tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(i);
+		tx_frame_info = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, i);
 		switch(i){
 			case TX_PKT_BUF_MPDU_1:
 			case TX_PKT_BUF_MPDU_2:
@@ -200,7 +214,7 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
 	// Initialize Receive Packet Buffers
 	// ***************************************************
 	for(i = 0; i < NUM_RX_PKT_BUFS; i++){
-		rx_frame_info = (rx_frame_info_t*)RX_PKT_BUF_TO_ADDR(i);
+		rx_frame_info = (rx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, i);
 		switch(rx_frame_info->rx_pkt_buf_state){
 		   case RX_PKT_BUF_UNINITIALIZED:
 		   case RX_PKT_BUF_LOW_CTRL:
@@ -232,11 +246,6 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
     wlan_phy_rx_pkt_buf_phy_hdr_offset(PHY_RX_PKT_BUF_PHY_HDR_OFFSET);
     wlan_phy_tx_pkt_buf_phy_hdr_offset(PHY_TX_PKT_BUF_PHY_HDR_OFFSET);
 
-    wlan_mac_reset(1);
-    wlan_radio_init();
-    wlan_phy_init();
-    wlan_mac_hw_init();
-    wlan_mac_reset(0);
 
 	// Unpause MAC Tx Controllers
 	wlan_mac_pause_tx_ctrl_A(0);
@@ -303,7 +312,7 @@ void wlan_mac_low_send_status(u8 cpu_status_reason){
  * @param   phy_samp_rate_t phy_samp_rate
  * @return  None
  */
-void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
+void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate) {
 
     // Check sample rate argument
     //     - Must be in [PHY_10M, PHY_20M, PHY_40M]
@@ -314,10 +323,8 @@ void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
     // Set global sample rate variable
 	gl_phy_samp_rate = phy_samp_rate;
 
-    // Assert PHY Tx/Rx and MAC Resets
-    REG_SET_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);
-    REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_RESET);
-    wlan_mac_reset(1);
+    // Call the platform's set_samp_rate first
+    wlan_platform_low_set_samp_rate(phy_samp_rate);
 
     // DSSS Rx only supported at 20Msps
     switch(phy_samp_rate){
@@ -328,148 +335,16 @@ void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
     	break;
     	case PHY_20M:
 			// Enable DSSS if global variable indicates it should be enabled and RF band allows it
-    		if ((mac_param_dsss_en) && (mac_param_band == RC_24GHZ)) {
+    		if ((mac_param_dsss_en) && (mac_param_band == CHAN_BAND_24GHz)) {
     			wlan_phy_DSSS_rx_enable();
 			}
-    	break;
-    }
-
-    // Configure auto-correlation packet detection
-    //  wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(corr_thresh, energy_thresh, min_dur, post_wait)
-    switch(phy_samp_rate){
-    	case PHY_40M:
-    		//TODO: The 2 value is suspiciously low
-    		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 2, 15, 0x3F);
-		break;
-    	case PHY_10M:
-    	case PHY_20M:
-    		wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 9, 4, 0x3F);
-    	break;
-    }
-
-    // Set post Rx extension
-    //  Number of sample periods post-Rx the PHY waits before asserting Rx END. The additional
-    //   -3 usec accounts for latency through the Rx RF chain.
-    switch(phy_samp_rate){
-    	case PHY_40M:
-    		// 6us Extension
-    		wlan_phy_rx_set_extension((6*40) - 128);
-		break;
-    	case PHY_20M:
-    		// 6us Extension
-    		wlan_phy_rx_set_extension((6*20) - 64);
-    	break;
-    	case PHY_10M:
-    		// 6us Extension
-    		wlan_phy_rx_set_extension((6*10) - 32);
-    	break;
-    }
-
-    // Set Tx duration extension, in units of sample periods
-	switch(phy_samp_rate){
-		case PHY_40M:
-			// 224 40MHz sample periods -- aligns TX_END to RX_END
-			wlan_phy_tx_set_extension(224);
-
-			// Set extension from last samp output to RF Tx -> Rx transition
-			//     This delay allows the Tx pipeline to finish driving samples into DACs
-			//     and for DAC->RF frontend to finish output Tx waveform
-			wlan_phy_tx_set_txen_extension(100);
-
-			// Set extension from RF Rx -> Tx to un-blocking Rx samples
-			wlan_phy_tx_set_rx_invalid_extension(300);
-		break;
-		case PHY_20M:
-			// 112 20MHz sample periods -- aligns TX_END to RX_END
-			wlan_phy_tx_set_extension(112);
-
-			// Set extension from last samp output to RF Tx -> Rx transition
-			//     This delay allows the Tx pipeline to finish driving samples into DACs
-			//     and for DAC->RF frontend to finish output Tx waveform
-			wlan_phy_tx_set_txen_extension(50);
-
-			// Set extension from RF Rx -> Tx to un-blocking Rx samples
-			wlan_phy_tx_set_rx_invalid_extension(150);
-		break;
-		case PHY_10M:
-			// 56 10MHz sample periods -- aligns TX_END to RX_END
-			wlan_phy_tx_set_extension(56);
-
-			// Set extension from last samp output to RF Tx -> Rx transition
-			//     This delay allows the Tx pipeline to finish driving samples into DACs
-			//     and for DAC->RF frontend to finish output Tx waveform
-			wlan_phy_tx_set_txen_extension(25);
-
-			// Set extension from RF Rx -> Tx to un-blocking Rx samples
-			wlan_phy_tx_set_rx_invalid_extension(75);
-		break;
-	}
-
-	// Set RF interface clocking and interp/decimation filters
-	switch(phy_samp_rate){
-		case PHY_40M:
-			// Set ADC_CLK=DAC_CLK=40MHz, interp_rate=decim_rate=1
-			clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
-			ad_config_filters(AD_BASEADDR, AD_ALL_RF, 1, 1);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x2F);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x00);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
-		break;
-		case PHY_20M:
-			// Set ADC_CLK=DAC_CLK=40MHz, interp_rate=decim_rate=2
-			clk_config_dividers(CLK_BASEADDR, 2, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
-
-			ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x27);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x00);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
-		break;
-		case PHY_10M:
-			// Set ADC_CLK=DAC_CLK=20MHz, interp_rate=decim_rate=2
-			clk_config_dividers(CLK_BASEADDR, 4, (CLK_SAMP_OUTSEL_AD_RFA | CLK_SAMP_OUTSEL_AD_RFB));
-			ad_config_filters(AD_BASEADDR, AD_ALL_RF, 2, 2);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x32, 0x27);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x00);
-			ad_spi_write(AD_BASEADDR, (AD_ALL_RF), 0x33, 0x08);
-		break;
-	}
-
-    switch(phy_samp_rate){
-    	case PHY_40M:
-    	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 3);
-    	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 3);
-		break;
-    	case PHY_10M:
-    	case PHY_20M:
-    	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_RXLPF_BW, 1);
-    	    radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLPF_BW, 1);
-    	break;
-    }
-
-    // AGC timing: capt_rssi_1, capt_rssi_2, capt_v_db, agc_done
-    switch(phy_samp_rate){
-    	case PHY_40M:
-    		wlan_agc_set_AGC_timing(10, 30, 90, 96);
-		break;
-    	case PHY_10M:
-    	case PHY_20M:
-    		wlan_agc_set_AGC_timing(1, 30, 90, 96);
     	break;
     }
 
     // Call user callback so it can deal with any changes that need to happen due to a change in sampling rate
 	sample_rate_change_callback(gl_phy_samp_rate);
 
-    // Deassert PHY Tx/Rx and MAC Resets
-    REG_CLEAR_BITS(WLAN_RX_REG_CTRL, WLAN_RX_REG_CTRL_RESET);
-    REG_CLEAR_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_RESET);
-    wlan_mac_reset(0);
-
-    // Let PHY Tx take control of radio TXEN/RXEN
-    REG_CLEAR_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_SET_RC_RXEN);
-    REG_SET_BITS(WLAN_TX_REG_CFG, WLAN_TX_REG_CFG_SET_RC_RXEN);
 }
-
 
 /*****************************************************************************/
 /**
@@ -481,7 +356,14 @@ void set_phy_samp_rate(phy_samp_rate_t phy_samp_rate){
  * @return  None
  */
 void wlan_mac_hw_init(){
-    // Enable blocking of Rx pkt det events during Tx
+
+	// Reset the MAC core - this clears any stale state in the Tx controllers, NAV counter, backoff counters, etc.
+	wlan_mac_reset(1);
+
+    // Enable blocking of the Rx PHY following good-FCS receptions and bad-FCS receptions
+    //     BLOCK_RX_ON_VALID_RXEND will block the Rx PHY on all RX_END events following valid RX_START events
+    //     This allows the wlan_exp framework to count and log bad FCS receptions
+    //
     REG_SET_BITS(WLAN_MAC_REG_CONTROL, WLAN_MAC_CTRL_MASK_BLOCK_RX_ON_TX);
 
     // Enable the NAV counter
@@ -504,6 +386,11 @@ void wlan_mac_hw_init(){
 
     // Clear any stale Rx events
     wlan_mac_hw_clear_rx_started();
+
+    // Clear the reset
+    wlan_mac_reset(0);
+
+    return;
 }
 
 
@@ -537,7 +424,7 @@ inline void wlan_mac_low_send_exception(u32 reason){
     write_mailbox_msg(&ipc_msg_to_high);
 
     // Set the Hex display with the reason code and flash the LEDs
-    cpu_error_halt(reason);
+    wlan_platform_low_userio_disp_status(USERIO_DISP_STATUS_CPU_ERROR,reason);
 }
 
 /*****************************************************************************/
@@ -554,10 +441,14 @@ inline void wlan_mac_low_send_exception(u32 reason){
  * @return  u32              - Status (See MAC Polling defines in wlan_mac_low.h)
  */
 inline u32 wlan_mac_low_poll_frame_rx(){
-    phy_rx_details_t phy_details;
+    phy_rx_details_t 	phy_details;
+    u8                  active_rx_ant;
 
     volatile u32 mac_hw_status;
     volatile u32 phy_hdr_params;
+
+    void* pkt_buf_addr = (void *) CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf);
+    rx_frame_info_t* rx_frame_info = (rx_frame_info_t *) pkt_buf_addr;
 
     int i = 0;
 
@@ -569,16 +460,32 @@ inline u32 wlan_mac_low_poll_frame_rx(){
     // Check if PHY has started a new reception
     if(mac_hw_status & WLAN_MAC_STATUS_MASK_RX_PHY_STARTED) {
 
+    	// Fill in rx_frame_info_t metadata
+        active_rx_ant = (wlan_phy_rx_get_active_rx_ant());
+
+    	rx_frame_info->flags          = 0;
+		rx_frame_info->channel        = wlan_mac_low_get_active_channel();
+		rx_frame_info->phy_samp_rate  = (u8)wlan_mac_low_get_phy_samp_rate();
+		rx_frame_info->timestamp      = wlan_mac_low_get_rx_start_timestamp();
+		rx_frame_info->timestamp_frac = wlan_mac_low_get_rx_start_timestamp_frac();
+	    rx_frame_info->ant_mode       = active_rx_ant;
+	    rx_frame_info->rx_gain_index  = wlan_platform_get_rx_pkt_gain(active_rx_ant);
+	    rx_frame_info->rx_power       = wlan_platform_get_rx_pkt_pwr(active_rx_ant);
+
+
     	// Check whether this is an OFDM or DSSS Rx
         if(wlan_mac_get_rx_phy_sel() == WLAN_MAC_PHY_RX_PHY_HDR_PHY_SEL_DSSS) {
             // DSSS Rx - PHY Rx length is already valid, other params unused for DSSS
-            phy_details.phy_mode = PHY_MODE_DSSS;
-            phy_details.N_DBPS   = 0;
+        	phy_details.phy_mode = PHY_MODE_DSSS;
 
             // Strip off extra pre-MAC-header bytes used in DSSS frames; this adjustment allows the next
             //     function to treat OFDM and DSSS payloads the same
-            phy_details.length   = wlan_mac_get_rx_phy_length() - 5;
-            phy_details.mcs      = 0;
+        	phy_details.length   = wlan_mac_get_rx_phy_length() - 5;
+        	phy_details.mcs      = 0;
+
+    	    rx_frame_info->cfo_est		  = 0;;
+        	rx_frame_info->phy_details    = phy_details;
+
 
             // Call the user callback to handle this Rx, capture return value
         	return_status |= FRAME_RX_RET_STATUS_RECEIVED_PKT;
@@ -646,10 +553,12 @@ inline u32 wlan_mac_low_poll_frame_rx(){
                     //  Call lower MAC Rx callback
                     //  Callback can safely return anytime (before or after RX_END)
 
-                    phy_details.phy_mode = wlan_mac_get_rx_phy_mode();
-                    phy_details.length   = wlan_mac_get_rx_phy_length();
-                    phy_details.mcs      = wlan_mac_get_rx_phy_mcs();
-                    phy_details.N_DBPS   = wlan_mac_low_mcs_to_n_dbps(phy_details.mcs, phy_details.phy_mode);
+                	phy_details.phy_mode = wlan_mac_get_rx_phy_mode();
+                	phy_details.length   = wlan_mac_get_rx_phy_length();
+                	phy_details.mcs      = wlan_mac_get_rx_phy_mcs();
+
+            	    rx_frame_info->cfo_est		  = wlan_phy_rx_get_cfo_est();
+                    rx_frame_info->phy_details    = phy_details;
 
                 	return_status |= FRAME_RX_RET_STATUS_RECEIVED_PKT;
                 	return_status |= frame_rx_callback(rx_pkt_buf, &phy_details);
@@ -697,7 +606,6 @@ inline int wlan_mac_low_poll_ipc_rx(){
 }
 
 
-
 /*****************************************************************************/
 /**
  * @brief Process IPC Reception
@@ -712,6 +620,23 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
     wlan_ipc_msg_t           ipc_msg_to_high;
 
     switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
+		//---------------------------------------------------------------------
+		case IPC_MBOX_TX_PKT_BUF_READY: {
+			u8 tx_pkt_buf;
+			tx_pkt_buf = msg->arg0;
+
+			if(tx_pkt_buf < NUM_TX_PKT_BUFS){
+
+				// Lock and change state of packet buffer
+				wlan_mac_low_lock_tx_pkt_buf(tx_pkt_buf);
+
+				// Message is an indication that a Tx Pkt Buf needs processing
+				handle_tx_pkt_buf_ready(tx_pkt_buf);
+				// TODO: check return status and inform CPU_HIGH of error?
+
+			}
+		}
+		break;
 
     	//---------------------------------------------------------------------
     	case IPC_MBOX_SET_MAC_TIME:
@@ -731,7 +656,7 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
     	break;
 
     	//---------------------------------------------------------------------
-    	case IPC_MBOX_TXRX_BEACON_CONFIGURE: {
+    	case IPC_MBOX_TXRX_BEACON_CONFIG: {
     		beacon_txrx_config_callback(msg->payload_ptr);
     	}
     	break;
@@ -749,14 +674,23 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
         case IPC_MBOX_MEM_READ_WRITE: {
             switch(msg->arg0){
                 case IPC_REG_WRITE_MODE: {
-                    u32    * payload_to_write = (u32*)((u8*)ipc_msg_from_high_payload + sizeof(ipc_reg_read_write_t));
 
-                    // IMPORTANT: this memcpy assumes the payload provided by CPU high is ready as-is
+                	u32    * payload_to_write = (u32*)((u8*)ipc_msg_from_high_payload + sizeof(ipc_reg_read_write_t));
+
+                	// IMPORTANT: this memcpy assumes the payload provided by CPU high is ready as-is
                     //     Any byte swapping (i.e. for payloads that arrive over Ethernet) *must* be performed
                     //     before the payload is passed to this function
-                    memcpy((u8*)(((ipc_reg_read_write_t*)ipc_msg_from_high_payload)->baseaddr),
-                           (u8*)payload_to_write,
-                           (sizeof(u32) * ((ipc_reg_read_write_t*)ipc_msg_from_high_payload)->num_words));
+
+                    // Implement memcpy with only 32-bit writes, avoids byte-select issues in Sysgen AXI slaves
+                    int word_idx;
+                    u32 num_words =  ((ipc_reg_read_write_t*)ipc_msg_from_high_payload)->num_words;
+                    u32 start_addr = (((ipc_reg_read_write_t*)ipc_msg_from_high_payload)->baseaddr) & 0xFFFFFFFC; //force 2LSB=0
+
+                    for(word_idx = 0; word_idx < num_words; word_idx++) {
+                    	// Increment target address by 4 bytes per iteration
+                    	// payload_to_write already a u32 pointer, so use count-by-1 array index to access u32 words
+                    	Xil_Out32((start_addr + word_idx*4), payload_to_write[word_idx]);
+                    }
                 }
                 break;
 
@@ -781,57 +715,11 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
         }
         break;
 
-        //---------------------------------------------------------------------
+        //---------------------------------------------------------------------------------------
         case IPC_MBOX_LOW_PARAM: {
             switch(msg->arg0){
                 case IPC_REG_WRITE_MODE: {
                     switch(ipc_msg_from_high_payload[0]){
-                        case LOW_PARAM_BB_GAIN: {
-                            if(ipc_msg_from_high_payload[1] <= 3){
-                                radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXGAIN_BB, ipc_msg_from_high_payload[1]);
-                            }
-                        }
-                        break;
-
-                        case LOW_PARAM_LINEARITY_PA: {
-                            if(ipc_msg_from_high_payload[1] <= 3){
-                                radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLINEARITY_PADRIVER, ipc_msg_from_high_payload[1]);
-                            }
-                        }
-                        break;
-
-                        case LOW_PARAM_LINEARITY_VGA: {
-                            if(ipc_msg_from_high_payload[1] <= 3){
-                                radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLINEARITY_VGA, ipc_msg_from_high_payload[1]);
-                            }
-                        }
-                        break;
-
-                        case LOW_PARAM_LINEARITY_UPCONV: {
-                            if(ipc_msg_from_high_payload[1] <= 3){
-                                radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXLINEARITY_UPCONV, ipc_msg_from_high_payload[1]);
-                            }
-                        }
-                        break;
-
-                        case LOW_PARAM_AD_SCALING: {
-                            ad_spi_write(AD_BASEADDR, AD_ALL_RF, 0x36, (0x1F & ipc_msg_from_high_payload[1]));
-                            ad_spi_write(AD_BASEADDR, AD_ALL_RF, 0x37, (0x1F & ipc_msg_from_high_payload[2]));
-                            ad_spi_write(AD_BASEADDR, AD_ALL_RF, 0x35, (0x1F & ipc_msg_from_high_payload[3]));
-                        }
-                        break;
-
-                        case LOW_PARAM_PKT_DET_MIN_POWER: {
-                            if( ipc_msg_from_high_payload[1]&0xFF000000 ){
-                                wlan_phy_enable_req_both_pkt_det();
-                                //The value sent from wlan_exp will be unsigned with 0 representing PKT_DET_MIN_POWER_MIN
-                                wlan_mac_low_set_pkt_det_min_power((ipc_msg_from_high_payload[1]&0x000000FF) + PKT_DET_MIN_POWER_MIN);
-
-                            } else {
-                                wlan_phy_disable_req_both_pkt_det();
-                            }
-                        }
-                        break;
 
                         case LOW_PARAM_PHY_SAMPLE_RATE: {
                             set_phy_samp_rate(ipc_msg_from_high_payload[1]);
@@ -839,7 +727,10 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
                         break;
 
                         default: {
+                        	// Low framework doesn't recognize this low param ID - call the application
+                        	//  and platform handlers to process with this param write
                             ipc_low_param_callback(IPC_REG_WRITE_MODE, ipc_msg_from_high_payload);
+                            wlan_platform_low_param_handler(IPC_REG_WRITE_MODE, ipc_msg_from_high_payload);
                         }
                         break;
                     }
@@ -931,21 +822,14 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
         break;
 
         //---------------------------------------------------------------------
-        case IPC_MBOX_TX_PKT_BUF_READY: {
-        	u8 tx_pkt_buf;
-        	tx_pkt_buf = msg->arg0;
-        	if(tx_pkt_buf < NUM_TX_PKT_BUFS){
+        case IPC_MBOX_SET_RADIO_TX_POWER: {
+        	s8 pwr = (s8)(msg->arg0);
 
-        		// Lock and change state of packet buffer
-        		wlan_mac_low_lock_tx_pkt_buf(tx_pkt_buf);
-
-				// Message is an indication that a Tx Pkt Buf needs processing
-        		handle_tx_pkt_buf_ready(tx_pkt_buf);
-        		// TODO: check return status and inform CPU_HIGH of error?
-
-        	}
+        	wlan_platform_set_radio_tx_power(pwr);
         }
         break;
+
+
     }
 }
 
@@ -954,7 +838,7 @@ inline u32 wlan_mac_low_lock_tx_pkt_buf(u16 tx_pkt_buf){
 	u32	iter = 0;
 	tx_frame_info_t* tx_frame_info;
 
-	tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+	tx_frame_info = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf);
 
 	if( tx_frame_info->flags & TX_FRAME_INFO_FLAGS_WAIT_FOR_LOCK ){
 		// This packet buffer has been flagged to ensure that CPU_LOW will wait until a mutex lock
@@ -1022,38 +906,32 @@ inline u32 wlan_mac_low_lock_tx_pkt_buf(u16 tx_pkt_buf){
  * @return  None
  *
  */
-void wlan_mac_low_set_radio_channel(u32 channel){
+int wlan_mac_low_set_radio_channel(u32 channel){
 
 	if (wlan_verify_channel(channel) == XST_SUCCESS) {
-        mac_param_chan = channel;
+	mac_param_chan = channel;
 
 		if(mac_param_chan <= 14){
-			mac_param_band = RC_24GHZ;
+			mac_param_band = CHAN_BAND_24GHz;
 
 			// Enable DSSS if global variable indicates it should be enabled and PHY sample rate allows it
 			if ((mac_param_dsss_en) && (gl_phy_samp_rate == PHY_20M)) {
 				wlan_phy_DSSS_rx_enable();
 			}
 		} else {
-			mac_param_band = RC_5GHZ;
+			mac_param_band = CHAN_BAND_5GHz;
 
 			// Always disable DSSS when in the 5 GHZ band
 			wlan_phy_DSSS_rx_disable();
 		}
 
-	    if(channel >= 36){
-	        // Adjust Tx baseband gain when switching to 5GHz channels; this adjustment makes
-	    	//  the actual Tx power set via the Tx VGA more accurate
-	        radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXGAIN_BB, 3);
-	    } else {
-	        radio_controller_setRadioParam(RC_BASEADDR, RC_ALL_RF, RC_PARAMID_TXGAIN_BB, 1);
-	    }
-
-		radio_controller_setCenterFrequency(RC_BASEADDR, (RC_ALL_RF), mac_param_band, wlan_mac_low_wlan_chan_to_rc_chan(mac_param_chan));
 		wlan_mac_reset_NAV_counter();
 
+		return wlan_platform_low_set_radio_channel(channel);
+
 	} else {
-		xil_printf("Invalid channel selection %d\n", mac_param_chan);
+		xil_printf("Invalid channel selection %d\n", channel);
+		return -1;
 	}
 }
 
@@ -1075,7 +953,7 @@ void wlan_mac_low_DSSS_rx_enable() {
 	mac_param_dsss_en = 1;
 
 	// Only enable DSSS if in 2.4 GHz band and phy sample rate is 20
-	if ((mac_param_band == RC_24GHZ) && (gl_phy_samp_rate == PHY_20M)) {
+	if ((mac_param_band == CHAN_BAND_24GHz) && (gl_phy_samp_rate == PHY_20M)) {
 		wlan_phy_DSSS_rx_enable();
 	}
 }
@@ -1101,7 +979,7 @@ int wlan_mac_low_finish_frame_transmit(u16 tx_pkt_buf){
     	return return_value;
     }
 
-    tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+    tx_frame_info = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf);
 
 	switch(tx_frame_info->tx_pkt_buf_state){
 		case TX_PKT_BUF_LOW_CTRL:
@@ -1120,6 +998,12 @@ int wlan_mac_low_finish_frame_transmit(u16 tx_pkt_buf){
 				tx_frame_info->timestamp_done = get_mac_time_usec();
 
 				tx_frame_info->tx_pkt_buf_state = TX_PKT_BUF_DONE;
+
+		    	// Note: at this point in the code, the packet buffer state has been modified to TX_PKT_BUF_DONE,
+		    	// yet we have not sent the IPC_MBOX_TX_PKT_BUF_DONE message. If we happen to reboot here,
+		    	// this packet buffer will be abandoned and won't be cleaned up in the boot process. This is a narrow
+		    	// race in practice, but step-by-step debugging can accentuate the risk since there can be an arbitrary
+		    	// amount of time spent in this window.
 
 				//Revert the state of the packet buffer and return control to CPU High
 				if(unlock_tx_pkt_buf(tx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS){
@@ -1164,12 +1048,15 @@ int wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf){
 		return PREPARE_FRAME_TRANSMIT_ERROR_INVALID_PKT_BUF;
 	}
 
-	tx_frame_info = (tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(tx_pkt_buf);
+	tx_frame_info = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf);
 
 	tx_frame_info->timestamp_accept = get_mac_time_usec();
 
 	// Get pointer to start of MAC header in packet buffer
-	tx_80211_header = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
+	tx_80211_header = (mac_header_80211*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf)+PHY_TX_PKT_BUF_MPDU_OFFSET);
+
+	// Mark this packet buffer as prepared
+	tx_frame_info->flags |= TX_FRAME_INFO_FLAGS_PKT_BUF_PREPARED;
 
 	// Insert sequence number here
 	tx_80211_header->sequence_control = ((tx_80211_header->sequence_control) & 0xF) | ( (unique_seq&0xFFF)<<4 );
@@ -1353,190 +1240,17 @@ inline u64 wlan_mac_low_get_tx_start_timestamp() {
 }
 
 
-
 /*****************************************************************************/
 /**
- * @brief Various Setter Methods
+ * @brief Sets the node's MAC address in the MAC core's NAV logic
  *
- * These functions will set parameters in the low framework.
- *
- * @param   (see individual function)
+ * @param   addr - pointer to 6-byte MAC address
  * @return  None
  */
 void wlan_mac_low_set_nav_check_addr(u8* addr) {
     Xil_Out32(WLAN_MAC_REG_NAV_CHECK_ADDR_1, *((u32*)&(addr[0])) );
     Xil_Out32(WLAN_MAC_REG_NAV_CHECK_ADDR_2, *((u32*)&(addr[4])) );
 }
-
-
-
-/*****************************************************************************/
-/**
- * @brief Calculates Rx Power (in dBm)
- *
- * This function calculates receive power for a given band, RSSI and LNA gain. This
- * provides a reasonable estimate of Rx power, accurate to a few dB for standard waveforms.
- *
- * This function does not use the VGA gain setting or I/Q magnitudes. The PHY should use these
- * to refine its own power measurement if needed.
- *
- * NOTE:  These lookup tables were developed as part of the RF characterization.  See:
- *     http://warpproject.org/trac/wiki/802.11/Benchmarks/Rx_Char
- *
- *
- * @param   rssi             - RSSI value from RF frontend
- * @param   lna_gain         - Value of LNA gain stage in RF frontend
- * @return  int              - Power in dBm
- */
-const s8 pow_lookup_B24[128]  = {-90, -90, -89, -88, -88, -87, -87, -86, -86, -85, -84, -84, -83, -83, -82, -82,
-                                 -81, -81, -80, -79, -79, -78, -78, -77, -77, -76, -75, -75, -74, -74, -73, -73,
-                                 -72, -72, -71, -70, -70, -69, -69, -68, -68, -67, -66, -66, -65, -65, -64, -64,
-                                 -63, -63, -62, -61, -61, -60, -60, -59, -59, -58, -58, -57, -56, -56, -55, -55,
-                                 -54, -54, -53, -52, -52, -51, -51, -50, -50, -49, -49, -48, -47, -47, -46, -46,
-                                 -45, -45, -44, -43, -43, -42, -42, -41, -41, -40, -40, -39, -38, -38, -37, -37,
-                                 -36, -36, -35, -34, -34, -33, -33, -32, -32, -31, -31, -30, -29, -29, -28, -28,
-                                 -27, -27, -26, -26, -25, -24, -24, -23, -23, -22, -22, -21, -20, -20, -19, -19};
-
-const s8 pow_lookup_B5[128]   = {-97, -97, -96, -96, -95, -94, -94, -93, -93, -92, -92, -91, -90, -90, -89, -89,
-                                 -88, -88, -87, -87, -86, -85, -85, -84, -84, -83, -83, -82, -81, -81, -80, -80,
-                                 -79, -79, -78, -78, -77, -76, -76, -75, -75, -74, -74, -73, -72, -72, -71, -71,
-                                 -70, -70, -69, -69, -68, -67, -67, -66, -66, -65, -65, -64, -63, -63, -62, -62,
-                                 -61, -61, -60, -60, -59, -58, -58, -57, -57, -56, -56, -55, -54, -54, -53, -53,
-                                 -52, -52, -51, -51, -50, -49, -49, -48, -48, -47, -47, -46, -45, -45, -44, -44,
-                                 -43, -43, -42, -42, -41, -40, -40, -39, -39, -38, -38, -37, -36, -36, -35, -35,
-                                 -34, -34, -33, -32, -32, -31, -31, -30, -30, -29, -29, -28, -27, -27, -26, -26};
-
-
-inline int wlan_mac_low_calculate_rx_power(u16 rssi, u8 lna_gain){
-
-    u8             band;
-    int            power     = -100;
-    u16            adj_rssi  = 0;
-
-    band = mac_param_band;
-
-    if(band == RC_24GHZ){
-        switch(lna_gain){
-            case 0:
-            case 1:
-                // Low LNA Gain State
-                adj_rssi = rssi + (440 << PHY_RX_RSSI_SUM_LEN_BITS);
-            break;
-
-            case 2:
-                // Medium LNA Gain State
-                adj_rssi = rssi + (220 << PHY_RX_RSSI_SUM_LEN_BITS);
-            break;
-
-            case 3:
-                // High LNA Gain State
-                adj_rssi = rssi;
-            break;
-        }
-
-        power = pow_lookup_B24[(adj_rssi >> (PHY_RX_RSSI_SUM_LEN_BITS+POW_LOOKUP_SHIFT))];
-
-    } else if(band == RC_5GHZ){
-        switch(lna_gain){
-            case 0:
-            case 1:
-                // Low LNA Gain State
-                adj_rssi = rssi + (540 << PHY_RX_RSSI_SUM_LEN_BITS);
-            break;
-
-            case 2:
-                // Medium LNA Gain State
-                adj_rssi = rssi + (280 << PHY_RX_RSSI_SUM_LEN_BITS);
-            break;
-
-            case 3:
-                // High LNA Gain State
-                adj_rssi = rssi;
-            break;
-        }
-
-        power = pow_lookup_B5[(adj_rssi >> (PHY_RX_RSSI_SUM_LEN_BITS+POW_LOOKUP_SHIFT))];
-    }
-
-    return power;
-}
-
-
-
-/*****************************************************************************/
-/**
- * @brief Calculates RSSI from Rx power (in dBm)
- *
- * This function calculates receive power for a given band, RSSI and LNA gain. This
- * provides a reasonable estimate of Rx power, accurate to a few dB for standard waveforms.
- *
- * This function does not use the VGA gain setting or I/Q magnitudes. The PHY should use these
- * to refine its own power measurement if needed.
- *
- * NOTE:  These lookup tables were developed as part of the RF characterization.  See:
- *     http://warpproject.org/trac/wiki/802.11/Benchmarks/Rx_Char
- *
- *
- * @param   rx_pow           - Receive power in dBm
- * @return  u16              - RSSI value
- *
- * @note    rx_pow must be in the range [PKT_DET_MIN_POWER_MIN, PKT_DET_MIN_POWER_MAX] inclusive
- */
-const u16 rssi_lookup_B24[61] = {  1,  16,  24,  40,  56,  72,  80,  96, 112, 128, 144, 152, 168, 184, 200, 208,
-                                 224, 240, 256, 272, 280, 296, 312, 328, 336, 352, 368, 384, 400, 408, 424, 440,
-                                 456, 472, 480, 496, 512, 528, 536, 552, 568, 584, 600, 608, 624, 640, 656, 664,
-                                 680, 696, 712, 728, 736, 752, 768, 784, 792, 808, 824, 840, 856};
-
-const u16 rssi_lookup_B5[61]  = { 96, 112, 128, 144, 160, 168, 184, 200, 216, 224, 240, 256, 272, 288, 296, 312,
-                                 328, 344, 352, 368, 384, 400, 416, 424, 440, 456, 472, 480, 496, 512, 528, 544,
-                                 552, 568, 584, 600, 608, 624, 640, 656, 672, 680, 696, 712, 728, 736, 752, 768,
-                                 784, 800, 808, 824, 840, 856, 864, 880, 896, 912, 920, 936, 952};
-
-
-int wlan_mac_low_rx_power_to_rssi(s8 rx_pow){
-    u8 band;
-    u16 rssi_val = 0;
-
-    band = mac_param_band;
-
-    if ((rx_pow <= PKT_DET_MIN_POWER_MAX) && (rx_pow >= PKT_DET_MIN_POWER_MIN)) {
-        if(band == RC_24GHZ){
-            rssi_val = rssi_lookup_B24[rx_pow-PKT_DET_MIN_POWER_MIN];
-        } else if(band == RC_5GHZ){
-            rssi_val = rssi_lookup_B5[rx_pow-PKT_DET_MIN_POWER_MIN];
-        }
-
-        return rssi_val;
-
-    } else {
-        return -1;
-    }
-}
-
-
-
-/*****************************************************************************/
-/**
- * @brief Set the minimum power for packet detection
- *
- * @param   rx_pow           - Receive power in dBm
- * @return  int              - Status:  0 - Success; -1 - Failure
- */
-int wlan_mac_low_set_pkt_det_min_power(s8 rx_pow){
-    int rssi_val;
-
-    rssi_val = wlan_mac_low_rx_power_to_rssi(rx_pow);
-
-    if(rssi_val != -1){
-        wlan_phy_rx_pktDet_RSSI_cfg( (PHY_RX_RSSI_SUM_LEN-1), (rssi_val << PHY_RX_RSSI_SUM_LEN_BITS), 1);
-
-        return  0;
-    } else {
-        return -1;
-    }
-}
-
-
 
 /*****************************************************************************/
 /**
@@ -1569,26 +1283,26 @@ inline void wlan_mac_low_lock_empty_rx_pkt_buf(){
     	// select the "oldest" packet buffer, the one that is most likely to have already
     	// been processed and released by CPU High
     	rx_pkt_buf = (rx_pkt_buf+1) % NUM_RX_PKT_BUFS;
-    	rx_frame_info    = (rx_frame_info_t*) RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
+    	rx_frame_info    = (rx_frame_info_t*) CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf);
 
         if((rx_frame_info->rx_pkt_buf_state) == RX_PKT_BUF_LOW_CTRL){
 
         	if(lock_rx_pkt_buf(rx_pkt_buf) == PKT_BUF_MUTEX_SUCCESS){
-        		// By default Rx pkt buffers are not zeroed out, to save the performance penalty of bzero'ing 2KB
-				//     However zeroing out the pkt buffer can be helpful when debugging Rx MAC/PHY behaviors
-				// bzero((void *)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), 2048);
+			// By default Rx pkt buffers are not zeroed out, to save the performance penalty of bzero'ing 2KB
+			//     However zeroing out the pkt buffer can be helpful when debugging Rx MAC/PHY behaviors
+			// bzero((void *)(RX_PKT_BUF_TO_ADDR(rx_pkt_buf)), 2048);
 
-				// Set the OFDM and DSSS PHYs to use the same Rx pkt buffer
-				wlan_phy_rx_pkt_buf_ofdm(rx_pkt_buf);
-				wlan_phy_rx_pkt_buf_dsss(rx_pkt_buf);
+			// Set the OFDM and DSSS PHYs to use the same Rx pkt buffer
+			wlan_phy_rx_pkt_buf_ofdm(rx_pkt_buf);
+			wlan_phy_rx_pkt_buf_dsss(rx_pkt_buf);
 
-				if (i > 1) { xil_printf("found in %d iterations.\n", i); }
+			if (i > 1) { xil_printf("found in %d iterations.\n", i); }
 
-				return;
+			return;
         	} else {
         		xil_printf("Error: unable to lock Rx pkt_buf %d despite RX_PKT_BUF_LOW_CTRL\n", rx_pkt_buf);
         		unlock_rx_pkt_buf(rx_pkt_buf);
-        	}
+        }
         }
 
         if (i == 1) { xil_printf("Searching for empty packet buff ... "); }
@@ -1690,166 +1404,6 @@ inline u8 wlan_mac_low_dbm_to_gain_target(s8 power){
 }
 
 
-
-/*****************************************************************************/
-/**
- * @brief Map the WLAN channel frequencies onto the convention used by the radio controller
- */
-inline u32 wlan_mac_low_wlan_chan_to_rc_chan(u32 mac_channel) {
-    int return_value = 0;
-
-    switch(mac_channel){
-        // 2.4GHz channels
-        case 1:
-        case 2:
-        case 3:
-        case 4:
-        case 5:
-        case 6:
-        case 7:
-        case 8:
-        case 9:
-        case 10:
-        case 11:
-            return_value = mac_channel;
-        break;
-
-        // 5GHz channels
-        case 36: // 5180 MHz
-            return_value = 1;
-        break;
-        case 38: // 5190 MHz
-            return_value = 2;
-        break;
-        case 40: // 5200 MHz
-            return_value = 3;
-        break;
-        case 44: // 5220 MHz
-            return_value = 4;
-        break;
-        case 46: // 5230 MHz
-            return_value = 5;
-        break;
-        case 48: // 5240 MHz
-            return_value = 6;
-        break;
-#if 0 // Disable these channels by default
-        case 52: // 5260 MHz
-            return_value = 7;
-        break;
-        case 54: // 5270 MHz
-            return_value = 8;
-        break;
-        case 56: // 5280 MHz
-            return_value = 9;
-        break;
-        case 60: // 5300 MHz
-            return_value = 10;
-        break;
-        case 62: // 5310 MHz
-            return_value = 11;
-        break;
-        case 64: // 5320 MHz
-            return_value = 12;
-        break;
-        case 100: // 5500 MHz
-            return_value = 13;
-        break;
-        case 102: // 5510 MHz
-            return_value = 14;
-        break;
-        case 104: // 5520 MHz
-            return_value = 15;
-        break;
-        case 108: // 5540 MHz
-            return_value = 16;
-        break;
-        case 110: // 5550 MHz
-            return_value = 17;
-        break;
-        case 112: // 5560 MHz
-            return_value = 18;
-        break;
-        case 116: // 5580 MHz
-            return_value = 19;
-        break;
-        case 118: // 5590 MHz
-            return_value = 20;
-        break;
-        case 120: // 5600 MHz
-            return_value = 21;
-        break;
-        case 124: // 5620 MHz
-            return_value = 22;
-        break;
-        case 126: // 5630 MHz
-            return_value = 23;
-        break;
-        case 128: // 5640 MHz
-            return_value = 24;
-        break;
-        case 132: // 5660 MHz
-            return_value = 25;
-        break;
-        case 134: // 5670 MHz
-            return_value = 26;
-        break;
-        case 136: // 5680 MHz
-            return_value = 27;
-        break;
-        case 140: // 5700 MHz
-            return_value = 28;
-        break;
-        case 142: // 5710 MHz
-            return_value = 29;
-        break;
-        case 144: // 5720 MHz
-            return_value = 30;
-        break;
-        case 149: // 5745 MHz
-            return_value = 31;
-        break;
-        case 151: // 5755 MHz
-            return_value = 32;
-        break;
-        case 153: // 5765 MHz
-            return_value = 33;
-        break;
-        case 157: // 5785 MHz
-            return_value = 34;
-        break;
-        case 159: // 5795 MHz
-            return_value = 35;
-        break;
-        case 161: // 5805 MHz
-            return_value = 36;
-        break;
-        case 165: // 5825 MHz
-            return_value = 37;
-        break;
-        case 172: // 5860 MHz
-            return_value = 38;
-        break;
-        case 174: // 5870 MHz
-        	return_value = 39;
-		break;
-        case 175: // 5875 MHz
-        	return_value = 40;
-		break;
-        case 176: // 5880 MHz
-        	return_value = 41;
-		break;
-        case 177: // 5885 MHz
-        	return_value = 42;
-		break;
-        case 178: // 5890 MHz
-        	return_value = 43;
-		break;
-#endif
-    }
-
-    return return_value;
-}
 
 
 

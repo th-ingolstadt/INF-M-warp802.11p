@@ -861,8 +861,8 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('pkt_type',               'B',      'uint8',   'Packet type, first frame control byte of 802.11 header'),
         ('channel',                'B',      'uint8',   'Channel (center frequency) index'),
         ('padding1',               'x',      'uint8',   ''),
-        ('rf_gain',                'B',      'uint8',   'AGC RF gain setting: [1,2,3] for [0,15,30]dB gain'),
-        ('bb_gain',                'B',      'uint8',   'AGC BB gain setting: [0:31] for approx [0:63]dB gain'),
+        ('rx_gain_index',          'B',      'uint8',   'Radio Rx gain index; larger values mean larger Rx gains, mapping to absolute dB is radio-dependent'),
+        ('padding2',               'B',      'uint8',   ''),
         ('flags',                  'H',      'uint16',  '1-bit flags')])
 
     entry_rx_common.consts = util.consts_dict({
@@ -978,7 +978,7 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
         ('timestamp',                           'Q',    'uint64',  'Value of MAC Time in microseconds when log entry created'),
         ('node_type',                           'I',    'uint32',  'Code identifying applications in CPU High and CPU Low'),
         ('node_id',                             'I',    'uint32',  'Node ID, as set during wlan_exp init'),
-        ('hw_generation',                       'I',    'uint32',  'WARP hardware generation; always 3 for WARP v3'),
+        ('platform_id',                         'I',    'uint32',  'WARP hardware generation; always 3 for WARP v3'),
         ('serial_num',                          'I',    'uint32',  'Serial number of WARP board'),
         ('fpga_dna',                            'Q',    'uint64',  'DNA value of node FPGA'),
         ('version',                             'I',    'uint32',  'wlan_exp version, as packed values [(u8)major (u8)minor (u16)rev]'),
@@ -1059,8 +1059,6 @@ if not os.environ.get('BUILDING_DOCS_ON_SERVER', False):
 
     entry_node_temperature.append_field_defs([
         ('timestamp',              'Q',      'uint64', 'Value of MAC Time in microseconds when log entry created'),
-        ('node_id',                'I',      'uint32', 'wlan_exp node ID'),
-        ('serial_num',             'I',      'uint32', 'Node serial number'),
         ('temp_current',           'I',      'uint32', 'Current FPGA die temperature (deg C)'),
         ('temp_min',               'I',      'uint32', 'Minimum FPGA die temperature (deg C) since FPGA configuration or sysmon reset'),
         ('temp_max',               'I',      'uint32', 'Maximum FPGA die temperature (deg C) since FPGA configuration or sysmon reset')])

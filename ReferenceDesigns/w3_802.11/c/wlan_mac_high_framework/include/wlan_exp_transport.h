@@ -10,6 +10,8 @@
  *
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
+#ifndef WLAN_EXP_TRANSPORT_H_
+#define WLAN_EXP_TRANSPORT_H_
 
 
 /***************************** Include Files *********************************/
@@ -19,16 +21,14 @@
 // WLAN Exp includes
 #include "wlan_exp_common.h"
 
-// WARP UDP transport includes
+// wlan_exp IP/UDP transport includes
 #if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
-#include <WARP_ip_udp.h>
-#include <WARP_ip_udp_device.h>
+#include "wlan_exp_ip_udp.h"
+#include "wlan_exp_ip_udp_device.h"
 #endif //WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
 
 /*************************** Constant Definitions ****************************/
-#ifndef WLAN_EXP_TRANSPORT_H_
-#define WLAN_EXP_TRANSPORT_H_
 
 
 // ****************************************************************************
@@ -86,16 +86,14 @@
 // ****************************************************************************
 // Define Transport Ethernet Information
 //
-#define TRANSPORT_NUM_ETH_DEVICES                          WARP_IP_UDP_NUM_ETH_DEVICES
+#define TRANSPORT_NUM_ETH_DEVICES                          WLAN_EXP_IP_UDP_NUM_ETH_DEVICES
 #define TRANSPORT_ETH_DEV_INITIALIZED                      1
 
 // Ethernet A constants
 #define TRANSPORT_ETH_A                                    ETH_A_MAC
-#define TRANSPORT_ETH_A_MDIO_PHYADDR                       0x6
 
 // Ethernet B constants
 #define TRANSPORT_ETH_B                                    ETH_B_MAC
-#define TRANSPORT_ETH_B_MDIO_PHYADDR                       0x7
 
 // Ethernet constants
 #define ETH_DO_NOT_WAIT_FOR_AUTO_NEGOTIATION               0
@@ -163,10 +161,8 @@
 /*********************** Global Structure Definitions ************************/
 
 // Transport header
-//     NOTE:  This conforms to the Transport Header Wire Format:
-//            http://warpproject.org/trac/wiki/WARPLab/Reference/Architecture/WireFormat
 //
-typedef struct {
+typedef struct transport_header{
     u16                      dest_id;                      // Destination ID
     u16                      src_id;                       // Source ID
     u8                       reserved;                     // Reserved
@@ -182,7 +178,7 @@ typedef struct {
 //     NOTE:  This structure has to have the same fields in the same order as the Transp    rt Parameters
 //         defined above.  Th    s structure will be used a     storage for the     ag Parameter values.
 //
-typedef struct {
+typedef struct transport_info_t{
     u32                      type;                         // Transport Type
     u32                      hw_addr[2];                   // HW Address (big endian as 2 u32 values with 16 bit padding)
     u32                      ip_addr;                      // IP Address (big endian)
@@ -211,7 +207,7 @@ typedef struct {
 //
 //     NOTE:  This structure exists so that differences between Ethernet devices can be consolidated
 //
-typedef struct {
+typedef struct transport_eth_dev_info{
     u32                      node_id;                      // Node ID (Only bits [15:0] are valid)
                                                            //     NOTE:  This is replicated from node_id in wlan_exp_node_info
     u32                      initialized;                  // Ethernet device initialized
@@ -242,8 +238,8 @@ int  transport_set_process_hton_msg_callback(void(*handler));
 int  process_transport_cmd(int socket_index, void* from, cmd_resp* command, cmd_resp* response, u32 max_resp_len);
 
 void transport_poll(u32 eth_dev_num);
-void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr * from, warp_ip_udp_buffer * recv_buffer, warp_ip_udp_buffer * send_buffer);
-void transport_send(int socket_index, struct sockaddr* to, warp_ip_udp_buffer** buffers, u32 num_buffers);
+void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr * from, wlan_exp_ip_udp_buffer * recv_buffer, wlan_exp_ip_udp_buffer * send_buffer);
+void transport_send(int socket_index, struct sockaddr* to, wlan_exp_ip_udp_buffer** buffers, u32 num_buffers);
 void transport_send_async(u32 eth_dev_num, u8 * payload, u32 length);
 void transport_close(u32 eth_dev_num);
 

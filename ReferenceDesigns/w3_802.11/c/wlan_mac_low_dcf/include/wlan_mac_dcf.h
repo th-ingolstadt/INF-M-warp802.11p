@@ -16,13 +16,20 @@
 #ifndef WLAN_MAC_DCF_H_
 #define WLAN_MAC_DCF_H_
 
+#include "xil_types.h"
+
+//Forward declarations
+struct phy_rx_details_t;
+enum phy_samp_rate_t;
+struct beacon_txrx_configure_t;
+
 #define PKT_BUF_INVALID                                   0xFF
 #define MAX_NUM_PENDING_TX_PKT_BUFS 					  5
 
 
 //-----------------------------------------------
 // MAC Timing Structure
-typedef struct{
+typedef struct mac_timing{
 	u16 t_slot;
 	u16 t_sifs;
 	u16 t_difs;
@@ -82,28 +89,28 @@ typedef struct{
 
 /*********************** Global Structure Definitions ************************/
 
-typedef enum {
+typedef enum rx_finish_state_t{
     RX_FINISH_SEND_NONE,
     RX_FINISH_SEND_A,
     RX_FINISH_SEND_B
 } rx_finish_state_t;
 
 
-typedef enum {
+typedef enum tx_pending_state_t{
     TX_PENDING_NONE,
     TX_PENDING_A,
     TX_PENDING_B
 } tx_pending_state_t;
 
 
-typedef enum {
+typedef enum tx_wait_state_t{
     TX_WAIT_NONE,
     TX_WAIT_ACK,
     TX_WAIT_CTS
 } tx_wait_state_t;
 
 
-typedef enum {
+typedef enum tx_mode_t{
     TX_MODE_SHORT,
     TX_MODE_LONG
 } tx_mode_t;
@@ -111,14 +118,14 @@ typedef enum {
 /*************************** Function Prototypes *****************************/
 int                main();
 
-u32                frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details);
+u32                frame_receive(u8 rx_pkt_buf, struct phy_rx_details_t* phy_details);
 void			   handle_mcast_buffer_enable(u32 enable);
 void 			   update_tx_pkt_buf_lists();
-void 			   handle_sample_rate_change(phy_samp_rate_t phy_samp_rate);
+void 			   handle_sample_rate_change(enum phy_samp_rate_t phy_samp_rate);
 void               update_dtim_count();
 void 			   update_tu_target(u8 recompute);
 void 			   handle_mactime_change(s64 time_delta_usec);
-void 			   configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure);
+void 			   configure_beacon_txrx(struct beacon_txrx_configure_t* beacon_txrx_configure);
 void 			   frame_transmit_general(u8 pkt_buf);
 
 #define			   DTIM_MCAST_RETURN_PAUSED			0x00000001

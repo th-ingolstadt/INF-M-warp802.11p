@@ -13,7 +13,7 @@ def read(*paths):
 
 setup(
     name='mango-wlan-exp',
-    version='1.6.2',
+    version='1.7.0',
     description='Experiments framework for Mango 802.11 Reference Design',
     long_description=(read('README')),
     url='http://warpproject.org/w/802.11/',

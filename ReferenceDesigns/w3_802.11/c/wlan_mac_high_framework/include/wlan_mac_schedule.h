@@ -17,7 +17,7 @@
 /***************************** Include Files *********************************/
 
 #include "wlan_mac_high_sw_config.h"
-
+#include "xil_types.h"
 #include "xintc.h"
 
 
@@ -29,10 +29,8 @@
 //-----------------------------------------------
 // Timer defines
 //
-#define TMRCTR_DEVICE_ID                                   XPAR_TMRCTR_0_DEVICE_ID
-#define TIMER_FREQ                                         XPAR_TMRCTR_0_CLOCK_FREQ_HZ
 
-#define TIMER_CLKS_PER_US                                  (TIMER_FREQ / 1000000)
+#define TIMER_CLKS_PER_US                                  (platform_high_dev_info.timer_freq / 1000000)
 
 #define TIMER_CNTR_FAST                                    0
 #define TIMER_CNTR_SLOW                                    1
@@ -68,8 +66,10 @@
 
 /*********************** Global Structure Definitions ************************/
 
+struct dl_entry;
+
 // Schedule structure for scheduled events
-typedef struct {
+typedef struct wlan_sched{
     u32            id;
     u8			   enabled;
     u32            delay_us;
@@ -78,9 +78,9 @@ typedef struct {
     function_ptr_t callback;
 } wlan_sched;
 
-typedef struct {
+typedef struct wlan_sched_state_t{
 	dl_list		enabled_list;
-	dl_entry*	next;
+	struct dl_entry*	next;
 } wlan_sched_state_t;
 
 

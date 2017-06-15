@@ -11,12 +11,12 @@
  *  This file is part of the Mango 802.11 Reference Design (https://mangocomm.com/802.11)
  */
 
-/***************************** Include Files *********************************/
-
-#include "wlan_mac_high_sw_config.h"
-
 #ifndef WLAN_MAC_ETH_UTIL_H_
 #define WLAN_MAC_ETH_UTIL_H_
+
+/***************************** Include Files *********************************/
+#include "wlan_mac_high_sw_config.h"
+#include "wlan_high_types.h"
 
 //-----------------------------------------------
 // Magic numbers used for Ethernet/IP/UDP/DHCP/ARP packet interpretation
@@ -52,6 +52,8 @@
 
 #define ETH_PAYLOAD_OFFSET								   ( sizeof(mac_header_80211) + sizeof(llc_header_t) - sizeof(ethernet_header_t) )
 
+#define WLAN_PROCESS_ETH_RX_RETURN_IS_ENQUEUED	0x0000001
+
 
 /*********************** Global Structure Definitions ************************/
 
@@ -59,14 +61,14 @@
 // code never creates instances of these structs
 
 //
-// See definitions in WARP_ip_udp.h for:
+// See definitions in wlan_exp_ip_udp.h for:
 //     ethernet_header
 //     ipv4_header
 //     udp_header
 //     arp_ipv4_packet
 //
 
-typedef struct{
+typedef struct dhcp_packet{
 	u8  op;
 	u8  htype;
 	u8  hlen;
@@ -84,13 +86,13 @@ typedef struct{
 	u32 magic_cookie;
 } dhcp_packet;
 
-typedef struct {
+typedef struct ethernet_header_t{
     u8                       dest_mac_addr[ETH_ADDR_SIZE];                      // Destination MAC address
     u8                       src_mac_addr[ETH_ADDR_SIZE];                       // Source MAC address
     u16                      ethertype;                                        // EtherType
 } ethernet_header_t;
 
-typedef struct {
+typedef struct ipv4_header_t{
     u8                       version_ihl;                                      // [7:4] Version; [3:0] Internet Header Length
     u8                       dscp_ecn;                                         // [7:2] Differentiated Services Code Point; [1:0] Explicit Congestion Notification
     u16                      total_length;                                     // Total Length (includes header and data - in bytes)
@@ -103,7 +105,7 @@ typedef struct {
     u32                      dest_ip_addr;                                     // Destination IP address (big endian)
 } ipv4_header_t;
 
-typedef struct {
+typedef struct arp_ipv4_packet_t{
     u16                      htype;                                            // Hardware Type
     u16                      ptype;                                            // Protocol Type
     u8                       hlen;                                             // Length of Hardware address
@@ -115,7 +117,7 @@ typedef struct {
     u8                       target_paddr[IP_ADDR_SIZE];                        // Target protocol address
 } arp_ipv4_packet_t;
 
-typedef struct {
+typedef struct udp_header_t{
     u16                      src_port;                                         // Source port number
     u16                      dest_port;                                        // Destination port number
     u16                      length;                                           // Length of UDP header and UDP data (in bytes)
@@ -124,60 +126,18 @@ typedef struct {
 
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 
-#include "xintc.h"
-
-//-----------------------------------------------
-// xparameter.h definitions
-//
-// Ethernet A
-#define ETH_A_MAC_DEVICE_ID                                XPAR_ETH_A_MAC_DEVICE_ID
-#define ETH_A_DMA_DEVICE_ID                                XPAR_ETH_A_DMA_DEVICE_ID
-
-#define ETH_A_RX_INTR_ID                                   XPAR_INTC_0_AXIDMA_0_S2MM_INTROUT_VEC_ID
-#define ETH_A_TX_INTR_ID                                   XPAR_INTC_0_AXIDMA_0_MM2S_INTROUT_VEC_ID
-
-// Ethernet B
-#define ETH_B_MAC_DEVICE_ID                                XPAR_ETH_B_MAC_DEVICE_ID
-#define ETH_B_DMA_DEVICE_ID                                XPAR_ETH_B_DMA_DEVICE_ID
-
-#define ETH_B_RX_INTR_ID                                   XPAR_INTC_0_AXIDMA_1_S2MM_INTROUT_VEC_ID
-#define ETH_B_TX_INTR_ID                                   XPAR_INTC_0_AXIDMA_1_MM2S_INTROUT_VEC_ID
-
-
-//-----------------------------------------------
-// Ethernet PHY defines
-//
-#define ETH_A_MDIO_PHYADDR                                 0x6
-#define ETH_B_MDIO_PHYADDR                                 0x7
-
-
-//-----------------------------------------------
-// WLAN Ethernet defines
-//     NOTE:  Ethernet device associated with device ID must match Ethernet device associated
-//         with MDIO PHY address
-//
-#define WLAN_ETH_DEV_ID                                    ETH_A_MAC_DEVICE_ID
-#define WLAN_ETH_DMA_DEV_ID                                ETH_A_DMA_DEVICE_ID
-#define WLAN_ETH_MDIO_PHYADDR                              ETH_A_MDIO_PHYADDR
-#define WLAN_ETH_RX_INTR_ID                                ETH_A_RX_INTR_ID
-#define WLAN_ETH_TX_INTR_ID                                ETH_A_TX_INTR_ID
-#define WLAN_ETH_LINK_SPEED	                               1000
-#define WLAN_ETH_PKT_BUF_SIZE                              0x800               // 2KB - space allocated per pkt
-
 /*************************** Function Prototypes *****************************/
 
-int           wlan_eth_init();
-int           wlan_eth_setup_interrupt(XIntc* intc);
+int           wlan_eth_util_init();
 
 void          wlan_mac_util_set_eth_rx_callback(void(*callback)());
-void          wlan_mac_util_set_eth_encap_mode(u8 mode);
-
-int    		  eth_get_num_rx_bd();
+void          wlan_mac_util_set_eth_encap_mode(application_role_t mode);
 
 int           wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset);
 
-void          wlan_eth_dma_update();
 void 	      wlan_eth_portal_en(u8 enable);
+
+u32 	 	  wlan_process_eth_rx(void* eth_rx_buf, u32 eth_rx_len);
 
 #endif /* WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE */
 

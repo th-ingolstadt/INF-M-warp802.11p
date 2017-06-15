@@ -18,43 +18,69 @@
 #include "xil_types.h"
 #include "stdlib.h"
 #include "stdio.h"
-#include "xparameters.h"
+#include "wlan_platform_high.h"
 #include "string.h"
 
 #include "wlan_mac_pkt_buf_util.h"
-#include "wlan_mac_time_util.h"
 #include "wlan_mac_high.h"
 #include "wlan_mac_station_info.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_addr_filter.h"
+#include "wlan_mac_network_info.h"
+#include "wlan_platform_common.h"
+#include "wlan_mac_common.h"
+#include "wlan_common_types.h"
 
 /*********************** Global Variable Definitions *************************/
 
 
+extern platform_high_dev_info_t platform_high_dev_info;
+
 /*************************** Variable Definitions ****************************/
 
-static dl_list               station_info_free;              ///< Free Counts
+static dl_list station_info_free; ///< Free station_info_t
 
 /// The counts_txrx_list is stored chronologically from .first being oldest
 /// and .last being newest. The "find" function search from last to first
 /// to minimize search time for new BSSes you hear from often.
-static dl_list               station_info_list;              ///< Filled Counts
+static dl_list station_info_list; ///< Filled station_info_t
+
+
+
+// Default Transmission Parameters
+typedef struct default_tx_params_t{
+	tx_params_t unicast_mgmt;
+	tx_params_t unicast_data;
+	tx_params_t multicast_mgmt;
+	tx_params_t multicast_data;
+} default_tx_params_t;
+
+static default_tx_params_t default_tx_params;
 
 
 /*************************** Functions Prototypes ****************************/
 
-dl_entry* station_info_find_oldest();
+station_info_entry_t* station_info_find_oldest();
 
 
 /******************************** Functions **********************************/
 
 void station_info_init() {
 
-	u32       i;
-	u32       num_station_info;
-	dl_entry* dl_entry_base;
+	u32       				i;
+	u32       				num_station_info;
+	station_info_entry_t*   station_info_entry_base;
+
+	// Set sane default Tx params. These will be overwritten by the user application
+	tx_params_t	tx_params = { .phy = { .mcs = 0, .phy_mode = PHY_MODE_NONHT, .antenna_mode = TX_ANTMODE_SISO_ANTA, .power = 15 },
+							  .mac = { .flags = 0 } };
+
+	wlan_mac_set_default_tx_params(unicast_data, &tx_params);
+	wlan_mac_set_default_tx_params(unicast_mgmt, &tx_params);
+	wlan_mac_set_default_tx_params(mcast_data, &tx_params);
+	wlan_mac_set_default_tx_params(mcast_mgmt, &tx_params);
 
 	dl_list_init(&station_info_free);
 	dl_list_init(&station_info_list);
@@ -65,16 +91,16 @@ void station_info_init() {
 	// The number of elements we can initialize is limited by the smaller of two values:
 	//     (1) The number of dl_entry structs we can squeeze into STATION_INFO_DL_ENTRY_MEM_SIZE
 	//     (2) The number of station_info_t structs we can squeeze into STATION_INFO_BUFFER_SIZE
-	num_station_info = min(STATION_INFO_DL_ENTRY_MEM_SIZE/sizeof(dl_entry), STATION_INFO_BUFFER_SIZE/sizeof(station_info_t));
+	num_station_info = min(STATION_INFO_DL_ENTRY_MEM_SIZE/sizeof(station_info_entry_t), STATION_INFO_BUFFER_SIZE/sizeof(station_info_t));
 
 	// At boot, every dl_entry buffer descriptor is free
 	// To set up the doubly linked list, we exploit the fact that we know the starting state is sequential.
 	// This matrix addressing is not safe once the queue is used. The insert/remove helper functions should be used
-	dl_entry_base = (dl_entry*)(STATION_INFO_DL_ENTRY_MEM_BASE);
+	station_info_entry_base = (station_info_entry_t*)(STATION_INFO_DL_ENTRY_MEM_BASE);
 
 	for (i = 0; i < num_station_info; i++) {
-		dl_entry_base[i].data = (void*)(STATION_INFO_BUFFER_BASE + (i*sizeof(station_info_t)));
-		dl_entry_insertEnd(&station_info_free, &(dl_entry_base[i]));
+		station_info_entry_base[i].data = (station_info_t*)(STATION_INFO_BUFFER_BASE + (i*sizeof(station_info_t)));
+		dl_entry_insertEnd(&station_info_free, (dl_entry*)&(station_info_entry_base[i]));
 	}
 
 	xil_printf("Station Info list (len %d) placed in DRAM: using %d kB\n", num_station_info, (num_station_info*sizeof(station_info_t))/1024);
@@ -88,71 +114,68 @@ void station_info_init_finish(){
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, 10000000, SCHEDULE_REPEAT_FOREVER, (void*)station_info_timestamp_check);
 }
 
-
-inline station_info_t* station_info_tx_process(void* pkt_buf_addr) {
-	tx_frame_info_t*      	tx_frame_info  	  = (tx_frame_info_t*)pkt_buf_addr;
-	mac_header_80211* 		tx_80211_header   = (mac_header_80211*)((u8*)tx_frame_info + PHY_TX_PKT_BUF_MPDU_OFFSET);
-	dl_entry*				curr_dl_entry;
+inline station_info_t* station_info_txreport_process(void* pkt_buf_addr, wlan_mac_low_tx_details_t* wlan_mac_low_tx_details) {
+	tx_frame_info_t*      	tx_frame_info = (tx_frame_info_t*)pkt_buf_addr;
+	mac_header_80211* 		tx_80211_header = (mac_header_80211*)((u8*)tx_frame_info + PHY_TX_PKT_BUF_MPDU_OFFSET);
 	station_info_t*			curr_station_info;
+	u64						curr_system_time = get_system_time_usec();
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
 	station_txrx_counts_t*	curr_txrx_counts;
 	txrx_counts_sub_t*		txrx_counts_sub;
 	u8						pkt_type;
-
-
 	pkt_type = (tx_80211_header->frame_control_1 & MAC_FRAME_CTRL1_MASK_TYPE);
 #endif
 
-	curr_dl_entry = station_info_find_by_addr(tx_80211_header->address_1, NULL);
+	curr_station_info = station_info_create(tx_80211_header->address_1);
 
-	if(curr_dl_entry != NULL){
-		curr_station_info = (station_info_t*)(curr_dl_entry->data);
-
-		// Remove entry from station_info_list; Will be added back at the bottom of the function
-		// This serves to sort the list and keep the most recently updated entries at the tail.
-		dl_entry_remove(&station_info_list, curr_dl_entry);
-	} else {
-		// We haven't seen this addr before, so we'll attempt to checkout a new dl_entry
-		// struct from the free pool
-		curr_dl_entry = station_info_checkout();
-
-		if (curr_dl_entry == NULL){
-			// No free dl_entry!
-			// We'll have to reallocate the oldest entry in the filled list
-			curr_dl_entry = station_info_find_oldest();
-
-			if (curr_dl_entry != NULL) {
-				dl_entry_remove(&station_info_list, curr_dl_entry);
-			} else {
-				xil_printf("Cannot create station_info_t.\n");
-				return NULL;
-			}
-		}
-
-		curr_station_info = (station_info_t*)(curr_dl_entry->data);
-
-		// Clear any old information from the Tx/Rx counts
-		station_info_clear(curr_station_info);
-
-		// Copy addr into station_info_t struct
-		memcpy(curr_station_info->addr, tx_80211_header->address_1, MAC_ADDR_LEN);
-	}
+	if(curr_station_info == NULL) return NULL;
 
 	// By this point in the function, curr_station_info is guaranteed to be pointing to a valid station_info_t struct
 	// that we should update with this reception.
 
 	// Update the latest TXRX time
-	curr_station_info->latest_txrx_timestamp = get_system_time_usec();
+	curr_station_info->latest_txrx_timestamp = curr_system_time;
 
-	// If this transmission was a successful transmission, we implicitly know than an
-	// ACK was received. So, we can update the latest Rx-only timestamp as well.
-	// Note: The success <-> ACK Rx assumption holds here because this code
-	// cannot be executed on the transmission of a multicast frame.
-	// TODO: This structure doesn't work with NOMAC, where there is
-	//   no ACK Rx on a successful unicast Data Tx.
-	if(((tx_frame_info->tx_result) == TX_FRAME_INFO_RESULT_SUCCESS)){
-		curr_station_info->latest_rx_timestamp = get_system_time_usec();
+	if(wlan_mac_low_tx_details->flags & TX_DETAILS_FLAGS_RECEIVED_RESPONSE){
+		curr_station_info->latest_rx_timestamp = curr_system_time;
 	}
+
+#if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
+	curr_txrx_counts = &(curr_station_info->txrx_counts);
+
+	switch(pkt_type){
+		default:
+			//Unknown type
+			return curr_station_info;
+		break;
+		case MAC_FRAME_CTRL1_TYPE_DATA:
+			txrx_counts_sub = &(curr_txrx_counts->data);
+		break;
+		case MAC_FRAME_CTRL1_TYPE_MGMT:
+			txrx_counts_sub = &(curr_txrx_counts->mgmt);
+		break;
+	}
+
+	(txrx_counts_sub->tx_num_attempts)++;
+#endif
+
+	return curr_station_info;
+}
+
+inline station_info_t* station_info_posttx_process(void* pkt_buf_addr) {
+	tx_frame_info_t*      	tx_frame_info  	  = (tx_frame_info_t*)pkt_buf_addr;
+	mac_header_80211* 		tx_80211_header   = (mac_header_80211*)((u8*)tx_frame_info + PHY_TX_PKT_BUF_MPDU_OFFSET);
+	station_info_t*			curr_station_info;
+#if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
+	station_txrx_counts_t*	curr_txrx_counts;
+	txrx_counts_sub_t*		txrx_counts_sub;
+	u8						pkt_type;
+	pkt_type = (tx_80211_header->frame_control_1 & MAC_FRAME_CTRL1_MASK_TYPE);
+#endif
+
+	curr_station_info = station_info_create(tx_80211_header->address_1);
+
+	if(curr_station_info == NULL) return NULL;
 
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
 	curr_txrx_counts = &(curr_station_info->txrx_counts);
@@ -172,7 +195,6 @@ inline station_info_t* station_info_tx_process(void* pkt_buf_addr) {
 
 	(txrx_counts_sub->tx_num_packets_total)++;
 	(txrx_counts_sub->tx_num_bytes_total) += (tx_frame_info->length);
-	(txrx_counts_sub->tx_num_attempts)    += (tx_frame_info->num_tx_attempts);
 
 	if((tx_frame_info->tx_result) == TX_FRAME_INFO_RESULT_SUCCESS){
 		(txrx_counts_sub->tx_num_packets_success)++;
@@ -180,20 +202,17 @@ inline station_info_t* station_info_tx_process(void* pkt_buf_addr) {
 	}
 #endif
 
-	// Add Station Info into station_info_list
-	dl_entry_insertEnd(&station_info_list, curr_dl_entry);
-
 	return curr_station_info;
 
 }
 
-inline station_info_t* station_info_rx_process(void* pkt_buf_addr) {
+inline station_info_t* station_info_postrx_process(void* pkt_buf_addr) {
 	rx_frame_info_t*    	rx_frame_info   	     = (rx_frame_info_t*)pkt_buf_addr;
 	void*               	mac_payload              = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
 	mac_header_80211*   	rx_80211_header          = (mac_header_80211*)((void *)mac_payload);
-	dl_entry*				curr_dl_entry;
 	station_info_t*			curr_station_info		 = NULL;
 	u8						pkt_type;
+	u64						curr_system_time 		 = get_system_time_usec();
 
 	pkt_type = (rx_80211_header->frame_control_1 & MAC_FRAME_CTRL1_MASK_TYPE);
 
@@ -204,51 +223,23 @@ inline station_info_t* station_info_rx_process(void* pkt_buf_addr) {
 		// control frames will not be considered for counts either since the CTS
 		// and ACK frames have no addr2 field.
 
-		curr_dl_entry = station_info_find_by_addr(rx_80211_header->address_2, NULL);
+		curr_station_info = station_info_create(rx_80211_header->address_2);
 
-		if(curr_dl_entry != NULL){
-			curr_station_info = (station_info_t*)(curr_dl_entry->data);
-			// Remove entry from station_info_list; Will be added back at the bottom of the function
-			// This serves to sort the list and keep the most recently updated entries at the tail.
-			dl_entry_remove(&station_info_list, curr_dl_entry);
-		} else {
-			// We haven't seen this addr before, so we'll attempt to checkout a new dl_entry
-			// struct from the free pool
-			curr_dl_entry = station_info_checkout();
+		if(curr_station_info == NULL) return NULL;
 
-			if (curr_dl_entry == NULL){
-				// No free dl_entry!
-				// We'll have to reallocate the oldest entry in the filled list
-				curr_dl_entry = station_info_find_oldest();
-
-				if (curr_dl_entry != NULL) {
-					dl_entry_remove(&station_info_list, curr_dl_entry);
-				} else {
-					xil_printf("Cannot create station_info_t.\n");
-					return NULL;
-				}
-			}
-
-			curr_station_info = (station_info_t*)(curr_dl_entry->data);
-
-			// Clear any old information from the Tx/Rx counts
-			station_info_clear(curr_station_info);
-
-			// Copy addr into station_info_t struct
-			memcpy(curr_station_info->addr, rx_80211_header->address_2, MAC_ADDR_LEN);
-		}
+		// If this reception is HTMF, we have a pretty good indication that this device
+		// is capable of also receiving HTMF waveforms. We'll update its flags accordingly
+		curr_station_info->capabilities |= STATION_INFO_CAPABILITIES_HT_CAPABLE;
 
 		// By this point in the function, curr_station_info is guaranteed to be pointing to a valid station_info_t struct
 		// that we should update with this reception.
 
 		// Update the latest TXRX time
-		curr_station_info->latest_txrx_timestamp = get_system_time_usec();
+		curr_station_info->latest_txrx_timestamp = curr_system_time;
 
 		// Update the latest RX time
-		curr_station_info->latest_rx_timestamp = get_system_time_usec();
+		curr_station_info->latest_rx_timestamp = curr_system_time;
 
-		// Add Station Info into station_info_list
-		dl_entry_insertEnd(&station_info_list, curr_dl_entry);
 	}
 
 	return curr_station_info;
@@ -332,12 +323,22 @@ void	station_info_print(dl_list* list, u32 option_flags){
 															  curr_station_info->addr[4],curr_station_info->addr[5]);
 
 
-		if((list != NULL) && (curr_station_info->flags & STATION_INFO_FLAG_KEEP)){
+		if((curr_station_info->flags & STATION_INFO_FLAG_KEEP)){
 			xil_printf("(KEEP)\n");
 		} else {
 			xil_printf("\n");
 		}
 
+		xil_printf(" Num Tx Queued: %d\n", curr_station_info->num_tx_queued);
+
+		xil_printf(" Data Tx MCS:                %d\n", curr_station_info->tx_params_data.phy.mcs);
+		xil_printf(" Data Tx PHY mode:           %d\n", curr_station_info->tx_params_data.phy.phy_mode);
+		xil_printf(" Data Tx power:              %d\n", curr_station_info->tx_params_data.phy.power);
+		xil_printf(" Data Tx antenna_mode:       0x%x\n", curr_station_info->tx_params_data.phy.antenna_mode);
+		xil_printf(" Management Tx MCS:          %d\n", curr_station_info->tx_params_mgmt.phy.mcs);
+		xil_printf(" Management Tx PHY mode:     %d\n", curr_station_info->tx_params_mgmt.phy.phy_mode);
+		xil_printf(" Management Tx power:        %d\n", curr_station_info->tx_params_mgmt.phy.power);
+		xil_printf(" Management Tx antenna_mode: 0x%x\n", curr_station_info->tx_params_mgmt.phy.antenna_mode);
 
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
 		if(option_flags & STATION_INFO_PRINT_OPTION_FLAG_INCLUDE_COUNTS){
@@ -412,7 +413,7 @@ void station_info_timestamp_check() {
 		curr_station_info = (station_info_t*)(curr_dl_entry->data);
 
 		if((get_system_time_usec() - curr_station_info->latest_txrx_timestamp) > STATION_INFO_TIMEOUT_USEC){
-			if((curr_station_info->flags & STATION_INFO_FLAG_KEEP) == 0){
+			if( ((curr_station_info->flags & STATION_INFO_FLAG_KEEP) == 0) && (curr_station_info->num_tx_queued <= 0) ){
 				station_info_clear(curr_station_info);
 				dl_entry_remove(&station_info_list, curr_dl_entry);
 				station_info_checkin(curr_dl_entry);
@@ -426,11 +427,11 @@ void station_info_timestamp_check() {
 	}
 }
 
-dl_entry* station_info_checkout(){
-	dl_entry* entry;
+station_info_entry_t* station_info_checkout(){
+	station_info_entry_t* entry;
 
 	if(station_info_free.length > 0){
-		entry = ((dl_entry*)(station_info_free.first));
+		entry = ((station_info_entry_t*)(station_info_free.first));
 		dl_entry_remove(&station_info_free,station_info_free.first);
 		return entry;
 	} else {
@@ -443,11 +444,10 @@ void station_info_checkin(dl_entry* entry){
 	return;
 }
 
-dl_entry* station_info_find_by_id(u32 id, dl_list* list){
-	int       			iter;
-	dl_entry* 			curr_dl_entry;
-	station_info_t* 	curr_station_info;
-	dl_list*			list_to_search;
+station_info_entry_t* station_info_find_by_id(u32 id, dl_list* list){
+	int iter;
+	station_info_entry_t* curr_station_info_entry;
+	dl_list* list_to_search;
 
 	if(list == NULL){
 		// Error. "List" must be provided. ID has no meaning for the
@@ -458,26 +458,24 @@ dl_entry* station_info_find_by_id(u32 id, dl_list* list){
 		list_to_search = list;
 	}
 
-	iter          = list_to_search->length;
-	curr_dl_entry = list_to_search->last;
+	iter = list_to_search->length;
+	curr_station_info_entry = (station_info_entry_t*)(list_to_search->last);
 
-	while ((curr_dl_entry != NULL) && (iter-- > 0)) {
-		curr_station_info = (station_info_t*)(curr_dl_entry->data);
+	while ((curr_station_info_entry != NULL) && (iter-- > 0)) {
 
-		if (curr_station_info->ID == id) {
-			return curr_dl_entry;
+		if (curr_station_info_entry->id == id) {
+			return curr_station_info_entry;
 		}
 
-		curr_dl_entry = dl_entry_prev(curr_dl_entry);
+		curr_station_info_entry = dl_entry_prev(curr_station_info_entry);
 	}
 	return NULL;
 }
 
-dl_entry* station_info_find_by_addr(u8* addr, dl_list* list){
-	int       			iter;
-	dl_entry* 			curr_dl_entry;
-	station_info_t* 	curr_station_info;
-	dl_list*			list_to_search;
+station_info_entry_t* station_info_find_by_addr(u8* addr, dl_list* list){
+	int       				iter;
+	station_info_entry_t* 	curr_station_info_entry;
+	dl_list*				list_to_search;
 
 	if(list == NULL){
 		//Optional "list" argument not provided. Search will occur over
@@ -488,36 +486,35 @@ dl_entry* station_info_find_by_addr(u8* addr, dl_list* list){
 	}
 
 	iter          = list_to_search->length;
-	curr_dl_entry = list_to_search->last;
+	curr_station_info_entry = (station_info_entry_t*)(list_to_search->last);
 
-	while ((curr_dl_entry != NULL) && (iter-- > 0)) {
-		curr_station_info = (station_info_t*)(curr_dl_entry->data);
+	while ((curr_station_info_entry != NULL) && (iter-- > 0)) {
 
-		if (wlan_addr_eq(addr,curr_station_info->addr)) {
-			return curr_dl_entry;
+		if (wlan_addr_eq(addr, curr_station_info_entry->addr)) {
+			return curr_station_info_entry;
 		}
 
-		curr_dl_entry = dl_entry_prev(curr_dl_entry);
+		curr_station_info_entry = dl_entry_prev(curr_station_info_entry);
 	}
 	return NULL;
 }
 
-dl_entry* station_info_find_oldest(){
-	int       iter;
-	dl_entry* curr_dl_entry;
+station_info_entry_t* station_info_find_oldest(){
+	int iter;
+	station_info_entry_t* curr_station_info_entry;
 	station_info_t* station_info;
 
-	iter          = station_info_list.length;
-	curr_dl_entry = station_info_list.first;
+	iter          			= station_info_list.length;
+	curr_station_info_entry = (station_info_entry_t*)(station_info_list.first);
 
-	while ((curr_dl_entry != NULL) && (iter-- > 0)) {
-		station_info = (station_info_t*)(curr_dl_entry->data);
+	while ((curr_station_info_entry != NULL) && (iter-- > 0)) {
+		station_info = curr_station_info_entry->data;
 
-		if ((station_info->flags & STATION_INFO_FLAG_KEEP) == 0) {
-			return curr_dl_entry;
+		if (((station_info->flags & STATION_INFO_FLAG_KEEP) == 0) && (station_info->num_tx_queued <= 0)) {
+			return curr_station_info_entry;
 		}
 
-		curr_dl_entry = dl_entry_next(curr_dl_entry);
+		curr_station_info_entry = dl_entry_next(curr_station_info_entry);
 	}
 	return NULL;
 }
@@ -528,28 +525,28 @@ dl_entry* station_info_find_oldest(){
 // in the flat station_info_list.
 //
 station_info_t* station_info_create(u8* addr){
-	dl_entry* 		curr_dl_entry;
+	station_info_entry_t* curr_station_info_entry;
 	station_info_t* curr_station_info = NULL;
 
-	curr_dl_entry = station_info_find_by_addr(addr, NULL);
+	curr_station_info_entry = station_info_find_by_addr(addr, NULL);
 
-	if (curr_dl_entry != NULL){
+	if (curr_station_info_entry != NULL){
 		// Get the Tx/Rx Counts from the entry
-		curr_station_info = (station_info_t*)(curr_dl_entry->data);
+		curr_station_info = curr_station_info_entry->data;
 
 		// Remove the entry from the info list so it can be added back later
-		dl_entry_remove(&station_info_list, curr_dl_entry);
+		dl_entry_remove(&station_info_list, (dl_entry*)curr_station_info_entry);
 	} else {
 		// Have not seen this addr before; attempt to grab a new dl_entry
 		// struct from the free pool
-		curr_dl_entry = station_info_checkout();
+		curr_station_info_entry = station_info_checkout();
 
-		if (curr_dl_entry == NULL){
+		if (curr_station_info_entry == NULL){
 			// No free dl_entry; Re-allocate the oldest entry in the filled list
-			curr_dl_entry = station_info_find_oldest();
+			curr_station_info_entry = station_info_find_oldest();
 
-			if (curr_dl_entry != NULL) {
-				dl_entry_remove(&station_info_list, curr_dl_entry);
+			if (curr_station_info_entry != NULL) {
+				dl_entry_remove(&station_info_list, (dl_entry*)curr_station_info_entry);
 			} else {
 				xil_printf("Cannot create station_info.\n");
 				return NULL;
@@ -557,13 +554,25 @@ station_info_t* station_info_create(u8* addr){
 		}
 
 		// Get the Station Info from the entry
-		curr_station_info = (station_info_t*)(curr_dl_entry->data);
+		curr_station_info = curr_station_info_entry->data;
 
 		// Clear any old information
 		station_info_clear(curr_station_info);
 
-		// Copy the addr to the entry
+		// Copy the addr to the station_info_t
 		memcpy(curr_station_info->addr, addr, MAC_ADDR_LEN);
+
+		// Copy the addr to the station_info_entry_t
+		memcpy(curr_station_info_entry->addr, addr, MAC_ADDR_LEN);
+
+		// Set default tx_params_t for management and data frames
+		if (wlan_addr_mcast(addr)){
+			curr_station_info->tx_params_data = default_tx_params.multicast_data;
+			curr_station_info->tx_params_mgmt = default_tx_params.multicast_mgmt;
+		} else {
+			curr_station_info->tx_params_data = default_tx_params.unicast_data;
+			curr_station_info->tx_params_mgmt = default_tx_params.unicast_mgmt;
+		}
 	}
 
 	// Update the timestamp
@@ -574,14 +583,14 @@ station_info_t* station_info_create(u8* addr){
 	// if care is taken to either:
 	//	(1) Update the timestamp after this function is called and before
 	//		an interrupt context is left.
-	//  (2) Set the STATION_INFO_FLAGS_KEEP bit to 1 after this fucntion
+	//  (2) Set the STATION_INFO_FLAGS_KEEP bit to 1 after this function
 	//		is called and before an interrupt context is left.
 	// This update is just for extra safety and makes it more difficult
 	// to accidentally have the framework delete this struct.
 	curr_station_info->latest_txrx_timestamp = get_system_time_usec();
 
 	// Insert the updated entry into the network list
-	dl_entry_insertEnd(&station_info_list, curr_dl_entry);
+	dl_entry_insertEnd(&station_info_list, (dl_entry*)curr_station_info_entry);
 
 	return curr_station_info;
 }
@@ -605,7 +614,7 @@ void station_info_reset_all(){
 		next_dl_entry = dl_entry_next(curr_dl_entry);
 		curr_station_info = (station_info_t*)(curr_dl_entry->data);
 
-		if( (curr_station_info->flags & STATION_INFO_FLAG_KEEP) == 0){
+		if( ((curr_station_info->flags & STATION_INFO_FLAG_KEEP) == 0) && (curr_station_info->num_tx_queued <= 0)){
 			station_info_clear(curr_station_info);
 			dl_entry_remove(&station_info_list, curr_dl_entry);
 			station_info_checkin(curr_dl_entry);
@@ -659,46 +668,6 @@ inline dl_list* station_info_get_list(){
 	return &station_info_list;
 }
 
-
-/**
- * @brief Find Station Information within a doubly-linked list from a station ID
- *
- * Given a doubly-linked list of station_info structures, this function will return
- * the pointer to a particular entry whose station ID field matches the argument
- * to this function.
- *
- * @param dl_list* list
- *  - Doubly-linked list of station_info structures
- * @param u32 id
- *  - ID to search for
- * @return curr_station_info_entry*
- *  - Returns the pointer to the entry in the doubly-linked list that has the
- *    provided AID.
- *  - Returns NULL if no station_info pointer is found that matches the search
- *    criteria
- *
- */
-dl_entry* wlan_mac_high_find_station_info_ID(dl_list* list, u32 id){
-	dl_entry*			curr_station_info_entry;
-	station_info_t* 	station_info;
-
-	curr_station_info_entry = list->first;
-	int iter = list->length;
-
-	while( (curr_station_info_entry != NULL) && (iter-- > 0) ){
-		station_info = (station_info_t*)(curr_station_info_entry->data);
-
-		if(station_info->ID == id){
-			return curr_station_info_entry;
-		} else {
-			curr_station_info_entry = dl_entry_next(curr_station_info_entry);
-		}
-	}
-
-	return NULL;
-}
-
-
 /**
  * @brief Add Station Info
  *
@@ -711,8 +680,6 @@ dl_entry* wlan_mac_high_find_station_info_ID(dl_list* list, u32 id){
  *     - Address of station to add to the dl_list
  * @param  u16 requested_ID
  *     - Requested ID for the new station.  A value of 'ADD_STATION_INFO_ANY_ID' will use the next available AID.
- * @param  tx_params_t tx_params
- *     - Transmit parameters for the new station.
  * @param  u8 ht_capable
  *     - Is this station HT capable?  (This will set the station info HT_CAPABLE flag)
  * @return station_info *
@@ -723,13 +690,13 @@ dl_entry* wlan_mac_high_find_station_info_ID(dl_list* list, u32 id){
  *
  * @note   This function will not perform any filtering on the addr field
  */
-station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 requested_ID, tx_params_t* tx_params, u8 ht_capable){
-	dl_entry*           entry;
-	station_info_t*     station_info;
-	dl_entry*           curr_station_info_entry;
-	station_info_t*     station_info_temp;
-	u16                 curr_ID;
-	int                 iter;
+station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 requested_ID, u8 ht_capable){
+	station_info_entry_t* entry;
+	station_info_t*       station_info;
+	station_info_entry_t* curr_station_info_entry;
+	station_info_t*       station_info_temp;
+	u16                   curr_ID;
+	int                   iter;
 
 	curr_ID = 0;
 
@@ -759,23 +726,23 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 		station_info = (station_info_t*)(entry->data);
 		// This addr is already tied to an list entry. We'll just pass this call
 		// the pointer to that entry back to the calling function without creating a new entry
-
 		return station_info;
 	} else {
 
 		// This addr is new, so we'll have to add an entry into the list
-		entry = wlan_mac_high_malloc(sizeof(dl_entry));
+		entry = wlan_mac_high_malloc(sizeof(station_info_entry_t));
 		if(entry == NULL){
 			return NULL;
 		}
+
+		entry->id = 0;
+		memcpy(entry->addr, addr, MAC_ADDR_LEN);
 
 		station_info = station_info_create(addr);
 		if(station_info == NULL){
 			wlan_mac_high_free(entry);
 			return NULL;
 		}
-
-
 
 		bzero(&(station_info->rate_info),sizeof(rate_selection_info_t));
 		station_info->rate_info.rate_selection_scheme = RATE_SELECTION_SCHEME_STATIC;
@@ -784,8 +751,6 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 		entry->data = (void*)station_info;
 
 		station_info->ID          = 0;
-		station_info->hostname[0] = 0;
-		station_info->flags       = 0;
 
 		// Initialize the latest activity timestamp
 		//     NOTE:  This is so we don't run into a race condition when we try to check the association timeout
@@ -796,30 +761,21 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 		// de-duplicate the next reception if that sequence number is 0.
 		station_info->latest_rx_seq = 0xFFFF; //Sequence numbers are only 12 bits long. This is intentionally invalid.
 
-		// Do not allow WARP nodes to time out
-		if(wlan_mac_addr_is_warp(addr)){
+		// Do not allow Mango nodes to time out
+		if(wlan_mac_addr_is_mango(addr)){
 			// TODO: This doesn't belong here. This is an AP specific behavior.
 			station_info->flags |= STATION_INFO_FLAG_DISABLE_ASSOC_CHECK;
 		}
 
 		// Set the HT_CAPABLE flag base on input parameter
 		if (ht_capable) {
-			station_info->flags |= STATION_INFO_FLAG_HT_CAPABLE;
+			station_info->capabilities |= STATION_INFO_CAPABILITIES_HT_CAPABLE;
 		}
-
-		// Set the TX parameters
-		//     1) Do a blind copy of the TX parameters from the input argument.
-		//     2) Update the (mcs, phy_mode) parameters.  This will adjust the TX rate of the station
-		//        was not HT_CAPABLE and a HT rate was requested.
-		//
-		station_info->tx = *tx_params;
-
-		station_info_update_rate(station_info, tx_params->phy.mcs, tx_params->phy.phy_mode);
 
 		// Set up the station ID
 		if(requested_ID == ADD_STATION_INFO_ANY_ID){
 			// Find the minimum AID that can be issued to this station.
-			curr_station_info_entry = app_station_info_list->first;
+			curr_station_info_entry = (station_info_entry_t*)(app_station_info_list->first);
 			iter = app_station_info_list->length;
 
 			while((curr_station_info_entry != NULL) && (iter-- > 0)){
@@ -829,9 +785,10 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 				if((station_info_temp->ID - curr_ID) > 1){
 					// There is a hole in the list and we can re-issue a previously issued station ID.
 					station_info->ID = station_info_temp->ID - 1;
+					entry->id = station_info->ID;
 
 					// Add this station into the list just before the curr_station_info
-					dl_entry_insertBefore(app_station_info_list, curr_station_info_entry, entry);
+					dl_entry_insertBefore(app_station_info_list, (dl_entry*)curr_station_info_entry, (dl_entry*)entry);
 
 					break;
 				} else {
@@ -847,18 +804,20 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 				if(app_station_info_list->length == 0){
 					// This is the first entry in the list;
 					station_info->ID = 1;
+					entry->id = station_info->ID;
 				} else {
-					curr_station_info_entry = app_station_info_list->last;
+					curr_station_info_entry = (station_info_entry_t*)(app_station_info_list->last);
 					station_info_temp = (station_info_t*)(curr_station_info_entry->data);
 					station_info->ID = (station_info_temp->ID)+1;
+					entry->id = station_info->ID;
 				}
 
 				// Add this station into the list at the end
-				dl_entry_insertEnd(app_station_info_list, entry);
+				dl_entry_insertEnd(app_station_info_list, (dl_entry*)entry);
 			}
 		} else {
 			// Find the right place in the dl_list to insert this station_info with the requested AID
-			curr_station_info_entry = app_station_info_list->first;
+			curr_station_info_entry = (station_info_entry_t*)(app_station_info_list->first);
 			iter = app_station_info_list->length;
 
 			while( (curr_station_info_entry != NULL) && (iter-- > 0)){
@@ -867,8 +826,9 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 
 				if(station_info_temp->ID > requested_ID){
 					station_info->ID = requested_ID;
+					entry->id = station_info->ID;
 					// Add this station into the list just before the curr_station_info
-					dl_entry_insertBefore(app_station_info_list, curr_station_info_entry, entry);
+					dl_entry_insertBefore(app_station_info_list, (dl_entry*)curr_station_info_entry, (dl_entry*)entry);
 				}
 
 				curr_station_info_entry = dl_entry_next(curr_station_info_entry);
@@ -877,14 +837,15 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 			if(station_info->ID == 0){
 				// There was no hole in the list, so we insert it at the end
 				station_info->ID = requested_ID;
+				entry->id = station_info->ID;
 
 				// Add this station into the list at the end
-				dl_entry_insertEnd(app_station_info_list, entry);
+				dl_entry_insertEnd(app_station_info_list, (dl_entry*)entry);
 			}
 		}
 
 		// Print our station_infos on the UART
-		station_info_print(app_station_info_list, 0);
+		//station_info_print(app_station_info_list, 0);
 		return station_info;
 	}
 }
@@ -903,7 +864,7 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
  *     - -1  - Failed to remove station
  */
 int station_info_remove(dl_list* app_station_info_list, u8* addr){
-	dl_entry* 		entry;
+	station_info_entry_t* 		entry;
 
 	entry = station_info_find_by_addr(addr, app_station_info_list);
 
@@ -915,7 +876,7 @@ int station_info_remove(dl_list* app_station_info_list, u8* addr){
 	} else {
 
 		// Remove station from the list;
-		dl_entry_remove(app_station_info_list, entry);
+		dl_entry_remove(app_station_info_list, (dl_entry*)entry);
 
 		wlan_mac_high_free(entry);
 
@@ -936,7 +897,8 @@ int station_info_remove(dl_list* app_station_info_list, u8* addr){
  *     - Station info pointer to check
  * @return u8
  *     - 0  - Station is not a member of the provided list
- *     - 1  - Station is a member of the provided list
+ *     - 1  - Station is a member of the provided listp_
+ *
  */
 u8	station_info_is_member(dl_list* app_station_info_list, station_info_t* station_info){
 	dl_entry*	  	curr_station_info_entry;
@@ -959,45 +921,65 @@ u8	station_info_is_member(dl_list* app_station_info_list, station_info_t* statio
 	return 0;
 }
 
+tx_params_t station_info_get_default_tx_params(default_tx_param_sel_t default_tx_param_sel){
+	//FIXME: rename to wlan_mac_get_default_tx_params
+	tx_params_t ret;
 
-/**
- * @brief Update station_info TX rate
- *
- * Function will update the TX rate based on the passed in parameters.  This function will
- * honor the ht_capable flag of the station info.  If the station is not ht_capable, then
- * the function will map the (mcs, phy_mode) to the nearest NONHT MCS:
- *     Requested HT MCS: 0 1 2 3 4 5 6 7
- *     Actual NONHT MCS: 0 2 3 4 5 6 7 7
- *
- * @return int     - Status
- *                     -  0 - Rate set was rate given
- *                     - -1 - Rate set was adjusted from given rate
- *
- */
-int	station_info_update_rate(station_info_t* station_info, u8 mcs, u8 phy_mode) {
-	int status          = 0;
-	u8  tmp_mcs;
-
-	if (station_info->flags & STATION_INFO_FLAG_HT_CAPABLE) {
-		station_info->tx.phy.phy_mode = phy_mode;
-		station_info->tx.phy.mcs      = mcs;
-	} else {
-		if (phy_mode == PHY_MODE_HTMF) {
-			// Requested rate was HT, adjust the MCS corresponding to the table above
-			if ((mcs == 0) || (mcs == 7)) {
-				tmp_mcs = mcs;
-			} else {
-				tmp_mcs = mcs + 1;
-			}
-
-			status = -1;
-		} else {
-			// Requested rate was non-HT, so do not adjust MCS
-			tmp_mcs = mcs;
-		}
-
-		station_info->tx.phy.phy_mode = PHY_MODE_NONHT;
-		station_info->tx.phy.mcs      = tmp_mcs;
+	switch(default_tx_param_sel){
+		case unicast_mgmt:
+			ret = default_tx_params.unicast_mgmt;
+		break;
+		case unicast_data:
+			ret = default_tx_params.unicast_data;
+		break;
+		case mcast_mgmt:
+			ret = default_tx_params.multicast_mgmt;
+		break;
+		case mcast_data:
+			ret = default_tx_params.multicast_data;
+		break;
 	}
-	return status;
+	return ret;
+}
+void wlan_mac_set_default_tx_params(default_tx_param_sel_t default_tx_param_sel, tx_params_t* tx_params){
+	switch(default_tx_param_sel){
+		case unicast_mgmt:
+			default_tx_params.unicast_mgmt = *tx_params;
+		break;
+		case unicast_data:
+			default_tx_params.unicast_data = *tx_params;
+		break;
+		case mcast_mgmt:
+			default_tx_params.multicast_mgmt = *tx_params;
+		break;
+		case mcast_data:
+			default_tx_params.multicast_data = *tx_params;
+		break;
+	}
+}
+
+void wlan_mac_reapply_default_tx_params(){
+	station_info_entry_t* station_info_entry;
+	station_info_t*	station_info;
+	int iter;
+
+	station_info_entry = (station_info_entry_t*)(station_info_list.first);
+	iter = station_info_list.length;
+
+	while( (station_info_entry != NULL) && (iter-- > 0) ){
+		station_info = station_info_entry->data;
+
+		if (wlan_addr_mcast(station_info_entry->addr)){
+			station_info->tx_params_data = default_tx_params.multicast_data;
+			station_info->tx_params_mgmt = default_tx_params.multicast_mgmt;
+		} else {
+			station_info->tx_params_data = default_tx_params.unicast_data;
+			station_info->tx_params_mgmt = default_tx_params.unicast_mgmt;
+		}
+		station_info_entry = (station_info_entry_t*)dl_entry_next((dl_entry*)station_info_entry);
+	}
+
+	// Update the beacon template if it's being used. For projects like STA, this function will not result in any behavior changes
+	wlan_mac_high_update_beacon_tx_params(&(default_tx_params.multicast_mgmt));
+
 }

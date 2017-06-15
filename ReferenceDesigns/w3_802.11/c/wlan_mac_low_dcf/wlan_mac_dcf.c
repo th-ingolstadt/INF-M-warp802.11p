@@ -19,19 +19,20 @@
 #include "xio.h"
 #include "xil_cache.h"
 
-// WARP includes
-#include "w3_userio.h"
-#include "radio_controller.h"
 
 // WLAN includes
+#include "wlan_platform_common.h"
+#include "wlan_platform_low.h"
 #include "wlan_mac_low.h"
 #include "wlan_mac_802_11_defs.h"
-#include "wlan_mac_time_util.h"
 #include "wlan_phy_util.h"
 #include "wlan_mac_dcf.h"
 #include "wlan_mac_dl_list.h"
 #include "wlan_mac_mgmt_tags.h"
-#include "wlan_mac_userio_util.h"
+#include "wlan_mac_common.h"
+#include "wlan_mac_pkt_buf_util.h"
+#include "wlan_mac_low.h"
+#include "wlan_mac_mailbox_util.h"
 
 // WLAN Exp includes
 #include "wlan_exp.h"
@@ -41,7 +42,6 @@
 #define DBG_PRINT                                          0
 #define WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW                 WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW_DCF
 #define DEFAULT_TX_ANTENNA_MODE                            TX_ANTMODE_SISO_ANTA
-#define NUM_LEDS                                           4
 #define RX_LEN_THRESH                                      200
 
 
@@ -65,12 +65,8 @@ static volatile u32                 gl_dot11LongRetryLimit; ///< Long Retry Limi
 static volatile u8					gl_waiting_for_response; ///< Informs the Rx context that Tx is expecting a control response
 static volatile u8                  gl_long_mpdu_pkt_buf; ///< Packet buffer index for a long MPDU that should be sent in the frame reception context (i.e. CTS reception)
 
-// Status variables for User I/O
-volatile u8                         gl_red_led_index; ///< Variable that enables User I/O visualization of bad FCS receptions
-volatile u8                         gl_green_led_index; ///< Variable that enables User I/O visualization of good FCS receptions
-
 // Beacon transmission & reception parameters
-volatile beacon_txrx_configure_t	gl_beacon_txrx_configure; ///< Struct with configuration parameters regarding beacons
+volatile beacon_txrx_config_t	    gl_beacon_txrx_config; ///< Struct with configuration parameters regarding beacons
 volatile u8							gl_dtim_mcast_buffer_enable; ///< Informs the DCF whether or not to buffer multicast transmissions until the DTIM
 volatile u8							gl_dtim_count; ///< DTIM count for the current beacon interval
 
@@ -80,6 +76,9 @@ static dl_list				   		gl_tx_pkt_buf_ready_list_dtim_mcast; ///< List of packet 
 static dl_list				   		gl_tx_pkt_buf_ready_list_free;	///< List of unused Tx packet buffers
 static dl_entry						gl_tx_pkt_buf_entry[MAX_NUM_PENDING_TX_PKT_BUFS]; ///< Array of entries that will belong to one of the above lists
 static u8						 	gl_tx_pkt_buf_entry_data[MAX_NUM_PENDING_TX_PKT_BUFS]; ///< Byte array to serve as the data payload for the above entries
+
+// Common Platform Device Info
+platform_common_dev_info_t	 platform_common_dev_info;
 
 // Precalculated durations for short (non-RTS) frames
 static u16							gl_precalc_duration[3][8]; ///< To improve reliability in achieving slot-0 transmissions, we precompute duration fields to insert into frames.
@@ -105,7 +104,7 @@ int main(){
 
     xil_printf("\f");
     xil_printf("----- Mango 802.11 Reference Design -----\n");
-    xil_printf("----- v1.6.2 ----------------------------\n");
+    xil_printf("----- v1.7.0 ----------------------------\n");
     xil_printf("----- wlan_mac_dcf ----------------------\n");
     xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 	strncpy(compilation_details.compilation_date, __DATE__, 12);
@@ -119,11 +118,11 @@ int main(){
     gl_long_mpdu_pkt_buf = PKT_BUF_INVALID;
     gl_waiting_for_response = 0;
 
-    gl_beacon_txrx_configure.beacon_tx_mode = NO_BEACON_TX;
-    gl_beacon_txrx_configure.ts_update_mode = NEVER_UPDATE;
+    gl_beacon_txrx_config.beacon_tx_mode = NO_BEACON_TX;
+    gl_beacon_txrx_config.ts_update_mode = NEVER_UPDATE;
     gl_dtim_mcast_buffer_enable = 0;
 
-    bzero((void*)gl_beacon_txrx_configure.bssid_match, MAC_ADDR_LEN);
+    bzero((void*)gl_beacon_txrx_config.bssid_match, MAC_ADDR_LEN);
     bzero(gl_precalc_duration, sizeof(gl_precalc_duration));
 
     gl_dot11ShortRetryLimit      = 7;
@@ -137,12 +136,10 @@ int main(){
     gl_stationShortRetryCount    = 0;
     gl_stationLongRetryCount     = 0;
 
-    gl_red_led_index             = 0;
-    gl_green_led_index           = 0;
-    userio_write_leds_green(USERIO_BASEADDR, (1 << gl_green_led_index));
-    userio_write_leds_red(USERIO_BASEADDR, (1 << gl_red_led_index));
-
     wlan_mac_low_init(WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW, compilation_details);
+
+    // Get the device info
+	platform_common_dev_info = wlan_platform_common_get_dev_info();
 
     gl_cw_exp = gl_cw_exp_min;
 
@@ -168,8 +165,8 @@ int main(){
 
     // wlan_mac_low_init() has placed a mutex lock on TX_PKT_BUF_ACK_CTS and
     // TX_PKT_BUF_RTS already. We should set their packet buffer states to LOW_CTRL
-    ((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK_CTS))->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
-    ((tx_frame_info_t*)TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_RTS))->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
+    ((tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_ACK_CTS))->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
+    ((tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_RTS))->tx_pkt_buf_state = TX_PKT_BUF_LOW_CTRL;
 
     wlan_mac_low_init_finish();
 
@@ -239,7 +236,7 @@ void update_tx_pkt_buf_lists(){
 	dl_entry* curr_entry;
 	dl_entry* next_entry;
 
-	if( (gl_dtim_mcast_buffer_enable == 1) && (gl_beacon_txrx_configure.beacon_tx_mode != NO_BEACON_TX) ) {
+	if( (gl_dtim_mcast_buffer_enable == 1) && (gl_beacon_txrx_config.beacon_tx_mode != NO_BEACON_TX) ) {
 		// DTIM buffering is enabled. We need to move any PKT_BUF_GROUP_DTIM_MCAST packets out of gl_tx_pkt_buf_ready_list_general
 		// and into gl_tx_pkt_buf_ready_list_dtim_mcast.
 
@@ -253,8 +250,8 @@ void update_tx_pkt_buf_lists(){
 
 			pkt_buf = *( (u8*)curr_entry->data);
 
-			tx_frame_info	= (tx_frame_info_t*)  (TX_PKT_BUF_TO_ADDR(pkt_buf));
-			header          = (mac_header_80211*) (TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
+			tx_frame_info	= (tx_frame_info_t*)  (CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf));
+			header          = (mac_header_80211*) (CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
 
 			// The pkt_buf_group_t in the frame_info_t cannot be used to find the existing multicast packets in the
 			// general list. When DTIM multicast buffering is disabled, all pkt_buf_group_t are PKT_BUF_GROUP_GENERAL.
@@ -265,7 +262,7 @@ void update_tx_pkt_buf_lists(){
 				dl_entry_insertEnd(&gl_tx_pkt_buf_ready_list_dtim_mcast, curr_entry);
 			}
 		}
-	} else if( (gl_dtim_mcast_buffer_enable == 0) || (gl_beacon_txrx_configure.beacon_tx_mode == NO_BEACON_TX) ) {
+	} else if( (gl_dtim_mcast_buffer_enable == 0) || (gl_beacon_txrx_config.beacon_tx_mode == NO_BEACON_TX) ) {
 			// DTIM buffering is disabled. We need to merge gl_tx_pkt_buf_ready_list_general and gl_tx_pkt_buf_ready_list_dtim_mcast and
 			// assigned all packet buffer groups to PKT_BUF_GROUP_GENERAL.
 
@@ -285,7 +282,7 @@ void update_tx_pkt_buf_lists(){
 
 				pkt_buf = *( (u8*)curr_entry->data);
 
-				tx_frame_info	= (tx_frame_info_t*)  (TX_PKT_BUF_TO_ADDR(pkt_buf));
+				tx_frame_info	= (tx_frame_info_t*)  (CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf));
 				if(((tx_frame_info->flags & TX_FRAME_INFO_FLAGS_PKT_BUF_PREPARED) == 0)){
 					tx_frame_info->queue_info.pkt_buf_group = PKT_BUF_GROUP_GENERAL;
 					dl_entry_remove(&gl_tx_pkt_buf_ready_list_dtim_mcast, curr_entry);
@@ -379,15 +376,15 @@ void handle_sample_rate_change(phy_samp_rate_t phy_samp_rate){
 void update_dtim_count(){
 	u32 current_tu;
 	u32 temp_var;
-	if( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ){
+	if( gl_beacon_txrx_config.beacon_tx_mode == AP_BEACON_TX ){
 		current_tu = (u32)(get_mac_time_usec()>>10);
 
-		if(gl_beacon_txrx_configure.dtim_period != 0){
-			temp_var = ((current_tu/gl_beacon_txrx_configure.beacon_interval_tu)+1)%gl_beacon_txrx_configure.dtim_period;
+		if(gl_beacon_txrx_config.dtim_period != 0){
+			temp_var = ((current_tu/gl_beacon_txrx_config.beacon_interval_tu)+1)%gl_beacon_txrx_config.dtim_period;
 			if(temp_var == 0){
 				gl_dtim_count = 0;
 			} else {
-				gl_dtim_count = gl_beacon_txrx_configure.dtim_period - temp_var;
+				gl_dtim_count = gl_beacon_txrx_config.dtim_period - temp_var;
 			}
 
 		} else {
@@ -414,7 +411,7 @@ void update_tu_target(u8 recompute) {
         // Re-compute TU target from current MAC time
 
         // Expensive u64 division
-        u64 tu_target =  gl_beacon_txrx_configure.beacon_interval_tu * ((current_tu /  gl_beacon_txrx_configure.beacon_interval_tu) + 1);
+        u64 tu_target =  gl_beacon_txrx_config.beacon_interval_tu * ((current_tu /  gl_beacon_txrx_config.beacon_interval_tu) + 1);
 
         wlan_mac_set_tu_target(tu_target);
 
@@ -429,7 +426,7 @@ void update_tu_target(u8 recompute) {
             }
             else{
                 // Increment target and continue
-            	wlan_mac_set_tu_target(current_tu_target + gl_beacon_txrx_configure.beacon_interval_tu);
+            	wlan_mac_set_tu_target(current_tu_target + gl_beacon_txrx_config.beacon_interval_tu);
             }
         }
     }
@@ -448,7 +445,7 @@ void update_tu_target(u8 recompute) {
  */
 void handle_mactime_change(s64 time_delta_usec){
 	update_dtim_count();
-	if((time_delta_usec < 0) || (time_delta_usec > (100*gl_beacon_txrx_configure.beacon_interval_tu)) ){
+	if((time_delta_usec < 0) || (time_delta_usec > (100*gl_beacon_txrx_config.beacon_interval_tu)) ){
 		//The MAC time change was either very large or moved us backwards in time. Either way, we can't rely on the
 		//"fast" TU target update and must instead explicitly recompute the target based upon the MAC time.
 		update_tu_target(1);
@@ -468,13 +465,13 @@ void handle_mactime_change(s64 time_delta_usec){
  * @param   u32		phy_samp_rate_t		- Sample rate enum
  * @return  None
  */
-void configure_beacon_txrx(beacon_txrx_configure_t* beacon_txrx_configure){
-	memcpy((void*)&gl_beacon_txrx_configure, beacon_txrx_configure, sizeof(beacon_txrx_configure_t));
+void configure_beacon_txrx(beacon_txrx_config_t* beacon_txrx_config){
+	memcpy((void*)&gl_beacon_txrx_config, beacon_txrx_config, sizeof(beacon_txrx_config_t));
 
 	update_tx_pkt_buf_lists();
 
-	if(( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ) ||
-	   ( gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX )){
+	if(( gl_beacon_txrx_config.beacon_tx_mode == AP_BEACON_TX ) ||
+	   ( gl_beacon_txrx_config.beacon_tx_mode == IBSS_BEACON_TX )){
 
 		//Because we are setting up a new beacon configuration, we should not update the TU target
 		//based upon existing targets. We should instead explicitly recompute the target from the
@@ -509,8 +506,8 @@ inline void poll_tbtt_and_send_beacon(){
 	u32 prepare_frame_transmit_return;
 	u32 poll_tx_pkt_buf_list_return = 0;
 
-	if(( gl_beacon_txrx_configure.beacon_tx_mode == AP_BEACON_TX ) ||
-	   ( gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX )){
+	if(( gl_beacon_txrx_config.beacon_tx_mode == AP_BEACON_TX ) ||
+	   ( gl_beacon_txrx_config.beacon_tx_mode == IBSS_BEACON_TX )){
 
 		if( wlan_mac_check_tu_latch() ) {
 			// Current TU >= Target TU
@@ -529,7 +526,7 @@ inline void poll_tbtt_and_send_beacon(){
 					// twice. This is intentional. This structure ensures we do not toggle the pause state on
 					// Tx controller A across many mcast transmissions spanning multiple beacon TBTTs
 
-					prepare_frame_transmit_return = wlan_mac_low_lock_tx_pkt_buf(gl_beacon_txrx_configure.beacon_template_pkt_buf);
+					prepare_frame_transmit_return = wlan_mac_low_lock_tx_pkt_buf(gl_beacon_txrx_config.beacon_template_pkt_buf);
 
 					if(prepare_frame_transmit_return & PREPARE_FRAME_TRANSMIT_ERROR_UNEXPECTED_PKT_BUF_STATE){
 						// Update TU target
@@ -544,9 +541,9 @@ inline void poll_tbtt_and_send_beacon(){
 						wlan_mac_pause_tx_ctrl_D(0);
 						return;
 					}
-					wlan_mac_low_prepare_frame_transmit( gl_beacon_txrx_configure.beacon_template_pkt_buf );
+					wlan_mac_low_prepare_frame_transmit( gl_beacon_txrx_config.beacon_template_pkt_buf );
 
-					send_beacon_return = send_beacon(gl_beacon_txrx_configure.beacon_template_pkt_buf);
+					send_beacon_return = send_beacon(gl_beacon_txrx_config.beacon_template_pkt_buf);
 					// Note: the above send_beacon() call will send the IPC message directly to CPU_HIGH
 					// upon completion. We should not call wlan_mac_low_finish_frame_transmit() for the
 					// beacon transmission. This slight asymmetry is a byproduct of different handling
@@ -567,7 +564,7 @@ inline void poll_tbtt_and_send_beacon(){
 					//	   of DTIM (11.2.1.5.f 802.11-2007)
 					if( ((send_beacon_return & SEND_BEACON_RETURN_DTIM) && (gl_dtim_mcast_buffer_enable == 1)) ||
 						((poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_TRANSMITTED) && (poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_MORE_DATA)) ||
-						 poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_PAUSED){
+						 (poll_tx_pkt_buf_list_return & POLL_TX_PKT_BUF_LIST_RETURN_PAUSED)) {
 
 						while( gl_tx_pkt_buf_ready_list_dtim_mcast.length > 0 ){
 							// There is at least one mcast frame for us to send. We will loop over this list until either we have fully emptied it
@@ -627,15 +624,15 @@ inline u32 send_beacon(u8 tx_pkt_buf){
 	int tx_gain;
 	u8 mpdu_tx_ant_mask;
 	//Note: This needs to be a volatile to allow the tx_pkt_buf_state to be re-read in the initial while loop below
-	volatile tx_frame_info_t* tx_frame_info			= (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(tx_pkt_buf));
-	mac_header_80211* header             			= (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(tx_pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
+	volatile tx_frame_info_t* tx_frame_info			= (tx_frame_info_t*) (CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf));
+	mac_header_80211* header             			= (mac_header_80211*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
 	tx_mode_t tx_mode;
 	u32 rx_status;
 	mgmt_tag_template_t*	mgmt_tag_tim_template = NULL;
 	u8	tx_has_started = 0;
 
-	if(gl_beacon_txrx_configure.dtim_tag_byte_offset != 0){
-		mgmt_tag_tim_template = (mgmt_tag_template_t*)((u8*)tx_frame_info + gl_beacon_txrx_configure.dtim_tag_byte_offset);
+	if(gl_beacon_txrx_config.dtim_tag_byte_offset != 0){
+		mgmt_tag_tim_template = (mgmt_tag_template_t*)((u8*)tx_frame_info + gl_beacon_txrx_config.dtim_tag_byte_offset);
 	}
 
 	// Compare the length of this frame to the RTS Threshold
@@ -646,7 +643,7 @@ inline u32 send_beacon(u8 tx_pkt_buf){
 	}
 
 	if(mgmt_tag_tim_template != NULL){
-		if( (gl_beacon_txrx_configure.dtim_period != 0) ){
+		if( (gl_beacon_txrx_config.dtim_period != 0) ){
 			// Update the DTIM count
 			mgmt_tag_tim_template->data[0] = gl_dtim_count;  //DTIM Count
 			if(gl_dtim_count == 0){
@@ -689,7 +686,7 @@ inline u32 send_beacon(u8 tx_pkt_buf){
 	}
 
 	//wlan_mac_tx_ctrl_C_params(pktBuf, antMask, req_backoff, phy_mode, num_slots)
-	switch(gl_beacon_txrx_configure.beacon_tx_mode){
+	switch(gl_beacon_txrx_config.beacon_tx_mode){
 		case AP_BEACON_TX:
 			n_slots = rand_num_slots(RAND_SLOT_REASON_STANDARD_ACCESS);
 			wlan_mac_tx_ctrl_C_params(tx_pkt_buf, mpdu_tx_ant_mask, 0, tx_frame_info->params.phy.phy_mode, n_slots);
@@ -733,12 +730,12 @@ inline u32 send_beacon(u8 tx_pkt_buf){
 	tx_frame_info->num_tx_attempts   = 1;
 	tx_frame_info->phy_samp_rate	 = wlan_mac_low_get_phy_samp_rate();
 
-	// Here, we are overloading the "create" timestamp to mean something subtly different
+	// Here, we are overloading the "enqueue" timestamp to mean something subtly different
 	//  than when it is used for data MPDUs since beacons are not created and enqueued in
 	//  CPU_HIGH. By explicitly filling the current MAC time into the create timestamp,
 	//  we allow CPU_HIGH to determine whether or not a backoff occurred before the beacon transmission
 	//  when it is creating the TX_LOW log entry for the beacon.
-	tx_frame_info->timestamp_create  = get_mac_time_usec();
+	tx_frame_info->queue_info.enqueue_timestamp  = get_mac_time_usec();
 	tx_frame_info->timestamp_accept  = 0;
 
 	low_tx_details.tx_details_type  = TX_DETAILS_MPDU;
@@ -767,7 +764,7 @@ inline u32 send_beacon(u8 tx_pkt_buf){
 
 		// Poll the DCF core status register
 		mac_hw_status = wlan_mac_get_status();
-		if( mac_hw_status & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE && (tx_has_started == 0)){
+		if( (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE) && (tx_has_started == 0)){
 			if((tx_frame_info->flags) & TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP){
 				// Insert the TX START timestamp
 				*((u64*)(((u8*)header + 24))) = ((u64)wlan_mac_low_get_tx_start_timestamp())+T_TIMESTAMP_FIELD_OFFSET;
@@ -894,8 +891,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     u8                  tx_mcs;
     u16                 cts_duration;
     u8                  unicast_to_me, to_multicast;
-    u16                 rssi;
-    u8                  lna_gain;
     u8                  active_rx_ant;
     u32                 rx_filter;
     u8                  report_to_mac_high;
@@ -918,7 +913,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     u8				  * mac_payload_ptr_u8;
 
     // Translate Rx pkt buf index into actual memory address
-    void* pkt_buf_addr = (void *) RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
+    void* pkt_buf_addr = (void *) CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf);
 
     // Get pointer to MPDU info struct (stored at 0 offset in the pkt buffer)
     rx_frame_info = (rx_frame_info_t*) pkt_buf_addr;
@@ -1001,7 +996,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         }
 
         // Construct the ACK frame in the dedicated Tx pkt buf
-        tx_length = wlan_create_ack_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK_CTS) + PHY_TX_PKT_BUF_MPDU_OFFSET), rx_header->address_2);
+        tx_length = wlan_create_ack_frame((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_ACK_CTS) + PHY_TX_PKT_BUF_MPDU_OFFSET), rx_header->address_2);
 
         // Write the SIGNAL field for the ACK
         write_phy_preamble(TX_PKT_BUF_ACK_CTS, PHY_MODE_NONHT, tx_mcs, tx_length);
@@ -1038,7 +1033,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
             //     - The frame_transmit() context already configured the SIGNAL field,
             //       so we do not have to worry about it in this context
             //
-        	tx_frame_info = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(gl_long_mpdu_pkt_buf));
+        	tx_frame_info = (tx_frame_info_t*) (CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, gl_long_mpdu_pkt_buf));
 
             switch(tx_frame_info->params.phy.antenna_mode) {
                 case TX_ANTMODE_SISO_ANTA:  mpdu_tx_ant_mask |= 0x1;  break;
@@ -1075,7 +1070,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         			wlan_ofdm_calc_txtime(sizeof(mac_header_80211_CTS) + WLAN_PHY_FCS_NBYTES, tx_mcs, PHY_MODE_NONHT, wlan_mac_low_get_phy_samp_rate()));
 
         // Construct the ACK frame in the dedicated Tx pkt buf
-        tx_length = wlan_create_cts_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_ACK_CTS) + PHY_TX_PKT_BUF_MPDU_OFFSET),
+        tx_length = wlan_create_cts_frame((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_ACK_CTS) + PHY_TX_PKT_BUF_MPDU_OFFSET),
                                           rx_header->address_2,
                                           cts_duration);
 
@@ -1129,6 +1124,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
                     wlan_mac_tx_ctrl_B_start(1);
                     wlan_mac_tx_ctrl_B_start(0);
                     tx_pending_state = TX_PENDING_B;
+
                 break;
 
                 default:
@@ -1154,20 +1150,6 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     	rx_frame_info->flags |= RX_FRAME_INFO_FLAGS_RETRY;
     }
 
-    // Record information about the reception in the RX packet metadata
-    rx_frame_info->channel        = wlan_mac_low_get_active_channel();
-    rx_frame_info->phy_samp_rate  = (u8)wlan_mac_low_get_phy_samp_rate();
-    rx_frame_info->timestamp      = wlan_mac_low_get_rx_start_timestamp();
-    rx_frame_info->timestamp_frac = wlan_mac_low_get_rx_start_timestamp_frac();
-    rx_frame_info->ant_mode       = active_rx_ant;
-    rx_frame_info->cfo_est		  = wlan_phy_rx_get_cfo_est();
-    rx_frame_info->rf_gain        = wlan_phy_rx_get_agc_RFG(active_rx_ant);
-    rx_frame_info->bb_gain        = wlan_phy_rx_get_agc_BBG(active_rx_ant);
-
-    lna_gain                  = wlan_phy_rx_get_agc_RFG(active_rx_ant);
-    rssi                      = wlan_phy_rx_get_pkt_rssi(active_rx_ant);
-    rx_frame_info->rx_power   = wlan_mac_low_calculate_rx_power(rssi, lna_gain);
-
     // Block until the reception is complete, storing the checksum status in the frame_info struct
     if ((phy_details->length) > RX_LEN_THRESH) {
     	if(wlan_mac_hw_rx_finish() == 1){
@@ -1191,8 +1173,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
 
 
         // Increment green LEDs
-        gl_green_led_index = (gl_green_led_index + 1) % NUM_LEDS;
-        userio_write_leds_green(USERIO_BASEADDR, (1<<gl_green_led_index));
+    	wlan_platform_low_userio_disp_status(USERIO_DISP_STATUS_GOOD_FCS_EVENT);
 
         return_value |= FRAME_RX_RET_STATUS_GOOD;
 
@@ -1237,6 +1218,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
                     wlan_mac_tx_ctrl_B_start(1);
                     wlan_mac_tx_ctrl_B_start(0);
                     tx_pending_state = TX_PENDING_B;
+
                 break;
 
                 default:
@@ -1250,9 +1232,9 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
 		if(rx_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_BEACON) {
 			
 			// If this packet was from our BSS
-			if(wlan_addr_eq(gl_beacon_txrx_configure.bssid_match, rx_header->address_3)){
+			if(wlan_addr_eq(gl_beacon_txrx_config.bssid_match, rx_header->address_3)){
 
-				if(gl_beacon_txrx_configure.beacon_tx_mode == IBSS_BEACON_TX){
+				if(gl_beacon_txrx_config.beacon_tx_mode == IBSS_BEACON_TX){
 					// Reset all state in the DCF core - this cancels deferrals and pending transmissions
 					wlan_mac_reset_tx_ctrl_C(1);
 					wlan_mac_reset_tx_ctrl_C(0);
@@ -1266,7 +1248,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
 				time_delta = (s64)(((beacon_probe_frame*)mac_payload_ptr_u8)->timestamp) - (s64)(rx_frame_info->timestamp) + gl_mac_timing_values.t_phy_rx_start_dly - T_TIMESTAMP_FIELD_OFFSET;
 
 				// Update the MAC time
-				switch(gl_beacon_txrx_configure.ts_update_mode){
+				switch(gl_beacon_txrx_config.ts_update_mode){
 					// TODO: notify the MAC Low Framework of this change so that TBTT can be updated (if necessary)
 					case NEVER_UPDATE:
 					break;
@@ -1288,8 +1270,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     // Received checksum was bad
     } else {
         // Increment red LEDs
-        gl_red_led_index = (gl_red_led_index + 1) % NUM_LEDS;
-        userio_write_leds_red(USERIO_BASEADDR, (1<<gl_red_led_index));
+    	wlan_platform_low_userio_disp_status(USERIO_DISP_STATUS_BAD_FCS_EVENT);
 
         // Check if this packet should be passed up to CPU High for further processing
         rx_filter = wlan_mac_low_get_current_rx_filter();
@@ -1350,6 +1331,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
 				mac_tx_ctrl_status = wlan_mac_get_tx_ctrl_status();
 
                 if( mac_tx_ctrl_status & WLAN_MAC_TXCTRL_STATUS_MASK_TX_B_DONE ) {
+
                     if ((mac_tx_ctrl_status & WLAN_MAC_TXCTRL_STATUS_MASK_TX_B_RESULT) == WLAN_MAC_TXCTRL_STATUS_TX_B_RESULT_NO_TX) {
                     	// The MAC Support Core B has the capability of successfully not transmitting. This is not relevant
                     	// for ACK transmissions, but it is relevant for CTS transmissions. A CTS will only be sent if the
@@ -1397,6 +1379,13 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         //     If this fails, something has gone horribly wrong
 
     	rx_frame_info->rx_pkt_buf_state = RX_PKT_BUF_READY;
+
+    	// Note: at this point in the code, the packet buffer state has been modified to RX_PKT_BUF_READY,
+    	// yet we have not sent the IPC_MBOX_RX_PKT_BUF_READY message. If we happen to reboot here,
+    	// this packet buffer will be abandoned and won't be cleaned up in the boot process. This is a narrow
+    	// race in practice, but step-by-step debugging can accentuate the risk since there can be an arbitrary
+    	// amount of time spent in this window.
+
         if (unlock_rx_pkt_buf(rx_pkt_buf) != PKT_BUF_MUTEX_SUCCESS) {
             xil_printf("Error: unable to unlock RX pkt_buf %d\n", rx_pkt_buf);
             wlan_mac_low_send_exception(WLAN_ERROR_CODE_CPU_LOW_RX_MUTEX);
@@ -1429,7 +1418,7 @@ int handle_tx_pkt_buf_ready(u8 pkt_buf){
 	int return_value = 0;
 	dl_entry* entry;
 	dl_list* list = NULL;
-	tx_frame_info_t* tx_frame_info = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
+	tx_frame_info_t* tx_frame_info = (tx_frame_info_t*) (CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf));
 
 	if(gl_tx_pkt_buf_ready_list_free.length > 0){
 		entry = gl_tx_pkt_buf_ready_list_free.first;
@@ -1437,7 +1426,7 @@ int handle_tx_pkt_buf_ready(u8 pkt_buf){
 
 		*((u8*)(entry->data)) = pkt_buf;
 
-		if( (gl_dtim_mcast_buffer_enable == 1) && (gl_beacon_txrx_configure.beacon_tx_mode != NO_BEACON_TX) ){
+		if( (gl_dtim_mcast_buffer_enable == 1) && (gl_beacon_txrx_config.beacon_tx_mode != NO_BEACON_TX) ){
 			switch(tx_frame_info->queue_info.pkt_buf_group){
 				case PKT_BUF_GROUP_DTIM_MCAST:
 					list = &gl_tx_pkt_buf_ready_list_dtim_mcast;
@@ -1516,7 +1505,7 @@ u32 poll_tx_pkt_buf_list(pkt_buf_group_t pkt_buf_group){
 
 				// In the special case of sending a DTIM MCAST packet, the DCF is responsible for maintaining the
 				// MAC_FRAME_CTRL2_FLAG_MORE_DATA bit in the header.
-				header  = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
+				header  = (mac_header_80211*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
 
 				if( gl_tx_pkt_buf_ready_list_dtim_mcast.length == 1 ){
 					// If there is a second mcast frame in the READY state, we can safely raise
@@ -1599,7 +1588,7 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
     u32 mac_hw_status;
     u32 mac_tx_ctrl_status;
 
-    tx_frame_info_t   * tx_frame_info       = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
+    tx_frame_info_t   * tx_frame_info       = (tx_frame_info_t*) (CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf));
 
     if( resume == 0 ){
     	int curr_tx_pow;
@@ -1722,7 +1711,6 @@ u32 frame_transmit_dtim_mcast(u8 pkt_buf, u8 resume) {
 
 		// Fill in the timestamp if indicated by the flags, only possible after Tx PHY has started
 		if ( (mac_hw_status & WLAN_MAC_STATUS_MASK_TX_PHY_ACTIVE) && (tx_has_started == 0)) {
-
 			tx_has_started = 1;
 			low_tx_details.tx_details_type  = TX_DETAILS_MPDU;
 			low_tx_details.tx_start_timestamp_mpdu = wlan_mac_low_get_tx_start_timestamp();
@@ -1828,8 +1816,8 @@ void frame_transmit_general(u8 pkt_buf) {
     u16                 n_slots             = 0;
     u16                 n_slots_readback    = 0;
     u8                  mpdu_tx_ant_mask    = 0;
-    tx_frame_info_t   * tx_frame_info       = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
-    mac_header_80211  * header              = (mac_header_80211*)(TX_PKT_BUF_TO_ADDR(pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
+    tx_frame_info_t   * tx_frame_info       = (tx_frame_info_t*) (CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf));
+    mac_header_80211  * header              = (mac_header_80211*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf) + PHY_TX_PKT_BUF_MPDU_OFFSET);
 
     // Extract waveform params from the tx_frame_info
     u8  mcs      = tx_frame_info->params.phy.mcs;
@@ -1841,7 +1829,7 @@ void frame_transmit_general(u8 pkt_buf) {
     // waiting for anything.
     tx_wait_state = TX_WAIT_NONE;
 
-    tx_frame_info->num_tx_attempts   = 0;
+    tx_frame_info->num_tx_attempts    = 0;
     tx_frame_info->phy_samp_rate	  = (u8)wlan_mac_low_get_phy_samp_rate();
 
 	// Compare the length of this frame to the RTS Threshold
@@ -1955,7 +1943,7 @@ void frame_transmit_general(u8 pkt_buf) {
 			low_tx_details.duration = rts_header_duration;
 
 			// Construct the RTS frame in the dedicated Tx pkt buf for control frames
-			mac_cfg_length = wlan_create_rts_frame((void*)(TX_PKT_BUF_TO_ADDR(TX_PKT_BUF_RTS) + PHY_TX_PKT_BUF_MPDU_OFFSET),
+			mac_cfg_length = wlan_create_rts_frame((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_RTS) + PHY_TX_PKT_BUF_MPDU_OFFSET),
 												   header->address_1,
 												   header->address_2,
 												   rts_header_duration);
@@ -2626,9 +2614,9 @@ int process_low_param(u8 mode, u32* payload){
                 //---------------------------------------------------------------------
                 case LOW_PARAM_DCF_PHYSICAL_CS_THRESH: {
                     if(payload[1] < 1023){
-                        wlan_phy_rx_set_cca_thresh(payload[1] * PHY_RX_RSSI_SUM_LEN);
+                    	wlan_platform_set_phy_cs_thresh(payload[1] * PHY_RX_RSSI_SUM_LEN);
                     } else {
-                        wlan_phy_rx_set_cca_thresh(0xFFFF);
+                    	wlan_platform_set_phy_cs_thresh(0xFFFF);
                     }
                 }
                 break;
@@ -2664,9 +2652,7 @@ int process_low_param(u8 mode, u32* payload){
                 break;
 
                 //---------------------------------------------------------------------
-                default: {
-                    xil_printf("Unknown param 0x%08x\n", payload[0]);
-                }
+                default: {}
                 break;
             }
         }

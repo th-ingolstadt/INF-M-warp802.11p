@@ -12,23 +12,24 @@
 /***************************** Include Files *********************************/
 
 // Xilinx SDK includes
-#include "xparameters.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include "xio.h"
 #include "xil_cache.h"
 
-// WARP includes
-#include "w3_userio.h"
-#include "radio_controller.h"
-
 // WLAN includes
+#include "wlan_platform_common.h"
+#include "wlan_platform_low.h"
 #include "wlan_mac_low.h"
 #include "wlan_mac_pkt_buf_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_phy_util.h"
+#include "wlan_platform_low.h"
 #include "wlan_mac_nomac.h"
+#include "xparameters.h"
+#include "wlan_mac_common.h"
+#include "wlan_mac_mailbox_util.h"
 
 // WLAN Exp includes
 #include "wlan_exp.h"
@@ -39,8 +40,6 @@
 
 #define DEFAULT_TX_ANTENNA_MODE                            TX_ANTMODE_SISO_ANTA
 
-#define NUM_LEDS                                           4
-
 
 /*********************** Global Variable Definitions *************************/
 
@@ -48,8 +47,8 @@
 /*************************** Variable Definitions ****************************/
 static u8                              eeprom_addr[MAC_ADDR_LEN];
 
-volatile u8                            red_led_index;
-volatile u8                            green_led_index;
+// Common Platform Device Info
+platform_common_dev_info_t	 platform_common_dev_info;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -73,7 +72,7 @@ int main(){
 
     xil_printf("\f");
     xil_printf("----- Mango 802.11 Reference Design -----\n");
-    xil_printf("----- v1.6.2 ----------------------------\n");
+    xil_printf("----- v1.7.0 ----------------------------\n");
     xil_printf("----- wlan_mac_nomac --------------------\n");
     xil_printf("Compiled %s %s\n\n", __DATE__, __TIME__);
 	strncpy(compilation_details.compilation_date, __DATE__, 12);
@@ -84,15 +83,11 @@ int main(){
     xil_printf("This switch can be toggled live while the design is running.\n\n");
     xil_printf("------------------------\n");
 
-    // Initialize LEDs
-    red_led_index   = 0;
-    green_led_index = 0;
-
-    userio_write_leds_green(USERIO_BASEADDR, (1 << green_led_index));
-    userio_write_leds_red(USERIO_BASEADDR, (1 << red_led_index));
-
     // Initialize the Low Framework
     wlan_mac_low_init(WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW, compilation_details);
+
+    // Get the device info
+	platform_common_dev_info = wlan_platform_common_get_dev_info();
 
     // Get the node's HW address
     hw_info = get_mac_hw_info();
@@ -154,17 +149,8 @@ int main(){
  */
 u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details){
 
-    void              * pkt_buf_addr        = (void *) RX_PKT_BUF_TO_ADDR(rx_pkt_buf);
+    void              * pkt_buf_addr        = (void *) CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf);
     rx_frame_info_t   * rx_frame_info       = (rx_frame_info_t *) pkt_buf_addr;
-
-    // Fill in the MPDU info fields for the reception. These values are known at RX_START. The other fields below
-    //  must be written after RX_END
-    rx_frame_info->flags          = 0;
-    rx_frame_info->phy_details    = *phy_details;
-    rx_frame_info->channel        = wlan_mac_low_get_active_channel();
-    rx_frame_info->phy_samp_rate  = (u8)wlan_mac_low_get_phy_samp_rate();
-    rx_frame_info->timestamp      = wlan_mac_low_get_rx_start_timestamp();
-    rx_frame_info->timestamp_frac = wlan_mac_low_get_rx_start_timestamp_frac();
 
     // Wait for the Rx PHY to finish receiving this packet
 	if(wlan_mac_hw_rx_finish() == 1){
@@ -175,20 +161,11 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details){
 		rx_frame_info->flags &= ~RX_FRAME_INFO_FLAGS_FCS_GOOD;
 	}
 
-    // Update the rest of the frame_info fields using post-Rx information
-	rx_frame_info->ant_mode = wlan_phy_rx_get_active_rx_ant();
-	rx_frame_info->cfo_est	 = wlan_phy_rx_get_cfo_est();
-	rx_frame_info->rf_gain  = wlan_phy_rx_get_agc_RFG(rx_frame_info->ant_mode);
-	rx_frame_info->bb_gain  = wlan_phy_rx_get_agc_BBG(rx_frame_info->ant_mode);
-	rx_frame_info->rx_power = wlan_mac_low_calculate_rx_power(wlan_phy_rx_get_pkt_rssi(rx_frame_info->ant_mode), wlan_phy_rx_get_agc_RFG(rx_frame_info->ant_mode));
-
     // Increment the LEDs based on the FCS status
     if(rx_frame_info->flags & RX_FRAME_INFO_FLAGS_FCS_GOOD){
-        green_led_index = (green_led_index + 1) % NUM_LEDS;
-        userio_write_leds_green(USERIO_BASEADDR, (1 << green_led_index));
+    	wlan_platform_low_userio_disp_status(USERIO_DISP_STATUS_GOOD_FCS_EVENT);
     } else {
-        red_led_index = (red_led_index + 1) % NUM_LEDS;
-        userio_write_leds_red(USERIO_BASEADDR, (1 << red_led_index));
+    	wlan_platform_low_userio_disp_status(USERIO_DISP_STATUS_BAD_FCS_EVENT);
     }
 
     rx_frame_info->rx_pkt_buf_state = RX_PKT_BUF_READY;
@@ -231,15 +208,13 @@ int handle_tx_pkt_buf_ready(u8 pkt_buf){
  * @return  int              - Transmission result
  */
 int frame_transmit(u8 pkt_buf) {
-    // The pkt_buf, rate, and length arguments provided to this function specifically relate to
-    // the MPDU that the WLAN MAC LOW framework wants to send.
 
     u32 mac_hw_status;
     u32 mac_tx_ctrl_status;
     u8 tx_gain;
     wlan_mac_low_tx_details_t low_tx_details;
 
-    tx_frame_info_t   * tx_frame_info       = (tx_frame_info_t*) (TX_PKT_BUF_TO_ADDR(pkt_buf));
+    tx_frame_info_t   * tx_frame_info       = (tx_frame_info_t*) (CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf));
     u8                  mpdu_tx_ant_mask    = 0;
 
     // Extract waveform params from the tx_frame_info
@@ -354,9 +329,7 @@ int process_low_param(u8 mode, u32* payload) {
 #endif
 
                 //---------------------------------------------------------------------
-                default: {
-                    xil_printf("Unknown parameter 0x%08x\n", payload[0]);
-                }
+                default: {}
                 break;
             }
         break;

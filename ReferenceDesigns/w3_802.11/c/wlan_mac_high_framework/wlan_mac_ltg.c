@@ -18,7 +18,6 @@
 #include "xil_types.h"
 #include "stdlib.h"
 #include "stdio.h"
-#include "xparameters.h"
 #include "xintc.h"
 #include "string.h"
 #include "wlan_mac_dl_list.h"
@@ -27,11 +26,12 @@
 
 #include "wlan_mac_common.h"
 #include "wlan_mac_802_11_defs.h"
-#include "wlan_mac_time_util.h"
 #include "wlan_mac_eth_util.h"
 #include "wlan_mac_high.h"
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_schedule.h"
+#include "wlan_platform_common.h"
+#include "wlan_mac_packet_types.h"
 
 #if WLAN_SW_CONFIG_ENABLE_LTG
 

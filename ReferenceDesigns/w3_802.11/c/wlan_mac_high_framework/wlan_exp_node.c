@@ -21,25 +21,26 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <string.h>
-
-// WARP Includes
-#include "w3_iic_eeprom.h"
+#include <stdarg.h>
 
 // WLAN includes
 #include "wlan_mac_pkt_buf_util.h"
-#include "wlan_mac_sysmon_util.h"
-#include "wlan_mac_time_util.h"
-#include "wlan_mac_userio_util.h"
+#include "wlan_platform_common.h"
+#include "wlan_platform_high.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_entries.h"
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_scan.h"
-#include "wlan_mac_bss_info.h"
+#include "wlan_mac_network_info.h"
 #include "wlan_mac_station_info.h"
 #include "wlan_mac_eth_util.h"
+#include "wlan_mac_high.h"
+#include "wlan_mac_common.h"
+#include "wlan_mac_dl_list.h"
 
 // WLAN Exp includes
+#include "wlan_exp.h"
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
 #include "wlan_exp_transport.h"
@@ -56,7 +57,7 @@
 // Define Ethernet Header Buffer Constants
 //
 // The Ethernet header buffer is used when transferring large amounts of data from the node to the
-// host in a performance efficient manner.  Since the WARP IP/UDP transport does not block on a
+// host in a performance efficient manner.  Since the wlan_exp IP/UDP transport does not block on a
 // packet send, if a single command returns many packets with a small processing delay between packets,
 // then there must be multiple Ethernet header containers.  Otherwise, the contents of the Ethernet
 // header could be changed before it is processed by the transport.
@@ -65,8 +66,8 @@
 //         to host communication in WLAN Exp
 //     2)  8 buffers are allocated which is more than the minimum number of buffers needed (ie 5) for 
 //         the default transport setting of 10 TX BDs.
-//     3)  Use 64 byte alignment for the buffers which is the same as the WARP IP/UDP transport
-//         (ie it is the same as WARP_IP_UDP_BUFFER_ALIGNMENT in WARP_ip_udp_config.h)
+//     3)  Use 64 byte alignment for the buffers which is the same as the wlan_exp IP/UDP transport
+//         (ie it is the same as wlan_exp_ip_udp_buffer_ALIGNMENT in wlan_exp_ip_udp_config.h)
 //
 #define WLAN_EXP_ETH_BUFFER_SIZE                           0x80                // Number of bytes per buffer
 #define WLAN_EXP_ETH_NUM_BUFFER                            0x08                // Number of buffers allocated
@@ -78,6 +79,7 @@
 // Declared in wlan_mac_high.c
 extern u8                  low_param_rx_ant_mode;
 extern u8				   low_param_channel;
+extern platform_common_dev_info_t platform_common_dev_info;
 
 extern tx_params_t         default_unicast_mgmt_tx_params;
 extern tx_params_t         default_unicast_data_tx_params;
@@ -85,18 +87,62 @@ extern tx_params_t         default_multicast_mgmt_tx_params;
 extern tx_params_t         default_multicast_data_tx_params;
 
 
+//-----------------------------------------------
+// wlan_exp Basic Service Set (BSS) Info
+//
+//     Only used to communicate with WLAN Exp Host.
+//
+typedef struct __attribute__((__packed__)){
+	u8      portable_data[NETWORK_INFO_T_PORTABLE_SIZE];
+    u16		num_members;
+    u16 	padding2;
+} wlan_exp_network_info_t;
+ASSERT_TYPE_SIZE(wlan_exp_network_info_t, 72);
+
+//-----------------------------------------------
+// wlan_exp Station Info
+//
+//     Only used to communicate with WLAN Exp Host.
+//
+typedef struct __attribute__((__packed__)){
+    // All station_info_t common fields
+	u8	portable_data[STATION_INFO_T_PORTABLE_SIZE];
+} wlan_exp_station_info_t;
+ASSERT_TYPE_SIZE(wlan_exp_station_info_t, 72);
+
+
+#define STATION_INFO_ENTRY_NO_CHANGE             0
+#define STATION_INFO_ENTRY_ZERO_AID              1
+
+
+typedef struct __attribute__((__packed__)){
+    bss_config_t	bss_config;
+    u32				update_mask;
+} wlan_exp_bss_config_update_t;
+ASSERT_TYPE_SIZE(wlan_exp_bss_config_update_t, 52);
+
+//-----------------------------------------------
+// wlan_exp Tx/Rx Counts
+//
+//     Only used to communicate with WLAN Exp Host.
+//
+typedef struct wlan_exp_station_txrx_counts_t{
+    u64                 				timestamp;                 // Timestamp of the log entry
+    u8									addr[6];				   // MAC address associated with this counts struct
+    u16									reserved;
+    station_txrx_counts_t               counts;                    // Framework's counts struct
+} wlan_exp_station_txrx_counts_t;
+ASSERT_TYPE_SIZE(wlan_exp_station_txrx_counts_t, 128);
+
 /*************************** Functions Prototypes ****************************/
 
+typedef dl_entry* (*list_search_func_ptr)(u8 *);
 int node_init_parameters(u32 *info);
-int process_hton_msg(int socket_index, struct sockaddr * from, warp_ip_udp_buffer * recv_buffer, u32 recv_flags, warp_ip_udp_buffer * send_buffer);
+int process_hton_msg(int socket_index, struct sockaddr * from, wlan_exp_ip_udp_buffer * recv_buffer, u32 recv_flags, wlan_exp_ip_udp_buffer * send_buffer);
 void send_early_resp(int socket_index, void * to, cmd_resp_hdr * resp_hdr, void * buffer);
 int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len);
 
 void ltg_cleanup(u32 id, void* callback_arg);
-
-int process_tx_power(u32 cmd, u32 aid, int tx_power);
-u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 * ret_phy_mode);
-u32 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode);
 
 // WLAN Exp buffer functions
 void          transfer_log_data(u32 socket_index, void * from,
@@ -109,7 +155,7 @@ u32           process_buffer_cmds(int socket_index, void * from, cmd_resp * comm
                                   u32 eth_dev_num, u32 max_resp_len,
                                   const char * type, char * description, dl_list * source_list, u32 dest_size,
                                   u32 (*find_id)(u8 *),
-                                  dl_entry * (*find_source)(u8 *),
+                                  list_search_func_ptr find_source,
                                   void (*copy_source_to_dest)(void *, void *, u8*),
                                   void (*zero_dest)(void *));
 
@@ -135,11 +181,10 @@ static wlan_exp_tag_parameter     node_parameters[NODE_PARAM_MAX_PARAMETER];
 
 static function_ptr_t    wlan_exp_process_node_cmd_callback;
 function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback;
-function_ptr_t    wlan_exp_tx_cmd_add_association_callback;
 function_ptr_t    wlan_exp_process_user_cmd_callback;
 function_ptr_t    wlan_exp_beacon_ts_update_mode_callback;
 function_ptr_t    wlan_exp_process_config_bss_callback;
-function_ptr_t    wlan_exp_active_bss_info_getter_callback;
+function_ptr_t    wlan_exp_active_network_info_getter_callback;
 
 // Allocate Ethernet Header buffer
 //     NOTE:  The buffer memory must be placed in DMA accessible DDR such that it can be fetched by the AXI DMA
@@ -200,7 +245,7 @@ int wlan_exp_node_init(u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wl
 	wlan_exp_node_set_type_design(WLAN_EXP_TYPE_DESIGN_80211);
 
     node_info.node_id                       = 0xFFFF;
-    node_info.hw_generation                 = WLAN_EXP_HW_VERSION;
+    node_info.platform_id                   = platform_common_dev_info.platform_id;
     node_info.serial_number                 = serial_number;
 
     // Process both 32 bit arguments of the FPGA DNA
@@ -249,11 +294,6 @@ int wlan_exp_node_init(u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wl
 
     add_time_info_entry(mac_timestamp, mac_timestamp, system_timestamp, TIME_INFO_ENTRY_TIME_RSVD_VAL_64, TIME_INFO_ENTRY_SYSTEM, 0, 0);
 #endif
-
-    // ------------------------------------------
-    // Initialize the System Monitor
-    init_sysmon();
-
 
     // ------------------------------------------
     // Initialize the default IP address
@@ -307,7 +347,7 @@ int wlan_exp_node_init(u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wl
 
     } else {
         xil_printf("  Not waiting for Ethernet link.  Current status:\n");
-        xil_printf("      ETH %c ", warp_conv_eth_dev_num(eth_dev_num));
+        xil_printf("      ETH %c ", wlan_exp_conv_eth_dev_num(eth_dev_num));
 
         if ((transport_link_status(eth_dev_num) == LINK_READY)) {
             xil_printf("ready\n");
@@ -353,11 +393,28 @@ void wlan_exp_node_set_type_design(u32 type_design){
  * It is typically the responsibility of the high-level application to call
  * this setter.
  *
- * @param   type_high           - CPU_HIGH Type from wlan_exp.h
+ * @param   application_role_t  - CPU_HIGH application role
  * @param	compilation_details - compilation_details_t pointer from high-level app
  *
  ******************************************************************************/
-void wlan_exp_node_set_type_high(u32 type_high, compilation_details_t* compilation_details){
+void wlan_exp_node_set_type_high(application_role_t application_role, compilation_details_t* compilation_details){
+	u32 type_high = 0;
+
+	switch(application_role){
+		case APPLICATION_ROLE_AP:
+			type_high = WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_AP;
+		break;
+		case APPLICATION_ROLE_STA:
+			type_high = WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_STA;
+		break;
+		case APPLICATION_ROLE_IBSS:
+			type_high = WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_IBSS;
+		break;
+		case APPLICATION_ROLE_UNKNOWN:
+			type_high = 0;
+		break;
+	}
+
 	node_info.node_type &= ~WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_MASK;
 	node_info.node_type |= (type_high&WLAN_EXP_TYPE_DESIGN_80211_CPU_HIGH_MASK);
 
@@ -431,7 +488,7 @@ int null_process_cmd_callback(u32 cmd_id, void * param){
  *          Transport header for future packet processing.
  *
  *****************************************************************************/
-int  process_hton_msg(int socket_index, struct sockaddr * from, warp_ip_udp_buffer * recv_buffer, u32 recv_flags, warp_ip_udp_buffer * send_buffer) {
+int  process_hton_msg(int socket_index, struct sockaddr * from, wlan_exp_ip_udp_buffer * recv_buffer, u32 recv_flags, wlan_exp_ip_udp_buffer * send_buffer) {
 
     u8                  cmd_group;
     u32                 resp_sent      = NO_RESP_SENT;
@@ -536,11 +593,11 @@ void send_early_resp(int socket_index, void * to, cmd_resp_hdr * resp_hdr, void 
     u32                      tmp_buffer_length;
     u32                      tmp_buffer_size;
 
-    warp_ip_udp_buffer     * buffer_ptr;
+    wlan_exp_ip_udp_buffer     * buffer_ptr;
     u32                      resp_length;
 
     // Cast the buffer pointer so it is easier to use
-    buffer_ptr               = (warp_ip_udp_buffer *) buffer;
+    buffer_ptr               = (wlan_exp_ip_udp_buffer *) buffer;
 
     // Get the current values in the buffer so we can restore them after transmission
     tmp_cmd                  = resp_hdr->cmd;
@@ -560,7 +617,7 @@ void send_early_resp(int socket_index, void * to, cmd_resp_hdr * resp_hdr, void 
     resp_hdr->num_args       = Xil_Ntohs(tmp_num_args);
 
     // Send the packet
-    transport_send(socket_index, (struct sockaddr *)to, (warp_ip_udp_buffer **)&buffer, 0x1);
+    transport_send(socket_index, (struct sockaddr *)to, (wlan_exp_ip_udp_buffer **)&buffer, 0x1);
 
     // Restore the values in the buffer
     resp_hdr->cmd      = tmp_cmd;
@@ -588,9 +645,6 @@ void send_early_resp(int socket_index, void * to, cmd_resp_hdr * resp_hdr, void 
  * @return  int              - Status of the command:
  *                                 NO_RESP_SENT - No response has been sent
  *                                 RESP_SENT    - A response has been sent
- *
- * @note    See on-line documentation for more information about the Ethernet
- *          packet structure:  www.warpproject.org
  *
  *****************************************************************************/
 int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len) {
@@ -728,7 +782,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
                 resp_sent                  = RESP_SENT;
 
-                blink_hex_display(num_blinks, time_per_blink);
+                wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_IDENTIFY);
 
             } else {
                 resp_args_32[resp_index++] = Xil_Htonl(CMD_PARAM_ERROR);
@@ -792,7 +846,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                         xil_printf("IP address %d.%d.%d.%d\n", ip_addr[0], ip_addr[1], ip_addr[2], ip_addr[3]);
 
                         // Set right decimal point to indicate WLAN Exp network is configured
-                        set_hex_display_right_dp(1);
+                        wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_WLAN_EXP_CONFIGURE, 1);
                     }
                 } else {
                     // Do nothing
@@ -856,7 +910,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                     xil_printf("NODE_CONFIG_RESET: Reset wlan_exp network config\n");
 
                     // Clear right decimal point to indicate WLAN Exp network is not configured
-                    set_hex_display_right_dp(0);
+                    wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_WLAN_EXP_CONFIGURE, 0);
                 } else {
                     // Do nothing
                 }
@@ -869,15 +923,17 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
         //---------------------------------------------------------------------
         case CMDID_NODE_TEMPERATURE: {
+
             // NODE_TEMPERATURE
             //   - If the system monitor exists, return the current, min and max temperature of the node
             //
-            resp_args_32[resp_index++] = Xil_Htonl(get_current_temp());
-            resp_args_32[resp_index++] = Xil_Htonl(get_min_temp());
-            resp_args_32[resp_index++] = Xil_Htonl(get_max_temp());
+            resp_args_32[resp_index++] = Xil_Htonl(wlan_platform_get_current_temp());
+            resp_args_32[resp_index++] = Xil_Htonl(wlan_platform_get_min_temp());
+            resp_args_32[resp_index++] = Xil_Htonl(wlan_platform_get_max_temp());
 
             resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
+
         }
         break;
 
@@ -1067,7 +1123,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             // Transfer data to host
             transfer_log_data(socket_index, from,
-                              (void *)(((warp_ip_udp_buffer *)(response->buffer))->data),
+                              (void *)(((wlan_exp_ip_udp_buffer *)(response->buffer))->data),
                               eth_dev_num, max_resp_len,
                               id, flags, start_index, size);
 
@@ -1809,19 +1865,23 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
         //---------------------------------------------------------------------
         case CMDID_NODE_TX_POWER: {
-            // CMDID_NODE_TX_POWER Packet Format:
-            //   - cmd_args_32[0]      - Command
-            //   - cmd_args_32[1]      - Type
-            //   - cmd_args_32[2]      - Power (Shifted by TX_POWER_MIN_DBM)
-            //   - cmd_args_32[3 - 4]  - MAC Address (All 0xF means all nodes)
-            //
-            u32    id;
             int    power;
             u8     mac_addr[MAC_ADDR_LEN];
-            u32    status         = CMD_PARAM_SUCCESS;
-            u32    msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
-            u32    type           = Xil_Ntohl(cmd_args_32[1]);
-            u32    power_xmit     = Xil_Ntohl(cmd_args_32[2]);
+            u32    status = CMD_PARAM_SUCCESS;
+
+            //Extract arguments
+            u32 msg_cmd = Xil_Ntohl(cmd_args_32[0]);
+            u32 frame_type = Xil_Ntohl(cmd_args_32[1]);
+            u32 update_default_unicast = Xil_Ntohl(cmd_args_32[2]);
+            u32 update_default_multicast = Xil_Ntohl(cmd_args_32[3]);
+            u32 power_xmit = Xil_Ntohl(cmd_args_32[4]);
+            u32 addr_sel = Xil_Ntohl(cmd_args_32[5]);
+
+            int iter;
+            dl_list* station_info_list;
+            station_info_entry_t* station_info_entry;
+            station_info_t* station_info;
+            tx_params_t		tx_params;
 
             // Shift power value from transmission to get the power
             power = power_xmit + TX_POWER_MIN_DBM;
@@ -1831,143 +1891,85 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             if(power > TX_POWER_MAX_DBM){ power = TX_POWER_MAX_DBM; }
 
             // Process the command
-            if (type == CMD_PARAM_UNICAST_VAL) {
-                switch (msg_cmd) {
-                    case CMD_PARAM_WRITE_VAL:
-                    case CMD_PARAM_READ_VAL:
-                        // Get MAC Address
-                        wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[3], &mac_addr[0]);
+        	if( msg_cmd == CMD_PARAM_WRITE_VAL ){
+        		if( frame_type & CMD_PARAM_TXPARAM_MASK_CTRL ){
+        			wlan_mac_high_set_tx_ctrl_power(power);
+        		}
+				// 1. Update default values if needed
+				if(update_default_unicast){
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+						tx_params = station_info_get_default_tx_params(unicast_data);
+						tx_params.phy.power = power;
+						wlan_mac_set_default_tx_params(unicast_data, &tx_params);
+					}
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+						tx_params = station_info_get_default_tx_params(unicast_mgmt);
+						tx_params.phy.power = power;
+						wlan_mac_set_default_tx_params(unicast_mgmt, &tx_params);
+					}
+				}
+				if(update_default_multicast){
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+						tx_params = station_info_get_default_tx_params(mcast_data);
+						tx_params.phy.power = power;
+						wlan_mac_set_default_tx_params(mcast_data, &tx_params);
+					}
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+						tx_params = station_info_get_default_tx_params(mcast_mgmt);
+						tx_params.phy.power = power;
+						wlan_mac_set_default_tx_params(mcast_mgmt, &tx_params);
+					}
+				}
+				// 2. Update station_info_t value depending on addr_sel
+				switch(addr_sel){
+					default:
+						status = CMD_PARAM_ERROR;
+					break;
+					case CMD_PARAM_TXPARAM_ADDR_NONE:
+					break;
+					case CMD_PARAM_TXPARAM_ADDR_ALL:
+					case CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST:
+					case CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST:
+						station_info_list  = station_info_get_list();
+						station_info_entry = (station_info_entry_t*)(station_info_list->first);
+						iter = (station_info_list->length)+1;
+						while(station_info_entry && ((iter--) > 0)){
+							station_info = station_info_entry->data;
+							if( (!wlan_addr_mcast(station_info->addr) && ((addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST) || (addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL))) ||
+								(wlan_addr_mcast(station_info->addr)  && ((addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST) || (addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL)))	){
 
-                        // If necessary, add an association.  This is primarily for IBSS nodes where
-                        //   the association table might not be set up at the time this is called.
-                        // NOTE: A multicast mac_addr should *not* be added to the association table.
-                        //     Also, an address of zero should not be added to the association table
-                        if ((wlan_addr_mcast(mac_addr) == 0) && (wlan_addr_eq(mac_addr, zero_addr) == 0)) {
-                            wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
-                        }
+								if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+									station_info->tx_params_data.phy.power = power;
+								}
+								if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+									station_info->tx_params_mgmt.phy.power = power;
+								}
+							}
+							station_info_entry = (station_info_entry_t*)dl_entry_next((dl_entry*)station_info_entry);
+						}
+					break;
+					case CMD_PARAM_TXPARAM_ADDR_SINGLE:
+						// Get MAC Address
+						wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[6], &mac_addr[0]);
+						station_info = station_info_create(&mac_addr[0]);
+						if(station_info){
+							if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+								station_info->tx_params_data.phy.power = power;
+							}
+							if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+								station_info->tx_params_mgmt.phy.power = power;
+							}
+						}
+					break;
+				}
 
-                        id = wlan_exp_get_id_in_associated_stations(&mac_addr[0]);
-
-                        status = process_tx_power(msg_cmd, id, power);
-                    break;
-
-                    case CMD_PARAM_WRITE_DEFAULT_VAL:
-                        // Set the default unicast data & management parameter
-                        default_unicast_data_tx_params.phy.power = power;
-                        default_unicast_mgmt_tx_params.phy.power = power;
-                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default unicast TX power = %d dBm\n", power);
-                    break;
-
-                    case CMD_PARAM_READ_DEFAULT_VAL:
-                        // Get the default unicast data parameter
-                        power = default_unicast_data_tx_params.phy.power;
-                    break;
-
-                    default:
-                        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmd_id, msg_cmd);
-                        status = CMD_PARAM_ERROR;
-                    break;
-                }
-            } else if (type == CMD_PARAM_MULTICAST_DATA_VAL) {
-                switch (msg_cmd) {
-                    case CMD_PARAM_WRITE_VAL:
-                    case CMD_PARAM_WRITE_DEFAULT_VAL:
-                        // Set the default multicast data parameter
-                        default_multicast_data_tx_params.phy.power = power;
-                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default multicast data TX power = %d dBm\n", power);
-                    break;
-
-                    case CMD_PARAM_READ_VAL:
-                    case CMD_PARAM_READ_DEFAULT_VAL:
-                        // Get the default multicast data parameter
-                        power = default_multicast_data_tx_params.phy.power;
-                    break;
-
-                    default:
-                        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmd_id, msg_cmd);
-                        status = CMD_PARAM_ERROR;
-                    break;
-                }
-            } else if (type == CMD_PARAM_MULTICAST_MGMT_VAL) {
-                switch (msg_cmd) {
-                    case CMD_PARAM_WRITE_VAL:
-                    case CMD_PARAM_WRITE_DEFAULT_VAL:
-                        // Set the default multicast management parameter
-                        default_multicast_mgmt_tx_params.phy.power = power;
-                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default multicast mgmt TX power = %d dBm\n", power);
-
-                        // Update beacon tx params
-                        wlan_mac_high_update_beacon_tx_params(&default_multicast_mgmt_tx_params);
-                    break;
-
-                    case CMD_PARAM_READ_VAL:
-                    case CMD_PARAM_READ_DEFAULT_VAL:
-                        // Get the default multicast management parameter
-                        power = default_multicast_mgmt_tx_params.phy.power;
-                    break;
-
-                    default:
-                        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmd_id, msg_cmd);
-                        status = CMD_PARAM_ERROR;
-                    break;
-                }
-            } else if (type == CMD_PARAM_NODE_TX_POWER_LOW) {
-                switch (msg_cmd) {
-                    case CMD_PARAM_WRITE_VAL:
-                    case CMD_PARAM_WRITE_DEFAULT_VAL:
-                        // Send IPC to CPU low to set the Tx power for control frames
-                        wlan_mac_high_set_tx_ctrl_pow(power);
-                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set control packet TX power = %d dBm\n", power);
-                    break;
-
-                    case CMD_PARAM_READ_VAL:
-                    case CMD_PARAM_READ_DEFAULT_VAL:
-                        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Reading control packet power not currently supported\n");
-                        status = CMD_PARAM_ERROR;
-                    break;
-
-                    default:
-                        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmd_id, msg_cmd);
-                        status = CMD_PARAM_ERROR;
-                    break;
-                }
-            } else if (type == CMD_PARAM_NODE_TX_POWER_ALL) {
-                // Set all power values:
-                //     * Default Unicast Management Packet Tx Power for new associations
-                //     * Default Unicast Data Packet Tx Power for new associations
-                //     * Default Multicast Management Packet Tx Power for new associations
-                //     * Default Multicast Data Packet Tx Power for new associations
-                //     * Control Packet Tx Power
-                //     * Update the transmit power of all current associations on the node.
-                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set all TX power = %d dBm\n", power);
-
-                // Set the default unicast power for new associations
-                default_unicast_mgmt_tx_params.phy.power   = power;
-                default_unicast_data_tx_params.phy.power   = power;
-
-                // Set the default multicast power for new associations
-                default_multicast_mgmt_tx_params.phy.power = power;
-                default_multicast_data_tx_params.phy.power = power;
-
-                // Send IPC to CPU low to set the Tx power for control frames
-                wlan_mac_high_set_tx_ctrl_pow(power);
-
-                // Update the Tx power in each current association
-                status = process_tx_power(CMD_PARAM_WRITE_VAL, WLAN_EXP_AID_ALL, power);
-
-                // Update beacon tx params
-                wlan_mac_high_update_beacon_tx_params(&default_multicast_mgmt_tx_params);
-            } else {
-                wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown type for CMDID_NODE_TX_POWER: %d\n", type);
-                status = CMD_PARAM_ERROR;
-            }
-
-            // Shift power for transmission
-            power_xmit = power - TX_POWER_MIN_DBM;
+        	} else {
+        		// We do not support CMD_PARAM_READ_VAL for Tx parameters
+        		status = CMD_PARAM_ERROR;
+        	}
 
             // Send response
             resp_args_32[resp_index++] = Xil_Htonl(status);
-            resp_args_32[resp_index++] = Xil_Htonl(power_xmit);
 
             resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
@@ -1977,145 +1979,124 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
         //---------------------------------------------------------------------
         case CMDID_NODE_TX_RATE: {
-            // NODE_TX_RATE Packet Format:
-            //   - cmd_args_32[0]      - Command
-            //   - cmd_args_32[1]      - Type
-            //   - cmd_args_32[2]      - MCS
-            //   - cmd_args_32[3]      - PHY Mode
-            //   - cmd_args_32[4 - 5]  - MAC Address (All 0xF means all nodes)
-            //
-            u32 id;
-            u8  mac_addr[MAC_ADDR_LEN];
-            u32 status         = CMD_PARAM_SUCCESS;
-            u32 msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
-            u32 type           = Xil_Ntohl(cmd_args_32[1]);
-            u32 mcs            = Xil_Ntohl(cmd_args_32[2]) & 0xFF;
-            u32 phy_mode       = Xil_Ntohl(cmd_args_32[3]) & 0xFF;
-            u32 ret_mcs;
-            u32 ret_phy_mode;
+
+            u8     mac_addr[MAC_ADDR_LEN];
+            u32    status = CMD_PARAM_SUCCESS;
+
+            //Extract arguments
+            u32 msg_cmd = Xil_Ntohl(cmd_args_32[0]);
+            u32 frame_type = Xil_Ntohl(cmd_args_32[1]);
+            u32 update_default_unicast = Xil_Ntohl(cmd_args_32[2]);
+            u32 update_default_multicast = Xil_Ntohl(cmd_args_32[3]);
+            u32 mcs = Xil_Ntohl(cmd_args_32[4]) & 0xFF;
+            u32 phy_mode = Xil_Ntohl(cmd_args_32[5]) & 0xFF;
+            u32 addr_sel = Xil_Ntohl(cmd_args_32[6]);
+
+            int iter;
+            dl_list* station_info_list;
+            station_info_entry_t* station_info_entry;
+            station_info_t* station_info;
+            tx_params_t		tx_params;
 
             // Force invalid mcs / phy_mode values to sane defaults
             if (mcs > 7) {
-                mcs = 7;
+            	mcs = 7;
             }
 
             if ((phy_mode & (PHY_MODE_NONHT | PHY_MODE_HTMF)) == 0) {
-                phy_mode = PHY_MODE_NONHT;
+            	phy_mode = PHY_MODE_NONHT;
             }
-
-            // Set default return values
-            ret_mcs      = mcs;
-            ret_phy_mode = phy_mode;
 
             // Process the command
-            if (type == CMD_PARAM_UNICAST_VAL) {
-                switch (msg_cmd) {
-                    case CMD_PARAM_WRITE_VAL:
-                    case CMD_PARAM_READ_VAL:
-                        // Get MAC Address
-                        wlan_exp_get_mac_addr(&cmd_args_32[4], &mac_addr[0]);
+        	if( msg_cmd == CMD_PARAM_WRITE_VAL ){
+        		if( frame_type & CMD_PARAM_TXPARAM_MASK_CTRL ){
+        			//We do not support setting the Tx antenna mode for control packets.
+        			//CPU_LOW will choose what antenna is used for Tx for these packets.
+        			status = CMD_PARAM_ERROR;
+        		}
+				// 1. Update default values if needed
+				if(update_default_unicast){
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+						tx_params = station_info_get_default_tx_params(unicast_data);
+						tx_params.phy.mcs = mcs;
+						tx_params.phy.phy_mode = phy_mode;
+						wlan_mac_set_default_tx_params(unicast_data, &tx_params);
+					}
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+						tx_params = station_info_get_default_tx_params(unicast_mgmt);
+						tx_params.phy.mcs = mcs;
+						tx_params.phy.phy_mode = phy_mode;
+						wlan_mac_set_default_tx_params(unicast_mgmt, &tx_params);
+					}
+				}
+				if(update_default_multicast){
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+						tx_params = station_info_get_default_tx_params(mcast_data);
+						tx_params.phy.mcs = mcs;
+						tx_params.phy.phy_mode = phy_mode;
+						wlan_mac_set_default_tx_params(mcast_data, &tx_params);
+					}
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+						tx_params = station_info_get_default_tx_params(mcast_mgmt);
+						tx_params.phy.mcs = mcs;
+						tx_params.phy.phy_mode = phy_mode;
+						wlan_mac_set_default_tx_params(mcast_mgmt, &tx_params);
+					}
+				}
+				// 2. Update station_info_t value depending on addr_sel
+				switch(addr_sel){
+					default:
+						status = CMD_PARAM_ERROR;
+					break;
+					case CMD_PARAM_TXPARAM_ADDR_NONE:
+					break;
+					case CMD_PARAM_TXPARAM_ADDR_ALL:
+					case CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST:
+					case CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST:
+						station_info_list  = station_info_get_list();
+						station_info_entry = (station_info_entry_t*)(station_info_list->first);
+						iter = (station_info_list->length)+1;
+						while(station_info_entry && ((iter--) > 0)){
+							station_info = station_info_entry->data;
+							if( (!wlan_addr_mcast(station_info->addr) && ((addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST) || (addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL))) ||
+								(wlan_addr_mcast(station_info->addr)  && ((addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST) || (addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL)))	){
 
-                        // If necessary, add an association.  This is primarily for IBSS nodes where
-                        //   the association table might not be set up at the time this is called.
-                        // NOTE: A multicast mac_addr should *not* be added to the association table.
-                        //     Also, an address of zero should not be added to the association table
-                        if ((wlan_addr_mcast(mac_addr) == 0) && (wlan_addr_eq(mac_addr, zero_addr) == 0)) {
-                            wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
-                        }
+								if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+									station_info->tx_params_data.phy.mcs = mcs;
+									station_info->tx_params_data.phy.phy_mode = phy_mode;
+								}
+								if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+									station_info->tx_params_mgmt.phy.mcs = mcs;
+									station_info->tx_params_mgmt.phy.phy_mode = phy_mode;
+								}
+							}
+							station_info_entry = (station_info_entry_t*)dl_entry_next((dl_entry*)station_info_entry);
+						}
+					break;
+					case CMD_PARAM_TXPARAM_ADDR_SINGLE:
+						// Get MAC Address
+						wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[7], &mac_addr[0]);
+						station_info = station_info_create(&mac_addr[0]);
+						if(station_info){
+							if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+								station_info->tx_params_data.phy.mcs = mcs;
+								station_info->tx_params_data.phy.phy_mode = phy_mode;
+							}
+							if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+								station_info->tx_params_mgmt.phy.mcs = mcs;
+								station_info->tx_params_mgmt.phy.phy_mode = phy_mode;
+							}
+						}
+					break;
+				}
 
-                        id = wlan_exp_get_id_in_associated_stations(&mac_addr[0]);
-
-                        if (id != WLAN_EXP_AID_NONE) {
-                            status = process_tx_rate(msg_cmd, id, mcs, phy_mode, &ret_mcs, &ret_phy_mode);
-                        } else {
-                            wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Station not found\n");
-                            status = CMD_PARAM_ERROR;
-                        }
-                    break;
-
-                    case CMD_PARAM_WRITE_DEFAULT_VAL:
-                        // Set the default unicast data & management parameter
-                        default_unicast_data_tx_params.phy.mcs      = mcs;
-                        default_unicast_data_tx_params.phy.phy_mode = phy_mode;
-
-                        default_unicast_mgmt_tx_params.phy.mcs      = mcs;
-                        default_unicast_mgmt_tx_params.phy.phy_mode = phy_mode;
-
-                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
-                                        "Set default unicast Tx rate to MCS %d, PHY mode %d\n", mcs, phy_mode);
-                    break;
-
-                    case CMD_PARAM_READ_DEFAULT_VAL:
-                        // Get the default unicast data parameter
-                        ret_mcs      = default_unicast_data_tx_params.phy.mcs;
-                        ret_phy_mode = default_unicast_data_tx_params.phy.phy_mode;
-                    break;
-
-                    default:
-                        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmd_id, msg_cmd);
-                        status = CMD_PARAM_ERROR;
-                    break;
-                }
-            } else if (type == CMD_PARAM_MULTICAST_DATA_VAL) {
-                switch (msg_cmd) {
-                    case CMD_PARAM_WRITE_VAL:
-                    case CMD_PARAM_WRITE_DEFAULT_VAL:
-                        // Set the default multicast data parameter
-                        default_multicast_data_tx_params.phy.mcs      = mcs;
-                        default_multicast_data_tx_params.phy.phy_mode = phy_mode;
-
-                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
-                                        "Set default multicast data Tx rate to MCS %d, PHY mode %d\n", mcs, phy_mode);
-                    break;
-
-                    case CMD_PARAM_READ_VAL:
-                    case CMD_PARAM_READ_DEFAULT_VAL:
-                        // Get the default multicast data parameter
-                        ret_mcs      = default_multicast_data_tx_params.phy.mcs;
-                        ret_phy_mode = default_multicast_data_tx_params.phy.phy_mode;
-                    break;
-
-                    default:
-                        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmd_id, msg_cmd);
-                        status = CMD_PARAM_ERROR;
-                    break;
-                }
-            } else if (type == CMD_PARAM_MULTICAST_MGMT_VAL) {
-                switch (msg_cmd) {
-                    case CMD_PARAM_WRITE_VAL:
-                    case CMD_PARAM_WRITE_DEFAULT_VAL:
-                        // Set the default multicast management parameter
-                        default_multicast_mgmt_tx_params.phy.mcs      = mcs;
-                        default_multicast_mgmt_tx_params.phy.phy_mode = phy_mode;
-
-                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
-                                        "Set default multicast mgmt Tx rate to MCS %d, PHY mode %d\n", mcs, phy_mode);
-
-                        // Update beacon tx params
-                        wlan_mac_high_update_beacon_tx_params(&default_multicast_mgmt_tx_params);
-                    break;
-
-                    case CMD_PARAM_READ_VAL:
-                    case CMD_PARAM_READ_DEFAULT_VAL:
-                        // Get the default multicast management parameter
-                        ret_mcs      = default_multicast_mgmt_tx_params.phy.mcs;
-                        ret_phy_mode = default_multicast_mgmt_tx_params.phy.phy_mode;
-                    break;
-
-                    default:
-                        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmd_id, msg_cmd);
-                        status = CMD_PARAM_ERROR;
-                    break;
-                }
-            } else {
-                wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown type for NODE_TX_RATE: %d\n", type);
-                status = CMD_PARAM_ERROR;
-            }
+        	} else {
+        		// We do not support CMD_PARAM_READ_VAL for Tx parameters
+        		status = CMD_PARAM_ERROR;
+        	}
 
             // Send response
             resp_args_32[resp_index++] = Xil_Htonl(status);
-            resp_args_32[resp_index++] = Xil_Htonl(ret_mcs);
-            resp_args_32[resp_index++] = Xil_Htonl(ret_phy_mode);
 
             resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
@@ -2125,21 +2106,22 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
         //---------------------------------------------------------------------
         case CMDID_NODE_TX_ANT_MODE: {
-            // NODE_TX_ANT_MODE Packet Format:
-            //   - cmd_args_32[0]      - Command
-            //   - cmd_args_32[1]      - Type
-            //   - cmd_args_32[2]      - Antenna Mode
-            //   - cmd_args_32[3 - 4]  - MAC Address (All 0xF means all nodes)
-            //
-            u32    id;
             u8     mac_addr[MAC_ADDR_LEN];
-            u32    status         = CMD_PARAM_SUCCESS;
-            u32    msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
-            u32    type           = Xil_Ntohl(cmd_args_32[1]);
-            u32    ant_mode       = Xil_Ntohl(cmd_args_32[2]);
+            u32    status = CMD_PARAM_SUCCESS;
 
-            // NOTE:  This method assumes that the Antenna mode received is valid.
-            // The checking will be done on either the host, in CPU Low or both.
+            //Extract arguments
+            u32 msg_cmd = Xil_Ntohl(cmd_args_32[0]);
+            u32 frame_type = Xil_Ntohl(cmd_args_32[1]);
+            u32 update_default_unicast = Xil_Ntohl(cmd_args_32[2]);
+            u32 update_default_multicast = Xil_Ntohl(cmd_args_32[3]);
+            u32 ant_mode = Xil_Ntohl(cmd_args_32[4]);
+            u32 addr_sel = Xil_Ntohl(cmd_args_32[5]);
+
+            int iter;
+            dl_list* station_info_list;
+            station_info_entry_t* station_info_entry;
+            station_info_t* station_info;
+            tx_params_t		tx_params;
 
             // Need to convert antenna mode from:   Python       C
             //     - TX_ANTMODE_SISO_ANTA:            0x0   to  0x10
@@ -2151,141 +2133,93 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //
             ant_mode = (ant_mode + 1) << 4;
 
-            // Process command
-            if (type == CMD_PARAM_UNICAST_VAL) {
-                switch (msg_cmd) {
-                    case CMD_PARAM_WRITE_VAL:
-                    case CMD_PARAM_READ_VAL:
-                        // Get MAC Address
-                        wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[3], &mac_addr[0]);
+            // Process the command
+        	if( msg_cmd == CMD_PARAM_WRITE_VAL ){
+        		if( frame_type & CMD_PARAM_TXPARAM_MASK_CTRL ){
+        			//We do not support setting the Tx antenna mode for control packets.
+        			//CPU_LOW will choose what antenna is used for Tx for these packets.
+        			status = CMD_PARAM_ERROR;
+        		}
+				// 1. Update default values if needed
+				if(update_default_unicast){
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+						tx_params = station_info_get_default_tx_params(unicast_data);
+						tx_params.phy.antenna_mode = ant_mode;
+						wlan_mac_set_default_tx_params(unicast_data, &tx_params);
+					}
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+						tx_params = station_info_get_default_tx_params(unicast_mgmt);
+						tx_params.phy.antenna_mode = ant_mode;
+						wlan_mac_set_default_tx_params(unicast_mgmt, &tx_params);
+					}
+				}
+				if(update_default_multicast){
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+						tx_params = station_info_get_default_tx_params(mcast_data);
+						tx_params.phy.antenna_mode = ant_mode;
+						wlan_mac_set_default_tx_params(mcast_data, &tx_params);
+					}
+					if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+						tx_params = station_info_get_default_tx_params(mcast_mgmt);
+						tx_params.phy.antenna_mode = ant_mode;
+						wlan_mac_set_default_tx_params(mcast_mgmt, &tx_params);
+					}
+				}
+				// 2. Update station_info_t value depending on addr_sel
+				switch(addr_sel){
+					default:
+						status = CMD_PARAM_ERROR;
+					break;
+					case CMD_PARAM_TXPARAM_ADDR_NONE:
+					break;
+					case CMD_PARAM_TXPARAM_ADDR_ALL:
+					case CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST:
+					case CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST:
+						station_info_list  = station_info_get_list();
+						station_info_entry = (station_info_entry_t*)(station_info_list->first);
+						iter = (station_info_list->length)+1;
+						while(station_info_entry && ((iter--) > 0)){
+							station_info = station_info_entry->data;
+							if( (!wlan_addr_mcast(station_info->addr) && ((addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL_UNICAST) || (addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL))) ||
+								(wlan_addr_mcast(station_info->addr)  && ((addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL_MULTICAST) || (addr_sel == CMD_PARAM_TXPARAM_ADDR_ALL)))	){
 
-                        // If necessary, add an association.  This is primarily for IBSS nodes where
-                        //   the association table might not be set up at the time this is called.
-                        // NOTE: A multicast mac_addr should *not* be added to the association table.
-                        //     Also, an address of zero should not be added to the association table
-                        if ((wlan_addr_mcast(mac_addr) == 0) && (wlan_addr_eq(mac_addr, zero_addr) == 0)) {
-                            wlan_exp_tx_cmd_add_association_callback(&mac_addr[0]);
-                        }
+								if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+									station_info->tx_params_data.phy.antenna_mode = ant_mode;
+								}
+								if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+									station_info->tx_params_mgmt.phy.antenna_mode = ant_mode;
+								}
+							}
+							station_info_entry = (station_info_entry_t*)dl_entry_next((dl_entry*)station_info_entry);
+						}
+					break;
+					case CMD_PARAM_TXPARAM_ADDR_SINGLE:
+						// Get MAC Address
+						wlan_exp_get_mac_addr(&((u32 *)cmd_args_32)[6], &mac_addr[0]);
+						station_info = station_info_create(&mac_addr[0]);
+						if(station_info){
+							if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
+								station_info->tx_params_data.phy.antenna_mode = ant_mode;
+							}
+							if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
+								station_info->tx_params_mgmt.phy.antenna_mode = ant_mode;
+							}
+						}
+					break;
+				}
 
-                        id = wlan_exp_get_id_in_associated_stations(&mac_addr[0]);
-
-                        ant_mode = process_tx_ant_mode(msg_cmd, id, (ant_mode & 0xFF));
-
-                        if (ant_mode == CMD_PARAM_ERROR) {
-                            status = CMD_PARAM_ERROR;
-                        }
-                    break;
-
-                    case CMD_PARAM_WRITE_DEFAULT_VAL:
-                        // Set the default unicast data & management parameter
-                        default_unicast_data_tx_params.phy.antenna_mode = ant_mode;
-                        default_unicast_mgmt_tx_params.phy.antenna_mode = ant_mode;
-                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default unicast TX antenna mode = %d\n", ant_mode);
-                    break;
-
-                    case CMD_PARAM_READ_DEFAULT_VAL:
-                        // Get the default unicast data parameter
-                        ant_mode = default_unicast_data_tx_params.phy.antenna_mode;
-                    break;
-
-                    default:
-                        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmd_id, msg_cmd);
-                        status = CMD_PARAM_ERROR;
-                    break;
-                }
-            } else if (type == CMD_PARAM_MULTICAST_DATA_VAL) {
-                switch (msg_cmd) {
-                    case CMD_PARAM_WRITE_VAL:
-                    case CMD_PARAM_WRITE_DEFAULT_VAL:
-                        // Set the default multicast data paramter
-                        default_multicast_data_tx_params.phy.antenna_mode = ant_mode;
-                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default multicast data TX antenna mode = %d\n", ant_mode);
-                    break;
-
-                    case CMD_PARAM_READ_VAL:
-                    case CMD_PARAM_READ_DEFAULT_VAL:
-                        // Get the default multicast data parameter
-                        ant_mode = default_multicast_data_tx_params.phy.antenna_mode;
-                    break;
-
-                    default:
-                        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmd_id, msg_cmd);
-                        status = CMD_PARAM_ERROR;
-                    break;
-                }
-            } else if (type == CMD_PARAM_MULTICAST_MGMT_VAL) {
-                switch (msg_cmd) {
-                    case CMD_PARAM_WRITE_VAL:
-                    case CMD_PARAM_WRITE_DEFAULT_VAL:
-                        // Set the default multicast management parameter
-                        default_multicast_mgmt_tx_params.phy.antenna_mode = ant_mode;
-                        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set default multicast mgmt TX antenna mode = %d\n", ant_mode);
-
-                        // Update beacon tx params
-                        wlan_mac_high_update_beacon_tx_params(&default_multicast_mgmt_tx_params);
-                    break;
-
-                    case CMD_PARAM_READ_VAL:
-                    case CMD_PARAM_READ_DEFAULT_VAL:
-                        // Get the default multicast management parameter
-                        ant_mode = default_multicast_mgmt_tx_params.phy.antenna_mode;
-                    break;
-
-                    default:
-                        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmd_id, msg_cmd);
-                        status = CMD_PARAM_ERROR;
-                    break;
-                }
-            } else if (type == CMD_PARAM_NODE_TX_ANT_ALL) {
-                // Set all power values:
-                //     * Default Unicast Management Packet Tx antenna mode for new associations
-                //     * Default Unicast Data Packet Tx antenna mode for new associations
-                //     * Default Multicast Management Packet Tx antenna mode for new associations
-                //     * Default Multicast Data Packet Tx antenna mode for new associations
-                //     * Update the transmit antenna mode of all current associations on the node.
-                wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set all TX ant mode = %d\n", ant_mode);
-
-                // Set the default unicast antenna mode for new associations
-                default_unicast_data_tx_params.phy.antenna_mode = ant_mode;
-                default_unicast_mgmt_tx_params.phy.antenna_mode = ant_mode;
-
-                // Set the default multicast antenna mode for new associations
-                default_multicast_data_tx_params.phy.antenna_mode = ant_mode;
-                default_multicast_mgmt_tx_params.phy.antenna_mode = ant_mode;
-
-                // Update the Tx antenna mode in each current association
-                ant_mode = process_tx_ant_mode(CMD_PARAM_WRITE_VAL, WLAN_EXP_AID_ALL, (ant_mode & 0xFF));
-
-                if (ant_mode == CMD_PARAM_ERROR) {
-                    status = CMD_PARAM_ERROR;
-                }
-
-                // Update beacon tx params
-                wlan_mac_high_update_beacon_tx_params(&default_multicast_mgmt_tx_params);
-            } else {
-                wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown type for NODE_TX_ANT_MODE: %d\n", type);
-                status = CMD_PARAM_ERROR;
-            }
-
-            // Need to convert antenna mode from:      C         Python
-            //     - TX_ANTMODE_SISO_ANTA:            0x10   to   0x0
-            //     - TX_ANTMODE_SISO_ANTB:            0x20   to   0x1
-            //     - TX_ANTMODE_SISO_ANTC:            0x30   to   0x2
-            //     - TX_ANTMODE_SISO_ANTD:            0x40   to   0x3
-            //
-            // Formula:  y = (x >> 4) - 1;
-            //
-            ant_mode = (ant_mode >> 4) - 1;
+        	} else {
+        		// We do not support CMD_PARAM_READ_VAL for Tx parameters
+        		status = CMD_PARAM_ERROR;
+        	}
 
             // Send response
             resp_args_32[resp_index++] = Xil_Htonl(status);
-            resp_args_32[resp_index++] = Xil_Htonl(ant_mode & 0xFF);
 
             resp_hdr->length  += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;
-
 
         //---------------------------------------------------------------------
         case CMDID_NODE_RX_ANT_MODE: {
@@ -2302,13 +2236,11 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
             switch (msg_cmd) {
                 case CMD_PARAM_WRITE_VAL:
-                case CMD_PARAM_WRITE_DEFAULT_VAL:
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Set RX antenna mode = %d\n", ant_mode);
                     wlan_mac_high_set_rx_ant_mode(ant_mode);
                 break;
 
                 case CMD_PARAM_READ_VAL:
-                case CMD_PARAM_READ_DEFAULT_VAL:
                     ant_mode = low_param_rx_ant_mode;
                 break;
 
@@ -2507,12 +2439,12 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //
             u32    		status         = CMD_PARAM_SUCCESS;
             u32    		enable         = Xil_Ntohl(cmd_args_32[0]);
-            bss_info_t* 	active_bss_info = ((bss_info_t*)wlan_exp_active_bss_info_getter_callback());
+            network_info_t* 	active_network_info = ((network_info_t*)wlan_exp_active_network_info_getter_callback());
 
             switch (enable) {
                 case CMD_PARAM_NODE_SCAN_ENABLE:
                     // Enable scan
-                    if (active_bss_info == NULL) {
+                    if (active_network_info == NULL) {
                         wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Scan enabled.\n");
                         wlan_mac_scan_start();
                     } else {
@@ -2555,11 +2487,11 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             // Response format:
             //     resp_args_32[0]     - Status
             //
-            u32              status         = CMD_PARAM_SUCCESS;
-            bss_config_t   * bss_config     = (bss_config_t *)(&cmd_args_32[1]);
+            u32 status         = CMD_PARAM_SUCCESS;
+            wlan_exp_bss_config_update_t* wlan_exp_bss_config_update     = (wlan_exp_bss_config_update_t*)(&cmd_args_32[1]);
 
             // Each MAC implementation is responsible for the implementation of this command.
-            status = wlan_exp_process_config_bss_callback(bss_config);
+            status = wlan_exp_process_config_bss_callback(&(wlan_exp_bss_config_update->bss_config), wlan_exp_bss_config_update->update_mask);
 
             // If there was an error, add CMD_PARAM_ERROR bits on return value
             if (status != CMD_PARAM_SUCCESS) {
@@ -2598,7 +2530,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             resp_sent = process_buffer_cmds(socket_index, from, command, response,
                                             cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_resp_len,
                                             print_type_node, "station info",
-                                            get_bss_member_list(),
+                                            get_network_member_list(),
                                             sizeof(wlan_exp_station_info_t),
                                             &wlan_exp_get_id_in_associated_stations,
                                             &find_station_info,
@@ -2655,13 +2587,13 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - byte[]          - uint8[] - Array of payload bytes
             //
             u8   			process_buffer = 1;
-            bss_info_t* 	active_bss_info = ((bss_info_t*)wlan_exp_active_bss_info_getter_callback());
+            network_info_t* active_network_info = ((network_info_t*)wlan_exp_active_network_info_getter_callback());
 
             // If MAC address is all zeros, then return my_bss_info
             if ((cmd_args_32[4] == CMD_PARAM_RSVD) && (cmd_args_32[5] == CMD_PARAM_RSVD)) {
-                if (active_bss_info != NULL) {
+                if (active_network_info != NULL) {
                     // Replace MAC address of command with my_bss_info BSSID
-                    wlan_exp_put_mac_addr(active_bss_info->bssid, &cmd_args_32[4]);
+                    wlan_exp_put_mac_addr(active_network_info->bss_config.bssid, &cmd_args_32[4]);
                 } else {
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Return NULL BSS info\n");
 
@@ -2686,10 +2618,10 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                 resp_sent = process_buffer_cmds(socket_index, from, command, response,
                                                 cmd_hdr, cmd_args_32, resp_hdr, resp_args_32, eth_dev_num, max_resp_len,
                                                 print_type_node, "bss info",
-                                                wlan_mac_high_get_bss_info_list(),
-                                                sizeof(wlan_exp_bss_info_t),
+                                                wlan_mac_high_get_network_info_list(),
+                                                sizeof(wlan_exp_network_info_t),
                                                 &wlan_exp_get_id_in_bss_info,
-                                                &wlan_mac_high_find_bss_info_BSSID,
+                                                (list_search_func_ptr)&wlan_mac_high_find_network_info_BSSID,
                                                 &copy_bss_info_to_dest,
                                                 &zero_bss_info);
             }
@@ -2778,7 +2710,7 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
                         resp_hdr->num_args = resp_index;
 
                         for (mem_idx = 0; mem_idx < mem_length; mem_idx++) {
-                            resp_args_32[resp_index + mem_idx] = Xil_Ntohl(Xil_In32((void*)(mem_addr) + mem_idx*sizeof(u32)));
+                            resp_args_32[resp_index + mem_idx] = Xil_Ntohl(Xil_In32((u32)((void*)(mem_addr) + mem_idx*sizeof(u32))));
                         }
 
                         // Update response header with payload length
@@ -2912,140 +2844,6 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
         break;
 
 
-        //---------------------------------------------------------------------
-        case CMDID_DEV_EEPROM: {
-            // Read / Write values from / to EEPROM
-            //
-            // Write Message format:
-            //     cmd_args_32[0]      Command == CMD_PARAM_WRITE_VAL
-            //     cmd_args_32[1]      EEPROM (0 = ON_BOARD / 1 = FMC)
-            //     cmd_args_32[2]      Address
-            //     cmd_args_32[3]      Length (Number of u8 bytes to write)
-            //     cmd_args_32[4:]     Values to write (Length u32 values each containing a single byte to write)
-            // Response format:
-            //     resp_args_32[0]     Status
-            //
-            // Read Message format:
-            //     cmd_args_32[0]      Command == CMD_PARAM_READ_VAL
-            //     cmd_args_32[1]      EEPROM Device (1 = ON_BOARD / 0 = FMC)
-            //     cmd_args_32[2]      Address
-            //     cmd_args_32[3]      Length (number of u8 bytes to read)
-            // Response format:
-            //     resp_args_32[0]     Status
-            //     resp_args_32[1]     Length (Number of u8 bytes read)
-            //     resp_args_32[2:]    EEPROM values (Length u32 values each containing a single byte read)
-            //
-            #define EEPROM_BASEADDR                        XPAR_W3_IIC_EEPROM_ONBOARD_BASEADDR
-            #define FMC_EEPROM_BASEADDR                    XPAR_W3_IIC_EEPROM_FMC_BASEADDR
-
-            u32    eeprom_idx;
-            int    eeprom_status;
-            u8     byte_to_write;
-            u32    status              = CMD_PARAM_SUCCESS;
-            u32    msg_cmd             = Xil_Ntohl(cmd_args_32[0]);
-            u32    eeprom_device       = Xil_Ntohl(cmd_args_32[1]);
-            u32    eeprom_addr         = (Xil_Ntohl(cmd_args_32[2]) & 0xFFFF);
-            u32    eeprom_length       = Xil_Ntohl(cmd_args_32[3]);
-            u32    use_default_resp    = WLAN_EXP_TRUE;
-            u32    eeprom_ba           = EEPROM_BASEADDR;
-
-            // Select EEPROM device
-            if (eeprom_device) {
-                eeprom_ba = EEPROM_BASEADDR;
-            } else {
-                #if FMC_EEPROM_BASEADDR
-                    eeprom_ba = FMC_EEPROM_BASEADDR;
-                #else
-                    wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "FMC EEPROM not supported\n");
-                    msg_cmd = CMD_PARAM_RSVD;
-                #endif
-            }
-
-            switch (msg_cmd) {
-                case CMD_PARAM_WRITE_VAL:
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Write EEPROM:\n");
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Addr: 0x%08x\n", eeprom_addr);
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Len:  %d\n", eeprom_length);
-
-                    // Don't bother if length is clearly bogus
-                    if(eeprom_length < max_resp_len) {
-                        for (eeprom_idx = 0; eeprom_idx < eeprom_length; eeprom_idx++) {
-                            // Endian swap payload and extract the byte to write
-                            byte_to_write = (Xil_Ntohl(cmd_args_32[eeprom_idx + 4]) & 0xFF);
-
-                            // Write the byte and break if there was an EEPROM failure
-                            eeprom_status = iic_eeprom_write_byte(eeprom_ba, (eeprom_addr + eeprom_idx), byte_to_write, XPAR_CPU_ID);
-
-                            if (eeprom_status == IIC_EEPROM_FAILURE) {
-                                wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "CMDID_DEV_EEPROM write failed at byte %d\n", eeprom_idx);
-                                status = CMD_PARAM_ERROR;
-                                break;
-                            }
-                        }
-                    } else {
-                        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "CMDID_DEV_EEPROM write longer than %d bytes\n", max_resp_len);
-                        status = CMD_PARAM_ERROR;
-                    }
-                break;
-
-                case CMD_PARAM_READ_VAL:
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Read EEPROM:\n");
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Addr: 0x%08x\n", eeprom_addr);
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "  Len:  %d\n", eeprom_length);
-
-                    if (eeprom_length < max_resp_len) {
-                        // Don't set the default response
-                        use_default_resp = WLAN_EXP_FALSE;
-
-                        for (eeprom_idx = 0; eeprom_idx < eeprom_length; eeprom_idx++) {
-                            // Read the byte and break if there was an EEPROM failure
-                            eeprom_status = iic_eeprom_read_byte(eeprom_ba, (eeprom_addr + eeprom_idx), XPAR_CPU_ID);
-
-                            if (eeprom_status == IIC_EEPROM_FAILURE) {
-                                wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "CMDID_DEV_EEPROM write failed at byte %d\n", eeprom_idx);
-                                status = CMD_PARAM_ERROR;
-                                break;
-                            }
-
-                            // Add the byte read and Endian swap the payload
-                            //     - This modified the output Ethernet packet but does not update the resp_index variable
-                            resp_args_32[resp_index + eeprom_idx + 2] = Xil_Htonl(eeprom_status & 0xFF);
-                        }
-
-                        // Add length argument to response
-                        resp_args_32[resp_index++] = Xil_Htonl(status);
-                        resp_args_32[resp_index++] = Xil_Htonl(eeprom_idx);
-                        resp_index        += eeprom_idx;                       // Update response index for all EEPROM bytes
-                        resp_hdr->length  += (resp_index * sizeof(u32));
-                        resp_hdr->num_args = resp_index;
-
-                    } else {
-                        wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "CMDID_DEV_EEPROM read longer than %d bytes\n", max_resp_len);
-                        status = CMD_PARAM_ERROR;
-                    }
-                break;
-
-                case CMD_PARAM_RSVD:
-                    status = CMD_PARAM_ERROR;
-                break;
-
-                default:
-                    wlan_exp_printf(WLAN_EXP_PRINT_ERROR, print_type_node, "Unknown command for 0x%6x: %d\n", cmd_id, msg_cmd);
-                    status = CMD_PARAM_ERROR;
-                break;
-            }
-
-            if (use_default_resp) {
-                // Send default response
-                resp_args_32[resp_index++] = Xil_Htonl(status);
-                resp_hdr->length  += (resp_index * sizeof(u32));
-                resp_hdr->num_args = resp_index;
-            }
-        }
-        break;
-
-
-
 //-----------------------------------------------------------------------------
 // Child Commands
 //-----------------------------------------------------------------------------
@@ -3053,8 +2851,16 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 
         //---------------------------------------------------------------------
         default: {
-            // Call standard function in child class to parse parameters implemented there
-            resp_sent = wlan_exp_process_node_cmd_callback(cmd_id, socket_index, from, command, response, max_resp_len);
+        	u8 cmd_processed;
+
+        	// Call function in platform code
+        	resp_sent = wlan_platform_wlan_exp_process_node_cmd(&cmd_processed, cmd_id, socket_index, from, command, response, max_resp_len);
+
+        	if(cmd_processed == 0){
+        		// If platform code did not deal with this command, then
+        		// call standard function in child class to parse parameters implemented there
+        		resp_sent = wlan_exp_process_node_cmd_callback(cmd_id, socket_index, from, command, response, max_resp_len);
+        	}
         }
         break;
     }
@@ -3295,9 +3101,9 @@ u32 process_buffer_cmds(int socket_index, void * from, cmd_resp * command, cmd_r
  *
  * @return  None
  *
- * @note    The WARP IP/UDP Ethernet send function only blocks when it runs out of transmit
+ * @note    The wlan_exp IP/UDP Ethernet send function only blocks when it runs out of transmit
  *     buffer descriptors.  If all header modifications are performed in place, this will
- *     cause problems when trying to get all log entries when WARP_IP_UDP_TXBD_CNT (ie the
+ *     cause problems when trying to get all log entries when WLAN_EXP_IP_UDP_TXBD_CNT (ie the
  *     number of TX BDs) is greater than 5 because the Ethernet DMA will not have transfered
  *     the header before the next round of processing that modifies the header.  Therefore,
  *     the function will create multiple copies of the packet header in the buffer allocated
@@ -3344,12 +3150,12 @@ void transfer_log_data(u32 socket_index, void * from,
     u32                      num_bytes;
     u32                      num_pkts;
 
-    warp_ip_udp_buffer       header_buffer;
-    warp_ip_udp_buffer       data_buffer;
-    warp_ip_udp_buffer     * resp_array[2];
+    wlan_exp_ip_udp_buffer       header_buffer;
+    wlan_exp_ip_udp_buffer       data_buffer;
+    wlan_exp_ip_udp_buffer     * resp_array[2];
     u8                       tmp_header[100];              // NOTE:  Size must be larger than entire header.
 
-    warp_ip_udp_header     * tx_eth_ip_udp_header;
+    wlan_exp_ip_udp_header     * tx_eth_ip_udp_header;
     transport_header       * tx_transport_header;
     cmd_resp_hdr           * tx_resp_header;
     u32                    * tx_resp_args;
@@ -3383,22 +3189,22 @@ void transfer_log_data(u32 socket_index, void * from,
     bytes_remaining       = size;
 
     // Initialize the response buffer array
-    resp_array[0]         = (warp_ip_udp_buffer *)&header_buffer;    // Contains all header information
-    resp_array[1]         = (warp_ip_udp_buffer *)&data_buffer;      // Contains log entry data
+    resp_array[0]         = (wlan_exp_ip_udp_buffer *)&header_buffer;    // Contains all header information
+    resp_array[1]         = (wlan_exp_ip_udp_buffer *)&data_buffer;      // Contains log entry data
 
     // Set up temporary pointers to the header data
     //     NOTE:  The memory space for the temporary header must be large enough for the entire header.
     //
-    tx_eth_ip_udp_header  = (warp_ip_udp_header *)(&tmp_header[0]);
-    tx_transport_header   = (transport_header   *)(&tmp_header[sizeof(warp_ip_udp_header)]);
-    tx_resp_header        = (cmd_resp_hdr       *)(&tmp_header[sizeof(warp_ip_udp_header) + sizeof(transport_header)]);
-    tx_resp_args          = (u32                *)(&tmp_header[sizeof(warp_ip_udp_header) + sizeof(transport_header) + sizeof(cmd_resp_hdr)]);
+    tx_eth_ip_udp_header  = (wlan_exp_ip_udp_header *)(&tmp_header[0]);
+    tx_transport_header   = (transport_header   *)(&tmp_header[sizeof(wlan_exp_ip_udp_header)]);
+    tx_resp_header        = (cmd_resp_hdr       *)(&tmp_header[sizeof(wlan_exp_ip_udp_header) + sizeof(transport_header)]);
+    tx_resp_args          = (u32                *)(&tmp_header[sizeof(wlan_exp_ip_udp_header) + sizeof(transport_header) + sizeof(cmd_resp_hdr)]);
 
     // Set up temporary variables with the length values of the header
-    ip_length             = WARP_IP_UDP_DELIM_LEN + UDP_HEADER_LEN + IP_HEADER_LEN_BYTES;
-    udp_length            = WARP_IP_UDP_DELIM_LEN + UDP_HEADER_LEN;
+    ip_length             = WLAN_EXP_IP_UDP_DELIM_LEN + UDP_HEADER_LEN + IP_HEADER_LEN_BYTES;
+    udp_length            = WLAN_EXP_IP_UDP_DELIM_LEN + UDP_HEADER_LEN;
     header_length         = sizeof(transport_header) + sizeof(cmd_resp_hdr) + WLAN_EXP_BUFFER_HEADER_SIZE;
-    total_hdr_length      = sizeof(warp_ip_udp_header) + header_length;
+    total_hdr_length      = sizeof(wlan_exp_ip_udp_header) + header_length;
 
     // Get values out of the socket address structure
     dest_ip_addr          = ((struct sockaddr_in*)from)->sin_addr.s_addr;    // NOTE:  Value big endian
@@ -3411,7 +3217,7 @@ void transfer_log_data(u32 socket_index, void * from,
     //   - Copy the header information from the socket
     //   - Copy the information from the response
     //
-    memcpy((void *)tx_eth_ip_udp_header, (void *)socket_get_warp_ip_udp_header(socket_index), sizeof(warp_ip_udp_header));
+    memcpy((void *)tx_eth_ip_udp_header, (void *)socket_get_wlan_exp_ip_udp_header(socket_index), sizeof(wlan_exp_ip_udp_header));
     memcpy((void *)tx_transport_header, resp_buffer_data, header_length);
 
     // Initialize header buffer size/length (see above for description)
@@ -3420,7 +3226,7 @@ void transfer_log_data(u32 socket_index, void * from,
 
     //
     // NOTE:  In order to make large transfers more efficient, most of the response packet can be
-    //   pre-processed such that the WARP IP/UDP library has to do only the minimal amount of
+    //   pre-processed such that the wlan_exp IP/UDP library has to do only the minimal amount of
     //   processing per packet.  This should not cause any additional overhead for a single packet
     //   but will have have reduced overhead for all other packets.
     //
@@ -3494,7 +3300,7 @@ void transfer_log_data(u32 socket_index, void * from,
         tx_resp_header->length = Xil_Ntohs(transfer_length + WLAN_EXP_BUFFER_HEADER_SIZE);
 
         // Populate transport header fields with per packet data
-        tx_transport_header->length = Xil_Htons(data_length + WARP_IP_UDP_DELIM_LEN);
+        tx_transport_header->length = Xil_Htons(data_length + WLAN_EXP_IP_UDP_DELIM_LEN);
 
         // Update the UDP header
         //     NOTE:  Requires dest_port to be big-endian; udp_length to be little-endian
@@ -3519,7 +3325,7 @@ void transfer_log_data(u32 socket_index, void * from,
 
         // Transfer data
         //     NOTE:  This selects the "do not copy data" option and instead provides
-        //         a WARP IP/UDP buffer to transfer the data.
+        //         a wlan_exp IP/UDP buffer to transfer the data.
         //
         num_bytes = event_log_get_data(curr_index, transfer_length, &data_buffer, 0);
 
@@ -3544,7 +3350,7 @@ void transfer_log_data(u32 socket_index, void * from,
             // wlan_mac_high_interrupt_restore_state(prev_interrupt_state);
 
             // Check that the packet was sent correctly
-            if (status == WARP_IP_UDP_FAILURE) {
+            if (status == WLAN_EXP_IP_UDP_FAILURE) {
                 wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_event_log,
                             "Issue sending log entry packet to host.\n");
             }
@@ -3578,10 +3384,14 @@ void transfer_log_data(u32 socket_index, void * from,
  *
  *****************************************************************************/
 dl_entry * find_station_info(u8 * mac_addr) {
-    dl_list * source_list = get_bss_member_list();
+	//TODO: When process_buffer_cmds gets refactored, we should teach it about
+	//the difference between a dl_entry and a station_info_entry_t. In the meantime,
+	//we'll just cast the return of the station_info_find_by_addr to be the
+	//the less-capable dl_entry type;
+    dl_list * source_list = get_network_member_list();
 
     if (source_list != NULL) {
-        return station_info_find_by_addr(mac_addr, source_list);
+        return ((dl_entry*)(station_info_find_by_addr(mac_addr, source_list)));
     } else {
         return NULL;
     }
@@ -3614,7 +3424,7 @@ void copy_station_info_to_dest(void * source, void * dest, u8* mac_addr) {
 
     // Copy the source information to the destination
     if (curr_source != NULL) {
-        memcpy((void *)(curr_dest), (void *)(curr_source), sizeof(wlan_exp_station_info_t));
+        memcpy((void *)(curr_dest), (void *)(curr_source), STATION_INFO_T_PORTABLE_SIZE);
     } else {
         wlan_exp_printf(WLAN_EXP_PRINT_WARNING, print_type_node, "Could not copy station_info to entry\n");
     }
@@ -3626,9 +3436,11 @@ void copy_station_info_to_dest(void * source, void * dest, u8* mac_addr) {
 }
 
 dl_entry * find_counts_txrx(u8 * mac_addr) {
-
-	return station_info_find_by_addr(mac_addr, NULL);
-
+	//TODO: When process_buffer_cmds gets refactored, we should teach it about
+	//the difference between a dl_entry and a station_info_entry_t. In the meantime,
+	//we'll just cast the return of the station_info_find_by_addr to be the
+	//the less-capable dl_entry type;
+	return ((dl_entry*)(station_info_find_by_addr(mac_addr, NULL)));
 }
 
 void zero_counts_txrx(void * dest) {
@@ -3636,7 +3448,7 @@ void zero_counts_txrx(void * dest) {
 	wlan_exp_station_txrx_counts_t* counts = (wlan_exp_station_txrx_counts_t *)(dest);
 
     // Do not zero out timestamp
-    bzero((void *)(&counts->counts), sizeof(wlan_exp_station_txrx_counts_lite_t));
+    bzero((void *)(&counts->counts), sizeof(station_txrx_counts_t));
 }
 
 
@@ -3670,7 +3482,7 @@ void copy_counts_txrx_to_dest(void* source, void* dest, u8* mac_addr) {
 
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
     	//Copy the counts out of the station_info_t
-        memcpy((void *)(&curr_dest->counts), (void *)(&curr_source->txrx_counts), sizeof(wlan_exp_station_txrx_counts_lite_t));
+        memcpy((void *)(&curr_dest->counts), (void *)(&curr_source->txrx_counts), sizeof(station_txrx_counts_t));
 #else
         //There are no counts anywhere in the station_info_t struct, so we will return all zeroes.
         bzero((void *)(&curr_dest->counts), sizeof(station_txrx_counts_t));
@@ -3694,33 +3506,35 @@ void copy_counts_txrx_to_dest(void* source, void* dest, u8* mac_addr) {
 
 
 void zero_bss_info(void * dest) {
-    bzero(dest, sizeof(wlan_exp_bss_info_t));
+    bzero(dest, sizeof(wlan_exp_network_info_t));
 }
 
 
 
 void copy_bss_info_to_dest(void * source, void * dest, u8* mac_addr) {
 
-    bss_info_t          * curr_source  = (bss_info_t *)(source);
-    wlan_exp_bss_info_t * curr_dest    = (wlan_exp_bss_info_t *)(dest);
+    network_info_t* curr_source = (network_info_t*)(source);
+    wlan_exp_network_info_t* curr_dest = (wlan_exp_network_info_t*)(dest);
 
     // Fill in zeroed entry if source is NULL
     if (source == NULL) {
-        curr_source = wlan_mac_high_malloc(sizeof(bss_info_t));
+        curr_source = wlan_mac_high_malloc(sizeof(network_info_t));
 
         if (curr_source != NULL) {
-            bzero(curr_source, sizeof(bss_info_t));
+            bzero(curr_source, sizeof(network_info_t));
 
             // Add in MAC address
-            memcpy(curr_source->bssid, mac_addr, MAC_ADDR_LEN);
+            memcpy(curr_source->bss_config.bssid, mac_addr, MAC_ADDR_LEN);
         }
     }
 
     // Copy the source information to the destination log entry
     if (curr_source != NULL) {
-        memcpy((void *)(curr_dest), (void *)(curr_source), sizeof(wlan_exp_bss_info_t));
+        // Copy the portable bytes from the framework
+        memcpy(curr_dest, curr_source, NETWORK_INFO_T_PORTABLE_SIZE);
+    	curr_dest->num_members = curr_source->members.length;
     } else {
-        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Could not copy bss_info to entry\n");
+        wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Could not copy network_info to entry\n");
     }
 
     // Free curr_source if source was NULL
@@ -3743,11 +3557,10 @@ void copy_bss_info_to_dest(void * source, void * dest, u8* mac_addr) {
 void wlan_exp_reset_all_callbacks(){
     wlan_exp_process_node_cmd_callback         = (function_ptr_t) null_process_cmd_callback;
     wlan_exp_purge_all_data_tx_queue_callback  = (function_ptr_t) wlan_exp_null_callback;
-    wlan_exp_tx_cmd_add_association_callback   = (function_ptr_t) wlan_exp_null_callback;
     wlan_exp_process_user_cmd_callback         = (function_ptr_t) null_process_cmd_callback;
     wlan_exp_beacon_ts_update_mode_callback    = (function_ptr_t) wlan_exp_null_callback;
     wlan_exp_process_config_bss_callback       = (function_ptr_t) wlan_exp_null_callback;
-    wlan_exp_active_bss_info_getter_callback   = (function_ptr_t) wlan_exp_null_callback;
+    wlan_exp_active_network_info_getter_callback   = (function_ptr_t) wlan_exp_null_callback;
 }
 
 void wlan_exp_set_process_node_cmd_callback(void(*callback)()){
@@ -3758,12 +3571,6 @@ void wlan_exp_set_process_node_cmd_callback(void(*callback)()){
 void wlan_exp_set_purge_all_data_tx_queue_callback(void(*callback)()){
     wlan_exp_purge_all_data_tx_queue_callback = (function_ptr_t) callback;
 }
-
-
-void wlan_exp_set_tx_cmd_add_association_callback(void(*callback)()){
-    wlan_exp_tx_cmd_add_association_callback = (function_ptr_t) callback;
-}
-
 
 void wlan_exp_set_process_user_cmd_callback(void(*callback)()){
     wlan_exp_process_user_cmd_callback = (function_ptr_t) callback;
@@ -3779,8 +3586,8 @@ void wlan_exp_set_process_config_bss_callback(void(*callback)()){
     wlan_exp_process_config_bss_callback = (function_ptr_t) callback;
 }
 
-void wlan_exp_set_active_bss_info_getter_callback(void(*callback)()){
-	wlan_exp_active_bss_info_getter_callback = (function_ptr_t) callback;
+void wlan_exp_set_active_network_info_getter_callback(void(*callback)()){
+	wlan_exp_active_network_info_getter_callback = (function_ptr_t) callback;
 }
 
 
@@ -3874,7 +3681,6 @@ int node_get_parameter_values(u32 * buffer, u32 max_resp_len) {
  * @return  u32              - Field value
  *
  *****************************************************************************/
-u32  node_get_node_id       ( void ) { return node_info.node_id; }
 u32  node_get_serial_number ( void ) { return node_info.serial_number; }
 
 
@@ -3910,23 +3716,21 @@ void ltg_cleanup(u32 id, void* callback_arg){
  *
  *****************************************************************************/
 u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr) {
-    u32            		id;
-    dl_entry     	* 	entry;
-    station_info_t  * 	station_info;
-    bss_info_t* 		active_bss_info = ((bss_info_t*)wlan_exp_active_bss_info_getter_callback());
+    u32 id;
+    station_info_entry_t* entry;
+    network_info_t* active_network_info = ((network_info_t*)wlan_exp_active_network_info_getter_callback());
 
     if (wlan_addr_eq(mac_addr, zero_addr)) {
         id = WLAN_EXP_AID_ALL;
     } else {
-        if(active_bss_info != NULL){
-            if (wlan_addr_eq(mac_addr, active_bss_info->bssid)) {
+        if(active_network_info != NULL){
+            if (wlan_addr_eq(mac_addr, active_network_info->bss_config.bssid)) {
                 id = WLAN_EXP_AID_ME;
             } else {
-                entry = station_info_find_by_addr(mac_addr, &(active_bss_info->members));
+                entry = station_info_find_by_addr(mac_addr, &(active_network_info->members));
 
                 if (entry != NULL) {
-                	station_info = (station_info_t*)(entry->data);
-                    id = station_info->ID;
+                    id = entry->id;
                 } else {
                     id = WLAN_EXP_AID_NONE;
                 }
@@ -3941,14 +3745,14 @@ u32  wlan_exp_get_id_in_associated_stations(u8 * mac_addr) {
 
 
 u32  wlan_exp_get_id_in_counts(u8 * mac_addr) {
-    u32         	id;
-    dl_entry* 		entry;
-    bss_info_t* 	active_bss_info = ((bss_info_t*)wlan_exp_active_bss_info_getter_callback());
+    u32 id;
+    station_info_entry_t* entry;
+    network_info_t* active_network_info = ((network_info_t*)wlan_exp_active_network_info_getter_callback());
 
     if (wlan_addr_eq(mac_addr, zero_addr)) {
         id = WLAN_EXP_AID_ALL;
     } else {
-		entry = station_info_find_by_addr(mac_addr, &(active_bss_info->members));
+		entry = station_info_find_by_addr(mac_addr, &(active_network_info->members));
 
 		if (entry != NULL) {
 			id = WLAN_EXP_AID_DEFAULT;            // Only returns the default AID if found
@@ -3962,13 +3766,13 @@ u32  wlan_exp_get_id_in_counts(u8 * mac_addr) {
 
 
 u32  wlan_exp_get_id_in_bss_info(u8 * bssid) {
-    u32            id;
-    dl_entry*       entry;
+    u32 id;
+    network_info_entry_t* entry;
 
     if (wlan_addr_eq(bssid, zero_addr)) {
         id = WLAN_EXP_AID_ALL;
     } else {
-        entry = wlan_mac_high_find_bss_info_BSSID(bssid);
+        entry = wlan_mac_high_find_network_info_BSSID(bssid);
 
         if (entry != NULL) {
             id = WLAN_EXP_AID_DEFAULT;
@@ -3978,281 +3782,6 @@ u32  wlan_exp_get_id_in_bss_info(u8 * bssid) {
     }
 
     return id;
-}
-
-
-
-/*****************************************************************************/
-/**
- * Process TX Power
- *
- * @param   cmd              - Command:  NODE_WRITE_VAL or NODE_READ_VAL
- * @param   aid              - AID of the station or NODE_CONFIG_ALL_ASSOCIATED
- * @param   tx_power         - Power to set the node (function assumes power is valid)
- *
- * @return  int              - Power
- *                             - CMD_PARAM_ERROR on ERROR
- *
- *****************************************************************************/
-int process_tx_power(u32 cmd, u32 aid, int tx_power) {
-
-    int           iter;
-    int           power;
-    dl_list     	* curr_list;
-    dl_entry    	* curr_entry;
-    station_info_t	* curr_station_info;
-
-    power = CMD_PARAM_ERROR;
-
-    // For Writes
-    if (cmd == CMD_PARAM_WRITE_VAL) {
-        curr_list  = get_bss_member_list();
-
-        if (curr_list != NULL) {
-            if (curr_list->length == 0) { return tx_power; }
-
-            iter       = curr_list->length;
-            curr_entry = curr_list->first;
-
-            while ((curr_entry != NULL) && (iter-- > 0)) {
-                curr_station_info = (station_info_t*)(curr_entry->data);
-
-                if (aid == WLAN_EXP_AID_ALL) {
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
-                                    "Set TX power on ID %d = %d dBm\n", curr_station_info->ID, tx_power);
-                    curr_station_info->tx.phy.power = tx_power;
-                    power                           = tx_power;
-
-                } else if (aid == curr_station_info->ID) {
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
-                                    "Set TX power on ID %d = %d dBm\n", aid, tx_power);
-                    curr_station_info->tx.phy.power = tx_power;
-                    power                           = tx_power;
-                    break;
-                }
-                curr_entry = dl_entry_next(curr_entry);
-            }
-        } else {
-            if (aid == WLAN_EXP_AID_ALL) {
-                // This is not an error because we are trying to set the rate for all
-                // associations and there currently are none.
-                power = tx_power;
-            }
-        }
-
-    // For Reads
-    } else {
-        if (aid != WLAN_EXP_AID_ALL) {
-            curr_list  = get_bss_member_list();
-
-            if (curr_list != NULL) {
-                iter       = curr_list->length;
-                curr_entry = curr_list->first;
-
-                while ((curr_entry != NULL) && (iter-- > 0)) {
-                    curr_station_info = (station_info_t*)(curr_entry->data);
-                    if (aid == curr_station_info->ID) {
-                        power = curr_station_info->tx.phy.power;
-                        break;
-                    }
-                    curr_entry = dl_entry_next(curr_entry);
-                }
-            }
-        }
-
-        // NOTE:  Trying to read the rate for all associations returns an error.
-    }
-
-    return power;
-}
-
-
-
-/*****************************************************************************/
-/**
- * Process TX Rate
- *
- * @param   cmd          - Command:  NODE_WRITE_VAL or NODE_READ_VAL
- * @param   aid          - AID of the station or NODE_CONFIG_ALL_ASSOCIATED
- * @param   mcs          - MCS
- * @param   phy_mode     - PHY mode (PHY_MODE_NONHT or PHY_MODE_HTMF)
- * @param   ret_mcs      - Pointer to return value for MCS
- * @param   ret_phy_mode - Pointer to return value for PHY mode
- *
- * @return  u32          - Status
- *                         - CMD_PARAM_SUCCESS
- *                         - CMD_PARAM_WARNING
- *                         - CMD_PARAM_ERROR
- *
- *****************************************************************************/
-u32 process_tx_rate(u32 cmd, u32 aid, u32 mcs, u32 phy_mode, u32 * ret_mcs, u32 * ret_phy_mode) {
-
-    int             iter;
-    dl_list       * curr_list;
-    dl_entry      * curr_entry;
-    station_info_t* curr_station_info;
-    u32             status               = CMD_PARAM_ERROR;
-
-    // For Writes
-    if (cmd == CMD_PARAM_WRITE_VAL) {
-        curr_list  = get_bss_member_list();
-
-        if (curr_list != NULL) {
-            if (curr_list->length == 0) { return CMD_PARAM_SUCCESS; }
-
-            iter       = curr_list->length;
-            curr_entry = curr_list->first;
-            status     = CMD_PARAM_SUCCESS;
-
-            while ((curr_entry != NULL) && (iter-- > 0)) {
-                curr_station_info = (station_info_t*)(curr_entry->data);
-
-                if (aid == WLAN_EXP_AID_ALL) {
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
-                            "Set Tx rate on AID %d to MCS %d , PHY Mode %d\n", curr_station_info->ID, mcs, phy_mode);
-
-                    if (station_info_update_rate(curr_station_info, mcs, phy_mode) != 0) {
-                        status = CMD_PARAM_WARNING;
-                    }
-
-                } else if (aid == curr_station_info->ID) {
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
-                            "Set Tx rate on AID %d to MCS %d , PHY Mode %d\n", curr_station_info->ID, mcs, phy_mode);
-
-                    if (station_info_update_rate(curr_station_info, mcs, phy_mode) != 0) {
-                        status = CMD_PARAM_WARNING;
-                    }
-
-                    break;
-                }
-                curr_entry = dl_entry_next(curr_entry);
-            }
-        } else {
-            if (aid == WLAN_EXP_AID_ALL) {
-                // This is not an error because we are trying to set the rate for all
-                // associations and there currently are none.
-                status = CMD_PARAM_SUCCESS;
-            }
-        }
-
-        // Set return values
-        if (status == CMD_PARAM_SUCCESS) {
-            *ret_mcs      = mcs;
-            *ret_phy_mode = phy_mode;
-        }
-
-    // For Reads
-    } else {
-        if (aid != WLAN_EXP_AID_ALL) {
-            curr_list  = get_bss_member_list();
-
-            if (curr_list != NULL) {
-                iter       = curr_list->length;
-                curr_entry = curr_list->first;
-
-                while ((curr_entry != NULL) && (iter-- > 0)) {
-                    curr_station_info = (station_info_t*)(curr_entry->data);
-                    if (aid == curr_station_info->ID) {
-                        *ret_mcs      = (curr_station_info->tx.phy.mcs      & 0xFF);
-                        *ret_phy_mode = (curr_station_info->tx.phy.phy_mode & 0xFF);
-                        status       = CMD_PARAM_SUCCESS;
-                        break;
-                    }
-                    curr_entry = dl_entry_next(curr_entry);
-                }
-            }
-        }
-
-        // NOTE:  Trying to read the rate for all associations returns an error.
-    }
-
-    return status;
-}
-
-
-
-/*****************************************************************************/
-/**
- * Process TX Antenna Mode
- *
- * @param   cmd              - Command:  NODE_WRITE_VAL or NODE_READ_VAL
- * @param   aid              - AID of the station or NODE_CONFIG_ALL_ASSOCIATED
- * @param   ant_mode         - Antenna mode (function assumes antenna mode is valid)
- *
- * @return  u32              - Antenna mode
- *                             - CMD_PARAM_ERROR on ERROR
- *
- *****************************************************************************/
-u32 process_tx_ant_mode(u32 cmd, u32 aid, u8 ant_mode) {
-
-    int             iter;
-    u32             mode;
-    dl_list       * curr_list;
-    dl_entry      * curr_entry;
-    station_info_t* curr_station_info;
-
-    mode = CMD_PARAM_ERROR;
-
-    // For Writes
-    if (cmd == CMD_PARAM_WRITE_VAL) {
-        curr_list  = get_bss_member_list();
-
-        if (curr_list != NULL) {
-            if (curr_list->length == 0) { return ant_mode; }
-
-            iter       = curr_list->length;
-            curr_entry = curr_list->first;
-
-            while ((curr_entry != NULL) && (iter-- > 0)) {
-                curr_station_info = (station_info_t*)(curr_entry->data);
-
-                if (aid == WLAN_EXP_AID_ALL) {
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
-                                    "Set TX ant mode on AID %d = %d \n", curr_station_info->ID, ant_mode);
-                    curr_station_info->tx.phy.antenna_mode = ant_mode;
-                    mode                                   = ant_mode;
-
-                } else if (aid == curr_station_info->ID) {
-                    wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node,
-                                    "Set TX ant mode on AID %d = %d \n", curr_station_info->ID, ant_mode);
-                    curr_station_info->tx.phy.antenna_mode = ant_mode;
-                    mode                                   = ant_mode;
-                    break;
-                }
-                curr_entry = dl_entry_next(curr_entry);
-            }
-        } else {
-            if (aid == WLAN_EXP_AID_ALL) {
-                // This is not an error because we are trying to set the mode for all
-                // associations and there currently are none.
-                mode = ant_mode;
-            }
-        }
-
-    // For Reads
-    } else {
-        if (aid != WLAN_EXP_AID_ALL) {
-            curr_list  = get_bss_member_list();
-
-            if (curr_list != NULL) {
-                iter       = curr_list->length;
-                curr_entry = curr_list->first;
-
-                while ((curr_entry != NULL) && (iter-- > 0)) {
-                    curr_station_info = (station_info_t*)(curr_entry->data);
-                    if (aid == curr_station_info->ID) {
-                        mode = curr_station_info->tx.phy.antenna_mode;
-                        break;
-                    }
-                    curr_entry = dl_entry_next(curr_entry);
-                }
-            }
-        }
-
-        // NOTE:  Trying to read the mode for all associations returns an error.
-    }
-
-    return mode;
 }
 
 

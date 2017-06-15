@@ -14,7 +14,8 @@
 
 /***************************** Include Files *********************************/
 #include "wlan_mac_high_sw_config.h"
-
+#include "wlan_platform_common.h"
+#include "wlan_platform_high.h"
 #include "wlan_exp_common.h"
 #include "wlan_exp_node.h"
 #include "wlan_exp_node_sta.h"
@@ -33,17 +34,19 @@
 #include "stdlib.h"
 
 // WLAN includes
-#include "wlan_mac_time_util.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_event_log.h"
 #include "wlan_mac_ltg.h"
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_eth_util.h"
-#include "wlan_mac_bss_info.h"
+#include "wlan_mac_network_info.h"
 #include "wlan_mac_sta_join.h"
 #include "wlan_mac_entries.h"
 #include "wlan_mac_sta.h"
+#include "wlan_mac_high.h"
+#include "wlan_mac_station_info.h"
+#include "wlan_mac_scan.h"
 
 
 /*************************** Constant Definitions ****************************/
@@ -182,7 +185,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                 sta_disassociate();
 
                 // Set "my_bss_info" to NULL
-                configure_bss(NULL);
+                configure_bss(NULL, 0);
             }
 
             if (flags & CMD_PARAM_NODE_RESET_FLAG_NETWORK_LIST) {
@@ -277,7 +280,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             my_aid = aid;
 
             // Update the hex display with the new AID
-            sta_update_hex_display(my_aid);
+            wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, my_aid);
 
             // Send response of status
             resp_args_32[resp_index++] = Xil_Htonl(status);

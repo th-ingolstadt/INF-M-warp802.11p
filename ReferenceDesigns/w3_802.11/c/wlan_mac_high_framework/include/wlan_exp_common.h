@@ -12,19 +12,16 @@
  */
 
 
-
-/***************************** Include Files *********************************/
-#include "wlan_mac_high_sw_config.h"
-
-// Include xil_types so function prototypes can use u8/u16/u32 data types
-#include "xil_types.h"
-#include "warp_hw_ver.h"
-
-#include "wlan_exp.h"
-
 /*************************** Constant Definitions ****************************/
 #ifndef WLAN_EXP_COMMON_H_
 #define WLAN_EXP_COMMON_H_
+
+/***************************** Include Files *********************************/
+#include "wlan_mac_high_sw_config.h"
+#include "xil_types.h"
+#include "wlan_common_types.h"
+#include "wlan_high_types.h"
+
 
 
 // **********************************************************************
@@ -48,19 +45,6 @@
 //        WLAN_EXP_PRINT_DEBUG     - Print WLAN_EXP_PRINT_DEBUG, WLAN_EXP_PRINT_INFO, WLAN_EXP_PRINT_WARNING, WLAN_EXP_PRINT_ERROR and WLAN_EXP_PRINT_NONE messages
 //
 #define WLAN_EXP_DEFAULT_DEBUG_PRINT_LEVEL                 WLAN_EXP_PRINT_WARNING
-
-
-// 2) Initialize the DDR to zeros (ie clear DDR) at boot
-//
-//    Values:
-//        1                  - Clear DDR on boot
-//        0                  - Do not clear DDR on boot
-//
-//     NOTE:  Based on initial testing, clearing DDR on boot will add approximately 1 second to
-//            the boot time of the node.  See clear_ddr() in wl_common.c for more information.
-//
-#define WLAN_EXP_CLEAR_DDR_ON_BOOT                         0
-
 
 // 3) Ethernet controls
 //
@@ -190,8 +174,6 @@ extern const char   * print_type_queue;
 #define CMD_TO_GROUP(x)                                  ((x) >> 24)
 #define CMD_TO_CMDID(x)                                  ((x) & 0xFFFFFF)
 
-#define FPGA_DNA_LEN                                       2
-
 #define WLAN_EXP_FALSE                                     0
 #define WLAN_EXP_TRUE                                      1
 
@@ -223,10 +205,8 @@ extern const char   * print_type_queue;
 //
 
 // Command / Response Header
-//     NOTE:  This conforms to the Command / Response Wire Format:
-//            http://warpproject.org/trac/wiki/WARPLab/Reference/Architecture/WireFormat
 //
-typedef struct{
+typedef struct cmd_resp_hdr{
     u32                      cmd;
     u16                      length;
     u16                      num_args;
@@ -236,10 +216,10 @@ typedef struct{
 // Command / Response data structure
 //     This structure is used to keep track of pointers when decoding commands.
 //
-typedef struct {
+typedef struct cmd_resp{
     u32                      flags;                        // Flags for the command / response
                                                            //     [0] - Is the packet broadcast?  WLAN_EXP_TRUE / WLAN_EXP_FALSE
-    void                   * buffer;                       // In general, assumed to be a (warp_ip_udp_buffer *)
+    void                   * buffer;                       // In general, assumed to be a (wlan_exp_ip_udp_buffer *)
     cmd_resp_hdr           * header;
     u32                    * args;
 } cmd_resp;
@@ -247,7 +227,7 @@ typedef struct {
 // **********************************************************************
 // WLAN Exp Tag Parameter Structure
 //
-typedef struct {
+typedef struct wlan_exp_tag_parameter{
     u8    reserved;
     u8    group;
     u16   length;
@@ -277,9 +257,6 @@ void          print_timestamp();
 // WLAN Exp specific functions
 void          wlan_exp_get_mac_addr(u32 * src, u8 * dest);
 void          wlan_exp_put_mac_addr(u8 * src, u32 * dest);
-
-// HW specific functions
-void          clear_ddr(u32 verbose);
 
 // Tag parameter functions
 int           wlan_exp_init_parameters(wlan_exp_tag_parameter * parameters, u8 group, u32 num_parameters, u32 * values, u16 * lengths);

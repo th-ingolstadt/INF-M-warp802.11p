@@ -52,6 +52,8 @@
 #include "wlan_mac_packet_types.h"
 #include "wlan_mac_schedule.h"
 #include "wlan_mac_scan.h"
+#include "wlan_common_types.h"
+#include "wlan_mac_common.h"
 
 /*************************** Constant Definitions ****************************/
 
