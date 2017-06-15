@@ -154,7 +154,7 @@ typedef struct __attribute__ ((__packed__)) wlan_mac_low_tx_details_t{
     u16						 attempt_number;
 
 } wlan_mac_low_tx_details_t;
-CASSERT(sizeof(wlan_mac_low_tx_details_t) == 44, wlan_mac_low_tx_details_t_alignment_check);
+ASSERT_TYPE_SIZE(wlan_mac_low_tx_details_t, 44);
 
 #define TX_DETAILS_FLAGS_RECEIVED_RESPONSE				   1
 
@@ -178,7 +178,7 @@ typedef struct phy_rx_details_t{
     u8                       phy_mode;
     u16                      length;
 } phy_rx_details_t;
-CASSERT(sizeof(phy_rx_details_t) == 4, phy_rx_details_alignment_check);
+ASSERT_TYPE_SIZE(phy_rx_details_t, 4);
 
 typedef enum __attribute__ ((__packed__)) {
    TX_PKT_BUF_UNINITIALIZED   = 0,
@@ -227,7 +227,7 @@ typedef struct tx_frame_info_t{
 // Therefore, the code will check the size of the structure using a compile-time assertion.  This check
 // will need to be updated if fields are added to the structure
 //
-CASSERT(sizeof(tx_frame_info_t) == 56, tx_frame_info_alignment_check);
+ASSERT_TYPE_SIZE(tx_frame_info_t, 56);
 
 #define PHY_TX_PKT_BUF_PHY_HDR_SIZE                        0x10
 
@@ -285,7 +285,7 @@ typedef struct __attribute__ ((__packed__)) rx_frame_info_t{
 // Therefore, the code will check the size of the structure using a compile-time assertion.  This check
 // will need to be updated if fields are added to the structure
 //
-CASSERT(sizeof(rx_frame_info_t) == 336, rx_frame_info_alignment_check);
+ASSERT_TYPE_SIZE(rx_frame_info_t, 336);
 
 
 // Defines for flags field

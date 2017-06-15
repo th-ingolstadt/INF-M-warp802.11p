@@ -69,7 +69,7 @@ typedef struct station_txrx_counts_t{
 	 /*----- 8-byte boundary ------*/
 } station_txrx_counts_t;
 
-CASSERT(sizeof(station_txrx_counts_t) == 112, station_txrx_counts_alignment_check);
+ASSERT_TYPE_SIZE(station_txrx_counts_t, 112);
 
 
 /********************************************************************
@@ -123,10 +123,11 @@ typedef struct station_info_t{
 
 } station_info_t;
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
-CASSERT(sizeof(station_info_t) == 192, station_info_alignment_check);
+ASSERT_TYPE_SIZE(station_info_t, 192);
 #else
-CASSERT(sizeof(station_info_t) == 80, station_info_alignment_check);
+ASSERT_TYPE_SIZE(station_info_t, 80);
 #endif
+
 
 #define STATION_INFO_FLAG_KEEP                             0x01 ///< Prevent MAC High Framework from deleting this station_infO
 #define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK              0x02 ///< Mask for flag in station_info -- disable association check
@@ -151,7 +152,7 @@ struct station_info_entry_t{
 	u8				    addr[6];
 	u16					id;
 };
-CASSERT(sizeof(station_info_entry_t) == 20, station_info_entry_t_alignment_check);
+ASSERT_TYPE_SIZE(station_info_entry_t, 20);
 
 typedef enum default_tx_param_sel_t{
 	unicast_mgmt,

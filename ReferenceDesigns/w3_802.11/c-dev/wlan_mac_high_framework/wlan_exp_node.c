@@ -98,7 +98,7 @@ typedef struct __attribute__((__packed__)){
     u16		num_members;
     u16 	padding2;
 } wlan_exp_network_info_t;
-CASSERT(sizeof(wlan_exp_network_info_t) == 72, wlan_exp_network_info_t_alignment_check);
+ASSERT_TYPE_SIZE(wlan_exp_network_info_t, 72);
 
 //-----------------------------------------------
 // wlan_exp Station Info
@@ -109,7 +109,7 @@ typedef struct __attribute__((__packed__)){
     // All station_info_t common fields
     STATION_INFO_COMMON_FIELDS
 } wlan_exp_station_info_t;
-CASSERT(sizeof(wlan_exp_station_info_t) == 72, wlan_exp_station_info_alignment_check);
+ASSERT_TYPE_SIZE(wlan_exp_station_info_t, 72);
 
 
 #define STATION_INFO_ENTRY_NO_CHANGE             0
@@ -120,7 +120,7 @@ typedef struct __attribute__((__packed__)){
     bss_config_t	bss_config;
     u32				update_mask;
 } wlan_exp_bss_config_update_t;
-CASSERT(sizeof(wlan_exp_bss_config_update_t) == 52, wlan_exp_bss_config_update_t_alignment_check);
+ASSERT_TYPE_SIZE(wlan_exp_bss_config_update_t, 52);
 
 //-----------------------------------------------
 // wlan_exp Tx/Rx Counts
@@ -133,7 +133,7 @@ typedef struct wlan_exp_station_txrx_counts_t{
     u16									reserved;
     station_txrx_counts_t               counts;                    // Framework's counts struct
 } wlan_exp_station_txrx_counts_t;
-CASSERT(sizeof(wlan_exp_station_txrx_counts_t) == 128, wlan_exp_station_txrx_counts_alignment_check);
+ASSERT_TYPE_SIZE(wlan_exp_station_txrx_counts_t, 128);
 
 /*************************** Functions Prototypes ****************************/
 

@@ -197,14 +197,16 @@ typedef enum __attribute__((__packed__)){
     ALWAYS_UPDATE,
     FUTURE_ONLY_UPDATE,
 } mactime_update_mode_t;
-CASSERT(sizeof(mactime_update_mode_t) == 1, mactime_update_mode_t_alignment_check);
+ASSERT_TYPE_SIZE(mactime_update_mode_t, 1);
+
 
 typedef enum __attribute__((__packed__)){
     NO_BEACON_TX,
     AP_BEACON_TX,
     IBSS_BEACON_TX,
 } beacon_tx_mode_t;
-CASSERT(sizeof(beacon_tx_mode_t) == 1, beacon_tx_mode_t_alignment_check);
+ASSERT_TYPE_SIZE(beacon_tx_mode_t, 1);
+
 
 typedef struct __attribute__((__packed__)) beacon_txrx_configure_t{
     // Beacon Rx Configuration Parameters
@@ -221,7 +223,8 @@ typedef struct __attribute__((__packed__)) beacon_txrx_configure_t{
 	u16						 dtim_tag_byte_offset;		   // # of bytes into the payload that contains the start of the DTIM tag
 	u16						 reserved2;
 } beacon_txrx_config_t;
-CASSERT(sizeof(beacon_txrx_config_t) == 20, beacon_txrx_configure_t_alignment_check);
+ASSERT_TYPE_SIZE(beacon_txrx_config_t, 20);
+
 
 typedef struct time_hr_min_sec_t{
 	u32 hr;

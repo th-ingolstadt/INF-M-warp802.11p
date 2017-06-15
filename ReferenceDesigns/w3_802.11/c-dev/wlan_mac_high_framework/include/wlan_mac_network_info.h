@@ -119,13 +119,13 @@ typedef struct __attribute__((__packed__)) bss_config_t{
     u8				padding[3];
     //----- 4-byte boundary ------
 } bss_config_t;
-CASSERT(sizeof(bss_config_t) == 48, bss_config_t_alignment_check);
+ASSERT_TYPE_SIZE(bss_config_t, 48);
 
 typedef struct __attribute__((__packed__)) network_info_t{
 	NETWORK_INFO_COMMON_FIELDS
     dl_list members;
 } network_info_t;
-CASSERT(sizeof(network_info_t) == 80, network_info_t_alignment_check);
+ASSERT_TYPE_SIZE(network_info_t, 80);
 
 //Define a new type of dl_entry for pointing to network_info_t
 // structs that contains some extra fields for faster searching
@@ -138,7 +138,7 @@ struct network_info_entry_t{
 	u8			    	  bssid[6];
 	u16			          padding;
 };
-CASSERT(sizeof(network_info_entry_t) == 20, network_info_entry_t_alignment_check);
+ASSERT_TYPE_SIZE(network_info_entry_t, 20);
 
 /*************************** Function Prototypes *****************************/
 

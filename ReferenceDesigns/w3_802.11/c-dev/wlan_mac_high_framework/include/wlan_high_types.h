@@ -25,7 +25,7 @@ typedef enum __attribute__((__packed__)) {
 	CHAN_TYPE_BW40_SEC_ABOVE = 2
 } chan_type_t;
 
-CASSERT(sizeof(chan_type_t) == 1, chan_type_t_alignment_check);
+ASSERT_TYPE_SIZE(chan_type_t, 1);
 
 /********************************************************************
  * @brief Channel Specifications Struct
@@ -38,7 +38,7 @@ typedef struct __attribute__((__packed__)){
 	u8             chan_pri;
 	chan_type_t    chan_type;
 } chan_spec_t;
-CASSERT(sizeof(chan_spec_t) == 2, chan_spec_t_alignment_check);
+ASSERT_TYPE_SIZE(chan_spec_t, 2);
 
 
 #endif /* WLAN_HIGH_TYPES_H_ */
