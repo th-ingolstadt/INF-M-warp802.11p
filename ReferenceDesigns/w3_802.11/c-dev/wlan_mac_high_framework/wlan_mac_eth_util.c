@@ -197,16 +197,7 @@ u32 wlan_process_eth_rx(void* eth_rx_buf, u32 eth_rx_len) {
 			packet_is_queued = eth_rx_callback(curr_tx_queue_element, eth_dest, eth_src, mpdu_tx_len);
 		}
 
-
-    // If the packet was not successfully enqueued, discard it and return its queue entry to the free pool
-    //     For packets that are successfully enqueued, this cleanup is part of the post-wireless-Tx handler
-    if (packet_is_queued == 0) {
-        // Either the packet was invalid, or the MAC code failed to enqueue this packet
-        //     The MAC will fail if the appropriate queue was full or the Ethernet addresses were not recognized.
-
-        // Return the occupied queue entry to the free pool
-        queue_checkin(curr_tx_queue_element);
-    } else {
+    if (packet_is_queued) {
     	return_value |= WLAN_PROCESS_ETH_RX_RETURN_IS_ENQUEUED;
     }
 

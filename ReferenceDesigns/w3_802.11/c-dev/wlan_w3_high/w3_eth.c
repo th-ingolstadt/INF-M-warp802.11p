@@ -198,7 +198,7 @@ int w3_wlan_platform_ethernet_init(){
 	// At an absolute minimum, there needs to be room for 1 Tx BD and 1 Rx BD
 	if (AUX_BRAM_ETH_BD_MEM_SIZE < (2*XAXIDMA_BD_MINIMUM_ALIGNMENT) ) {
 		xil_printf("Only %d bytes allocated for Eth Tx BD. Must be at least %d bytes\n", AUX_BRAM_ETH_BD_MEM_SIZE, 2*XAXIDMA_BD_MINIMUM_ALIGNMENT);
-		wlan_platform_userio_disp_status(USERIO_DISP_STATUS_CPU_ERROR, WLAN_ERROR_CODE_INSUFFICIENT_BD_SIZE);
+		wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_CPU_ERROR, WLAN_ERROR_CODE_INSUFFICIENT_BD_SIZE);
 	}
 
 	// Split up the memory set aside for us in ETH_MEM_BASE
@@ -526,6 +526,10 @@ void _wlan_process_all_eth_pkts(u32 schedule_id) {
     u32					num_pkt_total	   = 0;
     u32					eth_rx_len, eth_rx_buf;
     u32					status;
+    dl_entry*           curr_tx_queue_element;
+    tx_queue_buffer_t*	tx_queue_buffer;
+    u8* 				mpdu_start_ptr;
+
     XAxiDma_BdRing    * rx_ring_ptr         = XAxiDma_GetRxRing(&eth_dma_instance);
 
 #if PERF_MON_ETH_PROCESS_ALL_RX
@@ -544,6 +548,15 @@ void _wlan_process_all_eth_pkts(u32 schedule_id) {
         eth_rx_len     = XAxiDma_BdGetActualLength(bd_set_to_process_ptr, rx_ring_ptr->MaxTransferLen);
         eth_rx_buf     = XAxiDma_BdGetBufAddr(bd_set_to_process_ptr);
 
+
+    	// The start of the MPDU is before the first byte of the DMA transfer. We can work our way backwards from this point.
+    	mpdu_start_ptr = (void*)( (u8*)eth_rx_buf - ETH_PAYLOAD_OFFSET );
+
+        // Get the TX queue entry pointer. This is located further back in the tx_queue_buffer_t struct.
+    	//
+    	tx_queue_buffer = (tx_queue_buffer_t*)( (u8*)mpdu_start_ptr - offsetof(tx_queue_buffer_t,frame));
+    	curr_tx_queue_element = tx_queue_buffer->tx_queue_entry;
+
     	wlan_process_eth_rx_return = wlan_process_eth_rx((void*)eth_rx_buf, eth_rx_len);
 
         // Free the ETH DMA buffer descriptor
@@ -558,6 +571,9 @@ void _wlan_process_all_eth_pkts(u32 schedule_id) {
         // Increment counters
         if(wlan_process_eth_rx_return & WLAN_PROCESS_ETH_RX_RETURN_IS_ENQUEUED){
         	num_pkt_enqueued++;
+        } else {
+        	//The packet wasn't enqueued, so we need to check it back in
+            queue_checkin(curr_tx_queue_element);
         }
         num_pkt_total++;
         bd_set_count--;
