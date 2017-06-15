@@ -20,6 +20,7 @@
 #include "w3_low.h"
 #include "w3_common.h"
 #include "wlan_platform_common.h"
+#include "wlan_platform_debug_hdr.h"
 #include "wlan_platform_low.h"
 #include "w3_userio_util.h"
 #include "w3_phy_util.h"
@@ -511,6 +512,13 @@ int w3_node_init() {
     //
     // userio_set_ctrlSrc_hw(USERIO_BASEADDR, W3_USERIO_CTRLSRC_LEDS_RED);
 
+	// Initialize Debug Header
+    //  Configure pins 15:12 as software controlled outputs, pins 11:0 as hardware controlled
+    //  This configuration is applied only by CPU Low to avoid races between CPUs at boot
+    //  Both CPUs can control the software-controlled pins
+	wlan_mac_set_dbg_hdr_ctrlsrc(DBG_HDR_CTRLSRC_HW, 0x0FFF);
+	wlan_mac_set_dbg_hdr_ctrlsrc(DBG_HDR_CTRLSRC_SW, 0xF000);
+	wlan_mac_set_dbg_hdr_dir(DBG_HDR_DIR_OUTPUT, 0xF000);
 
     return ret_val;
 }
