@@ -62,7 +62,7 @@ void wlan_platform_free_queue_entry_notify(){
 }
 
 
-void wlan_platform_userio_disp_status(userio_disp_status_t status, ...){
+void wlan_platform_high_userio_disp_status(userio_disp_high_status_t status, ...){
    va_list valist;
 
    static application_role_t application_role = APPLICATION_ROLE_UNKNOWN;

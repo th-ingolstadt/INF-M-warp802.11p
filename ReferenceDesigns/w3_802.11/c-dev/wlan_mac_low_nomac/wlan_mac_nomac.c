@@ -163,9 +163,9 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details){
 
     // Increment the LEDs based on the FCS status
     if(rx_frame_info->flags & RX_FRAME_INFO_FLAGS_FCS_GOOD){
-    	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_GOOD_FCS_EVENT);
+    	wlan_platform_low_userio_disp_status(USERIO_DISP_STATUS_GOOD_FCS_EVENT);
     } else {
-    	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_BAD_FCS_EVENT);
+    	wlan_platform_low_userio_disp_status(USERIO_DISP_STATUS_BAD_FCS_EVENT);
     }
 
     rx_frame_info->rx_pkt_buf_state = RX_PKT_BUF_READY;

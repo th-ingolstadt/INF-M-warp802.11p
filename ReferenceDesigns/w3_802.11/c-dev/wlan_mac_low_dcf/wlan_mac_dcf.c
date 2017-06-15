@@ -1173,7 +1173,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
 
 
         // Increment green LEDs
-    	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_GOOD_FCS_EVENT);
+    	wlan_platform_low_userio_disp_status(USERIO_DISP_STATUS_GOOD_FCS_EVENT);
 
         return_value |= FRAME_RX_RET_STATUS_GOOD;
 
@@ -1270,7 +1270,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     // Received checksum was bad
     } else {
         // Increment red LEDs
-    	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_BAD_FCS_EVENT);
+    	wlan_platform_low_userio_disp_status(USERIO_DISP_STATUS_BAD_FCS_EVENT);
 
         // Check if this packet should be passed up to CPU High for further processing
         rx_filter = wlan_mac_low_get_current_rx_filter();

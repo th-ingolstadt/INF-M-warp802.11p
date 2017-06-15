@@ -71,16 +71,6 @@ typedef struct tx_params_t{
     mac_tx_params_t          mac;                          ///< Lower-level MAC Tx params
 } tx_params_t;
 
-typedef enum userio_disp_status_t{
-	USERIO_DISP_STATUS_IDENTIFY     		= 0,
-	USERIO_DISP_STATUS_APPLICATION_ROLE     = 1,
-	USERIO_DISP_STATUS_MEMBER_LIST_UPDATE   = 2,
-	USERIO_DISP_STATUS_WLAN_EXP_CONFIGURE   = 3,
-	USERIO_DISP_STATUS_GOOD_FCS_EVENT       = 4,
-	USERIO_DISP_STATUS_BAD_FCS_EVENT        = 5,
-	USERIO_DISP_STATUS_CPU_ERROR    		= 255
-} userio_disp_status_t;
-
 //-----------------------------------------------
 // TX queue information
 //     - Information about the TX queue that contained the packet while in CPU High.

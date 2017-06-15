@@ -25,8 +25,15 @@
 //Forward declarations
 enum phy_samp_rate_t;
 
+typedef enum userio_disp_status_t{
+	USERIO_DISP_STATUS_GOOD_FCS_EVENT       = 4,
+	USERIO_DISP_STATUS_BAD_FCS_EVENT        = 5,
+	USERIO_DISP_STATUS_CPU_ERROR    		= 255
+} userio_disp_low_status_t;
+
 // Functions the low framework must implement
 int wlan_platform_low_init();
+void wlan_platform_low_userio_disp_status(userio_disp_low_status_t status, ...);
 
 int wlan_platform_low_set_samp_rate(enum phy_samp_rate_t phy_samp_rate);
 void wlan_platform_low_param_handler(u8 mode, u32* payload);

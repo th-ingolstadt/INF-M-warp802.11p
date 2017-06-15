@@ -40,11 +40,21 @@ typedef struct platform_high_dev_info_t{
 	u32		wlan_exp_phy_addr;
 } platform_high_dev_info_t;
 
+typedef enum userio_disp_status_t{
+	USERIO_DISP_STATUS_IDENTIFY     		= 0,
+	USERIO_DISP_STATUS_APPLICATION_ROLE     = 1,
+	USERIO_DISP_STATUS_MEMBER_LIST_UPDATE   = 2,
+	USERIO_DISP_STATUS_WLAN_EXP_CONFIGURE   = 3,
+	USERIO_DISP_STATUS_CPU_ERROR    		= 255
+} userio_disp_high_status_t;
+
 //---------------------------------------
 // Public functions that WLAN MAC High Framework directly calls
 platform_high_dev_info_t wlan_platform_high_get_dev_info();
 int wlan_platform_high_init(XIntc* intc);
 void wlan_platform_free_queue_entry_notify();
+// User IO functions
+void wlan_platform_high_userio_disp_status(userio_disp_high_status_t status, ...);
 
 struct cmd_resp;
 int wlan_platform_wlan_exp_process_node_cmd(u8* cmd_processed, u32 cmd_id, int socket_index, void* from, struct cmd_resp* command, struct cmd_resp* response, u32 max_resp_len);

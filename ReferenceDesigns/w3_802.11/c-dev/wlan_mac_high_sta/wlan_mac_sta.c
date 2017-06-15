@@ -22,6 +22,7 @@
 
 // WLAN includes
 #include "wlan_platform_common.h"
+#include "wlan_platform_high.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_event_log.h"
@@ -156,7 +157,7 @@ int main() {
 	configure_bss(NULL, 0);
 
 	// Initialize hex display to "No BSS"
-	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0xFF);
+	wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0xFF);
 
 	// Initialize the join state machine
 	wlan_mac_sta_join_init();
@@ -242,7 +243,7 @@ int main() {
 	wlan_mac_high_set_tx_ctrl_power(WLAN_DEFAULT_TX_PWR);
 	wlan_mac_high_set_radio_tx_power(WLAN_DEFAULT_TX_PWR);
 
-	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_APPLICATION_ROLE, APPLICATION_ROLE_STA);
+	wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_APPLICATION_ROLE, APPLICATION_ROLE_STA);
 
 	// Schedule all events
 	//     None at this time
@@ -780,7 +781,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 							purge_queue(UNICAST_QID);
 
 							// Update the hex display to show that we are no longer associated
-							wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0);
+							wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0);
 
 							// Remove the association
 							curr_network_info = active_network_info;
@@ -1080,7 +1081,7 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 				station_info_remove( &active_network_info->members, curr_station_info_entry->addr );
 
 				// Update the hex display to show STA is not currently associated
-				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0);
+				wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0);
 
 				// Inform the MAC High Framework to no longer will keep this BSS Info. This will
 				// allow it to be overwritten in the future to make space for new BSS Infos.
@@ -1095,7 +1096,7 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 				wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
 
 				// Set hex display to "No BSS"
-				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0xFF);
+				wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0xFF);
 			}
 
 			// Pause the data queue, if un-paused
@@ -1166,7 +1167,7 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 				}
 
 				// Set hex display
-				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, my_aid);
+				wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, my_aid);
 			}
 		}
 
@@ -1215,7 +1216,7 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 			}
 
 			// Update the hex diplay with the current AID
-			wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, my_aid);
+			wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, my_aid);
 
 			// Print new BSS information
 			xil_printf("BSS Details: \n");

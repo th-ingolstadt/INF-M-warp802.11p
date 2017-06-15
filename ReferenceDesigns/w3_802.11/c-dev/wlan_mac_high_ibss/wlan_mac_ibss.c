@@ -22,6 +22,7 @@
 
 // WLAN includes
 #include "wlan_platform_common.h"
+#include "wlan_platform_high.h"
 #include "wlan_mac_802_11_defs.h"
 #include "wlan_mac_queue.h"
 #include "wlan_mac_event_log.h"
@@ -175,10 +176,10 @@ int main() {
     // IBSS is not currently a member of BSS
     configure_bss(NULL, 0);
 
-    wlan_platform_userio_disp_status(USERIO_DISP_STATUS_APPLICATION_ROLE, APPLICATION_ROLE_IBSS);
+    wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_APPLICATION_ROLE, APPLICATION_ROLE_IBSS);
 
 	// Initialize hex display to "No BSS"
-    wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0xFF);
+    wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0xFF);
 
 	// Set default Tx params
 	// Set sane default Tx params. These will be overwritten by the user application
@@ -557,19 +558,17 @@ void poll_tx_queues(){
 							next_station_info_entry = dl_entry_next(curr_station_info_entry);
 						}
 
-						if((curr_station_info->flags & STATION_INFO_FLAG_DOZE) == 0) {
-
-							tx_queue_buffer_entry = dequeue_from_head(STATION_ID_TO_QUEUE_ID(curr_station_info_entry->id));
-							if(tx_queue_buffer_entry) {
-								// Update the packet buffer group
-								((tx_queue_buffer_t*)(tx_queue_buffer_entry->data))->queue_info.pkt_buf_group = PKT_BUF_GROUP_GENERAL;
-								// Successfully dequeued a management packet - transmit and checkin
-								transmit_checkin(tx_queue_buffer_entry);
-								// Successfully dequeued a unicast packet for this station - end the DATA_QGRP loop
-								num_pkt_bufs_avail--;
-								break;
-							}
+						tx_queue_buffer_entry = dequeue_from_head(STATION_ID_TO_QUEUE_ID(curr_station_info_entry->id));
+						if(tx_queue_buffer_entry) {
+							// Update the packet buffer group
+							((tx_queue_buffer_t*)(tx_queue_buffer_entry->data))->queue_info.pkt_buf_group = PKT_BUF_GROUP_GENERAL;
+							// Successfully dequeued a management packet - transmit and checkin
+							transmit_checkin(tx_queue_buffer_entry);
+							// Successfully dequeued a unicast packet for this station - end the DATA_QGRP loop
+							num_pkt_bufs_avail--;
+							break;
 						}
+
 					} else {
 						// This curr_station_info is invalid. Perhaps it was removed from
 						// the association table before poll_tx_queues was called. We will
@@ -683,7 +682,7 @@ int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src,
 							eth_dest[3], eth_dest[4], eth_dest[5]);
 				}
 
-				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
+				wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 			}
 
 			if( station_info == NULL ){
@@ -803,7 +802,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 							rx_80211_header->address_2[0], rx_80211_header->address_2[1], rx_80211_header->address_2[2],
 							rx_80211_header->address_2[3], rx_80211_header->address_2[4], rx_80211_header->address_2[5]);
 
-					wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
+					wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 				}
 			}
 		}
@@ -964,7 +963,7 @@ void remove_inactive_station_infos() {
 			if((time_since_last_activity > ASSOCIATION_TIMEOUT_US) && ((curr_station_info->flags & STATION_INFO_FLAG_DISABLE_ASSOC_CHECK) == 0)){
                 purge_queue(STATION_ID_TO_QUEUE_ID(curr_station_info_entry->id));
                 station_info_remove( &active_network_info->members, curr_station_info->addr );
-				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
+				wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 
 				time_hr_min_sec_t time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
 				xil_printf("*%dh:%02dm:%02ds* IBSS 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x removed from BSS\n",
@@ -1095,7 +1094,7 @@ void ltg_event(u32 id, void* callback_arg){
 							addr_da[0], addr_da[1], addr_da[2],
 							addr_da[3], addr_da[4], addr_da[5]);
 				}
-				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
+				wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 			}
 		}
 
@@ -1299,7 +1298,7 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 					curr_station_info->flags &= ~STATION_INFO_FLAG_KEEP;
 
 					// Update the hex display to show station was removed
-					wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
+					wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 				}
 
 				// Inform the MAC High Framework to no longer will keep this BSS Info. This will
@@ -1317,7 +1316,7 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 				wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
 
 				// Set hex display to "No BSS"
-				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0xFF);
+				wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0xFF);
 			}
 
 			// (bss_config_update == NULL) is one way to remove the BSS state of the node. This operation
@@ -1354,7 +1353,7 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 				}
 
 				// Set hex display
-				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
+				wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 			}
 		}
 

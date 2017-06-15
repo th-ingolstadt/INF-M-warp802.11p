@@ -18,6 +18,7 @@
 #if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
 #include "wlan_platform_common.h"
+#include "wlan_platform_high.h"
 
 #include "wlan_exp_node.h"
 #include "wlan_exp_node_ap.h"
@@ -476,7 +477,7 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
                     //
 
                     // Update the hex display
-                    wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
+                	wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 
                     wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Associated with node: ");
                 } else {

@@ -35,7 +35,6 @@ int wlan_platform_common_init();
 wlan_mac_hw_info_t wlan_platform_get_hw_info();
 
 // User IO functions
-void wlan_platform_userio_disp_status(userio_disp_status_t status, ...);
 u32  wlan_platform_userio_get_state();
 
 // Temperature functions

@@ -45,7 +45,7 @@ static channel_band_t gl_current_band;
  *****************************************************************************/
 
 
-void wlan_platform_userio_disp_status(userio_disp_status_t status, ...){
+void wlan_platform_low_userio_disp_status(userio_disp_low_status_t status, ...){
    va_list valist;
    static u8 red_led_index = 0;
    static u8 green_led_index = 0;

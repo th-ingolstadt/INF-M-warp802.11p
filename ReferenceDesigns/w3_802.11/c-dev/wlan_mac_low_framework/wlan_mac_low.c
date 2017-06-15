@@ -424,7 +424,7 @@ inline void wlan_mac_low_send_exception(u32 reason){
     write_mailbox_msg(&ipc_msg_to_high);
 
     // Set the Hex display with the reason code and flash the LEDs
-    wlan_platform_userio_disp_status(USERIO_DISP_STATUS_CPU_ERROR,reason);
+    wlan_platform_low_userio_disp_status(USERIO_DISP_STATUS_CPU_ERROR,reason);
 }
 
 /*****************************************************************************/

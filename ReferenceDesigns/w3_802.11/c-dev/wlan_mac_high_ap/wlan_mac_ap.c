@@ -20,6 +20,7 @@
 #include "wlan_mac_high_sw_config.h"
 #include "wlan_mac_common.h"
 #include "wlan_platform_common.h"
+#include "wlan_platform_high.h"
 
 #include "wlan_mac_high.h"
 #include "wlan_mac_ap.h"
@@ -172,7 +173,7 @@ int main(){
 	configure_bss(NULL, 0);
 
 	// Initialize hex display to "No BSS"
-	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0xFF);
+	wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0xFF);
 
 	// Set default Tx params
 	// Set sane default Tx params. These will be overwritten by the user application
@@ -261,7 +262,7 @@ int main(){
 	//  Periodic check for timed-out associations
 	wlan_mac_schedule_event_repeated(SCHEDULE_COARSE, ASSOCIATION_CHECK_INTERVAL_US, SCHEDULE_REPEAT_FOREVER, (void*)remove_inactive_station_infos);
 
-	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_APPLICATION_ROLE, APPLICATION_ROLE_AP);
+	wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_APPLICATION_ROLE, APPLICATION_ROLE_AP);
 
 #if WLAN_SW_CONFIG_ENABLE_LOGGING
 	// Reset the event log
@@ -1676,7 +1677,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 										rx_80211_header->address_2[3], rx_80211_header->address_2[4], rx_80211_header->address_2[5]);
 							}
 
-							wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
+							wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 						}
 
 							if( reject_association == 0 ) {
@@ -1777,7 +1778,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 						// Lower the KEEP flag so that the station_info_
 						if(station_info != NULL) station_info->flags &= ~STATION_INFO_FLAG_KEEP;
 
-						wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
+						wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 					}
 				break;
 
@@ -1906,7 +1907,7 @@ u32  deauthenticate_station( station_info_t* station_info ) {
 	// Remove the "keep" flag for this station_info so the framework can cleanup later.
 	station_info->flags &= ~STATION_INFO_FLAG_KEEP;
 
-	wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
+	wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 
 	return aid;
 }
@@ -2130,7 +2131,7 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 					curr_station_info->flags &= ~STATION_INFO_FLAG_KEEP;
 
 					// Update the hex display to show station was removed
-					wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
+					wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 				}
 
 				// Remove the bss_info from the network list
@@ -2154,7 +2155,7 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 				wlan_mac_high_config_txrx_beacon(&gl_beacon_txrx_config);
 
 				// Set hex display to "No BSS"
-				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0xFF);
+				wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, 0xFF);
 			}
 
 			// (bss_config_update == NULL) is one way to remove the BSS state of the node. This operation
@@ -2193,7 +2194,7 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 				}
 
 				// Set hex display
-				wlan_platform_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
+				wlan_platform_high_userio_disp_status(USERIO_DISP_STATUS_MEMBER_LIST_UPDATE, active_network_info->members.length);
 			}
 		}
 
