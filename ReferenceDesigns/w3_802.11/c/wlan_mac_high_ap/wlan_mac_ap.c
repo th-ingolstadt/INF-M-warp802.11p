@@ -645,26 +645,18 @@ void update_tim_tag_all(u32 sched_id){
 /**
  * @brief Poll Tx queues to select next available packet to transmit
  *
- * This function is called whenever the upper MAC is ready to send a new packet
- * to the lower MAC for transmission. The next packet to transmit is selected
- * from one of the currently-enabled Tx queues.
+ * This function attempts to completely fill any available Tx packet buffers. If
+ * DTIM multicast buffering is enabled, it will attempt to dequeue as many multicast
+ * packets as possible such that PKT_BUF_GROUP_DTIM_MCAST packet buffer group is full
+ * or the multicast queue is empty (whichever comes first). The PKT_BUF_GROUP_GENERAL
+ * packet buffer group will be filled with frames with a nested round-robing policy:
+ * 	1) The function will alternate between dequeueing management and data frames in order
+ * 	   to prioritize time-critical management responses like authentication and assocation
+ * 	   response frames.
+ * 	2) Data frames will be dequeued round-robin for each associated station. If DTIM multicast
+ * 	   buffering is disabled, the multicast queue will be treated like an associated station in
+ * 	   this policy.
  *
- * The reference implementation uses a simple queue prioritization scheme:
- *   - Two queue groups are defined: Management (MGMT_QGRP) and Data (DATA_QGRP)
- *     - The Management group contains one queue for all management traffic
- *     - The Data group contains one queue for multicast data plus one queue per associated STA
- *   - The code alternates its polling between queue groups
- *   - In each group queues are polled via round robin
- *
- *  This scheme gives priority to management transmissions to help avoid timeouts during
- *  association handshakes and treats each associated STA with equal priority.
- *
- * This function uses the framework function dequeue_transmit_checkin() to check individual queues
- * If dequeue_transmit_checkin() is passed a not-empty queue, it will dequeue and transmit a packet, then
- * return a non-zero status. Thus the calls below terminate polling as soon as any call to dequeue_transmit_checkin()
- * returns with a non-zero value, allowing the next call to poll_tx_queues() to continue the queue polling process.
- *
- * FIXME: Update description
  *****************************************************************************/
 #define NUM_QUEUE_GROUPS 2
 typedef enum queue_group_t{
@@ -2252,7 +2244,7 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 			//     In the event that CPU_LOW currently has the beacon packet buffer locked,
 			//     block for now until it unlocks.  This will guarantee that beacon are updated
 			//     before the function returns.
-			default_beacon_tx_params = station_info_get_default_tx_params(mcast_mgmt);
+			default_beacon_tx_params = wlan_mac_get_default_tx_params(mcast_mgmt);
 			if (update_beacon_template) {
 				wlan_mac_high_setup_tx_header(&tx_header_common, (u8 *)bcast_addr, active_network_info->bss_config.bssid);
 				while (wlan_mac_high_configure_beacon_tx_template( &tx_header_common, active_network_info, &default_beacon_tx_params,

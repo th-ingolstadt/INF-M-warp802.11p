@@ -249,7 +249,7 @@ int wlan_exp_node_init(u32 serial_number, u32 *fpga_dna, u32 eth_dev_num, u8 *wl
     node_info.serial_number                 = serial_number;
 
     // Process both 32 bit arguments of the FPGA DNA
-    for(i = 0; i < FPGA_DNA_LEN; i++) {
+    for(i = 0; i < WLAN_MAC_FPGA_DNA_LEN; i++) {
         node_info.fpga_dna[i]               = fpga_dna[i];
     }
 
@@ -1898,24 +1898,24 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 				// 1. Update default values if needed
 				if(update_default_unicast){
 					if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
-						tx_params = station_info_get_default_tx_params(unicast_data);
+						tx_params = wlan_mac_get_default_tx_params(unicast_data);
 						tx_params.phy.power = power;
 						wlan_mac_set_default_tx_params(unicast_data, &tx_params);
 					}
 					if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
-						tx_params = station_info_get_default_tx_params(unicast_mgmt);
+						tx_params = wlan_mac_get_default_tx_params(unicast_mgmt);
 						tx_params.phy.power = power;
 						wlan_mac_set_default_tx_params(unicast_mgmt, &tx_params);
 					}
 				}
 				if(update_default_multicast){
 					if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
-						tx_params = station_info_get_default_tx_params(mcast_data);
+						tx_params = wlan_mac_get_default_tx_params(mcast_data);
 						tx_params.phy.power = power;
 						wlan_mac_set_default_tx_params(mcast_data, &tx_params);
 					}
 					if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
-						tx_params = station_info_get_default_tx_params(mcast_mgmt);
+						tx_params = wlan_mac_get_default_tx_params(mcast_mgmt);
 						tx_params.phy.power = power;
 						wlan_mac_set_default_tx_params(mcast_mgmt, &tx_params);
 					}
@@ -2017,13 +2017,13 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 				// 1. Update default values if needed
 				if(update_default_unicast){
 					if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
-						tx_params = station_info_get_default_tx_params(unicast_data);
+						tx_params = wlan_mac_get_default_tx_params(unicast_data);
 						tx_params.phy.mcs = mcs;
 						tx_params.phy.phy_mode = phy_mode;
 						wlan_mac_set_default_tx_params(unicast_data, &tx_params);
 					}
 					if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
-						tx_params = station_info_get_default_tx_params(unicast_mgmt);
+						tx_params = wlan_mac_get_default_tx_params(unicast_mgmt);
 						tx_params.phy.mcs = mcs;
 						tx_params.phy.phy_mode = phy_mode;
 						wlan_mac_set_default_tx_params(unicast_mgmt, &tx_params);
@@ -2031,13 +2031,13 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 				}
 				if(update_default_multicast){
 					if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
-						tx_params = station_info_get_default_tx_params(mcast_data);
+						tx_params = wlan_mac_get_default_tx_params(mcast_data);
 						tx_params.phy.mcs = mcs;
 						tx_params.phy.phy_mode = phy_mode;
 						wlan_mac_set_default_tx_params(mcast_data, &tx_params);
 					}
 					if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
-						tx_params = station_info_get_default_tx_params(mcast_mgmt);
+						tx_params = wlan_mac_get_default_tx_params(mcast_mgmt);
 						tx_params.phy.mcs = mcs;
 						tx_params.phy.phy_mode = phy_mode;
 						wlan_mac_set_default_tx_params(mcast_mgmt, &tx_params);
@@ -2143,24 +2143,24 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
 				// 1. Update default values if needed
 				if(update_default_unicast){
 					if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
-						tx_params = station_info_get_default_tx_params(unicast_data);
+						tx_params = wlan_mac_get_default_tx_params(unicast_data);
 						tx_params.phy.antenna_mode = ant_mode;
 						wlan_mac_set_default_tx_params(unicast_data, &tx_params);
 					}
 					if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
-						tx_params = station_info_get_default_tx_params(unicast_mgmt);
+						tx_params = wlan_mac_get_default_tx_params(unicast_mgmt);
 						tx_params.phy.antenna_mode = ant_mode;
 						wlan_mac_set_default_tx_params(unicast_mgmt, &tx_params);
 					}
 				}
 				if(update_default_multicast){
 					if(frame_type & CMD_PARAM_TXPARAM_MASK_DATA){
-						tx_params = station_info_get_default_tx_params(mcast_data);
+						tx_params = wlan_mac_get_default_tx_params(mcast_data);
 						tx_params.phy.antenna_mode = ant_mode;
 						wlan_mac_set_default_tx_params(mcast_data, &tx_params);
 					}
 					if(frame_type & CMD_PARAM_TXPARAM_MASK_MGMT){
-						tx_params = station_info_get_default_tx_params(mcast_mgmt);
+						tx_params = wlan_mac_get_default_tx_params(mcast_mgmt);
 						tx_params.phy.antenna_mode = ant_mode;
 						wlan_mac_set_default_tx_params(mcast_mgmt, &tx_params);
 					}

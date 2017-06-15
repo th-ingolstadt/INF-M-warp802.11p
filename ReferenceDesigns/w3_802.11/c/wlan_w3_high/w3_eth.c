@@ -26,7 +26,7 @@
 //       wlan_mac_set_dbg_hdr_out() / wlan_mac_clear_dbg_hdr_out() functions.
 //     - All of the times are approximate because GPIO functions take time to
 //       execute and might increase the time you are trying to measure.
-// FIXME: These need to be updated to use wlan_platform
+// TODO: These need to be updated to use wlan_platform
 #define PERF_MON_ETH_PROCESS_RX                            0
 #define PERF_MON_ETH_PROCESS_ALL_RX                        0
 #define PERF_MON_ETH_UPDATE_DMA                            0

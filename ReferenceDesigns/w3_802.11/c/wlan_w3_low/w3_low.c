@@ -501,7 +501,8 @@ int w3_node_init() {
     }
 
 #ifdef WLAN_4RF_EN
-    //FIXME
+    //TODO: 4RF mode not supported in 1.7.0. We will add it back in
+    // in a future dot release.
     iic_eeprom_init(FMC_EEPROM_BASEADDR, 0x64);
 #endif
 

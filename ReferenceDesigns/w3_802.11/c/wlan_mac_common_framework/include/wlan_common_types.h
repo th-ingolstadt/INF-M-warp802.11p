@@ -23,13 +23,12 @@ typedef int (*function_ptr_t)();
 //-----------------------------------------------
 // Field size defines
 //
-#define MAC_ADDR_LEN	6	///< MAC Address Length (in bytes)
-#define SSID_LEN_MAX	32	///< Maximum SSID length
-#define WLAN_MAC_FPGA_DNA_LEN         2
-#define FPGA_DNA_LEN                  2 //FIXME: Why are there two _DNA_LEN defines?
+#define MAC_ADDR_LEN 6	///< MAC Address Length (in bytes)
+#define SSID_LEN_MAX 32	///< Maximum SSID length
+#define WLAN_MAC_FPGA_DNA_LEN 2
 
-#define MAX_PKT_SIZE_KB									   2
-#define MAX_PKT_SIZE_B									   (MAX_PKT_SIZE_KB << 10)
+#define MAX_PKT_SIZE_KB 2
+#define MAX_PKT_SIZE_B (MAX_PKT_SIZE_KB << 10)
 
 
 

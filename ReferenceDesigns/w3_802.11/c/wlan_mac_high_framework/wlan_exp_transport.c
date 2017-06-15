@@ -49,7 +49,7 @@
 /*************************** Variable Definitions ****************************/
 
 // Transport information
-// FIXME: Why is this a vector of size TRANSPORT_NUM_ETH_DEVICES? I think that only the struct
+// TODO: Why is this a vector of size TRANSPORT_NUM_ETH_DEVICES? I think that only the struct
 // at index WLAN_EXP_ETH (from the application) actually gets touched.
 static transport_eth_dev_info     eth_devices[TRANSPORT_NUM_ETH_DEVICES];
 static wlan_exp_tag_parameter     transport_parameters[TRANSPORT_NUM_ETH_DEVICES][TRANSPORT_PARAM_MAX_PARAMETER];

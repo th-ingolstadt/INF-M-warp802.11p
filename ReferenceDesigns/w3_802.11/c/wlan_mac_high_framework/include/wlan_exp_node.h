@@ -274,8 +274,8 @@ typedef struct wlan_exp_node_info{
     u32                      node_id;                      // Node ID (Only bits [15:0] are valid)
     u32                      platform_id;                  // Platform ID
 
-    u32                      serial_number;                // Node serial number
-    u32                      fpga_dna[FPGA_DNA_LEN];       // Node FPGA DNA number
+    u32                      serial_number;                		// Node serial number
+    u32                      fpga_dna[WLAN_MAC_FPGA_DNA_LEN];   // Node FPGA DNA number
 
     u32                      wlan_exp_version;             // WLAN Exp Version
     u32                      wlan_scheduler_resolution;    // WLAN Exp - Minimum Scheduler resolution

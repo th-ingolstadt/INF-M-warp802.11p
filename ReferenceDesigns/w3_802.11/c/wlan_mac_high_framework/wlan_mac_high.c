@@ -1172,8 +1172,10 @@ void wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf) {
 	if(tx_queue_buffer->flags & TX_QUEUE_BUFFER_FLAGS_FILL_TIMESTAMP) tx_frame_info->flags |= TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP;
 	if(tx_queue_buffer->flags & TX_QUEUE_BUFFER_FLAGS_FILL_DURATION) tx_frame_info->flags |= TX_FRAME_INFO_FLAGS_FILL_DURATION;
 	if(tx_queue_buffer->flags & TX_QUEUE_BUFFER_FLAGS_FILL_UNIQ_SEQ) tx_frame_info->flags |= TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ;
-	if(!is_multicast) tx_frame_info->flags |= TX_FRAME_INFO_FLAGS_REQ_TO;  //FIXME: Since TA can be anything in full generality,
-																						// should we only raise this flag if TA = self?
+	if(!is_multicast) tx_frame_info->flags |= TX_FRAME_INFO_FLAGS_REQ_TO;  //TODO: Since TA can be anything in full generality,
+																		   // should we only raise this flag if TA = self? I'd
+																		   // prefer not to add a 6-byte comparison here if we
+																		   // can avoid it.
 	tx_frame_info->unique_seq = 0; // Unique_seq will be filled in by CPU_LOW
 
 	// Pull first byte from the payload of the packet so we can determine whether
@@ -1187,15 +1189,15 @@ void wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf) {
 		// default Tx parameters from the framework.
 		if(is_multicast){
 			if( (frame_control_1 & MAC_FRAME_CTRL1_MASK_TYPE) == MAC_FRAME_CTRL1_TYPE_MGMT){
-				default_tx_params = station_info_get_default_tx_params(mcast_mgmt);
+				default_tx_params = wlan_mac_get_default_tx_params(mcast_mgmt);
 			} else {
-				default_tx_params = station_info_get_default_tx_params(mcast_data);
+				default_tx_params = wlan_mac_get_default_tx_params(mcast_data);
 			}
 		} else {
 			if( (frame_control_1 & MAC_FRAME_CTRL1_MASK_TYPE) == MAC_FRAME_CTRL1_TYPE_MGMT){
-				default_tx_params = station_info_get_default_tx_params(unicast_mgmt);
+				default_tx_params = wlan_mac_get_default_tx_params(unicast_mgmt);
 			} else {
-				default_tx_params = station_info_get_default_tx_params(unicast_data);
+				default_tx_params = wlan_mac_get_default_tx_params(unicast_data);
 			}
 		}
 

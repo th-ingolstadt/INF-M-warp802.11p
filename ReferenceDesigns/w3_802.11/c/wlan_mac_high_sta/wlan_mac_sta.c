@@ -401,20 +401,14 @@ void process_scan_state_change(scan_state_t scan_state){
 /**
  * @brief Poll Tx queues to select next available packet to transmit
  *
- * This function is called whenever the upper MAC is ready to send a new packet
- * to the lower MAC for transmission. The next packet to transmit is selected
- * from one of the currently-enabled Tx queues.
+ * This function will attempt to completely fill all Tx packet buffers in the
+ * PKT_BUF_GROUP_GENERAL group.
  *
  * The reference implementation uses a simple queue prioritization scheme:
  *   - Two queues are defined: Management (MANAGEMENT_QID) and Data (UNICAST_QID)
  *     - The Management queue is for all management traffic
  *     - The Data queue is for all data to the associated AP
  *   - The code alternates its polling between queues
- *
- * This function uses the framework function dequeue_transmit_checkin() to check individual queues
- * If dequeue_transmit_checkin() is passed a not-empty queue, it will dequeue and transmit a packet, then
- * return a non-zero status. Thus the calls below terminate polling as soon as any call to dequeue_transmit_checkin()
- * returns with a non-zero value, allowing the next call to poll_tx_queues() to continue the queue polling process.
  *
  *****************************************************************************/
 void poll_tx_queues(){

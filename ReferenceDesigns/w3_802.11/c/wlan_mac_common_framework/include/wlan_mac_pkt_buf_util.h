@@ -98,7 +98,7 @@
 #define PHY_TX_PKT_BUF_PHY_HDR_OFFSET                     (sizeof(tx_frame_info_t))
 
 #define PHY_RX_PKT_BUF_PHY_HDR_SIZE                        0x10
-// FIXME: return PHY_TX_PKT_BUF_PHY_HDR_SIZE here
+#define PHY_TX_PKT_BUF_PHY_HDR_SIZE                        0x10
 
 #define PHY_RX_PKT_BUF_MPDU_OFFSET                        (PHY_RX_PKT_BUF_PHY_HDR_SIZE + PHY_RX_PKT_BUF_PHY_HDR_OFFSET)
 #define PHY_TX_PKT_BUF_MPDU_OFFSET                        (PHY_TX_PKT_BUF_PHY_HDR_SIZE + PHY_TX_PKT_BUF_PHY_HDR_OFFSET)
@@ -113,7 +113,13 @@
 // Packet buffer state
 //
 
-// FIXME: return tx_pkt_buf_state_t here
+typedef enum __attribute__ ((__packed__)) {
+   TX_PKT_BUF_UNINITIALIZED   = 0,
+   TX_PKT_BUF_HIGH_CTRL       = 1,
+   TX_PKT_BUF_READY           = 2,
+   TX_PKT_BUF_LOW_CTRL        = 3,
+   TX_PKT_BUF_DONE            = 4
+} tx_pkt_buf_state_t;
 
 typedef enum __attribute__ ((__packed__)) {
    RX_PKT_BUF_UNINITIALIZED   = 0,
@@ -180,14 +186,6 @@ typedef struct phy_rx_details_t{
 } phy_rx_details_t;
 ASSERT_TYPE_SIZE(phy_rx_details_t, 4);
 
-typedef enum __attribute__ ((__packed__)) {
-   TX_PKT_BUF_UNINITIALIZED   = 0,
-   TX_PKT_BUF_HIGH_CTRL       = 1,
-   TX_PKT_BUF_READY           = 2,
-   TX_PKT_BUF_LOW_CTRL        = 3,
-   TX_PKT_BUF_DONE            = 4
-} tx_pkt_buf_state_t;
-
 //-----------------------------------------------
 // TX frame information
 //     - Defines the information passed in the packet buffer between CPU High and
@@ -228,8 +226,6 @@ typedef struct tx_frame_info_t{
 // will need to be updated if fields are added to the structure
 //
 ASSERT_TYPE_SIZE(tx_frame_info_t, 56);
-
-#define PHY_TX_PKT_BUF_PHY_HDR_SIZE                        0x10
 
 
 // Defines for power field in phy_tx_params_t in tx_params_t

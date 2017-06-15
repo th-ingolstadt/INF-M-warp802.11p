@@ -468,6 +468,18 @@ typedef enum queue_group_t{
 	DATA_QGRP
 } queue_group_t;
 
+/*****************************************************************************/
+/**
+ * @brief Poll Tx queues to select next available packet to transmit
+ *
+ * This function will attempt to completely fill all Tx packet buffers in the
+ * PKT_BUF_GROUP_GENERAL group. Dequeueing occurs with a nested round-robing policy:
+ * 	1) The function will alternate between dequeueing management and data frames in order
+ * 	   to prioritize time-critical management responses probe responses.
+ * 	2) Data frames will be dequeued round-robin for station for which packets are enqueued.
+ * 	   Multicast frames are treated like their own station for the purposes of this policy.
+ *
+ *****************************************************************************/
 void poll_tx_queues(){
 	interrupt_state_t curr_interrupt_state;
 	dl_entry*	tx_queue_buffer_entry;
@@ -1401,7 +1413,7 @@ u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
 			//     block for now until it unlocks.  This will guarantee that beacon are updated
 			//     before the function returns.
 			if (update_beacon_template) {
-				default_beacon_tx_params = station_info_get_default_tx_params(mcast_mgmt);
+				default_beacon_tx_params = wlan_mac_get_default_tx_params(mcast_mgmt);
 				wlan_mac_high_setup_tx_header(&tx_header_common, (u8 *)bcast_addr, active_network_info->bss_config.bssid);
 				while (wlan_mac_high_configure_beacon_tx_template(&tx_header_common, active_network_info, &default_beacon_tx_params, TX_FRAME_INFO_FLAGS_FILL_TIMESTAMP) != 0) {}
 			}

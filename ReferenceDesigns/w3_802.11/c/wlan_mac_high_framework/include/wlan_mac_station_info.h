@@ -204,7 +204,7 @@ int              station_info_remove(struct dl_list* app_station_info_list, u8* 
 
 u8               station_info_is_member(struct dl_list* app_station_info_list, station_info_t* station_info);
 
-tx_params_t		 station_info_get_default_tx_params(default_tx_param_sel_t default_tx_param_sel);
+tx_params_t		 wlan_mac_get_default_tx_params(default_tx_param_sel_t default_tx_param_sel);
 void		 	 wlan_mac_set_default_tx_params(default_tx_param_sel_t default_tx_param_sel, tx_params_t* tx_params);
 void 			 wlan_mac_reapply_default_tx_params();
 
