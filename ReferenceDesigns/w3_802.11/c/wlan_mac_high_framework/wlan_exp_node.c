@@ -747,17 +747,15 @@ int process_node_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp
             //   - cmd_args_32[2] - Microseconds per blink (must be an even number)
             //
             u32               serial_number;
-            u32               num_blinks;
-            u32               time_per_blink;
             transport_info_t* transport_info;
             u8                ip_addr[IP_ADDR_LEN];
 
             // Get command parameters
             serial_number  = Xil_Ntohl(cmd_args_32[0]);
-            num_blinks     = Xil_Ntohl(cmd_args_32[1]);
-            time_per_blink = (Xil_Ntohl(cmd_args_32[2]) >> 1);
+            //num_blinks     = Xil_Ntohl(cmd_args_32[1]); //TODO: Remove from OTW packet
+            //time_per_blink = (Xil_Ntohl(cmd_args_32[2]) >> 1); //TODO: Remove from OTW packet
 
-            xil_printf("NODE IDENTIFY:  Num blinks = %8d   Time = %8d usec\n", num_blinks, time_per_blink);
+            xil_printf("NODE IDENTIFY: \n");
 
             if ((serial_number == CMD_PARAM_NODE_IDENTIFY_ALL) || (serial_number == node_info.serial_number)) {
                 transport_info = &(node_info.eth_dev->info);

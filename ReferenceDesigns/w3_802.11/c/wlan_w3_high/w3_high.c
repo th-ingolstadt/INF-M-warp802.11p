@@ -74,7 +74,7 @@ void wlan_platform_high_userio_disp_status(userio_disp_high_status_t status, ...
 
 
    	   case USERIO_DISP_STATUS_IDENTIFY: {
-   		   blink_hex_display(10, 5);
+   		   blink_hex_display(25, 200000);
    	   } break;
 
    	   case USERIO_DISP_STATUS_APPLICATION_ROLE: {
