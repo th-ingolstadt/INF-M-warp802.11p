@@ -103,13 +103,15 @@ typedef struct rate_selection_info_t{
         u8                 addr[MAC_ADDR_LEN];                         /* HW Address */                                     \
         u16                ID;                                         /* Identification Index for this station */          \
         char               hostname[STATION_INFO_HOSTNAME_MAXLEN+1];   /* Hostname from DHCP requests */                    \
-        u32                flags;                                      /* 1-bit flags */                                    \
+        u8                 flags;                                      /* 1-bit flags */                                    \
+		u8                 ps_state;                                   /* Power saving state */                             \
+		u16                capabilities;                               /* Capabilities */                             		\
         u64                latest_rx_timestamp;               		   /* Timestamp of most recent reception */   		    \
 		u64                latest_txrx_timestamp;               	   /* Timestamp of most recent reception or transmission */    \
         u16                latest_rx_seq;                              /* Sequence number of the last MPDU reception */     \
         u8                 reserved0[2];                                                                                    \
-        int				   num_tx_queued;																					\
-        tx_params_t        tx_params_data;	 		 				   /* Transmission Parameters Structure for Data */				\
+        int				   num_tx_queued;							   /* Number of packets enqueued for this station */	\
+        tx_params_t        tx_params_data;	 		 				   /* Transmission Parameters Structure for Data */		\
         tx_params_t        tx_params_mgmt;	 		 				   /* Transmission Parameters Structure for Management */
 
 typedef struct station_info_t{
@@ -126,10 +128,12 @@ CASSERT(sizeof(station_info_t) == 192, station_info_alignment_check);
 CASSERT(sizeof(station_info_t) == 80, station_info_alignment_check);
 #endif
 
-#define STATION_INFO_FLAG_KEEP                             0x00000001			   ///< Prevent MAC High Framework from deleting this station_infO
-#define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK              0x00000002              ///< Mask for flag in station_info -- disable association check
-#define STATION_INFO_FLAG_DOZE                             0x00000004              ///< Mask to sleeping stations (if STA supports PS)
-#define STATION_INFO_FLAG_HT_CAPABLE                       0x00000008              ///< Station is capable of HT Tx and Rx
+#define STATION_INFO_FLAG_KEEP                             0x01 ///< Prevent MAC High Framework from deleting this station_infO
+#define STATION_INFO_FLAG_DISABLE_ASSOC_CHECK              0x02 ///< Mask for flag in station_info -- disable association check
+
+#define STATION_INFO_PS_STATE_DOZE 						   0x01 ///< Mask to sleeping stations (if STA supports PS)
+
+#define STATION_INFO_CAPABILITIES_HT_CAPABLE               0x01 ///< Station is capable of HT Tx and Rx
 
 #define RX_PROCESS_COUNTS_OPTION_FLAG_IS_DUPLICATE		   0x00000001
 

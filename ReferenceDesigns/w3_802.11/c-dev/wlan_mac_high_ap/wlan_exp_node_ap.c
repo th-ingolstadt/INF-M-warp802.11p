@@ -400,15 +400,16 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             // Response format:
             //     resp_args_32[0]       Status
             //
-            u32                   flags;
-            u32                   mask;
-            u8                    mac_addr[MAC_ADDR_LEN];
-            interrupt_state_t     prev_interrupt_state;
-            u32                   status              = CMD_PARAM_SUCCESS;
-            station_info_entry_t* station_info_entry  = NULL;
-            station_info_t* 	  curr_station_info   = NULL;
-            u32                   station_flags       = 0;
-            u32					  error_reason        = 0;
+            u32 flags;
+            u32 mask;
+            u8 mac_addr[MAC_ADDR_LEN];
+            interrupt_state_t prev_interrupt_state;
+            u32 status = CMD_PARAM_SUCCESS;
+            station_info_entry_t* station_info_entry = NULL;
+            station_info_t* curr_station_info = NULL;
+            u8 station_flags = 0;
+            u16 station_capabilities = 0;
+            u32 error_reason = 0;
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "AP: Associate\n");
 
@@ -456,14 +457,15 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
 
                 if (mask & CMD_PARAM_AP_ASSOCIATE_FLAG_HT_CAPABLE_STA) {
                     if (flags & CMD_PARAM_AP_ASSOCIATE_FLAG_HT_CAPABLE_STA) {
-                        station_flags |= STATION_INFO_FLAG_HT_CAPABLE;
+                    	station_capabilities |= STATION_INFO_CAPABILITIES_HT_CAPABLE;
                     } else {
-                        station_flags &= ~STATION_INFO_FLAG_HT_CAPABLE;
+                    	station_capabilities &= ~STATION_INFO_CAPABILITIES_HT_CAPABLE;
                     }
                 }
 
                 // Update the station_info flags
                 curr_station_info->flags = station_flags;
+                curr_station_info->capabilities = station_capabilities;
 
                 // Re-enable interrupts
                 wlan_mac_high_interrupt_restore_state(prev_interrupt_state);

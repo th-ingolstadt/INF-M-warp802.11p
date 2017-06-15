@@ -2191,10 +2191,10 @@ tx_params_t wlan_mac_sanitize_tx_params(station_info_t* station_info, tx_params_
 	tx_params_t tx_params_ret;
 	tx_params_ret = *tx_params;
 
-	 // Adjust MCS and PHY_MODE based upon HT_CAPABLE flag
+	 // Adjust MCS and PHY_MODE based upon STATION_INFO_CAPABILITIES_HT_CAPABLE flag
 	 // Requested HT MCS: 0 1 2 3 4 5 6 7
 	 // Actual NONHT MCS: 0 2 3 4 5 6 7 7
-	if (station_info->flags & STATION_INFO_FLAG_HT_CAPABLE) {
+	if (station_info->capabilities & STATION_INFO_CAPABILITIES_HT_CAPABLE) {
 		// Station is capable of HTMF waveforms -- no need to modify tx_params_ret
 	} else {
 		if (tx_params->phy.phy_mode == PHY_MODE_HTMF) {

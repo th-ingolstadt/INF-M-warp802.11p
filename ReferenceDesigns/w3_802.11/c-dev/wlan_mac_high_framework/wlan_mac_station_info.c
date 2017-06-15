@@ -229,7 +229,7 @@ inline station_info_t* station_info_postrx_process(void* pkt_buf_addr) {
 
 		// If this reception is HTMF, we have a pretty good indication that this device
 		// is capable of also receiving HTMF waveforms. We'll update its flags accordingly
-		curr_station_info->flags |= STATION_INFO_FLAG_HT_CAPABLE;
+		curr_station_info->capabilities |= STATION_INFO_CAPABILITIES_HT_CAPABLE;
 
 		// By this point in the function, curr_station_info is guaranteed to be pointing to a valid station_info_t struct
 		// that we should update with this reception.
@@ -769,7 +769,7 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
 
 		// Set the HT_CAPABLE flag base on input parameter
 		if (ht_capable) {
-			station_info->flags |= STATION_INFO_FLAG_HT_CAPABLE;
+			station_info->capabilities |= STATION_INFO_CAPABILITIES_HT_CAPABLE;
 		}
 
 		// Set up the station ID

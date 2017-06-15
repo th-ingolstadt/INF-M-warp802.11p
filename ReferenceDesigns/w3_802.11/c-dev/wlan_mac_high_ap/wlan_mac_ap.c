@@ -768,7 +768,7 @@ void poll_tx_queues(){
 							next_station_info_entry = dl_entry_next(curr_station_info_entry);
 						}
 
-						if((curr_station_info->flags & STATION_INFO_FLAG_DOZE) == 0) {
+						if((curr_station_info->ps_state & STATION_INFO_PS_STATE_DOZE) == 0) {
 
 							tx_queue_buffer_entry = dequeue_from_head(STATION_ID_TO_QUEUE_ID(curr_station_info_entry->id));
 							if(tx_queue_buffer_entry) {
@@ -1265,9 +1265,9 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 		if( sta_is_associated ){
 			// Update PS state
 			if((rx_80211_header->frame_control_2) & MAC_FRAME_CTRL2_FLAG_POWER_MGMT){
-				station_info->flags |= STATION_INFO_FLAG_DOZE;
+				station_info->ps_state |= STATION_INFO_PS_STATE_DOZE;
 			} else {
-				station_info->flags &= ~STATION_INFO_FLAG_DOZE;
+				station_info->ps_state &= ~STATION_INFO_PS_STATE_DOZE;
 				poll_tx_queues();
 			}
 
@@ -1683,9 +1683,9 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 
 							// Zero the HT_CAPABLE flag
 							if(sta_is_ht_capable){
-								station_info->flags |= STATION_INFO_FLAG_HT_CAPABLE;
+								station_info->capabilities |= STATION_INFO_CAPABILITIES_HT_CAPABLE;
 							} else {
-								station_info->flags &= ~STATION_INFO_FLAG_HT_CAPABLE;
+								station_info->capabilities &= ~STATION_INFO_CAPABILITIES_HT_CAPABLE;
 							}
 
 							//
