@@ -320,7 +320,7 @@ class WarpNode(object):
     # -------------------------------------------------------------------------
     # Transmit / Receive methods for the Node
     # -------------------------------------------------------------------------
-    def send_cmd(self, cmd, max_attempts=1, max_req_size=None, timeout=None): #POM
+    def send_cmd(self, cmd, max_attempts=2, max_req_size=None, timeout=None):
         """Send the provided command.
         
         Args:
