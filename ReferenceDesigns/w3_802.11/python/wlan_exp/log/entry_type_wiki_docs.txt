@@ -1,6 +1,5 @@
 == wlan_exp v1.7.0   Log Entry Types ==
 
-
 ----
 
 === Entry Type NODE_INFO ===
@@ -65,7 +64,7 @@ platform_id
 uint32
 }}}
 {{{#!td align=left
-Platform ID; always 3 for WARP v3
+WARP hardware generation; always 3 for WARP v3
 }}}
 |----------------
 {{{#!td align=left
@@ -264,26 +263,6 @@ uint64
 }}}
 {{{#!td align=left
 Value of MAC Time in microseconds when log entry created
-}}}
-|----------------
-{{{#!td align=left
-node_id
-}}}
-{{{#!td align=center
-uint32
-}}}
-{{{#!td align=left
-wlan_exp node ID
-}}}
-|----------------
-{{{#!td align=left
-serial_num
-}}}
-{{{#!td align=center
-uint32
-}}}
-{{{#!td align=left
-Node serial number
 }}}
 |----------------
 {{{#!td align=left
@@ -590,23 +569,23 @@ uint8
 }}}
 |----------------
 {{{#!td align=left
-rf_gain
+rx_gain_index
 }}}
 {{{#!td align=center
 uint8
 }}}
 {{{#!td align=left
-AGC RF gain setting: ![1,2,3] for ![0,15,30]dB gain
+Radio Rx gain index; larger values mean larger Rx gains, mapping to absolute dB is radio-dependent
 }}}
 |----------------
 {{{#!td align=left
-bb_gain
+padding2
 }}}
 {{{#!td align=center
 uint8
 }}}
 {{{#!td align=left
-AGC BB gain setting: ![0:31] for approx ![0:63]dB gain
+
 }}}
 |----------------
 {{{#!td align=left
@@ -900,23 +879,23 @@ uint8
 }}}
 |----------------
 {{{#!td align=left
-rf_gain
+rx_gain_index
 }}}
 {{{#!td align=center
 uint8
 }}}
 {{{#!td align=left
-AGC RF gain setting: ![1,2,3] for ![0,15,30]dB gain
+Radio Rx gain index; larger values mean larger Rx gains, mapping to absolute dB is radio-dependent
 }}}
 |----------------
 {{{#!td align=left
-bb_gain
+padding2
 }}}
 {{{#!td align=center
 uint8
 }}}
 {{{#!td align=left
-AGC BB gain setting: ![0:31] for approx ![0:63]dB gain
+
 }}}
 |----------------
 {{{#!td align=left
@@ -1232,23 +1211,23 @@ uint8
 }}}
 |----------------
 {{{#!td align=left
-rf_gain
+rx_gain_index
 }}}
 {{{#!td align=center
 uint8
 }}}
 {{{#!td align=left
-AGC RF gain setting: ![1,2,3] for ![0,15,30]dB gain
+Radio Rx gain index; larger values mean larger Rx gains, mapping to absolute dB is radio-dependent
 }}}
 |----------------
 {{{#!td align=left
-bb_gain
+padding2
 }}}
 {{{#!td align=center
 uint8
 }}}
 {{{#!td align=left
-AGC BB gain setting: ![0:31] for approx ![0:63]dB gain
+
 }}}
 |----------------
 {{{#!td align=left
@@ -1983,7 +1962,7 @@ num_slots
 int16
 }}}
 {{{#!td align=left
-Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0); A value of -1 in this field means no backoff occured
+Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (attempt_number==1); A value of -1 in this field means no backoff occured
 }}}
 |----------------
 {{{#!td align=left
@@ -2067,13 +2046,13 @@ PHY Sampling Rate Mode
 }}}
 |----------------
 {{{#!td align=left
-tx_count
+attempt_number
 }}}
 {{{#!td align=center
 uint16
 }}}
 {{{#!td align=left
-Transmission index for this attempt, starting at 0 (0 = first Tx)
+Transmission index for this attempt, starting at 1 (1 = first Tx)
 }}}
 |----------------
 {{{#!td align=left
@@ -2291,7 +2270,7 @@ num_slots
 int16
 }}}
 {{{#!td align=left
-Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (tx_count==0); A value of -1 in this field means no backoff occured
+Number of backoff slots allotted prior to this transmission; may not have been used for initial Tx (attempt_number==1); A value of -1 in this field means no backoff occured
 }}}
 |----------------
 {{{#!td align=left
@@ -2375,13 +2354,13 @@ PHY Sampling Rate Mode
 }}}
 |----------------
 {{{#!td align=left
-tx_count
+attempt_number
 }}}
 {{{#!td align=center
 uint16
 }}}
 {{{#!td align=left
-Transmission index for this attempt, starting at 0 (0 = first Tx)
+Transmission index for this attempt, starting at 1 (1 = first Tx)
 }}}
 |----------------
 {{{#!td align=left
