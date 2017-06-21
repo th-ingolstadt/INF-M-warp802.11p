@@ -129,6 +129,10 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
      *  Tx/Rx events and clearing old MAC state that may remain from a previous boot
      **********************************************************************************/
     wlan_phy_init();
+
+    // Set a default physical CS threshold of -62dBm (18.3.10.6)
+    wlan_platform_set_phy_cs_thresh(-62);
+
     wlan_mac_hw_init();
 
 
