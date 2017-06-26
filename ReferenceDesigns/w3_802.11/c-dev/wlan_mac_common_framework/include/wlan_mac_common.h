@@ -234,6 +234,7 @@ typedef struct time_hr_min_sec_t{
 
 /*************************** Function Prototypes *****************************/
 
+void 					wlan_mac_common_malloc_init();
 int                     wlan_null_callback(void * param);
 int                     wlan_verify_channel(u32 channel);
 void                    init_mac_hw_info();

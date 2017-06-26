@@ -27,6 +27,10 @@
 
 /*********************** Global Variable Definitions *************************/
 
+extern int					__malloc_sbrk_base;				///< Internal malloc variable in .data
+extern int					__malloc_trim_threshold; 		///< Internal malloc variable in .data
+extern int					__malloc_av_;					///< Internal malloc variable in .data
+
 
 /*************************** Variable Definitions ****************************/
 
@@ -37,6 +41,52 @@ static wlan_mac_hw_info_t         mac_hw_info;
 
 
 /******************************** Functions **********************************/
+
+/**
+ * @brief Initialize Malloc
+ *
+ * Dynamic memory allocation through malloc uses metadata in the data section
+ * of the elf binary. This metadata is not reset upon software reset (i.e., when a
+ * user presses the reset button on the hardware). This will cause failures on
+ * subsequent boots because this metadata has not be reset back to its original
+ * state at the first boot.
+ *
+ * This function explicitly overwrites the relevant pieces of the data section
+ * with a good default state for malloc. The initial values of the variables
+ * __malloc_sbrk_base, __malloc_trim_threshold, and __malloc_av__ can be found
+ * here: https://github.com/Xilinx/newlib/blob/xsdk_14.4/newlib/libc/stdlib/mallocr.c
+ *
+ * @param None
+ * @return None
+ *
+ * @note This function should be the first thing called after boot. If it is
+ * called after other parts have the code have started dynamic memory access,
+ * there will be unpredictable results on software reset.
+ */
+void wlan_mac_common_malloc_init(){
+	u32  i, val;
+	u32* malloc_sbrk_base_ptr;
+	u32* malloc_trim_threshold_ptr;
+	u32* malloc_av_ptr;
+
+	malloc_sbrk_base_ptr      = (u32*)&__malloc_sbrk_base;
+	malloc_trim_threshold_ptr = (u32*)&__malloc_trim_threshold;
+	malloc_av_ptr 			  = (u32*)&__malloc_av_;
+
+	malloc_sbrk_base_ptr[0] = 0xFFFFFFFF;
+
+	malloc_trim_threshold_ptr[0] = 0x00020000;
+
+	malloc_av_ptr[0] = 0;
+	malloc_av_ptr[1] = 0;
+
+	val = 0;
+	for(i=2; i<258; i+=2){
+		malloc_av_ptr[i]   = (u32)((char*)(&malloc_av_ptr[2*val+2])) - 2*sizeof(size_t);
+		malloc_av_ptr[i+1] = malloc_av_ptr[i];
+		val++;
+	}
+}
 
 
 /*****************************************************************************/

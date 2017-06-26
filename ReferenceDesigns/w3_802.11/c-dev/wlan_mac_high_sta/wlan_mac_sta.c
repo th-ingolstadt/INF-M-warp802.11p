@@ -57,7 +57,7 @@
 #define  WLAN_EXP_ETH                            TRANSPORT_ETH_B
 
 
-#define  WLAN_DEFAULT_CHANNEL                     1
+#define  WLAN_DEFAULT_CHANNEL                     6
 #define  WLAN_DEFAULT_TX_PWR                      15
 #define  WLAN_DEFAULT_TX_ANTENNA                  TX_ANTMODE_SISO_ANTA
 #define  WLAN_DEFAULT_RX_ANTENNA                  RX_ANTMODE_SISO_ANTA
@@ -134,7 +134,7 @@ int main() {
 	strncpy(compilation_details.compilation_date, __DATE__, 12);
 	strncpy(compilation_details.compilation_time, __TIME__, 9);
 
-	wlan_mac_high_malloc_init();
+	wlan_mac_common_malloc_init();
 
 	// Initialize the maximum TX queue size
 	max_queue_size = MAX_TX_QUEUE_LEN;

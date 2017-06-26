@@ -154,7 +154,7 @@ int main() {
 	strncpy(compilation_details.compilation_date, __DATE__, 12);
 	strncpy(compilation_details.compilation_time, __TIME__, 9);
 
-	wlan_mac_high_malloc_init();
+	wlan_mac_common_malloc_init();
 
 	// Initialize the maximum TX queue size
 	max_queue_size = MAX_TX_QUEUE_LEN;
