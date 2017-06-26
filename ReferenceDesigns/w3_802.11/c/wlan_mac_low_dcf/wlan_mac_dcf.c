@@ -115,6 +115,8 @@ int main(){
     xil_printf("This switch can be toggled any time while the design is running.\n\n");
     xil_printf("------------------------\n");
 
+    wlan_mac_common_malloc_init();
+
     gl_long_mpdu_pkt_buf = PKT_BUF_INVALID;
     gl_waiting_for_response = 0;
 

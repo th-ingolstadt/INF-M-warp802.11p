@@ -83,6 +83,8 @@ int main(){
     xil_printf("This switch can be toggled live while the design is running.\n\n");
     xil_printf("------------------------\n");
 
+    wlan_mac_common_malloc_init();
+
     // Initialize the Low Framework
     wlan_mac_low_init(WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW, compilation_details);
 

@@ -150,7 +150,7 @@ int main(){
 	//    The heap must be initialized before any use of malloc. This explicit
 	//    init handles the case of soft-reset of the MicroBlaze leaving stale
 	//    values in the heap RAM
-	wlan_mac_high_malloc_init();
+	wlan_mac_common_malloc_init();
 
 	//Initialize the MAC framework
 	wlan_mac_high_init();
