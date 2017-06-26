@@ -39,6 +39,7 @@
 #include "w3_phy_util.h"
 
 static channel_band_t gl_current_band;
+static int gl_safe_cs_thresh;
 
 /*****************************************************************************
  * Public functions - the functions below are exported to the low framework
@@ -101,6 +102,9 @@ int wlan_platform_low_init() {
 
 	w3_radio_init();
 	w3_agc_init();
+
+	wlan_platform_set_phy_cs_thresh(0); //Call once so we know the global gets set. This will be overwritten when the Low Framework
+										//finishes booting
 
 	return 0;
 }
@@ -341,6 +345,7 @@ int wlan_platform_low_set_samp_rate(phy_samp_rate_t phy_samp_rate) {
  *
  */
 int wlan_platform_low_set_radio_channel(u32 channel) {
+	channel_band_t prev_band = gl_current_band;
 
 	if(channel <= 14) {
 		// 2.4GHz channel
@@ -352,6 +357,10 @@ int wlan_platform_low_set_radio_channel(u32 channel) {
 		gl_current_band = BAND_5GHZ;
 	}
 
+	if(prev_band != gl_current_band){
+		//Update the CS thresh since the RSSI <-> Rx Power mapping as changed
+		wlan_platform_set_phy_cs_thresh(gl_safe_cs_thresh);
+	}
 
 	return 0;
 }
@@ -980,7 +989,6 @@ int wlan_platform_get_rx_pkt_pwr(u8 ant) {
 }
 
 void wlan_platform_set_phy_cs_thresh(int power_thresh) {
-	int safe_thresh;
 
 	if(power_thresh == 0xFFFF) {
 		// 0xFFFF means disable physical CS
@@ -989,14 +997,14 @@ void wlan_platform_set_phy_cs_thresh(int power_thresh) {
 	}
 
 	if(power_thresh < -95) {
-		safe_thresh = -95;
+		gl_safe_cs_thresh = -95;
 	} else if(power_thresh > -25) {
-		safe_thresh = -25;
+		gl_safe_cs_thresh = -25;
 	} else {
-		safe_thresh = power_thresh;
+		gl_safe_cs_thresh = power_thresh;
 	}
 
-	wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * w3_rx_power_to_rssi(safe_thresh, gl_current_band));
+	wlan_phy_rx_set_cca_thresh(PHY_RX_RSSI_SUM_LEN * w3_rx_power_to_rssi(gl_safe_cs_thresh, gl_current_band));
 
 	return;
 }
