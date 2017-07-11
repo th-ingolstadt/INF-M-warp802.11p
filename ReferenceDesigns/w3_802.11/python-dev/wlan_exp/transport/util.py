@@ -200,7 +200,19 @@ def reset_network_inf_all_nodes(network_config):
 # -----------------------------------------------------------------------------
 # Misc Utilities
 # -----------------------------------------------------------------------------
-def get_serial_number(serial_number, output=True):
+def get_serial_number(serial_number):
+    """Get the numeric part of the provided serial number via the wlan_exp.platform subsystem
+    This is a temporary method that re-implements the API of the old util.get_serial_number()
+
+    Soon both methods will go away once the better wlan_exp platform structure is ready   
+    """
+
+    import wlan_exp.platform
+    import wlan_exp_platform_w3
+
+    return wlan_exp.platform.get_serial_number(serial_number)
+
+def OLD_get_serial_number(serial_number, output=True):
     """Check / convert the provided serial number to a compatible format.
     
     Acceptable inputs:
