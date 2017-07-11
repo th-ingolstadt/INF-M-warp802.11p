@@ -34,15 +34,10 @@ class WlanExpPlatform(object):
         Platforms can override this method if they need something more than 
          the regexp check implemented here
         """
-        import re
-
-        expr = re.compile(self.sn_regexp)
-        m = expr.match(sn_str)
-
-        if('sn' in m.groupdict()):
+        if(self.get_serial_number(sn_str)):
             return True
-
-        return False
+        else:
+            return False
 
     def get_serial_number(self, sn_str):
         """
@@ -55,7 +50,7 @@ class WlanExpPlatform(object):
         expr = re.compile(self.sn_regexp)
         m = expr.match(sn_str)
 
-        if('sn' in m.groupdict()):
+        if(m and 'sn' in m.groupdict()):
             # Returns tuple (a,b)
             #  a: serial number int
             #  b: serial number string in preferred format
