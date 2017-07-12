@@ -32,9 +32,9 @@
 
 int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_header_80211_common* common, network_info_t* network_info) {
 
-	ht_capabilities* 	ht_capabilities_element;
-	ht_information* 	ht_information_element;
-	wmm_parameter_t*	wmm_parameter;
+	ht_capabilities* ht_capabilities_element;
+	ht_information* ht_information_element;
+	wmm_parameter_t* wmm_parameter;
 
 	//void* pkt_buf,mac_header_80211_common* common, u16 beacon_interval, u16 capabilities, u8 ssid_len, u8* ssid, u8 chan
 
@@ -160,7 +160,7 @@ int wlan_create_beacon_probe_resp_frame(u8 frame_control_1, void* pkt_buf, mac_h
 int wlan_create_probe_req_frame(void* pkt_buf, mac_header_80211_common* common, char* ssid){
 	u32 packetLen_bytes;
 	u8* txBufferPtr_u8;
-	u8  real_ssid_len = min(strlen(ssid), SSID_LEN_MAX);
+	u8 real_ssid_len = min(strlen(ssid), SSID_LEN_MAX);
 
 	txBufferPtr_u8 = (u8*)pkt_buf;
 

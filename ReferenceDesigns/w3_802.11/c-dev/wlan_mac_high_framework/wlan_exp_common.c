@@ -53,19 +53,19 @@
 * Debug Printing Functions
 *
 ******************************************************************************/
-u8       wlan_exp_print_level     = WLAN_EXP_DEFAULT_DEBUG_PRINT_LEVEL;
-const char   * print_type_node          = "NODE";
-const char   * print_type_transport     = "TRANSPORT";
-const char   * print_type_event_log     = "EVENT LOG";
-const char   * print_type_counts        = "COUNTS";
-const char   * print_type_ltg           = "LTG";
-const char   * print_type_queue         = "QUEUE";
+u8 wlan_exp_print_level = WLAN_EXP_DEFAULT_DEBUG_PRINT_LEVEL;
+const char* print_type_node = "NODE";
+const char* print_type_transport = "TRANSPORT";
+const char* print_type_event_log = "EVENT LOG";
+const char* print_type_counts = "COUNTS";
+const char* print_type_ltg = "LTG";
+const char* print_type_queue = "QUEUE";
 
-extern platform_high_dev_info_t	 platform_high_dev_info;
+extern platform_high_dev_info_t platform_high_dev_info;
 
 
-void wlan_exp_print_header(u8 level, const char * type, char* filename, u32 line) {
-    char * basename = NULL;
+void wlan_exp_print_header(u8 level, const char* type, char* filename, u32 line) {
+    char* basename = NULL;
 
     if (type != NULL) {
         xil_printf("%s", type);
@@ -93,7 +93,7 @@ void wlan_exp_print_header(u8 level, const char * type, char* filename, u32 line
 }
 
 
-void print_mac_address(u8 * mac_address) {
+void print_mac_address(u8* mac_address) {
     u32 i;
 
     xil_printf("%02x", mac_address[0]);
@@ -105,7 +105,7 @@ void print_mac_address(u8 * mac_address) {
 
 
 
-void wlan_exp_print_mac_address(u8 level, u8 * mac_address) {    
+void wlan_exp_print_mac_address(u8 level, u8* mac_address) {    
     if (level <= wlan_exp_print_level) {
         print_mac_address(mac_address);
     }
@@ -163,7 +163,7 @@ int wlan_exp_null_callback(void* param){
  * @note     None.
  *
  ****************************************************************************/
-void wlan_exp_get_mac_addr(u32 * src, u8 * dest) {
+void wlan_exp_get_mac_addr(u32* src, u8* dest) {
 
     dest[0] = (src[0] >> 16) & 0xFF;
     dest[1] = (src[0] >> 24) & 0xFF;
@@ -175,7 +175,7 @@ void wlan_exp_get_mac_addr(u32 * src, u8 * dest) {
 }
 
 
-void wlan_exp_put_mac_addr(u8 * src, u32 * dest) {
+void wlan_exp_put_mac_addr(u8* src, u32* dest) {
 
     dest[0] = (src[1] << 24) + (src[0] << 16);
     dest[1] = (src[5] << 24) + (src[4] << 16) + (src[3] <<  8) + (src[2] <<  0);
@@ -199,16 +199,16 @@ void wlan_exp_put_mac_addr(u8 * src, u32 * dest) {
  *             maintain the same order    
  *
  ***********************    **********************    ***********    ******************/
-int  wlan_exp_init_parameters(wlan_exp_tag_parameter * parameters, u8 group, u32 num_parameters, u32 * values, u16 * lengths) {
+int  wlan_exp_init_parameters(wlan_exp_tag_parameter* parameters, u8 group, u32 num_parameters, u32* values, u16* lengths) {
 
-    u32                      i;
-    u32                      offset;
-    u32                      size;
-    wlan_exp_tag_parameter * temp_param;
+    u32 i;
+    u32 offset;
+    u32 size;
+    wlan_exp_tag_parameter* temp_param;
 
     // Initialize variables
     offset = 0;
-    size   = sizeof(wlan_exp_tag_parameter);
+    size = sizeof(wlan_exp_tag_parameter);
 
     for(i = 0; i < num_parameters; i++) {
 
@@ -217,13 +217,13 @@ int  wlan_exp_init_parameters(wlan_exp_tag_parameter * parameters, u8 group, u32
 
         // Set parameter values
         temp_param->reserved = 0xFF;
-        temp_param->group    = group;
-        temp_param->length   = lengths[i];
-        temp_param->command  = i;
-        temp_param->value    = &values[offset];
+        temp_param->group = group;
+        temp_param->length = lengths[i];
+        temp_param->command = i;
+        temp_param->value = &values[offset];
 
         // Increment offset so that we get the correct index in to info structure
-        offset    += temp_param->length;
+        offset += temp_param->length;
     }
 
     return ((size * i) + (offset * 4)) ;
@@ -252,7 +252,7 @@ int  wlan_exp_init_parameters(wlan_exp_tag_parameter * parameters, u8 group, u32
  * @note    The tag parameters must be initialize     before this function is called.
  *
  **************************************************************************    **/
-int  wlan_exp_get_parameters(wlan_exp_tag_parameter * parameters, u32 num_parameters, u32 * buffer, u32 max_resp_len, u8 values_only, u8 transmit) {
+int  wlan_exp_get_parameters(wlan_exp_tag_parameter* parameters, u32 num_parameters, u32* buffer, u32 max_resp_len, u8 values_only, u8 transmit) {
 
     u32 i, j;
     u32 num_total_words;
@@ -341,7 +341,7 @@ int  wlan_exp_get_parameters(wlan_exp_tag_parameter * parameters, u32 num_parame
 * @note        None.
 *
 ******************************************************************************/
-void print_wlan_exp_parameters(wlan_exp_tag_parameter *param, int num_params) {
+void print_wlan_exp_parameters(wlan_exp_tag_parameter* param, int num_params) {
 
     int i, j;
 

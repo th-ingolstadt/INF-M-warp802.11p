@@ -27,14 +27,14 @@
 
 /*********************** Global Variable Definitions *************************/
 
-extern int					__malloc_sbrk_base;				///< Internal malloc variable in .data
-extern int					__malloc_trim_threshold; 		///< Internal malloc variable in .data
-extern int					__malloc_av_;					///< Internal malloc variable in .data
+extern int __malloc_sbrk_base; ///< Internal malloc variable in .data
+extern int __malloc_trim_threshold; ///< Internal malloc variable in .data
+extern int __malloc_av_; ///< Internal malloc variable in .data
 
 
 /*************************** Variable Definitions ****************************/
 
-static wlan_mac_hw_info_t         mac_hw_info;
+static wlan_mac_hw_info_t mac_hw_info;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -69,9 +69,9 @@ void wlan_mac_common_malloc_init(){
 	u32* malloc_trim_threshold_ptr;
 	u32* malloc_av_ptr;
 
-	malloc_sbrk_base_ptr      = (u32*)&__malloc_sbrk_base;
+	malloc_sbrk_base_ptr = (u32*)&__malloc_sbrk_base;
 	malloc_trim_threshold_ptr = (u32*)&__malloc_trim_threshold;
-	malloc_av_ptr 			  = (u32*)&__malloc_av_;
+	malloc_av_ptr = (u32*)&__malloc_av_;
 
 	malloc_sbrk_base_ptr[0] = 0xFFFFFFFF;
 
@@ -82,7 +82,7 @@ void wlan_mac_common_malloc_init(){
 
 	val = 0;
 	for(i=2; i<258; i+=2){
-		malloc_av_ptr[i]   = (u32)((char*)(&malloc_av_ptr[2*val+2])) - 2*sizeof(size_t);
+		malloc_av_ptr[i] = (u32)((char*)(&malloc_av_ptr[2*val+2])) - 2*sizeof(size_t);
 		malloc_av_ptr[i+1] = malloc_av_ptr[i];
 		val++;
 	}

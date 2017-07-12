@@ -47,23 +47,18 @@
 
 
 /*************************** Constant Definitions ****************************/
-#define  WLAN_EXP_ETH                            TRANSPORT_ETH_B
+#define WLAN_EXP_ETH TRANSPORT_ETH_B
 
-#define  WLAN_DEFAULT_BSS_CONFIG_CHANNEL   	                    1
-#define  WLAN_DEFAULT_BSS_CONFIG_DTIM_PERIOD                    2
-#define  WLAN_DEFAULT_BSS_CONFIG_BEACON_INTERVAL      			100
+#define WLAN_DEFAULT_BSS_CONFIG_CHANNEL 1
+#define WLAN_DEFAULT_BSS_CONFIG_DTIM_PERIOD 2
+#define WLAN_DEFAULT_BSS_CONFIG_BEACON_INTERVAL 100
 // The WLAN_DEFAULT_BSS_CONFIG_HT_CAPABLE define will set the default
 // unicast TX phy mode to:  1 --> HTMF  or  0 --> NONHT.
-#define  WLAN_DEFAULT_BSS_CONFIG_HT_CAPABLE                     1
+#define WLAN_DEFAULT_BSS_CONFIG_HT_CAPABLE 1
 
-#define  WLAN_DEFAULT_TX_PWR                     15
-#define  WLAN_DEFAULT_TX_ANTENNA                 TX_ANTMODE_SISO_ANTA
-#define  WLAN_DEFAULT_RX_ANTENNA                 RX_ANTMODE_SISO_ANTA
-
-
-
-
-
+#define WLAN_DEFAULT_TX_PWR 15
+#define WLAN_DEFAULT_TX_ANTENNA TX_ANTMODE_SISO_ANTA
+#define WLAN_DEFAULT_RX_ANTENNA RX_ANTMODE_SISO_ANTA
 
 
 /*********************** Global Variable Definitions *************************/
@@ -75,7 +70,7 @@
 static char default_AP_SSID[] = "MANGO-AP";
 
 // Common TX header for 802.11 packets
-static mac_header_80211_common    tx_header_common;
+static mac_header_80211_common tx_header_common;
 
 // "active_network_info" is a pointer to the network_info that describes this AP.
 // Inside this structure is a dl_list of members. This is a list
@@ -87,33 +82,33 @@ static mac_header_80211_common    tx_header_common;
 // station_info that represent stations in State 2
 // (Authenticated, Unassociated). Only members of this list will be allowed
 // to elevate to State 4 in the active_bss_info.
-network_info_t*	              	  active_network_info;
+network_info_t* active_network_info;
 
-dl_list		                      authenticated_unassociated_stations;
+dl_list authenticated_unassociated_stations;
 
 // Tx queue variables;
-static u32                        max_queue_size;
-volatile u8                       pause_data_queue;
+static u32 max_queue_size;
+volatile u8 pause_data_queue;
 
 // MAC address
-static u8 	                      wlan_mac_addr[MAC_ADDR_LEN];
+static u8 wlan_mac_addr[MAC_ADDR_LEN];
 
 // Traffic Indication Map (TIM) State
 // These global structs must be protected against externing. Any
 // modifications of these structs should be done via an explicit
 // setter that also updates the beacon template.
-static volatile mgmt_tag_template_t*	mgmt_tag_tim_template;
-static volatile u32				  		mgmt_tag_tim_update_schedule_id;
+static volatile mgmt_tag_template_t* mgmt_tag_tim_template;
+static volatile u32 mgmt_tag_tim_update_schedule_id;
 
 // Beacon configuration
-static beacon_txrx_config_t         gl_beacon_txrx_config;
+static beacon_txrx_config_t gl_beacon_txrx_config;
 
 // DTIM Multicast Buffer
-u8 									   gl_dtim_mcast_buffer_enable;	   // Enable buffering of multicast packets until after DTIM transmission
-u8									   gl_cpu_low_supports_dtim_mcast;
+u8 gl_dtim_mcast_buffer_enable; // Enable buffering of multicast packets until after DTIM transmission
+u8 gl_cpu_low_supports_dtim_mcast;
 
 // Common Platform Device Info
-platform_common_dev_info_t	 platform_common_dev_info;
+platform_common_dev_info_t platform_common_dev_info;
 
 /*************************** Functions Prototypes ****************************/
 
@@ -418,12 +413,12 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
 	//be modified if DTIM mcast buffering is currently disabled. Otherwise,
 	//CPU_LOW will maintain this bit.
 
-	u32 				existing_mgmt_tag_length 	= 0;	// Size of the management tag that is currently in the packet buffer
-	u8                  tim_control					= 0;
-	u16 				tim_byte_idx           		= 0;
-	u8					tim_bit_idx            		= 0;
-	u8 					bit_val 					= (bit_val_in & 1);
-	tx_frame_info_t*  	tx_frame_info 				= (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_BEACON);
+	u32 existing_mgmt_tag_length = 0; // Size of the management tag that is currently in the packet buffer
+	u8 tim_control = 0;
+	u16 tim_byte_idx = 0;
+	u8 tim_bit_idx = 0;
+	u8 bit_val = (bit_val_in & 1);
+	tx_frame_info_t* tx_frame_info = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_BEACON);
 
 	if(active_network_info == NULL) return;
 	if( ((aid==0) && (gl_dtim_mcast_buffer_enable == 1)) ) return;
@@ -512,17 +507,17 @@ inline void update_tim_tag_aid(u8 aid, u8 bit_val_in){
  *****************************************************************************/
 void update_tim_tag_all(u32 sched_id){
 
-	tx_frame_info_t*  	tx_frame_info 				= (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_BEACON);
-	u32 				existing_mgmt_tag_length 	= 0;	// Size of the management tag that is currently in the packet buffer
-	u32					next_mgmt_tag_length		= 0;	// Size that we will update the management tag to be.
+	tx_frame_info_t* tx_frame_info = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_BEACON);
+	u32 existing_mgmt_tag_length = 0; // Size of the management tag that is currently in the packet buffer
+	u32 next_mgmt_tag_length = 0; // Size that we will update the management tag to be.
 															// Note: a third size we have to track is present in the global mgmt_tag_tim
 	station_info_entry_t* curr_station_entry;
-	station_info_t*		station_info;
-	u8                  tim_control;
-	u32 				i;
-	u16 				tim_byte_idx           		= 0;
-	u16 				tim_next_byte_idx      		= 0;
-	u8					tim_bit_idx            		= 0;
+	station_info_t* station_info;
+	u8 tim_control;
+	u32 i;
+	u16 tim_byte_idx = 0;
+	u16 tim_next_byte_idx = 0;
+	u8 tim_bit_idx = 0;
 
 	if(active_network_info == NULL) return;
 	if(sched_id == SCHEDULE_ID_RESERVED_MAX){
@@ -666,7 +661,7 @@ typedef enum queue_group_t{
 
 void poll_tx_queues(){
 	interrupt_state_t curr_interrupt_state;
-	dl_entry*	tx_queue_buffer_entry;
+	dl_entry* tx_queue_buffer_entry;
 	u32 i;
 
 	int num_pkt_bufs_avail;
@@ -828,7 +823,7 @@ void purge_all_data_tx_queue(){
 
 	if(active_network_info == NULL) return;
 
-	int			  iter = active_network_info->members.length;
+	int iter = active_network_info->members.length;
 
 	// Purge all data transmit queues
 	purge_queue(MCAST_QID);                                    		// Broadcast Queue
@@ -1107,12 +1102,12 @@ int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src,
  *****************************************************************************/
 void remove_inactive_station_infos() {
 
-	u32                 aid;
-	u64                 time_since_last_activity;
-	station_info_t*     curr_station_info;
-	dl_entry*           curr_station_info_entry;
-	dl_entry*           next_station_info_entry;
-	time_hr_min_sec_t	time_hr_min_sec;
+	u32 aid;
+	u64 time_since_last_activity;
+	station_info_t* curr_station_info;
+	dl_entry* curr_station_info_entry;
+	dl_entry* next_station_info_entry;
+	time_hr_min_sec_t time_hr_min_sec;
 
 	if(active_network_info == NULL) return;
 
@@ -1122,7 +1117,7 @@ void remove_inactive_station_infos() {
 		curr_station_info_entry = next_station_info_entry;
 		next_station_info_entry = dl_entry_next(curr_station_info_entry);
 
-		curr_station_info        = (station_info_t*)(curr_station_info_entry->data);
+		curr_station_info = (station_info_t*)(curr_station_info_entry->data);
 		time_since_last_activity = (get_system_time_usec() - curr_station_info->latest_rx_timestamp);
 
 		// De-authenticate the station if we have timed out and we have not disabled this check for the station
@@ -1142,7 +1137,7 @@ void remove_inactive_station_infos() {
 		curr_station_info_entry = next_station_info_entry;
 		next_station_info_entry = dl_entry_next(curr_station_info_entry);
 
-		curr_station_info        = (station_info_t*)(curr_station_info_entry->data);
+		curr_station_info = (station_info_t*)(curr_station_info_entry->data);
 		time_since_last_activity = (get_system_time_usec() - curr_station_info->latest_rx_timestamp);
 
 		// De-authenticate the station if we have timed out and we have not disabled this check for the station
@@ -1184,38 +1179,38 @@ void remove_inactive_station_infos() {
  *****************************************************************************/
 u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_entry* rx_event_log_entry) {
 
-	rx_frame_info_t*    		rx_frame_info            = (rx_frame_info_t*)pkt_buf_addr;
-	void*               		mac_payload              = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
-	u8*                 		mac_payload_ptr_u8       = (u8*)mac_payload;
-	mac_header_80211*   		rx_80211_header          = (mac_header_80211*)((void *)mac_payload_ptr_u8);
+	rx_frame_info_t* rx_frame_info = (rx_frame_info_t*)pkt_buf_addr;
+	void* mac_payload = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
+	u8* mac_payload_ptr_u8 = (u8*)mac_payload;
+	mac_header_80211* rx_80211_header = (mac_header_80211*)((void *)mac_payload_ptr_u8);
 
-	u8                  		send_response            = 0;
-	u16                 		tx_length;
-	u16                 		rx_seq;
-	dl_entry* 		curr_tx_queue_element;
-	tx_queue_buffer_t*  		curr_tx_queue_buffer;
-	char                		ssid[SSID_LEN_MAX];
-	u8                  		ssid_length				  = 0;
-	u8							sta_is_ht_capable		  = 0;
-	u8							sta_is_associated		  = 0;
-	u8							sta_is_authenticated	  = 0;
+	u8 send_response = 0;
+	u16 tx_length;
+	u16 rx_seq;
+	dl_entry* curr_tx_queue_element;
+	tx_queue_buffer_t* curr_tx_queue_buffer;
+	char ssid[SSID_LEN_MAX];
+	u8 ssid_length = 0;
+	u8 sta_is_ht_capable = 0;
+	u8 sta_is_associated = 0;
+	u8 sta_is_authenticated = 0;
 
-	station_info_entry_t*   	associated_station_entry  = NULL;
-	station_info_t*				associated_station		  = NULL;
-	station_info_t*				auth_unassoc_station_info = NULL;
+	station_info_entry_t* associated_station_entry = NULL;
+	station_info_t* associated_station = NULL;
+	station_info_t* auth_unassoc_station_info = NULL;
 
-	u8                  		unicast_to_me;
-	u8                  		to_multicast;
-	u8                  		eth_send;
-	u8                  		allow_auth               = 0;
+	u8 unicast_to_me;
+	u8 to_multicast;
+	u8 eth_send;
+	u8 allow_auth = 0;
 
-	time_hr_min_sec_t			time_hr_min_sec;
+	time_hr_min_sec_t time_hr_min_sec;
 
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
-	u8							pre_llc_offset			 = 0;
+	u8 pre_llc_offset = 0;
 #endif
-	u16 						length  				 = rx_frame_info->phy_details.length;
-	u32							return_val				 = 0;
+	u16 length = rx_frame_info->phy_details.length;
+	u32 return_val = 0;
 
 	// Set the additional info field to NULL
 	rx_frame_info->additional_info = (u32)NULL;
@@ -1813,7 +1808,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
  *
  *****************************************************************************/
 void mpdu_dequeue(tx_queue_buffer_t* tx_queue_buffer){
-	mac_header_80211* 	header;
+	mac_header_80211* header;
 	station_info_t* station_info;
 
 	header = (mac_header_80211*)(tx_queue_buffer->frame);
@@ -1842,10 +1837,10 @@ void mpdu_dequeue(tx_queue_buffer_t* tx_queue_buffer){
  *****************************************************************************/
 u32  deauthenticate_station( station_info_t* station_info ) {
 
-	dl_entry*		curr_tx_queue_element;
-	tx_queue_buffer_t* 		curr_tx_queue_buffer;
-	u32            tx_length;
-	u32            aid;
+	dl_entry* curr_tx_queue_element;
+	tx_queue_buffer_t* curr_tx_queue_buffer;
+	u32 tx_length;
+	u32 aid;
 	time_hr_min_sec_t time_hr_min_sec;
 
 	if((active_network_info == NULL) || (station_info == NULL)){
@@ -1916,11 +1911,11 @@ u32  deauthenticate_station( station_info_t* station_info ) {
  * @return None
  *****************************************************************************/
 void deauthenticate_all_stations(){
-	interrupt_state_t   curr_interrupt_state;
+	interrupt_state_t curr_interrupt_state;
 	station_info_t*	curr_station_info;
-	dl_entry*		next_station_info_entry;
-	dl_entry*		curr_station_info_entry;
-	int 			iter;
+	dl_entry* next_station_info_entry;
+	dl_entry* curr_station_info_entry;
+	int iter;
 
 	if(active_network_info == NULL) return;
 
@@ -1977,19 +1972,19 @@ void handle_cpu_low_reboot(u32 type){
  *
  *****************************************************************************/
 u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
-	u32					return_status 				= 0;
-	u8					update_beacon_template 		= 0;
-	u8					send_beacon_config_to_low 	= 0;
-	u8					send_channel_switch_to_low	= 0;
+	u32 return_status = 0;
+	u8 update_beacon_template = 0;
+	u8 send_beacon_config_to_low = 0;
+	u8 send_channel_switch_to_low = 0;
 
-	network_info_t*		local_network_info;
-	interrupt_state_t   curr_interrupt_state;
-	station_info_t* 	curr_station_info;
-	dl_entry* 			next_station_info_entry;
-	dl_entry* 			curr_station_info_entry;
-	int					iter;
-	time_hr_min_sec_t	time_hr_min_sec;
-	tx_params_t 		default_beacon_tx_params;
+	network_info_t* local_network_info;
+	interrupt_state_t curr_interrupt_state;
+	station_info_t* curr_station_info;
+	dl_entry* next_station_info_entry;
+	dl_entry* curr_station_info_entry;
+	int iter;
+	time_hr_min_sec_t time_hr_min_sec;
+	tx_params_t default_beacon_tx_params;
 
 	//---------------------------------------------------------
 	// 1. Check for any invalid inputs or combination of inputs
@@ -2401,16 +2396,16 @@ int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
     //     compiler warnings for "unused variables" since the default implementation is empty.  As
     //     you add commands, you should un-comment the standard variables.
     //
-    u32                 resp_sent      = NO_RESP_SENT;
+    u32 resp_sent = NO_RESP_SENT;
 
 #if 0
-    cmd_resp_hdr      * cmd_hdr        = command->header;
-    cmd_resp_hdr      * resp_hdr       = response->header;
+    cmd_resp_hdr* cmd_hdr = command->header;
+    cmd_resp_hdr* resp_hdr = response->header;
 
-    u32               * cmd_args_32    = command->args;
-    u32               * resp_args_32   = response->args;
+    u32* cmd_args_32 = command->args;
+    u32* resp_args_32 = response->args;
 
-    u32                 resp_index     = 0;
+    u32 resp_index     = 0;
 #endif
 
     switch(cmd_id){
@@ -2444,13 +2439,13 @@ int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             //
 
             // Variables for template command
-            int                 status;
-            u32                 arg_0;
-            interrupt_state_t   curr_interrupt_state;
+            int status;
+            u32 arg_0;
+            interrupt_state_t curr_interrupt_state;
 
             // Initialize variables
-            status      = CMD_PARAM_SUCCESS;
-            arg_0       = Xil_Ntohl(cmd_args_32[0]);              // Swap endianness of command argument
+            status = CMD_PARAM_SUCCESS;
+            arg_0 = Xil_Ntohl(cmd_args_32[0]); // Swap endianness of command argument
 
             // Do something with argument(s)
             xil_printf("Command argument 0: 0x%08x\n", arg_0);
@@ -2477,7 +2472,7 @@ int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             //
             resp_args_32[resp_index++] = Xil_Htonl(status);       // Swap endianness of response arguments
 
-            resp_hdr->length  += (resp_index * sizeof(u32));
+            resp_hdr->length += (resp_index * sizeof(u32));
             resp_hdr->num_args = resp_index;
         }
         break;

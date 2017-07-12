@@ -232,15 +232,15 @@ typedef struct transport_eth_dev_info{
 #if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
 
 // Transport functions
-int  transport_init(u32 eth_dev_num, void * node_info, u8 * ip_addr, u8 * hw_addr, u16 unicast_port, u16 broadcast_port);
+int  transport_init(u32 eth_dev_num, void* node_info, u8* ip_addr, u8* hw_addr, u16 unicast_port, u16 broadcast_port);
 
 int  transport_set_process_hton_msg_callback(void(*handler));
 int  process_transport_cmd(int socket_index, void* from, cmd_resp* command, cmd_resp* response, u32 max_resp_len);
 
 void transport_poll(u32 eth_dev_num);
-void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr * from, wlan_exp_ip_udp_buffer * recv_buffer, wlan_exp_ip_udp_buffer * send_buffer);
+void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr* from, wlan_exp_ip_udp_buffer* recv_buffer, wlan_exp_ip_udp_buffer* send_buffer);
 void transport_send(int socket_index, struct sockaddr* to, wlan_exp_ip_udp_buffer** buffers, u32 num_buffers);
-void transport_send_async(u32 eth_dev_num, u8 * payload, u32 length);
+void transport_send_async(u32 eth_dev_num, u8* payload, u32 length);
 void transport_close(u32 eth_dev_num);
 
 int  transport_set_hw_addr(u32 eth_dev_num, u8* hw_addr);

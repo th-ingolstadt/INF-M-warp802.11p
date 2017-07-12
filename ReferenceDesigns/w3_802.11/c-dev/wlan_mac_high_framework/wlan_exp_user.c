@@ -36,7 +36,7 @@
 
 /*********************** Global Variable Definitions *************************/
 
-extern function_ptr_t    wlan_exp_process_user_cmd_callback;
+extern function_ptr_t wlan_exp_process_user_cmd_callback;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -92,24 +92,24 @@ int process_user_cmd(int socket_index, void* from, cmd_resp* command, cmd_resp* 
     //     compiler warnings for "unused variables" since the default implementation is empty.  As
     //     you add commands, you should un-comment the standard variables.
     //
-    u32                 resp_sent      = NO_RESP_SENT;
+    u32 resp_sent = NO_RESP_SENT;
 
-    cmd_resp_hdr      * cmd_hdr        = command->header;
-    cmd_resp_hdr      * resp_hdr       = response->header;
+    cmd_resp_hdr* cmd_hdr = command->header;
+    cmd_resp_hdr* resp_hdr = response->header;
 
 #if 0
-    u32               * cmd_args_32    = command->args;
-    u32               * resp_args_32   = response->args;
+    u32* cmd_args_32 = command->args;
+    u32* resp_args_32 = response->args;
 
-    u32                 resp_index     = 0;
+    u32 resp_index = 0;
 #endif
 
-    u32                 cmd_id         = CMD_TO_CMDID(cmd_hdr->cmd);
+    u32 cmd_id = CMD_TO_CMDID(cmd_hdr->cmd);
 
     // Initialize the response header
-    resp_hdr->cmd       = cmd_hdr->cmd;
-    resp_hdr->length    = 0;
-    resp_hdr->num_args  = 0;
+    resp_hdr->cmd      = cmd_hdr->cmd;
+    resp_hdr->length   = 0;
+    resp_hdr->num_args = 0;
 
     // Process the command
     switch(cmd_id){
@@ -143,13 +143,13 @@ int process_user_cmd(int socket_index, void* from, cmd_resp* command, cmd_resp* 
             //
 
             // Variables for template command
-            int                 status;
-            u32                 arg_0;
-            interrupt_state_t   curr_interrupt_state;
+            int status;
+            u32 arg_0;
+            interrupt_state_t curr_interrupt_state;
 
             // Initialize variables
-            status      = CMD_PARAM_SUCCESS;
-            arg_0       = Xil_Ntohl(cmd_args_32[0]);              // Swap endianness of command argument
+            status = CMD_PARAM_SUCCESS;
+            arg_0 = Xil_Ntohl(cmd_args_32[0]);              // Swap endianness of command argument
 
             // Do something with argument(s)
             xil_printf("Command argument 0: 0x%08x\n", arg_0);

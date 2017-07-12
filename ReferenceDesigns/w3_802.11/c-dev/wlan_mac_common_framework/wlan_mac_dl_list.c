@@ -132,8 +132,8 @@ void dl_entry_insertBefore(dl_list* list, dl_entry* entry, dl_entry* new_entry) 
 void dl_entry_insertBeginning(dl_list* list, dl_entry* new_entry) {
     if (new_entry != NULL) {
         if(list->first == NULL){
-            list->first              = new_entry;
-            list->last               = new_entry;
+            list->first = new_entry;
+            list->last = new_entry;
 
             dl_entry_prev(new_entry) = NULL;
             dl_entry_next(new_entry) = NULL;
