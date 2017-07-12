@@ -398,14 +398,15 @@ class NodesConfiguration(object):
                 add_node = True
 
                 try:
-                    (sn, _) = util.get_serial_number(node_config)
+                    (sn, sn_str) = util.get_serial_number(node_config)
                 except TypeError as err:
                     print(err)
                     add_node = False
 
                 if add_node:
                     node_dict = {
-                        'serial_number': sn,
+                        #'serial_number': sn,
+                        'serial_number': sn_str, #PLATFORM-HACK: keep track of canonical sn string as long as possible
                         'node_id'        : self.get_param_helper(node_config, 'node_id'),
                         'node_name'      : self.get_param_helper(node_config, 'node_name'),
                         'ip_address'     : self.get_param_helper(node_config, 'ip_address'),

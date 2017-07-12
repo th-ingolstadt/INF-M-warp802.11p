@@ -120,7 +120,7 @@ class NodeIdentify(message.Cmd):
         else:
             from . import util
 
-            (sn, sn_str) = util.get_serial_number(serial_number, output=False)
+            (sn, sn_str) = util.get_serial_number(serial_number)
 
         time_factor    = 6             # Time on node is microseconds
         time_to_send   = int(round(CMD_PARAM_NODE_IDENTIFY_BLINK_TIME, time_factor) * (10**time_factor))
@@ -179,7 +179,7 @@ class NodeResetNetwork(message.Cmd):
         else:
             from . import util
 
-            (sn, sn_str) = util.get_serial_number(serial_number, output=False)
+            (sn, sn_str) = util.get_serial_number(serial_number)
         
         self.id = sn_str
         self.add_args(sn)

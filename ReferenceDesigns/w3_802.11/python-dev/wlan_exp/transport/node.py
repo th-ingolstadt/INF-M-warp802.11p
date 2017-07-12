@@ -109,7 +109,7 @@ class WarpNode(object):
         rx_buf_size  = self.network_config.get_param('rx_buffer_size')
         tport_type   = self.network_config.get_param('transport_type')
 
-        (sn, sn_str) = util.get_serial_number(serial_number, output=False)
+        (sn, sn_str) = util.get_serial_number(serial_number)
         
         if (tport_type == 'python'):
             from . import transport_eth_ip_udp_py as unicast_tp
@@ -223,7 +223,8 @@ class WarpNode(object):
         
     def reset_network_inf(self):
         """Reset the transport network information for the node."""
-        self.send_cmd_broadcast(cmds.NodeResetNetwork(self.serial_number))
+        #self.send_cmd_broadcast(cmds.NodeResetNetwork(self.serial_number))
+        self.send_cmd_broadcast(cmds.NodeResetNetwork(self.sn_str))
 
     # -------------------------------------------------------------------------
     # Parameter Framework
@@ -298,10 +299,11 @@ class WarpNode(object):
                 raise ex.ParameterError("NODE_HW_GEN", "Incorrect length")
 
         elif (identifier == NODE_SERIAL_NUM):
+            return #PLATFORM-HACK - ignore serial number returned OTW
             if (length == 1):
                 from . import util
 
-                (sn, sn_str) = util.get_serial_number(values[0], output=False)
+                (sn, sn_str) = util.get_serial_number(values[0])
                 self.serial_number = sn
                 self.sn_str        = sn_str
             else:
@@ -725,7 +727,7 @@ class WarpNodeFactory(WarpNode):
         
             if node_class is not None:
                 node = self.node_eval_class(node_class, network_config)
-                node.set_init_configuration(serial_number=self.serial_number,
+                node.set_init_configuration(serial_number=self.sn_str,
                                             node_id=self.node_id,
                                             node_name=self.name,
                                             ip_address=self.transport.ip_address,
