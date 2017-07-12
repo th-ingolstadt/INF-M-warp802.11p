@@ -41,7 +41,7 @@
 // For the compare, locations of one bits in the mask must match whitelist_range_compare for incoming addresses
 //
 
-dl_list   addr_filter;
+dl_list addr_filter;
 
 // Defines for Mango Hardware
 static u8 mango_range_mask[MAC_ADDR_LEN]    = { 0xFF, 0xFF, 0xFF, 0xFF, 0xF0, 0x00 };
@@ -50,7 +50,7 @@ static u8 mango_range_compare[MAC_ADDR_LEN] = { 0x40, 0xD8, 0x55, 0x04, 0x20, 0x
 
 /*************************** Functions Prototypes ****************************/
 
-u8  addr_is_allowed(u8* addr, u8* mask, u8* compare);
+u8 addr_is_allowed(u8* addr, u8* mask, u8* compare);
 
 /******************************** Functions **********************************/
 
@@ -63,7 +63,7 @@ u8  addr_is_allowed(u8* addr, u8* mask, u8* compare);
  * @param    None.
  * @return   None.
  */
-void  wlan_mac_addr_filter_init() {
+void wlan_mac_addr_filter_init() {
     // Setup the address filter
     dl_list_init(&addr_filter);
 }
@@ -82,13 +82,13 @@ void  wlan_mac_addr_filter_init() {
  * @param    None.
  * @return   None.
  */
-void  wlan_mac_addr_filter_reset() {
-    int                 iter;
-    whitelist_range   * curr_range;
-    dl_entry          * next_range_dl_entry;
-    dl_entry          * curr_range_dl_entry;
+void wlan_mac_addr_filter_reset() {
+    int iter;
+    whitelist_range* curr_range;
+    dl_entry* next_range_dl_entry;
+    dl_entry* curr_range_dl_entry;
 
-    iter                = addr_filter.length;
+    iter = addr_filter.length;
     next_range_dl_entry = addr_filter.first;
 
     // Remove all ranges from the address filter
@@ -124,9 +124,9 @@ void  wlan_mac_addr_filter_reset() {
  * @return   int  - Was this filter added successfully
  *      - nonzero if error
  */
-int   wlan_mac_addr_filter_add(u8* mask, u8* compare) {
+int wlan_mac_addr_filter_add(u8* mask, u8* compare) {
     whitelist_range* range;
-    dl_entry*          entry;
+    dl_entry* entry;
 
     // Allocate memory for the entry and the white-list range
     entry = wlan_mac_high_malloc(sizeof(dl_entry));
@@ -168,11 +168,11 @@ int   wlan_mac_addr_filter_add(u8* mask, u8* compare) {
  *      - ADDR_FILTER_ADDR_NOT_ALLOWED if address is not allowed
  *      - ADDR_FILTER_ADDR_ALLOWED if address is allowed
  */
-u8    wlan_mac_addr_filter_is_allowed(u8* addr){
-    int                 iter;
-    u32                 list_len = addr_filter.length;
-    whitelist_range   * curr_range;
-    dl_entry*           curr_range_dl_entry;
+u8 wlan_mac_addr_filter_is_allowed(u8* addr){
+    int iter;
+    u32 list_len = addr_filter.length;
+    whitelist_range* curr_range;
+    dl_entry* curr_range_dl_entry;
 
     // Check if the list is empty
     //     - By default, we allow all addresses
@@ -227,9 +227,9 @@ u8 wlan_mac_addr_is_mango(u8* addr){
  *      - ADDR_FILTER_ADDR_NOT_ALLOWED if address is not in the range
  *      - ADDR_FILTER_ADDR_ALLOWED if address is in the range
  */
-u8    addr_is_allowed(u8* addr, u8* mask, u8* compare){
-    u32       i;
-    u32       sum;
+u8 addr_is_allowed(u8* addr, u8* mask, u8* compare){
+    u32 i;
+    u32 sum;
 
     sum = 0;
 

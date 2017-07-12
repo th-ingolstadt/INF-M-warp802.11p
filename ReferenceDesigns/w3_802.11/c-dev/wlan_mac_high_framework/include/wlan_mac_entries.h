@@ -350,22 +350,22 @@ typedef struct tx_low_entry{
 
 /*************************** Function Prototypes *****************************/
 
-u8                 wlan_exp_log_get_entry_en_mask();
-void               wlan_exp_log_set_entry_en_mask(u8 mask);
+u8 wlan_exp_log_get_entry_en_mask();
+void wlan_exp_log_set_entry_en_mask(u8 mask);
 
-void               wlan_exp_log_reset_system_time_id();
+void wlan_exp_log_reset_system_time_id();
 
 //-----------------------------------------------
 // Method to get / set the global variable mac_payload_log_len
 //
-u32                wlan_exp_log_get_mac_payload_len();
-void               wlan_exp_log_set_mac_payload_len(u32 payload_len);
+u32 wlan_exp_log_get_mac_payload_len();
+void wlan_exp_log_set_mac_payload_len(u32 payload_len);
 
 
 //-----------------------------------------------
 // Wrapper method to get an entry
 //
-void             * wlan_exp_log_create_entry(u16 entry_type_id, u16 entry_size);
+void* wlan_exp_log_create_entry(u16 entry_type_id, u16 entry_size);
 
 
 //-----------------------------------------------
@@ -387,10 +387,10 @@ void               print_entry(u32 entry_number, u32 entry_type, void * entry);
 //-----------------------------------------------
 // Methods to add entries to the log
 //
-void      add_node_info_entry();
+void add_node_info_entry();
 
-void      add_time_info_entry(u64 timestamp, u64 mac_time, u64 system_time, u64 host_time, u32 reason, u32 time_id, u8 use_time_id);
+void add_time_info_entry(u64 timestamp, u64 mac_time, u64 system_time, u64 host_time, u32 reason, u32 time_id, u8 use_time_id);
 
-u32       add_temperature_to_log();
+u32 add_temperature_to_log();
 
 #endif /* WLAN_MAC_ENTRIES_H_ */

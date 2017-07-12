@@ -47,7 +47,7 @@ static u8 gl_portal_en;
 
 // Ethernet encapsulation mode
 //     See:  http://warpproject.org/trac/wiki/802.11/MAC/Upper/MACHighFramework/EthEncap
-static application_role_t    eth_encap_mode;
+static application_role_t eth_encap_mode;
 
 // Ethernet Station MAC Address
 //
@@ -58,10 +58,10 @@ static application_role_t    eth_encap_mode;
 // only one device on the station's Ethernet port, but will definitely not work if the station
 // is plugged into a switch with more than one device.
 //
-static u8                    eth_sta_mac_addr[6];
+static u8 eth_sta_mac_addr[6];
 
 // Callback for top-level processing of Ethernet received packets
-static function_ptr_t        eth_rx_callback;
+static function_ptr_t eth_rx_callback;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -74,7 +74,7 @@ void     print_bd_high_water_mark() { xil_printf("BD HWM = %d\n", bd_high_water_
 
 /******************************** Functions **********************************/
 
-int      wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_ptr, u32 eth_rx_len);
+int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_ptr, u32 eth_rx_len);
 
 /*****************************************************************************/
 /**
@@ -149,17 +149,17 @@ void wlan_mac_util_set_eth_encap_mode(application_role_t mode) {
  *
  */
 u32 wlan_process_eth_rx(void* eth_rx_buf, u32 eth_rx_len) {
-    u8                * mpdu_start_ptr;
-    u8                * eth_start_ptr;
-    dl_entry*           curr_tx_queue_element;
-    u32                 mpdu_tx_len;
-    tx_queue_buffer_t*	tx_queue_buffer;
+    u8* mpdu_start_ptr;
+    u8* eth_start_ptr;
+    dl_entry* curr_tx_queue_element;
+    u32 mpdu_tx_len;
+    tx_queue_buffer_t* tx_queue_buffer;
 
-    u32					return_value = 0;
-    int                 packet_is_queued;
+    u32 return_value = 0;
+    int packet_is_queued;
 
-    u8                  eth_dest[6];
-    u8                  eth_src[6];
+    u8 eth_dest[6];
+    u8 eth_src[6];
 
 #if PERF_MON_ETH_PROCESS_RX
     wlan_mac_set_dbg_hdr_out(0x4);
@@ -258,13 +258,13 @@ u32 wlan_process_eth_rx(void* eth_rx_buf, u32 eth_rx_len) {
  *     returns length of encapsulated packet (in bytes)
  */
 int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_ptr, u32 eth_rx_len) {
-	ethernet_header_t        * eth_hdr;
-    ipv4_header_t            * ip_hdr;
-    arp_ipv4_packet_t        * arp;
-    udp_header_t             * udp;
-    dhcp_packet            * dhcp;
-    llc_header_t           * llc_hdr;
-    u32                      mpdu_tx_len;
+	ethernet_header_t* eth_hdr;
+    ipv4_header_t* ip_hdr;
+    arp_ipv4_packet_t* arp;
+    udp_header_t* udp;
+    dhcp_packet* dhcp;
+    llc_header_t* llc_hdr;
+    u32 mpdu_tx_len;
 
     // Calculate actual wireless Tx len (eth payload - eth header + wireless header)
     mpdu_tx_len = eth_rx_len - sizeof(ethernet_header_t) + sizeof(llc_header_t) + sizeof(mac_header_80211) + WLAN_PHY_FCS_NBYTES;
@@ -401,28 +401,28 @@ int wlan_eth_encap(u8* mpdu_start_ptr, u8* eth_dest, u8* eth_src, u8* eth_start_
  *     malformed or unrecognized LLC header
 */
 int wlan_mpdu_eth_send(void* mpdu, u16 length, u8 pre_llc_offset) {
-    int                      status;
-    u8                     * eth_mid_ptr;
+    int status;
+    u8* eth_mid_ptr;
 
-    rx_frame_info_t        * rx_frame_info;
+    rx_frame_info_t* rx_frame_info;
 
-    mac_header_80211       * rx80211_hdr;
-    llc_header_t           * llc_hdr;
+    mac_header_80211* rx80211_hdr;
+    llc_header_t* llc_hdr;
 
-    ethernet_header_t        * eth_hdr;
-    ipv4_header_t            * ip_hdr;
-    udp_header_t             * udp;
+    ethernet_header_t* eth_hdr;
+    ipv4_header_t* ip_hdr;
+    udp_header_t* udp;
 
-    arp_ipv4_packet_t        * arp;
-    dhcp_packet            * dhcp;
+    arp_ipv4_packet_t* arp;
+    dhcp_packet* dhcp;
 
-    u8                       continue_loop;
-    u8                       is_dhcp_req         = 0;
+    u8 continue_loop;
+    u8 is_dhcp_req = 0;
 
-    u8                       addr_cache[6];
-    u32                      len_to_send;
+    u8 addr_cache[6];
+    u32 len_to_send;
 
-    u32                      min_pkt_len = sizeof(mac_header_80211) + sizeof(llc_header_t);
+    u32 min_pkt_len = sizeof(mac_header_80211) + sizeof(llc_header_t);
 
     if(gl_portal_en == 0) return 0;
 

@@ -108,7 +108,7 @@ u32       event_log_get_next_entry_index( void );
 u32       event_log_get_oldest_entry_index( void );
 u32       event_log_get_num_wraps( void );
 u32       event_log_get_flags( void );
-void *    event_log_get_next_empty_entry( u16 entry_type, u16 entry_size );
+void*     event_log_get_next_empty_entry( u16 entry_type, u16 entry_size );
 
 void      print_event_log( u32 num_events );
 void      print_event_log_size();
