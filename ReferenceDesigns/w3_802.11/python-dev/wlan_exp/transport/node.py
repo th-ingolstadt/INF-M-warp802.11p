@@ -189,7 +189,7 @@ class WarpNode(object):
           * Blinking the Hex Display (for approx 10 seconds)
           * Output Node ID and IP adress to UART output
         """
-        self.send_cmd(cmds.NodeIdentify(self.serial_number))
+        self.send_cmd(cmds.NodeIdentify(self.sn_str))
 
     def ping(self):
         """'Ping' the node 
