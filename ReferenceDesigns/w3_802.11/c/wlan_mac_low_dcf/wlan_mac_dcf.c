@@ -1794,6 +1794,7 @@ void frame_transmit_general(u8 pkt_buf) {
     u8  mac_cfg_mcs;
     u16 mac_cfg_length;
     u8  mac_cfg_pkt_buf;
+    u8  mac_cfg_phy_mode;
 
     u16 rts_header_duration;
     u16 cts_header_duration;
@@ -1881,6 +1882,7 @@ void frame_transmit_general(u8 pkt_buf) {
 			gl_long_mpdu_pkt_buf = pkt_buf;
 
 			mac_cfg_pkt_buf = TX_PKT_BUF_RTS;
+			mac_cfg_phy_mode = PHY_MODE_NONHT;
 
 			// The rate given to us in the argument of frame_transmit applies to the MPDU. Several
 			// elements depend on this rate:
@@ -1891,47 +1893,20 @@ void frame_transmit_general(u8 pkt_buf) {
 			//
 			// The below switch() sets these elements accordingly.
 			//
-			switch (mcs) {
+
+			mac_cfg_mcs = wlan_mac_low_mcs_to_ctrl_resp_mcs(mcs, phy_mode);
+			low_tx_details.phy_params_ctrl.mcs = mac_cfg_mcs;
+			switch(mac_cfg_mcs){
 				default:
+					xil_printf("Error: Unexpected MCS selection for RTS Tx (%d)\n", mac_cfg_mcs);
 				case 0:
-					mac_cfg_mcs         = 0;
 					cts_header_duration = TX_TIME_CTS_R6;
-					low_tx_details.phy_params_ctrl.mcs = 0;
-				break;
-				case 1:
-					mac_cfg_mcs         = 0;
-					cts_header_duration = TX_TIME_CTS_R6;
-					low_tx_details.phy_params_ctrl.mcs = 0;
 				break;
 				case 2:
-					mac_cfg_mcs         = 2;
 					cts_header_duration = TX_TIME_CTS_R12;
-					low_tx_details.phy_params_ctrl.mcs = 2;
-				break;
-				case 3:
-					mac_cfg_mcs         = 2;
-					cts_header_duration = TX_TIME_CTS_R12;
-					low_tx_details.phy_params_ctrl.mcs = 2;
 				break;
 				case 4:
-					mac_cfg_mcs         = 4;
 					cts_header_duration = TX_TIME_CTS_R24;
-					low_tx_details.phy_params_ctrl.mcs = 4;
-				break;
-				case 5:
-					mac_cfg_mcs         = 4;
-					cts_header_duration = TX_TIME_CTS_R24;
-					low_tx_details.phy_params_ctrl.mcs = 4;
-				break;
-				case 6:
-					mac_cfg_mcs         = 4;
-					cts_header_duration = TX_TIME_CTS_R24;
-					low_tx_details.phy_params_ctrl.mcs = 4;
-				break;
-				case 7:
-					mac_cfg_mcs         = 4;
-					cts_header_duration = TX_TIME_CTS_R24;
-					low_tx_details.phy_params_ctrl.mcs = 4;
 				break;
 			}
 
@@ -1952,7 +1927,7 @@ void frame_transmit_general(u8 pkt_buf) {
 
 			// Write SIGNAL for RTS
 			//wlan_phy_set_tx_signal(mac_cfg_pkt_buf, mac_cfg_rate, mac_cfg_length);
-			write_phy_preamble(mac_cfg_pkt_buf, PHY_MODE_NONHT, mac_cfg_mcs, mac_cfg_length);
+			write_phy_preamble(mac_cfg_pkt_buf, mac_cfg_phy_mode, mac_cfg_mcs, mac_cfg_length);
 
 		} else if((tx_mode == TX_MODE_SHORT) && (req_timeout == 1)) {
 			// Unicast, no RTS
@@ -1960,12 +1935,14 @@ void frame_transmit_general(u8 pkt_buf) {
 			mac_cfg_mcs     = mcs;
 			mac_cfg_length  = length;
 			mac_cfg_pkt_buf = pkt_buf;
+			mac_cfg_phy_mode = phy_mode;
 		} else {
 			// Multicast, short or long
 			tx_wait_state   = TX_WAIT_NONE;
 			mac_cfg_mcs     = mcs;
 			mac_cfg_length  = length;
 			mac_cfg_pkt_buf = pkt_buf;
+			mac_cfg_phy_mode = phy_mode;
 		}
 
 		// Configure the Tx antenna selection
@@ -1995,13 +1972,13 @@ void frame_transmit_general(u8 pkt_buf) {
 
 			// Configure the DCF core Tx state machine for this transmission
 			// wlan_mac_tx_ctrl_A_params(pktBuf, antMask, preTx_backoff_slots, preWait_postRxTimer1, preWait_postTxTimer1, postWait_postTxTimer2, phy_mode)
-			wlan_mac_tx_ctrl_A_params(mac_cfg_pkt_buf, mpdu_tx_ant_mask, n_slots, 0, 0, req_timeout, phy_mode);
+			wlan_mac_tx_ctrl_A_params(mac_cfg_pkt_buf, mpdu_tx_ant_mask, n_slots, 0, 0, req_timeout, mac_cfg_phy_mode);
 
 		} else {
 			// This is a retry. We will inherit whatever backoff that is currently running.
 			// Configure the DCF core Tx state machine for this transmission
 			// preTx_backoff_slots is 0 here, since the core will have started a post-timeout backoff automatically
-			wlan_mac_tx_ctrl_A_params(mac_cfg_pkt_buf, mpdu_tx_ant_mask, 0, 0, 0, req_timeout, phy_mode);
+			wlan_mac_tx_ctrl_A_params(mac_cfg_pkt_buf, mpdu_tx_ant_mask, 0, 0, 0, req_timeout, mac_cfg_phy_mode);
 		}
 
 		// Wait for the Tx PHY to be idle
