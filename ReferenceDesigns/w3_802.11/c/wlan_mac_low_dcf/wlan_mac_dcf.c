@@ -80,6 +80,18 @@ static u8						 	gl_tx_pkt_buf_entry_data[MAX_NUM_PENDING_TX_PKT_BUFS]; ///< Byt
 // Common Platform Device Info
 platform_common_dev_info_t	 platform_common_dev_info;
 
+const u8 cts_duration_lookup[8][3] = {
+{94, 50, 28},
+{78, 42, 24},
+{70, 38, 22},
+{62, 34, 20},
+{62, 34, 20},
+{54, 30, 18},
+{54, 30, 18},
+{54, 30, 18}
+};
+
+
 // Precalculated durations for short (non-RTS) frames
 static u16							gl_precalc_duration[3][8]; ///< To improve reliability in achieving slot-0 transmissions, we precompute duration fields to insert into frames.
 
@@ -914,6 +926,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
     mac_header_80211  * rx_header;
     u8				  * mac_payload_ptr_u8;
 
+
     // Translate Rx pkt buf index into actual memory address
     void* pkt_buf_addr = (void *) CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf);
 
@@ -1058,6 +1071,7 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         	//This clause can execute on a bad FCS (e.g. it's actually a bad FCS ACK)
         }
     } else if(unicast_to_me && (rx_header->frame_control_1 == MAC_FRAME_CTRL1_SUBTYPE_RTS)){
+
         // We need to send a CTS
         //     Auto TX Delay is in units of 100ns. This delay runs from RXEND of the preceding reception.
         //     wlan_mac_tx_ctrl_B_params(pktBuf, antMask, req_zeroNAV, preWait_postRxTimer1, preWait_postRxTimer2, preWait_postTxTimer1, phy_mode)
@@ -1068,8 +1082,21 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         ctrl_tx_gain = wlan_mac_low_dbm_to_gain_target(wlan_mac_low_get_current_ctrl_tx_pow());
         wlan_mac_tx_ctrl_B_gains(ctrl_tx_gain, ctrl_tx_gain, ctrl_tx_gain, ctrl_tx_gain);
 
-        cts_duration = sat_sub(rx_header->duration_id, (gl_mac_timing_values.t_sifs) +
-        			wlan_ofdm_calc_txtime(sizeof(mac_header_80211_CTS) + WLAN_PHY_FCS_NBYTES, tx_mcs, PHY_MODE_NONHT, wlan_mac_low_get_phy_samp_rate()));
+        //cts_duration = sat_sub(rx_header->duration_id, (gl_mac_timing_values.t_sifs) +
+        //			wlan_ofdm_calc_txtime(sizeof(mac_header_80211_CTS) + WLAN_PHY_FCS_NBYTES, tx_mcs, PHY_MODE_NONHT, wlan_mac_low_get_phy_samp_rate()));
+
+        switch(wlan_mac_low_get_phy_samp_rate()){
+        	case PHY_10M:
+        		cts_duration = sat_sub(rx_header->duration_id, (gl_mac_timing_values.t_sifs) + cts_duration_lookup[tx_mcs][0]);
+        	break;
+        	default:
+        	case PHY_20M:
+        		cts_duration = sat_sub(rx_header->duration_id, (gl_mac_timing_values.t_sifs) + cts_duration_lookup[tx_mcs][1]);
+        	break;
+        	case PHY_40M:
+        		cts_duration = sat_sub(rx_header->duration_id, (gl_mac_timing_values.t_sifs) + cts_duration_lookup[tx_mcs][2]);
+        	break;
+        }
 
         // Construct the ACK frame in the dedicated Tx pkt buf
         tx_length = wlan_create_cts_frame((void*)(CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, TX_PKT_BUF_ACK_CTS) + PHY_TX_PKT_BUF_MPDU_OFFSET),
@@ -1080,6 +1107,8 @@ u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details) {
         write_phy_preamble(TX_PKT_BUF_ACK_CTS, PHY_MODE_NONHT, tx_mcs, tx_length);
 
         rx_finish_state = RX_FINISH_SEND_B;
+
+
 
         rx_frame_info->resp_low_tx_details.tx_details_type     = TX_DETAILS_CTS;
         rx_frame_info->resp_low_tx_details.phy_params_ctrl.mcs = tx_mcs;
