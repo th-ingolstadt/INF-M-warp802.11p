@@ -274,6 +274,9 @@ tx_low_entry* wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, w
             // Copy:  MCS, PHY mode, Antenna mode, and Power
             memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details->phy_params_ctrl), sizeof(phy_tx_params_t));
 
+            //FIXME: We need to overwrite the Tx power for the RTS entry with the default Control power, not the power
+            // in the tx_frame_info_t used by the MPDU
+
             tx_low_event_log_entry->transmission_count = tx_low_details->attempt_number;
             tx_low_event_log_entry->chan_num           = tx_low_details->chan_num;
             tx_low_event_log_entry->length             = packet_payload_size;
@@ -284,13 +287,13 @@ tx_low_entry* wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, w
             tx_low_event_log_entry->flags              = 0;
 
             if(tx_low_details->flags & TX_DETAILS_FLAGS_RECEIVED_RESPONSE){
-            	tx_low_event_log_entry->flags					|= TX_LOW_FLAGS_RECEIVED_RESPONSE;
+            	tx_low_event_log_entry->flags |= TX_LOW_FLAGS_RECEIVED_RESPONSE;
             } else {
-            	tx_low_event_log_entry->flags					&= ~TX_LOW_FLAGS_RECEIVED_RESPONSE;
+            	tx_low_event_log_entry->flags &= ~TX_LOW_FLAGS_RECEIVED_RESPONSE;
             }
 
-            tx_low_event_log_entry->timestamp_send_frac    = tx_low_details->tx_start_timestamp_frac_ctrl;
-            tx_low_event_log_entry->phy_samp_rate          = tx_frame_info->phy_samp_rate;
+            tx_low_event_log_entry->timestamp_send_frac = tx_low_details->tx_start_timestamp_frac_ctrl;
+            tx_low_event_log_entry->phy_samp_rate       = tx_frame_info->phy_samp_rate;
         }
     }
 

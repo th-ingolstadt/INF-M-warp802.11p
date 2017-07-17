@@ -1952,6 +1952,9 @@ void frame_transmit_general(u8 pkt_buf) {
 			//wlan_phy_set_tx_signal(mac_cfg_pkt_buf, mac_cfg_rate, mac_cfg_length);
 			write_phy_preamble(mac_cfg_pkt_buf, mac_cfg_phy_mode, mac_cfg_mcs, mac_cfg_length);
 
+			// Configure the Tx power - update all antennas, even though only one will be used
+			curr_tx_pow = wlan_mac_low_get_current_ctrl_tx_pow();
+
 		} else if((tx_mode == TX_MODE_SHORT) && (req_timeout == 1)) {
 			// Unicast, no RTS
 			tx_wait_state = TX_WAIT_ACK;
@@ -1959,6 +1962,10 @@ void frame_transmit_general(u8 pkt_buf) {
 			mac_cfg_length = length;
 			mac_cfg_pkt_buf = pkt_buf;
 			mac_cfg_phy_mode = phy_mode;
+
+			// Configure the Tx power - update all antennas, even though only one will be used
+			curr_tx_pow = wlan_mac_low_dbm_to_gain_target(tx_frame_info->params.phy.power);
+
 		} else {
 			// Multicast, short or long
 			tx_wait_state = TX_WAIT_NONE;
@@ -1966,7 +1973,12 @@ void frame_transmit_general(u8 pkt_buf) {
 			mac_cfg_length = length;
 			mac_cfg_pkt_buf = pkt_buf;
 			mac_cfg_phy_mode = phy_mode;
+
+			// Configure the Tx power - update all antennas, even though only one will be used
+			curr_tx_pow = wlan_mac_low_dbm_to_gain_target(tx_frame_info->params.phy.power);
 		}
+
+		wlan_mac_tx_ctrl_A_gains(curr_tx_pow, curr_tx_pow, curr_tx_pow, curr_tx_pow);
 
 		// Configure the Tx antenna selection
 		mpdu_tx_ant_mask = 0;
@@ -1978,10 +1990,6 @@ void frame_transmit_general(u8 pkt_buf) {
 			case TX_ANTMODE_SISO_ANTD:  mpdu_tx_ant_mask |= 0x8;  break;
 			default:                    mpdu_tx_ant_mask  = 0x1;  break;       // Default to RF_A
 		}
-
-		// Configure the Tx power - update all antennas, even though only one will be used
-		curr_tx_pow = wlan_mac_low_dbm_to_gain_target(tx_frame_info->params.phy.power);
-		wlan_mac_tx_ctrl_A_gains(curr_tx_pow, curr_tx_pow, curr_tx_pow, curr_tx_pow);
 
 		if ((tx_frame_info->num_tx_attempts) == 1) {
 			// This is the first transmission, so we speculatively draw a backoff in case
