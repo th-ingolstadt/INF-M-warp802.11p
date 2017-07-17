@@ -57,11 +57,11 @@
 
 /*********************** Global Variable Definitions *************************/
 
-extern mac_header_80211_common    tx_header_common;
-extern u8                         pause_data_queue;
-extern tx_params_t                default_unicast_mgmt_tx_params;
-extern u8                         my_aid;
-extern network_info_t* 			  active_network_info;
+extern mac_header_80211_common tx_header_common;
+extern u8 pause_data_queue;
+extern tx_params_t default_unicast_mgmt_tx_params;
+extern u8 my_aid;
+extern network_info_t* active_network_info;
 
 /*************************** Variable Definitions ****************************/
 
@@ -81,21 +81,21 @@ typedef enum authentication_state_t{
 // Global join parameters
 //     This variable needs to be treated as volatile since it is expected to be
 //     modified by other contexts after a call to wlan_mac_join_get_parameters
-volatile join_parameters_t        gl_join_parameters;
+volatile join_parameters_t gl_join_parameters;
 
 
 // Scan state variables
-static join_state_t               join_state;
-static authentication_state_t	  authentication_state;
-static network_info_t*            attempt_network_info;
-char*                             scan_ssid_save;
+static join_state_t join_state;
+static authentication_state_t authentication_state;
+static network_info_t* attempt_network_info;
+char* scan_ssid_save;
 
-static u32                        search_sched_id;
-static u32                        attempt_sched_id;
+static u32 search_sched_id;
+static u32 attempt_sched_id;
 
 // Callback Function
 //     Used to perform any tasks after a successful join
-static function_ptr_t             join_success_callback;
+static function_ptr_t join_success_callback;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -127,17 +127,17 @@ int wlan_mac_sta_join_init(){
 
     // Set default join parameters
     bzero((u8*)gl_join_parameters.bssid, MAC_ADDR_LEN);
-    gl_join_parameters.ssid    = NULL;
+    gl_join_parameters.ssid = NULL;
     gl_join_parameters.channel = 0;
 
     // Set global join state variables
-    join_state       	 = IDLE;
+    join_state = IDLE;
     authentication_state = UNAUTHENTICATED;
 
     attempt_network_info = NULL;
-    scan_ssid_save   = NULL;
+    scan_ssid_save = NULL;
 
-    search_sched_id  = SCHEDULE_ID_RESERVED_MAX;
+    search_sched_id = SCHEDULE_ID_RESERVED_MAX;
     attempt_sched_id = SCHEDULE_ID_RESERVED_MAX;
 
     return XST_SUCCESS;
@@ -237,7 +237,7 @@ void wlan_mac_sta_successfully_associated(u8* bssid, u16 AID){
  *
  *****************************************************************************/
 void wlan_mac_sta_join(){
-    volatile scan_parameters_t*     scan_parameters;
+    volatile scan_parameters_t* scan_parameters;
 
     // If the SSID is NULL, then we need to halt any joins
     if (gl_join_parameters.ssid == NULL) {
@@ -359,8 +359,8 @@ void start_join_attempt() {
  *****************************************************************************/
 void wlan_mac_sta_join_return_to_idle(){
 
-    volatile scan_parameters_t*     scan_parameters;
-    interrupt_state_t               prev_interrupt_state;
+    volatile scan_parameters_t* scan_parameters;
+    interrupt_state_t prev_interrupt_state;
 
     // Stop any on-going scans
     wlan_mac_scan_stop();
@@ -426,8 +426,8 @@ void wlan_mac_sta_join_return_to_idle(){
  *
  *****************************************************************************/
 void wlan_mac_sta_join_bss_search_poll(u32 schedule_id){
-	dl_list*  ssid_match_list = NULL;
-    dl_entry* curr_dl_entry   = NULL;
+	dl_list* ssid_match_list = NULL;
+    dl_entry* curr_dl_entry = NULL;
 
     switch(join_state){
         case IDLE:
@@ -506,8 +506,8 @@ void wlan_mac_sta_join_bss_search_poll(u32 schedule_id){
  *
  *****************************************************************************/
 void wlan_mac_sta_join_bss_attempt_poll(u32 aid){
-    bss_config_t    bss_config;
-    u32				update_mask;
+    bss_config_t bss_config;
+    u32 update_mask;
 
     if (attempt_network_info == NULL) {
         wlan_mac_sta_join_return_to_idle();
@@ -576,7 +576,7 @@ void wlan_mac_sta_join_bss_attempt_poll(u32 aid){
 void transmit_join_auth_req(){
     u16 tx_length;
     dl_entry* curr_tx_queue_element;
-    tx_queue_buffer_t*    curr_tx_queue_buffer;
+    tx_queue_buffer_t* curr_tx_queue_buffer;
 
     // Only transmit if FSM is "ATTEMPTING" to join
     if (join_state == ATTEMPTING) {
@@ -617,9 +617,9 @@ void transmit_join_auth_req(){
  *
  *****************************************************************************/
 void transmit_join_assoc_req(){
-    u16                 tx_length;
-    dl_entry*   curr_tx_queue_element;
-    tx_queue_buffer_t*    curr_tx_queue_buffer;
+    u16 tx_length;
+    dl_entry* curr_tx_queue_element;
+    tx_queue_buffer_t* curr_tx_queue_buffer;
 
     // Only transmit if FSM is "ATTEMPTING" to join
     if (join_state == ATTEMPTING) {

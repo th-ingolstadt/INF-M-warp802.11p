@@ -43,11 +43,11 @@
 
 // User callback to see if the higher-level framework can send a packet to
 // the lower-level framework to be transmitted.
-extern platform_common_dev_info_t	 platform_common_dev_info;
-extern function_ptr_t        tx_poll_callback;
-static function_ptr_t        queue_state_change_callback;
+extern platform_common_dev_info_t platform_common_dev_info;
+extern function_ptr_t tx_poll_callback;
+static function_ptr_t queue_state_change_callback;
 
-extern platform_high_dev_info_t	 platform_high_dev_info;
+extern platform_high_dev_info_t platform_high_dev_info;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -55,7 +55,7 @@ extern platform_high_dev_info_t	 platform_high_dev_info;
 /*************************** Variable Definitions ****************************/
 
 // List to hold all of the empty, free entries
-static dl_list               free_queue;
+static dl_list free_queue;
 
 // The tx_queues variable is an array of lists that will be filled with queue
 // entries from the free_queue list
@@ -70,12 +70,12 @@ static dl_list               free_queue;
 //     the AIDs it issues stations if it wants to use the AIDs as an index into
 //     the tx queue.
 //
-static dl_list*              tx_queues;
-static u16                   num_tx_queues;
+static dl_list* tx_queues;
+static u16 num_tx_queues;
 
 
 // Total number of Tx queue entries
-static volatile u32          total_tx_queue_entries;
+static volatile u32 total_tx_queue_entries;
 
 
 /******************************** Functions **********************************/
@@ -93,8 +93,8 @@ static volatile u32          total_tx_queue_entries;
  *
  *****************************************************************************/
 void queue_init() {
-	u32            i;
-	dl_entry     * dl_entry_base;
+	u32 i;
+	dl_entry* dl_entry_base;
 
 	// Set the total number of supported Tx Queue entries
 	total_tx_queue_entries = min((TX_QUEUE_DL_ENTRY_MEM_SIZE / sizeof(dl_entry)),   // Max dl_entry
@@ -104,7 +104,7 @@ void queue_init() {
 	//     NOTE:  tx_queues is initially NULL because it will be dynamically allocated and
 	//         initialized.
 	//
-	tx_queues     = NULL;
+	tx_queues = NULL;
 	num_tx_queues = 0;
 
 	queue_state_change_callback = (function_ptr_t)wlan_null_callback;
@@ -209,9 +209,9 @@ u32 queue_num_queued(u16 queue_sel){
  *
  *****************************************************************************/
 void purge_queue(u16 queue_sel){
-	u32                        num_queued;
-	u32                        i;
-	dl_entry       * curr_tx_queue_element;
+	u32 num_queued;
+	u32 i;
+	dl_entry* curr_tx_queue_element;
 	volatile interrupt_state_t prev_interrupt_state;
 
 	num_queued = queue_num_queued(queue_sel);
@@ -337,7 +337,7 @@ void enqueue_after_tail(u16 queue_sel, dl_entry* tqe){
  *
  *****************************************************************************/
 dl_entry* dequeue_from_head(u16 queue_sel){
-	dl_entry          * curr_dl_entry;
+	dl_entry* curr_dl_entry;
 
 	if ((queue_sel + 1) > num_tx_queues) {
 		// The specified queue does not exist; this can happen if a node has
@@ -440,8 +440,8 @@ int queue_checkout_list(dl_list* list, u16 num_tqe){
 	//
 	// Ex.  For one queue entry, function will take 3.6 us (ie (3.3 * 1) + 0.3 = 3.6)
 	//
-	u32       i;
-	u32       num_checkout;
+	u32 i;
+	u32 num_checkout;
 	dl_entry* curr_dl_entry;
 
 	if(num_tqe <= free_queue.length){
@@ -490,8 +490,8 @@ int queue_checkout_list(dl_list* list, u16 num_tqe){
  *****************************************************************************/
 int queue_checkin_list(dl_list * list) {
 #if 0
-	u32       i;
-	u32       num_checkin;
+	u32 i;
+	u32 num_checkin;
 	dl_entry* curr_dl_entry;
 
 	num_checkin = list->length;
@@ -512,7 +512,7 @@ int queue_checkin_list(dl_list * list) {
 }
 
 void transmit_checkin(dl_entry* tx_queue_buffer_entry){
-	int                 tx_pkt_buf               = -1;
+	int tx_pkt_buf = -1;
 	tx_pkt_buf = wlan_mac_high_get_empty_tx_packet_buffer();
 
 	if (tx_queue_buffer_entry == NULL) return;

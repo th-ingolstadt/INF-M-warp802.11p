@@ -38,15 +38,15 @@
 #define PERF_MON_ETH_BD                                    0
 
 // Instance structure for Ethernet DMA
-static XAxiDma               eth_dma_instance;
+static XAxiDma eth_dma_instance;
 
 // Number of TX / RX buffer descriptors
-static u32                   num_rx_bd;
-static u32                   num_tx_bd;
+static u32 num_rx_bd;
+static u32 num_tx_bd;
 
 // Global representing the schedule ID and pointer
-static u32					 rx_schedule_id;
-static dl_entry* 			 rx_schedule_dl_entry;
+static u32 rx_schedule_id;
+static dl_entry* rx_schedule_dl_entry;
 
 // Ethernet packet processing variables
 //
@@ -56,29 +56,29 @@ static dl_entry* 			 rx_schedule_dl_entry;
 // it takes to process all packets, we will schedule an event that will process the packets
 // as quickly as possible using the scheduler.
 
-static XAxiDma_Bd          * bd_set_to_process_ptr;
-static int                   bd_set_count;
-#define						 MAX_PACKETS_ENQUEUED 2
-#define						 MAX_PACKETS_TOTAL 10
-static u32                   irq_status;
+static XAxiDma_Bd* bd_set_to_process_ptr;
+static int bd_set_count;
+#define MAX_PACKETS_ENQUEUED 2
+#define MAX_PACKETS_TOTAL 10
+static u32 irq_status;
 
-static u32					gl_eth_tx_bd_mem_base;
-static u32					gl_eth_tx_bd_mem_size;
-static u32					gl_eth_tx_bd_mem_high;
-static u32					gl_eth_rx_bd_mem_base;
-static u32					gl_eth_rx_bd_mem_size;
-static u32					gl_eth_rx_bd_mem_high;
+static u32 gl_eth_tx_bd_mem_base;
+static u32 gl_eth_tx_bd_mem_size;
+static u32 gl_eth_tx_bd_mem_high;
+static u32 gl_eth_rx_bd_mem_base;
+static u32 gl_eth_rx_bd_mem_size;
+static u32 gl_eth_rx_bd_mem_high;
 
 #if PERF_MON_ETH_BD
 static u32                   bd_high_water_mark;
 #endif
 
 // Local Function Declarations -- these are not intended to be called by functions outside of this file
-int      _wlan_eth_dma_init();
-int      _init_rx_bd(XAxiDma_Bd * bd_ptr, dl_entry * tqe_ptr, u32 max_transfer_len);
-void     _wlan_process_all_eth_pkts(u32 schedule_id);
-void 	 _eth_rx_interrupt_handler(void *callbarck_arg);
-void 	 _wlan_eth_dma_update();
+int _wlan_eth_dma_init();
+int _init_rx_bd(XAxiDma_Bd * bd_ptr, dl_entry * tqe_ptr, u32 max_transfer_len);
+void _wlan_process_all_eth_pkts(u32 schedule_id);
+void _eth_rx_interrupt_handler(void *callbarck_arg);
+void _wlan_eth_dma_update();
 
 
 /*****************************************************************************/
@@ -111,9 +111,9 @@ void 	 _wlan_eth_dma_update();
  * @return 0 for successful Ethernet transmission, -1 otherwise
  */
 int wlan_platform_ethernet_send(u8* pkt_ptr, u32 length) {
-    int                 status;
-    XAxiDma_BdRing    * tx_ring_ptr;
-    XAxiDma_Bd        * cur_bd_ptr = NULL;
+    int status;
+    XAxiDma_BdRing* tx_ring_ptr;
+    XAxiDma_Bd* cur_bd_ptr = NULL;
 
     if ((length == 0) || (length > 1518)) {
         xil_printf("ERROR: wlan_eth_dma_send length = %d\n", length);
@@ -180,18 +180,18 @@ int wlan_platform_ethernet_send(u8* pkt_ptr, u32 length) {
 int w3_wlan_platform_ethernet_init(){
 	int status = 0;
 
-	XAxiEthernet_Config    * eth_cfg_ptr;
-	XAxiEthernet             eth_instance;
+	XAxiEthernet_Config* eth_cfg_ptr;
+	XAxiEthernet eth_instance;
 
 	// Set global variables
-	bd_set_to_process_ptr  = NULL;
-	bd_set_count           = 0;
+	bd_set_to_process_ptr = NULL;
+	bd_set_count = 0;
 
 	rx_schedule_id = SCHEDULE_ID_RESERVED_MAX;
 	rx_schedule_dl_entry = NULL;
 
 #if PERF_MON_ETH_BD
-	bd_high_water_mark     = 0;
+	bd_high_water_mark = 0;
 #endif
 
 	// Check to see if we were given enough room by wlan_mac_high.h for our buffer descriptors
@@ -259,8 +259,8 @@ int w3_wlan_platform_ethernet_init(){
  * @return 0 on success, non-zero otherwise
  */
 int w3_wlan_platform_ethernet_setup_interrupt(XIntc* intc){
-    int                 status;
-    XAxiDma_BdRing    * rx_ring_ptr;
+    int status;
+    XAxiDma_BdRing* rx_ring_ptr;
 
     // The interrupt controller will remember an arbitrary value and pass it to the callback
     // when this interrupt fires. We use this to pass the axi_dma Rx BD ring pointer into
@@ -304,19 +304,19 @@ void w3_wlan_platform_ethernet_free_queue_entry_notify(){
  * @return 0 on success, -1 otherwise
  */
 int _wlan_eth_dma_init() {
-    u32                 i;
-    int                 status;
-    u32                 bd_count;
-    u32                 max_transfer_len;
+    u32 i;
+    int status;
+    u32 bd_count;
+    u32 max_transfer_len;
 
-    XAxiDma_Config    * eth_dma_cfg_ptr;
+    XAxiDma_Config* eth_dma_cfg_ptr;
 
-    XAxiDma_Bd          eth_dma_bd_template;
-    XAxiDma_BdRing    * eth_tx_ring_ptr;
-    XAxiDma_BdRing    * eth_rx_ring_ptr;
+    XAxiDma_Bd eth_dma_bd_template;
+    XAxiDma_BdRing* eth_tx_ring_ptr;
+    XAxiDma_BdRing* eth_rx_ring_ptr;
 
-    XAxiDma_Bd        * first_bd_ptr;
-    XAxiDma_Bd        * cur_bd_ptr;
+    XAxiDma_Bd* first_bd_ptr;
+    XAxiDma_Bd* cur_bd_ptr;
 
     dl_entry* curr_tx_queue_element;
 
@@ -417,8 +417,8 @@ int _wlan_eth_dma_init() {
  * @return 0 on success, -1 otherwise
  */
 int _init_rx_bd(XAxiDma_Bd * bd_ptr, dl_entry * tqe_ptr, u32 max_transfer_len) {
-    int  status;
-    u32  buf_addr;
+    int status;
+    u32 buf_addr;
 
     if ((bd_ptr == NULL) || (tqe_ptr == NULL)) { return -1; }
 
@@ -453,7 +453,7 @@ int _init_rx_bd(XAxiDma_Bd * bd_ptr, dl_entry * tqe_ptr, u32 max_transfer_len) {
  *  - Argument passed in by interrupt controller (pointer to axi_dma Rx BD ring for Eth Rx)
  */
 void _eth_rx_interrupt_handler(void *callbarck_arg) {
-    XAxiDma_BdRing    * rx_ring_ptr = (XAxiDma_BdRing *) callbarck_arg;
+    XAxiDma_BdRing* rx_ring_ptr = (XAxiDma_BdRing*) callbarck_arg;
 
 #ifdef _ISR_PERF_MON_EN_
     wlan_mac_set_dbg_hdr_out(ISR_PERF_MON_GPIO_MASK);
@@ -521,16 +521,16 @@ void _eth_rx_interrupt_handler(void *callbarck_arg) {
  * NOTE:  This function must be able to handle the case where bd_set_count = 0.
  */
 void _wlan_process_all_eth_pkts(u32 schedule_id) {
-	u32					wlan_process_eth_rx_return;
-    u32                 num_pkt_enqueued   = 0;
-    u32					num_pkt_total	   = 0;
-    u32					eth_rx_len, eth_rx_buf;
-    u32					status;
-    dl_entry*           curr_tx_queue_element;
-    tx_queue_buffer_t*	tx_queue_buffer;
-    u8* 				mpdu_start_ptr;
+	u32 wlan_process_eth_rx_return;
+    u32 num_pkt_enqueued = 0;
+    u32 num_pkt_total = 0;
+    u32 eth_rx_len, eth_rx_buf;
+    u32 status;
+    dl_entry* curr_tx_queue_element;
+    tx_queue_buffer_t* tx_queue_buffer;
+    u8* mpdu_start_ptr;
 
-    XAxiDma_BdRing    * rx_ring_ptr         = XAxiDma_GetRxRing(&eth_dma_instance);
+    XAxiDma_BdRing* rx_ring_ptr = XAxiDma_GetRxRing(&eth_dma_instance);
 
 #if PERF_MON_ETH_PROCESS_ALL_RX
     wlan_mac_set_dbg_hdr_out(0x2);
@@ -545,8 +545,8 @@ void _wlan_process_all_eth_pkts(u32 schedule_id) {
         // Process Ethernet packet
 
         // Lookup length and data pointers from the DMA metadata
-        eth_rx_len     = XAxiDma_BdGetActualLength(bd_set_to_process_ptr, rx_ring_ptr->MaxTransferLen);
-        eth_rx_buf     = XAxiDma_BdGetBufAddr(bd_set_to_process_ptr);
+        eth_rx_len = XAxiDma_BdGetActualLength(bd_set_to_process_ptr, rx_ring_ptr->MaxTransferLen);
+        eth_rx_buf = XAxiDma_BdGetBufAddr(bd_set_to_process_ptr);
 
 
     	// The start of the MPDU is before the first byte of the DMA transfer. We can work our way backwards from this point.
@@ -644,19 +644,19 @@ void _wlan_process_all_eth_pkts(u32 schedule_id) {
  * This will assure that enough Rx BDs are available to the DMA hardware.
  */
 void _wlan_eth_dma_update() {
-    int                 status;
-    int                 iter;
-    u32                 bd_count;
-    u32                 bd_queue_pairs_to_process;
-    u32                 bd_queue_pairs_processed;
-    u32                 max_transfer_len;
+    int status;
+    int iter;
+    u32 bd_count;
+    u32 bd_queue_pairs_to_process;
+    u32 bd_queue_pairs_processed;
+    u32 max_transfer_len;
 
-    XAxiDma_BdRing    * rx_ring_ptr;
-    XAxiDma_Bd        * first_bd_ptr;
-    XAxiDma_Bd        * cur_bd_ptr;
+    XAxiDma_BdRing* rx_ring_ptr;
+    XAxiDma_Bd* first_bd_ptr;
+    XAxiDma_Bd* cur_bd_ptr;
 
-    dl_list             checkout;
-    dl_entry*           tx_queue_entry;
+    dl_list checkout;
+    dl_entry* tx_queue_entry;
 
 #if PERF_MON_ETH_UPDATE_DMA
     wlan_mac_set_dbg_hdr_out(0x2);
@@ -664,7 +664,7 @@ void _wlan_eth_dma_update() {
 
     // Get the Rx ring pointer and the number of free Rx buffer descriptors
     rx_ring_ptr = XAxiDma_GetRxRing(&eth_dma_instance);
-    bd_count    = XAxiDma_BdRingGetFreeCnt(rx_ring_ptr);
+    bd_count = XAxiDma_BdRingGetFreeCnt(rx_ring_ptr);
 
     // If there are no BDs, then we are done
     if (bd_count == 0) {

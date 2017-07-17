@@ -54,8 +54,8 @@ void uart_rx(u8 rxByte){ };
 
 //-----------------------------------------------
 // UART Menu Modes
-#define UART_MODE_MAIN                                     0
-#define UART_MODE_INTERACTIVE                              1
+#define UART_MODE_MAIN        0
+#define UART_MODE_INTERACTIVE 1
 
 
 /*********************** Global Variable Definitions *************************/
@@ -63,9 +63,9 @@ extern network_info_t*                      active_network_info;
 
 /*************************** Variable Definitions ****************************/
 
-static volatile u8                          uart_mode            = UART_MODE_MAIN;
-static volatile u32                         schedule_id;
-static volatile u8                          print_scheduled      = 0;
+static volatile u8 uart_mode = UART_MODE_MAIN;
+static volatile u32 schedule_id;
+static volatile u8 print_scheduled = 0;
 
 /*************************** Functions Prototypes ****************************/
 
@@ -216,7 +216,7 @@ void print_main_menu(){
 void print_station_status() {
 
 	station_info_t* curr_station_info;
-	dl_entry*	    curr_entry;
+	dl_entry* curr_entry;
 
 	u64 timestamp;
 

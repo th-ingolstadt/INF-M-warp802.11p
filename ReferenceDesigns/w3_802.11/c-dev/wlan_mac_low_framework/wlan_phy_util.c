@@ -49,7 +49,7 @@ const u8 ones_in_chars[256] = {
 
 
 // Common Platform Device Info
-extern platform_common_dev_info_t	 platform_common_dev_info;
+extern platform_common_dev_info_t platform_common_dev_info;
 
 
 /*****************************************************************************/

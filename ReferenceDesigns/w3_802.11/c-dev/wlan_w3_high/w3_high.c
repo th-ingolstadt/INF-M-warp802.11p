@@ -72,7 +72,6 @@ void wlan_platform_high_userio_disp_status(userio_disp_high_status_t status, ...
 
    switch(status){
 
-
    	   case USERIO_DISP_STATUS_IDENTIFY: {
    		   blink_hex_display(25, 200000);
    	   } break;
@@ -152,13 +151,13 @@ int wlan_platform_wlan_exp_process_node_cmd(u8* cmd_processed, u32 cmd_id, int s
 	//
 
 	// Standard variables
-	u32                 resp_sent      = NO_RESP_SENT;
+	u32 resp_sent = NO_RESP_SENT;
 
-	u32               * cmd_args_32    = command->args;
+	u32* cmd_args_32 = command->args;
 
-	cmd_resp_hdr      * resp_hdr       = response->header;
-	u32               * resp_args_32   = response->args;
-	u32                 resp_index     = 0;
+	cmd_resp_hdr* resp_hdr = response->header;
+	u32* resp_args_32 = response->args;
+	u32 resp_index = 0;
 
 	//
 	// NOTE: Response header cmd, length, and num_args fields have already been initialized.
@@ -198,16 +197,16 @@ int wlan_platform_wlan_exp_process_node_cmd(u8* cmd_processed, u32 cmd_id, int s
 			#define EEPROM_BASEADDR                        XPAR_W3_IIC_EEPROM_ONBOARD_BASEADDR
 			#define FMC_EEPROM_BASEADDR                    XPAR_W3_IIC_EEPROM_FMC_BASEADDR
 
-			u32    eeprom_idx;
-			int    eeprom_status;
-			u8     byte_to_write;
-			u32    status              = CMD_PARAM_SUCCESS;
-			u32    msg_cmd             = Xil_Ntohl(cmd_args_32[0]);
-			u32    eeprom_device       = Xil_Ntohl(cmd_args_32[1]);
-			u32    eeprom_addr         = (Xil_Ntohl(cmd_args_32[2]) & 0xFFFF);
-			u32    eeprom_length       = Xil_Ntohl(cmd_args_32[3]);
-			u32    use_default_resp    = WLAN_EXP_TRUE;
-			u32    eeprom_ba           = EEPROM_BASEADDR;
+			u32 eeprom_idx;
+			int eeprom_status;
+			u8 byte_to_write;
+			u32 status = CMD_PARAM_SUCCESS;
+			u32 msg_cmd = Xil_Ntohl(cmd_args_32[0]);
+			u32 eeprom_device = Xil_Ntohl(cmd_args_32[1]);
+			u32 eeprom_addr = (Xil_Ntohl(cmd_args_32[2]) & 0xFFFF);
+			u32 eeprom_length = Xil_Ntohl(cmd_args_32[3]);
+			u32 use_default_resp = WLAN_EXP_TRUE;
+			u32 eeprom_ba = EEPROM_BASEADDR;
 
 			// Select EEPROM device
 			if (eeprom_device) {

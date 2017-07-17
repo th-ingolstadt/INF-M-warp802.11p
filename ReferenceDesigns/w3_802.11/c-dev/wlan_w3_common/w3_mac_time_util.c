@@ -131,8 +131,8 @@ volatile u64 get_system_time_usec() {
  */
 void set_mac_time_usec(u64 new_time) {
 
-	wlan_ipc_msg_t     ipc_msg_to_low;
-	u64                ipc_msg_to_low_payload = new_time;
+	wlan_ipc_msg_t ipc_msg_to_low;
+	u64 ipc_msg_to_low_payload = new_time;
 
 	// Send message to CPU Low
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_SET_MAC_TIME);
@@ -161,8 +161,8 @@ void set_mac_time_usec(u64 new_time) {
  */
 void apply_mac_time_delta_usec(s64 time_delta) {
 
-	wlan_ipc_msg_t     ipc_msg_to_low;
-	s64                ipc_msg_to_low_payload = time_delta;
+	wlan_ipc_msg_t ipc_msg_to_low;
+	s64 ipc_msg_to_low_payload = time_delta;
 
 	// Send message to CPU Low
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_SET_MAC_TIME);
@@ -215,7 +215,7 @@ void set_mac_time_usec(u64 new_time) {
  */
 void apply_mac_time_delta_usec(s64 time_delta) {
 
-    u64                new_mac_time;
+    u64 new_mac_time;
 
     // Compute the new MAC time based on the current MAC time and the time delta
     // The extra 1 usec is empirically determined. This compensates for the time it

@@ -384,9 +384,9 @@ int wlan_platform_low_set_radio_channel(u32 channel) {
  *****************************************************************************/
 int w3_node_init() {
 
-    int            ret_val             = XST_SUCCESS;
-    int            status;
-    u32            clkmod_status;
+    int ret_val = XST_SUCCESS;
+    int status;
+    u32 clkmod_status;
 
     // Initialize w3_clock_controller hardware and AD9512 buffers
     //   NOTE:  The clock initialization will set the clock divider to 2 (for 40MHz clock) to RF A/B AD9963's
@@ -878,8 +878,8 @@ static const s8 pow_lookup_B5[128]   = {-97, -97, -96, -96, -95, -94, -94, -93, 
 
 inline int w3_rssi_to_rx_power(u16 rssi, u8 lna_gain, channel_band_t band) {
 
-    int            power     = -100;
-    u16            adj_rssi  = 0;
+    int power = -100;
+    u16 adj_rssi = 0;
 
     if(band == BAND_24GHZ) {
         switch(lna_gain) {

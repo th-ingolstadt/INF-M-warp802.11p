@@ -190,21 +190,20 @@ int main(){
 
 	// Initialize callbacks
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
-	wlan_mac_util_set_eth_rx_callback(          		(void*)ethernet_receive);
+	wlan_mac_util_set_eth_rx_callback((void*)ethernet_receive);
 #endif
-	wlan_mac_high_set_mpdu_rx_callback(         		(void*)mpdu_rx_process);
-	wlan_mac_high_set_press_pb_0_callback(            	(void*)button_0_press);
-	wlan_mac_high_set_release_pb_0_callback(            (void*)button_0_release);
-
-	wlan_mac_high_set_uart_rx_callback(         		(void*)uart_rx);
-	wlan_mac_high_set_poll_tx_queues_callback(  		(void*)poll_tx_queues);
-	wlan_mac_high_set_mpdu_dequeue_callback(    		(void*)mpdu_dequeue);
+	wlan_mac_high_set_mpdu_rx_callback((void*)mpdu_rx_process);
+	wlan_mac_high_set_press_pb_0_callback((void*)button_0_press);
+	wlan_mac_high_set_release_pb_0_callback((void*)button_0_release);
+	wlan_mac_high_set_uart_rx_callback((void*)uart_rx);
+	wlan_mac_high_set_poll_tx_queues_callback((void*)poll_tx_queues);
+	wlan_mac_high_set_mpdu_dequeue_callback((void*)mpdu_dequeue);
 #if WLAN_SW_CONFIG_ENABLE_LTG
-	wlan_mac_ltg_sched_set_callback(            		(void*)ltg_event);
+	wlan_mac_ltg_sched_set_callback((void*)ltg_event);
 #endif //WLAN_SW_CONFIG_ENABLE_LTG
-	queue_set_state_change_callback(            		(void*)queue_state_change);
-	wlan_mac_scan_set_state_change_callback(    		(void*)process_scan_state_change);
-	wlan_mac_high_set_cpu_low_reboot_callback(  		(void*)handle_cpu_low_reboot);
+	queue_set_state_change_callback((void*)queue_state_change);
+	wlan_mac_scan_set_state_change_callback((void*)process_scan_state_change);
+	wlan_mac_high_set_cpu_low_reboot_callback((void*)handle_cpu_low_reboot);
 
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 	// Configure the wireless-wired encapsulation mode (AP and STA behaviors are different)
@@ -225,12 +224,12 @@ int main(){
 		   WLAN_EXP_ETH, hw_info->hw_addr_wlan_exp, hw_info->hw_addr_wlan);
 
     // Set WLAN Exp callbacks
-    wlan_exp_set_process_node_cmd_callback(        (void *) wlan_exp_process_node_cmd);
-    wlan_exp_set_purge_all_data_tx_queue_callback( (void *) purge_all_data_tx_queue);
-    wlan_exp_set_process_user_cmd_callback(        (void *) wlan_exp_process_user_cmd);
+    wlan_exp_set_process_node_cmd_callback((void *) wlan_exp_process_node_cmd);
+    wlan_exp_set_purge_all_data_tx_queue_callback((void *) purge_all_data_tx_queue);
+    wlan_exp_set_process_user_cmd_callback((void *) wlan_exp_process_user_cmd);
     //   - wlan_exp_set_beacon_ts_update_mode_callback()  currently not supported by the AP
-    wlan_exp_set_process_config_bss_callback(      (void *) configure_bss);
-    wlan_exp_set_active_network_info_getter_callback(  (void *) active_network_info_getter);
+    wlan_exp_set_process_config_bss_callback((void *) configure_bss);
+    wlan_exp_set_active_network_info_getter_callback((void *) active_network_info_getter);
 
     // Set CPU_HIGH Type in wlan_exp's node_info struct;
     wlan_exp_node_set_type_high(APPLICATION_ROLE_AP, &compilation_details);
@@ -269,11 +268,11 @@ int main(){
 		memcpy(bss_config.bssid, wlan_mac_addr, MAC_ADDR_LEN);
 		strncpy(bss_config.ssid, default_AP_SSID, SSID_LEN_MAX);
 
-		bss_config.chan_spec.chan_pri  		= WLAN_DEFAULT_BSS_CONFIG_CHANNEL;
-		bss_config.chan_spec.chan_type 		= CHAN_TYPE_BW20;
-		bss_config.ht_capable          		= WLAN_DEFAULT_BSS_CONFIG_HT_CAPABLE;
-		bss_config.beacon_interval     		= WLAN_DEFAULT_BSS_CONFIG_BEACON_INTERVAL;
-		bss_config.dtim_period		  		= WLAN_DEFAULT_BSS_CONFIG_DTIM_PERIOD;
+		bss_config.chan_spec.chan_pri  = WLAN_DEFAULT_BSS_CONFIG_CHANNEL;
+		bss_config.chan_spec.chan_type = CHAN_TYPE_BW20;
+		bss_config.ht_capable          = WLAN_DEFAULT_BSS_CONFIG_HT_CAPABLE;
+		bss_config.beacon_interval     = WLAN_DEFAULT_BSS_CONFIG_BEACON_INTERVAL;
+		bss_config.dtim_period		   = WLAN_DEFAULT_BSS_CONFIG_DTIM_PERIOD;
 
 		update_mask = (BSS_FIELD_MASK_BSSID  			 |
 					   BSS_FIELD_MASK_CHAN   	 		 |

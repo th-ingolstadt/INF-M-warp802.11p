@@ -46,37 +46,35 @@
 
 
 /*************************** Variable Definitions ****************************/
-static volatile phy_samp_rate_t   gl_phy_samp_rate;                                 ///< Current PHY sampling rate
-static volatile u32               mac_param_chan;                                   ///< Current channel of the lower-level MAC
-static volatile u8                mac_param_band;                                   ///< Current band of the lower-level MAC
-static volatile u8                mac_param_dsss_en;                                ///< Enable / Disable DSSS when possible
-static volatile s8                mac_param_ctrl_tx_pow;                            ///< Current transmit power (dBm) for control packets
-static volatile u32               mac_param_rx_filter;                              ///< Current filter applied to packet receptions
-static volatile u8                rx_pkt_buf;                                       ///< Current receive buffer of the lower-level MAC
+static volatile phy_samp_rate_t gl_phy_samp_rate; ///< Current PHY sampling rate
+static volatile u32 mac_param_chan; ///< Current channel of the lower-level MAC
+static volatile u8 mac_param_band; ///< Current band of the lower-level MAC
+static volatile u8 mac_param_dsss_en; ///< Enable / Disable DSSS when possible
+static volatile s8 mac_param_ctrl_tx_pow; ///< Current transmit power (dBm) for control packets
+static volatile u32 mac_param_rx_filter; ///< Current filter applied to packet receptions
+static volatile u8 rx_pkt_buf; ///< Current receive buffer of the lower-level MAC
 
-static u32                        cpu_low_status;                                   ///< Status flags that are reported to upper-level MAC
-static u32						  cpu_low_type;										///< wlan_exp CPU_LOW type that is reported to upper-level MAC
-static compilation_details_t	  cpu_low_compilation_details;
+static u32 cpu_low_status; ///< Status flags that are reported to upper-level MAC
+static u32 cpu_low_type; ///< wlan_exp CPU_LOW type that is reported to upper-level MAC
+static compilation_details_t cpu_low_compilation_details;
 
 // Common Platform Device Info
-platform_common_dev_info_t	 platform_common_dev_info;
+platform_common_dev_info_t platform_common_dev_info;
 
-static wlan_ipc_msg_t        	  ipc_msg_from_high;                                          ///< Buffer for incoming IPC messages
-static u32                   	  ipc_msg_from_high_payload[MAILBOX_BUFFER_MAX_NUM_WORDS];    ///< Buffer for payload of incoming IPC messages
+static wlan_ipc_msg_t ipc_msg_from_high; ///< Buffer for incoming IPC messages
+static u32 ipc_msg_from_high_payload[MAILBOX_BUFFER_MAX_NUM_WORDS]; ///< Buffer for payload of incoming IPC messages
 
 // Callback function pointers
-static function_ptr_t        frame_rx_callback;                                     ///< User callback frame receptions
-
-static function_ptr_t		 beacon_txrx_config_callback;
-static function_ptr_t		 mcast_buffer_enable_callback;
-static function_ptr_t		 mactime_change_callback;
-static function_ptr_t		 sample_rate_change_callback;
-static function_ptr_t		 handle_tx_pkt_buf_ready;
-
-static function_ptr_t        ipc_low_param_callback;                                ///< User callback for IPC_MBOX_LOW_PARAM ipc calls
+static function_ptr_t frame_rx_callback;
+static function_ptr_t beacon_txrx_config_callback;
+static function_ptr_t mcast_buffer_enable_callback;
+static function_ptr_t mactime_change_callback;
+static function_ptr_t sample_rate_change_callback;
+static function_ptr_t handle_tx_pkt_buf_ready;
+static function_ptr_t ipc_low_param_callback;
 
 // Unique transmit sequence number
-static volatile u64	         unique_seq;
+static volatile u64 unique_seq;
 
 // Constant LUTs for MCS
 static const u16 mcs_to_n_dbps_nonht_lut[] = {24, 36, 48, 72, 96, 144, 192, 216};
@@ -97,10 +95,10 @@ static const u16 mcs_to_n_dbps_htmf_lut[] = {26, 52, 78, 104, 156, 208, 234, 260
  * @return  int                 - Initialization status (0 = success)
  */
 int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
-    u32 		     status;
+    u32 status;
     rx_frame_info_t* rx_frame_info;
 	tx_frame_info_t* tx_frame_info;
-    u32			     i;
+    u32 i;
 
     /**********************************************************************************
      * Initialize the low platform first - this must happen before the low application
@@ -136,11 +134,11 @@ int wlan_mac_low_init(u32 type, compilation_details_t compilation_details){
     wlan_mac_hw_init();
 
 
-    mac_param_dsss_en        = 1;
-    mac_param_band           = CHAN_BAND_24GHz;
-    mac_param_ctrl_tx_pow    = 10;
-    cpu_low_status           = 0;
-    cpu_low_type			 = type;
+    mac_param_dsss_en = 1;
+    mac_param_band = CHAN_BAND_24GHz;
+    mac_param_ctrl_tx_pow = 10;
+    cpu_low_status = 0;
+    cpu_low_type = type;
     cpu_low_compilation_details = compilation_details;
 
     unique_seq = 0;
@@ -291,7 +289,7 @@ void wlan_mac_low_init_finish(){
 
 void wlan_mac_low_send_status(u8 cpu_status_reason){
 	wlan_ipc_msg_t ipc_msg_to_high;
-	u32            ipc_msg_to_high_payload[2+(sizeof(compilation_details_t)/sizeof(u32))];
+	u32 ipc_msg_to_high_payload[2+(sizeof(compilation_details_t)/sizeof(u32))];
 
 	// Send a message to other processor to say that this processor is initialized and ready
 	ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CPU_STATUS);
@@ -412,7 +410,7 @@ void wlan_mac_hw_init(){
  */
 inline void wlan_mac_low_send_exception(u32 reason){
     wlan_ipc_msg_t ipc_msg_to_high;
-    u32            ipc_msg_to_high_payload[2];
+    u32 ipc_msg_to_high_payload[2];
 
     // Update CPU Low status
     cpu_low_status |= CPU_STATUS_EXCEPTION;
@@ -445,8 +443,8 @@ inline void wlan_mac_low_send_exception(u32 reason){
  * @return  u32              - Status (See MAC Polling defines in wlan_mac_low.h)
  */
 inline u32 wlan_mac_low_poll_frame_rx(){
-    phy_rx_details_t 	phy_details;
-    u8                  active_rx_ant;
+    phy_rx_details_t phy_details;
+    u8 active_rx_ant;
 
     volatile u32 mac_hw_status;
     volatile u32 phy_hdr_params;
@@ -621,7 +619,7 @@ inline int wlan_mac_low_poll_ipc_rx(){
  * @return  None
  */
 void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
-    wlan_ipc_msg_t           ipc_msg_to_high;
+    wlan_ipc_msg_t ipc_msg_to_high;
 
     switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)){
 		//---------------------------------------------------------------------
@@ -679,7 +677,7 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
             switch(msg->arg0){
                 case IPC_REG_WRITE_MODE: {
 
-                	u32    * payload_to_write = (u32*)((u8*)ipc_msg_from_high_payload + sizeof(ipc_reg_read_write_t));
+                	u32* payload_to_write = (u32*)((u8*)ipc_msg_from_high_payload + sizeof(ipc_reg_read_write_t));
 
                 	// IMPORTANT: this memcpy assumes the payload provided by CPU high is ready as-is
                     //     Any byte swapping (i.e. for payloads that arrive over Ethernet) *must* be performed
@@ -687,7 +685,7 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
 
                     // Implement memcpy with only 32-bit writes, avoids byte-select issues in Sysgen AXI slaves
                     int word_idx;
-                    u32 num_words =  ((ipc_reg_read_write_t*)ipc_msg_from_high_payload)->num_words;
+                    u32 num_words = ((ipc_reg_read_write_t*)ipc_msg_from_high_payload)->num_words;
                     u32 start_addr = (((ipc_reg_read_write_t*)ipc_msg_from_high_payload)->baseaddr) & 0xFFFFFFFC; //force 2LSB=0
 
                     for(word_idx = 0; word_idx < num_words; word_idx++) {
@@ -749,7 +747,7 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
                     //     it is not good to try to return values from CPU low since there is no guarantee when the values
                     //     will be available.
                     //
-                    u32      ret_val                  = 0;
+                    u32 ret_val = 0;
 
                     ipc_msg_to_high.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_LOW_PARAM);
                     ipc_msg_to_high.num_payload_words = 0;
@@ -788,8 +786,8 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
 
         //---------------------------------------------------------------------
         case IPC_MBOX_CONFIG_RX_FILTER: {
-            u32    filter_mode_hi = (u32)ipc_msg_from_high_payload[0];
-            u32    filter_mode_lo = 0;
+            u32 filter_mode_hi = (u32)ipc_msg_from_high_payload[0];
+            u32 filter_mode_lo = 0;
 
             if((filter_mode_hi & RX_FILTER_FCS_MASK) == RX_FILTER_FCS_NOCHANGE){
                 filter_mode_lo |= (mac_param_rx_filter & RX_FILTER_FCS_MASK);
@@ -828,7 +826,6 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
         //---------------------------------------------------------------------
         case IPC_MBOX_SET_RADIO_TX_POWER: {
         	s8 pwr = (s8)(msg->arg0);
-
         	wlan_platform_set_radio_tx_power(pwr);
         }
         break;
@@ -971,10 +968,10 @@ void wlan_mac_low_DSSS_rx_disable() {
 int wlan_mac_low_finish_frame_transmit(u16 tx_pkt_buf){
 	// This function should only be called on a packet buffer whose state is
 	// TX_PKT_BUF_LOW_CTRL and is currently locked by CPU_LOW
-	int 					 return_value = 0;
-    tx_frame_info_t        * tx_frame_info;
-    u32                      is_locked, owner;
-    wlan_ipc_msg_t           ipc_msg_to_high;
+	int return_value = 0;
+    tx_frame_info_t* tx_frame_info;
+    u32 is_locked, owner;
+    wlan_ipc_msg_t ipc_msg_to_high;
 
 
     if(tx_pkt_buf >= NUM_TX_PKT_BUFS){
@@ -1044,9 +1041,9 @@ int wlan_mac_low_finish_frame_transmit(u16 tx_pkt_buf){
 }
 
 int wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf){
-	tx_frame_info_t* 		 tx_frame_info;
-	mac_header_80211       * tx_80211_header;
-	ltg_packet_id_t*         pkt_id;
+	tx_frame_info_t* tx_frame_info;
+	mac_header_80211* tx_80211_header;
+	ltg_packet_id_t* pkt_id;
 	if(tx_pkt_buf >= NUM_TX_PKT_BUFS){
 		xil_printf("Error: Tx Pkt Buf index exceeds NUM_TX_PKT_BUFS\n");
 		return PREPARE_FRAME_TRANSMIT_ERROR_INVALID_PKT_BUF;
@@ -1070,7 +1067,7 @@ int wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf){
 
 	if((tx_frame_info->flags) & TX_FRAME_INFO_FLAGS_FILL_UNIQ_SEQ){
 		// Fill unique sequence number into LTG payload
-		pkt_id             = (ltg_packet_id_t*)((u8*)tx_80211_header + sizeof(mac_header_80211));
+		pkt_id = (ltg_packet_id_t*)((u8*)tx_80211_header + sizeof(mac_header_80211));
 		pkt_id->unique_seq = unique_seq;
 	}
 
@@ -1080,7 +1077,7 @@ int wlan_mac_low_prepare_frame_transmit(u16 tx_pkt_buf){
 }
 
 void wlan_mac_low_send_low_tx_details(u8 pkt_buf, wlan_mac_low_tx_details_t* low_tx_details){
-	wlan_ipc_msg_t           ipc_msg_to_high;
+	wlan_ipc_msg_t ipc_msg_to_high;
 
 	ipc_msg_to_high.payload_ptr = (u32*)low_tx_details;
 	ipc_msg_to_high.arg0 = pkt_buf;
@@ -1230,7 +1227,6 @@ inline u64 wlan_mac_low_get_rx_start_timestamp() {
  * @return  u64              - microsecond timestamp
  */
 inline u64 wlan_mac_low_get_tx_start_timestamp() {
-
     u32 timestamp_high_u32;
     u32 timestamp_low_u32;
     u64 timestamp_u64;
@@ -1416,7 +1412,6 @@ inline u8 wlan_mac_low_dbm_to_gain_target(s8 power){
  * @brief Convert MCS to number of data bits per symbol
  */
 inline u16 wlan_mac_low_mcs_to_n_dbps(u8 mcs, u8 phy_mode) {
-
 	if(phy_mode == PHY_MODE_NONHT && mcs < (sizeof(mcs_to_n_dbps_nonht_lut)/sizeof(mcs_to_n_dbps_nonht_lut[0]))) {
 		return mcs_to_n_dbps_nonht_lut[mcs];
 	} else if(phy_mode == PHY_MODE_HTMF && mcs < (sizeof(mcs_to_n_dbps_htmf_lut)/sizeof(mcs_to_n_dbps_htmf_lut[0]))) {

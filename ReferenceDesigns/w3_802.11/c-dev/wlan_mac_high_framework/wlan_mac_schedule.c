@@ -36,28 +36,27 @@
 
 
 /*************************** Variable Definitions ****************************/
-static XTmrCtr               timer_instance;
+static XTmrCtr timer_instance;
 
-static volatile u32          schedule_count;
+static volatile u32 schedule_count;
 
+static wlan_sched_state_t wlan_sched_coarse;
+static wlan_sched_state_t wlan_sched_fine;
+static dl_list disabled_list;
 
-static wlan_sched_state_t    wlan_sched_coarse;
-static wlan_sched_state_t    wlan_sched_fine;
-static dl_list				 disabled_list;
-
-extern platform_high_dev_info_t	 platform_high_dev_info;
+extern platform_high_dev_info_t platform_high_dev_info;
 
 #if WLAN_SCHED_EXEC_MONITOR
-static u64                   last_exec_timestamp;
-static u64                   schedule_exec_monitor;
-static u32                   monitor_threshold;
+static u64 last_exec_timestamp;
+static u64 schedule_exec_monitor;
+static u32 monitor_threshold;
 #endif
 
 
 /*************************** Function Prototypes *****************************/
 
-void          timer_interrupt_handler(void * instancePtr);
-void          schedule_handler(void * callback_ref, u8 timer_number);
+void timer_interrupt_handler(void* instancePtr);
+void schedule_handler(void* callback_ref, u8 timer_number);
 
 
 /******************************** Functions **********************************/
@@ -75,12 +74,12 @@ int wlan_mac_schedule_init(){
 	int status;
 
 	// Initialize internal variables
-	schedule_count           = 1;
+	schedule_count = 1;
 
 #if WLAN_SCHED_EXEC_MONITOR
-	last_exec_timestamp      = 0;
-	schedule_exec_monitor    = 0;
-	monitor_threshold        = WLAN_SCHED_EXEC_MONITOR_DEFAULT_THRESHOLD;
+	last_exec_timestamp = 0;
+	schedule_exec_monitor = 0;
+	monitor_threshold = WLAN_SCHED_EXEC_MONITOR_DEFAULT_THRESHOLD;
 #endif
 
 	dl_list_init(&(wlan_sched_coarse.enabled_list));
@@ -157,7 +156,7 @@ int wlan_mac_schedule_init(){
 int wlan_mac_schedule_setup_interrupt(XIntc* intc){
 	int status;
 
-	status =  XIntc_Connect(intc, platform_high_dev_info.timer_int_id, (XInterruptHandler)timer_interrupt_handler, &timer_instance);
+	status = XIntc_Connect(intc, platform_high_dev_info.timer_int_id, (XInterruptHandler)timer_interrupt_handler, &timer_instance);
 	XIntc_Enable(intc, platform_high_dev_info.timer_int_id);
 
 	return status;
@@ -178,10 +177,10 @@ int wlan_mac_schedule_setup_interrupt(XIntc* intc){
  *
  *****************************************************************************/
 u32 wlan_mac_schedule_event_repeated(u8 scheduler_sel, u32 delay, u32 num_calls, void(*callback)()){
-	u32            id;
-	dl_entry     * entry_ptr;
-	wlan_sched   * sched_ptr;
-	u64            curr_system_time;
+	u32 id;
+	dl_entry* entry_ptr;
+	wlan_sched* sched_ptr;
+	u64 curr_system_time;
 
 	// Allocate memory for data structures
 	entry_ptr = wlan_mac_high_malloc(sizeof(dl_entry));
@@ -355,8 +354,8 @@ int wlan_mac_schedule_enable(u8 scheduler_sel, dl_entry* sched_entry){
  *
  *****************************************************************************/
 void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
-	dl_entry     * curr_entry_ptr;
-	wlan_sched   * curr_sched_ptr;
+	dl_entry* curr_entry_ptr;
+	wlan_sched* curr_sched_ptr;
 
 	dl_list* enabled_list;
 
@@ -460,10 +459,10 @@ void wlan_mac_remove_schedule(u8 scheduler_sel, u32 id){
  *****************************************************************************/
 void timer_interrupt_handler(void * instance_ptr){
 
-	XTmrCtr      * timer_ptr;
-	u8             timer_number;
-	u32            base_addr;
-	u32            csr_reg;
+	XTmrCtr* timer_ptr;
+	u8 timer_number;
+	u32 base_addr;
+	u32 csr_reg;
 
 #ifdef _ISR_PERF_MON_EN_
 	wlan_mac_set_dbg_hdr_out(ISR_PERF_MON_GPIO_MASK);
@@ -524,17 +523,17 @@ void timer_interrupt_handler(void * instance_ptr){
  *
  *****************************************************************************/
 void schedule_handler(void * callback_ref, u8 timer_number){
-	dl_entry* 			curr_entry_ptr;
-	wlan_sched*    		curr_sched_ptr;
+	dl_entry* curr_entry_ptr;
+	wlan_sched* curr_sched_ptr;
 
-	u8             		scheduler;
+	u8 scheduler;
 	volatile wlan_sched_state_t* wlan_sched_state;
-	u32            		sched_id;
-	function_ptr_t 		sched_callback;
+	u32 sched_id;
+	function_ptr_t sched_callback;
 
-	u64            curr_system_time;
+	u64 curr_system_time;
 
-	static volatile 		u8 debug_print = 0;
+	static volatile u8 debug_print = 0;
 
 	// Get current system time
 	curr_system_time = get_system_time_usec();
@@ -633,14 +632,14 @@ void schedule_handler(void * callback_ref, u8 timer_number){
  *
  *****************************************************************************/
 dl_entry* wlan_mac_schedule_find(dl_list* sched_list, u32 id){
-	int            iter;
+	int iter;
 
-	dl_entry     * curr_dl_entry;
-	dl_entry     * next_dl_entry;
-	wlan_sched   * curr_wlan_sched;
+	dl_entry* curr_dl_entry;
+	dl_entry* next_dl_entry;
+	wlan_sched* curr_wlan_sched;
 
 	// Initialize the loop variables
-	iter          = sched_list->length;
+	iter = sched_list->length;
 	next_dl_entry = sched_list->first;
 
 	// Process the list

@@ -24,7 +24,7 @@
 
 /*************************** Variable Definitions ****************************/
 
-static XMutex                pkt_buf_mutex;
+static XMutex pkt_buf_mutex;
 static platform_common_dev_info_t platform_common_dev_info;
 
 
@@ -34,8 +34,8 @@ static platform_common_dev_info_t platform_common_dev_info;
 /******************************** Functions **********************************/
 
 int init_pkt_buf() {
-    u32            i;
-    XMutex_Config *mutex_config_ptr;
+    u32 i;
+    XMutex_Config* mutex_config_ptr;
 
     platform_common_dev_info = wlan_platform_common_get_dev_info();
 

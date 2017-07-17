@@ -69,9 +69,9 @@ station_info_entry_t* station_info_find_oldest();
 
 void station_info_init() {
 
-	u32       				i;
-	u32       				num_station_info;
-	station_info_entry_t*   station_info_entry_base;
+	u32 i;
+	u32 num_station_info;
+	station_info_entry_t* station_info_entry_base;
 
 	// Set sane default Tx params. These will be overwritten by the user application
 	tx_params_t	tx_params = { .phy = { .mcs = 0, .phy_mode = PHY_MODE_NONHT, .antenna_mode = TX_ANTMODE_SISO_ANTA, .power = 15 },
@@ -115,14 +115,14 @@ void station_info_init_finish(){
 }
 
 inline station_info_t* station_info_txreport_process(void* pkt_buf_addr, wlan_mac_low_tx_details_t* wlan_mac_low_tx_details) {
-	tx_frame_info_t*      	tx_frame_info = (tx_frame_info_t*)pkt_buf_addr;
-	mac_header_80211* 		tx_80211_header = (mac_header_80211*)((u8*)tx_frame_info + PHY_TX_PKT_BUF_MPDU_OFFSET);
-	station_info_t*			curr_station_info;
-	u64						curr_system_time = get_system_time_usec();
+	tx_frame_info_t* tx_frame_info = (tx_frame_info_t*)pkt_buf_addr;
+	mac_header_80211* tx_80211_header = (mac_header_80211*)((u8*)tx_frame_info + PHY_TX_PKT_BUF_MPDU_OFFSET);
+	station_info_t* curr_station_info;
+	u64 curr_system_time = get_system_time_usec();
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
-	station_txrx_counts_t*	curr_txrx_counts;
-	txrx_counts_sub_t*		txrx_counts_sub;
-	u8						pkt_type;
+	station_txrx_counts_t* curr_txrx_counts;
+	txrx_counts_sub_t* txrx_counts_sub;
+	u8 pkt_type;
 	pkt_type = (tx_80211_header->frame_control_1 & MAC_FRAME_CTRL1_MASK_TYPE);
 #endif
 
@@ -163,13 +163,13 @@ inline station_info_t* station_info_txreport_process(void* pkt_buf_addr, wlan_ma
 }
 
 inline station_info_t* station_info_posttx_process(void* pkt_buf_addr) {
-	tx_frame_info_t*      	tx_frame_info  	  = (tx_frame_info_t*)pkt_buf_addr;
-	mac_header_80211* 		tx_80211_header   = (mac_header_80211*)((u8*)tx_frame_info + PHY_TX_PKT_BUF_MPDU_OFFSET);
-	station_info_t*			curr_station_info;
+	tx_frame_info_t* tx_frame_info = (tx_frame_info_t*)pkt_buf_addr;
+	mac_header_80211* tx_80211_header = (mac_header_80211*)((u8*)tx_frame_info + PHY_TX_PKT_BUF_MPDU_OFFSET);
+	station_info_t* curr_station_info;
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
-	station_txrx_counts_t*	curr_txrx_counts;
-	txrx_counts_sub_t*		txrx_counts_sub;
-	u8						pkt_type;
+	station_txrx_counts_t* curr_txrx_counts;
+	txrx_counts_sub_t* txrx_counts_sub;
+	u8 pkt_type;
 	pkt_type = (tx_80211_header->frame_control_1 & MAC_FRAME_CTRL1_MASK_TYPE);
 #endif
 
@@ -207,12 +207,12 @@ inline station_info_t* station_info_posttx_process(void* pkt_buf_addr) {
 }
 
 inline station_info_t* station_info_postrx_process(void* pkt_buf_addr) {
-	rx_frame_info_t*    	rx_frame_info   	     = (rx_frame_info_t*)pkt_buf_addr;
-	void*               	mac_payload              = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
-	mac_header_80211*   	rx_80211_header          = (mac_header_80211*)((void *)mac_payload);
-	station_info_t*			curr_station_info		 = NULL;
-	u8						pkt_type;
-	u64						curr_system_time 		 = get_system_time_usec();
+	rx_frame_info_t* rx_frame_info = (rx_frame_info_t*)pkt_buf_addr;
+	void* mac_payload = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
+	mac_header_80211* rx_80211_header = (mac_header_80211*)((void *)mac_payload);
+	station_info_t* curr_station_info = NULL;
+	u8 pkt_type;
+	u64 curr_system_time = get_system_time_usec();
 
 	pkt_type = (rx_80211_header->frame_control_1 & MAC_FRAME_CTRL1_MASK_TYPE);
 
@@ -247,13 +247,13 @@ inline station_info_t* station_info_postrx_process(void* pkt_buf_addr) {
 
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
 void station_info_rx_process_counts(void* pkt_buf_addr, station_info_t* station_info, u32 option_flags) {
-	rx_frame_info_t*    	rx_frame_info   	     = (rx_frame_info_t*)pkt_buf_addr;
-	void*               	mac_payload              = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
-	mac_header_80211*   	rx_80211_header          = (mac_header_80211*)((void *)mac_payload);
-	station_txrx_counts_t*	curr_txrx_counts;
-	txrx_counts_sub_t*		txrx_counts_sub;
-	u8						pkt_type;
-	u16 					length   = rx_frame_info->phy_details.length;
+	rx_frame_info_t* rx_frame_info = (rx_frame_info_t*)pkt_buf_addr;
+	void* mac_payload = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
+	mac_header_80211* rx_80211_header          = (mac_header_80211*)((void *)mac_payload);
+	station_txrx_counts_t* curr_txrx_counts;
+	txrx_counts_sub_t* txrx_counts_sub;
+	u8 pkt_type;
+	u16 length = rx_frame_info->phy_details.length;
 
 	pkt_type = (rx_80211_header->frame_control_1 & MAC_FRAME_CTRL1_MASK_TYPE);
 
@@ -291,16 +291,16 @@ void station_info_rx_process_counts(void* pkt_buf_addr, station_info_t* station_
 }
 #endif
 
-void	station_info_print(dl_list* list, u32 option_flags){
+void station_info_print(dl_list* list, u32 option_flags){
 	// list == NULL : Print all in flat station_info_list
 	// list !- NULL : Print only in provided list
-	int       			iter;
-	u32       			i;
-	dl_list*			local_list;
-	dl_entry* 			curr_dl_entry;
-	station_info_t* 	curr_station_info;
+	int iter;
+	u32 i;
+	dl_list* local_list;
+	dl_entry* curr_dl_entry;
+	station_info_t* curr_station_info;
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
-	station_txrx_counts_t*		curr_txrx_counts;
+	station_txrx_counts_t* curr_txrx_counts;
 #endif
 
 	if(list != NULL){
@@ -377,14 +377,14 @@ void station_info_reset_all_counts_txrx(){
 	//This function will return all counts to 0.
 
 #if WLAN_SW_CONFIG_ENABLE_TXRX_COUNTS
-	int       					iter;
-	u32       					i;
-	dl_entry* 					curr_dl_entry;
-	station_info_t* 			curr_station_info;
-	station_txrx_counts_t* 		curr_txrx_counts;
+	int iter;
+	u32 i;
+	dl_entry* curr_dl_entry;
+	station_info_t* curr_station_info;
+	station_txrx_counts_t* curr_txrx_counts;
 
 	i = 0;
-	iter          = station_info_list.length;
+	iter = station_info_list.length;
 	curr_dl_entry = station_info_list.last;
 
 
@@ -473,9 +473,9 @@ station_info_entry_t* station_info_find_by_id(u32 id, dl_list* list){
 }
 
 station_info_entry_t* station_info_find_by_addr(u8* addr, dl_list* list){
-	int       				iter;
-	station_info_entry_t* 	curr_station_info_entry;
-	dl_list*				list_to_search;
+	int iter;
+	station_info_entry_t* curr_station_info_entry;
+	dl_list* list_to_search;
 
 	if(list == NULL){
 		//Optional "list" argument not provided. Search will occur over
@@ -604,10 +604,10 @@ station_info_t* station_info_create(u8* addr){
  * @return None
  */
 void station_info_reset_all(){
-	dl_entry * 		next_dl_entry = station_info_list.first;
-	dl_entry * 		curr_dl_entry;
+	dl_entry* next_dl_entry = station_info_list.first;
+	dl_entry* curr_dl_entry;
 	station_info_t* curr_station_info;
-    int		   		iter = station_info_list.length;
+    int iter = station_info_list.length;
 
 	while( (next_dl_entry != NULL) && (iter-- > 0) ){
 		curr_dl_entry = next_dl_entry;
@@ -632,11 +632,11 @@ void station_info_reset_all(){
  * @return None
  */
 void txrx_counts_zero_all(){
-	dl_entry * 				next_dl_entry = station_info_list.first;
-	dl_entry * 				curr_dl_entry;
-	station_info_t* 		curr_station_info;
-	station_txrx_counts_t*	curr_txrx_counts;
-    int		   				iter = station_info_list.length;
+	dl_entry* next_dl_entry = station_info_list.first;
+	dl_entry* curr_dl_entry;
+	station_info_t* curr_station_info;
+	station_txrx_counts_t* curr_txrx_counts;
+    int iter = station_info_list.length;
 
 	while( (next_dl_entry != NULL) && (iter-- > 0) ){
 		curr_dl_entry = next_dl_entry;
@@ -692,11 +692,11 @@ inline dl_list* station_info_get_list(){
  */
 station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 requested_ID, u8 ht_capable){
 	station_info_entry_t* entry;
-	station_info_t*       station_info;
+	station_info_t* station_info;
 	station_info_entry_t* curr_station_info_entry;
-	station_info_t*       station_info_temp;
-	u16                   curr_ID;
-	int                   iter;
+	station_info_t* station_info_temp;
+	u16 curr_ID;
+	int iter;
 
 	curr_ID = 0;
 
@@ -864,7 +864,7 @@ station_info_t*  station_info_add(dl_list* app_station_info_list, u8* addr, u16 
  *     - -1  - Failed to remove station
  */
 int station_info_remove(dl_list* app_station_info_list, u8* addr){
-	station_info_entry_t* 		entry;
+	station_info_entry_t* entry;
 
 	entry = station_info_find_by_addr(addr, app_station_info_list);
 
@@ -901,9 +901,9 @@ int station_info_remove(dl_list* app_station_info_list, u8* addr){
  *
  */
 u8	station_info_is_member(dl_list* app_station_info_list, station_info_t* station_info){
-	dl_entry*	  	curr_station_info_entry;
+	dl_entry* curr_station_info_entry;
 	station_info_t* station_info_temp;
-	int			  	iter = app_station_info_list->length;
+	int iter = app_station_info_list->length;
 
 	curr_station_info_entry = app_station_info_list->first;
 

@@ -36,24 +36,24 @@
 
 
 /*************************** Constant Definitions ****************************/
-#define WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW                 WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW_NOMAC
+#define WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW WLAN_EXP_TYPE_DESIGN_80211_CPU_LOW_NOMAC
 
-#define DEFAULT_TX_ANTENNA_MODE                            TX_ANTMODE_SISO_ANTA
+#define DEFAULT_TX_ANTENNA_MODE TX_ANTMODE_SISO_ANTA
 
 
 /*********************** Global Variable Definitions *************************/
 
 
 /*************************** Variable Definitions ****************************/
-static u8                              eeprom_addr[MAC_ADDR_LEN];
+static u8 eeprom_addr[MAC_ADDR_LEN];
 
 // Common Platform Device Info
-platform_common_dev_info_t	 platform_common_dev_info;
+platform_common_dev_info_t platform_common_dev_info;
 
 
 /*************************** Functions Prototypes ****************************/
 
-int  process_low_param(u8 mode, u32* payload);
+int process_low_param(u8 mode, u32* payload);
 
 
 /******************************** Functions **********************************/
@@ -66,8 +66,8 @@ int main(){
 	Xil_ICacheDisable();
 	microblaze_enable_exceptions();
 
-    wlan_mac_hw_info_t* 	hw_info;
-    compilation_details_t	compilation_details;
+    wlan_mac_hw_info_t* hw_info;
+    compilation_details_t compilation_details;
     bzero(&compilation_details, sizeof(compilation_details_t));
 
     xil_printf("\f");
@@ -96,9 +96,9 @@ int main(){
     memcpy(eeprom_addr, hw_info->hw_addr_wlan, MAC_ADDR_LEN);
 
     // Set up the TX / RX callbacks
-    wlan_mac_low_set_frame_rx_callback(           (void*)frame_receive );
-    wlan_mac_low_set_ipc_low_param_callback(      (void*)process_low_param );
-    wlan_mac_low_set_handle_tx_pkt_buf_ready(	  (void*)handle_tx_pkt_buf_ready );
+    wlan_mac_low_set_frame_rx_callback((void*)frame_receive);
+    wlan_mac_low_set_ipc_low_param_callback((void*)process_low_param);
+    wlan_mac_low_set_handle_tx_pkt_buf_ready((void*)handle_tx_pkt_buf_ready);
     // wlan_mac_low_set_sample_rate_change_callback() not used at this time.
 
     // Finish Low Framework initialization
@@ -151,8 +151,8 @@ int main(){
  */
 u32 frame_receive(u8 rx_pkt_buf, phy_rx_details_t* phy_details){
 
-    void              * pkt_buf_addr        = (void *) CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf);
-    rx_frame_info_t   * rx_frame_info       = (rx_frame_info_t *) pkt_buf_addr;
+    void* pkt_buf_addr = (void*) CALC_PKT_BUF_ADDR(platform_common_dev_info.rx_pkt_buf_baseaddr, rx_pkt_buf);
+    rx_frame_info_t* rx_frame_info = (rx_frame_info_t*) pkt_buf_addr;
 
     // Wait for the Rx PHY to finish receiving this packet
 	if(wlan_mac_hw_rx_finish() == 1){
@@ -216,13 +216,13 @@ int frame_transmit(u8 pkt_buf) {
     u8 tx_gain;
     wlan_mac_low_tx_details_t low_tx_details;
 
-    tx_frame_info_t   * tx_frame_info       = (tx_frame_info_t*) (CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf));
-    u8                  mpdu_tx_ant_mask    = 0;
+    tx_frame_info_t* tx_frame_info = (tx_frame_info_t*) (CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, pkt_buf));
+    u8 mpdu_tx_ant_mask = 0;
 
     // Extract waveform params from the tx_frame_info
-    u8  mcs      = tx_frame_info->params.phy.mcs;
+    u8  mcs = tx_frame_info->params.phy.mcs;
     u8  phy_mode = (tx_frame_info->params.phy.phy_mode & (PHY_MODE_HTMF | PHY_MODE_NONHT));
-    u16 length   = tx_frame_info->length;
+    u16 length = tx_frame_info->length;
 
     // Write the PHY premable (SIGNAL or L-SIG/HT-SIG) to the packet buffer
     write_phy_preamble(pkt_buf, phy_mode, mcs, length);
@@ -237,10 +237,10 @@ int frame_transmit(u8 pkt_buf) {
     }
 
     // Fill in the number of attempts to transmit the packet
-    tx_frame_info->num_tx_attempts  = 1;
+    tx_frame_info->num_tx_attempts = 1;
 
     // Update tx_frame_info with current PHY sampling rate
-    tx_frame_info->phy_samp_rate	= (u8)wlan_mac_low_get_phy_samp_rate();
+    tx_frame_info->phy_samp_rate = (u8)wlan_mac_low_get_phy_samp_rate();
 
     // Convert the requested Tx power (dBm) to a Tx gain setting for the radio
     tx_gain = wlan_mac_low_dbm_to_gain_target(tx_frame_info->params.phy.power);
@@ -262,14 +262,14 @@ int frame_transmit(u8 pkt_buf) {
 
     // Fill in the Tx low details
 	low_tx_details.tx_details_type = TX_DETAILS_MPDU;
-	low_tx_details.phy_params_mpdu.mcs          = mcs;
-	low_tx_details.phy_params_mpdu.phy_mode     = phy_mode;
-	low_tx_details.phy_params_mpdu.power        = tx_frame_info->params.phy.power;
+	low_tx_details.phy_params_mpdu.mcs = mcs;
+	low_tx_details.phy_params_mpdu.phy_mode = phy_mode;
+	low_tx_details.phy_params_mpdu.power = tx_frame_info->params.phy.power;
 	low_tx_details.phy_params_mpdu.antenna_mode = tx_frame_info->params.phy.antenna_mode;
-	low_tx_details.chan_num                     = wlan_mac_low_get_active_channel();
-	low_tx_details.num_slots                    = 0;
-	low_tx_details.cw                           = 0;
-	low_tx_details.attempt_number 				= 1;
+	low_tx_details.chan_num = wlan_mac_low_get_active_channel();
+	low_tx_details.num_slots = 0;
+	low_tx_details.cw = 0;
+	low_tx_details.attempt_number = 1;
 
     // Wait for the PHY Tx to finish
     do{
