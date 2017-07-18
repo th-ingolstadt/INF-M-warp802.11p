@@ -53,22 +53,22 @@
 
 /*************************** Constant Definitions ****************************/
 
-#define  WLAN_EXP_ETH                            TRANSPORT_ETH_B
+#define  WLAN_EXP_ETH TRANSPORT_ETH_B
 
 
-#define  WLAN_DEFAULT_BSS_CONFIG_CHANNEL   	                    1
-#define  WLAN_DEFAULT_BSS_CONFIG_DTIM_PERIOD                    2
-#define  WLAN_DEFAULT_BSS_CONFIG_BEACON_INTERVAL      			100
+#define  WLAN_DEFAULT_BSS_CONFIG_CHANNEL 1
+#define  WLAN_DEFAULT_BSS_CONFIG_DTIM_PERIOD 2
+#define  WLAN_DEFAULT_BSS_CONFIG_BEACON_INTERVAL 100
 // The WLAN_DEFAULT_BSS_CONFIG_HT_CAPABLE define will set the default
 // unicast TX phy mode to:  1 --> HTMF  or  0 --> NONHT.
-#define  WLAN_DEFAULT_BSS_CONFIG_HT_CAPABLE                     1
+#define  WLAN_DEFAULT_BSS_CONFIG_HT_CAPABLE 1
 
-#define  WLAN_DEFAULT_TX_PWR                     15
-#define  WLAN_DEFAULT_TX_ANTENNA                 TX_ANTMODE_SISO_ANTA
-#define  WLAN_DEFAULT_RX_ANTENNA                 RX_ANTMODE_SISO_ANTA
+#define  WLAN_DEFAULT_TX_PWR 15
+#define  WLAN_DEFAULT_TX_ANTENNA TX_ANTMODE_SISO_ANTA
+#define  WLAN_DEFAULT_RX_ANTENNA RX_ANTMODE_SISO_ANTA
 
-#define  WLAN_DEFAULT_SCAN_TIMEOUT_USEC_MIN		 4000000
-#define  WLAN_DEFAULT_SCAN_TIMEOUT_USEC_MAX	     8000000
+#define  WLAN_DEFAULT_SCAN_TIMEOUT_USEC_MIN 4000000
+#define  WLAN_DEFAULT_SCAN_TIMEOUT_USEC_MAX 8000000
 
 // WLAN_DEFAULT_USE_HT
 //
@@ -89,28 +89,28 @@
 
 // If you want this station to try to associate to a known IBSS at boot, type
 //   the string here. Otherwise, let it be an empty string.
-static char                       default_ssid[SSID_LEN_MAX + 1] = "MANGO-IBSS";
-// static char                       default_ssid[SSID_LEN_MAX + 1] = "";
+static char default_ssid[SSID_LEN_MAX + 1] = "MANGO-IBSS";
+// static char default_ssid[SSID_LEN_MAX + 1] = "";
 
 
 // Common TX header for 802.11 packets
-mac_header_80211_common           tx_header_common;
+mac_header_80211_common tx_header_common;
 
 // Top level IBSS state
-network_info_t*                   active_network_info;
+network_info_t* active_network_info;
 
 // Tx queue variables;
-static u32                        max_queue_size;
-volatile u8                       pause_data_queue;
+static u32 max_queue_size;
+volatile u8 pause_data_queue;
 
 // MAC address
-static u8 	                      wlan_mac_addr[MAC_ADDR_LEN];
+static u8 wlan_mac_addr[MAC_ADDR_LEN];
 
 // Beacon configuration
-static	beacon_txrx_config_t	  gl_beacon_txrx_config;
+static	beacon_txrx_config_t gl_beacon_txrx_config;
 
 // Common Platform Device Info
-platform_common_dev_info_t	 platform_common_dev_info;
+platform_common_dev_info_t platform_common_dev_info;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -133,15 +133,15 @@ int main() {
 	Xil_ICacheDisable();
 	microblaze_enable_exceptions();
 
-	u64                		scan_start_timestamp;
-	u64 					scan_duration;
-	u8                 		locally_administered_addr[MAC_ADDR_LEN];
-	dl_list*           		ssid_match_list = NULL;
-	dl_entry*         		temp_dl_entry = NULL;
-	network_info_t*        	temp_network_info = NULL;
-	bss_config_t     		bss_config;
-	u32						update_mask;
-	compilation_details_t	compilation_details;
+	u64 scan_start_timestamp;
+	u64 scan_duration;
+	u8 locally_administered_addr[MAC_ADDR_LEN];
+	dl_list* ssid_match_list = NULL;
+	dl_entry* temp_dl_entry = NULL;
+	network_info_t* temp_network_info = NULL;
+	bss_config_t bss_config;
+	u32 update_mask;
+	compilation_details_t compilation_details;
 
 	bzero(&compilation_details, sizeof(compilation_details_t));
 
@@ -201,18 +201,18 @@ int main() {
 
 	// Initialize callbacks
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
-	wlan_mac_util_set_eth_rx_callback(          (void *) ethernet_receive);
+	wlan_mac_util_set_eth_rx_callback((void*) ethernet_receive);
 #endif
-	wlan_mac_high_set_mpdu_rx_callback(         (void *) mpdu_rx_process);
-	wlan_mac_high_set_uart_rx_callback(         (void *) uart_rx);
-	wlan_mac_high_set_poll_tx_queues_callback(  (void *) poll_tx_queues);
+	wlan_mac_high_set_mpdu_rx_callback((void*) mpdu_rx_process);
+	wlan_mac_high_set_uart_rx_callback((void*) uart_rx);
+	wlan_mac_high_set_poll_tx_queues_callback((void*) poll_tx_queues);
 
 #if WLAN_SW_CONFIG_ENABLE_LTG
-	wlan_mac_ltg_sched_set_callback(            (void *) ltg_event);
+	wlan_mac_ltg_sched_set_callback((void*) ltg_event);
 #endif //WLAN_SW_CONFIG_ENABLE_LTG
-	wlan_mac_scan_set_tx_probe_request_callback((void *) send_probe_req);
-	wlan_mac_scan_set_state_change_callback(    (void *) process_scan_state_change);
-	wlan_mac_high_set_cpu_low_reboot_callback(  (void *) handle_cpu_low_reboot);
+	wlan_mac_scan_set_tx_probe_request_callback((void*) send_probe_req);
+	wlan_mac_scan_set_state_change_callback((void*) process_scan_state_change);
+	wlan_mac_high_set_cpu_low_reboot_callback((void*) handle_cpu_low_reboot);
 
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 	// Set the Ethernet ecapsulation mode
@@ -374,10 +374,10 @@ int main() {
  *
  *****************************************************************************/
 void send_probe_req(){
-	u16                             tx_length;
-	dl_entry*             curr_tx_queue_element;
-	tx_queue_buffer_t*              curr_tx_queue_buffer;
-	volatile scan_parameters_t*     scan_parameters = wlan_mac_scan_get_parameters();
+	u16 tx_length;
+	dl_entry* curr_tx_queue_element;
+	tx_queue_buffer_t* curr_tx_queue_buffer;
+	volatile scan_parameters_t* scan_parameters = wlan_mac_scan_get_parameters();
 
 	// Check out queue element for packet
 	curr_tx_queue_element = queue_checkout();
@@ -482,7 +482,7 @@ typedef enum queue_group_t{
  *****************************************************************************/
 void poll_tx_queues(){
 	interrupt_state_t curr_interrupt_state;
-	dl_entry*	tx_queue_buffer_entry;
+	dl_entry* tx_queue_buffer_entry;
 	u32 i;
 
 	int num_pkt_bufs_avail;
@@ -645,10 +645,10 @@ void purge_all_data_tx_queue(){
  *****************************************************************************/
 int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length){
 
-	tx_queue_buffer_t* 	curr_tx_queue_buffer;
-	station_info_t*     station_info = NULL;
+	tx_queue_buffer_t* curr_tx_queue_buffer;
+	station_info_t* station_info = NULL;
 	station_info_entry_t* station_info_entry;
-	u32                 queue_sel;
+	u32 queue_sel;
 
 	if(active_network_info != NULL){
 
@@ -744,26 +744,25 @@ int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src,
  *****************************************************************************/
 u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_entry* rx_event_log_entry)  {
 
-	rx_frame_info_t*    rx_frame_info            = (rx_frame_info_t*)pkt_buf_addr;
-	void*               mac_payload              = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
-	u8*                 mac_payload_ptr_u8       = (u8*)mac_payload;
-	mac_header_80211*   rx_80211_header          = (mac_header_80211*)((void *)mac_payload_ptr_u8);
+	rx_frame_info_t* rx_frame_info = (rx_frame_info_t*)pkt_buf_addr;
+	void* mac_payload = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
+	u8* mac_payload_ptr_u8 = (u8*)mac_payload;
+	mac_header_80211* rx_80211_header = (mac_header_80211*)((void *)mac_payload_ptr_u8);
 
-	u16                 rx_seq;
+	u16 rx_seq;
 
-	dl_entry*   curr_tx_queue_element;
-	tx_queue_buffer_t*    curr_tx_queue_buffer;
+	dl_entry* curr_tx_queue_element;
+	tx_queue_buffer_t* curr_tx_queue_buffer;
 
-	u8                  unicast_to_me;
-	u8                  to_multicast;
-	u8					send_response			 = 0;
-	u32					tx_length;
+	u8 unicast_to_me;
+	u8 to_multicast;
+	u8 send_response = 0;
+	u32 tx_length;
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
-	u8					pre_llc_offset			 = 0;
+	u8 pre_llc_offset = 0;
 #endif
-	u32					return_val				 = 0;
-
-	u16 				length				 = rx_frame_info->phy_details.length;
+	u32 return_val = 0;
+	u16 length = rx_frame_info->phy_details.length;
 
 	// If this function was passed a CTRL frame (e.g., CTS, ACK), then we should just quit.
 	// The only reason this occured was so that it could be logged in the line above.
@@ -956,8 +955,8 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
  *****************************************************************************/
 void remove_inactive_station_infos() {
 
-	u64 				time_since_last_activity;
-	station_info_t*     curr_station_info;
+	u64 time_since_last_activity;
+	station_info_t* curr_station_info;
 	station_info_entry_t* curr_station_info_entry;
 	station_info_entry_t* next_station_info_entry;
 
@@ -1186,18 +1185,18 @@ void handle_cpu_low_reboot(u32 type){
  *
  *****************************************************************************/
 u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
-	u32					return_status 				= 0;
-	u8					update_beacon_template 		= 0;
-	u8					send_beacon_config_to_low 	= 0;
-	u8					send_channel_switch_to_low	= 0;
+	u32 return_status = 0;
+	u8 update_beacon_template = 0;
+	u8 send_beacon_config_to_low = 0;
+	u8 send_channel_switch_to_low = 0;
 
-	network_info_t*		local_network_info;
-	interrupt_state_t   curr_interrupt_state;
-	station_info_t* 	curr_station_info;
-	dl_entry* 			next_station_info_entry;
-	dl_entry* 			curr_station_info_entry;
-	int					iter;
-	tx_params_t			default_beacon_tx_params;
+	network_info_t* local_network_info;
+	interrupt_state_t curr_interrupt_state;
+	station_info_t* curr_station_info;
+	dl_entry* next_station_info_entry;
+	dl_entry* curr_station_info_entry;
+	int iter;
+	tx_params_t default_beacon_tx_params;
 
 	//---------------------------------------------------------
 	// 1. Check for any invalid inputs or combination of inputs
@@ -1574,16 +1573,16 @@ int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
     //     compiler warnings for "unused variables" since the default implementation is empty.  As
     //     you add commands, you should un-comment the standard variables.
     //
-    u32                 resp_sent      = NO_RESP_SENT;
+    u32 resp_sent = NO_RESP_SENT;
 
 #if 0
-    cmd_resp_hdr      * cmd_hdr        = command->header;
-    cmd_resp_hdr      * resp_hdr       = response->header;
+    cmd_resp_hdr* cmd_hdr = command->header;
+    cmd_resp_hdr* resp_hdr = response->header;
 
-    u32               * cmd_args_32    = command->args;
-    u32               * resp_args_32   = response->args;
+    u32* cmd_args_32 = command->args;
+    u32* resp_args_32 = response->args;
 
-    u32                 resp_index     = 0;
+    u32 resp_index = 0;
 #endif
 
     switch(cmd_id){
@@ -1617,9 +1616,9 @@ int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             //
 
             // Variables for template command
-            int                 status;
-            u32                 arg_0;
-            interrupt_state_t   curr_interrupt_state;
+            int status;
+            u32 arg_0;
+            interrupt_state_t curr_interrupt_state;
 
             // Initialize variables
             status      = CMD_PARAM_SUCCESS;

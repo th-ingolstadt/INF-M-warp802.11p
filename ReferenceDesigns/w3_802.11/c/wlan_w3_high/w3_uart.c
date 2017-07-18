@@ -7,10 +7,10 @@
 #include "wlan_mac_common.h"
 #include "xparameters.h"
 
-static XUartLite            UartLite;
+static XUartLite UartLite;
 
 // UART interface
-static u8                   uart_rx_buffer[UART_BUFFER_SIZE];       ///< Buffer for received byte from UART
+static u8 uart_rx_buffer[UART_BUFFER_SIZE];       ///< Buffer for received byte from UART
 
 // Private functions
 void _w3_uart_rx_handler(void *CallBackRef, unsigned int EventData);

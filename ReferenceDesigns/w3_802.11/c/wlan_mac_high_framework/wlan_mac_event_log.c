@@ -76,31 +76,30 @@
 /*************************** Variable Definitions ****************************/
 
 // Log definition variables
-static volatile u32          log_start_address;        // Absolute start address of the log
-static volatile u32          log_soft_end_address;     // Soft end address of the log
-static volatile u32          log_max_address;          // Absolute end address of the log
-
-static volatile u32          log_size;                 // Size of the log in bytes
+static volatile u32 log_start_address;    // Absolute start address of the log
+static volatile u32 log_soft_end_address; // Soft end address of the log
+static volatile u32 log_max_address;      // Absolute end address of the log
+static volatile u32 log_size;             // Size of the log in bytes
 
 // Log index variables
-static volatile u32          log_oldest_address;       // Pointer to the oldest entry
-static volatile u32          log_next_address;         // Pointer to the next entry
-static volatile u32          log_num_wraps;            // Number of times the log has wrapped
+static volatile u32 log_oldest_address; // Pointer to the oldest entry
+static volatile u32 log_next_address;   // Pointer to the next entry
+static volatile u32 log_num_wraps;      // Number of times the log has wrapped
 
 // Log config variables
-static volatile u8           log_wrap_enabled;         // Will the log wrap or stop; By default wrapping is DISABLED
-static volatile u8           event_logging_enabled;    // Will events be logged or not; By default logging is ENABLED
-static volatile u16          wrap_buffer;              // Number of additional bytes that will be "erased" when
-                                                       //   the log increments the oldest address (default = EVENT_LOG_WRAP_BUFFER)
+static volatile u8 log_wrap_enabled;      // Will the log wrap or stop; By default wrapping is DISABLED
+static volatile u8 event_logging_enabled; // Will events be logged or not; By default logging is ENABLED
+static volatile u16 wrap_buffer;          // Number of additional bytes that will be "erased" when
+                                          //   the log increments the oldest address (default = EVENT_LOG_WRAP_BUFFER)
 
 // Log status variables
-static volatile u8           log_empty;                // log_empty = (log_oldest_address == log_next_address);
-static volatile u8           log_full;                 // log_full  = (log_tail_address == log_next_address);
-static volatile u16          log_count;                // Monotonic counter for log entry sequence number
-                                                       //   (wraps every (2^16 - 1) entries)
+static volatile u8 log_empty;  // log_empty = (log_oldest_address == log_next_address);
+static volatile u8 log_full;   // log_full  = (log_tail_address == log_next_address);
+static volatile u16 log_count; // Monotonic counter for log entry sequence number
+                               //   (wraps every (2^16 - 1) entries)
 
 // Mutex for critical allocation loop
-static volatile u8           allocation_mutex;
+static volatile u8 allocation_mutex;
 
 
 /*************************** Functions Prototypes ****************************/
@@ -109,7 +108,7 @@ static volatile u8           allocation_mutex;
 //
 void event_log_move_oldest_address(u32 end_address);
 void event_log_increment_oldest_address(u64 end_address, u32 size);
-int  event_log_get_next_empty_address(u32 size, u32 * address);
+int  event_log_get_next_empty_address(u32 size, u32* address);
 
 
 /******************************** Functions **********************************/
@@ -329,7 +328,7 @@ u32  event_log_get_data(u32 start_index, u32 size, void* buffer, u8 copy_data) {
 
     u32 start_address;
     u64 end_address;
-    u32 num_bytes     = 0;
+    u32 num_bytes = 0;
 
     // If the log is empty, then return 0
     if (log_empty == 1) { return num_bytes; }
@@ -537,7 +536,7 @@ u32  event_log_get_flags(void) {
  *****************************************************************************/
 void event_log_move_oldest_address(u32 end_address) {
 
-    entry_header * entry;
+    entry_header* entry;
 
     // Move the oldest address an integer number of entries until it points to the
     //   first entry after the allocation
@@ -581,7 +580,7 @@ void event_log_move_oldest_address(u32 end_address) {
  *****************************************************************************/
 void event_log_increment_oldest_address(u64 end_address, u32 size) {
 
-    u64            final_end_address;
+    u64 final_end_address;
 
     // Calculate end address (need to make sure we don't overflow u32)
     final_end_address = end_address + wrap_buffer;
@@ -616,7 +615,7 @@ void event_log_increment_oldest_address(u64 end_address, u32 size) {
  *   for that entry
  *
  * @param   size             - Size (in bytes) of entry to allocate
- * @param   address *        - Pointer to address of empty entry of length 'size'
+ * @param   address          - Pointer to address of empty entry of length 'size'
  *
  * @return  int              - Status of command
  *                               - 0 = Success
@@ -628,14 +627,12 @@ void event_log_increment_oldest_address(u64 end_address, u32 size) {
  *          is full, then it will always return max_entry_index
  *
  *****************************************************************************/
-int  event_log_get_next_empty_address( u32 size, u32 * address ) {
+int  event_log_get_next_empty_address( u32 size, u32* address ) {
 
-    int               status         = 1;            // Initialize status to FAILED
-    u32               return_address = 0;
-
-    u64               end_address;
-    node_info_entry * entry;
-
+    int status = 1; // Initialize status to FAILED
+    u32 return_address = 0;
+    u64 end_address;
+    node_info_entry* entry;
 
     // If the log is empty, then set the flag to zero to indicate the log is not empty
     if (log_empty) { log_empty = 0; }
@@ -805,13 +802,13 @@ int  event_log_get_next_empty_address( u32 size, u32 * address ) {
  * @return  void *           - Pointer to the next entry payload
  *
  *****************************************************************************/
-void * event_log_get_next_empty_entry(u16 entry_type, u16 entry_size) {
+void* event_log_get_next_empty_entry(u16 entry_type, u16 entry_size) {
 
-    u32            log_address;
-    u32            total_size;
-    entry_header * header       = NULL;
-    u32            header_size  = sizeof( entry_header );
-    void *         return_entry = NULL;
+    u32 log_address;
+    u32 total_size;
+    entry_header* header = NULL;
+    u32 header_size = sizeof( entry_header );
+    void* return_entry = NULL;
 
     // If Event Logging is enabled, then allocate entry
     if (event_logging_enabled) {
@@ -978,7 +975,7 @@ void print_event_log_size(){
     u32 size;
     u64 timestamp;
 
-    size      = event_log_get_total_size();
+    size = event_log_get_total_size();
     timestamp = get_mac_time_usec();
 
     xil_printf("EVENT LOG: (%10d us) %10d of %10d bytes used\n", (u32)timestamp, size, log_size);

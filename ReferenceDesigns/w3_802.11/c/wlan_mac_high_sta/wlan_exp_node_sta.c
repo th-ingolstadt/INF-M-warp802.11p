@@ -53,11 +53,11 @@
 
 
 /*********************** Global Variable Definitions *************************/
-extern dl_list                    association_table;
+extern dl_list association_table;
 
-extern u8                         my_aid;
+extern u8 my_aid;
 
-extern function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback;
+extern function_ptr_t wlan_exp_purge_all_data_tx_queue_callback;
 
 
 /*************************** Variable Definitions ****************************/
@@ -103,13 +103,13 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
     //
 
     // Standard variables
-    u32                 resp_sent      = NO_RESP_SENT;
+    u32 resp_sent = NO_RESP_SENT;
 
-    u32               * cmd_args_32    = command->args;
+    u32* cmd_args_32 = command->args;
 
-    cmd_resp_hdr      * resp_hdr       = response->header;
-    u32               * resp_args_32   = response->args;
-    u32                 resp_index     = 0;
+    cmd_resp_hdr* resp_hdr = response->header;
+    u32* resp_args_32 = response->args;
+    u32 resp_index = 0;
 
     //
     // NOTE: Response header cmd, length, and num_args fields have already been initialized.
@@ -133,9 +133,9 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             //                     [4] - NODE_RESET_ASSOCIATIONS
             //                     [5] - NODE_RESET_BSS_INFO
             //
-            interrupt_state_t     prev_interrupt_state;
-            u32                   status    = CMD_PARAM_SUCCESS;
-            u32                   flags     = Xil_Ntohl(cmd_args_32[0]);
+            interrupt_state_t prev_interrupt_state;
+            u32 status = CMD_PARAM_SUCCESS;
+            u32 flags = Xil_Ntohl(cmd_args_32[0]);
 
             // Disable interrupts so no packets interrupt the reset
             prev_interrupt_state = wlan_mac_high_interrupt_stop();
@@ -220,8 +220,8 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             // Response format:
             //     resp_args_32[0]       Status
             //
-            interrupt_state_t     prev_interrupt_state;
-            u32                   status         = CMD_PARAM_SUCCESS;
+            interrupt_state_t prev_interrupt_state;
+            u32 status = CMD_PARAM_SUCCESS;
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Disassociate\n");
 
@@ -273,8 +273,8 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             // Response format:
             //     resp_args_32[0]  Status
             //
-            u32 status       = CMD_PARAM_SUCCESS;
-            u8  aid          = (Xil_Ntohl(cmd_args_32[0]) & 0xFF);
+            u32 status = CMD_PARAM_SUCCESS;
+            u8 aid = (Xil_Ntohl(cmd_args_32[0]) & 0xFF);
 
             // Set STA global AID field
             my_aid = aid;
@@ -306,12 +306,12 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             // Response format:
             //     resp_args_32[0]  Status
             //
-            u32                             status                   = CMD_PARAM_SUCCESS;
-            u8                              bssid[MAC_ADDR_LEN];
-            u8                              channel                  = (Xil_Ntohl(cmd_args_32[2]) & 0xFF);
-            u32                             ssid_length              = Xil_Ntohl(cmd_args_32[3]);
-            char *                          ssid                     = (char *)&cmd_args_32[4];
-            volatile join_parameters_t*     join_parameters;
+            u32 status = CMD_PARAM_SUCCESS;
+            u8 bssid[MAC_ADDR_LEN];
+            u8 channel = (Xil_Ntohl(cmd_args_32[2]) & 0xFF);
+            u32 ssid_length = Xil_Ntohl(cmd_args_32[3]);
+            char* ssid = (char *)&cmd_args_32[4];
+            volatile join_parameters_t* join_parameters;
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Joining the BSS\n");
 
@@ -368,8 +368,8 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             //     resp_args_32[1]  Is Joining?  (0 - No / 1 - Yes)
             //                      Failure (CMD_PARAM_NODE_JOIN_FAILED)
             //
-            u32    status         = CMD_PARAM_SUCCESS;
-            u32    is_joining     = wlan_mac_sta_is_joining();
+            u32 status = CMD_PARAM_SUCCESS;
+            u32 is_joining = wlan_mac_sta_is_joining();
 
             // Send response of status
             resp_args_32[resp_index++] = Xil_Htonl(status);

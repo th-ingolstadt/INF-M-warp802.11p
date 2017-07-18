@@ -142,8 +142,8 @@ void                    eth_update_header(ethernet_header * header, u8 * dest_hw
 
 int                     eth_free_recv_buffers(u32 eth_dev_num, void * descriptors, u32 num_descriptors);
 
-int                     eth_recv_frame(u32 eth_dev_num, wlan_exp_ip_udp_buffer * eth_frame);
-int                     eth_send_frame(u32 eth_dev_num, wlan_exp_ip_udp_socket * socket, wlan_exp_ip_udp_buffer ** buffers, u32 num_buffers, u32 use_socket_header);
+int                     eth_recv_frame(u32 eth_dev_num, wlan_exp_ip_udp_buffer* eth_frame);
+int                     eth_send_frame(u32 eth_dev_num, wlan_exp_ip_udp_socket* socket, wlan_exp_ip_udp_buffer** buffers, u32 num_buffers, u32 use_socket_header);
 
 // IP functions
 void                    ipv4_init();

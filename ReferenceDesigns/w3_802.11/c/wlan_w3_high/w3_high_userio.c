@@ -7,8 +7,8 @@
 #include "wlan_platform_common.h"
 #include "wlan_mac_common.h"
 
-static XGpio                 Gpio_userio;                  ///< GPIO driver instance for user IO inputs
-static u32					 gl_userio_state;
+static XGpio Gpio_userio;                  ///< GPIO driver instance for user IO inputs
+static u32 gl_userio_state;
 
 // Private functions
 void _w3_high_userio_gpio_handler(void *InstancePtr);
@@ -54,7 +54,7 @@ void _w3_high_userio_gpio_handler(void *InstancePtr){
 	XGpio *GpioPtr;
 	u32	curr_userio_state, userio_state_xor;
 
-	GpioPtr = (XGpio *)InstancePtr;
+	GpioPtr = (XGpio*)InstancePtr;
 
 	XGpio_InterruptDisable(GpioPtr, GPIO_USERIO_INPUT_IR_CH_MASK);
 

@@ -48,74 +48,73 @@
 /*********************** Global Variable Definitions *************************/
 
 //These variables are defined by the linker at compile time
-extern int                   __wlan_exp_eth_buffers_section_start;  ///< Start address of the linker section in DRAM dedicated to wlan_exp Eth buffers
-extern int                   __wlan_exp_eth_buffers_section_end;    ///< End address of the linker section in DRAM dedicated to wlan_exp Eth buffers
+extern int __wlan_exp_eth_buffers_section_start; ///< Start address of the linker section in DRAM dedicated to wlan_exp Eth buffers
+extern int __wlan_exp_eth_buffers_section_end; ///< End address of the linker section in DRAM dedicated to wlan_exp Eth buffers
 
-extern int                   _stack_end;                    ///< Start of the stack (stack counts backwards)
-extern int                   __stack;                       ///< End of the stack
+extern int _stack_end; ///< Start of the stack (stack counts backwards)
+extern int __stack; ///< End of the stack
 
 /*************************** Variable Definitions ****************************/
 
 // Constants
-const  u8                    bcast_addr[MAC_ADDR_LEN]    = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
-const  u8                    zero_addr[MAC_ADDR_LEN]     = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
+const u8 bcast_addr[MAC_ADDR_LEN] = { 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF };
+const u8 zero_addr[MAC_ADDR_LEN]  = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 };
 
 // HW structures
-platform_high_dev_info_t	 platform_high_dev_info;
-platform_common_dev_info_t	 platform_common_dev_info;
+platform_high_dev_info_t platform_high_dev_info;
+platform_common_dev_info_t platform_common_dev_info;
 
-XIntc                        InterruptController;          ///< Interrupt Controller instance
-XAxiCdma                     cdma_inst;                    ///< Central DMA instance
+XIntc InterruptController; ///< Interrupt Controller instance
+XAxiCdma cdma_inst; ///< Central DMA instance
 
 // Callback function pointers
-volatile function_ptr_t      		press_pb_0_callback;          ///< User callback for pressing pushbutton 0
-volatile function_ptr_t      		release_pb_0_callback;        ///< User callback for releasing pushbutton 0
-volatile function_ptr_t      		press_pb_1_callback;          ///< User callback for pressing pushbutton 1
-volatile function_ptr_t      		release_pb_1_callback;        ///< User callback for releasing pushbutton 1
-volatile function_ptr_t      		press_pb_2_callback;          ///< User callback for pressing pushbutton 2
-volatile function_ptr_t      		release_pb_2_callback;        ///< User callback for releasing pushbutton 2
+volatile function_ptr_t press_pb_0_callback;   ///< User callback for pressing pushbutton 0
+volatile function_ptr_t release_pb_0_callback; ///< User callback for releasing pushbutton 0
+volatile function_ptr_t press_pb_1_callback;   ///< User callback for pressing pushbutton 1
+volatile function_ptr_t release_pb_1_callback; ///< User callback for releasing pushbutton 1
+volatile function_ptr_t press_pb_2_callback;   ///< User callback for pressing pushbutton 2
+volatile function_ptr_t release_pb_2_callback; ///< User callback for releasing pushbutton 2
 
-
-volatile function_ptr_t      		uart_callback;                ///< User callback for UART reception
-volatile function_ptr_t      		mpdu_tx_high_done_callback;   ///< User callback for lower-level message that MPDU transmission is complete
-volatile function_ptr_t      		mpdu_tx_low_done_callback;    ///< User callback for lower-level message that MPDU transmission is complete
-volatile function_ptr_t      		mpdu_rx_callback;             ///< User callback for lower-level message that MPDU reception is ready for processing
-volatile function_ptr_t      		tx_poll_callback;             ///< User callback when higher-level framework is ready to send a packet to low
-volatile function_ptr_t		 		beacon_tx_done_callback;	   ///< User callback for low-level message that a Beacon transmission is complete
-volatile function_ptr_t      		mpdu_tx_dequeue_callback;     ///< User callback for higher-level framework dequeuing a packet
-volatile function_ptr_t      		cpu_low_reboot_callback;     ///< User callback for CPU_LOW boot
+volatile function_ptr_t uart_callback;              ///< User callback for UART reception
+volatile function_ptr_t mpdu_tx_high_done_callback; ///< User callback for lower-level message that MPDU transmission is complete
+volatile function_ptr_t mpdu_tx_low_done_callback;  ///< User callback for lower-level message that MPDU transmission is complete
+volatile function_ptr_t mpdu_rx_callback;           ///< User callback for lower-level message that MPDU reception is ready for processing
+volatile function_ptr_t tx_poll_callback;           ///< User callback when higher-level framework is ready to send a packet to low
+volatile function_ptr_t beacon_tx_done_callback;	///< User callback for low-level message that a Beacon transmission is complete
+volatile function_ptr_t mpdu_tx_dequeue_callback;   ///< User callback for higher-level framework dequeuing a packet
+volatile function_ptr_t cpu_low_reboot_callback;    ///< User callback for CPU_LOW boot
 
 // CPU_LOW parameters that MAC High Framework tracks and is responsible for re-applying
 //  in the event of a CPU_LOW reboot.
-volatile	u32			 low_param_channel;
-volatile	u32			 low_param_dsss_en;
-volatile	u8			 low_param_rx_ant_mode;
-volatile 	s8			 low_param_tx_ctrl_pow;
-volatile 	s8			 low_param_radio_tx_pow;
-volatile	u32			 low_param_rx_filter;
-volatile	u32			 low_param_random_seed;
+volatile u32 low_param_channel;
+volatile u32 low_param_dsss_en;
+volatile u8  low_param_rx_ant_mode;
+volatile s8  low_param_tx_ctrl_pow;
+volatile s8  low_param_radio_tx_pow;
+volatile u32 low_param_rx_filter;
+volatile u32 low_param_random_seed;
 
 // Node information
-volatile u8                  dram_present;                 ///< Indication variable for whether DRAM SODIMM is present on this hardware
+volatile u8 dram_present;                 ///< Indication variable for whether DRAM SODIMM is present on this hardware
 
 // Status information
-wlan_mac_hw_info_t         * hw_info;
-static volatile u32          cpu_low_status;               ///< Tracking variable for lower-level CPU status
+wlan_mac_hw_info_t* hw_info;
+static volatile u32 cpu_low_status;               ///< Tracking variable for lower-level CPU status
 
 // CPU Low Register Read Buffer
-static volatile u32        * cpu_low_reg_read_buffer;
-static volatile u8           cpu_low_reg_read_buffer_status;
+static volatile u32* cpu_low_reg_read_buffer;
+static volatile u8 cpu_low_reg_read_buffer_status;
 
-#define CPU_LOW_REG_READ_BUFFER_STATUS_READY               1
-#define CPU_LOW_REG_READ_BUFFER_STATUS_NOT_READY           0
+#define CPU_LOW_REG_READ_BUFFER_STATUS_READY     1
+#define CPU_LOW_REG_READ_BUFFER_STATUS_NOT_READY 0
 
 // Interrupt State
 static volatile interrupt_state_t interrupt_state;
 
 // Memory Allocation Debugging
-static volatile u32          num_malloc;                   ///< Tracking variable for number of times malloc has been called
-static volatile u32          num_free;                     ///< Tracking variable for number of times free has been called
-static volatile u32          num_realloc;                  ///< Tracking variable for number of times realloc has been called
+static volatile u32 num_malloc;                   ///< Tracking variable for number of times malloc has been called
+static volatile u32 num_free;                     ///< Tracking variable for number of times free has been called
+static volatile u32 num_realloc;                  ///< Tracking variable for number of times realloc has been called
 
 /*************************** Functions Prototypes ****************************/
 
@@ -136,12 +135,12 @@ void wlan_mac_high_copy_comparison();
  * @return None
  */
 void wlan_mac_high_init(){
-	int              Status;
-    u32              i;
+	int Status;
+    u32 i;
 	tx_frame_info_t* tx_frame_info;
 	rx_frame_info_t* rx_frame_info;
 #if WLAN_SW_CONFIG_ENABLE_LOGGING
-	u32              log_size;
+	u32 log_size;
 #endif //WLAN_SW_CONFIG_ENABLE_LOGGING
 	XAxiCdma_Config* cdma_cfg_ptr;
 
@@ -491,7 +490,6 @@ void wlan_mac_high_uart_rx_callback(u8 rxByte){
  *      - nonzero if error
  */
 inline int wlan_mac_high_interrupt_restore_state(interrupt_state_t new_interrupt_state){
-
 	interrupt_state = new_interrupt_state;
 	if(interrupt_state == INTERRUPTS_ENABLED){
 		if(InterruptController.IsReady && InterruptController.IsStarted == 0){
@@ -522,7 +520,6 @@ inline int wlan_mac_high_interrupt_restore_state(interrupt_state_t new_interrupt
  * high.
  */
 inline interrupt_state_t wlan_mac_high_interrupt_stop(){
-
 	interrupt_state_t curr_state = interrupt_state;
 	if(InterruptController.IsReady && InterruptController.IsStarted) XIntc_Stop(&InterruptController);
 	interrupt_state = INTERRUPTS_DISABLED;
@@ -971,7 +968,7 @@ int wlan_mac_high_right_shift_test(){
     u8 val_3, val_2, val_1, val_0;
 
     volatile u32 test_val   = 0xFEDCBA98;
-    volatile u8 *test_array = (u8 *)&test_val;
+    volatile u8* test_array = (u8 *)&test_val;
 
     val_3 = (u8)((test_val & 0xFF000000) >> 24);
     val_2 = (u8)((test_val & 0x00FF0000) >> 16);
@@ -1082,17 +1079,16 @@ void wlan_mac_high_cdma_finish_transfer(){
  *
  */
 void wlan_mac_high_mpdu_transmit(dl_entry* packet, int tx_pkt_buf) {
-	wlan_ipc_msg_t 		ipc_msg_to_low;
-	tx_frame_info_t* 	tx_frame_info;
-	mac_header_80211*   header;
-	void* 				copy_destination;
-	void* 				copy_source;
-	u32 				xfer_len;
-	u8					frame_control_1;
-	tx_queue_buffer_t*	tx_queue_buffer;
-	tx_params_t			default_tx_params;
-	u8					is_multicast;
-
+	wlan_ipc_msg_t ipc_msg_to_low;
+	tx_frame_info_t* tx_frame_info;
+	mac_header_80211* header;
+	void* copy_destination;
+	void* copy_source;
+	u32 xfer_len;
+	u8 frame_control_1;
+	tx_queue_buffer_t* tx_queue_buffer;
+	tx_params_t default_tx_params;
+	u8 is_multicast;
 
 	tx_frame_info = (tx_frame_info_t*)CALC_PKT_BUF_ADDR(platform_common_dev_info.tx_pkt_buf_baseaddr, tx_pkt_buf);
 	tx_queue_buffer = (tx_queue_buffer_t*)(packet->data);
@@ -1221,22 +1217,19 @@ void wlan_mac_high_setup_tx_header(mac_header_80211_common* header, u8* addr_1, 
  * @return None
  */
 void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t* msg, u32* ipc_msg_from_low_payload) {
-
-	u8                  		rx_pkt_buf;
-	u8							tx_pkt_buf;
-	rx_frame_info_t*    		rx_frame_info;
-	tx_frame_info_t*    		tx_frame_info;
-
-
+	u8 rx_pkt_buf;
+	u8 tx_pkt_buf;
+	rx_frame_info_t* rx_frame_info;
+	tx_frame_info_t* tx_frame_info;
 
     // Determine what type of message this is
 	switch(IPC_MBOX_MSG_ID_TO_MSG(msg->msg_id)) {
 
 		//---------------------------------------------------------------------
 		case IPC_MBOX_TX_BEACON_DONE:{
-			wlan_mac_low_tx_details_t* 	tx_low_details;
-			tx_low_entry*				tx_low_event_log_entry = NULL;
-			station_info_t*				station_info;
+			wlan_mac_low_tx_details_t* tx_low_details;
+			tx_low_entry* tx_low_event_log_entry = NULL;
+			station_info_t* station_info;
 
 			tx_pkt_buf = msg->arg0;
 			if(tx_pkt_buf == TX_PKT_BUF_BEACON){
@@ -1279,9 +1272,9 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t* msg, u32* ipc_msg_from_low_pa
 			// CPU Low has received an MPDU addressed to this node or to the broadcast address
 			//
 
-			station_info_t* 		station_info;
-			u32						mpdu_rx_process_flags;
-			rx_common_entry* 		rx_event_log_entry = NULL;
+			station_info_t* station_info;
+			u32 mpdu_rx_process_flags;
+			rx_common_entry* rx_event_log_entry = NULL;
 
 			rx_pkt_buf = msg->arg0;
 			if(rx_pkt_buf < NUM_RX_PKT_BUFS){
@@ -1346,9 +1339,9 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t* msg, u32* ipc_msg_from_low_pa
 
 		//---------------------------------------------------------------------
 		case IPC_MBOX_PHY_TX_REPORT: {
-			wlan_mac_low_tx_details_t* 	tx_low_details;
-		    tx_low_entry*				tx_low_event_log_entry = NULL;
-		    station_info_t*				station_info;
+			wlan_mac_low_tx_details_t* tx_low_details;
+		    tx_low_entry* tx_low_event_log_entry = NULL;
+		    station_info_t* station_info;
 
 			tx_pkt_buf = msg->arg0;
 			if(tx_pkt_buf < NUM_TX_PKT_BUFS){
@@ -1369,8 +1362,8 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t* msg, u32* ipc_msg_from_low_pa
 			//     CPU High should do any necessary post-processing, then recycle the packet buffer
             //
 
-		    tx_high_entry*				tx_high_event_log_entry = NULL;
-		    station_info_t*				station_info;
+		    tx_high_entry* tx_high_event_log_entry = NULL;
+		    station_info_t* station_info;
 
 			tx_pkt_buf = msg->arg0;
 			if(tx_pkt_buf < NUM_TX_PKT_BUFS){
@@ -1525,8 +1518,8 @@ void wlan_mac_high_process_ipc_msg(wlan_ipc_msg_t* msg, u32* ipc_msg_from_low_pa
  */
 void wlan_mac_high_set_srand(u32 seed) {
 
-	wlan_ipc_msg_t     ipc_msg_to_low;
-	u32                ipc_msg_to_low_payload = seed;
+	wlan_ipc_msg_t ipc_msg_to_low;
+	u32 ipc_msg_to_low_payload = seed;
 
 	//Set tracking global
 	low_param_random_seed = seed;
@@ -1566,8 +1559,8 @@ u8 wlan_mac_high_bss_channel_spec_to_radio_chan(chan_spec_t chan_spec) {
  */
 void wlan_mac_high_set_radio_channel(u32 mac_channel) {
 
-	wlan_ipc_msg_t     ipc_msg_to_low;
-	u32                ipc_msg_to_low_payload = mac_channel;
+	wlan_ipc_msg_t ipc_msg_to_low;
+	u32 ipc_msg_to_low_payload = mac_channel;
 
 	if(wlan_verify_channel(mac_channel) == XST_SUCCESS){
 		//Set tracking global
@@ -1617,8 +1610,8 @@ void wlan_mac_high_config_txrx_beacon(beacon_txrx_config_t* beacon_txrx_config){
  * @return None
  */
 void wlan_mac_high_set_rx_ant_mode(u8 ant_mode) {
-	wlan_ipc_msg_t     ipc_msg_to_low;
-	u32                ipc_msg_to_low_payload = (u32)ant_mode;
+	wlan_ipc_msg_t ipc_msg_to_low;
+	u32 ipc_msg_to_low_payload = (u32)ant_mode;
 
 	//Sanity check input
 	switch(ant_mode){
@@ -1657,8 +1650,8 @@ void wlan_mac_high_set_rx_ant_mode(u8 ant_mode) {
  */
 void wlan_mac_high_set_tx_ctrl_power(s8 pow) {
 
-	wlan_ipc_msg_t     ipc_msg_to_low;
-	u32                ipc_msg_to_low_payload = (u32)pow;
+	wlan_ipc_msg_t ipc_msg_to_low;
+	u32 ipc_msg_to_low_payload = (u32)pow;
 
 	//Set tracking global
 	low_param_tx_ctrl_pow = pow;
@@ -1683,8 +1676,8 @@ void wlan_mac_high_set_tx_ctrl_power(s8 pow) {
  */
 void wlan_mac_high_set_radio_tx_power(s8 pow) {
 
-	wlan_ipc_msg_t     ipc_msg_to_low;
-	u32                ipc_msg_to_low_payload = (u32)pow;
+	wlan_ipc_msg_t ipc_msg_to_low;
+	u32 ipc_msg_to_low_payload = (u32)pow;
 
 	//Set tracking global
 	low_param_radio_tx_pow = pow;
@@ -1719,8 +1712,8 @@ void wlan_mac_high_set_radio_tx_power(s8 pow) {
  */
 void wlan_mac_high_set_rx_filter_mode(u32 filter_mode) {
 
-	wlan_ipc_msg_t     ipc_msg_to_low;
-	u32                ipc_msg_to_low_payload = (u32)filter_mode;
+	wlan_ipc_msg_t ipc_msg_to_low;
+	u32 ipc_msg_to_low_payload = (u32)filter_mode;
 
 	//Set tracking global
 	low_param_rx_filter = filter_mode;
@@ -1778,8 +1771,8 @@ int wlan_mac_high_write_low_mem(u32 num_words, u32* payload) {
  */
 int wlan_mac_high_read_low_mem(u32 num_words, u32 baseaddr, u32* payload) {
 
-    u64                  start_timestamp;
-    wlan_ipc_msg_t       ipc_msg_to_low;
+    u64 start_timestamp;
+    wlan_ipc_msg_t ipc_msg_to_low;
     ipc_reg_read_write_t ipc_msg_to_low_payload;
 
     if(InterruptController.IsStarted == XIL_COMPONENT_IS_STARTED){
@@ -1867,8 +1860,8 @@ int wlan_mac_high_write_low_param(u32 num_words, u32* payload) {
  */
 void wlan_mac_high_set_dsss(u32 dsss_value) {
 
-	wlan_ipc_msg_t       ipc_msg_to_low;
-	u32                  ipc_msg_to_low_payload = dsss_value;
+	wlan_ipc_msg_t ipc_msg_to_low;
+	u32 ipc_msg_to_low_payload = dsss_value;
 
 	//Set tracking global
 	low_param_dsss_en = dsss_value;
@@ -1892,7 +1885,7 @@ void wlan_mac_high_set_dsss(u32 dsss_value) {
  * @return None
  */
 void wlan_mac_high_request_low_state(){
-	wlan_ipc_msg_t      ipc_msg_to_low;
+	wlan_ipc_msg_t ipc_msg_to_low;
 
 	// Send message to CPU Low
 	ipc_msg_to_low.msg_id            = IPC_MBOX_MSG_ID(IPC_MBOX_CPU_STATUS);

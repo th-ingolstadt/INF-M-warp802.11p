@@ -51,26 +51,25 @@
 // Transport information
 // TODO: Why is this a vector of size TRANSPORT_NUM_ETH_DEVICES? I think that only the struct
 // at index WLAN_EXP_ETH (from the application) actually gets touched.
-static transport_eth_dev_info     eth_devices[TRANSPORT_NUM_ETH_DEVICES];
-static wlan_exp_tag_parameter     transport_parameters[TRANSPORT_NUM_ETH_DEVICES][TRANSPORT_PARAM_MAX_PARAMETER];
+static transport_eth_dev_info eth_devices[TRANSPORT_NUM_ETH_DEVICES];
+static wlan_exp_tag_parameter transport_parameters[TRANSPORT_NUM_ETH_DEVICES][TRANSPORT_PARAM_MAX_PARAMETER];
 
 // Callbacks
-volatile function_ptr_t  process_hton_msg_callback;
-
-extern platform_high_dev_info_t	 platform_high_dev_info;
+volatile function_ptr_t process_hton_msg_callback;
+extern platform_high_dev_info_t platform_high_dev_info;
 
 
 
 /*************************** Function Prototypes *****************************/
 
-void transport_eth_dev_info_init(u32 eth_dev_num, wlan_exp_node_info * node_info, u8 * ip_addr, u8 * hw_addr, u16 unicast_port, u16 broadcast_port);
+void transport_eth_dev_info_init(u32 eth_dev_num, wlan_exp_node_info* node_info, u8* ip_addr, u8* hw_addr, u16 unicast_port, u16 broadcast_port);
 
 void transport_set_eth_phy_auto_negotiation(u32 eth_dev_num, u32 enable);
 void transport_set_phy_link_speed(u32 eth_dev_num, u32 speed);
 
 int  transport_check_device(u32 eth_dev_num);
 
-int  transport_init_parameters(u32 eth_dev_num, u32 * values);
+int  transport_init_parameters(u32 eth_dev_num, u32* values);
 
 /******************************** Functions **********************************/
 
@@ -92,7 +91,7 @@ int  transport_init_parameters(u32 eth_dev_num, u32 * values);
  *                                 XST_SUCCESS - Command completed successfully
  *                                 XST_FAILURE - There was an error in the command
  ******************************************************************************/
-int transport_init(u32 eth_dev_num, void * node_info, u8 * ip_addr, u8 * hw_addr, u16 unicast_port, u16 broadcast_port) {
+int transport_init(u32 eth_dev_num, void* node_info, u8* ip_addr, u8* hw_addr, u16 unicast_port, u16 broadcast_port) {
 
     int       status = XST_SUCCESS;
 
@@ -181,22 +180,22 @@ int transport_init(u32 eth_dev_num, void * node_info, u8 * ip_addr, u8 * hw_addr
  * @return  None
  *
  ******************************************************************************/
-void transport_eth_dev_info_init(u32 eth_dev_num, wlan_exp_node_info * node_info, u8 * ip_addr, u8 * hw_addr, u16 unicast_port, u16 broadcast_port) {
+void transport_eth_dev_info_init(u32 eth_dev_num, wlan_exp_node_info* node_info, u8* ip_addr, u8* hw_addr, u16 unicast_port, u16 broadcast_port) {
 
     // Initialize the fields for the given Ethernet device
-    eth_devices[eth_dev_num].node_id             = node_info->node_id;
-    eth_devices[eth_dev_num].initialized         = TRANSPORT_ETH_DEV_INITIALIZED;
-    eth_devices[eth_dev_num].default_speed       = WLAN_EXP_DEFAULT_SPEED;
-    eth_devices[eth_dev_num].max_pkt_words       = WLAN_EXP_DEFAULT_MAX_PACKET_WORDS;
+    eth_devices[eth_dev_num].node_id       = node_info->node_id;
+    eth_devices[eth_dev_num].initialized   = TRANSPORT_ETH_DEV_INITIALIZED;
+    eth_devices[eth_dev_num].default_speed = WLAN_EXP_DEFAULT_SPEED;
+    eth_devices[eth_dev_num].max_pkt_words = WLAN_EXP_DEFAULT_MAX_PACKET_WORDS;
 
 
     // Initialize fields that depend on the Ethernet device
     eth_devices[eth_dev_num].phy_addr = platform_high_dev_info.wlan_exp_phy_addr;
 
     // Initialize all sockets as invalid
-    eth_devices[eth_dev_num].socket_unicast      = SOCKET_INVALID_SOCKET;
-    eth_devices[eth_dev_num].socket_broadcast    = SOCKET_INVALID_SOCKET;
-    eth_devices[eth_dev_num].socket_async        = SOCKET_INVALID_SOCKET;
+    eth_devices[eth_dev_num].socket_unicast   = SOCKET_INVALID_SOCKET;
+    eth_devices[eth_dev_num].socket_broadcast = SOCKET_INVALID_SOCKET;
+    eth_devices[eth_dev_num].socket_async     = SOCKET_INVALID_SOCKET;
 
 
     // Initialize the Asynchronous send socket address structure
@@ -208,9 +207,9 @@ void transport_eth_dev_info_init(u32 eth_dev_num, wlan_exp_node_info * node_info
     ((struct sockaddr_in *)&eth_devices[eth_dev_num].async_sockaddr)->sin_family = AF_INET;
 
     // Initialize the Asynchronous cmd/resp structure
-    eth_devices[eth_dev_num].async_cmd_resp.args      = NULL;
-    eth_devices[eth_dev_num].async_cmd_resp.header    = NULL;
-    eth_devices[eth_dev_num].async_cmd_resp.buffer    = NULL;
+    eth_devices[eth_dev_num].async_cmd_resp.args   = NULL;
+    eth_devices[eth_dev_num].async_cmd_resp.header = NULL;
+    eth_devices[eth_dev_num].async_cmd_resp.buffer = NULL;
 
     // Initialize the transport_info structure
     eth_devices[eth_dev_num].info.type           = (eth_dev_num << 16) | TRANSPORT_PARAM_TYPE_UDP;;
@@ -223,7 +222,7 @@ void transport_eth_dev_info_init(u32 eth_dev_num, wlan_exp_node_info * node_info
 
 
     // Set the Ethernet device in the node_info structure
-    node_info->eth_dev                           = & eth_devices[eth_dev_num];
+    node_info->eth_dev = & eth_devices[eth_dev_num];
 
 }
 
@@ -267,11 +266,11 @@ void transport_close(u32 eth_dev_num) {
  *****************************************************************************/
 void transport_poll(u32 eth_dev_num) {
 
-    int                     recv_bytes;
-    int                     socket_index;
-    wlan_exp_ip_udp_buffer      recv_buffer;
-    wlan_exp_ip_udp_buffer    * send_buffer;
-    struct sockaddr         from;
+    int recv_bytes;
+    int socket_index;
+    wlan_exp_ip_udp_buffer recv_buffer;
+    wlan_exp_ip_udp_buffer* send_buffer;
+    struct sockaddr from;
 
     // Check the socket to see if there is data
     recv_bytes = socket_recvfrom_eth(eth_dev_num, &socket_index, &from, &recv_buffer);
@@ -309,35 +308,35 @@ void transport_poll(u32 eth_dev_num) {
  *          Transport header for future packet processing.
  *
  *****************************************************************************/
-void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr * from, wlan_exp_ip_udp_buffer * recv_buffer, wlan_exp_ip_udp_buffer * send_buffer) {
+void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr* from, wlan_exp_ip_udp_buffer* recv_buffer, wlan_exp_ip_udp_buffer* send_buffer) {
 
-    int                           status;
-    u16                           dest_id;
-    u16                           src_id;
-    u16                           seq_num;
-    u16                           flags;
-    u32                           node_id;
-    u32                           group_id;
-    u32                           recv_flags = 0;
+    int status;
+    u16 dest_id;
+    u16 src_id;
+    u16 seq_num;
+    u16 flags;
+    u32 node_id;
+    u32 group_id;
+    u32 recv_flags = 0;
 
-    transport_header            * transport_header_rx = (transport_header*)(recv_buffer->offset);   // Contains entire Ethernet frame; offset points to UDP payload
-    transport_header            * transport_header_tx = (transport_header*)(send_buffer->offset);   // New buffer for UDP payload
+    transport_header* transport_header_rx = (transport_header*)(recv_buffer->offset);   // Contains entire Ethernet frame; offset points to UDP payload
+    transport_header* transport_header_tx = (transport_header*)(send_buffer->offset);   // New buffer for UDP payload
 
     // Get the transport headers for the send / receive buffers
     //     NOTE:  For the receive buffer, offset points to UDP payload of the Ethernet frame
     //     NOTE:  For the send buffer, the offset points to the start of the buffer but since we will use the
     //            UDP header of the socket to transmit the frame, this is effectively the start of the UDP payload
     //
-    transport_header_rx      = (transport_header*)(recv_buffer->offset);
-    transport_header_tx      = (transport_header*)(send_buffer->offset);
+    transport_header_rx = (transport_header*)(recv_buffer->offset);
+    transport_header_tx = (transport_header*)(send_buffer->offset);
 
     // Update the buffers to account for the transport headers
-    recv_buffer->offset     += sizeof(transport_header);
-    recv_buffer->length     -= sizeof(transport_header);                    // Remaining bytes in receive buffer
+    recv_buffer->offset += sizeof(transport_header);
+    recv_buffer->length -= sizeof(transport_header);                    // Remaining bytes in receive buffer
 
-    send_buffer->offset     += sizeof(transport_header);
-    send_buffer->length     += sizeof(transport_header);                    // Adding bytes to the send buffer
-    send_buffer->size       += sizeof(transport_header);                    // Keep size in sync
+    send_buffer->offset += sizeof(transport_header);
+    send_buffer->length += sizeof(transport_header);                    // Adding bytes to the send buffer
+    send_buffer->size   += sizeof(transport_header);                    // Keep size in sync
 
 
     // Process the data based on the packet type
@@ -442,12 +441,12 @@ void transport_receive(u32 eth_dev_num, int socket_index, struct sockaddr * from
  *          array contain the Transport header.
  *
  *****************************************************************************/
-void transport_send(int socket_index, struct sockaddr * to, wlan_exp_ip_udp_buffer ** buffers, u32 num_buffers) {
+void transport_send(int socket_index, struct sockaddr* to, wlan_exp_ip_udp_buffer** buffers, u32 num_buffers) {
 
-    u32                      i;
-    int                      status;
-    transport_header       * transport_header_tx;
-    u16                      buffer_length = 0;
+    u32 i;
+    int status;
+    transport_header* transport_header_tx;
+    u16 buffer_length = 0;
 	// interrupt_state_t     prev_interrupt_state;
 
     // Check that we have a valid socket to send a message on
@@ -519,20 +518,20 @@ void transport_send(int socket_index, struct sockaddr * to, wlan_exp_ip_udp_buff
  *          array contain the Transport header.
  *
  *****************************************************************************/
-void transport_send_async(u32 eth_dev_num, u8 * payload, u32 length) {
+void transport_send_async(u32 eth_dev_num, u8* payload, u32 length) {
 
-    u32                      initial_length;
-    u32                      packet_length;
+    u32 initial_length;
+    u32 packet_length;
 
     // Get variables from the async command / response structure
-    wlan_exp_ip_udp_buffer     * buffer       = (wlan_exp_ip_udp_buffer *) eth_devices[eth_dev_num].async_cmd_resp.buffer;
-    cmd_resp_hdr           * cmd_header   = eth_devices[eth_dev_num].async_cmd_resp.header;
-    void                   * payload_dest = (void *) eth_devices[eth_dev_num].async_cmd_resp.args;
-    transport_header       * tmp_header   = (transport_header *) (buffer->offset);
+    wlan_exp_ip_udp_buffer* buffer = (wlan_exp_ip_udp_buffer *) eth_devices[eth_dev_num].async_cmd_resp.buffer;
+    cmd_resp_hdr* cmd_header = eth_devices[eth_dev_num].async_cmd_resp.header;
+    void* payload_dest = (void *)eth_devices[eth_dev_num].async_cmd_resp.args;
+    transport_header* tmp_header = (transport_header *) (buffer->offset);
 
     // Set length fields
     initial_length = buffer->length;
-    packet_length  = WLAN_EXP_IP_UDP_HEADER_LEN + initial_length + length;
+    packet_length = WLAN_EXP_IP_UDP_HEADER_LEN + initial_length + length;
 
     // Makes sure packet stays under the maximum packet size
     if (packet_length < WLAN_EXP_TX_ASYNC_PACKET_BUFFER_SIZE) {
@@ -579,7 +578,7 @@ void transport_send_async(u32 eth_dev_num, u8 * payload, u32 length) {
  *                                 RESP_SENT    - A response has been sent
  *
  *****************************************************************************/
-int process_transport_cmd(int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len) {
+int process_transport_cmd(int socket_index, void* from, cmd_resp* command, cmd_resp* response, u32 max_resp_len) {
 
     //
     // IMPORTANT ENDIAN NOTES:
@@ -592,23 +591,23 @@ int process_transport_cmd(int socket_index, void * from, cmd_resp * command, cmd
     //
 
     // Standard variables
-    u32                 resp_sent      = NO_RESP_SENT;
+    u32 resp_sent = NO_RESP_SENT;
 
-    cmd_resp_hdr      * cmd_hdr        = command->header;
-    u32               * cmd_args_32    = command->args;
-    u32                 cmd_id         = CMD_TO_CMDID(cmd_hdr->cmd);
+    cmd_resp_hdr* cmd_hdr = command->header;
+    u32* cmd_args_32 = command->args;
+    u32 cmd_id = CMD_TO_CMDID(cmd_hdr->cmd);
 
-    cmd_resp_hdr      * resp_hdr       = response->header;
-    u32               * resp_args_32   = response->args;
-    u32                 resp_index     = 0;
+    cmd_resp_hdr* resp_hdr = response->header;
+    u32* resp_args_32 = response->args;
+    u32 resp_index = 0;
 
-    u32                 eth_dev_num    = socket_get_eth_dev_num(socket_index);
+    u32 eth_dev_num = socket_get_eth_dev_num(socket_index);
 
 
     // Set up the response header
-    resp_hdr->cmd       = cmd_hdr->cmd;
-    resp_hdr->length    = 0;
-    resp_hdr->num_args  = 0;
+    resp_hdr->cmd      = cmd_hdr->cmd;
+    resp_hdr->length   = 0;
+    resp_hdr->num_args = 0;
 
     // Check Ethernet device number
     if (eth_dev_num == WLAN_EXP_IP_UDP_INVALID_ETH_DEVICE) {
@@ -636,19 +635,19 @@ int process_transport_cmd(int socket_index, void * from, cmd_resp * command, cmd
             // 1472 and causes the transport to not behave correctly.  Therefore, we need to find the
             // last valid command argument and check that against the packet length.
             //
-            u32              temp;
-            u32              payload_index;
-            u32              payload_size;
-            u32              payload_num_words;
-            u32              header_size;
+            u32 temp;
+            u32 payload_index;
+            u32 payload_size;
+            u32 payload_num_words;
+            u32 header_size;
 
-            header_size        = (sizeof(transport_header) + sizeof(cmd_resp_hdr));                               // Transport / Command headers
-            payload_index      = (((wlan_exp_ip_udp_buffer *)(command->buffer))->length - sizeof(cmd_resp_hdr)) / sizeof(u32);  // Final index into command args (/4 truncates)
+            header_size = (sizeof(transport_header) + sizeof(cmd_resp_hdr));                               // Transport / Command headers
+            payload_index = (((wlan_exp_ip_udp_buffer *)(command->buffer))->length - sizeof(cmd_resp_hdr)) / sizeof(u32);  // Final index into command args (/4 truncates)
 
             // Check the value in the command args to make sure it matches the size_index
-            payload_num_words  = Xil_Htonl(cmd_args_32[payload_index - 1]) + 1;     // NOTE:  Add 1 since the payload is zero indexed
-            payload_size       = (payload_num_words * 4) + header_size;
-            temp               = ((payload_index * 4) + header_size);
+            payload_num_words = Xil_Htonl(cmd_args_32[payload_index - 1]) + 1;     // NOTE:  Add 1 since the payload is zero indexed
+            payload_size = (payload_num_words * 4) + header_size;
+            temp = ((payload_index * 4) + header_size);
 
             // Update the max_pkt_words field
             if (payload_num_words > eth_devices[eth_dev_num].max_pkt_words) {
@@ -787,7 +786,7 @@ int transport_config_sockets(u32 eth_dev_num, u32 unicast_port, u32 broadcast_po
     if (status == XST_FAILURE) { return status; }
 
     // Update the Tag Parameters
-    eth_devices[eth_dev_num].info.unicast_port   = unicast_port;
+    eth_devices[eth_dev_num].info.unicast_port = unicast_port;
     eth_devices[eth_dev_num].info.broadcast_port = broadcast_port;
 
     if (verbose) {
@@ -842,7 +841,7 @@ u16 transport_get_ethernet_status(u32 eth_dev_num) {
  *****************************************************************************/
 int transport_link_status(u32 eth_dev_num) {
 
-    int status  = LINK_READY;
+    int status = LINK_READY;
     u16 reg_val = transport_get_ethernet_status(eth_dev_num);
 
     if(reg_val & ETH_PHY_REG_17_0_LINKUP) {
@@ -868,12 +867,11 @@ int transport_link_status(u32 eth_dev_num) {
  *****************************************************************************/
 u32 transport_update_link_speed(u32 eth_dev_num, u32 wait_for_negotiation) {
 
-    volatile u16 reg_val          = 0;
-    u32          negotiated       = 1;
-    u16          speed            = 0;
-
-    u32          start_timestamp  = get_system_time_usec();
-    u32          end_timestamp    = start_timestamp;
+    volatile u16 reg_val = 0;
+    u32 negotiated = 1;
+    u16 speed = 0;
+    u32 start_timestamp = get_system_time_usec();
+    u32 end_timestamp = start_timestamp;
 
     // Make sure the Ethernet device is initialized
     if (eth_devices[eth_dev_num].initialized == TRANSPORT_ETH_DEV_INITIALIZED) {
@@ -945,7 +943,7 @@ u32 transport_update_link_speed(u32 eth_dev_num, u32 wait_for_negotiation) {
 void transport_set_phy_link_speed(u32 eth_dev_num, u32 speed) {
 
     // See Ethernet PHY specification for documentation on the values used for PHY commands
-    u16          phy_ctrl_reg_val;
+    u16 phy_ctrl_reg_val;
 
     // Read the PHY Control register
     eth_read_phy_reg(eth_dev_num, eth_devices[eth_dev_num].phy_addr, ETH_PHY_CONTROL_REG, &phy_ctrl_reg_val);
@@ -989,7 +987,7 @@ void transport_set_phy_link_speed(u32 eth_dev_num, u32 speed) {
 void transport_set_eth_phy_auto_negotiation(u32 eth_dev_num, u32 enable) {
 
     // See Ethernet PHY specification for documentation on the values used for PHY commands
-    u16          phy_ctrl_reg_val;
+    u16 phy_ctrl_reg_val;
 
     // Read the PHY Control register
     eth_read_phy_reg(eth_dev_num, eth_devices[eth_dev_num].phy_addr, ETH_PHY_CONTROL_REG, &phy_ctrl_reg_val);
@@ -1128,7 +1126,7 @@ void transport_reset_max_pkt_length(u32 eth_dev_num) {
  *****************************************************************************/
 int  transport_init_parameters(u32 eth_dev_num, u32 * values) {
 
-    u16    lengths[TRANSPORT_PARAM_MAX_PARAMETER] = TRANSPORT_PARAM_FIELD_LENGTHS;
+    u16 lengths[TRANSPORT_PARAM_MAX_PARAMETER] = TRANSPORT_PARAM_FIELD_LENGTHS;
 
     return wlan_exp_init_parameters((wlan_exp_tag_parameter *) &transport_parameters[eth_dev_num][0],
                                     GROUP_TRANSPORT,

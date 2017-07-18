@@ -52,16 +52,6 @@ typedef struct mac_timing{
 #define RAND_SLOT_REASON_STANDARD_ACCESS                   0
 #define RAND_SLOT_REASON_IBSS_BEACON                       1
 
-
-//-----------------------------------------------
-// These are hardcoded OFDM TX times for CTS frames of various rates
-//     Since CTS is a fixed size, we can precompute these to save time
-//
-#define TX_TIME_CTS_R6                                     50
-#define TX_TIME_CTS_R12                                    38
-#define TX_TIME_CTS_R24                                    34
-
-
 //-----------------------------------------------
 // According to 10.21.1 of 802.11-2012, the timestamp value of
 // transmitted beacons and probe responses shall be set to the

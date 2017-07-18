@@ -54,18 +54,18 @@
 
 /*************************** Constant Definitions ****************************/
 
-#define  WLAN_EXP_ETH                            TRANSPORT_ETH_B
+#define WLAN_EXP_ETH TRANSPORT_ETH_B
 
 
-#define  WLAN_DEFAULT_CHANNEL                     6
-#define  WLAN_DEFAULT_TX_PWR                      15
-#define  WLAN_DEFAULT_TX_ANTENNA                  TX_ANTMODE_SISO_ANTA
-#define  WLAN_DEFAULT_RX_ANTENNA                  RX_ANTMODE_SISO_ANTA
+#define WLAN_DEFAULT_CHANNEL 6
+#define WLAN_DEFAULT_TX_PWR 15
+#define WLAN_DEFAULT_TX_ANTENNA TX_ANTMODE_SISO_ANTA
+#define WLAN_DEFAULT_RX_ANTENNA RX_ANTMODE_SISO_ANTA
 
 
 // The WLAN_DEFAULT_USE_HT define will set the default unicast TX phy mode
 // to:  1 --> HTMF  or  0 --> NONHT.
-#define  WLAN_DEFAULT_USE_HT                      1
+#define WLAN_DEFAULT_USE_HT 1
 
 
 /*********************** Global Variable Definitions *************************/
@@ -75,32 +75,31 @@
 
 // If you want this station to try to associate to a known AP at boot, type
 //   the string here. Otherwise, let it be an empty string.
-static char                       access_point_ssid[SSID_LEN_MAX + 1] = "MANGO-AP";
-
-// static char                       access_point_ssid[SSID_LEN_MAX + 1] = "";
+static char access_point_ssid[SSID_LEN_MAX + 1] = "MANGO-AP";
+// static char access_point_ssid[SSID_LEN_MAX + 1] = "";
 
 // Common TX header for 802.11 packets
-mac_header_80211_common           tx_header_common;
+mac_header_80211_common tx_header_common;
 
 // Access point information
-u8                                my_aid;
-network_info_t*                   active_network_info;
+u8 my_aid;
+network_info_t* active_network_info;
 
 // Tx queue variables;
-static u32                        max_queue_size;
-volatile u8                       pause_data_queue;
+static u32 max_queue_size;
+volatile u8 pause_data_queue;
 
 // MAC address
-static u8                         wlan_mac_addr[MAC_ADDR_LEN];
+static u8 wlan_mac_addr[MAC_ADDR_LEN];
 
 // Beacon configuration
-static beacon_txrx_config_t    gl_beacon_txrx_config;
+static beacon_txrx_config_t gl_beacon_txrx_config;
 
 
 /*************************** Functions Prototypes ****************************/
 
 #if WLAN_SW_CONFIG_ENABLE_WLAN_EXP
-int  wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len);
+int  wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void* from, cmd_resp* command, cmd_resp* response, u32 max_resp_len);
 #endif
 
 void sta_set_beacon_ts_update_mode(u32 enable);
@@ -185,23 +184,23 @@ int main() {
 
 	// Initialize callbacks
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
-	wlan_mac_util_set_eth_rx_callback(           (void *) ethernet_receive);
+	wlan_mac_util_set_eth_rx_callback((void*) ethernet_receive);
 #endif
-	wlan_mac_high_set_mpdu_rx_callback(          (void *) mpdu_rx_process);
-	wlan_mac_high_set_uart_rx_callback(          (void *) uart_rx);
-	wlan_mac_high_set_poll_tx_queues_callback(   (void *) poll_tx_queues);
+	wlan_mac_high_set_mpdu_rx_callback((void*) mpdu_rx_process);
+	wlan_mac_high_set_uart_rx_callback((void*) uart_rx);
+	wlan_mac_high_set_poll_tx_queues_callback((void*) poll_tx_queues);
 #if WLAN_SW_CONFIG_ENABLE_LTG
-	wlan_mac_ltg_sched_set_callback(             (void *) ltg_event);
+	wlan_mac_ltg_sched_set_callback((void*) ltg_event);
 #endif //WLAN_SW_CONFIG_ENABLE_LTG
-	wlan_mac_scan_set_tx_probe_request_callback( (void *) send_probe_req);
-	wlan_mac_scan_set_state_change_callback(     (void *) process_scan_state_change);
+	wlan_mac_scan_set_tx_probe_request_callback((void*) send_probe_req);
+	wlan_mac_scan_set_state_change_callback((void*) process_scan_state_change);
 
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
 	// Set the Ethernet ecapsulation mode
 	wlan_mac_util_set_eth_encap_mode(APPLICATION_ROLE_STA);
 #endif
 
-    wlan_mac_hw_info_t * hw_info;
+    wlan_mac_hw_info_t* hw_info;
     // Get the hardware info that has been collected from CPU low
     hw_info = get_mac_hw_info();
 
@@ -215,13 +214,13 @@ int main() {
 			   WLAN_EXP_ETH, hw_info->hw_addr_wlan_exp, hw_info->hw_addr_wlan);
 
     // Set WLAN Exp callbacks
-    wlan_exp_set_process_node_cmd_callback(         (void *) wlan_exp_process_node_cmd);
-    wlan_exp_set_purge_all_data_tx_queue_callback(  (void *) purge_all_data_tx_queue);
+    wlan_exp_set_process_node_cmd_callback((void*) wlan_exp_process_node_cmd);
+    wlan_exp_set_purge_all_data_tx_queue_callback((void*) purge_all_data_tx_queue);
     //   - wlan_exp_set_tx_cmd_add_association_callback() should not be used by the STA
-    wlan_exp_set_process_user_cmd_callback(         (void *) wlan_exp_process_user_cmd);
-    wlan_exp_set_beacon_ts_update_mode_callback(    (void *) sta_set_beacon_ts_update_mode);
-    wlan_exp_set_process_config_bss_callback(       (void *) configure_bss);
-    wlan_exp_set_active_network_info_getter_callback(   (void *) active_network_info_getter);
+    wlan_exp_set_process_user_cmd_callback((void*) wlan_exp_process_user_cmd);
+    wlan_exp_set_beacon_ts_update_mode_callback((void*) sta_set_beacon_ts_update_mode);
+    wlan_exp_set_process_config_bss_callback((void*) configure_bss);
+    wlan_exp_set_active_network_info_getter_callback((void*) active_network_info_getter);
     //   - wlan_exp_set_beacon_tx_param_update_callback() should not be used by the STA
 
     // Set CPU_HIGH Type in wlan_exp's node_info struct;
@@ -513,8 +512,8 @@ void purge_all_data_tx_queue(){
  * @return 1 for successful enqueuing of the packet, 0 otherwise
  *****************************************************************************/
 int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src, u16 tx_length){
-	tx_queue_buffer_t* 	curr_tx_queue_buffer;
-	station_info_t* 	ap_station_info;
+	tx_queue_buffer_t* curr_tx_queue_buffer;
+	station_info_t* ap_station_info;
 
 
 	// Check associations
@@ -580,25 +579,23 @@ int ethernet_receive(dl_entry* curr_tx_queue_element, u8* eth_dest, u8* eth_src,
  *****************************************************************************/
 u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_entry* rx_event_log_entry) {
 
-	rx_frame_info_t*    	rx_frame_info            = (rx_frame_info_t*)pkt_buf_addr;
-	void*               	mac_payload              = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
-	u8*                		mac_payload_ptr_u8       = (u8*)mac_payload;
-	mac_header_80211*   	rx_80211_header          = (mac_header_80211*)((void *)mac_payload_ptr_u8);
+	rx_frame_info_t* rx_frame_info = (rx_frame_info_t*)pkt_buf_addr;
+	void* mac_payload = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
+	u8* mac_payload_ptr_u8 = (u8*)mac_payload;
+	mac_header_80211* rx_80211_header = (mac_header_80211*)((void *)mac_payload_ptr_u8);
 
-	u16                 	rx_seq;
-
-	u8                  	unicast_to_me;
-	u8                  	to_multicast;
-	u8                  	is_associated            = 0;
-	network_info_entry_t*	network_info_entry;
-	network_info_t*			curr_network_info;
-	volatile network_info_t*	attempt_network_info;
+	u16 rx_seq;
+	u8 unicast_to_me;
+	u8 to_multicast;
+	u8 is_associated = 0;
+	network_info_entry_t* network_info_entry;
+	network_info_t* curr_network_info;
+	volatile network_info_t* attempt_network_info;
 #if WLAN_SW_CONFIG_ENABLE_ETH_BRIDGE
-	u8						pre_llc_offset			 = 0;
+	u8 pre_llc_offset = 0;
 #endif
-	u32						return_val				 = 0;
-
-	u16 					length   = rx_frame_info->phy_details.length;
+	u32 return_val = 0;
+	u16 length = rx_frame_info->phy_details.length;
 
 
 	// If this function was passed a CTRL frame (e.g., CTS, ACK), then we should just quit.
@@ -841,12 +838,12 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
  *****************************************************************************/
 void ltg_event(u32 id, void* callback_arg){
 
-	u32                 payload_length;
-	u32                 min_ltg_payload_length;
-	u8*                 addr_da;
-	station_info_t*     ap_station_info;
-	dl_entry* curr_tx_queue_element        = NULL;
-	tx_queue_buffer_t*  curr_tx_queue_buffer         = NULL;
+	u32 payload_length;
+	u32 min_ltg_payload_length;
+	u8* addr_da;
+	station_info_t* ap_station_info;
+	dl_entry* curr_tx_queue_element = NULL;
+	tx_queue_buffer_t* curr_tx_queue_buffer = NULL;
 
 	if(active_network_info != NULL){
 		switch(((ltg_pyld_hdr*)callback_arg)->type){
@@ -907,12 +904,12 @@ void ltg_event(u32 id, void* callback_arg){
  *
  *  @note This function uses global variables:  association_state, association_table
  *****************************************************************************/
-int  sta_disassociate( void ) {
-	int                 status = 0;
+int sta_disassociate( void ) {
+	int status = 0;
 	station_info_entry_t* ap_station_info_entry;
 	dl_entry* curr_tx_queue_element;
-	tx_queue_buffer_t*  curr_tx_queue_buffer;
-	u32                 tx_length;
+	tx_queue_buffer_t* curr_tx_queue_buffer;
+	u32 tx_length;
 
 	// If the STA is currently associated, remove the association; otherwise do nothing
 	if(active_network_info != NULL){
@@ -966,15 +963,15 @@ int  sta_disassociate( void ) {
  *
  *****************************************************************************/
 u32	configure_bss(bss_config_t* bss_config, u32 update_mask){
-	u32                 return_status               = 0;
-	u8                  send_channel_switch_to_low  = 0;
-	u8                  send_beacon_config_to_low   = 0;
+	u32 return_status = 0;
+	u8 send_channel_switch_to_low = 0;
+	u8 send_beacon_config_to_low = 0;
 
-	network_info_t*     local_network_info;
-	interrupt_state_t   curr_interrupt_state;
-	station_info_t*     curr_station_info;
+	network_info_t* local_network_info;
+	interrupt_state_t curr_interrupt_state;
+	station_info_t* curr_station_info;
 	station_info_entry_t* curr_station_info_entry;
-	station_info_t*     ap_station_info		        = NULL;
+	station_info_t* ap_station_info = NULL;
 
 	//---------------------------------------------------------
 	// 1. Check for any invalid inputs or combination of inputs
@@ -1273,7 +1270,7 @@ dl_list* get_network_member_list(){
 	}
 }
 
-network_info_t * active_network_info_getter(){ return active_network_info; }
+network_info_t* active_network_info_getter(){ return active_network_info; }
 
 
 
@@ -1323,7 +1320,7 @@ network_info_t * active_network_info_getter(){ return active_network_info; }
  *          https://warpproject.org/trac/wiki/802.11/wlan_exp/Extending
  *
  *****************************************************************************/
-int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_resp * command, cmd_resp * response, u32 max_resp_len) {
+int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void* from, cmd_resp* command, cmd_resp* response, u32 max_resp_len) {
 
     //
     // IMPORTANT ENDIAN NOTES:
@@ -1343,16 +1340,16 @@ int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
     //     compiler warnings for "unused variables" since the default implementation is empty.  As
     //     you add commands, you should un-comment the standard variables.
     //
-    u32                 resp_sent      = NO_RESP_SENT;
+    u32 resp_sent = NO_RESP_SENT;
 
 #if 0
-    cmd_resp_hdr      * cmd_hdr        = command->header;
-    cmd_resp_hdr      * resp_hdr       = response->header;
+    cmd_resp_hdr* cmd_hdr = command->header;
+    cmd_resp_hdr* resp_hdr = response->header;
 
-    u32               * cmd_args_32    = command->args;
-    u32               * resp_args_32   = response->args;
+    u32* cmd_args_32 = command->args;
+    u32* resp_args_32 = response->args;
 
-    u32                 resp_index     = 0;
+    u32 resp_index = 0;
 #endif
 
     switch(cmd_id){
@@ -1386,13 +1383,13 @@ int wlan_exp_process_user_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             //
 
             // Variables for template command
-            int                 status;
-            u32                 arg_0;
-            interrupt_state_t   curr_interrupt_state;
+            int status;
+            u32 arg_0;
+            interrupt_state_t curr_interrupt_state;
 
             // Initialize variables
-            status      = CMD_PARAM_SUCCESS;
-            arg_0       = Xil_Ntohl(cmd_args_32[0]);              // Swap endianness of command argument
+            status = CMD_PARAM_SUCCESS;
+            arg_0 = Xil_Ntohl(cmd_args_32[0]);              // Swap endianness of command argument
 
             // Do something with argument(s)
             xil_printf("Command argument 0: 0x%08x\n", arg_0);

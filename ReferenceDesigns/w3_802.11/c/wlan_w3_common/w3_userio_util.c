@@ -149,8 +149,8 @@ void set_hex_pwm_min_max(u16 min, u16 max) {
  */
 void write_hex_display(u8 val) {
     u32 right_dp;
-    u8  left_val;
-    u8  right_val;
+    u8 left_val;
+    u8 right_val;
 
     // Need to retain the value of the right decimal point
     right_dp = userio_read_hexdisp_right(USERIO_BASEADDR) & W3_USERIO_HEXDISP_DP;
@@ -199,8 +199,8 @@ void write_hex_display_with_pwm(u8 val) {
     u32 hw_control;
     u32 temp_control;
     u32 right_dp;
-    u8  left_val;
-    u8  right_val;
+    u8 left_val;
+    u8 right_val;
     u32 pwm_val;
 
     // Need to retain the value of the right decimal point
@@ -284,11 +284,11 @@ void set_hex_display_error_status(u8 status) {
  * @return  None
  */
 void blink_hex_display(u32 num_blinks, u32 blink_time) {
-    u32          i;
-    u32          hw_control;
-    u32          temp_control;
-    u8           right_val;
-    u8           left_val;
+    u32 i;
+    u32 hw_control;
+    u32 temp_control;
+    u8 right_val;
+    u8 left_val;
 
     // Get left / right values
     left_val  = userio_read_hexdisp_left(USERIO_BASEADDR);

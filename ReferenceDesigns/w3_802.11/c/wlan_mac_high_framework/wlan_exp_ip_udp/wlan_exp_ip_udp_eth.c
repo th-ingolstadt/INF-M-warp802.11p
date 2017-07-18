@@ -492,10 +492,10 @@ void eth_set_interrupt_disable_callback(void(*callback)()){
  *                                 WLAN_EXP_IP_UDP_FAILURE - There was an error in the command
  *
  *****************************************************************************/
-int eth_send_frame(u32 eth_dev_num, wlan_exp_ip_udp_socket * socket, wlan_exp_ip_udp_buffer ** buffers, u32 num_buffers, u32 use_socket_header) {
+int eth_send_frame(u32 eth_dev_num, wlan_exp_ip_udp_socket* socket, wlan_exp_ip_udp_buffer** buffers, u32 num_buffers, u32 use_socket_header) {
 
     int                      i;
-    int                      status;
+    int                      status = 0;
     int                      int_status;
     
     wlan_exp_ip_udp_buffer       socket_hdr;
@@ -847,7 +847,7 @@ int eth_process_tx_descriptors(u32 eth_dev_num, XAxiDma_BdRing * dma_tx_ring_ptr
  *                            WLAN_EXP_IP_UDP_FAILURE if there was a library failure
  *
  ******************************************************************************/
-int eth_recv_frame(u32 eth_dev_num, wlan_exp_ip_udp_buffer * eth_frame) {
+int eth_recv_frame(u32 eth_dev_num, wlan_exp_ip_udp_buffer* eth_frame) {
 
     int                      status;
 

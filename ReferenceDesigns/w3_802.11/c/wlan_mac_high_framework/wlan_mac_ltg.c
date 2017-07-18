@@ -41,24 +41,21 @@
 
 /*************************** Variable Definitions ****************************/
 
-static dl_list               tg_list;
-
-static function_ptr_t        ltg_callback;
-
-static volatile u64          num_ltg_checks;
-static volatile u32          schedule_id;
-static volatile u8           schedule_running;
+static dl_list tg_list;
+static function_ptr_t ltg_callback;
+static volatile u64 num_ltg_checks;
+static volatile u32 schedule_id;
+static volatile u8 schedule_running;
 
 
 /*************************** Functions Prototypes ****************************/
-
 
 void ltg_sched_check();
 int ltg_sched_start_l(dl_entry* curr_tg_dl_entry);
 int ltg_sched_stop_l(dl_entry* curr_tg_dl_entry);
 dl_entry* ltg_sched_create_l();
 void ltg_sched_destroy_l(dl_entry* tg_dl_entry);
-void ltg_sched_destroy_params(tg_schedule *tg);
+void ltg_sched_destroy_params(tg_schedule* tg);
 
 
 /******************************** Functions **********************************/
@@ -89,7 +86,7 @@ u32 ltg_sched_create(u32 type, void* params, void* callback_arg, void(*cleanup_c
 	u32 return_value;
 
 	tg_schedule* curr_tg;
-	dl_entry*	 curr_tg_dl_entry;
+	dl_entry* curr_tg_dl_entry;
 
 	//Create a new tg for this id
 	curr_tg_dl_entry = ltg_sched_create_l();
@@ -179,7 +176,7 @@ dl_entry* ltg_sched_create_l(){
 
 
 int ltg_sched_start(u32 id){
-	dl_entry*	curr_tg_dl_entry;
+	dl_entry* curr_tg_dl_entry;
 
 	if (id == LTG_START_ALL) {
 		return ltg_sched_start_all();
@@ -229,7 +226,7 @@ int ltg_sched_start_all(){
 
 int ltg_sched_start_l(dl_entry* curr_tg_dl_entry){
 	tg_schedule* curr_tg = (tg_schedule*)(curr_tg_dl_entry->data);
-	u64 timestamp        = get_system_time_usec();
+	u64 timestamp = get_system_time_usec();
 	u64 random_timestamp;
 
 	switch(curr_tg->type){
@@ -284,8 +281,8 @@ int ltg_sched_start_l(dl_entry* curr_tg_dl_entry){
 
 void ltg_sched_check(){
 	tg_schedule* curr_tg;
-	dl_entry*	 curr_tg_dl_entry;
-	u64 		 random_timestamp;
+	dl_entry* curr_tg_dl_entry;
+	u64 random_timestamp;
 
 	num_ltg_checks++;
 	if(tg_list.length > 0){
@@ -327,7 +324,7 @@ void ltg_sched_check(){
 
 
 int ltg_sched_stop(u32 id){
-	dl_entry*	 curr_tg_dl_entry;
+	dl_entry* curr_tg_dl_entry;
 
 	if (id == LTG_STOP_ALL) {
 		return ltg_sched_stop_all();
@@ -346,8 +343,8 @@ int ltg_sched_stop(u32 id){
 
 
 int ltg_sched_stop_all(){
-	dl_entry*    next_tg_dl_entry;
-	dl_entry*    curr_tg_dl_entry;
+	dl_entry* next_tg_dl_entry;
+	dl_entry* curr_tg_dl_entry;
 	interrupt_state_t prev_interrupt_state;
 
 	next_tg_dl_entry = tg_list.first;
@@ -391,7 +388,7 @@ int ltg_sched_get_state(u32 id, u32* type, void** state){
 	//It fills in the state argument with the state of the schedule
 
 	tg_schedule* curr_tg;
-	dl_entry*	 curr_tg_dl_entry;
+	dl_entry* curr_tg_dl_entry;
 
 	curr_tg_dl_entry = ltg_sched_find_tg_schedule(id);
 	if(curr_tg_dl_entry == NULL){
@@ -434,7 +431,7 @@ int ltg_sched_get_params(u32 id, void** params){
 	//This function returns the type of the schedule corresponding to the id argument
 	//It fills in the current parameters of the schedule into the params argument
 	tg_schedule* curr_tg;
-	dl_entry*	 curr_tg_dl_entry;
+	dl_entry* curr_tg_dl_entry;
 
 	curr_tg_dl_entry = ltg_sched_find_tg_schedule(id);
 	if(curr_tg_dl_entry == NULL){
@@ -451,7 +448,7 @@ int ltg_sched_get_params(u32 id, void** params){
 
 int ltg_sched_get_callback_arg(u32 id, void** callback_arg){
 	tg_schedule* curr_tg;
-	dl_entry*	 curr_tg_dl_entry;
+	dl_entry* curr_tg_dl_entry;
 
 	curr_tg_dl_entry = ltg_sched_find_tg_schedule(id);
 	if(curr_tg_dl_entry == NULL){
@@ -468,7 +465,7 @@ int ltg_sched_get_callback_arg(u32 id, void** callback_arg){
 
 int ltg_sched_remove(u32 id){
 	tg_schedule* curr_tg;
-	dl_entry*	 curr_tg_dl_entry;
+	dl_entry* curr_tg_dl_entry;
 
 	if (id == LTG_REMOVE_ALL) {
 		return ltg_sched_remove_all();
@@ -497,8 +494,8 @@ int ltg_sched_remove(u32 id){
 
 int ltg_sched_remove_all(){
 	tg_schedule* curr_tg;
-	dl_entry* 	 next_tg_dl_entry;
-	dl_entry* 	 curr_tg_dl_entry;
+	dl_entry* next_tg_dl_entry;
+	dl_entry* curr_tg_dl_entry;
 	interrupt_state_t prev_interrupt_state;
 
 	next_tg_dl_entry = tg_list.first;
@@ -527,7 +524,7 @@ int ltg_sched_remove_all(){
 }
 
 
-void ltg_sched_destroy_params(tg_schedule *tg){
+void ltg_sched_destroy_params(tg_schedule* tg){
 	switch(tg->type){
 		case LTG_SCHED_TYPE_PERIODIC:
 		case LTG_SCHED_TYPE_UNIFORM_RAND:
@@ -551,9 +548,9 @@ void ltg_sched_destroy_l(dl_entry* tg_dl_entry){
 
 
 dl_entry* ltg_sched_find_tg_schedule(u32 id){
-	dl_entry*	 curr_tg_dl_entry;
+	dl_entry* curr_tg_dl_entry;
 	tg_schedule* curr_tg;
-	int 		 iter;
+	int iter;
 
 	curr_tg_dl_entry = tg_list.first;
 
@@ -572,9 +569,9 @@ dl_entry* ltg_sched_find_tg_schedule(u32 id){
 
 
 int wlan_create_ltg_frame(void* pkt_buf, mac_header_80211_common* common, u8 tx_flags, u32 ltg_id){
-	u32               tx_length;
-	u8*               mpdu_ptr_u8;
-	ltg_packet_id_t*  pkt_id;
+	u32 tx_length;
+	u8* mpdu_ptr_u8;
+	ltg_packet_id_t* pkt_id;
 
 	mpdu_ptr_u8 = (u8*)pkt_buf;
 
@@ -605,15 +602,15 @@ int wlan_create_ltg_frame(void* pkt_buf, mac_header_80211_common* common, u8 tx_
 
 // NOTE:  The src information is from the network and must be byte swapped
 void * ltg_sched_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
-	u32    temp, temp2;
-    u16    type;
-    u16    size;
+	u32 temp, temp2;
+    u16 type;
+    u16 size;
 
-    void * ret_val = NULL;
+    void* ret_val = NULL;
 
-    temp  = Xil_Ntohl(src[0]);
-    type  = (temp >> 16) & 0xFFFF;
-    size  = (temp & 0xFFFF);
+    temp = Xil_Ntohl(src[0]);
+    type = (temp >> 16) & 0xFFFF;
+    size = (temp & 0xFFFF);
 
     switch(type){
         case LTG_SCHED_TYPE_PERIODIC:
@@ -666,14 +663,14 @@ void * ltg_sched_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
 
 // NOTE:  The src information is from the network and must be byte swapped
 void * ltg_payload_deserialize(u32 * src, u32 * ret_type, u32 * ret_size) {
-	u32    temp;
-    u16    type;
-    u16    size;
-    void * ret_val = NULL;
+	u32 temp;
+    u16 type;
+    u16 size;
+    void* ret_val = NULL;
 
-    temp  = Xil_Ntohl(src[0]);
-    type  = (temp >> 16) & 0xFFFF;
-    size  = (temp & 0xFFFF);
+    temp = Xil_Ntohl(src[0]);
+    type = (temp >> 16) & 0xFFFF;
+    size = (temp & 0xFFFF);
 
     switch(type){
         case LTG_PYLD_TYPE_FIXED:

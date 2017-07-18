@@ -9,17 +9,17 @@
 #include "wlan_mac_schedule.h"
 
 
-#define MAILBOX_RIT                                        0         /* mailbox receive interrupt threshold */
-#define MAILBOX_SIT                                        0         /* mailbox send interrupt threshold */
+#define MAILBOX_RIT 0 /* mailbox receive interrupt threshold */
+#define MAILBOX_SIT 0 /* mailbox send interrupt threshold */
 
-static XMbox*						xmbox_ptr;
-static XIntc*                		intc_ptr;
-static platform_common_dev_info_t	platform_common_dev_info;
-static platform_high_dev_info_t		platform_high_dev_info;
+static XMbox* xmbox_ptr;
+static XIntc* intc_ptr;
+static platform_common_dev_info_t platform_common_dev_info;
+static platform_high_dev_info_t platform_high_dev_info;
 
 // IPC variables
-static wlan_ipc_msg_t               ipc_msg_from_low;                                           ///< IPC message from lower-level
-static u32                          ipc_msg_from_low_payload[MAILBOX_BUFFER_MAX_NUM_WORDS];     ///< Buffer space for IPC message from lower-level
+static wlan_ipc_msg_t ipc_msg_from_low;                                           ///< IPC message from lower-level
+static u32 ipc_msg_from_low_payload[MAILBOX_BUFFER_MAX_NUM_WORDS];     ///< Buffer space for IPC message from lower-level
 
 void _mailbox_rx_watchdog(u32 timer_id);
 
@@ -95,8 +95,8 @@ int setup_mailbox_interrupt(XIntc* intc){
  *
  *****************************************************************************/
 void mailbox_int_handler(void* callback_ref){
-    u32       mask;
-    XMbox *   mbox_ptr = (XMbox *)callback_ref;
+    u32 mask;
+    XMbox* mbox_ptr = (XMbox *)callback_ref;
 
 #ifdef _ISR_PERF_MON_EN_
     wlan_mac_set_dbg_hdr_out(ISR_PERF_MON_GPIO_MASK);

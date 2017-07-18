@@ -43,10 +43,10 @@ CASSERT( (MAX_NUM_ASSOC ) <= STATION_INFO_DL_ENTRY_MEM_NUM, insufficient_WLAN_OP
 
 /*********************** Global Variable Definitions *************************/
 
-extern network_info_t*            active_network_info;
+extern network_info_t* active_network_info;
 
-extern function_ptr_t    		  wlan_exp_purge_all_data_tx_queue_callback;
-extern u8						  gl_dtim_mcast_buffer_enable;
+extern function_ptr_t wlan_exp_purge_all_data_tx_queue_callback;
+extern u8 gl_dtim_mcast_buffer_enable;
 
 
 /*************************** Variable Definitions ****************************/
@@ -92,13 +92,12 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
     //
 
     // Standard variables
-    u32                 resp_sent      = NO_RESP_SENT;
+    u32 resp_sent = NO_RESP_SENT;
+    u32* cmd_args_32 = command->args;
 
-    u32               * cmd_args_32    = command->args;
-
-    cmd_resp_hdr      * resp_hdr       = response->header;
-    u32               * resp_args_32   = response->args;
-    u32                 resp_index     = 0;
+    cmd_resp_hdr* resp_hdr = response->header;
+    u32* resp_args_32 = response->args;
+    u32 resp_index = 0;
 
     //
     // NOTE: Response header cmd, length, and num_args fields have already been initialized.
@@ -121,9 +120,9 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             //                     [4] - NODE_RESET_ASSOCIATIONS
             //                     [5] - NODE_RESET_BSS_INFO
             //
-            interrupt_state_t     prev_interrupt_state;
-            u32                   status    = CMD_PARAM_SUCCESS;
-            u32                   flags     = Xil_Ntohl(cmd_args_32[0]);
+            interrupt_state_t prev_interrupt_state;
+            u32 status = CMD_PARAM_SUCCESS;
+            u32 flags = Xil_Ntohl(cmd_args_32[0]);
 
             // Disable interrupts so no packets interrupt the reset
             prev_interrupt_state = wlan_mac_high_interrupt_stop();
@@ -203,12 +202,12 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             // Response format:
             //     resp_args_32[0]       Status
             //
-            u32                   id;
-            u8                    mac_addr[MAC_ADDR_LEN];
+            u32 id;
+            u8 mac_addr[MAC_ADDR_LEN];
             station_info_entry_t* curr_entry;
-            station_info_t*       curr_station_info;
-            interrupt_state_t     prev_interrupt_state;
-            u32                   status         = CMD_PARAM_SUCCESS;
+            station_info_t* curr_station_info;
+            interrupt_state_t prev_interrupt_state;
+            u32 status = CMD_PARAM_SUCCESS;
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "Disassociate\n");
 
@@ -294,9 +293,9 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             // Response format:
             //     resp_args_32[0]  Status (CMD_PARAM_SUCCESS/CMD_PARAM_ERROR)
             //
-            u32    status         = CMD_PARAM_SUCCESS;
-            u32    flags          = Xil_Ntohl(cmd_args_32[0]);
-            u32    mask           = Xil_Ntohl(cmd_args_32[1]);
+            u32 status = CMD_PARAM_SUCCESS;
+            u32 flags = Xil_Ntohl(cmd_args_32[0]);
+            u32 mask = Xil_Ntohl(cmd_args_32[1]);
 
             wlan_exp_printf(WLAN_EXP_PRINT_INFO, print_type_node, "AP: Config flags = 0x%08x  mask = 0x%08x\n", flags, mask);
 
@@ -333,13 +332,13 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             // Response format:
             //     resp_args_32[0]  Status
             //
-            u32                   i;
-            u8                    mac_addr[MAC_ADDR_LEN];
-            u8                    mask[MAC_ADDR_LEN];
-            interrupt_state_t     prev_interrupt_state;
-            u32                   status         = CMD_PARAM_SUCCESS;
-            u32                   msg_cmd        = Xil_Ntohl(cmd_args_32[0]);
-            u32                   num_ranges     = Xil_Ntohl(cmd_args_32[1]);
+            u32 i;
+            u8 mac_addr[MAC_ADDR_LEN];
+            u8 mask[MAC_ADDR_LEN];
+            interrupt_state_t prev_interrupt_state;
+            u32 status = CMD_PARAM_SUCCESS;
+            u32 msg_cmd = Xil_Ntohl(cmd_args_32[0]);
+            u32 num_ranges = Xil_Ntohl(cmd_args_32[1]);
 
             switch (msg_cmd) {
                 case CMD_PARAM_WRITE_VAL:

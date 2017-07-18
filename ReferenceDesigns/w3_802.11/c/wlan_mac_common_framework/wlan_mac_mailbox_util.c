@@ -31,7 +31,7 @@
 /*************************** Variable Definitions ****************************/
 
 
-static XMbox                 ipc_mailbox;
+static XMbox ipc_mailbox;
 
 static platform_common_dev_info_t platform_common_dev_info;
 
@@ -132,8 +132,8 @@ int write_mailbox_msg(wlan_ipc_msg_t* msg) {
  *                                 IPC_MBOX_SUCCESS - Message sent successfully
  *                                 IPC_MBOX_INVALID_MSG - Message invalid
  *****************************************************************************/
-int send_msg(u16 msg_id, u8 arg, u8 num_words, u32 * payload) {
-    wlan_ipc_msg_t      ipc_msg;
+int send_msg(u16 msg_id, u8 arg, u8 num_words, u32* payload) {
+    wlan_ipc_msg_t ipc_msg;
 
     // Set message fields
     ipc_msg.msg_id            = IPC_MBOX_MSG_ID(msg_id);

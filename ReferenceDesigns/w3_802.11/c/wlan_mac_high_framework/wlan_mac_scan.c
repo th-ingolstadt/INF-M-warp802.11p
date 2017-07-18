@@ -74,22 +74,22 @@ const u8 default_channel_selections[] = {1,2,3,4,5,6,7,8,9,10,11,36,40,44,48}; /
 // Global scan parameters
 //     This variable needs to be treated as volatile since it is expected to be
 //     modified by other contexts after a call to wlan_mac_scan_get_parameters
-volatile scan_parameters_t   gl_scan_parameters;
+volatile scan_parameters_t gl_scan_parameters;
 
 
 // Scan state variables
-static   s8                  curr_scan_chan_idx;
+static s8 curr_scan_chan_idx;
 
-static   u32                 scan_sched_id;
-static   u32                 probe_sched_id;
-static   scan_state_t        scan_state;
-static   int                 num_full_scans;
+static u32 scan_sched_id;
+static u32 probe_sched_id;
+static scan_state_t scan_state;
+static int num_full_scans;
 
 
 // Callback Function
 //     Used to transmit probe requests during the scan process
-volatile function_ptr_t      tx_probe_request_callback;
-volatile function_ptr_t      scan_state_change_callback;
+volatile function_ptr_t tx_probe_request_callback;
+volatile function_ptr_t scan_state_change_callback;
 
 
 

@@ -37,18 +37,16 @@
 
 /*********************** Global Variable Definitions *************************/
 
-extern platform_high_dev_info_t	 platform_high_dev_info;
+extern platform_high_dev_info_t platform_high_dev_info;
 
 /*************************** Variable Definitions ****************************/
-
-static dl_list               network_info_free;
 
 /// The network_info_list is stored chronologically from .first being oldest
 /// and .last being newest. The "find" function search from last to first
 /// to minimize search time for new BSSes you hear from often.
-static dl_list               network_info_list;               	 		///< Filled network info
-
-static dl_list               network_info_matching_ssid_list;           ///< Filled network info that match the SSID provided to wlan_mac_high_find_network_info_SSID
+static dl_list               network_info_list; ///< Filled network info
+static dl_list               network_info_free;	///< Available network info
+static dl_list               network_info_matching_ssid_list; ///< Filled network info that match the SSID provided to wlan_mac_high_find_network_info_SSID
 
 
 /*************************** Functions Prototypes ****************************/
@@ -102,20 +100,19 @@ void network_info_init_finish(){
 
 inline void network_info_rx_process(void* pkt_buf_addr) {
 
-	rx_frame_info_t*    	rx_frame_info   	     = (rx_frame_info_t*)pkt_buf_addr;
-	void*               	mac_payload              = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
-	u8*                 	mac_payload_ptr_u8       = (u8*)mac_payload;
-	char*               	ssid;
-	u8                  	ssid_length;
-	mac_header_80211*   	rx_80211_header          = (mac_header_80211*)((void *)mac_payload_ptr_u8);
-	network_info_entry_t*   curr_network_info_entry;
-	network_info_t*			curr_network_info;
-	u8                  	unicast_to_me;
-	u8                  	to_multicast;
-	u8						update_rx_power 		 = 0;
-	u8						update_timestamp 		 = 0;
-
-	u16 					length					 = rx_frame_info->phy_details.length;
+	rx_frame_info_t* rx_frame_info = (rx_frame_info_t*)pkt_buf_addr;
+	void* mac_payload = (u8*)pkt_buf_addr + PHY_RX_PKT_BUF_MPDU_OFFSET;
+	u8* mac_payload_ptr_u8 = (u8*)mac_payload;
+	char* ssid;
+	u8 ssid_length;
+	mac_header_80211* rx_80211_header = (mac_header_80211*)((void *)mac_payload_ptr_u8);
+	network_info_entry_t* curr_network_info_entry;
+	network_info_t* curr_network_info;
+	u8 unicast_to_me;
+	u8 to_multicast;
+	u8 update_rx_power = 0;
+	u8 update_timestamp = 0;
+	u16 length = rx_frame_info->phy_details.length;
 
 	// Determine destination of packet
 	unicast_to_me = wlan_addr_eq(rx_80211_header->address_1, get_mac_hw_addr_wlan());
@@ -330,7 +327,6 @@ void print_network_info(){
 void network_info_timestamp_check() {
 	network_info_entry_t* curr_network_info_entry;
 	network_info_t* curr_network_info;
-
 	curr_network_info_entry = (network_info_entry_t*)network_info_list.first;
 
 	while(curr_network_info_entry != NULL){
@@ -379,7 +375,7 @@ dl_list* wlan_mac_high_find_network_info_SSID(char* ssid){
 	// This function will return a pointer to a dl_list that contains every
 	// network_info_t struct that matches the SSID argument.
 
-    int       iter;
+    int iter;
 	network_info_entry_t* curr_network_info_entry_primary_list;
 	network_info_entry_t* curr_network_info_entry_match_list;
 	network_info_entry_t* next_network_info_entry_match_list;
@@ -424,8 +420,8 @@ dl_list* wlan_mac_high_find_network_info_SSID(char* ssid){
 
 
 network_info_entry_t* wlan_mac_high_find_network_info_BSSID(u8* bssid){
-	int						iter;
-	network_info_entry_t* 	curr_network_info_entry;
+	int iter;
+	network_info_entry_t* curr_network_info_entry;
 
 	iter = network_info_list.length;
 	curr_network_info_entry = (network_info_entry_t*)network_info_list.last;
@@ -543,8 +539,8 @@ network_info_t* wlan_mac_high_create_network_info(u8* bssid, char* ssid, u8 chan
 void wlan_mac_high_reset_network_list(){
 	network_info_entry_t* next_network_info_entry = (network_info_entry_t*)network_info_list.first;
 	network_info_entry_t* curr_network_info_entry;
-    network_info_t * curr_network_info;
-    int		   iter = network_info_list.length;
+    network_info_t* curr_network_info;
+    int iter = network_info_list.length;
 
 	while( (next_network_info_entry != NULL) && (iter-- > 0) ){
 		curr_network_info_entry = next_network_info_entry;
@@ -560,8 +556,8 @@ void wlan_mac_high_reset_network_list(){
 }
 
 void wlan_mac_high_clear_network_info(network_info_t* info){
-	int            iter;
-	station_info_t * curr_station_info;
+	int iter;
+	station_info_t* curr_station_info;
 	station_info_entry_t* next_station_info_entry;
 	station_info_entry_t* curr_station_info_entry;
 

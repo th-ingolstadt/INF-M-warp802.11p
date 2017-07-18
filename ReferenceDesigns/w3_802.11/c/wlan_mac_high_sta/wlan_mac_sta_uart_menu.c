@@ -57,23 +57,23 @@ void uart_rx(u8 rxByte){ };
 
 //-----------------------------------------------
 // UART Menu Modes
-#define UART_MODE_MAIN                                     0
-#define UART_MODE_INTERACTIVE                              1
-#define UART_MODE_JOIN                                     2
+#define UART_MODE_MAIN 0
+#define UART_MODE_INTERACTIVE 1
+#define UART_MODE_JOIN 2
 
 
 /*********************** Global Variable Definitions *************************/
-extern network_info_t*                      active_network_info;
+extern network_info_t* active_network_info;
 
 /*************************** Variable Definitions ****************************/
 
-static volatile u8                          uart_mode            = UART_MODE_MAIN;
-static volatile u32                         schedule_id;
-static volatile u32                         check_join_status_id;
-static volatile u8                          print_scheduled      = 0;
+static volatile u8 uart_mode = UART_MODE_MAIN;
+static volatile u32 schedule_id;
+static volatile u32 check_join_status_id;
+static volatile u8 print_scheduled = 0;
 
-static char                                 text_entry[SSID_LEN_MAX + 1];
-static u8                                   curr_char            = 0;
+static char text_entry[SSID_LEN_MAX + 1];
+static u8 curr_char = 0;
 
 /*************************** Functions Prototypes ****************************/
 
@@ -114,9 +114,9 @@ void stop_periodic_print();
  *
  *****************************************************************************/
 void uart_rx(u8 rxByte){
-	volatile join_parameters_t  * join_parameters;
-	volatile scan_parameters_t  * scan_params;
-	u32                           is_scanning;
+	volatile join_parameters_t* join_parameters;
+	volatile scan_parameters_t* scan_params;
+	u32 is_scanning;
 
 	// ----------------------------------------------------
 	// Return to the Main Menu
@@ -372,9 +372,9 @@ void print_main_menu(){
 
 void print_station_status(){
 
-    u64            timestamp;
-    dl_entry     	* access_point_entry  = NULL;
-    station_info_t  * access_point        = NULL;
+    u64 timestamp;
+    dl_entry* access_point_entry = NULL;
+    station_info_t* access_point = NULL;
 
     if(active_network_info != NULL){
         access_point_entry = active_network_info->members.first;

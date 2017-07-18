@@ -42,10 +42,10 @@
 
 
 /*********************** Global Variable Definitions *************************/
-extern tx_params_t                default_unicast_data_tx_params;
-extern network_info_t*            active_network_info;
+extern tx_params_t default_unicast_data_tx_params;
+extern network_info_t* active_network_info;
 
-extern function_ptr_t    wlan_exp_purge_all_data_tx_queue_callback;
+extern function_ptr_t wlan_exp_purge_all_data_tx_queue_callback;
 
 
 /*************************** Variable Definitions ****************************/
@@ -91,13 +91,13 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
     //
 
     // Standard variables
-    u32                 resp_sent      = NO_RESP_SENT;
+    u32 resp_sent = NO_RESP_SENT;
 
-    u32               * cmd_args_32    = command->args;
+    u32* cmd_args_32 = command->args;
 
-    cmd_resp_hdr      * resp_hdr       = response->header;
-    u32               * resp_args_32   = response->args;
-    u32                 resp_index     = 0;
+    cmd_resp_hdr* resp_hdr = response->header;
+    u32* resp_args_32 = response->args;
+    u32 resp_index = 0;
 
     //
     // NOTE: Response header cmd, length, and num_args fields have already been initialized.
@@ -120,9 +120,9 @@ int wlan_exp_process_node_cmd(u32 cmd_id, int socket_index, void * from, cmd_res
             //                     [4] - NODE_RESET_ASSOCIATIONS
             //                     [5] - NODE_RESET_BSS_INFO
             //
-            interrupt_state_t     prev_interrupt_state;
-            u32                   status    = CMD_PARAM_SUCCESS;
-            u32                   flags     = Xil_Ntohl(cmd_args_32[0]);
+            interrupt_state_t prev_interrupt_state;
+            u32 status = CMD_PARAM_SUCCESS;
+            u32 flags = Xil_Ntohl(cmd_args_32[0]);
 
             // Disable interrupts so no packets interrupt the reset
             prev_interrupt_state = wlan_mac_high_interrupt_stop();
