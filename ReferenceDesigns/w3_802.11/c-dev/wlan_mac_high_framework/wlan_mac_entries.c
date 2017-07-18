@@ -61,6 +61,8 @@
 static u8 log_entry_en_mask;
 static u32 system_time_id;
 
+extern volatile s8  low_param_tx_ctrl_pow;
+
 
 //-----------------------------------------------
 // mac_payload_log_len
@@ -274,8 +276,9 @@ tx_low_entry* wlan_exp_log_create_tx_low_entry(tx_frame_info_t* tx_frame_info, w
             // Copy:  MCS, PHY mode, Antenna mode, and Power
             memcpy((&((tx_low_entry*)tx_low_event_log_entry)->phy_params), &(tx_low_details->phy_params_ctrl), sizeof(phy_tx_params_t));
 
-            //FIXME: We need to overwrite the Tx power for the RTS entry with the default Control power, not the power
+            // We need to overwrite the Tx power for the RTS entry with the default control power, not the power
             // in the tx_frame_info_t used by the MPDU
+            ((tx_low_entry*)tx_low_event_log_entry)->phy_params.power = low_param_tx_ctrl_pow;
 
             tx_low_event_log_entry->transmission_count = tx_low_details->attempt_number;
             tx_low_event_log_entry->chan_num           = tx_low_details->chan_num;
