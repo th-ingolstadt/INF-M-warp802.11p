@@ -1919,17 +1919,17 @@ void frame_transmit_general(u8 pkt_buf) {
 
 			mac_cfg_mcs = wlan_mac_low_mcs_to_ctrl_resp_mcs(mcs, phy_mode);
 			low_tx_details.phy_params_ctrl.mcs = mac_cfg_mcs;
-			switch(mac_cfg_mcs){
+
+			switch(wlan_mac_low_get_phy_samp_rate()){
+				case PHY_10M:
+					cts_header_duration = cts_duration_lookup[0][mac_cfg_mcs];
+				break;
 				default:
-					xil_printf("Error: Unexpected MCS selection for RTS Tx (%d)\n", mac_cfg_mcs);
-				case 0:
-					cts_header_duration = TX_TIME_CTS_R6;
+				case PHY_20M:
+					cts_header_duration = cts_duration_lookup[1][mac_cfg_mcs];
 				break;
-				case 2:
-					cts_header_duration = TX_TIME_CTS_R12;
-				break;
-				case 4:
-					cts_header_duration = TX_TIME_CTS_R24;
+				case PHY_40M:
+					cts_header_duration = cts_duration_lookup[2][mac_cfg_mcs];
 				break;
 			}
 
