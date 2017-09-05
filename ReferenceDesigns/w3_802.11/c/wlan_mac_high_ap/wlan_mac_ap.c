@@ -1526,6 +1526,7 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 								// authenticated/unassociated (state 2) list.
 								//     - Set ht_capable argument to 0.  This will be updated with the correct value when the
 								//       node moves from the state 2 list during association.
+
 								auth_unassoc_station_info = station_info_add(&authenticated_unassociated_stations, rx_80211_header->address_2, ADD_STATION_INFO_ANY_ID, 0);
 								if(auth_unassoc_station_info != NULL){
 									auth_unassoc_station_info->flags |= STATION_INFO_FLAG_KEEP;
@@ -1813,7 +1814,7 @@ void mpdu_dequeue(tx_queue_buffer_t* tx_queue_buffer){
 	header = (mac_header_80211*)(tx_queue_buffer->frame);
 	station_info = tx_queue_buffer->station_info;
 
-	if(station_info->num_tx_queued > 0){
+	if(station_info->num_tx_queued > 1){
 		//If the is more data (in addition to this packet) queued for this station, we can let it know
 		//in the frame_control_2 field.
 		header->frame_control_2 |= MAC_FRAME_CTRL2_FLAG_MORE_DATA;
