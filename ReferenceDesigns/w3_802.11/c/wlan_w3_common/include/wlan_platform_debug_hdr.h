@@ -21,6 +21,7 @@
 #include "xparameters.h"
 #include "xil_io.h"
 #include "w3_userio.h"
+#include "w3_userio_util.h"
 
 
 // Wrapper macros for debug header IO
