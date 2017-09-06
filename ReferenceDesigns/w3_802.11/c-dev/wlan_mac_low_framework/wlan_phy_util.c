@@ -90,8 +90,8 @@ void write_phy_preamble(u8 pkt_buf, u8 phy_mode, u8 mcs, u16 length) {
 
 		// Set SERVICE to 0.
 		// Unfortunately, SERVICE spans a 32-bit boundary so we need two write 2 words.
-		Xil_Out32((u32)(phy_hdr_ptr + 8), 0);
-		Xil_Out32((u32)(phy_hdr_ptr + 8), 4);
+		Xil_Out32((u32)(phy_hdr_ptr + 0), 0);
+		Xil_Out32((u32)(phy_hdr_ptr + 4), 0);
 
 		//Set SIGNAL with actual rate/length
 	    Xil_Out32((u32)phy_hdr_ptr, WLAN_TX_SIGNAL_CALC(sig_rate_vals[mcs], length));
