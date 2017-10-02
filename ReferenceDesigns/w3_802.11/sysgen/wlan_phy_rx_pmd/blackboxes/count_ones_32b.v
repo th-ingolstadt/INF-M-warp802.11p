@@ -2,10 +2,10 @@ module count_ones_32b (
 	input clk,
 	input ce,
 	input [31:0] x,
-	output reg [5:0] num_ones
+	output reg [5:0] num_ones = 0
 );
 
-	reg [31:0] x_d;
+	reg [31:0] x_d = 0;
 
 	always @(posedge clk)
 	begin
@@ -29,7 +29,7 @@ endmodule
 
 module count_ones_6b (
 	input [5:0] x,
-	output reg [2:0] num_ones
+	output reg [2:0] num_ones = 0
 );
 
 	 always @* begin
