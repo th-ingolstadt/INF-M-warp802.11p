@@ -1600,7 +1600,26 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             else:
                 self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_MGMT, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_NONE))
 
+    def _set_ofdm_autocorr_thresholds(self, corr_thresh, energy_thresh):
+        """Configures the OFDM auto-correlation packet detector thresholds. Set
+        both thresholds to 0xFFFF to disable OFDM packet detections.
+    
+        Args:
+            corr_thresh (int):  Auto-correlation threshold (in [1, 255])
+            energy_thresh (int):  Energy threshold (in [1, 16383])
+        """    
+        return self.set_low_param(CMD_PARAM_LOW_PARAM_OFDM_PKT_DET_THRESH, (corr_thresh, energy_thresh))
 
+    def _set_dsss_autocorr_thresholds(self, corr_thresh, energy_thresh):
+        """Configures the DSSS auto-correlation packet detector thresholds. Set
+        both thresholds to 0xFFFF to disable DSSS packet detections.
+    
+        Args:
+            corr_thresh (int):  Auto-correlation threshold (in [1, 255])
+            energy_thresh (int):  Energy threshold (in [1, 4095])
+        """    
+        return self.set_low_param(CMD_PARAM_LOW_PARAM_DSSS_PKT_DET_THRESH, (corr_thresh, energy_thresh))
+        
     def _set_bb_gain(self, bb_gain):
         """Sets the the baseband gain.
 
