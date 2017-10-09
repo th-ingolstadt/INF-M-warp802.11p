@@ -1741,7 +1741,8 @@ void wlan_mac_high_set_rx_filter_mode(u32 filter_mode) {
 int wlan_mac_high_write_low_mem(u32 num_words, u32* payload) {
 	wlan_ipc_msg_t ipc_msg_to_low;
 
-	if (num_words > MAILBOX_BUFFER_MAX_NUM_WORDS) {
+	if (num_words > MAILBOX_MSG_MAX_NUM_WORDS) {
+		xil_printf("ERROR: attempted to send LOW_PARAM IPC message with oversize payload! (%d > %d)\n", num_words, MAILBOX_MSG_MAX_NUM_WORDS);
 	    return -1;
 	}
 
@@ -1832,7 +1833,8 @@ int wlan_mac_high_read_low_mem(u32 num_words, u32 baseaddr, u32* payload) {
 int wlan_mac_high_write_low_param(u32 num_words, u32* payload) {
     wlan_ipc_msg_t ipc_msg_to_low;
 
-    if (num_words > MAILBOX_BUFFER_MAX_NUM_WORDS) {
+    if (num_words > MAILBOX_MSG_MAX_NUM_WORDS) {
+    	xil_printf("ERROR: attempted to send LOW_PARAM IPC message with oversize payload! (%d > %d)\n", num_words, MAILBOX_MSG_MAX_NUM_WORDS);
         return -1;
     }
 

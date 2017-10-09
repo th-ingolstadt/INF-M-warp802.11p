@@ -62,7 +62,7 @@ static compilation_details_t cpu_low_compilation_details;
 platform_common_dev_info_t platform_common_dev_info;
 
 static wlan_ipc_msg_t ipc_msg_from_high; ///< Buffer for incoming IPC messages
-static u32 ipc_msg_from_high_payload[MAILBOX_BUFFER_MAX_NUM_WORDS]; ///< Buffer for payload of incoming IPC messages
+static u32 ipc_msg_from_high_payload[MAILBOX_MSG_MAX_NUM_WORDS]; ///< Buffer for payload of incoming IPC messages
 
 // Callback function pointers
 static function_ptr_t frame_rx_callback;
@@ -728,6 +728,34 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
                         }
                         break;
 
+                		case LOW_PARAM_DSSS_PKT_DET_THRESH: {
+                			// Two u32 values:
+                			//  payload[1]: Correlation threshold
+                			//  payload[2]: Energy threshold
+
+                			xil_printf("DSSS Pkt Det Thresh: (%d, %d)\n", ipc_msg_from_high_payload[1], ipc_msg_from_high_payload[2]);
+
+                			//wlan_phy_rx_pktDet_autoCorr_dsss_cfg(corr_thresh, energy_thresh)
+                			//  corr_thresh: UFix8_6
+                			//  energy_thresh: UFix10_0
+                			wlan_phy_rx_pktDet_autoCorr_dsss_cfg(ipc_msg_from_high_payload[1], ipc_msg_from_high_payload[2]);
+                		}
+                		break;
+
+                		case LOW_PARAM_OFDM_PKT_DET_THRESH: {
+                			// Two u32 values:
+                			//  payload[1]: Correlation threshold
+                			//  payload[2]: Energy threshold
+
+                			xil_printf("OFDM Pkt Det Thresh: (%d, %d)\n", ipc_msg_from_high_payload[1], ipc_msg_from_high_payload[2]);
+
+                			//wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(corr_thresh, energy_thresh, min_dur, post_wait)
+                			//  corr_thresh: UFix8_8
+                			//  energy_thresh: UFix14_8
+                			wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(ipc_msg_from_high_payload[1], ipc_msg_from_high_payload[2], 4, 0x3F);
+                		}
+                		break;
+
                         default: {
                         	// Low framework doesn't recognize this low param ID - call the application
                         	//  and platform handlers to process with this param write
@@ -1339,7 +1367,11 @@ inline u32 wlan_mac_hw_rx_finish() {
 			xil_printf(" Rx Hdr Params: 0x%08x\n", wlan_mac_get_rx_phy_hdr_params());
 			xil_printf(" Rx PHY Status: 0x%08x\n", Xil_In32(WLAN_RX_STATUS));
         }
-    } while(mac_hw_status & (WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_WRITING_PAYLOAD));
+        // Exit this loop when either:
+        //  -The Rx PHY has finished received AND has finished writing its payload
+        //  -The Rx PHY got reset mid-Rx and will not be writing a payload
+        } while( (mac_hw_status & (WLAN_MAC_STATUS_MASK_RX_PHY_ACTIVE | WLAN_MAC_STATUS_MASK_RX_PHY_WRITING_PAYLOAD))
+        		 && ((mac_hw_status & WLAN_MAC_STATUS_MASK_RX_END_ERROR) == 0));
 
     // Check RX_END_ERROR and FCS
     if( (mac_hw_status & WLAN_MAC_STATUS_MASK_RX_FCS_GOOD) &&

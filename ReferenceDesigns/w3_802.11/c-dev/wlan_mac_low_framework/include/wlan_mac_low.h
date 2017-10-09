@@ -293,13 +293,15 @@ struct wlan_ipc_msg_t;
 // WLAN Exp low parameter defines
 //     NOTE:  Need to make sure that these values do not conflict with any of the LOW PARAM
 //     callback defines
-#define LOW_PARAM_BB_GAIN            0x00000001
-#define LOW_PARAM_LINEARITY_PA       0x00000002
-#define LOW_PARAM_LINEARITY_VGA      0x00000003
-#define LOW_PARAM_LINEARITY_UPCONV   0x00000004
-#define LOW_PARAM_AD_SCALING         0x00000005
-#define LOW_PARAM_PKT_DET_MIN_POWER  0x00000006
-#define LOW_PARAM_PHY_SAMPLE_RATE    0x00000008
+#define LOW_PARAM_BB_GAIN            	0x00000001
+#define LOW_PARAM_LINEARITY_PA       	0x00000002
+#define LOW_PARAM_LINEARITY_VGA      	0x00000003
+#define LOW_PARAM_LINEARITY_UPCONV   	0x00000004
+#define LOW_PARAM_AD_SCALING         	0x00000005
+#define LOW_PARAM_PKT_DET_MIN_POWER  	0x00000006
+#define LOW_PARAM_PHY_SAMPLE_RATE    	0x00000008
+#define LOW_PARAM_DSSS_PKT_DET_THRESH	0x0000A000
+#define LOW_PARAM_OFDM_PKT_DET_THRESH	0x0000B000
 
 
 

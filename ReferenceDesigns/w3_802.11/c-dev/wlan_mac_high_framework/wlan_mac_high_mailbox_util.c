@@ -19,7 +19,7 @@ static platform_high_dev_info_t platform_high_dev_info;
 
 // IPC variables
 static wlan_ipc_msg_t ipc_msg_from_low;                                           ///< IPC message from lower-level
-static u32 ipc_msg_from_low_payload[MAILBOX_BUFFER_MAX_NUM_WORDS];     ///< Buffer space for IPC message from lower-level
+static u32 ipc_msg_from_low_payload[MAILBOX_MSG_MAX_NUM_WORDS];     ///< Buffer space for IPC message from lower-level
 
 void _mailbox_rx_watchdog(u32 timer_id);
 

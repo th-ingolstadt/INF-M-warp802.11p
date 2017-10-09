@@ -28,8 +28,8 @@
 //	  wlan_mac_low_tx_details_t structs for every attempt as part of its payload.
 //	  We intend to break this dependence in the future, which will limit all
 //	  IPC messages to a fixed size. We can revisit the definition of
-//	  MAILBOX_BUFFER_MAX_NUM_WORDS at that time.
-#define MAILBOX_BUFFER_MAX_NUM_WORDS 22
+//	  MAILBOX_MSG_MAX_NUM_WORDS at that time.
+#define MAILBOX_MSG_MAX_NUM_WORDS 50
 
 //-----------------------------------------------
 // Mailbox Message ID delimiter

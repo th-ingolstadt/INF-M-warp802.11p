@@ -91,7 +91,7 @@ int write_mailbox_msg(wlan_ipc_msg_t* msg) {
     }
 
     // Check that msg isn't too long
-    if ((msg->num_payload_words) > MAILBOX_BUFFER_MAX_NUM_WORDS) {
+    if ((msg->num_payload_words) > MAILBOX_MSG_MAX_NUM_WORDS) {
         return IPC_MBOX_INVALID_MSG;
     }
 
@@ -192,7 +192,7 @@ int read_mailbox_msg(wlan_ipc_msg_t* msg) {
     }
 
     // Check that msg isn't too long
-    if ((msg->num_payload_words) > MAILBOX_BUFFER_MAX_NUM_WORDS) {
+    if ((msg->num_payload_words) > MAILBOX_MSG_MAX_NUM_WORDS) {
         for (i = 0; i < (msg->num_payload_words); i++) {
             // Read out message into trash since there is not enough space available to hold it
             XMbox_ReadBlocking(&ipc_mailbox, &trash_bin, 4);
