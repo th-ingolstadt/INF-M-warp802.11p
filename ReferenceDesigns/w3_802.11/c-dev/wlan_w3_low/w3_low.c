@@ -660,6 +660,9 @@ int w3_agc_init() {
 	// AGC target output power (log scale)
 	wlan_agc_set_target((64 - 16));
 
+	// Configure AGC to keep RXHP asserted between pkt det events
+	wlan_agc_set_rxhp_mode(0);
+
 #if 0
 	// To set the gains manually:
 

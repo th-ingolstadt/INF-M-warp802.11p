@@ -268,11 +268,14 @@ int wlan_phy_rx_get_agc_BBG(u8 ant);
 #define wlan_agc_set_target(target_pwr) Xil_Out32(WLAN_AGC_REG_TARGET, ((target_pwr) & 0x3F))
 
 #define wlan_agc_set_config(thresh32, thresh21, avg_len, v_db_adj, init_g_bb) \
-    Xil_Out32(WLAN_AGC_REG_CONFIG, ((((thresh32)  & 0xFF) <<  0) | \
+		 Xil_Out32(WLAN_AGC_REG_CONFIG, (Xil_In32(WLAN_AGC_REG_CONFIG) & 0xE0000000) | \
+									(((thresh32)  & 0xFF) <<  0) | \
                                     (((thresh21)  & 0xFF) <<  8) | \
                                     (((avg_len)   & 0x03) << 16) | \
                                     (((v_db_adj)  & 0x3F) << 18) | \
-                                    (((init_g_bb) & 0x1F) << 24)))
+                                    (((init_g_bb) & 0x1F) << 24))
+
+#define wlan_agc_set_rxhp_mode(m) Xil_Out32(WLAN_AGC_REG_CONFIG, (Xil_In32(WLAN_AGC_REG_CONFIG) & ~WLAN_AGC_CONFIG_MASK_RXHP_MODE) | ((m) ? WLAN_AGC_CONFIG_MASK_RXHP_MODE : 0))
 
 #define wlan_agc_set_RSSI_pwr_calib(g3, g2, g1) Xil_Out32(WLAN_AGC_REG_RSSI_PWR_CALIB, (((g3) & 0xFF) | (((g2) & 0xFF) << 8) | (((g1) & 0xFF) << 16)))
 

@@ -49,5 +49,7 @@ int  w3_rssi_to_rx_power(u16 rssi, u8 lna_gain, channel_band_t band);
 #define WLAN_AGC_REG_IIR_COEF_A1     XPAR_WLAN_AGC_MEMMAP_IIR_COEF_A1
 #define WLAN_AGC_TIMING_RESET        XPAR_WLAN_AGC_MEMMAP_TIMING_RESET
 
+#define WLAN_AGC_CONFIG_MASK_RXHP_MODE	0x20000000
+
 
 #endif /* W3_PLATFORM_LOW_H_ */
