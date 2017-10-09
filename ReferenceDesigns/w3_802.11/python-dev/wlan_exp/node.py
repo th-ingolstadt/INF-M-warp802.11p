@@ -257,7 +257,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                 else:
                     print("WARNING:  Not able to read data from node.")
             else:
-                print("WARNING:  No new data on node.")
+                pass
+                #print("WARNING:  No new data on node.")
 
         # Log is not full
         else:
@@ -289,7 +290,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                     else:
                         print("WARNING:  Not able to read data from node.")
                 else:
-                    print("WARNING:  No new data on node.")
+                    pass
+                    #print("WARNING:  No new data on node.")
             else:
                 # Log has wrapped.  Get all the entries on the old wrap
                 if (next_index != 0):
@@ -306,7 +308,8 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
                     else:
                         print("WARNING:  Not able to read data from node.")
                 else:
-                    print("WARNING:  No new data on node.")
+                    pass
+                    #print("WARNING:  No new data on node.")
 
         return return_val
 
