@@ -50,6 +50,9 @@
 #define WLAN_RX_PKT_BUF_MAXADDR      XPAR_WLAN_PHY_RX_MEMMAP_PKTBUF_MAX_WRITE_ADDR
 #define WLAN_RX_CFO_EST_TIME_DOMAIN  XPAR_WLAN_PHY_RX_MEMMAP_CFO_EST_TIME_DOMAIN
 #define WLAN_RX_CHAN_EST_SMOOTHING	 XPAR_WLAN_PHY_RX_MEMMAP_CHAN_EST_SMOOTHING
+#define WLAN_RX_DSSS_SYNC_WRADDR	 XPAR_WLAN_PHY_RX_MEMMAP_RAMS_ADDR_WREN
+#define WLAN_RX_DSSS_SYNC_MASK_DATA  XPAR_WLAN_PHY_RX_MEMMAP_MASK_1_RAM_WR_DATA
+#define WLAN_RX_DSSS_SYNC_TRGT_DATA	 XPAR_WLAN_PHY_RX_MEMMAP_TARGET_RAM_WR_DATA
 
 //-----------------------------------------------
 // RX CONTROL
@@ -59,28 +62,30 @@
 //-----------------------------------------------
 // RX CONFIG
 //
-#define WLAN_RX_REG_CFG_DSSS_RX_EN         0x00000001     // Enable DSSS Rx
-#define WLAN_RX_REG_CFG_USE_TX_SIG_BLOCK   0x00000002     // Force I/Q/RSSI signals to zero during Tx
-#define WLAN_RX_REG_CFG_PKT_BUF_WEN_SWAP   0x00000004     // Swap byte order at pkt buf interface
-#define WLAN_RX_REG_CFG_CHAN_EST_WEN_SWAP  0x00000008     // Swap the order of H est writes per u64 ([0,1] vs [1,0])
-#define WLAN_RX_REG_CFG_DSSS_RX_AGC_HOLD   0x00000010     // Allow active DSSS Rx to keep AGC locked
-#define WLAN_RX_REG_CFG_CFO_EST_BYPASS     0x00000020     // Bypass time-domain CFO correction
-#define WLAN_RX_REG_CFG_RECORD_CHAN_EST    0x00000040     // Enable recording channel estimates to the Rx pkt buffer
-#define WLAN_RX_REG_CFG_SWITCHING_DIV_EN   0x00000080     // Enable switching diversity per-Rx
-#define WLAN_RX_REG_CFG_DSSS_RX_REQ_AGC    0x00000100     // DSSS Rx requires AGC be locked first
-#define WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A   0x00000200     // Enable pkt detection on RF A
-#define WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B   0x00000400     // Enable pkt detection on RF B
-#define WLAN_RX_REG_CFG_PKT_DET_EN_ANT_C   0x00000800     // Enable pkt detection on RF C
-#define WLAN_RX_REG_CFG_PKT_DET_EN_ANT_D   0x00001000     // Enable pkt detection on RF D
-#define WLAN_RX_REG_CFG_PKT_DET_EN_EXT     0x00002000     // Enable pkt detection via pkt_det_in port
-#define WLAN_RX_REG_CFG_PHY_CCA_MODE_SEL   0x00004000     // Selects any(0) or all(1) antenna requirement for PHY CCA BUSY
-#define WLAN_RX_REG_CFG_ANT_SEL_MASK       0x00018000     // Selects antenna for PHY input when sel div is disabled ([0,1,2,3] = RF[A,B,C,D])
-#define WLAN_RX_REG_CFG_MAX_PKT_LEN_MASK   0x001E0000     // Sets max SIGNAL.LENGTH value in kB
-#define WLAN_RX_REG_CFG_REQ_BOTH_PKT_DET   0x00200000     // Requires both auto_corr and RSSI pkt det assertion to start Rx
-#define WLAN_RX_REG_CFG_BUSY_HOLD_PKT_DET  0x00400000     // Valid SIGNAL holds pkt det for rate*lengh duration, even if unsupported
-#define WLAN_RX_REG_CFG_DSSS_ASSERTS_CCA   0x00800000     // DSSS active holds CCA busy
-#define WLAN_RX_REG_CFG_ENABLE_HTMF_DET	   0x01000000     // Enables 11n Rx support; when disabled all Rx are processed as 11a waveforms
-#define WLAN_RX_REG_CFG_ENABLE_VHT_DET     0x02000000     // Enables VHT phy_mode detecection; when disabled VHT waveforms are detected as NONHT
+#define WLAN_RX_REG_CFG_DSSS_RX_EN            0x00000001     // Enable DSSS Rx
+#define WLAN_RX_REG_CFG_USE_TX_SIG_BLOCK      0x00000002     // Force I/Q/RSSI signals to zero during Tx
+#define WLAN_RX_REG_CFG_PKT_BUF_WEN_SWAP      0x00000004     // Swap byte order at pkt buf interface
+#define WLAN_RX_REG_CFG_CHAN_EST_WEN_SWAP     0x00000008     // Swap the order of H est writes per u64 ([0,1] vs [1,0])
+#define WLAN_RX_REG_CFG_DSSS_RX_REQ_PKT_DET   0x00000010     // Block DSSS Rx until DSSS pkt det asserts
+#define WLAN_RX_REG_CFG_CFO_EST_BYPASS        0x00000020     // Bypass time-domain CFO correction
+#define WLAN_RX_REG_CFG_RECORD_CHAN_EST       0x00000040     // Enable recording channel estimates to the Rx pkt buffer
+#define WLAN_RX_REG_CFG_SWITCHING_DIV_EN      0x00000080     // Enable switching diversity per-Rx
+
+#define WLAN_RX_REG_CFG_PKT_DET_EN_ANT_A      0x00000200     // Enable pkt detection on RF A
+#define WLAN_RX_REG_CFG_PKT_DET_EN_ANT_B      0x00000400     // Enable pkt detection on RF B
+#define WLAN_RX_REG_CFG_PKT_DET_EN_ANT_C      0x00000800     // Enable pkt detection on RF C
+#define WLAN_RX_REG_CFG_PKT_DET_EN_ANT_D      0x00001000     // Enable pkt detection on RF D
+#define WLAN_RX_REG_CFG_PKT_DET_EN_EXT        0x00002000     // Enable pkt detection via pkt_det_in port
+#define WLAN_RX_REG_CFG_PHY_CCA_MODE_SEL      0x00004000     // Selects any(0) or all(1) antenna requirement for PHY CCA BUSY
+#define WLAN_RX_REG_CFG_ANT_SEL_MASK          0x00018000     // Selects antenna for PHY input when sel div is disabled ([0,1,2,3] = RF[A,B,C,D])
+#define WLAN_RX_REG_CFG_MAX_PKT_LEN_MASK      0x001E0000     // Sets max SIGNAL.LENGTH value in kB
+#define WLAN_RX_REG_CFG_REQ_BOTH_PKT_DET_OFDM 0x00200000     // Requires both auto_corr and RSSI pkt det assertion to start OFDM Rx
+#define WLAN_RX_REG_CFG_BUSY_HOLD_PKT_DET     0x00400000     // Valid SIGNAL holds pkt det for rate*lengh duration, even if unsupported
+#define WLAN_RX_REG_CFG_DSSS_ASSERTS_CCA      0x00800000     // DSSS active holds CCA busy
+#define WLAN_RX_REG_CFG_ENABLE_HTMF_DET	      0x01000000     // Enables 11n Rx support; when disabled all Rx are processed as 11a waveforms
+#define WLAN_RX_REG_CFG_ENABLE_VHT_DET        0x02000000     // Enables VHT phy_mode detections; when disabled VHT waveforms are detected as NONHT
+#define WLAN_RX_REG_CFG_REQ_BOTH_PKT_DET_DSSS 0x04000000     // Requires both auto_corr and RSSI pkt det assertion to start OFDM Rx
+#define WLAN_RX_REG_CFG_ILA_SW_TRIG			  0x80000000	 // Connected to ChipScope ILA as trigger
 
 //-----------------------------------------------
 // RX STATUS
@@ -90,6 +95,10 @@
 #define WLAN_RX_REG_STATUS_ACTIVE_ANT_MASK           0x0000000C // 2-bits: [0,1,2,3] = RF[A,B,C,D]
 #define WLAN_RX_REG_STATUS_OFDM_PKT_DET_STATUS_MASK  0x000001F0 // 5 bits: [ext, RF D/C/B/A]
 #define WLAN_RX_REG_STATUS_DSSS_PKT_DET_STATUS_MASK  0x00001E00 // 4 bits: [RF D/C/B/A]
+
+
+#define WLAN_RX_DSSS_SYNC_WREN_MASK_TARGET				0x01000000
+#define WLAN_RX_DSSS_SYNC_WREN_MASK_MASK1				0x02000000
 
 
 /********************************************************************************
@@ -260,6 +269,8 @@
 #define WLAN_MAC_STATUS_MASK_CCA_BUSY                      0x00020000     // b[17]
 #define WLAN_MAC_STATUS_MASK_TU_LATCH                      0x00040000     // b[18]
 #define WLAN_MAC_STATUS_MASK_RX_PHY_WRITING_PAYLOAD        0x00080000     // b[19]
+#define WLAN_MAC_STATUS_MASK_AUX_STATUS0				   0x00100000     // b[20]
+#define WLAN_MAC_STATUS_MASK_AUX_STATUS1				   0x00200000     // b[21]
 
 #define wlan_mac_get_status() (Xil_In32(WLAN_MAC_REG_STATUS))
 #define wlan_mac_check_tu_latch() ((wlan_mac_get_status() & WLAN_MAC_STATUS_MASK_TU_LATCH) >> 16)

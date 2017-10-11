@@ -53,16 +53,16 @@ void wlan_phy_init() {
 
     // WLAN_RX_DSSS_CFG reg
     // Configure the DSSS Rx pipeline
-    //  wlan_phy_DSSS_rx_config(code_corr, despread_dly, sfd_timeout)
-    wlan_phy_DSSS_rx_config(0x30, 5, 140);
+    //  wlan_phy_DSSS_rx_config(sync_score_thresh, sync_timeout, sfd_timeout, search_time)
+    wlan_phy_DSSS_rx_config(58, 45, 52, 39);
 
     // WLAN_RX_PKT_DET_DSSS_CFG reg
     // Configure the DSSS auto-correlation packet detector
-    //  wlan_phy_pktDet_autoCorr_dsss_cfg(corr_thresh, energy_thresh, timeout_ones, timeout_count)
+    //  wlan_phy_pktDet_autoCorr_dsss_cfg(corr_thresh, energy_thresh)
     //
     // To effectively disable DSSS detection with high thresholds, substitute with the following line:
-    //     wlan_phy_rx_pktDet_autoCorr_dsss_cfg(0xFF, 0x3FF, 30, 40);
-    wlan_phy_rx_pktDet_autoCorr_dsss_cfg(0x60, 400, 30, 40);
+    //     wlan_phy_rx_pktDet_autoCorr_dsss_cfg(0xFF, 0x3FF);
+    wlan_phy_rx_pktDet_autoCorr_dsss_cfg(80, 400);
 
     // WLAN_RX_PKT_DET_OFDM_CFG reg
 	// args: (corr_thresh, energy_thresh, min_dur, post_wait)
@@ -70,8 +70,8 @@ void wlan_phy_init() {
 	wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(200, 9, 4, 0x3F);
 
     // WLAN_RX_REG_CFG reg
-    // Configure DSSS Rx to wait for AGC lock, then hold AGC lock until Rx completes or times out
-    REG_SET_BITS(WLAN_RX_REG_CFG, (WLAN_RX_REG_CFG_DSSS_RX_AGC_HOLD | WLAN_RX_REG_CFG_DSSS_RX_REQ_AGC));
+	// Configure DSSS Rx to wait for DSSS pkt det - blocks unlikely-to-be-good Rx at low SNR
+	REG_SET_BITS(WLAN_RX_REG_CFG, (WLAN_RX_REG_CFG_DSSS_RX_REQ_PKT_DET));
 
     // Enable LTS-based CFO correction
     REG_CLEAR_BITS(WLAN_RX_REG_CFG, WLAN_RX_REG_CFG_CFO_EST_BYPASS);

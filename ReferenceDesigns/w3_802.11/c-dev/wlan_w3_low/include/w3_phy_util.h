@@ -90,8 +90,8 @@ enum phy_samp_rate_t;
 //
 #define wlan_phy_select_rx_antenna(d) Xil_Out32(WLAN_RX_REG_CFG, ((Xil_In32(WLAN_RX_REG_CFG) & ~WLAN_RX_REG_CFG_ANT_SEL_MASK) | (((d) & 0x3) << 15)))
 
-#define wlan_phy_enable_req_both_pkt_det()  Xil_Out32(WLAN_RX_REG_CFG, (Xil_In32(WLAN_RX_REG_CFG) |  WLAN_RX_REG_CFG_REQ_BOTH_PKT_DET))
-#define wlan_phy_disable_req_both_pkt_det() Xil_Out32(WLAN_RX_REG_CFG, (Xil_In32(WLAN_RX_REG_CFG) & ~WLAN_RX_REG_CFG_REQ_BOTH_PKT_DET))
+#define wlan_phy_enable_req_both_pkt_det()  Xil_Out32(WLAN_RX_REG_CFG, (Xil_In32(WLAN_RX_REG_CFG) | (WLAN_RX_REG_CFG_REQ_BOTH_PKT_DET_OFDM | WLAN_RX_REG_CFG_REQ_BOTH_PKT_DET_DSSS)))
+#define wlan_phy_disable_req_both_pkt_det() Xil_Out32(WLAN_RX_REG_CFG, (Xil_In32(WLAN_RX_REG_CFG) & ~(WLAN_RX_REG_CFG_REQ_BOTH_PKT_DET_OFDM | WLAN_RX_REG_CFG_REQ_BOTH_PKT_DET_DSSS)))
 
 #define wlan_phy_rx_set_max_pkt_len_kB(d) Xil_Out32(WLAN_RX_REG_CFG, (Xil_In32(WLAN_RX_REG_CFG) & ~WLAN_RX_REG_CFG_MAX_PKT_LEN_MASK) | (((d) << 17) & WLAN_RX_REG_CFG_MAX_PKT_LEN_MASK))
 #define wlan_phy_tx_set_max_pkt_len_kB(d) Xil_Out32(WLAN_TX_REG_CFG, (Xil_In32(WLAN_TX_REG_CFG) & ~WLAN_TX_REG_CFG_MAX_PKT_LEN_MASK) | (((d) << 8) & WLAN_TX_REG_CFG_MAX_PKT_LEN_MASK))
@@ -196,21 +196,19 @@ int wlan_phy_rx_get_agc_BBG(u8 ant);
     Xil_Out32(WLAN_RX_PKTDET_RSSI_CFG, (((sum_len) & 0x1F) | (((sum_thresh) & 0x7FFF) << 5) | (((min_dur) & 0x1F) << 20)))
 
 // WLAN_RX_DSSS_CFG register fields:
-//     [11: 0] - Correlation threshold as UFix12_4
-//     [16:12] - DSSS de-spread delay
-//     [31:24] - Rx timeout - max bits to SFD
-//
-#define wlan_phy_DSSS_rx_config(code_corr, despread_dly, sfd_timeout) \
-    Xil_Out32(WLAN_RX_DSSS_CFG, (((code_corr) & 0xFFF) | (((despread_dly) & 0x1F) << 12) | (((sfd_timeout) & 0xFF) << 24)))
+//     [ 7: 0] - UFix8_0 SYNC matching score thresh
+//     [15: 8] - UFix8_0 SYNC matching timeout (samples, multiplied by 32x in hw)
+//     [23:16] - UFix8_0 SFD matching timeout (samples, multiplied by 32x in hw)
+//     [31:24] - UFix8_0 SYNC search time (samples)
+#define wlan_phy_DSSS_rx_config(thresh, sync_timeout, sfd_timeout, search_time) \
+    Xil_Out32(WLAN_RX_DSSS_CFG, (((thresh) & 0xFF) | (((sync_timeout) & 0xFF) << 8) | (((sfd_timeout) & 0xFF) << 16) | (((search_time) & 0xFF) << 24)))
 
 // WLAN_RX_PKT_DET_DSSS_CFG register fields:
 //     [ 7: 0] - Correlation threshold as UFix8_6
 //     [17: 8] - Energy threshold as UFix10_0
-//     [24:18] - Detection timeout - minimum number of ones before timeout bit count
-//     [31:25] - Detection timeout - timeout bit count
 //
-#define wlan_phy_rx_pktDet_autoCorr_dsss_cfg(corr_thresh, energy_thresh, timeout_ones, timeout_count) \
-    Xil_Out32(WLAN_RX_PKT_DET_DSSS_CFG, (((corr_thresh) & 0xFF) | (((energy_thresh) & 0x3FF) << 8) | (((timeout_ones) & 0x7F) << 18) | (((timeout_count) & 0x7F) << 25)))
+#define wlan_phy_rx_pktDet_autoCorr_dsss_cfg(corr_thresh, energy_thresh) \
+    Xil_Out32(WLAN_RX_PKT_DET_DSSS_CFG, (((corr_thresh) & 0xFF) | (((energy_thresh) & 0x3FF) << 8)))
 
 // WLAN_RX_PKT_DET_OFDM_CFG register fields:
 //     [ 7: 0] - Correlation threshold as UFix8_8
@@ -275,7 +273,7 @@ int wlan_phy_rx_get_agc_BBG(u8 ant);
                                     (((v_db_adj)  & 0x3F) << 18) | \
                                     (((init_g_bb) & 0x1F) << 24))
 
-#define wlan_agc_set_rxhp_mode(m) Xil_Out32(WLAN_AGC_REG_CONFIG, (Xil_In32(WLAN_AGC_REG_CONFIG) & ~WLAN_AGC_CONFIG_MASK_RXHP_MODE) | ((m) ? WLAN_AGC_CONFIG_MASK_RXHP_MODE : 0))
+#define wlan_agc_set_rxhp_mode(m) Xil_Out32(WLAN_AGC_REG_CONFIG, (Xil_In32(WLAN_AGC_REG_CONFIG) & 0x1FFFFFFF) | ((m) ? WLAN_AGC_CONFIG_MASK_RXHP_MODE : 0))
 
 #define wlan_agc_set_RSSI_pwr_calib(g3, g2, g1) Xil_Out32(WLAN_AGC_REG_RSSI_PWR_CALIB, (((g3) & 0xFF) | (((g2) & 0xFF) << 8) | (((g1) & 0xFF) << 16)))
 
