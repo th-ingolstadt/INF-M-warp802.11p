@@ -746,13 +746,15 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
                 			// Two u32 values:
                 			//  payload[1]: Correlation threshold
                 			//  payload[2]: Energy threshold
+                			//  payload[3]: Minimum duration
 
                 			xil_printf("OFDM Pkt Det Thresh: (%d, %d)\n", ipc_msg_from_high_payload[1], ipc_msg_from_high_payload[2]);
 
                 			//wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(corr_thresh, energy_thresh, min_dur, post_wait)
                 			//  corr_thresh: UFix8_8
                 			//  energy_thresh: UFix14_8
-                			wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(ipc_msg_from_high_payload[1], ipc_msg_from_high_payload[2], 4, 0x3F);
+                			//  min_dur: UFix4_0
+                			wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(ipc_msg_from_high_payload[1], ipc_msg_from_high_payload[2], ipc_msg_from_high_payload[3], 0x3F);
                 		}
                 		break;
 
