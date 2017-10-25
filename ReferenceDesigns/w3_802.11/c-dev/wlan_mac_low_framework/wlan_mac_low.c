@@ -752,10 +752,11 @@ void wlan_mac_low_process_ipc_msg(wlan_ipc_msg_t * msg){
                 			xil_printf("OFDM Pkt Det Config: corr_thesh=%d, energy_thresh=%d, min_dur=%d\n", ipc_msg_from_high_payload[1], ipc_msg_from_high_payload[2], ipc_msg_from_high_payload[3]);
 
                 			//wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(corr_thresh, energy_thresh, min_dur, post_wait)
-                			//  corr_thresh: UFix8_8
-                			//  energy_thresh: UFix14_8
+                			//  corr_thresh: UFix8_7
+                			//  energy_thresh: UFix16_15
                 			//  min_dur: UFix4_0
-                			wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(ipc_msg_from_high_payload[1], ipc_msg_from_high_payload[2], ipc_msg_from_high_payload[3], 0x3F);
+                			//  post-det-reset: UFix4_0
+                			wlan_phy_rx_pktDet_autoCorr_ofdm_cfg(ipc_msg_from_high_payload[1], ipc_msg_from_high_payload[2], ipc_msg_from_high_payload[3], ipc_msg_from_high_payload[4]);
                 		}
                 		break;
 
