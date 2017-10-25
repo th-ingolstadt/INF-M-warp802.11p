@@ -1600,7 +1600,7 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             else:
                 self.send_cmd(cmd(cmds.CMD_PARAM_WRITE, cmds.CMD_PARAM_TXPARAM_MGMT, update_default_unicast, update_default_multicast, param, cmds.CMD_PARAM_TXPARAM_ADDR_NONE))
 
-    def _set_ofdm_autocorr_thresholds(self, corr_thresh, energy_thresh, min_dur=4):
+    def _set_ofdm_autocorr_thresholds(self, corr_thresh, energy_thresh, min_dur, post_det_reset):
         """Configures the OFDM auto-correlation packet detector thresholds. Set
         both thresholds to 0xFFFF to disable OFDM packet detections.
     
@@ -1608,8 +1608,9 @@ class WlanExpNode(node.WarpNode, wlan_device.WlanDevice):
             corr_thresh (int):  Auto-correlation threshold (in [1, 255])
             energy_thresh (int):  Energy threshold (in [1, 16383])
             min_dur (int): Minimum duration of auto-correlation event for pkt det, in samples (in [1, 15])
+            post_det_reset (int): Duration of no-det interval following end of pkt_det (nominally 0x3F)
         """    
-        return self.set_low_param(cmds.CMD_PARAM_LOW_PARAM_OFDM_PKT_DET_THRESH, (corr_thresh, energy_thresh, min_dur))
+        return self.set_low_param(cmds.CMD_PARAM_LOW_PARAM_OFDM_PKT_DET_THRESH, (corr_thresh, energy_thresh, min_dur, post_det_reset))
 
     def _set_dsss_autocorr_thresholds(self, corr_thresh, energy_thresh):
         """Configures the DSSS auto-correlation packet detector thresholds. Set
