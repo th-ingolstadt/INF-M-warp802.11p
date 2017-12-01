@@ -500,9 +500,6 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 
 	u16 rx_seq;
 
-	dl_entry* curr_tx_queue_element;
-	tx_queue_buffer_t* curr_tx_queue_buffer;
-
 	u8 unicast_to_me;
 	u8 to_multicast;
 	u8 send_response = 0;
@@ -515,22 +512,56 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 
 	// (debug) UART display of packet
 	time_hr_min_sec_t time_hr_min_sec = wlan_mac_time_to_hr_min_sec(get_system_time_usec());
-	xil_printf("*%dh:%02dm:%02ds* mpdu from 0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x\n",
+	xil_printf("*%dh:%02dm:%02ds* mpdu: src=0x%02x:0x%02x:0x%02x:0x%02x:0x%02x:0x%02x, length=%d\n",
 								time_hr_min_sec.hr, time_hr_min_sec.min, time_hr_min_sec.sec,
 								rx_80211_header->address_2[0], rx_80211_header->address_2[1], rx_80211_header->address_2[2],
-								rx_80211_header->address_2[3], rx_80211_header->address_2[4], rx_80211_header->address_2[5]);
+								rx_80211_header->address_2[3], rx_80211_header->address_2[4], rx_80211_header->address_2[5],
+								length);
 
 	// If this function was passed a CTRL frame (e.g., CTS, ACK), then we should just quit.
 	// The only reason this occured was so that it could be logged in the line above.
-	if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_CTRL){
-		goto mpdu_rx_process_end;
-	}
+//	if((rx_80211_header->frame_control_1 & 0xF) == MAC_FRAME_CTRL1_TYPE_CTRL){
+//		goto mpdu_rx_process_end;
+//	}
 
 	// Determine destination of packet
 	unicast_to_me = wlan_addr_eq(rx_80211_header->address_1, wlan_mac_addr);
 	to_multicast  = wlan_addr_mcast(rx_80211_header->address_1);
 
-	uint8_t packet[] = {
+	// mirror frame to ethernet interface
+	// memory needs to be accessible for the ethernet_dma (e.g. AUX_BRAM or DDR) - use the wifi tx buffer for now
+	dl_entry* curr_tx_queue_element = queue_checkout();
+	void* curr_tx_queue_buffer = memset(curr_tx_queue_element->data, 0, QUEUE_BUFFER_SIZE);
+
+	size_t pkt_size = 0;
+
+	ethernet_header_t 	*eth_frame = ethernet_frame_init(curr_tx_queue_buffer, &pkt_size);
+	eth_frame->ethertype = ETH_TYPE_IP;
+
+	ipv4_header_t 		*ipv4_frame = ip_frame_init(curr_tx_queue_buffer, &pkt_size);
+	udp_header_t 		*udp_frame = udp_frame_init(curr_tx_queue_buffer, &pkt_size);
+	rftap_header_t 		*rftap_frame = rftap_frame_init(curr_tx_queue_buffer, &pkt_size);
+	// radiotap_header_t 	*radiotap_frame = radiotap_frame_init(curr_tx_queue_buffer, &pkt_size);
+
+	void *pkt = memmove(curr_tx_queue_buffer + pkt_size, mac_payload_ptr_u8, length);
+	pkt_size += length;
+
+	// radiotap_frame->it_len = Xil_Htons(length + sizeof(radiotap_header_t));
+
+	rftap_frame->len32 = 3;
+	rftap_frame->flags = 1;
+	rftap_frame->dlt = 105; // DLT_IEEE802_11
+
+	udp_frame->length = Xil_Htons(length + sizeof(rftap_header_t) + sizeof(udp_header_t));
+	udp_frame->src_port = Xil_Htons(1);
+	udp_frame->dest_port = Xil_Htons(52001);
+
+	// ipv4_frame->total_length = Xil_Htons(sizeof(ipv4_header_t) + length + sizeof(rftap_header_t));
+	ip_frame_calc_checksum(ipv4_frame);
+
+	xil_printf("-> resulting ethernet frame, ptr = %x, l = %u\n", pkt, pkt_size);
+
+	u8 packet[] = {
 			0x0a, 0x02, 0x02, 0x02, 0x02, 0x02, 0x0a, 0x01, 0x01, 0x01, 0x01, 0x01, 0x08, 0x00, 0x45, 0x00,
 			0x00, 0x75, 0x12, 0x34, 0x00, 0x00, 0xff, 0x11, 0x92, 0x3e, 0x0a, 0x01, 0x01, 0x01, 0x0a, 0x02,
 			0x02, 0x02, 0x00, 0x01, 0xcb, 0x21, 0x00, 0x61, 0x33, 0x19, 0x52, 0x46, 0x74, 0x61, 0x08, 0x00,
@@ -542,13 +573,15 @@ u32 mpdu_rx_process(void* pkt_buf_addr, station_info_t* station_info, rx_common_
 			0x13, 0x80, 0x00 };
 
 	//uint8_t *buffer = malloc(512);
-	//memcpy(buffer, packet, sizeof(packet));
+	// memcpy(pkt_buf_addr, packet, sizeof(packet));
 	//memcpy(buffer, mac_payload_ptr_u8, 2);
 	//memcpy(pkt_buf_addr, mac_payload_ptr_u8,2);
 	int ret = 0;
-	if ((ret = wlan_platform_ethernet_send(mac_payload_ptr_u8, length)) != XST_SUCCESS) {
+	if ((ret = wlan_platform_ethernet_send(curr_tx_queue_buffer, pkt_size)) != XST_SUCCESS) {
 		xil_printf("Error: wlan_platform_ethernet_send() failed: %d\n", ret);
 	}
+
+	queue_checkin(curr_tx_queue_element);
 
     // If the packet is good (ie good FCS) and it is destined for me, then process it
 	if( (rx_frame_info->flags & RX_FRAME_INFO_FLAGS_FCS_GOOD)){
