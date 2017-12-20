@@ -1,0 +1,99 @@
+Index: edk_user_repository/WARP/pcores/radio_controller_axi_v3_01_a/src/radio_controller.c
+===================================================================
+diff --git a/PlatformSupport/CustomPeripherals/pcores/radio_controller_axi_v3_01_a/src/radio_controller.c b/PlatformSupport/CustomPeripherals/pcores/radio_controller_axi_v3_01_a/src/radio_controller.c
+--- a/PlatformSupport/CustomPeripherals/pcores/radio_controller_axi_v3_01_a/src/radio_controller.c	(revision 6163)
++++ b/PlatformSupport/CustomPeripherals/pcores/radio_controller_axi_v3_01_a/src/radio_controller.c	(working copy)
+@@ -34,9 +34,9 @@
+ static u16 rc_tuningParams_24GHz_reg3[14] = { 0xa0, 0x20a1, 0x30a1, 0xa1, 0x20a2, 0x30a2, 0xa2, 0x20a3, 0x30a3, 0xa3, 0x20a4, 0x30a4, 0xa4, 0x10a5 };
+ static u16 rc_tuningParams_24GHz_reg4[14] = { 0x3333, 0x888, 0x1ddd, 0x3333, 0x888, 0x1ddd, 0x3333, 0x888, 0x1ddd, 0x3333, 0x888, 0x1ddd, 0x3333, 0x2666 };
+ 
+-static u16 rc_tuningParams_5GHz_freqs[44] = { 5180, 5190, 5200, 5220, 5230, 5240, 5260, 5270, 5280, 5300, 5310, 5320, 5500, 5510, 5520, 5540, 5550, 5560, 5580, 5590, 5600, 5620, 5630, 5640, 5660, 5670, 5680, 5700, 5710, 5720, 5745, 5755, 5765, 5785, 5795, 5805, 5825, 5860, 5870, 5875, 5880, 5885, 5890, 5865 };
+-static u16 rc_tuningParams_5GHz_reg3[44] = { 0x30cf, 0x10cf, 0xd0, 0xd0, 0x30d1, 0x10d1, 0x20d2, 0xd2, 0x30d3, 0xd4, 0x20d4, 0xd4, 0xdc, 0x20dc, 0xdc, 0x10dd, 0xde, 0x20de, 0x30df, 0x10df, 0xe0, 0xe0, 0x30e1, 0x10e1, 0x20e2, 0xe2, 0x30e3, 0xe4, 0x20e4, 0xe4, 0xe5, 0x30e6, 0x10e6, 0x20e7, 0xe7, 0x30e8, 0xe9, 0x20ea, 0xea, 0xeb, 0x30eb, 0x20eb, 0x10eb, 0x10ea };
+-static u16 rc_tuningParams_5GHz_reg4[44] = { 0xccc, 0x2666, 0x0, 0x3333, 0xccc, 0x2666, 0x1999, 0x3333, 0xccc, 0x0, 0x1999, 0x3333, 0x0, 0x1999, 0x3333, 0x2666, 0x0, 0x1999, 0xccc, 0x2666, 0x0, 0x3333, 0xccc, 0x2666, 0x1999, 0x3333, 0xccc, 0x0, 0x1999, 0x3333, 0x3333, 0xccc, 0x2666, 0x1999, 0x3333, 0xccc, 0x0, 0x1999, 0x3333, 0x0, 0xccc, 0x1999, 0x2666, 0x2666 };
++static u16 rc_tuningParams_5GHz_freqs[47] = { 5180, 5190, 5200, 5220, 5230, 5240, 5260, 5270, 5280, 5300, 5310, 5320, 5500, 5510, 5520, 5540, 5550, 5560, 5580, 5590, 5600, 5620, 5630, 5640, 5660, 5670, 5680, 5700, 5710, 5720, 5745, 5755, 5765, 5785, 5795, 5805, 5825, 5860, 5865, 5870, 5875, 5880, 5885, 5890, 5900, 5910, 5920 };
++static u16 rc_tuningParams_5GHz_reg3[47] = { 0x30cf, 0x10cf, 0xd0, 0xd0, 0x30d1, 0x10d1, 0x20d2, 0xd2, 0x30d3, 0xd4, 0x20d4, 0xd4, 0xdc, 0x20dc, 0xdc, 0x10dd, 0xde, 0x20de, 0x30df, 0x10df, 0xe0, 0xe0, 0x30e1, 0x10e1, 0x20e2, 0xe2, 0x30e3, 0xe4, 0x20e4, 0xe4, 0xe5, 0x30e6, 0x10e6, 0x20e7, 0xe7, 0x30e8, 0xe9, 0x20ea, 0x10ea, 0xea, 0xeb, 0x30eb, 0x20eb, 0x10eb, 0xec, 0x20ec, 0xec };
++static u16 rc_tuningParams_5GHz_reg4[47] = { 0xccc, 0x2666, 0x0, 0x3333, 0xccc, 0x2666, 0x1999, 0x3333, 0xccc, 0x0, 0x1999, 0x3333, 0x0, 0x1999, 0x3333, 0x2666, 0x0, 0x1999, 0xccc, 0x2666, 0x0, 0x3333, 0xccc, 0x2666, 0x1999, 0x3333, 0xccc, 0x0, 0x1999, 0x3333, 0x3333, 0xccc, 0x2666, 0x1999, 0x3333, 0xccc, 0x0, 0x1999, 0x2666, 0x3333, 0x0, 0xccc, 0x1999, 0x2666, 0x0, 0x1999, 0x3333 };
+ /**
+ \defgroup user_functions Functions
+ \brief Functions to call from user code
+@@ -275,36 +275,41 @@
+ 12 | 2467 |  | 12 | 5320
+ 13 | 2472 |  | 13 | 5500
+ 14 | 2484 |  | 14 | 5510
+-- | - | | 15 | 5520
+-- | - | | 16 | 5540
+-- | - | | 17 | 5550
+-- | - | | 18 | 5560
+-- | - | | 19 | 5580
+-- | - | | 20 | 5590
+-- | - | | 21 | 5600
+-- | - | | 22 | 5620
+-- | - | | 23 | 5630
+-- | - | | 24 | 5640
+-- | - | | 25 | 5660
+-- | - | | 26 | 5670
+-- | - | | 27 | 5680
+-- | - | | 28 | 5700
+-- | - | | 29 | 5710
+-- | - | | 30 | 5720
+-- | - | | 31 | 5745
+-- | - | | 32 | 5755
+-- | - | | 33 | 5765
+-- | - | | 34 | 5785
+-- | - | | 35 | 5795
+-- | - | | 36 | 5805
+-- | - | | 37 | 5825
+-- | - | | 38 | 5860
+-- | - | | 39 | 5870
+-- | - | | 40 | 5875
+-- | - | | 41 | 5880
+-- | - | | 42 | 5885
+-- | - | | 43 | 5890
+-- | - | | 44 | 5865
++% || || ||  15 ||    5520 ||
++% || || ||  16 ||    5540 ||
++% || || ||  17 ||    5550 ||
++% || || ||  18 ||    5560 ||
++% || || ||  19 ||    5580 ||
++% || || ||  20 ||    5590 ||
++% || || ||  21 ||    5600 ||
++% || || ||  22 ||    5620 ||
++% || || ||  23 ||    5630 ||
++% || || ||  24 ||    5640 ||
++% || || ||  25 ||    5660 ||
++% || || ||  26 ||    5670 ||
++% || || ||  27 ||    5680 ||
++% || || ||  28 ||    5700 ||
++% || || ||  29 ||    5710 ||
++% || || ||  30 ||    5720 ||
++% || || ||  31 ||    5745 ||
++% || || ||  32 ||    5755 ||
++% || || ||  33 ||    5765 ||
++% || || ||  34 ||    5785 ||
++% || || ||  35 ||    5795 ||
++% || || ||  36 ||    5805 ||
++% || || ||  37 ||    5825 ||
++% || || ||  38 ||    5860 ||
++% || || ||  39 ||    5865 ||
++% || || ||  40 ||    5870 ||
++% || || ||  41 ||    5875 ||
++% || || ||  42 ||    5880 ||
++% || || ||  43 ||    5885 ||
++% || || ||  44 ||    5890 ||
++% || || ||  45 ||    5900 ||
++% || || ||  46 ||    5910 ||
++% || || ||  47 ||    5920 ||
++
++
+ */
+ int radio_controller_setCenterFrequency(u32 ba, u32 rfSel, u8 bandSel, u8 chanNum) {
+ 
+@@ -322,7 +327,7 @@
+ 		return(rc_tuningParams_24GHz_freqs[chanNum-1]);
+ 	}
+ 
+-	if((bandSel == RC_5GHZ) && (chanNum >= 1) && (chanNum <= 44) && (rfSel & RC_ANY_RF)) {
++	if((bandSel == RC_5GHZ) && (chanNum >= 1) && (chanNum <= 47) && (rfSel & RC_ANY_RF)) {
+ 		//MAX2829 tuning process for 5GHz channels:
+ 		//(Assumes default config of 5GHz sub-band tuning via FSM; see MAX2829 datasheet for details)
+ 		// -Set:
