@@ -3,12 +3,26 @@ title: 802.11p - Umsetzung
 author: Dominik Bayerl
 lang: de-DE
 documentclass: scrartcl
-header-includes:
-   - \usepackage{siunitx}
-   - \usepackage{cleveref}
+header-includes: |
+   \usepackage{fancyhdr}
+   \pagestyle{fancy}
+   \usepackage{siunitx}
+   \usepackage{cleveref}
+   \usepackage[nohyperlinks, printonlyused, withpage, smaller]{acronym}
 tablenos-cleveref: On
 tablenos-plus-name: Tab.
 bibliography: bibliography.bib
+include-after: |
+   \section*{Abkürzungsverzeichnis}
+   \begin{acronym}[OFDM]
+   \acro{ofdm}[OFDM]{Orthogonal Frequency-Division Multiplexing}
+   \acro{fpga}[FPGA]{Field Programmable Gate Array}
+   \acro{spi}[SPI]{Serial Peripheral Interface}
+   \acro{rf}[RF]{Radio Frequency}
+   \acro{adc}[ADC]{Analog Digital Converter}
+   \acro{dac}[DAC]{Digital Analog Converter}
+   \acro{dlt}[DLT]{Data Link Type}
+   \end{acronym}
 ---
 
 # 2. Umsetzung
@@ -17,7 +31,7 @@ Im Rahmen des Projekts wurden die zwei grundsätzlichen Funktionen umgesetzt, di
 
 ## 2.1. WARP Reference Design für 802.11p
 
-Auf die grundsätzliche Funktionsweise von *802.11p* wurde bereits in **TODO: Referenz 802.11p** eingegangen. Dabei wurde deutlich, dass der Standard sehr ähnlich zum bereits implementierten *802.11a* ist (insbesondere die OFDM-Waveform) und sich vor allem in zwei wesentlichen Merkmalen, den Channel-Frequenzen und der Channel-Bandbreite unterscheidet.
+Auf die grundsätzliche Funktionsweise von *802.11p* wurde bereits in **TODO: Referenz 802.11p** eingegangen. Dabei wurde deutlich, dass der Standard sehr ähnlich zum bereits implementierten *802.11a* ist (insbesondere die \ac{ofdm}-Waveform) und sich vor allem in zwei wesentlichen Merkmalen, den Channel-Frequenzen und der Channel-Bandbreite unterscheidet.
 Es bietet sich daher an, die Implementierung auf Basis des vorhandenen Frameworks vorzunehmen.
 
 ### 2.1.1. Channel-Frequenzen
@@ -42,9 +56,9 @@ Table: 802.11p Channels. {#tbl:channels}
 Es wird deutlich, dass eine Erweiterung des verfügbaren Frequenzbandes von 802.11a ($\SIrange{5180}{5825}{\mega\hertz}$) auf 802.11p ($\SIrange{5850}{5925}{\mega\hertz}$) notwendig ist.
 
 
-Die RF-Frequenz wird auf dem Mango WARPv3 Board durch den RF-Transceiver MAX2829 (siehe **TODO: Referenz Hardware**) erzeugt.
-Dieser kann via SPI durch die Low-CPU des FPGAs konfiguriert werden [@max2829]. Zur Einstellung der Center-Frequenz des Transceivers sind dabei insbesondere die Register *Band Select and PLL*, *Integer-Divider Ratio* und *Fractional-Divider Ratio* wichtig. Über das *Band Select* Register wird das Frequenzband ($\SI{5}{\giga\hertz}$) ausgewählt und durch den Vorteiler (engl. Divider) wird die Grundfrequenz des Oszillators durch einen rationalen Teiler (Ganzzahl und Fraktion) auf den gewünschten Wert abgeleitet.
-Zur Anpassung der verfügbaren Frequenzen ist daher eine Änderung der möglichen Register-Werte des RF-Transceivers notwendig.
+Die \ac{rf}-Frequenz wird auf dem Mango WARPv3 Board durch den \ac{rf}-Transceiver MAX2829 (siehe **TODO: Referenz Hardware**) erzeugt.
+Dieser kann via \ac{spi} durch die Low-CPU des \ac{fpga} konfiguriert werden [@max2829]. Zur Einstellung der Center-Frequenz des Transceivers sind dabei insbesondere die Register *Band Select and PLL*, *Integer-Divider Ratio* und *Fractional-Divider Ratio* wichtig. Über das *Band Select* Register wird das Frequenzband ($\SI{5}{\giga\hertz}$) ausgewählt und durch den Vorteiler (engl. Divider) wird die Grundfrequenz des Oszillators durch einen rationalen Teiler (Ganzzahl und Fraktion) auf den gewünschten Wert abgeleitet.
+Zur Anpassung der verfügbaren Frequenzen ist daher eine Änderung der möglichen Register-Werte des \ac{rf}-Transceivers notwendig.
 
 Im WARP Reference Design erfolgt die Konfiguration des Transceivers durch den radio_controller IP Core. Änderungen der Konfiguration erfolgen also am elegantesten im Treiber des Peripherals.
 Konkret bedeutet dies, dass in der Datei `edk/pcores/radio_controller.c` Änderungen für drei Lookup-Tables `rc_tuningParams_5GHz_freqs`, `rc_tuningParams_5GHz_reg3` und `rc_tuningParams_5GHz_reg4` notwendig sind, nämlich müssen die Register-Werte für die hinzugefügten Channels hinterlegt werden.
@@ -53,8 +67,8 @@ Die Berechnung der Werte kann händisch nach [@max2829] oder durch das beiligend
 Anschließend müssen die zusätzlichen Kanäle zur Verwendung "freigeschalten" werden. Dies erfolgt in der Software der Low-CPU.
 
 ### 2.1.2. Channel Bandbreite
-Die verwendete Bandbreite des Kanals hängt direkt von der gewählten Sampling-Rate des verwendeten ADC/DAC-Wandlers AD9963 ab.
-Dieser ist ebenfalls über die SPI-Schnittstelle durch die Low-CPU konfigurierbar, die Implementierung erfolgt über den w3_ad_controller Core.
+Die verwendete Bandbreite des Kanals hängt direkt von der gewählten Sampling-Rate des verwendeten \ac{adc}/\ac{dac}-Wandlers AD9963 ab.
+Dieser ist ebenfalls über die \ac{spi}-Schnittstelle durch die Low-CPU konfigurierbar, die Implementierung erfolgt über den w3_ad_controller Core.
 
 Für 802.11p werden vorrangig Kanäle der Bandbreite $\SI{10}{\mega\hertz}$ verwendet. Diese Bandbreite ist bereits im 802.11 Reference Design implementiert, muss jedoch in der Software der Low-CPU durch einen Aufruf der Funktion `set_phy_samp_rate()` aktiviert werden. Der $\SI{10}{\mega\hertz}$-Modus wird dabei durch die Konstante `PHY_10M` ausgewählt.
 
@@ -82,13 +96,7 @@ RFtap kann folglich als Obermenge von radiotap angesehen werden. Zusätzlich ist
 
 Für die direkte Verbindung zwischen dem WARPv3 Board und einem Computer sind die verwendeten MAC- und IP-Adressen unkritisch, da auf den Interfaces in diesem Fall keine Filterung stattfindet. In der derzeitigen Implementierung sind die Felder daher leer (Wert 0). Für künftige Projekte wäre es denkbar, diese Informationen sinnvoll zu befüllen. Dies ermöglicht beispielsweise ein Routing von RFtap-Frames über gewöhnliche, kommerzielle Netzwerk-Hardware.
 
-In Wireshark sind RFtap-Dissectors für UDP-Frames auf Destination-Port **52001** implementiert. Erkannt werden die Frames durch die Magic Numbers `0x52 0x46 0x74 0x61` (ascii: RFta) zu Beginn des Frames. Es folgt die Länge (unsigned integer, 2 Byte) des RFtap-Headers (ohne Datenteil!) in 32-bit Words und ein Flags-Bitfield (2 Byte), das die nachfolgenden Header-Flags spezifiziert[@rftap-specifications]. Dabei können (aufgrund des Längenfelds) beliebige zusätzliche Felder an das Ende des Headers angefügt werden, die dann jedoch nicht durch einen Dissector abgedeckt werden können. Der RFtap-Frame endet mit dem RF-Payload. Besonders interessant ist die Angabe des DLT-Felds, da dadurch der Typ der Nutzdaten spezifiziert wird. Bei korrekter Angabe nutzt Wireshark dann automatisch den richtigen Dissector um die Payload zu analysieren (beispielsweise LINKTYPE_IEEE802_11, IEEE 802.11 wireless LAN Frame [@tcpdump]).
+In Wireshark sind RFtap-Dissectors für UDP-Frames auf Destination-Port **52001** implementiert. Erkannt werden die Frames durch die Magic Numbers `0x52 0x46 0x74 0x61` (ascii: RFta) zu Beginn des Frames. Es folgt die Länge (unsigned integer, 2 Byte) des RFtap-Headers (ohne Datenteil!) in 32-bit Words und ein Flags-Bitfield (2 Byte), das die nachfolgenden Header-Flags spezifiziert[@rftap-specifications]. Dabei können (aufgrund des Längenfelds) beliebige zusätzliche Felder an das Ende des Headers angefügt werden, die dann jedoch nicht durch einen Dissector abgedeckt werden können. Der RFtap-Frame endet mit dem RF-Payload. Besonders interessant ist die Angabe des \ac{dlt}-Felds, da dadurch der Typ der Nutzdaten spezifiziert wird. Bei korrekter Angabe nutzt Wireshark dann automatisch den richtigen Dissector um die Payload zu analysieren (beispielsweise LINKTYPE_IEEE802_11, IEEE 802.11 wireless LAN Frame [@tcpdump]).
 
 Das Senden von Frames von einem Rechner erfolgt analog, in umgekehrter Reihenfolge.
 
-*[FPGA]: Field Programmable Gate Array
-*[SPI]: Serial Peripheral Interface
-*[RF]: Radio Frequency
-*[ADC]: Analog Digital Converter
-*[DAC]: Digital Analog Converter
-*[DLT]: Data Link Type

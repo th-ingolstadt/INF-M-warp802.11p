@@ -35,6 +35,8 @@
   \usepackage{polyglossia}
   \setmainlanguage[]{german}
 \fi
+\usepackage[]{biblatex}
+\addbibresource{bibliography.bib}
 \usepackage{graphicx,grffile}
 \makeatletter
 \def\maxwidth{\ifdim\Gin@nat@width>\linewidth\linewidth\else\Gin@nat@width\fi}
@@ -69,8 +71,9 @@
 \def\fps@figure{htbp}
 \makeatother
 
-\usepackage{siunitx}
+\usepackage{fancyhdr} \pagestyle{fancy} \usepackage{siunitx}
 \usepackage{cleveref}
+\usepackage[nohyperlinks, printonlyused, withpage, smaller]{acronym}
 
 \title{802.11p - Optimierungsmöglichkeiten}
 \author{Dominik Bayerl}
@@ -129,63 +132,64 @@ Ende der Header kopiert (Funktion \texttt{mpdu\_rx\_process()} in
 Kopiervorgang ist dabei potentiell ein Performance-Flaschenhals. Die
 Notwendigkeit eines einzelnen Buffers der den kompletten Ethernet-Frame
 enthält, ergibt sich durch die derzeitige Verwendung des
-Ethernet-Interfaces des FPGAs im einfachen DMA-Modus. Die tatsächliche
-Übertragung der Daten auf die Ethernet-Schnittstelle erfolgt
-anschließend ohne weitere Beteiligung der CPU durch das
+Ethernet-Interfaces des \ac{fpga} im einfachen \ac{dma}-Modus. Die
+tatsächliche Übertragung der Daten auf die Ethernet-Schnittstelle
+erfolgt anschließend ohne weitere Beteiligung der CPU durch das
 Ethernet-Peripheral.
 
-Im erweiterten DMA-Modus bietet der Ethernet-IP-Core die Möglichkeit der
-Datenübertragung zur Ethernet-Schnittstelle aus verschiedenen
-Speicherbereichen. Dieses Konzept wird bei Xilinx als
-``Scatter-Gather-DMA'' (\emph{grobe Übersetzung}:
-Verstreutes-Sammeln-DMA) bezeichnet („logicore ip axi ethernet
-(v3.01a)`` 2012). Die Funktionsweise besteht darin, dass der
-DMA-Schnittstelle nicht mehr die Buffer-Adresse und deren Länge
+Im erweiterten \ac{dma}-Modus bietet der Ethernet-\ac{ip-core} die
+Möglichkeit der Datenübertragung zur Ethernet-Schnittstelle aus
+verschiedenen Speicherbereichen. Dieses Konzept wird bei Xilinx als
+``Scatter-Gather-\ac{dma}'' (\emph{grobe Übersetzung}:
+Verstreutes-Sammeln-\ac{dma}) bezeichnet
+\autocite{xilinx-ethernet-core}. Die Funktionsweise besteht darin, dass
+der \ac{dma}-Schnittstelle nicht mehr die Buffer-Adresse und deren Länge
 übergeben wird, sondern die Adresse eines sogenannten ``Buffer
 Descriptors''. Diese Datenstruktur besteht unter anderem aus der
 Buffer-Adresse und einem Längenfeld (siehe
-\xrefname{fig.}\cref{fig:dma}). Sobald das DMA-Peripheral alle Daten aus
-dem im Buffer Descriptor referenzierten Buffers übertragen wird, wird
-ein Interrupt an die CPU ausgelöst.
+\xrefname{fig.}\cref{fig:dma}). Sobald das \ac{dma}-Peripheral alle
+Daten aus dem im Buffer Descriptor referenzierten Buffers übertragen
+hat, wird ein Interrupt an die CPU ausgelöst.
 
 \begin{figure}
 \centering
 \includegraphics{ds759_axi_ethernet_075.png}
-\caption{Xilinx DMA Buffer Descriptors.\label{fig:dma}}
+\caption{Xilinx \ac{dma} Buffer
+Descriptors\autocite{xilinx-ethernet-core}.\label{fig:dma}}
 \end{figure}
 
 Der Vorteil dieses Verfahrens besteht darin, dass eine zweite
 Indirektionsschicht eingeführt wird; dadurch ist es nicht mehr
-notwendig, dass sämtliche DMA-Daten sequentiell im Speicher liegen.
-Üblicherweise implementiert man dazu eine Single-Linked-List (FIFO
-Queue) aus Buffer-Descriptors, die nach jedem DMA-Interrupt
+notwendig, dass sämtliche \ac{dma}-Daten sequentiell im Speicher liegen.
+Üblicherweise implementiert man dazu eine Single-Linked-List (\ac{fifo}
+Queue) aus Buffer-Descriptors, die nach jedem \ac{dma}-Interrupt
 weitergeschalten wird. Für den konkreten Fall der Ethernet-Frames
 ermöglicht dieses Verfahren, die einzelnen Header-Bestandteile
 unabhängig im Speicher ablegen zu können. Dadurch ist ein echter
 Zero-Copy Modus - also ohne Daten kopieren zu müssen - möglich.
 
-\subsection{3.2. Nutzung der
-CFO-Estimates}\label{nutzung-der-cfo-estimates}
+\subsection{\texorpdfstring{3.2. Nutzung der
+\ac{cfo}-Estimates}{3.2. Nutzung der -Estimates}}\label{nutzung-der--estimates}
 
 Im Empfangspfad des WARPv3 existiert bereits ein Block zur Korrektur
 eventuell vorhandener Frequenzabweichungen der Sender bzw. des
 Empfängers (\textbf{TODO}: Referenz Aufbau Reference Design). Dabei wird
-mittels des LTS-Feldes über mehrere Frames die Frequenz des empfangenen
-Signals gegenüber der Center-Frequenz des gewählten Channels bestimmt
-und anschließend zur Korrektur der Fourier-Transformation der einzelnen
-Carriers genutzt.
+mittels des \ac{lts}-Feldes über mehrere Frames die Frequenz des
+empfangenen Signals gegenüber der Center-Frequenz des gewählten Channels
+bestimmt und anschließend zur Korrektur der Fourier-Transformation der
+einzelnen Carriers genutzt.
 
 In den meisten kommerziellen WiFi-Transceivern wird die Informationen
 anschließend verworfen, da sie für die darüberliegende Schicht (Layer 2,
 MAC Layer) nicht benötigt wird. Nicht so im WARP Reference Design: die
-geschätzte CFO wird durch die Low-CPU an die High-CPU in der Methode
-\texttt{mpdu\_rx\_process()} in der Datei
+geschätzte \ac{cfo} wird durch die Low-CPU an die High-CPU in der
+Methode \texttt{mpdu\_rx\_process()} in der Datei
 \texttt{wlan\_mac\_high\_sniffer/wlan\_mac\_sniffer.c} als Feld
 \texttt{cfo\_est} der Struktur \texttt{rx\_frame\_info\_t} übergeben.
 Gleichermaßen wird die Information bereits durch die Sniffer-Applikation
 in den RFtap-Frames an die Ethernet-Schnittstelle übertragen (\emph{Flag
 3, Frequency offset field is present}). Dies ermöglicht die Auswertung
-der CFO-Estimates beispielsweise im Wireshark eines angeschlossenen
+der \ac{cfo}-Estimates beispielsweise im Wireshark eines angeschlossenen
 Computers.
 
 Die Information ist besonders deswegen interessant, da sie (unter
@@ -205,15 +209,15 @@ erfährt.
 
 Diese Frequenzabweichung muss durch den Empfänger detektiert und
 kompensiert werden. Für die Anwendung WLAN wird dies durch die Korrektor
-der CFO übernommen. Hat ein Empfänger nun Kenntnis über den statischen
-CFO (bedingt durch ungenaue Oszillatoren) eines Senders, kann er durch
-die Messung des aktuellen CFOs eine dynamische Frequenzabweichung
-bestimmen, bei der der Doppler-Effekt eine nicht unerhebliche Rolle
-spielt. Für 802.11p bedeutet dies, dass zwei Fahrzeuge, die miteinander
-im Funkkontakt stehen, ihre gegenseitige Relativgeschwindigkeit ohne
-Zusatzhardware über die WLAN-Schnittstelle bestimmen könnten. Dies
-ermöglicht eine Reihe weiterer Funktionen, wie Notbremsassistenten,
-Adaptive Tempomaten und ähnliches.
+der \ac{cfo} übernommen. Hat ein Empfänger nun Kenntnis über den
+statischen \ac{cfo} (bedingt durch ungenaue Oszillatoren) eines Senders,
+kann er durch die Messung des aktuellen \ac{cfo} eine dynamische
+Frequenzabweichung bestimmen, bei der der Doppler-Effekt eine nicht
+unerhebliche Rolle spielt. Für 802.11p bedeutet dies, dass zwei
+Fahrzeuge, die miteinander im Funkkontakt stehen, ihre gegenseitige
+Relativgeschwindigkeit ohne Zusatzhardware über die WLAN-Schnittstelle
+bestimmen könnten. Dies ermöglicht eine Reihe weiterer Funktionen, wie
+Notbremsassistenten, Adaptive Tempomaten und ähnliches.
 
 \subsubsection{3.2.2. PHY-Fingerprinting}\label{phy-fingerprinting}
 
@@ -235,20 +239,20 @@ gesendeten Daten, sondern werden ausschließlich durch die
 RF-Charakteristik der Hardware des Senders beeinflusst und eignen sich
 dadurch als Merkmal zur Identifikation eines einzelnen Sende-Moduls.
 Durch ein geeignetes Fingerprinting-Verfahren über mehrere verschiedene
-Merkmale (CFO-Estimates, Signal-Power, Noise-Power) kann dadurch eine
-Zuordnung anderer Merkmale (MAC-Adresse, SSID) zu einem physikalischen
-Sender geschaffen werden. Dadurch wird es ermöglicht, oben genannte
-Angriffe erkennen zu können, da im Falle eines vorhandenen Angreifers
-zwei verschiedene Sendemodule (mit unterschiedlichen Fingerprints) die
-selben High-Level Merkmale (MAC-Adresse, SSID) nutzen würden.(„using
-rftap to detect mac spoofing`` 2016)
+Merkmale (\ac{cfo}-Estimates, Signal-Power, Noise-Power) kann dadurch
+eine Zuordnung anderer Merkmale (MAC-Adresse, SSID) zu einem
+physikalischen Sender geschaffen werden. Dadurch wird es ermöglicht,
+oben genannte Angriffe erkennen zu können, da im Falle eines vorhandenen
+Angreifers zwei verschiedene Sendemodule (mit unterschiedlichen
+Fingerprints) die selben High-Level Merkmale (MAC-Adresse, SSID) nutzen
+würden.\autocite{rftap-mac}
 
 \subsubsection{3.2.3. Linux Kernel}\label{linux-kernel}
 
 Im Verlauf des Projekts zeigte sich, dass der Ansatz des 802.11
 Reference Designs als Bare-Metal Software (d.h. ohne Betriebssystem)
 mehrere Schwächen besitzt: eine Iteration der entwickelten Software
-bedingt stets eine komplette Neuprogrammierung des FPGA-Designs.
+bedingt stets eine komplette Neuprogrammierung des \ac{fpga}-Designs.
 Desweiteren ist es nicht ohne weiteres möglich, Konfigurationsparameter
 (Channel, Baseband, \ldots{}) während des Betriebs anpassen zu können.
 Diese Funktion wurde zwar rudimentär über eine UART-Konsole eingebaut,
@@ -263,10 +267,9 @@ zur Nutzung der von Xilinx bereitgestellten Peripheral-Treiber
 
 Diese offenen Punkte können durch den Einsatz eines Betriebssystems
 gelöst werden. Xilinx bietet bereits einen an die MicroBlaze-Architektur
-angepassten Linux Kernel („xilinx wiki - microblaze``, o.~J.) an.
-Zusätzlich sind für die meisten IP-Cores Linux-Treiber vorhanden, die
-einfach integriert werden können („xilinx wiki - linux drivers``,
-o.~J.).
+angepassten Linux Kernel \autocite{xilinx-microblaze} an. Zusätzlich
+sind für die meisten \ac{ip-core} Linux-Treiber vorhanden, die einfach
+integriert werden können \autocite{xilinx-linux-drivers}.
 
 Ungelöst ist dabei die Problematik der Treiber für benutzerdefinierte
 Peripherals - insbesondere für die \emph{radio\_controller}, die
@@ -274,27 +277,17 @@ zentraler Bestandteil des WARP Reference Designs sind. Hier ist eine
 Anpassung der standalone-Treiber an die Schnittstelle des Linux-Kernels
 notwendig.
 
-\emph{{[}CFO{]}: Center Frequency Offset }{[}DMA{]}: Direct Memory
-Access \emph{{[}FPGA{]}: Field Programmable Gate Array }{[}FIFO{]}:
-First in First out \emph{{[}IP-Core{]}: Intellectual Property Core
-}{[}LTS{]}: Long training sequence \emph{{[}PLL{]}: Phase-locked Loop
-}{[}RF{]}: Radio Frequency
+\printbibliography
 
-\hypertarget{refs}{}
-\hypertarget{ref-xilinx-ethernet-core}{}
-„logicore ip axi ethernet (v3.01a)``. 2012. \emph{Xilinx.com}.
-\url{https://www.xilinx.com/support/documentation/ip_documentation/axi_ethernet/v3_01_a/ds759_axi_ethernet.pdf}.
-
-\hypertarget{ref-rftap-mac}{}
-„using rftap to detect mac spoofing``. 2016. \emph{Rftap.github.io}.
-\url{https://rftap.github.io/blog/2016/09/01/rftap-wifi.html}.
-
-\hypertarget{ref-xilinx-linux-drivers}{}
-„xilinx wiki - linux drivers``. o.~J. \emph{Wiki.xilinx.com}.
-\url{http://www.wiki.xilinx.com/Linux+Drivers}.
-
-\hypertarget{ref-xilinx-microblaze}{}
-„xilinx wiki - microblaze``. o.~J. \emph{Wiki.xilinx.com}.
-\url{http://www.wiki.xilinx.com/MicroBlaze\#x-MicroBlaze\%20Linux}.
+\section*{Abkürzungsverzeichnis}\begin{acronym}[ip-core]
+\acro{cfo}[CFO]{Center Frequency Offset}
+\acro{dma}[DMA]{Direct Memory Access}
+\acro{fpga}[FPGA]{Field Programmable Gate Array}
+\acro{fifo}[FIFO]{First in First out}
+\acro{ip-core}[IP-Core]{Intellectual Property Core}
+\acro{lts}[LTS]{Long training sequence}
+\acro{pll}[PLL]{Phase-locked Loop}
+\acro{rf}[RF]{Radio Frequency}
+\end{acronym}
 
 \end{document}

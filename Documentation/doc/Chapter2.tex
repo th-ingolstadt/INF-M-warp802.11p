@@ -35,6 +35,8 @@
   \usepackage{polyglossia}
   \setmainlanguage[]{german}
 \fi
+\usepackage[]{biblatex}
+\addbibresource{bibliography.bib}
 \usepackage{longtable,booktabs}
 % Fix footnotes in tables (requires footnote package)
 \IfFileExists{footnote.sty}{\usepackage{footnote}\makesavenoteenv{long table}}{}
@@ -72,8 +74,9 @@
 \def\fps@figure{htbp}
 \makeatother
 
-\usepackage{siunitx}
+\usepackage{fancyhdr} \pagestyle{fancy} \usepackage{siunitx}
 \usepackage{cleveref}
+\usepackage[nohyperlinks, printonlyused, withpage, smaller]{acronym}
 
 \title{802.11p - Umsetzung}
 \author{Dominik Bayerl}
@@ -114,8 +117,8 @@ Folgenden kurz eingegangen werden.
 Auf die grundsätzliche Funktionsweise von \emph{802.11p} wurde bereits
 in \textbf{TODO: Referenz 802.11p} eingegangen. Dabei wurde deutlich,
 dass der Standard sehr ähnlich zum bereits implementierten
-\emph{802.11a} ist (insbesondere die OFDM-Waveform) und sich vor allem
-in zwei wesentlichen Merkmalen, den Channel-Frequenzen und der
+\emph{802.11a} ist (insbesondere die \ac{ofdm}-Waveform) und sich vor
+allem in zwei wesentlichen Merkmalen, den Channel-Frequenzen und der
 Channel-Bandbreite unterscheidet. Es bietet sich daher an, die
 Implementierung auf Basis des vorhandenen Frameworks vorzunehmen.
 
@@ -128,7 +131,7 @@ verschiedene Channels und dadurch verschiedene Frequenzen für die
 Kommunikation nutzen. Im 802.11p Standard sind acht verschiedene
 Channel-Typen spezifiziert, die für unterschiedliche Aufgaben reserviert
 sind. \Xrefname{Table}\Cref{tbl:channels} gibt einen Überblick über die
-spezifizierten Kanäle (\emph{Draft ETSI EN 302 663 V1.2.0} 2012).
+spezifizierten Kanäle \autocite{etsi}.
 
 \begin{longtable}[]{@{}lllll@{}}
 \caption{802.11p Channels. \label{tbl:channels}}\tabularnewline
@@ -255,19 +258,19 @@ Es wird deutlich, dass eine Erweiterung des verfügbaren Frequenzbandes
 von 802.11a (\(\SIrange{5180}{5825}{\mega\hertz}\)) auf 802.11p
 (\(\SIrange{5850}{5925}{\mega\hertz}\)) notwendig ist.
 
-Die RF-Frequenz wird auf dem Mango WARPv3 Board durch den RF-Transceiver
-MAX2829 (siehe \textbf{TODO: Referenz Hardware}) erzeugt. Dieser kann
-via SPI durch die Low-CPU des FPGAs konfiguriert werden
-(„max2828/max2829 single-/dual-band 802.11a/b/g world-band transceiver``
-2004). Zur Einstellung der Center-Frequenz des Transceivers sind dabei
-insbesondere die Register \emph{Band Select and PLL},
-\emph{Integer-Divider Ratio} und \emph{Fractional-Divider Ratio}
-wichtig. Über das \emph{Band Select} Register wird das Frequenzband
-(\(\SI{5}{\giga\hertz}\)) ausgewählt und durch den Vorteiler (engl.
-Divider) wird die Grundfrequenz des Oszillators durch einen rationalen
-Teiler (Ganzzahl und Fraktion) auf den gewünschten Wert abgeleitet. Zur
-Anpassung der verfügbaren Frequenzen ist daher eine Änderung der
-möglichen Register-Werte des RF-Transceivers notwendig.
+Die \ac{rf}-Frequenz wird auf dem Mango WARPv3 Board durch den
+\ac{rf}-Transceiver MAX2829 (siehe \textbf{TODO: Referenz Hardware})
+erzeugt. Dieser kann via \ac{spi} durch die Low-CPU des \ac{fpga}
+konfiguriert werden \autocite{max2829}. Zur Einstellung der
+Center-Frequenz des Transceivers sind dabei insbesondere die Register
+\emph{Band Select and PLL}, \emph{Integer-Divider Ratio} und
+\emph{Fractional-Divider Ratio} wichtig. Über das \emph{Band Select}
+Register wird das Frequenzband (\(\SI{5}{\giga\hertz}\)) ausgewählt und
+durch den Vorteiler (engl. Divider) wird die Grundfrequenz des
+Oszillators durch einen rationalen Teiler (Ganzzahl und Fraktion) auf
+den gewünschten Wert abgeleitet. Zur Anpassung der verfügbaren
+Frequenzen ist daher eine Änderung der möglichen Register-Werte des
+\ac{rf}-Transceivers notwendig.
 
 Im WARP Reference Design erfolgt die Konfiguration des Transceivers
 durch den radio\_controller IP Core. Änderungen der Konfiguration
@@ -278,8 +281,7 @@ bedeutet dies, dass in der Datei \texttt{edk/pcores/radio\_controller.c}
 \texttt{rc\_tuningParams\_5GHz\_reg3} und
 \texttt{rc\_tuningParams\_5GHz\_reg4} notwendig sind, nämlich müssen die
 Register-Werte für die hinzugefügten Channels hinterlegt werden. Die
-Berechnung der Werte kann händisch nach („max2828/max2829
-single-/dual-band 802.11a/b/g world-band transceiver`` 2004) oder durch
+Berechnung der Werte kann händisch nach \autocite{max2829} oder durch
 das beiligende Python-Skript erfolgen.
 
 Anschließend müssen die zusätzlichen Kanäle zur Verwendung
@@ -288,9 +290,10 @@ Anschließend müssen die zusätzlichen Kanäle zur Verwendung
 \subsubsection{2.1.2. Channel Bandbreite}\label{channel-bandbreite}
 
 Die verwendete Bandbreite des Kanals hängt direkt von der gewählten
-Sampling-Rate des verwendeten ADC/DAC-Wandlers AD9963 ab. Dieser ist
-ebenfalls über die SPI-Schnittstelle durch die Low-CPU konfigurierbar,
-die Implementierung erfolgt über den w3\_ad\_controller Core.
+Sampling-Rate des verwendeten \ac{adc}/\ac{dac}-Wandlers AD9963 ab.
+Dieser ist ebenfalls über die \ac{spi}-Schnittstelle durch die Low-CPU
+konfigurierbar, die Implementierung erfolgt über den w3\_ad\_controller
+Core.
 
 Für 802.11p werden vorrangig Kanäle der Bandbreite
 \(\SI{10}{\mega\hertz}\) verwendet. Diese Bandbreite ist bereits im
@@ -322,7 +325,7 @@ Frames gesendet werden.
 
 Das WARPv3 Board besitzt zwei \(\SI{1}{Gbps}\)-Ethernet-Interfaces.
 Dabei ist Interface \textbf{B} durch das Reference-Design reserviert, um
-darüber Experimente steuern zu können(Mango Communications 2017). Die
+darüber Experimente steuern zu können\autocite{warp-exp}. Die
 Schnittstelle zur Datenübertragung wurde deshalb auf Interface
 \textbf{A} realisiert. Diese kann über ein normales RJ45 Ethernet-Kabel
 mit einem beliebigen Rechner verbunden werden.
@@ -341,9 +344,9 @@ dessen Betriebssystem bzw. Anwendungen erst gar nicht.
 Es wurden zwei verschiedene Protokolle zur Übertragung von 802.11 Frames
 über die Ethernet-Schnittstelle evaluiert: - radiotap, das spezialisiert
 ist auf ``{[}\ldots{}{]} 802.11 frame injection and
-reception''(„radiotap``, o.~J.) - RFtap, ein Protokoll ``{[}\ldots{}{]}
+reception''\autocite{radiotap} - RFtap, ein Protokoll ``{[}\ldots{}{]}
 designed to provide Radio Frequency (RF) metadata about
-packets''(„rftap``, o.~J.)
+packets''\autocite{rftap}
 
 Für beide Protokolle existiert eine gute Unterstützung in bestehenden
 Netzwerk-Analyse Tools wie Wireshark. Im Rahmen des Projekts wurde das
@@ -376,51 +379,30 @@ In Wireshark sind RFtap-Dissectors für UDP-Frames auf Destination-Port
 Numbers \texttt{0x52\ 0x46\ 0x74\ 0x61} (ascii: RFta) zu Beginn des
 Frames. Es folgt die Länge (unsigned integer, 2 Byte) des RFtap-Headers
 (ohne Datenteil!) in 32-bit Words und ein Flags-Bitfield (2 Byte), das
-die nachfolgenden Header-Flags spezifiziert(„specifications``, o.~J.).
-Dabei können (aufgrund des Längenfelds) beliebige zusätzliche Felder an
-das Ende des Headers angefügt werden, die dann jedoch nicht durch einen
-Dissector abgedeckt werden können. Der RFtap-Frame endet mit dem
-RF-Payload. Besonders interessant ist die Angabe des DLT-Felds, da
-dadurch der Typ der Nutzdaten spezifiziert wird. Bei korrekter Angabe
-nutzt Wireshark dann automatisch den richtigen Dissector um die Payload
-zu analysieren (beispielsweise LINKTYPE\_IEEE802\_11, IEEE 802.11
-wireless LAN Frame („link-layer header types \textbar{} tcpdump/libpcap
-public repository`` 2017)).
+die nachfolgenden Header-Flags
+spezifiziert\autocite{rftap-specifications}. Dabei können (aufgrund des
+Längenfelds) beliebige zusätzliche Felder an das Ende des Headers
+angefügt werden, die dann jedoch nicht durch einen Dissector abgedeckt
+werden können. Der RFtap-Frame endet mit dem RF-Payload. Besonders
+interessant ist die Angabe des \ac{dlt}-Felds, da dadurch der Typ der
+Nutzdaten spezifiziert wird. Bei korrekter Angabe nutzt Wireshark dann
+automatisch den richtigen Dissector um die Payload zu analysieren
+(beispielsweise LINKTYPE\_IEEE802\_11, IEEE 802.11 wireless LAN Frame
+\autocite{tcpdump}).
 
 Das Senden von Frames von einem Rechner erfolgt analog, in umgekehrter
 Reihenfolge.
 
-\emph{{[}FPGA{]}: Field Programmable Gate Array }{[}SPI{]}: Serial
-Peripheral Interface \emph{{[}RF{]}: Radio Frequency }{[}ADC{]}: Analog
-Digital Converter \emph{{[}DAC{]}: Digital Analog Converter }{[}DLT{]}:
-Data Link Type
+\printbibliography
 
-\hypertarget{refs}{}
-\hypertarget{ref-etsi}{}
-\emph{Draft ETSI EN 302 663 V1.2.0}. 2012. ETSI.
-
-\hypertarget{ref-tcpdump}{}
-„link-layer header types \textbar{} tcpdump/libpcap public repository``.
-2017. \emph{tcpdump.org}. \url{http://www.tcpdump.org/linktypes.html}.
-
-\hypertarget{ref-warp-exp}{}
-Mango Communications, Inc. 2017. „Mango 802.11 Reference Design
-Experiments Framework Documentation``.
-\url{https://warpproject.org/docs/mango-wlan-exp/}.
-
-\hypertarget{ref-max2829}{}
-„max2828/max2829 single-/dual-band 802.11a/b/g world-band transceiver``.
-2004. \emph{datasheets.maximintegrated.com}.
-\url{https://datasheets.maximintegrated.com/en/ds/MAX2828-MAX2829.pdf}.
-
-\hypertarget{ref-radiotap}{}
-„radiotap``. o.~J. \emph{radiotap.org}. \url{http://www.radiotap.org/}.
-
-\hypertarget{ref-rftap}{}
-„rftap``. o.~J. \emph{rftap.github.io}. \url{https://rftap.github.io/}.
-
-\hypertarget{ref-rftap-specifications}{}
-„specifications``. o.~J. \emph{rftap.github.io}.
-\url{https://rftap.github.io/specifications/}.
+\section*{Abkürzungsverzeichnis}\begin{acronym}[OFDM]
+\acro{ofdm}[OFDM]{Orthogonal Frequency-Division Multiplexing}
+\acro{fpga}[FPGA]{Field Programmable Gate Array}
+\acro{spi}[SPI]{Serial Peripheral Interface}
+\acro{rf}[RF]{Radio Frequency}
+\acro{adc}[ADC]{Analog Digital Converter}
+\acro{dac}[DAC]{Digital Analog Converter}
+\acro{dlt}[DLT]{Data Link Type}
+\end{acronym}
 
 \end{document}
