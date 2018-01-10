@@ -1,0 +1,12 @@
+\select@language {german}
+\select@language {german}
+\contentsline {figure}{\numberline {1}{\ignorespaces Die Warp Hardware von Mango Communications \cite {[2]}}}{2}{figure.1}
+\contentsline {figure}{\numberline {2}{\ignorespaces Design des Warp v3 Kits \cite {[3]}}}{3}{figure.2}
+\contentsline {figure}{\numberline {3}{\ignorespaces \IeC {\"U}bersicht \IeC {\"u}ber die Taktung des Mango v3 Kits \cite {[4]}}}{4}{figure.3}
+\contentsline {figure}{\numberline {4}{\ignorespaces Zu setzende Register f\IeC {\"u}r die Auswahl des Interpolationsfilters}}{4}{figure.4}
+\contentsline {figure}{\numberline {5}{\ignorespaces Aufbau des Warp 802.11 Reference Designs \cite {[5]}}}{6}{figure.5}
+\contentsline {figure}{\numberline {6}{\ignorespaces Frequenzen und Kan\IeC {\"a}le f\IeC {\"u}r IEE 802.11p nach \cite {[6]}}}{8}{figure.6}
+\contentsline {figure}{\numberline {7}{\ignorespaces Signal des Warp V3 Boards mit 802.11a}}{12}{figure.7}
+\contentsline {figure}{\numberline {8}{\ignorespaces Signal des Warp v3 Boards mit 802.11p}}{13}{figure.8}
+\contentsline {figure}{\numberline {9}{\ignorespaces RFtap Frame Aufbau.}}{16}{figure.9}
+\contentsline {figure}{\numberline {10}{\ignorespaces Xilinx DMA Buffer Descriptors.}}{18}{figure.10}
